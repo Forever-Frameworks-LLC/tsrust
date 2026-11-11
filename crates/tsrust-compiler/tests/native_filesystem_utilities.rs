@@ -49,6 +49,8 @@ function main(){
 #[test]
 fn new_file_observers_do_not_relax_mutable_or_consumed_owner_checks() {
     for (source,code) in [
+        ("import {writeTextFileAtomic} from 'std:fs';function main(){writeTextFileAtomic('file',42);}","type"),
+        ("import {writeTextFileAtomic} from 'std:fs';function main(){writeTextFileAtomic('file','draft',42);}","type"),
         ("import {File,truncate} from 'std:fs';function action(file:ReadOnly<File>){truncate(file,0);}function main(){}","parameter-access"),
         ("import {open,close,fileStat} from 'std:fs';function main(){const file=unwrap(open('input'));unwrap(close(file));fileStat(file);}","transferred"),
         ("import {create,bufferWriter,truncate} from 'std:fs';function main(){const writer=unwrap(bufferWriter(unwrap(create('input'))));truncate(writer,0);}","type"),

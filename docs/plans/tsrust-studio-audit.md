@@ -616,3 +616,103 @@ deprecation. No changed dev/cache source warning. Repository CLI SHA256 is now
 consumers retain their previous images pending native acceptance. Kept the actual Studio
 supervisor41326/session6863 running throughout. Restart question is pending;
 no authorization reply or live load is claimed.
+
+
+## Atomic storage prerequisite — 2026-11-10, implementation under validation
+
+Previous continuation made progress with checkpoint79c37206: unchanged successful
+application builds retain the live process. No supervisor restart reply yet;
+keep session6863/supervisor41326 running. UI checkpointacbcb8ed remains compiled
+and partially observed, with new Tree/keyed-row renderer acceptance pending load.
+
+Studio cannot use existing writeTextFile for reliable saves: it truncates before
+completion. Added reusable writeTextFileAtomic(path,text,expectedText?) behind
+managed std:fs bindings, rather than hiding a Rust editor implementation in the app.
+The existing temporary-files dependency supplies secure same-directory staging;
+ordinary file and temporary-directory callers do not include the new atomic module.
+Native separation/runtime-feature detection includes that selected module.
+
+The operation synchronizes staged data before rename and its directory afterward.
+It rejects non-regular/symlink, read-only and multi-hardlink targets; exact optional
+expected bytes plus observed identity/metadata are checked. Fresh targets publish
+without clobbering a concurrently created entry. Post-commit directory-sync failure
+returns committed-not-durable, explicitly meaning contents DID change. Studio must
+retain recovery state and reconcile the baseline on that outcome. Final rename
+still has a race with uncooperative external writers; this is not a cross-process
+compare-and-swap or filesystem sandbox. No arbitrary read-size cap is introduced.
+
+On macOS fcopyfile copies metadata from the held source descriptor, with explicit
+owner/group/mode verification and a fresh modification time. Other Unix paths
+preserve permission bits only; Windows returns unsupported before touching storage.
+Full Windows Studio save acceptance remains required. Reference semantics:
+[Apple copyfile manual](https://github.com/apple-oss-distributions/copyfile/blob/main/copyfile.3),
+[tempfile persist](https://docs.rs/tempfile/3.27.0/tempfile/struct.NamedTempFile.html#method.persist),
+[Rust rename](https://doc.rust-lang.org/std/fs/fn.rename.html).
+
+Full callable/argument/error/ownership docs and a portable documented example are
+in builtins.json; Windows example expects unsupported rather than pretending a
+save. Added public .test.tsr runtime coverage and selected-module/type rejection,
+completion, hover and parameter-help witnesses. Backend tests inject staging and
+post-commit sync failures, external mutation and same-byte inode replacement; macOS
+host metadata witness checks permissions/ownership/ACL/xattr and old-reader data.
+Whole formatter changed one fixture and one snippet; token preservation and
+idempotence checks pass. Native unit compilation is running; final executable and
+editor acceptance, consumer refresh and checkpoint remain pending. No UI editing
+or saving is enabled by this prerequisite alone.
+
+
+Atomic backend witnesses pass3/3 in0.03s (3m17s build/setup). Selected runtime
+module/dependency isolation passes1/1 in0.23s (2m14s setup), retaining the old
+safe temporary-directory and ordinary-file exclusions. Expanded parameter/type
+rejection control passes1/1 in0.02s (0.95s setup). Initial public source checks fail
+before execution with error-effect: the operation was absent from the audited
+native failure-contract list, making both direct and first-class calls opaque.
+Failure-only tracing identified that omission; no disk operation ran. Corrected
+both production/audit registrations and added mutating-observer exclusion. The
+original failing alias and direct-call cases remain, with no weaker error checks.
+Focused compiler effects validation is building; public native runtime/example
+and LSP checks remain pending. No unchanged backend metadata witness is replayed
+for this compiler-only repair.
+
+
+Validation continued November11. Corrected audited native-effect witness passes1/1
+in0.01s (3m16s build/setup), and mutating-observer exclusion passes1/1 in0.00s on
+that final test binary. Rebuilt CLI/LSP pair passes2m28s. Public native runtime
+cases and the actual generated catalog example compile together once and pass3/3
+in63.47ms execution,1,561.3ms build/setup. The original alias witness remains.
+Affected completion matrix2rows x4modes passes2.37s; filesystem help consistency
+8cases x4modes passes8.78s; catalog-help contract passes1/1 in0.03s. No new receiver
+type; existing FsError checker agreement is retained. The legacy exhaustive
+catalog host test's count and Windows-output selection are maintained, but that
+per-example native loop is not rerun for this change. The new ordinary runtime
+acceptance uses std:testing/tsrust test and a single batched native program.
+
+A final metadata check now also verifies copied BSD flags before publication.
+Extended macOS host witness proves UF_HIDDEN retention and modification-time
+advance, in addition to ACL/xattr/mode/ownership and old-reader behavior:1/1PASS
+in0.03s,3m17s build/setup. Unchanged fault/effect/editor controls are retained.
+Final consumer rebuild, affected generated native rerun, all-target compilation,
+installed refresh and checkpoint are pending. No live app restart or editable
+buffer integration is implied by these results.
+
+
+Final pair rebuild passes2m27s. Final affected public native runtime/example batch
+passes3/3 in45.58ms execution and1,874.7ms build/setup. Backend compiler/LSP all-target
+compilation passes1m18s. Every warning was inspected: only unchanged host helper
+and reference unused/dead code, an HTTP import and existing fetch_update deprecation;
+no changed source warning. These durations are observations, not benchmark samples.
+Installed CLI/LSP were staged and atomically replaced, independently matching repo
+SHA256 values f5e31107f51340b11e6a512c63a50551cfb858e6e43a1861ab88612a001fa292
+and6d55dbde9e6143242f57132cb8067c9cf6f47169b1a2b00cc9f67c38a011963a.
+Configured repo overrides resolve to that pair. VS Code has an empty editor and no
+active tsrust-lsp; CUA “Verified no active editor documents” completed. No document
+or server restart was needed. Live Studio41326/76014/session6863 stays running on
+the earlier image, with a one-restart request still unanswered.
+
+Deleted disposable generated catalog sources and empty private runtime cwd, the
+obsolete pre-flags atomic test application cache variant, and171,774,617B of obsolete
+test executables/dependency files. Current tools, final compiler unit binary and
+current native cache remain. No archive/source snapshot/command-log import, broad
+unchanged suite replay, performance timing campaign, push or release occurred.
+Atomic storage has focused macOS acceptance; safe Studio saves, recovery, settings
+and Windows implementation remain required.

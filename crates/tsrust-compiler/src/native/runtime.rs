@@ -12,7 +12,7 @@ pub fn requires_hostname(source:&str)->bool {source.contains(crate::stdlib::os::
 
 pub fn requires_byte_codecs(source:&str)->bool {source.contains("fn codec_base64_engine(")}
 pub fn requires_byte_search(source:&str)->bool {source.contains(include_str!("../stdlib/bytes/runtime/search.rs"))}
-pub fn requires_temporary_files(source:&str)->bool {source.contains("mod tsrust_native_tempfiles {")}
+pub fn requires_temporary_files(source:&str)->bool {source.contains("mod tsrust_native_tempfiles {")||source.contains("mod tsrust_native_atomic_files {")}
 
 pub(crate) fn bytes_module(views:bool,utf8:bool,codecs:bool,base64:bool,operations:bool,binary:bool,search:bool)->String {
     let mut text=String::from("mod tsrust_native_bytes {\n");
@@ -30,6 +30,12 @@ pub(crate) fn tempfiles_module()->String {
     let source=include_str!("../stdlib/fs/runtime/tempfiles.rs").split("\n#[cfg(test)]").next().unwrap()
         .replace("crate::stdlib::fs::runtime::fs","crate::tsrust_native_files::fs");
     format!("mod tsrust_native_tempfiles {{\n{source}\n}}\n")
+}
+
+pub(crate) fn atomic_files_module()->String {
+    let source=include_str!("../stdlib/fs/runtime/atomic.rs").split("\n#[cfg(test)]").next().unwrap()
+        .replace("crate::stdlib::fs::runtime::fs","crate::tsrust_native_files::fs");
+    format!("mod tsrust_native_atomic_files {{\n{source}\n}}\n")
 }
 
 pub(crate) fn files_module()->String {
@@ -148,7 +154,7 @@ pub fn separate(source:&str)->Units {
     for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
     if let Some(module)=json {extract("tsrust_native_json",module);}
     extract("tsrust_native_logging",crate::stdlib::logging::RUNTIME.to_owned());
-    extract("tsrust_native_files",files_module());extract("tsrust_native_tempfiles",tempfiles_module());extract("tsrust_native_path",path_module());
+    extract("tsrust_native_files",files_module());extract("tsrust_native_tempfiles",tempfiles_module());extract("tsrust_native_atomic_files",atomic_files_module());extract("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.
         application=application.replace(crate::runtime::STRINGS,&format!("use tsrust_runtime::text::*;\n{}",crate::runtime::NUMBER_TIE));

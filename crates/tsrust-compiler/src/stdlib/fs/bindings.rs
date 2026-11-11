@@ -242,6 +242,17 @@ pub const WRITE_TEXT_FILE: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_text_file" }, features: &["fs"],
 };
 
+pub const WRITE_TEXT_FILE_ATOMIC: NativeBinding = NativeBinding {
+    module: "std:fs", name: "writeTextFileAtomic", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "text", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "expectedText", ty: NativeType::String, access: Mode::Read, optional: true, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_text_file_atomic" }, features: &["fs", "temporary-files"],
+};
+
 pub const TRUNCATE: NativeBinding = NativeBinding {
     module: "std:fs", name: "truncate", returned_borrow: None,
     parameters: &[

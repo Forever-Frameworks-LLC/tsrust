@@ -329,6 +329,25 @@ change unrelated v0.2.0 acceptance or authorize a release.
   even with identical bytes and revision numbers. Dirty reload/close guards pass
   in the model. Integrated native document/workspace suite10/10 passes; native
   close prompts, safe disk writes and crash/draft recovery remain required.
+- Shell alignment is checkpointed at acbcb8ed: compact custom chrome, tooltip
+  icons, explicit dividers, restrained surfaces, actual sidebar resizing/collapse,
+  filename search, close controls and shared zoom wiring. Model suite11/11 and
+  final affected workspace5/5 pass. Tree sizing/ellipsis and stable moved rows are
+  built and covered by focused runtime tests; the new native renderer still needs
+  its authorized live load. Persistent settings/i18n/docking remain required.
+- Dev checkpoint79c37206 retains an unchanged live application after successful
+  rebuilds. Focused lifecycle regression covers test-only PID retention, real
+  replacement, failure preservation, exited-child relaunch and shutdown cleanup.
+  The retained Studio supervisor still embeds the earlier image.
+- Atomic storage primitive has focused macOS acceptance: std:fs.writeTextFileAtomic
+  stages/synchronizes replacement, checks optional expected text and observed
+  revisions, and preserves macOS metadata. Native failure/metadata witnesses
+  pass3/3, with final flags/mtime witness1/1. Public runtime/example batch3/3,
+  compiler contracts, affected completion/help phases and backend all-target
+  compilation pass. Exact identities and timings are in the audit.
+  Windows remains unsupported for this new operation. It does not by itself
+  enable Studio saving or recovery; commit/durability outcomes, drafts and
+  editable-document integration remain required.
 - Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model
   attempts stopped on resource conditions, without answers. Those results remain.
 - Exact same official Qwen1.5B Q4 model and arithmetic oracle pass with pinned

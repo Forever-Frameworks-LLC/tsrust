@@ -47,6 +47,7 @@ mod tests {
             ("@native:std:fs#readDir", true),
             ("@native:std:fs#truncate", false),
             ("@native:std:fs#writeTextFile", false),
+            ("@native:std:fs#writeTextFileAtomic", false),
             ("@native:std:fs#openFile", false),
             ("@native:std:os#platform", true),
             ("@native:std:bytes#concat", true),

@@ -6,7 +6,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Current continuation — 2026-11-08
 
-### Tsrust Studio active implementation — 2026-11-10
+### Tsrust Studio active implementation — 2026-11-11
 
 Full persistent Studio goal remains active, not an MVP or delivery claim. Owner
 approved real implementation and compiler prerequisites, one writer/no delegation,
@@ -103,12 +103,12 @@ Passed checks to preserve; do not replay unchanged executables:
   TSRUST_LSP_AGREEMENT_TYPE='Signal<string[]>'. Session10828 is terminal. The
   complete candidate scan was preserved; no member or receiver was excluded.
 
-Prior accepted tool pair (still installed and used by the live supervisor): CLI SHA256
+Historical accepted tool pair before subsequent renderer/API updates: CLI SHA256
 0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
 LSP SHA2564d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
 Installed PATH pair was refreshed with staged copies and atomic replacements,
-matching those SHA256 values; CLI0.2.0/LSP0.3.0. No active tsrust-lsp or VS Code
-process was found at refresh. Existing VS Code settings point to repository
+matching those SHA256 values; CLI0.2.0/LSP0.3.0. At that earlier refresh, no active tsrust-lsp or VS Code
+process was found. Existing VS Code settings point to repository
 target/debug pair. Constructor hover now explicitly documents computed<T> for
 live data-field text; getter/setter documentation and their passed tests are unchanged.
 
@@ -247,7 +247,7 @@ A one-time supervisor restart question is pending through request_user_input_asy
 no reply yet. Keep session6863 running. Prior goal turn made progress with local
 checkpoint acbcb8ed and removal of the redundant language lookup.
 
-Current section: suppress unchanged dev replacements before editable buffers.
+Lifecycle checkpoint79c37206 suppresses unchanged dev replacements before editable buffers.
 Running now owns its complete native cache input identity and, on macOS, the
 generated Info.plist bytes. A successful rebuild retains the child only when
 those exact inputs match and try_wait confirms it is alive. This uses full input
@@ -268,13 +268,80 @@ changed dev/cache source warning. Repository CLI SHA256 is now
 Installed consumers and the retained supervisor still use prior images. No live supervisor replacement yet. Settings/save work is
 still pending; this fixes a concrete draft-loss prerequisite.
 
-Next: checkpoint this validated lifecycle section, then load the renderer
-only if the pending restart is approved, and verify
+Current section: std:fs.writeTextFileAtomic for storage, recovery and settings.
+Implemented bindings/registry/bridge, separately selected native module, full
+IntelliSense docs/example, public std:testing suite, compiler selection/type
+witnesses and affected LSP rows/help. Native implementation stages in the same
+directory, syncs file and parent, rejects symlinks/read-only/multiple links, checks
+optional exact baseline plus observed inode/metadata revisions, and preserves
+macOS metadata with fcopyfile (explicit ownership/mode verification). New files
+are private. committed-not-durable means bytes changed despite Err and must be
+handled explicitly by Studio. A final rename can still race an uncooperative
+external writer; no cross-process CAS or filesystem sandbox claim. Windows is
+explicitly unsupported before mutation for now; that remains required later.
+Other Unix metadata preservation is mode-only; Linux product delivery is deferred.
+
+No app save/edit action is enabled yet. Recovery and model integration must handle
+commit/durability outcomes before editable buffers. Atomic backend host witnesses
+cover deterministic staging failure, concurrent changed/identical-byte replaced
+files, post-commit sync failure, ACL/xattr/mode/owner preservation and unsafe
+paths. Public suite covers UTF-8/BOM/CRLF, chunk boundaries, first-class/optional
+calls, empty files, missing parents/targets and conflicts. Whole formatter changed
+one fixture and one doc snippet, with token/idempotence/fingerprint checks passing.
+Atomic backend host units pass3/3 in0.03s (3m17s setup, session20685 terminal).
+Selected runtime extraction/isolation witness passes1/1 in0.23s (2m14s setup,
+session29648 terminal); type-rejection/ownership control passes1/1 in0.02s
+(0.95s setup, session30780 terminal). Initial public generated suites fail before
+execution: new operation was missing from the closed audited native-effect list,
+so direct/first-class calls propagated an opaque contract into std:testing. Added
+the audited Result-only contract without weakening unknown-call rejection, plus
+a mutating-observer exclusion witness. Original direct/alias cases stay intact.
+Corrected effect/audit witness passes1/1 in0.01s (3m16s setup, session79824
+terminal); mutating-observer exclusion control passes1/1 in0.00s on that binary.
+The repaired public suite and generated example compile together in one program.
+Their disposable working directory was /private/tmp/tsrust-atomic-suite.FrjHFj
+(now removed). No native execution pass is claimed for either failed source check. Corrected public suite and actual
+catalog example pass3/3 together in63.47ms execution,1,561.3ms build/setup
+(session45044 terminal). CLI/LSP pair build passes2m28s (session20261 terminal).
+Affected completion matrix2rows x4modes passes2.37s; filesystem consistency8cases
+x4modes including new callable hover/parameter help passes8.78s; catalog contract
+help passes1/1 in0.03s. No new receiver type; existing FsError agreement is retained.
+
+Final macOS metadata strengthening verifies copied BSD flags before publication;
+extended host witness also proves UF_HIDDEN retention and fresh modification time.
+That affected witness passes1/1 in0.03s (3m17s setup, session85303 terminal). Other
+backend/effect/editor witnesses are unchanged and retained. Final pair rebuild
+passes2m27s (session35496 terminal). Final public native suite
+and generated example pass3/3 in45.58ms execution,1,874.7ms build/setup (session57991
+terminal). Backend compiler/LSP all-target compilation passes1m18s (session52425
+terminal), with only unchanged host helper/reference unused/dead code, HTTP import
+and fetch_update deprecation warnings. No changed source warning. Installed CLI
+and LSP were atomically refreshed and SHA256-verified independently:
+CLI f5e31107f51340b11e6a512c63a50551cfb858e6e43a1861ab88612a001fa292;
+LSP 6d55dbde9e6143242f57132cb8067c9cf6f47169b1a2b00cc9f67c38a011963a.
+Repository overrides point at the same new target/debug pair. VS Code is running
+but has an empty editor and no tsrust-lsp process; CUA “Verified no active editor
+documents” completed. No server restart or open-document diagnostic claim is needed.
+Studio supervisor41326/app76014/session6863 remains running on the earlier image;
+latest live poll confirms the PTY remains active. Pending restart question has no
+reply. No Studio restart occurred. Removed the disposable generated catalog tree,
+empty private test cwd, obsolete pre-flags native application cache variant, and
+171,774,617B of obsolete test executables/dependency files. Kept current tools,
+final compiler unit binary, current native cache and the pending Studio preview.
+The macOS storage primitive has focused acceptance. The live Studio app does not
+yet use it; Studio saving/recovery remain unaccepted until their integration and
+workflow checks pass. This is not full application or Windows acceptance.
+
+Next: implement Studio
+save/recovery orchestration in .tsr using exact disk baselines, explicit handling
+of committed-not-durable, and retained drafts before enabling editable buffers.
+While the restart reply is pending, continue that independent storage/settings
+work. Load the renderer only if the pending restart is approved, and verify
 Tree zoom/ellipsis and editor state during close/reorder. Keep6863 running until
 replacement is authorized. Continue validated settings/i18n/docking alongside
-safe file-save/recovery primitives and revisioned editing. Test-only identical
-app-cache restarts and draft preservation across legitimate dev reloads remain
-required fixes before editable buffers. Full saving, recovery, PTY and chat are
+safe file-save/recovery primitives and revisioned editing. Test-only replacement
+is fixed in79c37206 but awaits loading into the retained supervisor. Draft
+preservation across legitimate dev reloads remains required before editable buffers. Full saving, recovery, PTY and chat are
 not implemented; model guards alone do not prove file safety.
 Native checked resource/streaming/session ownership, held-out AI work,
 all editor workflows, cloud/external agents and Windows remain required. Use the

@@ -8356,7 +8356,7 @@
       "name": "FsError",
       "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
       "parameters": [],
-      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range, write-zero, already-exists, not-directory, directory-not-empty, cross-device, unsupported, integer-range, not-unicode, invalid-utf8 or offset-range. operation is the public function name that failed. Filesystem side effects may already have occurred before failure. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
+      "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation, capacity-range, write-zero, already-exists, not-directory, directory-not-empty, cross-device, unsupported, integer-range, not-unicode, invalid-utf8, offset-range, not-file, multiple-links, metadata, conflict or committed-not-durable. For writeTextFileAtomic, committed-not-durable means new contents were installed but directory synchronization failed; retain recovery data and reconcile the disk baseline. operation is the public function name that failed. Filesystem side effects may already have occurred before failure. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport { FsError } from \"std:fs\";\n\nfunction main() {\n  const error: FsError = {\n    code: \"length-range\", operation: \"read\", message: \"Invalid length\"\n  };\n  console.log(error.code, error.operation, error.osCode);\n}\n```\n\nExpected output: length-range read undefined.",
       "examples": [
         {
           "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
@@ -9071,6 +9071,32 @@
         {
           "source": "import {writeTextFile,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-text\",\"hello\"));console.log(unwrap(readTextFile(\"catalog-text\")));unwrap(removeFile(\"catalog-text\"));}",
           "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "writeTextFileAtomic",
+      "signature": "writeTextFileAtomic(path: string, text: ReadOnly<string>, expectedText?: ReadOnly<string>): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Required file path. Relative paths use the working directory. Parent directories must already exist; symbolic-link destinations and non-regular files reject."
+        },
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Required borrowed UTF-8 text. Writes exact bytes without normalization or an application size cap; empty text is valid."
+        },
+        {
+          "label": "expectedText?: ReadOnly<string>",
+          "documentation": "Optional exact existing UTF-8 text, including BOM and newlines. Omitted or undefined skips the initial text comparison. A supplied value rejects missing or different data with conflict; it is an observed precondition, not a cross-process compare-and-swap."
+        }
+      ],
+      "documentation": "Writes exact UTF-8 bytes to a temporary file in the destination directory, synchronizes that file, then replaces the destination and synchronizes its directory. No BOM or newline is added; empty text writes an empty file. The parent must exist. Newly created files are private (mode 0600 subject to the host umask). Existing targets must be readable, writable regular files with one hard link; symlinks, directories, read-only files and multiple hard links are rejected without replacing them. On macOS, existing ownership, permission bits, ACLs, flags and extended attributes are copied, and modification time advances. Other Unix systems preserve permission bits only. Windows currently returns unsupported before touching storage.\n\nOmitted or undefined expectedText checks no initial text baseline. Supplying a string requires the existing bytes to match exactly, including BOM and newline bytes; a missing or mismatched target returns conflict. Observed identity/metadata changes during staging also reject. A newly created destination uses no-clobber publication. These checks are not a cross-process compare-and-swap: an uncooperative writer can race the final rename. This operation is not a filesystem sandbox.\n\nOk means replacement and requested synchronization succeeded; storage hardware and remote filesystems still govern crash durability. Most errors occur before replacement and leave destination contents and its directory entry unchanged by this operation, while attempting temporary-file cleanup. Reads may update access time. Exception: committed-not-durable means new contents ARE installed, but directory synchronization failed. Retain a recovery copy, reconcile the disk baseline and report that warning; blindly retrying the old expectedText will conflict. Other errors include not-file, multiple-links, permission-denied, metadata and host I/O categories. Atomic replacement changes file identity; already-open readers keep the old file. Native close failures are not separately reported.\n\nOwnership: Borrows path, text and optional expectedText; no file handle escapes.\n\n```tsrust\nimport { writeTextFileAtomic, readTextFile, removeFile } from 'std:fs';\nimport { platform } from 'std:os';\n\nfunction main() {\n  if (platform() === 'win32') {\n    match (writeTextFileAtomic('catalog-atomic', 'hello')) {\n      Ok(_) => {\n        throw 'Expected unsupported';\n      },\n      Err(error) => {\n        console.log(error.code);\n      }\n    }\n\n    return;\n  }\n\n  unwrap(writeTextFileAtomic('catalog-atomic', 'hello'));\n  unwrap(writeTextFileAtomic('catalog-atomic', 'edited', 'hello'));\n  console.log(unwrap(readTextFile('catalog-atomic')));\n  unwrap(removeFile('catalog-atomic'));\n}\n```\nExpected output: edited. Windows: unsupported.",
+      "examples": [
+        {
+          "source": "import { writeTextFileAtomic, readTextFile, removeFile } from 'std:fs';\nimport { platform } from 'std:os';\nfunction main() {\n  if (platform() === 'win32') {\n    match (writeTextFileAtomic('catalog-atomic', 'hello')) {\n      Ok(_) => { throw 'Expected unsupported'; },\n      Err(error) => { console.log(error.code); }\n    }\n    return;\n  }\n  unwrap(writeTextFileAtomic('catalog-atomic', 'hello'));\n  unwrap(writeTextFileAtomic('catalog-atomic', 'edited', 'hello'));\n  console.log(unwrap(readTextFile('catalog-atomic')));\n  unwrap(removeFile('catalog-atomic'));\n}",
+          "output": "edited\n",
+          "windowsOutput": "unsupported\n"
         }
       ]
     },

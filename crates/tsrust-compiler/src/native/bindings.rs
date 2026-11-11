@@ -660,6 +660,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::APPEND_FILE,
     crate::stdlib::fs::bindings::READ_TEXT_FILE,
     crate::stdlib::fs::bindings::WRITE_TEXT_FILE,
+    crate::stdlib::fs::bindings::WRITE_TEXT_FILE_ATOMIC,
     crate::stdlib::fs::bindings::TRUNCATE,
     crate::stdlib::fs::bindings::SYNC_ALL,
     crate::stdlib::fs::bindings::SYNC_DATA,

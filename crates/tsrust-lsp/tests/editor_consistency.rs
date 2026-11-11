@@ -420,6 +420,8 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
     for entry in catalog["std:fs"].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(imports.iter().any(|label|label==name),"std:fs.{name}: {imports:?}");}
     for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(session.request("tsrust/counters",Value::Null)[key],0);}
     let cases=[
+        ("atomic text write callable","import {writeTextFileAtomic} from 'std:fs';function main(){","writeTextFileAtomic",
+            "('document','new','old');}",&["expectedText","FsError","committed-not-durable","Ownership:"][..]),
         ("seek callable","import {File,seek} from 'std:fs';function inspect(file:Mutable<File>){","seek",
             "(file,0,'start');}function main(){}",&["Mutable<File>","int","FsError","Ownership:"][..]),
         ("position callable","import {File,position} from 'std:fs';function inspect(file:Mutable<File>){","position",
@@ -448,9 +450,10 @@ fn filesystem_exports_and_documented_record_help_agree_across_server_phases() {
             for fragment in expected{assert!(combined.contains(fragment),"{name} [{mode}]: missing {fragment}: {combined}");}
             assert!(!combined.contains("__tsrust_private_"),"{name} [{mode}]: {combined}");
             if let Some((prior_detail,prior_hover))=&baseline{assert_eq!((&detail,&hover),(prior_detail,prior_hover),"{name} [{mode}] disagrees with settled help");}else{baseline=Some((detail,hover));}
-            if matches!(typed,"seek"|"position") {
+            if matches!(typed,"seek"|"position"|"writeTextFileAtomic") {
                 let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":before.len()+typed.len()+1}}));
-                let text=help.to_string();assert!(text.contains("Mutable<File>")&&text.contains("FsError"),"{name} [{mode}]: {help}");
+                let text=help.to_string();assert!(text.contains("FsError"),"{name} [{mode}]: {help}");
+                if typed=="writeTextFileAtomic" {assert!(text.contains("expectedText")&&text.contains("conflict"),"{name} [{mode}]: {help}");}else{assert!(text.contains("Mutable<File>"),"{name} [{mode}]: {help}");}
                 if typed=="seek" {assert!(text.contains("offset: int")&&text.contains("origin: SeekOrigin"),"{name} [{mode}]: {help}");}
                 if let Some(prior)=&help_baseline {assert_eq!(&help,prior,"{name} [{mode}] signature help disagrees with settled");}else{help_baseline=Some(help);}
             }
