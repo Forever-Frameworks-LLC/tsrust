@@ -1,0 +1,136 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, writeTextFile, readTextFile, removeFile, removeDirAll, stat, hardLink } from 'std:fs';
+import { platform } from 'std:os';
+import { createDocument, edit, dirty, markSaved } from '../src/documents.tsr';
+import { saveDocument } from '../src/storage.tsr';
+
+test('saving writes exact draft bytes and advances only the disk baseline', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-save-'));
+  try {
+    const path = root + '/café-🦀.tsr';
+    unwrap(writeTextFile(path, 'original\r\n'));
+    const document = unwrap(createDocument(clone(path), 'original\r\n'));
+    const session = clone(document.session);
+    edit(document, '\ufeff日本語 e\u0301 🦀\r\n');
+    if (platform() === 'win32') {
+      match (saveDocument(document)) {
+        Ok(_) => {
+          throw 'Windows save backend is not implemented';
+        },
+        Err(error) => {
+          strictEqual(error.code, 'unsupported');
+        }
+      }
+
+      strictEqual(dirty(document), true);
+      strictEqual(unwrap(readTextFile(path)), 'original\r\n');
+      return;
+    }
+
+    unwrap(saveDocument(document));
+    strictEqual(unwrap(readTextFile(path)), '\ufeff日本語 e\u0301 🦀\r\n');
+    strictEqual(document.savedText, document.text);
+    strictEqual(document.revision, 1);
+    strictEqual(document.session, session);
+    strictEqual(dirty(document), false);
+    edit(document, '');
+    unwrap(saveDocument(document));
+    strictEqual(unwrap(readTextFile(path)), '');
+    strictEqual(document.savedText, '');
+    strictEqual(document.revision, 2);
+    strictEqual(dirty(document), false);
+    unwrap(writeTextFile(path, 'external after save'));
+    unwrap(saveDocument(document));
+    strictEqual(unwrap(readTextFile(path)), 'external after save');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('save conflicts, removed files and linked targets retain the full local draft', () => {
+  if (platform() === 'win32') return;
+  const root = unwrap(createTempDir(undefined, 'studio-conflict-'));
+  try {
+    const path = root + '/document.tsr';
+    unwrap(writeTextFile(path, 'disk'));
+    const document = unwrap(createDocument(clone(path), 'disk'));
+    edit(document, 'local draft 🦀');
+    unwrap(writeTextFile(path, 'external'));
+    match (saveDocument(document)) {
+      Ok(_) => {
+        throw 'external edit was overwritten';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'conflict');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    strictEqual(document.text, 'local draft 🦀');
+    strictEqual(document.savedText, 'disk');
+    strictEqual(document.revision, 1);
+    strictEqual(document.durabilityPending, false);
+    strictEqual(dirty(document), true);
+    unwrap(removeFile(path));
+    match (saveDocument(document)) {
+      Ok(_) => {
+        throw 'deleted file was recreated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'conflict');
+      }
+    }
+
+    match (stat(path)) {
+      Ok(_) => {
+        throw 'deleted file exists';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
+
+    unwrap(writeTextFile(path, 'disk'));
+    unwrap(hardLink(path, root + '/alias'));
+    match (saveDocument(document)) {
+      Ok(_) => {
+        throw 'hard links were separated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'multiple-links');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/alias')), 'disk');
+    strictEqual(document.text, 'local draft 🦀');
+    strictEqual(document.savedText, 'disk');
+    strictEqual(dirty(document), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('retrying a committed nondurable write uses the new disk baseline', () => {
+  if (platform() === 'win32') return;
+  const root = unwrap(createTempDir(undefined, 'studio-durability-'));
+  try {
+    const path = root + '/document';
+    unwrap(writeTextFile(path, 'old'));
+    const document = unwrap(createDocument(clone(path), 'old'));
+    edit(document, 'committed');
+    // Native filesystem fault tests prove committed-not-durable leaves these bytes installed.
+    unwrap(writeTextFile(path, 'committed'));
+    markSaved(document, 'committed', false);
+    strictEqual(dirty(document), true);
+    strictEqual(document.savedText, 'committed');
+    strictEqual(document.durabilityPending, true);
+    unwrap(saveDocument(document));
+    strictEqual(document.savedText, 'committed');
+    strictEqual(document.durabilityPending, false);
+    strictEqual(document.revision, 1);
+    strictEqual(dirty(document), false);
+    strictEqual(unwrap(readTextFile(path)), 'committed');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

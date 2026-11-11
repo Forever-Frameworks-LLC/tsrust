@@ -15,29 +15,99 @@ requirements: [Studio plan](plans/tsrust-studio.md). Exact proofs, model identit
 failed resource attempts and historical dev profiling: [audit](plans/tsrust-studio-audit.md).
 Attachment: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29fb58a3/pasted-text-1.txt.
 
-Initial workspace is **apps/studio only**, per owner's correction at e09f8fcd;
-do not open/index the whole compiler checkout yet. No decorative headers, pretend
-tabs or placeholder actions. Follow VS Code/Visual Studio/Zed/IntelliJ patterns.
-The current native window uses a custom macOS header, Files/Find-file activity
-rail, collapsible/resizable native Tree, native file tabs with close controls and
-full-height code views. Header actions are tooltip icons; the app-name banner and
-permanent debug status bar are removed. Cmd+F searches within a file; filename
-search is a separate pane. Workspace contents start directly, without a root row. All previews are explicitly read-only. Saving,
-editable buffers, recovery and the complete editor/agent inventory remain required.
+Initial workspace remains **apps/studio only**. The November 11 owner request
+supersedes the former no-placeholder/status-bar direction: restore useful status,
+terminal toggle and clearly labeled planned panels. Standing authorization:
+**restart the dev supervisor whenever needed without asking again**, then leave
+one preview running. Editable drafts must survive those restarts.
 
-**KEEP DEV RUNNING. Current live tool PTY session6863, supervisorPID41326,
-childPID76014** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
-Command, from apps/studio, with desktop access (require_escalated), login=false:
+Current section adds separate persistent Settings, 38 named themes,
+content regex/case search, image routing, Markdown source/preview, status/panel
+controls, workspace launch arguments, editable buffers/Cmd+S, atomic saves and
+workspace recovery. Full goal remains active; drag/drop, splits, selected-tab
+reveal, JSON key colors, docking/i18n configuration and native workflows remain
+required. No completion claim. The per-item table in the Studio plan distinguishes
+observed behavior from implementation.
+
+**KEEP DEV RUNNING. Current tool PTY session50677, supervisorPID45349,
+childPID49918** (child changes after source rebuild). Session35489 was stopped
+normally to verify actual unsaved recovery. Current build succeeded and app is
+running. Inspect this specific handle before any restart. Command from
+apps/studio, desktop access, login=false, tty=true:
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
-Owner explicitly approved replacing the old scratch supervisor after asking why
-its screen had not changed. That replacement is complete. The owner subsequently authorized one replacement
-to load the tab-state fix; that is also complete. Do not restart casually.
-The first replacement under the restricted sandbox failed at NSPasteboard after
-XPC denial. Completing the same approved replacement with desktop access worked.
-Old supervisor74090/app76050 and failed replacement are stopped. Exactly one
-current Studio preview remains. Normal source rebuilds continue in the retained
-supervisor; temporary .app sandbox-extension warnings remain nonfatal.
+Previous app31675 was read-only. The current supervisor loads the shared Kit
+bound-prop identity fix required for editable row/preview state retention.
+
+Current installed and target/debug consumers were atomically refreshed:
+CLI SHA256280dbb8fbd9954946e94378ce4730da61cca4f132bd962a3125fe0e9baaefd08;
+LSP SHA2561392874ec607b81a3b05620bc3bf34508b8beda37979797c8c9af7ff066e602f.
+No active VSCode document/server at previous observation; do not open the entire
+checkout to force a server restart.
+
+Current section evidence:
+- Combined Studio model/storage/recovery/search/settings/workspace suite18/18PASS,
+  90.14ms test execution. Setup timing was not captured for that run.
+- Expanded 38-theme settings round-trip1/1PASS291.02ms execution,
+  2728.9ms build/setup. Unknown themes and invalid fields reject before writing.
+- Shared native branch/list regressions6/6PASS0.00s execution,1m05s setup
+  (included shared Cargo lock wait). New controlled CodeEditor row keeps identity
+  after bound value change; static prop differences remain structural changes.
+- Explicit Studio main check passed after editable/recovery wiring and theme
+  registration. Latest native dev rebuild also checks/emits/links the final picker
+  synchronization/error-handling repair and starts successfully.
+- Whole-project formatter PASS:10files,0documentation snippets,0fingerprints;
+  stable second pass0files/0snippets/0fingerprints. Formatted suite18/18PASS
+  329.44ms execution,4356.4ms setup. Final settings UI repair formatted1file;
+  Studio format--check passes. Latest native dev rebuild checks/emits/links it.
+- CUA before editable renderer refresh observed actual PNG decode, separate
+  Settings window, active-tab contrast, status/footer and terminal placeholder.
+  Markdown preview click reverted immediately: row rebuild reset local state.
+  Shared bound-prop fingerprint fix passes native recheck: Markdown preview stays
+  open and survives switching away/back.
+- Native tree now uses monospace at shared font size. Screenshot appeared matched
+  to editor; full zoom/resize/overflow and accessibility acceptance remain open.
+- Upstream36community themes are vendored with source revision/hash manifest and
+  Apache license; plus2Studio themes. Live Catppuccin Latte preview/Save/Reload
+  and shared font16 configuration were observed; restored Studio Dark/font14.
+  Full catalog contrast/rendering remains required. Failed first fetch used nonexistent LICENSE name; corrected to
+  LICENSE-APACHE and retained its original bytes.
+
+
+Native acceptance completed in app42379 and app46011:
+Unicode paste creates a dirty tab; Cmd+S writes exact UTF-8 bytes; the dirty dot
+clears. Undo/redo survive a switch to Markdown preview and back. Unsaved recovery
+survives a real supervisor stop/start; disk remains unchanged. The temporary
+.gitignore comments were removed through the app and Cmd+S; original SHA256
+ad8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483 verified,
+and journal drafts are empty. No user draft remains from these checks. Content
+search opens storage.tsr with the cursor at line4; uppercase anchored regex finds
+it case-insensitively and disappears with Aa enabled. Own Settings window saves
+actual ~/.tsrust/studio/tsrust_studio.config.json and Reload restores persisted
+values. Final app49918 verifies picker selection follows direct JSON edits.
+
+Latest native dev rebuild44,434ms: runtime hit,prepare7350.2ms,check11229.2ms,
+emit911.0ms,backend172.8ms,native+link19406.8ms. Earlier fresh supervisor startup
+65,687ms included runtime miss40,370.7ms. These are observations, not comparable
+benchmarks. A bounded1second sample of earlier build supervisor39406 reported
+537.6MiB physical footprint/537.7MiB peak; sample showed runtime unpack/build wait.
+No leak or steady-state memory acceptance claim. Whole-environment native cache
+identity can differ across supervisors; inspect before changing that contract.
+Pruned14,100,780,330bytes of obsolete Studio cache variants plus old staging;
+apps/studio/target/tsrust-native is now about2.0GiB. Keep active runtime1ff49c6f253063ac
+and test runtime366be1fa48a2a0fc; retained current application/test caches.
+
+Next executable section: implement native tab reorder/selected-tab reveal and
+resizable editor splits using Kit facilities; fix JSON key scopes in a reusable
+managed upstream integration. Complete file moves, configuration/docking/i18n,
+close/discard UX, async search and recovery limitations. Do not retest unchanged
+save executables or repeat the whole compiler matrix for routine UI edits.
+
+Recovery limitations remain explicit: synchronous bounded journal writes per
+change; one writer per workspace (first creation not coordinated); missing-file
+recovery fails visibly and preserves the journal. Corrupt/outside-root journals
+must never be overwritten. Saving rejects external changes. The app still needs
+native editing/undo/IME/restart acceptance, close/discard UX and richer recovery.
 
 CUA completed: Opened Studio package in tabs; Verified package tabs and status;
 Verified native tree without clutter.

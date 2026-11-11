@@ -1,5 +1,5 @@
 import { test, strictEqual } from 'std:testing';
-import { createDocument, dirty, reload, edit, propose, apply } from '../src/documents.tsr';
+import { createDocument, dirty, reload, edit, propose, apply, markSaved } from '../src/documents.tsr';
 
 test('proposals remain isolated until acceptance', () => {
   const document = unwrap(createDocument('src/main.tsr', 'original'));
@@ -71,6 +71,29 @@ test('clean reload advances revisions but refuses to discard a dirty buffer', ()
   strictEqual(document.savedText, 'disk 🦀\r\n');
   strictEqual(document.revision, 2);
   edit(document, 'disk 🦀\r\n');
+  strictEqual(dirty(document), false);
+  strictEqual(document.revision, 3);
+});
+
+test('committed bytes update the disk baseline without clearing newer edits or durability warnings', () => {
+  const document = unwrap(createDocument('a.tsr', 'original'));
+  edit(document, 'saved snapshot');
+  const snapshot = clone(document.text);
+  edit(document, 'newer draft');
+  markSaved(document, snapshot, true);
+  strictEqual(document.savedText, 'saved snapshot');
+  strictEqual(document.text, 'newer draft');
+  strictEqual(document.revision, 2);
+  strictEqual(dirty(document), true);
+  edit(document, 'saved snapshot');
+  strictEqual(dirty(document), false);
+  markSaved(document, 'saved snapshot', false);
+  strictEqual(document.durabilityPending, true);
+  strictEqual(dirty(document), true);
+  strictEqual(reload(document, 'external'), false);
+  strictEqual(document.text, 'saved snapshot');
+  markSaved(document, 'saved snapshot', true);
+  strictEqual(document.durabilityPending, false);
   strictEqual(dirty(document), false);
   strictEqual(document.revision, 3);
 });

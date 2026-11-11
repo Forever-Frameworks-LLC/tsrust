@@ -1,0 +1,90 @@
+import { canonicalize, stat, readTextFile } from 'std:fs';
+import { separator } from 'std:path';
+import { compile, escape } from 'std:regex';
+import { Workspace, projectFiles } from './workspace.tsr';
+import { fromUtf8, length } from 'std:bytes';
+
+export interface SearchHit {
+  path: string;
+  line: int;
+  offset: int;
+  preview: string;
+}
+
+export interface SearchResults {
+  hits: SearchHit[];
+  skipped: int;
+}
+
+export function searchContents(workspace: ReadOnly<Workspace>, query: string, regex: boolean, caseSensitive: boolean): Result<SearchResults, string> {
+  const hits: SearchHit[] = [];
+  let skipped = 0;
+  if (query === '') return Ok({
+    hits, skipped
+  });
+  const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+  const expression = (caseSensitive ? '' : '(?i)') + (regex ? clone(query) : escape(query));
+  match (compile(expression)) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(pattern) => {
+      match (projectFiles(workspace.root)) {
+        Err(error) => {
+          return Err(error);
+        },
+        Ok(files) => {
+          for (const file of files) {
+            let text = '';
+            const opened = workspace.files.find((entry) => entry.document.path === file.path);
+            if (opened !== undefined) {
+              if (opened.kind !== 'text') continue;
+              text = clone(opened.document.text);
+            } else {
+              try {
+                const resolved = unwrap(canonicalize(file.path));
+                if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) {
+                  skipped += 1;
+                  continue;
+                }
+              } catch (_) {
+                skipped += 1;
+                continue;
+              }
+
+              match (readTextFile(file.path, 4 * 1024 * 1024)) {
+                Ok(value) => {
+                  text = value;
+                },
+                Err(_) => {
+                  skipped += 1;
+                  continue;
+                }
+              }
+            }
+
+            const lines = text.split('\n');
+            let offset = 0;
+            for (let index = 0; index < lines.length; index += 1) {
+              if (pattern.isMatch(lines[index])) hits.push({
+                path: clone(file.path), line: index + 1, offset, preview: clone(lines[index])
+              });
+              match (fromUtf8(lines[index])) {
+                Ok(bytes) => {
+                  offset += length(bytes) + 1;
+                },
+                Err(error) => {
+                  return Err(clone(error.message));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Ok({
+    hits, skipped
+  });
+}

@@ -1,0 +1,82 @@
+import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
+import { homeDir } from 'std:env';
+import { join } from 'std:path';
+import themeNames from './themes/names.json';
+
+export function themes(): string[] {
+  return clone(themeNames);
+}
+
+export interface StudioConfig {
+  schemaVersion: int;
+  theme: string;
+  fontSize: int;
+}
+
+export function defaultConfig(): StudioConfig {
+  return {
+    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14
+  };
+}
+
+export function parseConfig(text: ReadOnly<string>): Result<StudioConfig, string> {
+  try {
+    const config = JSON.parse<StudioConfig>(text);
+    if (config.schemaVersion !== 1) return Err('Unsupported Studio settings version.');
+    if (config.fontSize < 8 || config.fontSize > 48) return Err('fontSize must be between 8 and 48.');
+    if (!themeNames.includes(config.theme)) return Err('Choose a theme from the installed Studio catalog.');
+    return Ok(config);
+  } catch (error) {
+    return Err('Settings must contain schemaVersion, theme and an integer fontSize.');
+  }
+}
+
+export function configPath(): Result<string, string> {
+  match (homeDir()) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(home) => {
+      if (home === undefined) return Err('The home directory is unavailable.');
+      const folder = join(home, '.tsrust', 'studio');
+      match (mkdirAll(folder)) {
+        Err(error) => {
+          return Err(clone(error.message));
+        },
+        Ok(_) => {
+          return Ok(join(folder, 'tsrust_studio.config.json'));
+        }
+      }
+    }
+  }
+}
+
+export function loadConfig(path: ReadOnly<string>): Result<StudioConfig, string> {
+  match (readTextFile(path, 1024 * 1024)) {
+    Ok(text) => {
+      return parseConfig(text);
+    },
+    Err(error) => {
+      if (error.code === 'not-found') return Ok(defaultConfig());
+      return Err(clone(error.message));
+    }
+  }
+}
+
+export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>): Result<StudioConfig, string> {
+  match (parseConfig(text)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(config) => {
+      match (writeTextFileAtomic(path, text)) {
+        Err(error) => {
+          return Err(clone(error.message));
+        },
+        Ok(_) => {
+          return Ok(config);
+        }
+      }
+    }
+  }
+}

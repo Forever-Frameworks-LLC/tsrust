@@ -1,0 +1,40 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, writeTextFile, removeDirAll, mkdirAll } from 'std:fs';
+import { openWorkspace, openFile } from '../src/workspace.tsr';
+import { edit } from '../src/documents.tsr';
+import { searchContents } from '../src/search.tsr';
+
+test('content search supports literal, case and regex matching with UTF-8 line offsets', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-search-'));
+  try {
+    unwrap(writeTextFile(root + '/source.tsr', '🦀 first\r\nAlpha beta\nalpha.betA\n'));
+    unwrap(mkdirAll(root + '/target'));
+    unwrap(writeTextFile(root + '/target/ignored', 'Alpha'));
+    const workspace = unwrap(openWorkspace(root));
+    const insensitive = unwrap(searchContents(workspace, 'alpha', false, false));
+    strictEqual(insensitive.hits.length, 2);
+    strictEqual(insensitive.hits[0].line, 2);
+    strictEqual(insensitive.hits[0].offset, 12);
+    strictEqual(unwrap(searchContents(workspace, 'Alpha', false, true)).hits.length, 1);
+    strictEqual(unwrap(searchContents(workspace, 'alpha.betA', false, true)).hits.length, 1);
+    strictEqual(unwrap(searchContents(workspace, '^alpha[ .]beta$', true, false)).hits.length, 2);
+    strictEqual(unwrap(searchContents(workspace, '', false, false)).hits.length, 0);
+    match (searchContents(workspace, '[', true, false)) {
+      Ok(_) => {
+        throw 'invalid regex accepted';
+      },
+      Err(_) => {}
+    }
+
+    unwrap(openFile(workspace, root + '/source.tsr'));
+    edit(workspace.files[0].document, 'unsaved needle');
+    strictEqual(unwrap(searchContents(workspace, 'needle', false, true)).hits.length, 1);
+    strictEqual(unwrap(searchContents(workspace, 'Alpha', false, true)).hits.length, 0);
+    unwrap(writeTextFile(root + '/image.png', 'not UTF-8 image content'));
+    unwrap(openFile(workspace, root + '/image.png'));
+    strictEqual(workspace.files[1].kind, 'image');
+    strictEqual(unwrap(searchContents(workspace, 'UTF-8', false, true)).hits.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

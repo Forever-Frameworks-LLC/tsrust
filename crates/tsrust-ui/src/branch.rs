@@ -79,6 +79,23 @@ mod tests {
     }
 
     #[test]
+    fn controlled_kit_rows_keep_identity_and_local_state_when_live_props_change() {
+        let text=Signal::new(String::from("before"));let read=text.handle();let control=text.handle();
+        let slot=Node::each(move||{
+            let binding=read.text_binding(Clone::clone);
+            let row=Node::kit("CodeEditor",vec![],String::new())?.with_kit_binding("value",binding)?.with_semantics("{\"id\":\"document\"}")?;
+            Ok(Some(Node::view(vec![Child::Node(row)],String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let identity=root.visible_children().next().unwrap().identity.get();
+        control.set("typed 🦀".into()).unwrap();root.refresh().unwrap();
+        let row=root.visible_children().next().unwrap();
+        assert_eq!(row.identity.get(),identity);assert_eq!(row.kit.as_ref().unwrap().prop("value"),Some("typed 🦀"));
+        // Static configuration still replaces the row rather than retaining incompatible controls.
+        let changed=Node::kit("CodeEditor",vec![],String::new()).unwrap().with_kit_prop("value","fixed").unwrap().with_semantics("{\"id\":\"document\"}").unwrap();
+        changed.ensure_identities();assert_ne!(row.shape(),changed.shape());
+    }
+    #[test]
     fn root_slots_are_transparent_and_failed_replacements_drop_the_previous_branch() {
         let show=Signal::new(true);let select=show.handle();let control=show.handle();let released=Rc::new(RefCell::new(0));let drops=released.clone();
         let mut root=Node::branch(move||select.get(),move||{let probe=Probe(drops.clone());Ok(Some(Node::button_children(vec![],String::new(),false,Some(Box::new(move||{let _=&probe;Ok(())})))?))},||Err("Branch construction failed".into())).unwrap().own_state(show).unwrap();
@@ -160,7 +177,7 @@ impl Node {
             use std::fmt::Write;
             let _=write!(out,"{:?}|{}|{}|",node.kind,node.semantics.id,if node.class_binding.is_some(){"<live>"}else{&node.class_name});
             if node.editable.is_none(){out.push_str(&node.text);}
-            if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={value}");}}}
+            if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={}",if kit.is_bound(key){"<live>"}else{value});}}}
             out.push('[');for child in &node.children{write(child,out);}out.push(']');
         }
         let mut out=String::new();write(self,&mut out);out

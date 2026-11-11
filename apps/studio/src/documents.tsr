@@ -6,6 +6,7 @@ export interface Document {
   revision: int;
   text: string;
   savedText: string;
+  durabilityPending: boolean;
 }
 
 export interface ProposedEdit {
@@ -23,21 +24,27 @@ export function createDocument(path: string, text: string): Result<Document, str
     },
     Ok(id) => {
       return Ok({
-        path, session: formatUuid(id), revision: 0, text: clone(text), savedText: text
+        path, session: formatUuid(id), revision: 0, text: clone(text), savedText: text, durabilityPending: false
       });
     }
   }
 }
 
 export function dirty(document: ReadOnly<Document>): boolean {
-  return document.text !== document.savedText;
+  return document.text !== document.savedText || document.durabilityPending;
+}
+
+// A completed write records its bytes without replacing newer in-memory edits.
+export function markSaved(document: Mutable<Document>, text: string, durable: boolean): void {
+  document.savedText = text;
+  document.durabilityPending = !durable;
 }
 
 // External reloads never discard local edits, even if disk changed independently.
 export function reload(document: Mutable<Document>, text: string): boolean {
   if (dirty(document)) return false;
   edit(document, clone(text));
-  document.savedText = text;
+  markSaved(document, text, true);
   return true;
 }
 

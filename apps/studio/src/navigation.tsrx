@@ -1,32 +1,6 @@
 import { View, Text, Input, Button, Node, Signal, signal, computed } from 'std:ui';
-import { Workspace, Entry, entries, openFile } from './workspace.tsr';
+import { Workspace, Entry, projectFiles, openFile } from './workspace.tsr';
 
-function projectFiles(path: string): Result<Entry[], string> {
-  const files: Entry[] = [];
-  match (entries(path)) {
-    Err(message) => {
-      return Err(clone(message));
-    },
-    Ok(children) => {
-      for (const entry of children) {
-        if (entry.directory) {
-          match (projectFiles(entry.path)) {
-            Err(message) => {
-              return Err(clone(message));
-            },
-            Ok(nested) => {
-              for (const file of nested) files.push(clone(file));
-            }
-          }
-        } else {
-          files.push(clone(entry));
-        }
-      }
-    }
-  }
-
-  return Ok(files);
-}
 
 function SearchResult(file: ReadOnly<Entry>, root: string, workspace: Signal<Workspace>, query: Signal<string>, font: Signal<int>): Node {
   const path = clone(file.path);

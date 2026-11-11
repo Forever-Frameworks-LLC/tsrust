@@ -31,7 +31,7 @@ function directoryItems(path: string): Result<Node[], string> {
 }
 
 export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>): Node {
-  const treeClass = computed<string>(() => 'size-full min-w-0 text-[' + font.get().toString() + 'px]');
+  const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
   match (directoryItems(path)) {
     Err(message) => {
       return <Text>{message}</Text>;

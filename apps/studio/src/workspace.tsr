@@ -1,10 +1,11 @@
 import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
-import { basename, separator } from 'std:path';
+import { basename, extname, separator } from 'std:path';
 import { Document, createDocument, dirty } from './documents.tsr';
 
 export interface OpenFile {
   document: Document;
   name: string;
+  kind: string;
 }
 
 export interface Workspace {
@@ -58,7 +59,7 @@ export function selectFile(workspace: Mutable<Workspace>, path: string): boolean
   return true;
 }
 
-export function openFile(workspace: Mutable<Workspace>, path: string): Result<void, string> {
+export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>): Result<void, string> {
   try {
     const resolved = unwrap(canonicalize(path));
     const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
@@ -70,15 +71,17 @@ export function openFile(workspace: Mutable<Workspace>, path: string): Result<vo
     }
 
     if (!unwrap(stat(resolved)).isFile) return Err('Choose a regular file.');
-    // shortcut: preview reads are bounded to 4 MiB; add a streaming document path for large-file editing.
-    const text = unwrap(readTextFile(resolved, 4 * 1024 * 1024));
+    // shortcut: initial text reads are bounded to 4 MiB; add a streaming document path for large-file editing.
+    const extension = extname(resolved).toLowerCase();
+    const image = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
+    const text = image ? '' : unwrap(readTextFile(resolved, 4 * 1024 * 1024));
     match (createDocument(clone(resolved), text)) {
       Err(message) => {
         return Err(clone(message));
       },
       Ok(document) => {
         workspace.files.push({
-          document, name: basename(resolved)
+          document, name: basename(resolved), kind: image ? 'image' : 'text'
         });
       }
     }
@@ -118,4 +121,31 @@ export function moveFile(workspace: Mutable<Workspace>, path: string, direction:
   const file = clone(workspace.files[index]);
   workspace.files.splice(index, 1);
   workspace.files.splice(next, 0, file);
+}
+
+export function projectFiles(path: string): Result<Entry[], string> {
+  const files: Entry[] = [];
+  match (entries(path)) {
+    Err(message) => {
+      return Err(clone(message));
+    },
+    Ok(children) => {
+      for (const entry of children) {
+        if (entry.directory) {
+          match (projectFiles(entry.path)) {
+            Err(message) => {
+              return Err(clone(message));
+            },
+            Ok(nested) => {
+              for (const file of nested) files.push(clone(file));
+            }
+          }
+        } else {
+          files.push(clone(entry));
+        }
+      }
+    }
+  }
+
+  return Ok(files);
 }

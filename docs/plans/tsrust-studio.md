@@ -362,3 +362,30 @@ change unrelated v0.2.0 acceptance or authorize a release.
   remains separate; retained dev still uses its existing supervisor image.
 - No cloud integration, model specialization/distribution, Windows, complete
   application, signing/packaging milestone or release acceptance is claimed.
+
+
+## Owner editor acceptance checklist — November 11
+
+Each item requires observed behavior; source changes alone do not close it.
+
+| # | Requirement | Current acceptance |
+|---|---|---|
+| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persistent file and JSON-to-picker synchronization observed |
+| 2 | Matching navigation/editor text sizing | Shared zoom observed; monospace tree/editor screenshot appears matched; full layout acceptance pending |
+| 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
+| 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
+| 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |
+| 6 | Tab/tree drag/drop, resizable editor splits | Pending |
+| 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |
+| 8 | Distinct JSON syntax categories | Pending |
+| 9 | Workspace launch argument; later code-dot/dock directory opening | Root uses launch argument/current directory; package default observed; alternate launch/drop pending |
+| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; IME/conflict/close UX and larger recovery scope pending |
+| 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; Catppuccin Latte native preview/Save/Reload observed; full catalog contrast/rendering pending |
+| 12 | Selected-tab auto-reveal; respect manual scrolling | Pending |
+| 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |
+| 14 | Terminal toggle; planned-feature surfaces and controls | Real terminal-panel toggle and labeled planned tabs observed; PTY/debug/Git/AI/extension functionality remains pending |
+
+Owner permits supervisor restarts whenever needed without another permission
+question. Keep one current dev session running. Planned-feature placeholders are
+now explicitly requested and must be labeled honestly. This supersedes earlier
+placeholder restrictions; it does not authorize fake completion claims.

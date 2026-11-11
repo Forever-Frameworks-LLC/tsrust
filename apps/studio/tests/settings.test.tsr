@@ -1,0 +1,43 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
+import { defaultConfig, parseConfig, loadConfig, saveConfig, themes } from '../src/settings.tsr';
+
+test('settings validate before persistence and round trip their named theme and shared text size', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-settings-'));
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    strictEqual(unwrap(loadConfig(path)).fontSize, defaultConfig().fontSize);
+    const text = '{"schemaVersion":1,"theme":"Studio Light","fontSize":18}';
+    unwrap(saveConfig(path, text));
+    strictEqual(unwrap(loadConfig(path)).theme, 'Studio Light');
+    strictEqual(unwrap(loadConfig(path)).fontSize, 18);
+    strictEqual(themes().length >= 38, true);
+    for (const theme of themes()) {
+      const config = defaultConfig();
+      config.theme = clone(theme);
+      unwrap(saveConfig(path, JSON.stringify(config)));
+      strictEqual(unwrap(loadConfig(path)).theme, theme);
+    }
+
+    unwrap(saveConfig(path, text));
+    for (const invalid of ['{}', 'not json', '{"schemaVersion":1,"theme":"missing theme","fontSize":14}', '{"schemaVersion":2,"theme":"Studio Dark","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":7}', '{"schemaVersion":1,"theme":"","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14.5}']) {
+      match (parseConfig(invalid)) {
+        Ok(_) => {
+          throw 'invalid settings accepted';
+        },
+        Err(_) => {}
+      }
+
+      match (saveConfig(path, invalid)) {
+        Ok(_) => {
+          throw 'invalid settings saved';
+        },
+        Err(_) => {}
+      }
+
+      strictEqual(unwrap(readTextFile(path)), text);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

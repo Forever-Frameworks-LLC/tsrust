@@ -123,6 +123,7 @@ fn text_children_prop(component: &str) -> Option<&'static str> {
 impl Kit {
     /// Whether the component keeps this prop itself (uncontrolled state or text children).
     pub(crate) fn is_local(&self, prop: &str) -> bool {self.local.iter().any(|name| *name == prop)}
+    pub(crate) fn is_bound(&self, prop: &str) -> bool {self.bindings.iter().any(|(name,_)|name==prop)}
 }
 
 impl Node {

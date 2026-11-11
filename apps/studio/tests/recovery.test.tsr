@@ -1,0 +1,61 @@
+import { test, strictEqual } from 'std:testing';
+import { createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
+import { openWorkspace, openFile } from '../src/workspace.tsr';
+import { edit, dirty } from '../src/documents.tsr';
+import { persistRecovery, restoreRecovery } from '../src/recovery.tsr';
+import { saveDocument } from '../src/storage.tsr';
+
+test('recovery restores exact drafts with fresh sessions and retains the original disk baseline', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-recovery-'));
+  try {
+    unwrap(writeTextFile(root + '/source.tsr', 'disk\r\n'));
+    const workspace = unwrap(openWorkspace(root));
+    const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
+    unwrap(openFile(workspace, root + '/source.tsr'));
+    const session = clone(workspace.files[0].document.session);
+    edit(workspace.files[0].document, '日本語 🦀\r\n');
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeTextFile(root + '/source.tsr', 'external edit'));
+    const reopened = unwrap(openWorkspace(root));
+    const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
+    strictEqual(reopened.files.length, 1);
+    strictEqual(reopened.files[0].document.text, '日本語 🦀\r\n');
+    strictEqual(reopened.files[0].document.savedText, 'disk\r\n');
+    strictEqual(reopened.files[0].document.session === session, false);
+    strictEqual(dirty(reopened.files[0].document), true);
+    match (saveDocument(reopened.files[0].document)) {
+      Ok(_) => {
+        throw 'recovery overwrote external changes';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/source.tsr')), 'external edit');
+    unwrap(writeTextFile(root + '/journal.json', 'external journal edit'));
+    match (persistRecovery(reopened, restored)) {
+      Ok(_) => {},
+      Err(_) => {}
+    }
+
+    edit(reopened.files[0].document, 'new draft');
+    match (persistRecovery(reopened, restored)) {
+      Ok(_) => {
+        throw 'changed journal was overwritten';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/journal.json')), 'external journal edit');
+    const invalid = unwrap(openWorkspace(root));
+    match (restoreRecovery(invalid, root + '/journal.json')) {
+      Ok(_) => {
+        throw 'corrupt journal accepted';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(invalid.files.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

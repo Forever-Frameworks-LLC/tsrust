@@ -69,3 +69,24 @@ these placements are defaults, not fixed product restrictions. Use existing Kit
 docking/layout capabilities and one validated settings model; avoid one-off
 position toggles or placeholder panels. Safe editing, saves and recovery remain
 required alongside UI work.
+
+## Development-session restarts — owner, 2026-11-11
+
+Restart the dev supervisor whenever needed without requesting permission. Keep
+one current development preview running afterward. Once editable buffers are
+enabled, preserve drafts across legitimate dev reloads and restarts; restart
+authorization does not remove the file-safety requirements.
+
+## Editor completion requirements — owner, 2026-11-11
+
+Settings belong in a separate window backed by tsrust_studio.config.json. Keep
+navigation/editor sizing visually consistent. The activity-bar search searches
+content with regex and case sensitivity; quick filename opening is a separate
+command, without duplicate search icons. Support image viewing, Markdown preview,
+distinct JSON highlighting, clear active tabs and selected-tab reveal. Workspace
+roots come from launch arguments, with directory-open/drop integration to follow.
+Implement editable documents/saving/recovery, native tab/tree drag/drop, resizable
+editor splits and a substantial theme catalog with verified persistence. Restore
+a useful status bar and terminal/panel toggles. This update explicitly authorizes
+clearly labeled planned-feature panels/controls, superseding the earlier ban on
+placeholders. Keep the original functional-UI requirements for implemented work.

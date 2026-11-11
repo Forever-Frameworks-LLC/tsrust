@@ -1,0 +1,47 @@
+import { Signal } from 'std:ui';
+import { Workspace } from './workspace.tsr';
+import { edit } from './documents.tsr';
+import { saveDocument } from './storage.tsr';
+import { Recovery, persistRecovery } from './recovery.tsr';
+
+export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: ReadOnly<string>, text: ReadOnly<string>): void {
+  const next = workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === path);
+  if (index < 0) return;
+  edit(next.files[index].document, clone(text));
+  next.error = '';
+  const journal = recovery.get();
+  match (persistRecovery(next, journal)) {
+    Ok(_) => {},
+    Err(error) => {
+      next.error = 'Draft recovery: ' + error;
+    }
+  }
+
+  recovery.set(journal);
+  workspace.set(next);
+}
+
+export function saveActive(workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
+  const next = workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === next.active);
+  if (index < 0 || next.files[index].kind !== 'text') return;
+  next.error = '';
+  match (saveDocument(next.files[index].document)) {
+    Ok(_) => {},
+    Err(error) => {
+      next.error = 'Save failed: ' + error.message;
+    }
+  }
+
+  const journal = recovery.get();
+  match (persistRecovery(next, journal)) {
+    Ok(_) => {},
+    Err(error) => {
+      next.error += ' Draft recovery: ' + error;
+    }
+  }
+
+  recovery.set(journal);
+  workspace.set(next);
+}
