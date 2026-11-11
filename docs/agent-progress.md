@@ -21,7 +21,7 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current accepted section (checkpoint pending): shared native fast-divider fix.
+Latest accepted checkpoint127104c6: shared native fast-divider fix.
 Managed gpui-base0.9.0 path patch applies the final release position and returns on
 unchanged size before syncing stale painted bounds. Source from published .crate
 SHA256cff6377e30f0c857681662e7edc7286bf30f5606033390401b0706d7bd930833;
@@ -47,7 +47,7 @@ focused-group restoration accepted. CUA completion: Verified native resize and
 restoration. Temporary mouse tracer/padding experiments gone from source and live
 image. User changed zoom during checks; preserve their latest value, not historical2.
 
-**KEEP DEV RUNNING: PTY31628,supervisor96902,app98589**, dev.tsrust.studio.dev.
+At127104c6 dev was PTY31628/supervisor96902/app98589 (superseded below).
 Standard launch below. Initial patched native build236748ms:check14043.6,emit1103.1,
 backend175.4,runtime prep3037.9,build+publish206695.9,native+link220781.9ms. Warm
 restart16222ms:check14249.3,emit1079.7,backend127.8,app hit112.3,native+link0ms.
@@ -57,20 +57,57 @@ runtime6c110a65bedc33e5. Removed6proven trace/padding caches under locks:
 Installed/target CLIc17e15a1bd76fcf987a28d676fc8d7e438193542891a1c431e158cef9eeb0848,
 LSP2f60607825455025a1e10bf15ba1fa2060a551674a15022b1db82ca509821ef5.
 
-Next section: owner reports theme import keywords look like imported identifiers,
-and asks to follow Zed. Research begun, no highlighting edits yet. Actual active
-backend is GPUI syntect (gpui-highlight -> gpui-kit/syntect), not inspected unused
-Tree-sitter queries. syntect semantic_name maps keyword.control.import to preproc;
-many themes omit preproc. Broad meta exclusion also precedes meta.mapping.key/
-meta.function-call checks; JSON keys need real scope proof. Zed primary docs and
-PR47435 separate keyword.import/declaration, use Tree-sitter captures and fallback
-styles; user wants that proven design. GPUI supports selective tree-sitter grammar
-features and public LanguageRegistry; investigate using those before vendoring
-another crate or custom highlighter. Existing TSX query is only upstream TS overlay,
-while TS query is full; JSON equal-range precedence is first-wins. Candidate coherent
-fix: selective structural grammars with compatible TS/TSX/JSON queries and fallback
-styles, verified on real Tsrust syntax/theme catalog, memory/setup effects and native
-viewers. Preserve one writer and backend isolation. No code decision accepted yet.
+Latest section accepted, checkpoint pending: detailed syntax capture/theme fix.
+Owner Gruvbox screenshot and Zed request traced to active Syntect import=>preproc,
+theme schema dropping unknown detailed names, and JSON inner strings hiding outer
+meta.mapping.key.json. Community catalog104names/65detailed. Pinned GPUI component
+patch preserves extra style names in both backends, exact then nearest-parent
+fallback; imports/from/export=>keyword.import, parameters=>variable.parameter,
+JSON keys=>property.json_key, true/false=>boolean, null=>constant, escapes retained.
+Existing Syntect language coverage/palettes retained, no Tree-sitter product switch.
+References https://zed.dev/docs/extensions/languages#syntax-highlighting and
+https://github.com/zed-industries/zed/pull/47435 ; no copied GPL source.
+
+Published component0.9.0 archive SHA25645bbfdba0efa392190f2fd446ec311325302eb047d5ce45dc1bcf189cb18f5eb.
+Managed291files:285original +note +4pinned omitted test fixtures +Lucide license.
+Fixture exact commit7591a35eced761e3613c01e71ff04c10129dae1a, hashes/paths in note;
+5test-only include paths adjusted, assertions retained, fifth uses active sibling
+GPUI base source. Registry unchanged. GPUI lock only removes component registry/
+hash; all versions retained. Generic patch manager third payload, composite/path/
+independent identity tests; existing keys already incorporate patch bytes.
+
+Checks: highlighter8/8PASS2.01s execution/21.78s setup; other backend theme1/1PASS
+0s/58.32s setup; managed patch3/3PASS0.35s/3m56s incl lock wait. Earlier failures:
+offline missing optional metadata, then published missing fixtures (no tests),
+7/8PASS1.98s JSON failure, temporary scope-only failure2.11s identifying enclosing
+key scope. TEMP TRACE REMOVED. Final CLI/LSP buildPASS5m04s incl lock wait; public
+native Studio buildPASS before preview restart. Roster/fixture hashes/diff pass;
+whole formatter0changes before checks, repeat before checkpoint after docs edits.
+No broad compiler/LSP matrix replay. Detailed audit appended.
+
+Native app8224: Studio Dark blue keys/salmon values; Gruvbox orange import/from vs
+light symbols, light keys/green strings; Catppuccin Latte purple imports, red
+parameters, blue keys/green values. Reload restored saved Studio Dark without Save.
+Closed only added clean JSON tab. Original3files, nested layout, owner zoom-3/base14,
+drafts0 exactly match pre-check fields; settings bytes exactly preserved. CUA
+completion: Verified detailed syntax theme colors. Full catalog contrast, semantic
+LSP coloring and focused-group/cursor/scroll restoration remain unaccepted.
+
+**KEEP DEV RUNNING: PTY73753,supervisor8045,app8224**,dev.tsrust.studio.dev.
+Launch same env -u CODEX_TOOL_CALL_ID/shared target/jobs1/incremental0. New dev
+31840ms:check14006.9,emit1060.4,backend152.1,runtime prepare5940.4,runtime hit,
+native+link15945.2,app miss0.1ms. Current runtime4c12f8cdc8fbbb9e,
+public app0416073655ad5cc1/dev app5b682d0a7d42a547. Installed+target refreshed AFTER
+all host/native checks: CLI3cbf37e3a88278d72858a80dcdd43a8be80f862c3f434848c068dbcbb2143333;
+LSP0b55e2ea5d604b1affb6cdbdb7c8d70c8a33ed37f0cd6bd69c38c7cf317834f9.
+Public target/studio SHA25662155c1cfb4c102fb5fc9fc37ffbc231d12d76d7618d423847387af9a8c5b34a.
+
+Next executable action: whole formatter/diff, inspect status and local checkpoint
+for this accepted section; no more source tests without changed inputs. Then resume
+complete editor scope, prioritizing active/focused-pane cursor/scroll retention,
+tree moves and real terminal/task/LSP services, with existing Kit/native APIs.
+Keep one writer/no agents, one preview; protect owner changes. Do not claim full
+Studio/AI goal complete. No pushes/releases/signing/model publication.
 
 Current section follows7d192232 (open-file restoration) and36fe5ddc
 (localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError
@@ -89,7 +126,7 @@ base, not hardcoded14. Shortcut changes do not write or normalize the user's
 settings JSON. Legacy journal defaults remain empty Dock layout/zoom0. Document
 sessions regenerate; dirty/external-file/journal write protections remain.
 
-**KEEP DEV RUNNING: PTY16049, supervisor39042, app39391.** Two clean source
+At b8aedbde dev was PTY16049/supervisor39042/app39391, superseded by the live session above. Two clean source
 panes: main.tsrx left,chrome.tsrx right; zoomLevel2/base14 (16px text), drafts0.
 Current launch from apps/studio, login=false,tty=true, desktop access:
 env -u CODEX_TOOL_CALL_ID CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1

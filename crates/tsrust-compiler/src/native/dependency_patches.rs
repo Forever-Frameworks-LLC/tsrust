@@ -22,10 +22,12 @@ const FILES:&[(&str,&[u8])]=&[
     ("tests/wpt.rs",include_bytes!("../../patched-dependencies/url/tests/wpt.rs")),
 ];
 include!("gpui_patch_files.rs");
+include!("gpui_component_patch_files.rs");
 struct Patch {name:&'static str,directory:&'static str,files:&'static [(&'static str,&'static [u8])]}
 const PATCHES:&[Patch]=&[
     Patch{name:"url",directory:DIRECTORY,files:FILES},
     Patch{name:"gpui-base",directory:"patched-dependencies/gpui-base",files:GPUI_FILES},
+    Patch{name:"gpui-component",directory:"patched-dependencies/gpui-component",files:GPUI_COMPONENT_FILES},
 ];
 fn invalid(message:impl Into<String>)->io::Error {io::Error::other(message.into())}
 fn selected(source:&str,patch:&Patch)->io::Result<Option<std::ops::Range<usize>>> {
@@ -49,7 +51,9 @@ pub fn normalize_manifest(source:&str)->io::Result<String> {
     for (range,value) in edits{normalized.replace_range(range,&value);}Ok(normalized)
 }
 pub fn source_identity(manifest:&str)->io::Result<String> {
-    if selected(manifest,&PATCHES[1])?.is_none(){return Ok(if selected(manifest,&PATCHES[0])?.is_some(){cache_identity("url-patch-1")}else{String::new()});}
+    let mut gpui=false;
+    for patch in &PATCHES[1..]{gpui|=selected(manifest,patch)?.is_some();}
+    if !gpui{return Ok(if selected(manifest,&PATCHES[0])?.is_some(){cache_identity("url-patch-1")}else{String::new()});}
     let mut hash=Sha256::new();hash.update(b"dependency-patches-1");
     for (name,bytes) in active_files(manifest)? {for part in [name.to_str().ok_or_else(||invalid("Non-UTF8 patch path"))?.as_bytes(),bytes]{hash.update((part.len() as u64).to_le_bytes());hash.update(part);}}
     Ok(hash.finalize().iter().map(|b|format!("{b:02x}")).collect())
@@ -144,15 +148,17 @@ mod tests {
     const MANIFEST:&str="[package]\nname=\"probe\"\nversion=\"0.0.0\"\n[patch.crates-io]\nurl={path=\"../patched-dependencies/url\"}\n";
     #[test]
     fn gpui_and_url_payloads_relocate_together_without_changing_backend_identity() {
-        let manifest=format!("{MANIFEST}gpui-base={{path=\"../patched-dependencies/gpui-base\"}}\n");
+        let manifest=format!("{MANIFEST}gpui-base={{path=\"../patched-dependencies/gpui-base\"}}\ngpui-component={{path=\"../patched-dependencies/gpui-component\"}}\n");
         let normalized=normalize_manifest(&manifest).unwrap();
         assert_eq!(normalize_manifest(&normalized).unwrap(),normalized);
         assert_eq!(source_identity(MANIFEST).unwrap(),cache_identity("url-patch-1"));
         assert_ne!(source_identity(&manifest).unwrap(),source_identity(MANIFEST).unwrap());
+        assert_ne!(source_identity(&manifest).unwrap(),source_identity(&format!("{MANIFEST}gpui-base={{path=\"../patched-dependencies/gpui-base\"}}\n")).unwrap());
         assert!(normalize_manifest(&manifest.replace("../patched-dependencies/gpui-base","/tmp/gpui-base")).is_err());
+        assert!(normalize_manifest(&manifest.replace("../patched-dependencies/gpui-component","/tmp/gpui-component")).is_err());
         let directory=tempfile::tempdir().unwrap();let root=directory.path();
         install(root,&manifest).unwrap();let mut count=0;
-        visit(root,&normalized,|_,_|{count+=1;Ok(())}).unwrap();assert_eq!(count,FILES.len()+GPUI_FILES.len());
+        visit(root,&normalized,|_,_|{count+=1;Ok(())}).unwrap();assert_eq!(count,FILES.len()+GPUI_FILES.len()+GPUI_COMPONENT_FILES.len());
         let panel=root.join("patched-dependencies/gpui-base/src/resizable/panel.rs");
         let original=fs::read(&panel).unwrap();fs::write(&panel,b"modified").unwrap();
         let missing=root.join(DIRECTORY).join("src/lib.rs");fs::remove_file(&missing).unwrap();

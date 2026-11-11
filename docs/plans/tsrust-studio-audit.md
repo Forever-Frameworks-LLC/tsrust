@@ -1153,3 +1153,64 @@ currently uses GPUI Syntect, mapping import to preproc, often absent from themes
 Unused GPUI Tree-sitter query investigation is not evidence about the active parser.
 No highlighting fix accepted yet; next section should use existing Kit grammar
 support and measure its costs, rather than add palette colors to mask missing roles.
+
+
+## Detailed syntax theme captures — 2026-11-11
+
+Owner supplied a Gruvbox screenshot where import matched the imported identifiers,
+and asked to study Zed. Primary references: https://zed.dev/docs/extensions/languages#syntax-highlighting
+and https://github.com/zed-industries/zed/pull/47435 . Use the capture/fallback
+model without copying GPL source or changing the active parser's language coverage.
+GPUI's Syntect adapter mapped import to preproc, which many themes omit. Its theme
+schema also discarded detailed names outside41fixed fields; the shipped community
+catalog contains104capture names,65detailed. JSON strings nested under
+meta.mapping.key.json lost that enclosing role to the inner string capture.
+
+Compiler-managed gpui-component0.9.0 patch comes from the published archive SHA256
+45bbfdba0efa392190f2fd446ec311325302eb047d5ce45dc1bcf189cb18f5eb. Both backend theme
+schemas preserve extra capture names and resolve exact names before nearest parents.
+Syntect maps import/from/export to keyword.import, parameters to variable.parameter,
+quoted JSON keys to property.json_key, true/false to boolean and null to constant.
+Escapes remain separately styled inside keys and values. This retains existing
+Syntect languages and every theme's palette. The generic patch/caching path admits
+the third exact payload; backend identity remains unchanged. GPUI lock removes only
+the component registry source/checksum, updating no versions. Registry is untouched.
+
+291payload files:285published files, patch note,4missing upstream test fixtures and
+Lucide license. The published tests referenced5omitted sibling/root files. Their
+include paths now use pinned fixtures or active managed GPUI base source, retaining
+all assertions. Fixtures came from the archive's commit7591a35eced761e3613c01e71ff04c10129dae1a;
+paths/hashes/licenses are in the patch note. Static roster/fixture identity checks
+pass. Temporary JSON scope tracing was removed before final host/native builds.
+
+Initial offline setup lacked optional registry metadata; official locked setup
+completed. First full highlighter run7/8PASS1.98s exposed the remaining JSON defect.
+A temporary scope-only witness failed2.11s and proved the enclosing key scope.
+Corrected highlighter family8/8PASS2.01s execution/21.78s setup: imports vs symbols,
+parameters, nested/identical JSON keys and values, escapes, numbers, booleans/null,
+detailed-style/font JSON roundtrip, nearest-parent fallback, existing language/
+folding/edit/style/registration cases. Tree-sitter backend theme resolver1/1PASS0s,
+setup58.32s; the product stays on Syntect. Expanded patch safety3/3PASS0.35s,
+setup3m56s with lock wait. Final CLI/LSP buildPASS5m04s with lock wait. Public native
+Studio buildPASS while prior preview stayed open; its runtime was reused by dev.
+Prior unrelated acceptance retained; no broad matrix replay.
+
+Native app8224/supervisor8045/PTY73753 verified Studio Dark blue JSON keys vs
+salmon values; Gruvbox orange import/from keywords vs light symbols, light JSON
+keys vs green strings; Catppuccin Latte purple imports, red parameter declarations,
+blue keys vs green strings. Existing theme selection/Reload restored Studio Dark.
+No Save or configuration rewrite. Removed only the added clean JSON test tab;
+original3source files/nested split layout, owner zoom-3/base14 and drafts0 match
+exact pre-check journal fields. Settings bytes match the pre-check file exactly.
+CUA completion: Verified detailed syntax theme colors. Single dev preview stays up.
+
+New dev launch31840ms:check14006.9,emit1060.4,backend152.1,runtime prepare5940.4,
+runtime hit,native+link15945.2ms,app miss0.1ms. Single observation, not benchmark.
+Current runtime4c12f8cdc8fbbb9e,public app0416073655ad5cc1,dev app5b682d0a7d42a547.
+Installed/target CLI3cbf37e3a88278d72858a80dcdd43a8be80f862c3f434848c068dbcbb2143333;
+LSP0b55e2ea5d604b1affb6cdbdb7c8d70c8a33ed37f0cd6bd69c38c7cf317834f9.
+Public Studio executable62155c1cfb4c102fb5fc9fc37ffbc231d12d76d7618d423847387af9a8c5b34a.
+
+Remaining: LSP semantic coloring, full theme-catalog contrast, full editor/language
+service acceptance, focused-group/cursor/scroll restoration, tree filesystem moves,
+terminal/debug/Git/AI services and full resource/agent scope. No completion claim.
