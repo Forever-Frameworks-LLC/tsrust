@@ -1,0 +1,27 @@
+import { test, strictEqual } from 'std:testing';
+import { fileDecoration } from '../src/file-icons.tsr';
+import { defaultConfig, parseConfig, formatConfig } from '../src/settings.tsr';
+
+test('file glyphs recognize names and extensions without decorating folders', () => {
+  strictEqual(fileDecoration('main.tsr', false).svg.includes('fill-rule="evenodd"'), true);
+  strictEqual(fileDecoration('view.TSRX', false).color, '#CE7045');
+  strictEqual(fileDecoration('script.ts', false).color, '#3178C6');
+  strictEqual(fileDecoration('Cargo.toml', false).svg, fileDecoration('main.rs', false).svg);
+  strictEqual(fileDecoration('README.md', false).svg.length > 0, true);
+  strictEqual(fileDecoration('icon.png', false).icon, 'image');
+  strictEqual(fileDecoration('unknown.extension', false).svg, '');
+  strictEqual(fileDecoration('folder.json', true).svg, '');
+});
+
+test('file icons default on and their disabled preference survives formatted settings', () => {
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).fileIcons, true);
+  const config = defaultConfig();
+  config.fileIcons = false;
+  strictEqual(unwrap(parseConfig(formatConfig(config))).fileIcons, false);
+  match (parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"fileIcons":"yes"}')) {
+    Ok(_) => {
+      throw 'invalid fileIcons type accepted';
+    },
+    Err(_) => {}
+  }
+});

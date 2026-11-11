@@ -69,7 +69,7 @@ function App(path: string): Node {
     }
   }
 
-  const browser = ProjectTree(workspace.get().root, workspace, font, recovery);
+  const browser = ProjectTree(workspace.get().root, workspace, font, recovery, settings);
   const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
   const contentSearch = ContentSearch(workspace, recovery);
   const panelView = Panels(panel);

@@ -17,6 +17,7 @@ export interface StudioConfig {
   panelPosition: string;
   chatPosition: string;
   locale: string;
+  fileIcons: boolean;
 }
 
 // Existing version-one files may omit layout fields; resolve them before use.
@@ -29,11 +30,12 @@ interface StoredConfig {
   panelPosition?: string;
   chatPosition?: string;
   locale?: string;
+  fileIcons?: boolean;
 }
 
 export function defaultConfig(): StudioConfig {
   return {
-    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en'
+    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en', fileIcons: true
   };
 }
 
@@ -44,7 +46,7 @@ export function parseConfig(text: ReadOnly<string>): Result<StudioConfig, string
     if (config.fontSize < 8 || config.fontSize > 48) return Err('fontSize must be between 8 and 48.');
     if (!themeNames.includes(config.theme)) return Err('Choose a theme from the installed Studio catalog.');
     const resolved: StudioConfig = {
-      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en'
+      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en', fileIcons: config.fileIcons ?? true
     };
     if (!['left', 'right'].includes(resolved.navigationSide)) return Err('navigationSide must be left or right.');
     if (!['left', 'right'].includes(resolved.activityBarSide)) return Err('activityBarSide must be left or right.');
@@ -109,5 +111,5 @@ export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>, expec
 
 
 export function formatConfig(config: ReadOnly<StudioConfig>): string {
-  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition)].join(',\n') + '\n}\n';
+  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons)].join(',\n') + '\n}\n';
 }

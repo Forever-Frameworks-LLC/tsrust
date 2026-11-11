@@ -1214,3 +1214,35 @@ Public Studio executable62155c1cfb4c102fb5fc9fc37ffbc231d12d76d7618d423847387af9
 Remaining: LSP semantic coloring, full theme-catalog contrast, full editor/language
 service acceptance, focused-group/cursor/scroll restoration, tree filesystem moves,
 terminal/debug/Git/AI services and full resource/agent scope. No completion claim.
+
+
+### Native settings and file icons — 2026-11-11
+
+GUI Settings checkpoint90bd6a8d replaces the raw-first window with Kit Settings
+pages/groups/items, custom draggable chrome, immediate validated writes and an
+optional formatted full-height JSON editor. Existing file bytes form a stale-write
+guard. Native font14to15to14 persisted; settings4/4PASS527.01ms execution. Tree and
+editor explicitly use font-mono; duplicate top terminal button removed. Owner later
+changed settings to Alduin/base11; those latest preferences are preserved.
+
+File icons extend existing TreeItem with documented SVG/tint props, generated
+wrappers and LSP help. Paint changes do not rebuild Tree navigation. Metadata has
+14associations, own Tsrust glyph plus11Simple Icons16.0.0 glyphs from official commit
+28241d80f8422eaed317ef968ad1e40b6d0d9163. Active resources include licenses,
+disclaimer and original/adapted SHA256 provenance. No runtime fetch/dependency.
+
+Model suite2/2PASS0.29ms execution covers mapping and preference parsing; prior
+settings acceptance retained. CLI/LSP buildPASS2m28s. Native public buildPASS;
+initial loop-scoped computed lifetime failed at launch, fixed by retaining state
+in each returned FileTreeItem component. Dev rebuildPASS34770ms(check16425.3,
+emit1218.1,backend50.8,native+link16445.8,runtimehit). Single observation, not benchmark.
+No full regression replay. Native app21033/supervisor19300/PTY99098 shows distinct
+Tr/Markdown/JSON/Git/image icons. GUI off/on persisted and repainted immediately;
+expanded src, selected settings.tsr, current tab order and3panes unchanged. Owner
+latest Alduin/base11 retained; fileIcons:true now explicit in formatted settings.
+CUA: Verified configurable native file icons. One dev preview remains running.
+
+Built/installed CLIaf342ff25a0e31aabb7491ae552baf6565602661e942b6073860f441b4aa3cd2;
+LSP5ec7890a51babce6f2af1a6e4c2458c053f96052ff8d39e5807588322661d98b.
+Whole formatter, generator and2locale/114message checks pass. Actual task/PTY/LSP
+services remain unconnected; next section traces reusable async process contracts.

@@ -110,5 +110,7 @@
   "Left": "Esquerda",
   "Right": "Direita",
   "Bottom": "Inferior",
-  "Reload the settings file before saving.": "Recarregue o arquivo de configurações antes de salvar."
+  "Reload the settings file before saving.": "Recarregue o arquivo de configurações antes de salvar.",
+  "File icons": "Ícones dos arquivos",
+  "Show language and file-type symbols in the explorer.": "Exibir símbolos de linguagens e tipos de arquivo no explorador."
 }

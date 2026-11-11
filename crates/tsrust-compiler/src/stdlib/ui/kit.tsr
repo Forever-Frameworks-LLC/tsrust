@@ -6013,6 +6013,10 @@ export interface TreeItemProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Row icon. Defaults to a folder (open or closed) or file icon. */
   icon?: ReactiveValue<IconName>;
+  /** Inline SVG glyph. Nonempty markup takes precedence over icon; empty markup uses the named or default folder/file icon. The Tree retains the source; the row label remains its accessible name. Parsing follows the same native SVG behavior as Icon.svg. */
+  iconSvg?: ReactiveValue<string> | TextBinding;
+  /** Tint for the row icon: a theme color, palette name or #rrggbb. Omitted, empty or unrecognized values inherit the row foreground. Applies to named and SVG icons without changing text color. */
+  iconColor?: ReactiveValue<string> | TextBinding;
   /** Opens the folder; rebuilds the tree when it changes. */
   expanded?: ReactiveValue<boolean>;
   /** Opens the folder initially. */
@@ -6045,6 +6049,16 @@ export function TreeItem(props: TreeItemProps): Node {
     } else {
       node = unwrapNode(nativeKitBind(node, 'icon', nativeBindText(prop_icon.evaluate)));
     }
+  }
+
+  const prop_iconSvg = props.iconSvg;
+  if (prop_iconSvg !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'iconSvg', prop_iconSvg));
+  }
+
+  const prop_iconColor = props.iconColor;
+  if (prop_iconColor !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'iconColor', prop_iconColor));
   }
 
   const prop_expanded = props.expanded;

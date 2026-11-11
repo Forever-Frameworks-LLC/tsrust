@@ -3986,7 +3986,7 @@
           "doc": "Horizontal placement along that edge."
         }
       ],
-      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">\ud83d\udc4d 2</Button></BubbleReactions>"
+      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">👍 2</Button></BubbleReactions>"
     },
     {
       "name": "BubbleGroup",
@@ -4214,7 +4214,7 @@
       "children": true,
       "doc": "Trailing content of a ListItem, such as a count or shortcut.",
       "props": [],
-      "example": "<ListItemSuffix><Kbd>\u2318K</Kbd></ListItemSuffix>"
+      "example": "<ListItemSuffix><Kbd>⌘K</Kbd></ListItemSuffix>"
     },
     {
       "name": "ListSeparator",
@@ -4317,6 +4317,16 @@
           "name": "icon",
           "type": "icon",
           "doc": "Row icon. Defaults to a folder (open or closed) or file icon."
+        },
+        {
+          "name": "iconSvg",
+          "type": "string",
+          "doc": "Inline SVG glyph. Nonempty markup takes precedence over icon; empty markup uses the named or default folder/file icon. The Tree retains the source; the row label remains its accessible name. Parsing follows the same native SVG behavior as Icon.svg."
+        },
+        {
+          "name": "iconColor",
+          "type": "string",
+          "doc": "Tint for the row icon: a theme color, palette name or #rrggbb. Omitted, empty or unrecognized values inherit the row foreground. Applies to named and SVG icons without changing text color."
         },
         {
           "name": "expanded",
@@ -5845,7 +5855,7 @@
         }
       ],
       "children": "MarkerIcon, MarkerContent or any content",
-      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking\u2026</MarkerContent>\n</Marker>"
+      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking…</MarkerContent>\n</Marker>"
     },
     {
       "name": "MarkerIcon",
@@ -5875,7 +5885,7 @@
         {
           "name": "description",
           "type": "string",
-          "doc": "Secondary text, such as PDF \u00b7 2.4 MB."
+          "doc": "Secondary text, such as PDF · 2.4 MB."
         },
         {
           "name": "icon",
@@ -5901,7 +5911,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Upload progress, 0\u2013100, while uploading."
+          "doc": "Upload progress, 0–100, while uploading."
         },
         {
           "name": "tooltip",
@@ -5951,7 +5961,7 @@
           "doc": "Shows a retry button on failure; called when it is clicked."
         }
       ],
-      "example": "<Attachment title=\"report.pdf\" description=\"PDF \u00b7 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
       "children": "AttachmentMedia, AttachmentContent and AttachmentActions"
     },
     {
@@ -5968,7 +5978,7 @@
       "children": true,
       "doc": "An Attachment's secondary text; it shows the status while in progress or failed.",
       "props": [],
-      "example": "<AttachmentDescription>PDF \u00b7 2.4 MB</AttachmentDescription>"
+      "example": "<AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>"
     },
     {
       "name": "AttachmentTitle",
@@ -6916,7 +6926,7 @@
     },
     {
       "name": "PlotTooltip",
-      "doc": "A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot\u2019s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels.",
+      "doc": "A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot’s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels.",
       "item": true,
       "children": "PlotTooltipRow",
       "props": [
@@ -6928,7 +6938,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Optional overlay opacity, clamped to 0\u20131. Must be finite. Omit to use Kit\u2019s hover fade."
+          "doc": "Optional overlay opacity, clamped to 0–1. Must be finite. Omit to use Kit’s hover fade."
         },
         {
           "name": "title",
@@ -6991,7 +7001,7 @@
         {
           "name": "valueColor",
           "type": "string",
-          "doc": "Optional text color for this row\u2019s value. Uses the same color names as Plot marks; omit to inherit tooltip text color."
+          "doc": "Optional text color for this row’s value. Uses the same color names as Plot marks; omit to inherit tooltip text color."
         }
       ],
       "example": "<PlotTooltipRow label=\"Target\" value=\"100\" valueColor=\"green-500\"/>"
@@ -7009,7 +7019,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -7051,7 +7061,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -7083,7 +7093,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "label",

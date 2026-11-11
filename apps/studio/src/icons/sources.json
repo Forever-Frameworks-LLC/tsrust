@@ -1,0 +1,72 @@
+{
+  "simpleIcons": {
+    "repository": "https://github.com/simple-icons/simple-icons",
+    "version": "16.0.0",
+    "revision": "28241d80f8422eaed317ef968ad1e40b6d0d9163",
+    "license": "CC0-1.0",
+    "files": [
+      {
+        "path": "icons/typescript.svg",
+        "sha256": "7f023e8d1e767370306ec9437d2de5d5af97491d6208dd7799a3808a7c10a36a",
+        "packagedSha256": "7f023e8d1e767370306ec9437d2de5d5af97491d6208dd7799a3808a7c10a36a"
+      },
+      {
+        "path": "icons/javascript.svg",
+        "sha256": "c9be35a7a861ebe80ae4ee706d05004b99ee59fc63db69da6dcc10776718434b",
+        "packagedSha256": "c9be35a7a861ebe80ae4ee706d05004b99ee59fc63db69da6dcc10776718434b"
+      },
+      {
+        "path": "icons/rust.svg",
+        "sha256": "95a291d8887610d103704adcc5c5f2cbfa4c80a96f8e72b00531d5691beb67a8",
+        "packagedSha256": "95a291d8887610d103704adcc5c5f2cbfa4c80a96f8e72b00531d5691beb67a8"
+      },
+      {
+        "path": "icons/json.svg",
+        "sha256": "8cbb06b00889977af13c20b92c4ff8b1c3913f340db49070abc1d582c1e06d5b",
+        "packagedSha256": "8cbb06b00889977af13c20b92c4ff8b1c3913f340db49070abc1d582c1e06d5b"
+      },
+      {
+        "path": "icons/markdown.svg",
+        "sha256": "fac4fe3491647608362095b4b44d8bb8c45a37231a31309d435bf2e7592ac1e1",
+        "packagedSha256": "fac4fe3491647608362095b4b44d8bb8c45a37231a31309d435bf2e7592ac1e1"
+      },
+      {
+        "path": "icons/html5.svg",
+        "sha256": "dfd65fdd7e4f997c6b163e48793de5ad18c4c99e191807a61752ea702f123d1d",
+        "packagedSha256": "dfd65fdd7e4f997c6b163e48793de5ad18c4c99e191807a61752ea702f123d1d"
+      },
+      {
+        "path": "icons/css.svg",
+        "sha256": "9a97b95e3207aa4a6545dbb862e22450a01f37201c00e6b7d9c2958b59ca9ff9",
+        "packagedSha256": "9a97b95e3207aa4a6545dbb862e22450a01f37201c00e6b7d9c2958b59ca9ff9"
+      },
+      {
+        "path": "icons/toml.svg",
+        "sha256": "64be44ce0e10de3891a617c79779f1330b7aa0e9580659b9ba99bfe89c89a230",
+        "packagedSha256": "64be44ce0e10de3891a617c79779f1330b7aa0e9580659b9ba99bfe89c89a230"
+      },
+      {
+        "path": "icons/gnubash.svg",
+        "sha256": "edee96774ff71b672c429c28eb092ab13373677157c86abe7edb0dd699e07986",
+        "packagedSha256": "edee96774ff71b672c429c28eb092ab13373677157c86abe7edb0dd699e07986"
+      },
+      {
+        "path": "icons/git.svg",
+        "sha256": "051a7fac8ef6c50593b8f86c402b238c9780397b9bf3cb50aa95e2f18a41a346",
+        "packagedSha256": "051a7fac8ef6c50593b8f86c402b238c9780397b9bf3cb50aa95e2f18a41a346"
+      },
+      {
+        "path": "icons/python.svg",
+        "sha256": "ad9468e1c4903f73ae7eebfbe980f0f727a10db695be3d914e7d8bd25356a862",
+        "packagedSha256": "ad9468e1c4903f73ae7eebfbe980f0f727a10db695be3d914e7d8bd25356a862"
+      }
+    ],
+    "adaptation": "Trailing whitespace removed when embedding SVG strings; colors are applied by the native icon tint."
+  },
+  "tsrust": {
+    "path": "editors/vscode/icons/tsrust.svg",
+    "sha256": "77e43d450cac9c68c048221441daebd336bb76db20da35d4924c2db6ae7c23ec",
+    "adaptation": "Existing Tr geometry converted to a single-color cutout for native icon tinting.",
+    "packagedSha256": "9a36d34e52f0977ee88b6490b33a8a166e82a7e8924c087aee90b92828e0ac98"
+  }
+}

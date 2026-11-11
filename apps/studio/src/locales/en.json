@@ -110,5 +110,7 @@
   "Left": "Left",
   "Right": "Right",
   "Bottom": "Bottom",
-  "Reload the settings file before saving.": "Reload the settings file before saving."
+  "Reload the settings file before saving.": "Reload the settings file before saving.",
+  "File icons": "File icons",
+  "Show language and file-type symbols in the explorer.": "Show language and file-type symbols in the explorer."
 }

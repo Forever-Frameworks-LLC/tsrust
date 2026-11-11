@@ -397,3 +397,12 @@ Owner permits supervisor restarts whenever needed without another permission
 question. Keep one current dev session running. Planned-feature placeholders are
 now explicitly requested and must be labeled honestly. This supersedes earlier
 placeholder restrictions; it does not authorize fake completion claims.
+
+
+November11 feature update: Settings now uses native Kit categorized GUI controls,
+custom chrome and optional formatted full-height JSON, with immediate persistence
+and stale-write protection. Tree/editor explicitly share font-mono. Explorer file
+icons are data-driven, bundled and configurable; native off/on preserves selection,
+expanded folders and panes. Focused mapping/settings proofs and native observations
+are recorded in the audit. Owner prioritizes feature throughput/manual acceptance;
+next work is actual task/terminal/language services, not repeated unchanged suites.

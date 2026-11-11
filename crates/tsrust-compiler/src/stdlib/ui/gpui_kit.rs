@@ -3221,14 +3221,17 @@ impl Root {
                     tree_icons(node, &mut icons);
                     let row = root.clone();
                     let text_size=style.text.font_size.clone();
-                    let mut view = tree(state, move |index, entry, selected, _, _| {
+                    let mut view = tree(state, move |index, entry, selected, _, cx| {
                         let item = entry.item();
                         let item_id = item.id.to_string();
-                        let icon = icons.get(&item_id).and_then(|icon| icon_name(icon)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
+                        let decoration = icons.get(&item_id);
+                        let named = decoration.and_then(|icon: &TreeIcon| icon_name(&icon.name)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
+                        let mut icon = match decoration.filter(|icon| !icon.svg.is_empty()) {Some(icon) => Icon::empty().data(icon.svg.as_bytes()), None => Icon::new(named)};
+                        if let Some(color) = decoration.and_then(|icon| theme_color(&icon.color, cx)) {icon = icon.text_color(color);}
                         let root = row.clone();
                         let mut line = ListItem::new(index).selected(selected).disabled(entry.is_disabled()).pl(px(12. * entry.depth() as f32 + 8.))
                             .min_w_0().overflow_hidden()
-                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(Icon::new(icon).size_4())
+                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(icon.size_4())
                                 .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(item.label.clone())));
                         if let Some(size)=text_size.clone(){line=line.text_size(size);}
                         line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
@@ -3707,11 +3710,13 @@ fn tree_select(state: &mut TreeState, id: &SharedString, cx: &mut Context<TreeSt
     if let Some(index) = state.index_of(id) {state.set_selected_index(Some(index), cx);}
 }
 
-/// Icons per tree item id (TreeItem `icon`), else folder/file by shape.
-fn tree_icons(node: &Node, out: &mut HashMap<String, String>) {
+/// Paint-only decoration; changing an icon must not rebuild the navigation state.
+struct TreeIcon {name: String, svg: String, color: String}
+fn tree_icons(node: &Node, out: &mut HashMap<String, TreeIcon>) {
     for (child, item) in items(node, "TreeItem") {
         let label = item.text("label");
-        if let Some(icon) = item.prop("icon") {out.insert(item.prop("id").map_or(label, str::to_owned), icon.to_owned());}
+        let icon = TreeIcon {name: item.text("icon"), svg: item.text("iconSvg"), color: item.text("iconColor")};
+        if !icon.name.is_empty() || !icon.svg.is_empty() || !icon.color.is_empty() {out.insert(item.prop("id").map_or(label, str::to_owned), icon);}
         tree_icons(child, out);
     }
 }
@@ -3720,7 +3725,7 @@ fn tree_icons(node: &Node, out: &mut HashMap<String, String>) {
 fn tree_shape(root: &Node, id: u64) -> String {
     fn walk(node: &Node, out: &mut String) {
         for (child, item) in items(node, "TreeItem") {
-            for key in ["id", "label", "icon", "expanded", "disabled"] {out.push_str(&item.text(key)); out.push('\u{1}');}
+            for key in ["id", "label", "expanded", "disabled"] {out.push_str(&item.text(key)); out.push('\u{1}');}
             out.push('['); walk(child, out); out.push(']');
         }
     }

@@ -1,6 +1,6 @@
 import { Workspace } from './workspace.tsr';
 import { message, accessibleName, localizeError } from './localization.tsr';
-import { View, Text, Button, CodeEditor, Select, SelectItem, NumberInput, Settings, SettingsPage, SettingsGroup, SettingItem, Shortcut, Node, Signal, signal, openWindow, translate } from 'std:ui';
+import { View, Text, Button, CodeEditor, Select, SelectItem, NumberInput, Switch, Settings, SettingsPage, SettingsGroup, SettingItem, Shortcut, Node, Signal, signal, openWindow, translate } from 'std:ui';
 import { readTextFile } from 'std:fs';
 import { toInt } from 'std:numeric';
 import { configPath, parseConfig, formatConfig, defaultConfig, themes, StudioConfig } from './settings.tsr';
@@ -62,6 +62,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const fontSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
+  const iconsSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
   const localeSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
@@ -97,6 +100,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
             </SettingItem>
             <SettingItem title={message("Font size")} description={message("Base text size in pixels. Workspace zoom is applied on top.")}>
               <NumberInput value={Number(draft.get().fontSize)} min={8} max={48} step={1} onValidate={(candidate) => Number.isInteger(Number(candidate))} size="small" className="w-28" accessibilityLabel={message("Font size")} onChange={(value) => { match (toInt(value)) { Ok(size) => { const config = draft.get(); config.fontSize = size; commitSettings(fontSession, config); }, Err(_) => {} } }} />
+            </SettingItem>
+            <SettingItem title={message("File icons")} description={message("Show language and file-type symbols in the explorer.")}>
+              <Switch checked={draft.get().fileIcons} accessibilityLabel={message("File icons")} onChange={(enabled) => { const config = draft.get(); config.fileIcons = enabled; commitSettings(iconsSession, config); }} />
             </SettingItem>
           </SettingsGroup>
           <SettingsGroup title={message("Language")}>
