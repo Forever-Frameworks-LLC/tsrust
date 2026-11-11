@@ -1,4 +1,13 @@
-import { openFile, writeAll, syncData, syncAll, seek, read, position, close } from "std:fs";
+import {
+  openFile,
+  writeAll,
+  syncData,
+  syncAll,
+  seek,
+  read,
+  position,
+  close
+} from "std:fs";
 import { fromUtf8, length, at } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[][] {

@@ -1,4 +1,21 @@
-import { View, Text, Button, Input, Node, signal, run, t, tWith, translate, translateWith, setTranslations, setLocale, locale, DatePicker, Select } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Input,
+  Node,
+  signal,
+  run,
+  t,
+  tWith,
+  translate,
+  translateWith,
+  setTranslations,
+  setLocale,
+  locale,
+  DatePicker,
+  Select
+} from 'std:ui';
 import en from './locales/en.json';
 import fr from './locales/fr.json';
 

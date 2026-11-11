@@ -1,5 +1,15 @@
 import { test, strictEqual } from 'std:testing';
-import { createTempDir, writeTextFileAtomic, writeTextFile, readTextFile, readDir, stat, hardLink, removeDirAll, mkdir } from 'std:fs';
+import {
+  createTempDir,
+  writeTextFileAtomic,
+  writeTextFile,
+  readTextFile,
+  readDir,
+  stat,
+  hardLink,
+  removeDirAll,
+  mkdir
+} from 'std:fs';
 import { platform } from 'std:os';
 
 test('atomic text writes create, replace exact UTF-8 and reject stale baselines without leftovers', () => {

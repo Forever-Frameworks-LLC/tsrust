@@ -1,6 +1,42 @@
 import { test, strictEqual } from 'std:testing';
-import { Example, ExampleTitle, ExampleDescription, ExampleTabs, ExamplePreview, ExampleCode } from '../src/example.tsrx';
-import { Node, View, Text, LazyChildren, Dialog, DialogContent, Button, CodeEditor, Switch, Plot, PlotLine, PlotTooltip, Input, Textarea, NumberInput, SpeechButton, Questionnaire, Question, QuestionChoice, QuestionInput, Settings, SettingsPage, SettingsGroup, SettingItem, SettingsFooter, SettingsTitleSuffix, signal, document } from 'std:ui';
+import {
+  Example,
+  ExampleTitle,
+  ExampleDescription,
+  ExampleTabs,
+  ExamplePreview,
+  ExampleCode
+} from '../src/example.tsrx';
+import {
+  Node,
+  View,
+  Text,
+  LazyChildren,
+  Dialog,
+  DialogContent,
+  Button,
+  CodeEditor,
+  Switch,
+  Plot,
+  PlotLine,
+  PlotTooltip,
+  Input,
+  Textarea,
+  NumberInput,
+  SpeechButton,
+  Questionnaire,
+  Question,
+  QuestionChoice,
+  QuestionInput,
+  Settings,
+  SettingsPage,
+  SettingsGroup,
+  SettingItem,
+  SettingsFooter,
+  SettingsTitleSuffix,
+  signal,
+  document
+} from 'std:ui';
 
 interface DeferredProps {
   children?: LazyChildren;

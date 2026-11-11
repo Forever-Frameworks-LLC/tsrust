@@ -1,5 +1,6 @@
-import { Signal } from 'std:ui';
 import { JsonLimits } from 'std:json';
+import { Signal } from 'std:ui';
+
 import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorTool } from './editor-tools.tsr';
 

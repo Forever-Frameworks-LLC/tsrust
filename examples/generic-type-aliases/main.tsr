@@ -1,6 +1,13 @@
 import { LruCache } from 'std:cache';
 import { Rows, Pair, Maybe, Cache } from './models';
-import { strictEqual, trackedResource, TrackedResource, resourceId, releaseCount, closeResource } from 'std:testing';
+import {
+  strictEqual,
+  trackedResource,
+  TrackedResource,
+  resourceId,
+  releaseCount,
+  closeResource
+} from 'std:testing';
 
 function first(rows: ReadOnly<Rows>): int {
   return rows[0].value;

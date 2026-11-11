@@ -1,5 +1,19 @@
-import { Bytes, alloc, set, at, length, view } from 'std:bytes';
-import { sha384 as digest384, sha512 as digest512, createHasher, hmacSha256, verifyHmacSha256, hkdfSha256 } from 'std:crypto';
+import {
+  Bytes,
+  alloc,
+  set,
+  at,
+  length,
+  view
+} from 'std:bytes';
+import {
+  sha384 as digest384,
+  sha512 as digest512,
+  createHasher,
+  hmacSha256,
+  verifyHmacSha256,
+  hkdfSha256
+} from 'std:crypto';
 
 export function workload(n: int, seed: int): int {
   const size = 4096;

@@ -1,16 +1,39 @@
-import { View, Text, Terminal, Button, Icon, Spinner, List, ListItem, ListItemSuffix, ListEmpty, DropdownMenu, MenuItem, Resizable, ResizablePanel, Node, Signal, computed, readTerminal, translate, translateWith, t } from 'std:ui';
-import { JsonLimits } from 'std:json';
-import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
-import { ProblemLocation, openProblem } from '../../lib/workspace/problem-actions.tsr';
 import { readTextFile } from 'std:fs';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { dirty, reload } from '../../lib/workspace/documents.tsr';
+import { JsonLimits } from 'std:json';
+import {
+  View,
+  Text,
+  Terminal,
+  Button,
+  Icon,
+  Spinner,
+  List,
+  ListItem,
+  ListItemSuffix,
+  ListEmpty,
+  DropdownMenu,
+  MenuItem,
+  Resizable,
+  ResizablePanel,
+  Node,
+  Signal,
+  computed,
+  readTerminal,
+  translate,
+  translateWith,
+  t
+} from 'std:ui';
+
+import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { dirty, reload } from '../../lib/workspace/documents.tsr';
+import { ProblemLocation, openProblem } from '../../lib/workspace/problem-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { TerminalWorkspace, TerminalSession, terminalExited } from '../../lib/workspace/terminals.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { TerminalAuthority, TerminalArguments, invokeTerminalTool } from '../../services/terminal-actions.tsr';
 import { TerminalSessionAuthority, invokeTerminalSessionTool } from '../../services/terminal-sessions.tsr';
-import { TerminalWorkspace, TerminalSession, terminalExited } from '../../lib/workspace/terminals.tsr';
-import { message, accessibleName } from '../../lib/localization.tsr';
 
 function humanSessionAction(state: Signal<TerminalWorkspace>, name: string, id: string, focus: boolean, error: Signal<string>): void {
   const authority: TerminalSessionAuthority = {

@@ -1,8 +1,9 @@
-import { Signal } from 'std:ui';
 import { JsonLimits } from 'std:json';
-import { Workspace } from '../lib/workspace/workspace.tsr';
+import { Signal } from 'std:ui';
+
 import { dirty } from '../lib/workspace/documents.tsr';
 import { FormattingTarget, QueuedFormatting } from '../lib/workspace/formatting-actions.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorTool } from './editor-tools.tsr';
 
 export interface SaveActionContext {

@@ -1,4 +1,14 @@
-import { alloc, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+import {
+  alloc,
+  readInt,
+  writeInt,
+  readUint,
+  writeUint,
+  readFloat32,
+  writeFloat32,
+  readFloat64,
+  writeFloat64
+} from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int {
   const bytes = unwrap(alloc(64));

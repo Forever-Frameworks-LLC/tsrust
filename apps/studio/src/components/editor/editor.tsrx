@@ -1,12 +1,23 @@
-import { ImagePreview } from './image-preview.tsrx';
-import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
-import { accessibleName, message } from '../../lib/localization.tsr';
-import { View, Button, CodeEditor, Markdown, DockPanel, Node, Signal, computed, signal } from 'std:ui';
 import { extname } from 'std:path';
-import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
-import { dirty } from '../../lib/workspace/documents.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
+import {
+  View,
+  Button,
+  CodeEditor,
+  Markdown,
+  DockPanel,
+  Node,
+  Signal,
+  computed,
+  signal
+} from 'std:ui';
+
+import { accessibleName, message } from '../../lib/localization.tsr';
 import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { dirty } from '../../lib/workspace/documents.tsr';
+import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import { ImagePreview } from './image-preview.tsrx';
 
 export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, focusQueue: Signal<QueuedFormatting[]>): Node {
   const path = clone(file.document.path);

@@ -1,4 +1,15 @@
-import { View, Text, Button, Node, signal, run, appInfo, checkForUpdates, installUpdate, relaunch } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Node,
+  signal,
+  run,
+  appInfo,
+  checkForUpdates,
+  installUpdate,
+  relaunch
+} from 'std:ui';
 
 function App(): Node {
   const info = appInfo();

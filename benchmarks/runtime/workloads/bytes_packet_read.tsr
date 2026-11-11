@@ -1,4 +1,15 @@
-import { alloc, at, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+import {
+  alloc,
+  at,
+  readInt,
+  writeInt,
+  readUint,
+  writeUint,
+  readFloat32,
+  writeFloat32,
+  readFloat64,
+  writeFloat64
+} from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[] {
   let size = 64;

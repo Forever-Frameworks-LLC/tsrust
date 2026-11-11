@@ -1,4 +1,5 @@
 import { test, strictEqual } from 'std:testing';
+
 import { formatCheckReport } from '../src/services/project-check.tsr';
 
 test('structured compiler reports retain file locations and failures', () => {

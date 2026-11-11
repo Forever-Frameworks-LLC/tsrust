@@ -1,7 +1,18 @@
-import { View, Text, Button, Image, Node, Signal, computed, t, tWith } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Image,
+  Node,
+  Signal,
+  computed,
+  t,
+  tWith
+} from 'std:ui';
+
+import { accessibleName, message } from '../../lib/localization.tsr';
 import { Workspace, OpenFile } from '../../lib/workspace/workspace.tsr';
 import { ImageViewContext, ImageViewTarget, setImageZoom, imageZoomStep } from '../../services/image-actions.tsr';
-import { accessibleName, message } from '../../lib/localization.tsr';
 
 function changeZoom(workspace: Signal<Workspace>, target: ReadOnly<ImageViewTarget>, zoom: number): void {
   const context: ImageViewContext = {

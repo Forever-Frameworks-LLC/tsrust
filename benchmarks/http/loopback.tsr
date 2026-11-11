@@ -1,4 +1,11 @@
-import { App, Client, Request, Response, text, request } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  text,
+  request
+} from 'std:http';
 import { monotonicNow } from 'std:time';
 async function handle(input: Request): Task<Response> {
   return text('42');

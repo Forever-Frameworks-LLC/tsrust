@@ -1,14 +1,28 @@
-import { copyProblems, ProblemActionContext } from '../../services/problem-actions.tsr';
-import { message, accessibleName } from '../../lib/localization.tsr';
-import { View, Text, Icon, Tooltip, List, ListItem, ListEmpty, Node, Signal, computed, t, Button } from 'std:ui';
-import { basename } from 'std:path';
 import { toInt } from 'std:numeric';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { basename } from 'std:path';
+import {
+  View,
+  Text,
+  Icon,
+  Tooltip,
+  List,
+  ListItem,
+  ListEmpty,
+  Node,
+  Signal,
+  computed,
+  t,
+  Button
+} from 'std:ui';
+
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 import { openProblem, ProblemLocation } from '../../lib/workspace/problem-actions.tsr';
 import { Problem, collectProblems } from '../../lib/workspace/problems.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { TerminalWorkspace, activateTerminal } from '../../lib/workspace/terminals.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { copyProblems, ProblemActionContext } from '../../services/problem-actions.tsr';
 
 
 function revealProblem(workspace: Signal<Workspace>, recovery: Signal<Recovery>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, problems: Signal<Problem[]>, terminalError: Signal<string>, value: ReadOnly<string>): void {

@@ -1,17 +1,36 @@
-import { SaveActionContext, queueSaves, unsavedTargets } from '../../services/save-actions.tsr';
-import { View, Button, Shortcut, Ticker, Node, Signal, computed, signal } from 'std:ui';
 import { Channel, Sender } from 'std:futures';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { saveTarget, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { EditorPolicy, projectEditorPolicy } from '../../lib/settings/formatting.tsr';
-import { QueuedFormatting, FormattingTarget, FormattingAuthority, FormattingRequest, FormattingResult, prepareFormatting, applyFormatting, canFormat } from '../../lib/workspace/formatting-actions.tsr';
-import { beginCheck } from '../tasks/check-panel.tsrx';
+import {
+  View,
+  Button,
+  Shortcut,
+  Ticker,
+  Node,
+  Signal,
+  computed,
+  signal
+} from 'std:ui';
+
 import { message, accessibleName } from '../../lib/localization.tsr';
+import { EditorPolicy, projectEditorPolicy } from '../../lib/settings/formatting.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { saveTarget, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import {
+  QueuedFormatting,
+  FormattingTarget,
+  FormattingAuthority,
+  FormattingRequest,
+  FormattingResult,
+  prepareFormatting,
+  applyFormatting,
+  canFormat
+} from '../../lib/workspace/formatting-actions.tsr';
 import { Problem, operationProblem, replaceProblems } from '../../lib/workspace/problems.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { TerminalWorkspace } from '../../lib/workspace/terminals.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { runProjectTask } from '../../services/project-tasks.tsr';
+import { SaveActionContext, queueSaves, unsavedTargets } from '../../services/save-actions.tsr';
+import { beginCheck } from '../tasks/check-panel.tsrx';
 
 function requestSaveAll(workspace: Signal<Workspace>, queue: Signal<QueuedFormatting[]>): void {
   const context: SaveActionContext = {

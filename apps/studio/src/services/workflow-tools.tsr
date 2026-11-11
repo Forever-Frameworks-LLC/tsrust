@@ -1,14 +1,15 @@
 import { toUtf8 } from 'std:bytes';
-import { run } from 'std:process';
-import { ProposedEdit } from '../lib/workspace/documents.tsr';
-import { prepareProjectTask } from './project-tasks.tsr';
 import { JsonLimits } from 'std:json';
-import { Workspace } from '../lib/workspace/workspace.tsr';
+import { run } from 'std:process';
+
 import { EditorPolicy } from '../lib/settings/formatting.tsr';
+import { ProposedEdit } from '../lib/workspace/documents.tsr';
 import { FormattingTarget, FormattingAuthority, prepareFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { EditorTool } from './editor-tools.tsr';
 import { formatBuffer } from './formatting.tsr';
 import { checkSavedProject } from './project-check.tsr';
-import { EditorTool } from './editor-tools.tsr';
+import { prepareProjectTask } from './project-tasks.tsr';
 
 export interface WorkflowToolContext {
   workspace: Workspace;

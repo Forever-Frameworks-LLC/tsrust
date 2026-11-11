@@ -1,4 +1,12 @@
-import { App, Client, Request, Response, Next, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  Next,
+  request,
+  text
+} from 'std:http';
 import { allSettled, delay } from 'std:futures';
 import { strictEqual } from 'std:testing';
 

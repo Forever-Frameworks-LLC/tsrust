@@ -1,6 +1,7 @@
 //! Token-preserving layout, with checked grouping of direct JSX return values.
 use crate::syntax::TokenKind;
 use crate::{Diagnostic, Span};
+mod imports;
 mod types;
 mod match_layout;
 mod options;
@@ -14,11 +15,14 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
 
 pub fn format_with_options(source: &str, options: &FormatOptions) -> Result<String, Diagnostic> {
     options.validate().map_err(|error| Diagnostic::new("format", error, Span::new(0, 0)))?;
-    let formatted = format_core(source, options)?;
+    let organized = imports::organize(source, options)?;
+    let formatted = format_core(&organized, options)?;
     let laid_out = jsx::layout(&formatted, options)?;
     let result = format_core(&laid_out, options)?;
-    jsx::verify(source, &result)?;
-    Ok(result)
+    jsx::verify(&organized, &result)?;
+    let wrapped = imports::wrap(&result, options)?;
+    jsx::verify(&result, &wrapped)?;
+    Ok(wrapped)
 }
 
 fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnostic> {

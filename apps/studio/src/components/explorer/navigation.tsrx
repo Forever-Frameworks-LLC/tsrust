@@ -1,7 +1,17 @@
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import {
+  View,
+  Text,
+  Input,
+  Button,
+  Node,
+  Signal,
+  signal,
+  computed
+} from 'std:ui';
+
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
-import { View, Text, Input, Button, Node, Signal, signal, computed } from 'std:ui';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, Entry, projectFiles, openFile } from '../../lib/workspace/workspace.tsr';
 
 

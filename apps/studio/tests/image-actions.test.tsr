@@ -1,7 +1,8 @@
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
+
 import { createDocument } from '../src/lib/workspace/documents.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { ImageViewContext, ImageViewTarget, invokeImageTool, imageZoomStep } from '../src/services/image-actions.tsr';
 
 function rejected<T>(value: Result<T, string>): boolean {

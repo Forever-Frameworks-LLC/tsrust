@@ -1,6 +1,29 @@
 import {
-  View, Text, Node, signal, run, Switch, NumberInput, Message,
-  InputGroup, InputGroupAddon, InputGroupText, InputGroupButton, Input, Icon, Diff, Marker, Attachment, AttachmentGroup, DataTable, Settings, SettingsPage, SettingsGroup, SettingItem, MessageScroller, Button
+  View,
+  Text,
+  Node,
+  signal,
+  run,
+  Switch,
+  NumberInput,
+  Message,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroupButton,
+  Input,
+  Icon,
+  Diff,
+  Marker,
+  Attachment,
+  AttachmentGroup,
+  DataTable,
+  Settings,
+  SettingsPage,
+  SettingsGroup,
+  SettingItem,
+  MessageScroller,
+  Button
 } from 'std:ui';
 
 const PATCH = '--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1,4 +1,4 @@\n fn main() {\n-    run();\n+    run_app();\n     exit(0);\n }\n';

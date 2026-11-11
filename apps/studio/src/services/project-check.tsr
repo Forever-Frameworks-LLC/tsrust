@@ -1,6 +1,7 @@
+import { toUtf8 } from 'std:bytes';
 import { Channel, Sender, race } from 'std:futures';
 import { run } from 'std:process';
-import { toUtf8 } from 'std:bytes';
+
 import { Problem, operationProblem } from '../lib/workspace/problems.tsr';
 
 export interface CheckResult {

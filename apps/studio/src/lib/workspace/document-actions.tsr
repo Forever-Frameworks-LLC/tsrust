@@ -1,9 +1,10 @@
 import { Signal } from 'std:ui';
-import { Workspace } from './workspace.tsr';
+
 import { edit } from './documents.tsr';
-import { saveDocument } from './storage.tsr';
-import { Recovery, persistRecovery } from './recovery.tsr';
 import { FormattingTarget } from './formatting-actions.tsr';
+import { Recovery, persistRecovery } from './recovery.tsr';
+import { saveDocument } from './storage.tsr';
+import { Workspace } from './workspace.tsr';
 
 // All document navigation and edits persist the same workspace snapshot.
 export function publishWorkspace(next: Workspace, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {

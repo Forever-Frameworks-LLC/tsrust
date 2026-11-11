@@ -1,4 +1,12 @@
-import { Bytes, fromArray, append, copy, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  fromArray,
+  append,
+  copy,
+  at,
+  set,
+  length
+} from "std:bytes";
 
 function read(bytes: ReadOnly<Bytes>, index: int): int {
   match (at(bytes, index)) {

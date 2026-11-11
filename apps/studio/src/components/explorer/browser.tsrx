@@ -1,11 +1,19 @@
+import { stat } from 'std:fs';
+import {
+  Node,
+  Text,
+  Tree,
+  TreeItem,
+  Signal,
+  computed
+} from 'std:ui';
+
+import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
+import { localizeError } from '../../lib/localization.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { localizeError } from '../../lib/localization.tsr';
-import { Node, Text, Tree, TreeItem, Signal, computed } from 'std:ui';
-import { stat } from 'std:fs';
-import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
 import { Workspace, entries, openFile } from '../../lib/workspace/workspace.tsr';
 
 function FileTreeItem(path: string, name: string, directory: boolean, children: Node[], workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Node {

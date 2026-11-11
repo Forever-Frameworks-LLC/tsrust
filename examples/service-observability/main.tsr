@@ -1,9 +1,25 @@
-import { App, Client, Request, Response, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  request,
+  text
+} from 'std:http';
 import { Channel, Sender, allSettled, delay } from 'std:futures';
 import { formatUuid, parseUuid } from 'std:uuid';
 import { monotonicNow } from 'std:time';
 import { strictEqual } from 'std:testing';
-import { Trace, Event, Metrics, newTrace, emitEvent, collect, stopTelemetry, emptyMetrics } from './telemetry';
+import {
+  Trace,
+  Event,
+  Metrics,
+  newTrace,
+  emitEvent,
+  collect,
+  stopTelemetry,
+  emptyMetrics
+} from './telemetry';
 
 type Loaded = {
   trace: Trace;

@@ -1,12 +1,13 @@
+import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
-import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
-import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
-import { Recovery } from '../src/lib/workspace/recovery.tsr';
+
 import { edit } from '../src/lib/workspace/documents.tsr';
-import { saveDocument } from '../src/lib/workspace/storage.tsr';
-import { DocumentActionContext, invokeDocumentTool } from '../src/services/document-actions.tsr';
 import { Problem, collectProblems, formatProblems, operationProblem } from '../src/lib/workspace/problems.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { DocumentActionContext, invokeDocumentTool } from '../src/services/document-actions.tsr';
 import { ProblemActionContext, invokeProblemTool } from '../src/services/problem-actions.tsr';
 
 function failed(value: Result<string, string>): boolean {

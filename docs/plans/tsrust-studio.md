@@ -92,6 +92,15 @@ Formatting settings terminology, November 11: the UI calls component syntax TSRX
 including “Parenthesize TSRX returns”. Language-specific formatting/lint rule
 overrides remain planned; the existing persisted rule keys stay compatible.
 
+Import rules, November 11: shared CLI/LSP formatting now groups consecutive import
+blocks with std: first, one blank line before other paths, and lexical path order.
+Whole declarations retain binding order, aliases and attached comments; bare
+side-effect imports retain their order as boundaries. Named lists above five
+bindings wrap by default. Global/project organizeImports and importWrapThreshold
+settings use the existing guarded formatting routes. Focused checks and live
+acceptance are recorded in docs/agent-progress.md; this is not LSP hosting or
+integrated-agent acceptance.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

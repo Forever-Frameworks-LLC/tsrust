@@ -1,5 +1,14 @@
 import { Channel } from 'std:futures';
-import { describe, test, strictEqual, rejects, trackedResource, resourceId, releaseCount, closeResource } from 'std:testing';
+import {
+  describe,
+  test,
+  strictEqual,
+  rejects,
+  trackedResource,
+  resourceId,
+  releaseCount,
+  closeResource
+} from 'std:testing';
 import { createLogger, info, Logger } from 'std:log';
 
 type Write = (logger: ReadOnly<Logger>, make: Once<Function<Event>>) => void;

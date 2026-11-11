@@ -1,4 +1,11 @@
-import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';
+import {
+  Router,
+  Client,
+  request,
+  getCookie,
+  setCookie,
+  deleteCookie
+} from 'std:http';
 import { strictEqual } from 'std:testing';
 
 type Application = {

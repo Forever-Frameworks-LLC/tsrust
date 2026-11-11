@@ -8,7 +8,19 @@ import { SignalListener, listen, receive } from 'std:signals';
 import { Channel, Sender, allSettled } from 'std:futures';
 import { Event, Metrics, emptyMetrics, collect, stopTelemetry } from '../service-observability/telemetry.tsr';
 import { isToken, tokenHash } from './security.tsr';
-import { Application, Variables, observe, originPolicy, preflight, login, requireSession, logout, readNotes, saveNotes, upload } from './handlers.tsr';
+import {
+  Application,
+  Variables,
+  observe,
+  originPolicy,
+  preflight,
+  login,
+  requireSession,
+  logout,
+  readNotes,
+  saveNotes,
+  upload
+} from './handlers.tsr';
 
 type Ready = {
   kind: string;

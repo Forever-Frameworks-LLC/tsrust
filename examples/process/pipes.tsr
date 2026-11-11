@@ -1,6 +1,14 @@
 import { args, currentExe } from 'std:env';
 import { spawn } from 'std:process';
-import { readAll, writeAll, close, stdin, readStdin, stdout, stderr } from 'std:io';
+import {
+  readAll,
+  writeAll,
+  close,
+  stdin,
+  readStdin,
+  stdout,
+  stderr
+} from 'std:io';
 import { fromUtf8, length, toUtf8 } from 'std:bytes';
 async function main(): Task<void> {
   if (unwrap(args()).length > 0) {

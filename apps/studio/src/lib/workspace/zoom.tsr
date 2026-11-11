@@ -1,9 +1,10 @@
-import { ImageViewContext, ImageViewTarget, setImageZoom, imageZoomStep } from '../../services/image-actions.tsr';
 import { Signal } from 'std:ui';
-import { Workspace } from './workspace.tsr';
-import { Recovery } from './recovery.tsr';
+
+import { ImageViewContext, ImageViewTarget, setImageZoom, imageZoomStep } from '../../services/image-actions.tsr';
 import { StudioConfig } from '../settings/settings.tsr';
 import { publishWorkspace } from './document-actions.tsr';
+import { Recovery } from './recovery.tsr';
+import { Workspace } from './workspace.tsr';
 
 export function zoomFontSize(base: int, level: int): int {
   const size = base + level;

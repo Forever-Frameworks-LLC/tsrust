@@ -1,4 +1,13 @@
-import { ByteView, fromArray, view, viewMut, at, set, copy, length } from "std:bytes";
+import {
+  ByteView,
+  fromArray,
+  view,
+  viewMut,
+  at,
+  set,
+  copy,
+  length
+} from "std:bytes";
 
 function first(part: ReadOnly<ByteView>): int {
   match (at(part, 0)) {

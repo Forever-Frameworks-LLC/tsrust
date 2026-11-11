@@ -1,4 +1,12 @@
-import { fromArray, fromEntries, fromInt, fromString, nullValue, JsonValue, JsonEntry } from 'std:json';
+import {
+  fromArray,
+  fromEntries,
+  fromInt,
+  fromString,
+  nullValue,
+  JsonValue,
+  JsonEntry
+} from 'std:json';
 
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;

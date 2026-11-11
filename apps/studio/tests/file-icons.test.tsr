@@ -1,4 +1,5 @@
 import { test, strictEqual } from 'std:testing';
+
 import { fileDecoration } from '../src/lib/explorer/file-icons.tsr';
 import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 

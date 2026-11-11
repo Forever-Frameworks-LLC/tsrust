@@ -1,10 +1,24 @@
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
-import { View, Text, Input, InputGroup, InputGroupAddon, InputGroupButton, Button, Node, Signal, signal, computed, translateWith } from 'std:ui';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { SearchHit, searchPreview } from '../../lib/explorer/search.tsr';
+import {
+  View,
+  Text,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  Button,
+  Node,
+  Signal,
+  signal,
+  computed,
+  translateWith
+} from 'std:ui';
+
 import { SearchActionContext, runContentSearch, openSearchResult } from '../../lib/explorer/search-actions.tsr';
+import { SearchHit, searchPreview } from '../../lib/explorer/search.tsr';
+import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
   const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-3 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]');

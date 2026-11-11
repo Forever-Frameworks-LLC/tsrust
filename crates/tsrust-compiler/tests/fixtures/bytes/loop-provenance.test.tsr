@@ -1,5 +1,12 @@
 import { test, strictEqual } from 'std:testing';
-import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromArray,
+  view,
+  at,
+  length
+} from "std:bytes";
 
 type Chunk = {
   read?: Once<Function<ByteView>>;

@@ -1,6 +1,13 @@
 import { strictEqual } from 'std:testing';
 import { Iterator } from 'std:iterator';
-import { all, Job, all as gather, Interval as Timer, CancellationToken as Token, Channel as Mailbox } from 'std:futures';
+import {
+  all,
+  Job,
+  all as gather,
+  Interval as Timer,
+  CancellationToken as Token,
+  Channel as Mailbox
+} from 'std:futures';
 import { ThreadPool as Pool } from 'std:threads';
 async function value(): Task<int> {
   return 3;

@@ -1,4 +1,12 @@
-import { toInt, toNumber, toFloat32, checkSigned, checkUnsigned, parseInt as exactInt, NumericError } from "std:numeric";
+import {
+  toInt,
+  toNumber,
+  toFloat32,
+  checkSigned,
+  checkUnsigned,
+  parseInt as exactInt,
+  NumericError
+} from "std:numeric";
 import { strictEqual } from "std:testing";
 
 function rejected(value: Result<int, NumericError>, code: string) {

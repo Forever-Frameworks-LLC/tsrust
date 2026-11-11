@@ -26,7 +26,14 @@ export function run() {
       throw error.message;
     },
   }
-} import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+} import {
+  Bytes,
+  ByteView,
+  alloc,
+  view,
+  length,
+  at
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {

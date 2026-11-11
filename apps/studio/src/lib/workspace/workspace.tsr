@@ -1,5 +1,6 @@
 import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
 import { basename, extname, separator } from 'std:path';
+
 import { Document, createDocument, dirty } from './documents.tsr';
 
 export interface ImageScroll {

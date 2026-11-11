@@ -1,5 +1,6 @@
-import { Workspace } from './workspace.tsr';
 import { fromUtf8, length } from 'std:bytes';
+
+import { Workspace } from './workspace.tsr';
 
 export interface Problem {
   source: string;

@@ -1,11 +1,12 @@
-import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
-import { Signal } from 'std:ui';
 import { JsonLimits } from 'std:json';
-import { Workspace } from '../lib/workspace/workspace.tsr';
-import { SaveConflict, dirty } from '../lib/workspace/documents.tsr';
-import { resolveSaveConflict } from '../lib/workspace/storage.tsr';
-import { Recovery } from '../lib/workspace/recovery.tsr';
+import { Signal } from 'std:ui';
+
 import { publishWorkspace } from '../lib/workspace/document-actions.tsr';
+import { SaveConflict, dirty } from '../lib/workspace/documents.tsr';
+import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
+import { Recovery } from '../lib/workspace/recovery.tsr';
+import { resolveSaveConflict } from '../lib/workspace/storage.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorTool } from './editor-tools.tsr';
 
 export interface DocumentActionContext {

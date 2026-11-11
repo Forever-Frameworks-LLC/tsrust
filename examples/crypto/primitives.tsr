@@ -1,5 +1,23 @@
-import { sha384, sha512, sha256, createHasher, hmacSha256, verifyHmacSha256, hkdfSha256, randomInt } from 'std:crypto';
-import { fromUtf8, fromHex, toHex, length, view, viewMut, alloc, set } from 'std:bytes';
+import {
+  sha384,
+  sha512,
+  sha256,
+  createHasher,
+  hmacSha256,
+  verifyHmacSha256,
+  hkdfSha256,
+  randomInt
+} from 'std:crypto';
+import {
+  fromUtf8,
+  fromHex,
+  toHex,
+  length,
+  view,
+  viewMut,
+  alloc,
+  set
+} from 'std:bytes';
 import { strictEqual } from 'std:testing';
 
 function main() {

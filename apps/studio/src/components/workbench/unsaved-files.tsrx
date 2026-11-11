@@ -1,8 +1,18 @@
-import { View, Button, DropdownMenu, MenuItem, Node, Signal, computed, translateWith } from 'std:ui';
-import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import {
+  View,
+  Button,
+  DropdownMenu,
+  MenuItem,
+  Node,
+  Signal,
+  computed,
+  translateWith
+} from 'std:ui';
+
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 
 function UnsavedItem(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
   const path = clone(file.document.path);

@@ -1,4 +1,5 @@
 import { extname } from 'std:path';
+
 import catalog from '../../assets/icons/file-icons.json';
 
 export interface FileDecoration {

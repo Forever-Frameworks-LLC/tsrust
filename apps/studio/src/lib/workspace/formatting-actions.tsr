@@ -1,8 +1,9 @@
 import { extname } from 'std:path';
+
 import { FormattingOptions, EditorPolicy } from '../settings/formatting.tsr';
-import { Workspace } from './workspace.tsr';
 import { ProposedEdit, propose, apply } from './documents.tsr';
 import { saveDocument } from './storage.tsr';
+import { Workspace } from './workspace.tsr';
 
 export interface FormattingTarget {
   path: string;

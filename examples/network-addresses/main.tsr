@@ -1,4 +1,11 @@
-import { parseIp, formatIp, parseAddress, formatAddress, isIPv4, isIPv6 } from 'std:net';
+import {
+  parseIp,
+  formatIp,
+  parseAddress,
+  formatAddress,
+  isIPv4,
+  isIPv6
+} from 'std:net';
 
 function main() {
   const loopback = unwrap(parseIp('127.0.0.1'));

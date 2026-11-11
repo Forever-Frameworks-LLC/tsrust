@@ -1,4 +1,11 @@
-import { File, open, read, close, create, writeAll } from "std:fs";
+import {
+  File,
+  open,
+  read,
+  close,
+  create,
+  writeAll
+} from "std:fs";
 import { Bytes, length, at, fromUtf8, view } from "std:bytes";
 
 function observe(file: Mutable<File>, count: int): int[] {

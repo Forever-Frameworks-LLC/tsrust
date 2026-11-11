@@ -1,11 +1,12 @@
-import { Signal, useId, controlTerminal } from 'std:ui';
 import { canonicalize } from 'std:fs';
 import { separator } from 'std:path';
-import { Workspace, entries } from '../lib/workspace/workspace.tsr';
+import { Signal, useId, controlTerminal } from 'std:ui';
+
+import { FormattingOptions } from '../lib/settings/formatting.tsr';
 import { StudioConfig } from '../lib/settings/settings.tsr';
 import { QueuedFormatting, enqueueFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { TerminalWorkspace, addTerminal } from '../lib/workspace/terminals.tsr';
-import { FormattingOptions } from '../lib/settings/formatting.tsr';
+import { Workspace, entries } from '../lib/workspace/workspace.tsr';
 
 export interface ProjectTask {
   kind: string;

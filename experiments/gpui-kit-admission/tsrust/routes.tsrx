@@ -1,4 +1,18 @@
-import { View, Text, Button, Node, run, Svg, Path, Route, Link, location, navigate, back, CopyButton } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Node,
+  run,
+  Svg,
+  Path,
+  Route,
+  Link,
+  location,
+  navigate,
+  back,
+  CopyButton
+} from 'std:ui';
 
 function App(): Node {
   const path = location();

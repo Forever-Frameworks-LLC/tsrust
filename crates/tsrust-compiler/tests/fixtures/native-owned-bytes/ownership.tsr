@@ -1,4 +1,14 @@
-import { Bytes, ByteError, alloc, at, set, resize, append, copy, length } from "std:bytes";
+import {
+  Bytes,
+  ByteError,
+  alloc,
+  at,
+  set,
+  resize,
+  append,
+  copy,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {

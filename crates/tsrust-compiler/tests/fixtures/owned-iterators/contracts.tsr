@@ -1,5 +1,13 @@
 import { Iterator, IteratorResult, Iterator as Sequence } from 'std:iterator';
-import { strictEqual, trackedResource, resourceId, releaseCount, liveCount, closeResource, TrackedResource } from 'std:testing';
+import {
+  strictEqual,
+  trackedResource,
+  resourceId,
+  releaseCount,
+  liveCount,
+  closeResource,
+  TrackedResource
+} from 'std:testing';
 
 type Failure = {
   code: 'selected'

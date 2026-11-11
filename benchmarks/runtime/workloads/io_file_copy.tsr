@@ -1,4 +1,11 @@
-import { createTempDir, writeFile, open, create, readFile, removeDirAll } from 'std:fs';
+import {
+  createTempDir,
+  writeFile,
+  open,
+  create,
+  readFile,
+  removeDirAll
+} from 'std:fs';
 import { reader, writer, copy, close } from 'std:io';
 import { fromArray, at, length } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {

@@ -1,5 +1,16 @@
 import { test, strictEqual, ok } from 'std:testing';
-import { Url, parseUrl, resolveUrl, formatUrl, parseQuery, formatQuery, searchParams, setSearchParams, encodeURIComponent, decodeURIComponent } from 'std:url';
+import {
+  Url,
+  parseUrl,
+  resolveUrl,
+  formatUrl,
+  parseQuery,
+  formatQuery,
+  searchParams,
+  setSearchParams,
+  encodeURIComponent,
+  decodeURIComponent
+} from 'std:url';
 
 function choose(counter: Mutable<int[]>): int {
   counter[0] += 1;

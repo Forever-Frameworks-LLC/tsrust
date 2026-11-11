@@ -1,4 +1,13 @@
-import { parseInt as exact, parseNumber, checkedAdd, checkedSubtract, checkedMultiply, checkedDivide, checkedRemainder, NumericError } from 'std:numeric';
+import {
+  parseInt as exact,
+  parseNumber,
+  checkedAdd,
+  checkedSubtract,
+  checkedMultiply,
+  checkedDivide,
+  checkedRemainder,
+  NumericError
+} from 'std:numeric';
 import { strictEqual } from 'std:testing';
 
 function code(value: Result<int, NumericError>): string {

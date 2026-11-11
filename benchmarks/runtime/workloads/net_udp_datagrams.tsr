@@ -1,4 +1,11 @@
-import { parseAddress, listenTcp, connectTcp, bindUdp, TcpListener, UdpSocket } from 'std:net';
+import {
+  parseAddress,
+  listenTcp,
+  connectTcp,
+  bindUdp,
+  TcpListener,
+  UdpSocket
+} from 'std:net';
 import { readExact, writeAll, close } from 'std:io';
 import { alloc, set, at, length } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {

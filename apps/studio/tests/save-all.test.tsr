@@ -1,11 +1,12 @@
-import { operationProblem, replaceProblems } from '../src/lib/workspace/problems.tsr';
+import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
-import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
-import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+
+import { saveTarget } from '../src/lib/workspace/document-actions.tsr';
 import { edit, dirty } from '../src/lib/workspace/documents.tsr';
 import { QueuedFormatting } from '../src/lib/workspace/formatting-actions.tsr';
-import { saveTarget } from '../src/lib/workspace/document-actions.tsr';
+import { operationProblem, replaceProblems } from '../src/lib/workspace/problems.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { SaveActionContext, unsavedTargets, invokeSaveTool } from '../src/services/save-actions.tsr';
 
 function rejected<T>(value: Result<T, string>): boolean {

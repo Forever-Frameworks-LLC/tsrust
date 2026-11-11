@@ -1,5 +1,12 @@
 import { Logger, createLogger } from 'std:log';
-import { Router, Context, Response, Client, accessLog, request } from 'std:http';
+import {
+  Router,
+  Context,
+  Response,
+  Client,
+  accessLog,
+  request
+} from 'std:http';
 import { all, yield, delay, Channel, Sender } from 'std:futures';
 import { strictEqual } from 'std:testing';
 async function worker(logger: Logger): Task<void> {

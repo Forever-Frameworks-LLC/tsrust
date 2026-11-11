@@ -1,6 +1,15 @@
-import { test, strictEqual } from 'std:testing';
-import { createTempDir, writeTextFile, readTextFile, removeFile, removeDirAll, stat, hardLink } from 'std:fs';
+import {
+  createTempDir,
+  writeTextFile,
+  readTextFile,
+  removeFile,
+  removeDirAll,
+  stat,
+  hardLink
+} from 'std:fs';
 import { platform } from 'std:os';
+import { test, strictEqual } from 'std:testing';
+
 import { createDocument, edit, dirty, markSaved } from '../src/lib/workspace/documents.tsr';
 import { saveDocument, resolveSaveConflict } from '../src/lib/workspace/storage.tsr';
 

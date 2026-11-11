@@ -1,8 +1,9 @@
+import { fromUtf8, length, at, view, toUtf8 } from 'std:bytes';
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { separator } from 'std:path';
 import { compile, escape } from 'std:regex';
+
 import { Workspace, projectFiles } from '../workspace/workspace.tsr';
-import { fromUtf8, length, at, view, toUtf8 } from 'std:bytes';
 
 export interface SearchRange {
   start: int;

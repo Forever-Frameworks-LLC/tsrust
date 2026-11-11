@@ -1,5 +1,17 @@
+import {
+  View,
+  Text,
+  Button,
+  Tabs,
+  Tab,
+  TabsSuffix,
+  Node,
+  Signal,
+  computed,
+  t
+} from 'std:ui';
+
 import { accessibleName, message } from '../../lib/localization.tsr';
-import { View, Text, Button, Tabs, Tab, TabsSuffix, Node, Signal, computed, t } from 'std:ui';
 
 export function Panels(panel: Signal<string>, output: Node, terminal: Node, terminalActions: Node, problems: Node, problemsActions: Node, font: Signal<int>): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');

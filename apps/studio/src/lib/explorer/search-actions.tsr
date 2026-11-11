@@ -1,8 +1,9 @@
-import { Signal, controlInput } from 'std:ui';
 import { fromUtf8, length, view, toUtf8 } from 'std:bytes';
-import { Workspace, openFile } from '../workspace/workspace.tsr';
-import { Recovery } from '../workspace/recovery.tsr';
+import { Signal, controlInput } from 'std:ui';
+
 import { publishWorkspace } from '../workspace/document-actions.tsr';
+import { Recovery } from '../workspace/recovery.tsr';
+import { Workspace, openFile } from '../workspace/workspace.tsr';
 import { SearchHit, SearchResults, searchContents } from './search.tsr';
 
 // Created by the host, never decoded from a tool's arguments.

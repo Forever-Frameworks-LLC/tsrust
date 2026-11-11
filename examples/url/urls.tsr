@@ -1,4 +1,12 @@
-import { parseUrl, resolveUrl, searchParams, setSearchParams, formatQuery, encodeURIComponent, decodeURIComponent } from 'std:url';
+import {
+  parseUrl,
+  resolveUrl,
+  searchParams,
+  setSearchParams,
+  formatQuery,
+  encodeURIComponent,
+  decodeURIComponent
+} from 'std:url';
 
 function main() {
   const base = unwrap(parseUrl('https://EXAMPLE.com:443/reports/'));

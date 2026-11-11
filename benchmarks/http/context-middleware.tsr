@@ -1,4 +1,12 @@
-import { Router, Context, ContextNext, Client, Response, text, request } from 'std:http';
+import {
+  Router,
+  Context,
+  ContextNext,
+  Client,
+  Response,
+  text,
+  request
+} from 'std:http';
 import { monotonicNow } from 'std:time';
 
 type Config = {

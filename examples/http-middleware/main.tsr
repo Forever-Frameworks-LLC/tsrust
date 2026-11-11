@@ -1,4 +1,19 @@
-import { App, Router, Context, ContextNext, Request, Response, Client, CorsOptions, Middleware, cors, secureHeaders, compress, request, text } from 'std:http';
+import {
+  App,
+  Router,
+  Context,
+  ContextNext,
+  Request,
+  Response,
+  Client,
+  CorsOptions,
+  Middleware,
+  cors,
+  secureHeaders,
+  compress,
+  request,
+  text
+} from 'std:http';
 import { strictEqual, ok } from 'std:testing';
 
 type PolicyFactory = Function<Middleware>;

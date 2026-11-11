@@ -1,4 +1,15 @@
-import { View, Text, Node, signal, run, Button, Dock, DockPanel, List, ListItem } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  signal,
+  run,
+  Button,
+  Dock,
+  DockPanel,
+  List,
+  ListItem
+} from 'std:ui';
 
 function App(): Node {
   const clicks = signal(0);

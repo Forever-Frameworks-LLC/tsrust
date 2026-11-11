@@ -1,6 +1,23 @@
 import {
-  View, Text, Node, Button, Ticker, Plot, PlotLine, PlotArea, ProgressCircle, Progress, ShimmerText, Spinner,
-  Carousel, CarouselContent, CarouselItem, CarouselPagination, Tag, Kbd, signal
+  View,
+  Text,
+  Node,
+  Button,
+  Ticker,
+  Plot,
+  PlotLine,
+  PlotArea,
+  ProgressCircle,
+  Progress,
+  ShimmerText,
+  Spinner,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPagination,
+  Tag,
+  Kbd,
+  signal
 } from 'std:ui';
 
 /** A smooth 0..1 wave for column x, row y at time t. */

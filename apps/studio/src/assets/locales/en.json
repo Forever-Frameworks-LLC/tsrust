@@ -251,5 +251,10 @@
   "Unknown save action.": "Unknown save action.",
   "Invalid save action arguments.": "Invalid save action arguments.",
   "Image scroll offsets must be finite nonnegative pixels.": "Image scroll offsets must be finite nonnegative pixels.",
-  "100%": "100%"
+  "100%": "100%",
+  "Organize imports": "Organize imports",
+  "Sort imports by path, with std: imports first and a blank line before other imports.": "Sort imports by path, with std: imports first and a blank line before other imports.",
+  "Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.": "Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.",
+  "format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).",
+  "Wrap named imports above": "Wrap named imports above"
 }

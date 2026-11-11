@@ -29,6 +29,8 @@ tsrust_studio.config.json. Project overrides in tsrust.config.json are partial:
 ```json
 "format": {
   "indentWidth": 2,
+  "organizeImports": true,
+  "importWrapThreshold": 5,
   "jsxReturnParentheses": true,
   "jsxChildrenOnNewLines": true,
   "blankLinesAroundBlocks": true
@@ -173,3 +175,10 @@ draft and reload, or Overwrite with my draft. Explicit overwrite still verifies
 that the disk snapshot and draft revision have not changed since comparison.
 The same guarded resolution and clipboard actions have executable AI tool routes;
 the actual integrated agent transport remains pending.
+
+Within each import block, formatting groups `std:` imports first, then other paths after one blank
+line, sorting each group by path. Declarations keep their bindings and attached
+comments; bare side-effect imports are ordering boundaries. More than five named
+bindings wrap one per line by default. `organizeImports` disables reordering;
+`importWrapThreshold` accepts 0–100, with 0 disabling wrapping. These rules use the
+same global/project overrides and guarded formatting actions as other rules.

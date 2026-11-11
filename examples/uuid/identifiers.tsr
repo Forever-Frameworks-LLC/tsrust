@@ -1,4 +1,14 @@
-import { Uuid, UuidError, parseUuid, formatUuid, toBytes, fromBytes, compare, version, randomUuid } from 'std:uuid';
+import {
+  Uuid,
+  UuidError,
+  parseUuid,
+  formatUuid,
+  toBytes,
+  fromBytes,
+  compare,
+  version,
+  randomUuid
+} from 'std:uuid';
 import { alloc, at, set, length } from 'std:bytes';
 import { strictEqual } from 'std:testing';
 import { spawn } from 'std:threads';

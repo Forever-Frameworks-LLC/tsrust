@@ -1,10 +1,37 @@
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { message, accessibleName, localizeError } from '../../lib/localization.tsr';
-import { View, Text, Button, CodeEditor, Select, SelectItem, NumberInput, Switch, Settings, SettingsPage, SettingsGroup, SettingItem, Shortcut, Node, Signal, signal, openWindow, translate } from 'std:ui';
 import { readTextFile } from 'std:fs';
 import { toInt } from 'std:numeric';
-import { configPath, parseConfig, formatConfig, defaultConfig, themes, StudioConfig } from '../../lib/settings/settings.tsr';
+import {
+  View,
+  Text,
+  Button,
+  CodeEditor,
+  Select,
+  SelectItem,
+  NumberInput,
+  Switch,
+  Settings,
+  SettingsPage,
+  SettingsGroup,
+  SettingItem,
+  Shortcut,
+  Node,
+  Signal,
+  signal,
+  openWindow,
+  translate
+} from 'std:ui';
+
+import { message, accessibleName, localizeError } from '../../lib/localization.tsr';
 import { SettingsSession, commitSettings, saveSettings, reloadSettings, showSettingsControls } from '../../lib/settings/settings-actions.tsr';
+import {
+  configPath,
+  parseConfig,
+  formatConfig,
+  defaultConfig,
+  themes,
+  StudioConfig
+} from '../../lib/settings/settings.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
   let initial = defaultConfig();
@@ -97,6 +124,12 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
   const indentSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
+  const organizeImportsSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
+  const importWrapSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
   const jsxReturnSession: SettingsSession = {
@@ -298,6 +331,39 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                         const config = draft.get();
                         config.format.indentWidth = width;
                         commitSettings(indentSession, config);
+                      },
+                      Err(_) => {}
+                    }
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={message("Organize imports")} description={message("Sort imports by path, with std: imports first and a blank line before other imports.")}>
+                <Switch
+                  checked={draft.get().format.organizeImports}
+                  accessibilityLabel={message("Organize imports")}
+                  onChange={(enabled) => {
+                    const config = draft.get();
+                    config.format.organizeImports = enabled;
+                    commitSettings(organizeImportsSession, config);
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={message("Wrap named imports above")} description={message("Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.")}>
+                <NumberInput
+                  value={Number(draft.get().format.importWrapThreshold)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValidate={(candidate) => Number.isInteger(Number(candidate))}
+                  size="small"
+                  className="w-28"
+                  accessibilityLabel={message("Wrap named imports above")}
+                  onChange={(value) => {
+                    match (toInt(value)) {
+                      Ok(count) => {
+                        const config = draft.get();
+                        config.format.importWrapThreshold = count;
+                        commitSettings(importWrapSession, config);
                       },
                       Err(_) => {}
                     }

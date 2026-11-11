@@ -1,4 +1,18 @@
-import { parseDecimal, fromInt, formatFixed, multiply, divideExact, add, subtract, compare, format, toInt, toNumber, Decimal, DecimalError } from 'std:decimal';
+import {
+  parseDecimal,
+  fromInt,
+  formatFixed,
+  multiply,
+  divideExact,
+  add,
+  subtract,
+  compare,
+  format,
+  toInt,
+  toNumber,
+  Decimal,
+  DecimalError
+} from 'std:decimal';
 import { spawn } from 'std:threads';
 import { strictEqual, ok } from 'std:testing';
 

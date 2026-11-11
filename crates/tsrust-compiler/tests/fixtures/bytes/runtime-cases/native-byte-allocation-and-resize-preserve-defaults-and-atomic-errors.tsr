@@ -1,4 +1,11 @@
-import { Bytes, alloc, resize, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  alloc,
+  resize,
+  at,
+  set,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function value(bytes: ReadOnly<Bytes>, index: int): int {

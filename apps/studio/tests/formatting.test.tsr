@@ -1,13 +1,22 @@
-import { test, strictEqual } from 'std:testing';
-import { canonicalize, createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
 import { get } from 'std:env';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
-import { createDocument, ProposedEdit, edit } from '../src/lib/workspace/documents.tsr';
-import { FormattingAuthority, FormattingTarget, FormattingResult, QueuedFormatting, enqueueFormatting, prepareFormatting, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
+import { canonicalize, createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
 import { EditorPolicy, defaultFormatting, projectEditorPolicy } from '../src/lib/settings/formatting.tsr';
-import { prepareProjectTask } from '../src/services/project-tasks.tsr';
-import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
 import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { createDocument, ProposedEdit, edit } from '../src/lib/workspace/documents.tsr';
+import {
+  FormattingAuthority,
+  FormattingTarget,
+  FormattingResult,
+  QueuedFormatting,
+  enqueueFormatting,
+  prepareFormatting,
+  applyFormatting
+} from '../src/lib/workspace/formatting-actions.tsr';
+import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { prepareProjectTask } from '../src/services/project-tasks.tsr';
 import { WorkflowToolContext, workflowTools, invokeWorkflowTool } from '../src/services/workflow-tools.tsr';
 
 function workspace(root: string, source: string): Workspace {
@@ -82,6 +91,10 @@ test('editor defaults persist and project overrides are partial and live', () =>
     config.formatOnSave = true;
     config.formatOnFocusChange = true;
     strictEqual(unwrap(parseConfig(formatConfig(config))).formatOnFocusChange, true);
+    config.format.organizeImports = false;
+    config.format.importWrapThreshold = 8;
+    strictEqual(unwrap(parseConfig(formatConfig(config))).format.organizeImports, false);
+    strictEqual(unwrap(parseConfig(formatConfig(config))).format.importWrapThreshold, 8);
     config.format.jsxReturnParentheses = false;
     strictEqual(unwrap(parseConfig(formatConfig(config))).format.jsxReturnParentheses, false);
     const defaults: EditorPolicy = {
@@ -94,6 +107,14 @@ test('editor defaults persist and project overrides are partial and live', () =>
     strictEqual(project.checkOnFocusChange, true);
     strictEqual(project.format.indentWidth, 4);
     strictEqual(project.format.jsxReturnParentheses, false);
+    strictEqual(project.format.organizeImports, false);
+    strictEqual(project.format.importWrapThreshold, 8);
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"organizeImports":true,"importWrapThreshold":3}}'));
+    const importPolicy = unwrap(projectEditorPolicy(root, defaults));
+    strictEqual(importPolicy.format.organizeImports, true);
+    strictEqual(importPolicy.format.importWrapThreshold, 3);
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"importWrapThreshold":101}}'));
+    strictEqual(rejected(projectEditorPolicy(root, defaults)), true);
     unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"indentWidth":0}}'));
     strictEqual(rejected(projectEditorPolicy(root, defaults)), true);
   } finally {

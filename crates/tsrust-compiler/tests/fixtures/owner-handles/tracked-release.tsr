@@ -1,5 +1,27 @@
-import { strictEqual, ok, TrackedResource, trackedResource, resourceId, releaseCount, releaseOrder, liveCount } from 'std:testing';
-import { Owner, Handle, runtime, root, mount, remove, enqueue, drain, setResource, stateResourceId, enqueueResource, reorder } from './owner.tsr';
+import {
+  strictEqual,
+  ok,
+  TrackedResource,
+  trackedResource,
+  resourceId,
+  releaseCount,
+  releaseOrder,
+  liveCount
+} from 'std:testing';
+import {
+  Owner,
+  Handle,
+  runtime,
+  root,
+  mount,
+  remove,
+  enqueue,
+  drain,
+  setResource,
+  stateResourceId,
+  enqueueResource,
+  reorder
+} from './owner.tsr';
 
 function retained(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
   return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {

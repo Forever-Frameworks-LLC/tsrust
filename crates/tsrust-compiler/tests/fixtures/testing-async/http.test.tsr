@@ -1,5 +1,13 @@
 import { beforeAll, afterAll, test, strictEqual } from 'std:testing';
-import { App, Client, Server, Request, Response, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Server,
+  Request,
+  Response,
+  request,
+  text
+} from 'std:http';
 
 const servers: Server[] = [];
 let base = '';

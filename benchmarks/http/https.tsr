@@ -1,4 +1,11 @@
-import { App, Client, Request, Response, text, request } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  text,
+  request
+} from 'std:http';
 import { readFile } from 'std:fs';
 import { toUtf8 } from 'std:bytes';
 

@@ -1,4 +1,21 @@
-import { View, Text, Button, Node, signal, run, Icon, Animate, notify, setWindowTitle, openWindow, writeClipboard, readClipboard, pickFiles, systemAppearance, zoomWindow } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Node,
+  signal,
+  run,
+  Icon,
+  Animate,
+  notify,
+  setWindowTitle,
+  openWindow,
+  writeClipboard,
+  readClipboard,
+  pickFiles,
+  systemAppearance,
+  zoomWindow
+} from 'std:ui';
 
 function Second(): Node {
   return (

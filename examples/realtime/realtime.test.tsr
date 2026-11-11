@@ -1,5 +1,19 @@
 import { describe, test, strictEqual, rejects } from 'std:testing';
-import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sse as makeEvents, sseWithProducer, sseWithProducer as makeProducedEvents, requestStream, connectWebSocket, connectWebSocket as connectFactory } from 'std:http';
+import {
+  Router,
+  WebSocket,
+  WebSocketRead,
+  WebSocketWrite,
+  SseEvent,
+  Request,
+  sse,
+  sse as makeEvents,
+  sseWithProducer,
+  sseWithProducer as makeProducedEvents,
+  requestStream,
+  connectWebSocket,
+  connectWebSocket as connectFactory
+} from 'std:http';
 import { Channel, Sender, delay, all } from 'std:futures';
 import { fromArray, toHex, toUtf8 } from 'std:bytes';
 import { readFile } from 'std:fs';

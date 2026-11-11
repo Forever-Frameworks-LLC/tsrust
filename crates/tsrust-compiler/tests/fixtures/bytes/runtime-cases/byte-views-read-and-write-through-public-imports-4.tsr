@@ -1,4 +1,14 @@
-import { Bytes, ByteView, ByteViewMut, alloc, view, viewMut, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  ByteViewMut,
+  alloc,
+  view,
+  viewMut,
+  at,
+  set,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Chunk = {

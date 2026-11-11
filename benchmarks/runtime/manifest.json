@@ -35,7 +35,7 @@
       "source": "workloads/crypto_sha384_64.tsr",
       "counterpart": "workloads/crypto_sha384_64.ts",
       "rustReference": "parity/crypto_sha384_64.rs",
-      "sourceSha256": "d4004373aa986ee60e58aace2e898d40f44ac77f9950f37a80ae73d0d1a0c5a4",
+      "sourceSha256": "46153e25b1ac47fa20f85facd5e917b6aca38a0f2aa4af50aa307d298cdd5e44",
       "counterpartSha256": "7083590607f397d0a20868138299a03b9750a21d8c9e9dffad354cbe4ee7914f",
       "rustReferenceSha256": "cdbe79afccd7fb6bbb1f9c246dd49cd832621244092ab85e8ed2d5e925d8f07b"
     },
@@ -66,7 +66,7 @@
       "source": "workloads/crypto_sha384_4096.tsr",
       "counterpart": "workloads/crypto_sha384_4096.ts",
       "rustReference": "parity/crypto_sha384_4096.rs",
-      "sourceSha256": "cba71e5cc7e4ebb601be1cc8d917f25015bbca0a55e553c7b075f867c9852afb",
+      "sourceSha256": "0068011e7288c827b9054ed44218d03862503c87ae859cb902dc2974293dc4b4",
       "counterpartSha256": "9f22729ba7fa2c30ec78ee7a5215b8a2f76ce7031e00a76e005cd446792b4d63",
       "rustReferenceSha256": "c9e2aafa803b8d27d4f80b00afa6bdcbe60cf8e2cb2201de94a418925258d065"
     },
@@ -97,7 +97,7 @@
       "source": "workloads/crypto_sha384_262144.tsr",
       "counterpart": "workloads/crypto_sha384_262144.ts",
       "rustReference": "parity/crypto_sha384_262144.rs",
-      "sourceSha256": "fc816bb413c5918afbe8911f77fd69d1e424a314e5335469cda31993a83db856",
+      "sourceSha256": "ead60623e640b5d55a3738229c520761616e34157c10a72cc1425bb8511fa4fb",
       "counterpartSha256": "a9bf82bcca0763cbf5dbda4977b7e5736409eff2b5ba8e2837eafa62a0f83802",
       "rustReferenceSha256": "9ca20caf028c4d68c628c5d6f9802d64b5274e4323913e36977f323b9146ed82"
     },
@@ -128,7 +128,7 @@
       "source": "workloads/crypto_sha512_64.tsr",
       "counterpart": "workloads/crypto_sha512_64.ts",
       "rustReference": "parity/crypto_sha512_64.rs",
-      "sourceSha256": "7e5e6fcceeb487328609c0803d64d52eb4c2a53d6ea9deed2003982d0d084eb4",
+      "sourceSha256": "85d21cf1101df5cde52435176bcd14dd2d635d341b8ad51b293c2620abcb6369",
       "counterpartSha256": "9530b2986a07b4acf1292995fbbd62cee706812a53a0a1a98681823879388dd2",
       "rustReferenceSha256": "9d8ad3dd5aa024c1444fad781765c95f306ae5002954deb9ea3cf50fb70286ff"
     },
@@ -159,7 +159,7 @@
       "source": "workloads/crypto_sha512_4096.tsr",
       "counterpart": "workloads/crypto_sha512_4096.ts",
       "rustReference": "parity/crypto_sha512_4096.rs",
-      "sourceSha256": "bcc930f14c2efbb5c576334196974c4214086340716adbb0e522b45dafa396b5",
+      "sourceSha256": "ff8e97b4843ba061b42fc2f135d4f78f6e97983e25e6af96666cf56ceac06481",
       "counterpartSha256": "fe7c17de0568043e6aad23e7778ab4c1bc6b48d090041c5765ecbe895ec0cf48",
       "rustReferenceSha256": "6e058c180b3297f9c6e2e73f981a1aa0e467660c00212b5cc3ade76d811bf5f3"
     },
@@ -190,7 +190,7 @@
       "source": "workloads/crypto_sha512_262144.tsr",
       "counterpart": "workloads/crypto_sha512_262144.ts",
       "rustReference": "parity/crypto_sha512_262144.rs",
-      "sourceSha256": "cfd4fe3f3cd897d0ed8e4500c95dc90b18c09dc2c5f8e430920bc9fd1db00332",
+      "sourceSha256": "3c30d77f586c911422a94c96210f4829f570293d6d3393b78b831083cc9e6595",
       "counterpartSha256": "227f1bdfec4e082f6f20b1b2134c5e6b21418906f7c9edd956245f5a4f99b29f",
       "rustReferenceSha256": "75c32685081a341223d0255ac2f427947b99dccca50ed4d956d56b17acea7790"
     },
@@ -221,7 +221,7 @@
       "source": "workloads/crypto_sha256_stream_64.tsr",
       "counterpart": "workloads/crypto_sha256_stream_64.ts",
       "rustReference": "parity/crypto_sha256_stream_64.rs",
-      "sourceSha256": "7cb5bc425e30bb4ff4a9e302e2410caa7a49d9ea838c41349adf2a814f3d6e8f",
+      "sourceSha256": "6fbd39188ab0451960d90d3c6ae443f88dfbddb871f1b4063e66cadd6a3fc7df",
       "counterpartSha256": "2977ff8086ec5bfe41b2e94d90d461996c83b7dafe3e7fd6b5752315b7b2a020",
       "rustReferenceSha256": "d422f4545b5446e79aec502746825af5fea7b5e46682864acb3affbed3cb40bf"
     },
@@ -252,7 +252,7 @@
       "source": "workloads/crypto_sha256_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha256_stream_4096.ts",
       "rustReference": "parity/crypto_sha256_stream_4096.rs",
-      "sourceSha256": "954f25ddba80e95197413cc044d4aa51c91f156ac01c96f384e860f624b91a30",
+      "sourceSha256": "b37b0b5aa5dffb10dcb5c459383c62ca28482a2a885bf25a52f9d00f3a0943a4",
       "counterpartSha256": "b64fa68e7ace1ca373aa9299935b80dadd667fac344d39737138b2ab676b641c",
       "rustReferenceSha256": "bd91d78ed290a6b09e3718ec6255de7f30f4d0102e70a2dcffb6509a047de9fe"
     },
@@ -283,7 +283,7 @@
       "source": "workloads/crypto_sha256_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha256_stream_262144.ts",
       "rustReference": "parity/crypto_sha256_stream_262144.rs",
-      "sourceSha256": "d0511bdb8c7b88cd7e3f6a9dd91e2a606e904b6b81c413a4d487f3554fd9ac94",
+      "sourceSha256": "5f9092b16bd83b9edf968dcaa25d57fa1cc5315aa6128cc0a86fe5ae4f4203b5",
       "counterpartSha256": "5dd442efe1ff47cdef9ceda72e66084cfb2bc71d39f29dedafd456cda5637fc2",
       "rustReferenceSha256": "58fd39054fc93c975f052ac240f0377739de37881bae4e23d2b3a327170db490"
     },
@@ -314,7 +314,7 @@
       "source": "workloads/crypto_sha384_stream_64.tsr",
       "counterpart": "workloads/crypto_sha384_stream_64.ts",
       "rustReference": "parity/crypto_sha384_stream_64.rs",
-      "sourceSha256": "5d0788dc7bfeb44345d727144ef28d75f552bf28ce90fc80449890e6ebbf3eb4",
+      "sourceSha256": "2b4619de35da6392f85af40b56980d26b52c9d77018bd586a7d646dd88ef7181",
       "counterpartSha256": "85b1828e557254960c98621ff3787b563dd0b72121651865985d2bb11503609c",
       "rustReferenceSha256": "363c0213ae9e3417cea1e8b219e883cff905fc9a05de31c0de70cc1957247ec9"
     },
@@ -345,7 +345,7 @@
       "source": "workloads/crypto_sha384_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha384_stream_4096.ts",
       "rustReference": "parity/crypto_sha384_stream_4096.rs",
-      "sourceSha256": "0e9c34a2b2cd31de04006d7ee67baff41793f0bf5190e389248ae6621f9a788b",
+      "sourceSha256": "ccc10970110fefbba79c68d62bcbfeb24b58f51972cc2bb4647b76fd28712266",
       "counterpartSha256": "1684fc9fe9b3a265a99f43d5607682e4f4addc77d7d3a26613ac0be54d7a3b57",
       "rustReferenceSha256": "f37452be09da212994bb1b4daa6c3e57f08b5cfdb1a317d5373149c6ffe29606"
     },
@@ -376,7 +376,7 @@
       "source": "workloads/crypto_sha384_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha384_stream_262144.ts",
       "rustReference": "parity/crypto_sha384_stream_262144.rs",
-      "sourceSha256": "3190e944c8cb88ecb3b7a0689284cdac4bda5cb3895822b0f16de878bb1dace9",
+      "sourceSha256": "1b8cd832c2b03af11c6a7616a66d9b5cb8d5f735ac9a1d08e946c194448839a3",
       "counterpartSha256": "6d434e24e89dd11683f2c34a06b89bd0e457572f2bc0b3dfc16f797e6b896486",
       "rustReferenceSha256": "4f6f9cf03ed78cef64b2a39b82c0d3917e7aa3fa192a50cc24aabdf7a21b91da"
     },
@@ -407,7 +407,7 @@
       "source": "workloads/crypto_sha512_stream_64.tsr",
       "counterpart": "workloads/crypto_sha512_stream_64.ts",
       "rustReference": "parity/crypto_sha512_stream_64.rs",
-      "sourceSha256": "fc839f5e28dda314772a9ca3caf5820dbcdd3823ffac27c7da8347f9d748cd0a",
+      "sourceSha256": "7f24f0193be848c78ab6a7804e3f174390814bad0e13745a31aca52524c71bfc",
       "counterpartSha256": "ae12b89d1c7e73ac2f39c25d52a88b74e75cf8211864b16ce3def9ec3e9b92ed",
       "rustReferenceSha256": "ff5ca332c6791c31a0eec3c91b6a03be306baf013f2c26d5426c1d6183eade7d"
     },
@@ -438,7 +438,7 @@
       "source": "workloads/crypto_sha512_stream_4096.tsr",
       "counterpart": "workloads/crypto_sha512_stream_4096.ts",
       "rustReference": "parity/crypto_sha512_stream_4096.rs",
-      "sourceSha256": "6eaf799d7f979cf042ec3ca99ad561057f82861a5176a160eba0ce8763a9da36",
+      "sourceSha256": "b27eed22365b143372c39e88a1f8fdf25ac1f7a3036976862d552d7a2b87290d",
       "counterpartSha256": "8d5c369d9272384593ce666a2af068a903175145e070c9da0dd18efe95c9b968",
       "rustReferenceSha256": "ef4667aa8f2af5d03bce5a60a02c31a4593c1c0543d951a908df9eff0f571c51"
     },
@@ -469,7 +469,7 @@
       "source": "workloads/crypto_sha512_stream_262144.tsr",
       "counterpart": "workloads/crypto_sha512_stream_262144.ts",
       "rustReference": "parity/crypto_sha512_stream_262144.rs",
-      "sourceSha256": "14acd1a566d75e2fcff4ba0be857cb45e95237717159cbfb71ef988bc833896d",
+      "sourceSha256": "c5f0313b2b9be067010d95d30389f9259772de4e88ab2aeb68b085860f7189a1",
       "counterpartSha256": "9dbd183b6bd7603c816aa2825f39a8858ff8cf35892a91d9adf951e12e1546d7",
       "rustReferenceSha256": "30aa2aa1293a67b9dc4444770987ffb3837735826777ef9c23c4a349a30460d0"
     },
@@ -500,7 +500,7 @@
       "source": "workloads/crypto_hmac_64.tsr",
       "counterpart": "workloads/crypto_hmac_64.ts",
       "rustReference": "parity/crypto_hmac_64.rs",
-      "sourceSha256": "0015cbd8279c349df7add1e7d33b4452ff894827828f618d1dcf36bc0f04c7e0",
+      "sourceSha256": "c62ce4ef41984e8c4b10af0b67eec7539b8ee27410e6fff3c5371d9c2a699271",
       "counterpartSha256": "ce929c4370be8513233f83ab254b552623e620aaf86299fb2a2c413cbcb7bf25",
       "rustReferenceSha256": "f945fa0e38f2e8fba7f892326a4cbabf854d6b00feec17ff4084b3f872f81713"
     },
@@ -531,7 +531,7 @@
       "source": "workloads/crypto_hmac_4096.tsr",
       "counterpart": "workloads/crypto_hmac_4096.ts",
       "rustReference": "parity/crypto_hmac_4096.rs",
-      "sourceSha256": "85d2368d8c2626fa48c67b33ffd2e5b8f3ffe532a1635270a5e5d36cdd2a51f3",
+      "sourceSha256": "a938b18ce767184fdcd9245bf02130620fbd62fc721a76ff4ad347c61d944217",
       "counterpartSha256": "4e13a1f5048d7bada70c3fecddb3eefc9810ad0a0f2a5c377e7faa4d7b2f8fc2",
       "rustReferenceSha256": "0a00b20603e5d26b6c43ec01901db1e0487dfe56a48254d7fc55da31a7914c3c"
     },
@@ -562,7 +562,7 @@
       "source": "workloads/crypto_hmac_262144.tsr",
       "counterpart": "workloads/crypto_hmac_262144.ts",
       "rustReference": "parity/crypto_hmac_262144.rs",
-      "sourceSha256": "5c1ca7af23abdef1a4e55a809ac8c62b4b0b6ed809e77ab00162870f4c6166e4",
+      "sourceSha256": "cd2302d070150d79a07a668c8b63c121ca08f06b7dcd14032539bbdca7f0ff41",
       "counterpartSha256": "3b36eebde886897eeaaa59c2ad6d8c6414d4b55445751022900c1282f289eafd",
       "rustReferenceSha256": "a0e80c678cc93fe353ab116a0cc2554edaf8a9278bd1c8d026037b36acb4954f"
     },
@@ -594,7 +594,7 @@
       "source": "workloads/crypto_verify_hmac_64.tsr",
       "counterpart": "workloads/crypto_verify_hmac_64.ts",
       "rustReference": "parity/crypto_verify_hmac_64.rs",
-      "sourceSha256": "e17cb8585dd27ab2474eaaaefa729c49b6dedd9b0d0b0ac6638ccdfb45a5fc8d",
+      "sourceSha256": "e66da1803ec02cb51cb4c1bc5c9af04d2c00a1e9a6f7afef8de73a2c258ea074",
       "counterpartSha256": "bc0143527e01d370714521923b8cb0bd4c8d4b11229848bb66488f244554d1d4",
       "rustReferenceSha256": "4d34ec52aeaa1803d6c1682e65db1540125476181fefc3af8be35ecd0bc3ec45"
     },
@@ -626,7 +626,7 @@
       "source": "workloads/crypto_verify_hmac_4096.tsr",
       "counterpart": "workloads/crypto_verify_hmac_4096.ts",
       "rustReference": "parity/crypto_verify_hmac_4096.rs",
-      "sourceSha256": "decb991a5ac2755df2e8f2314380d62192d22d489e97c73cae0e244776ac193b",
+      "sourceSha256": "d2bb14ab70dc6145c5bcc5044cee8e43e5aedf916a23a8440fa37700cd4adf15",
       "counterpartSha256": "52fcb450af18f33ccb1923d8f95ba2b76e88ebb2ff363c1744cbaf42d830add2",
       "rustReferenceSha256": "3403409da79bbcd96937141bb31d0f592875babc1dcccf0838f34831c5186e9a"
     },
@@ -658,7 +658,7 @@
       "source": "workloads/crypto_verify_hmac_262144.tsr",
       "counterpart": "workloads/crypto_verify_hmac_262144.ts",
       "rustReference": "parity/crypto_verify_hmac_262144.rs",
-      "sourceSha256": "d3edf17086db33e000c47856a1ac4b773590a3f6f4748413a2c38b9440139677",
+      "sourceSha256": "cd0ebd89f573e0796419f20c4d05b988a086d827a0530ff6f3a1c6d1ee8666bc",
       "counterpartSha256": "2f2d72ffda23c3c23242e1d752d6e6bfef01ea7134b25938474c0b8aab4962fa",
       "rustReferenceSha256": "0e0505068bd651c977e211082ce2e01b6c88d3f229d96377f0b191d06ca746d8"
     },
@@ -689,7 +689,7 @@
       "source": "workloads/crypto_hkdf_64.tsr",
       "counterpart": "workloads/crypto_hkdf_64.ts",
       "rustReference": "parity/crypto_hkdf_64.rs",
-      "sourceSha256": "ad889d1e19aa1a09b513590c8d250fc7146b805c062aadccd635cd7add55cf98",
+      "sourceSha256": "d9e83a98f8b05adefdd48283d686190fb3060369afe616a08053daa8306ecf6e",
       "counterpartSha256": "454d4a0c3509fcf1c84caff7b687c59e6eaa568a08a436e65b224fc904a7966a",
       "rustReferenceSha256": "c9cd5a9579ebdb2159f381f267d8643de215fe19fcd00b01e68e060a5c946839"
     },
@@ -720,7 +720,7 @@
       "source": "workloads/crypto_hkdf_4096.tsr",
       "counterpart": "workloads/crypto_hkdf_4096.ts",
       "rustReference": "parity/crypto_hkdf_4096.rs",
-      "sourceSha256": "d16eb50f142cebb8fb558fed80990eeed4af7c2b3eddf6fdd132cf0ef8b7d000",
+      "sourceSha256": "7aaba16229fd097144bb97433acbd783bd5bd31edd3f704a5327f3f6097de45e",
       "counterpartSha256": "7ab0ecdc2925796d874b3a91fd2f31e2546ef14a33c744e16534dcff16171633",
       "rustReferenceSha256": "29512c7ec145c6722c74a0a27e6d57a5bcf14510767e7f4d890cf4db62e66ec8"
     },
@@ -751,7 +751,7 @@
       "source": "workloads/crypto_hkdf_262144.tsr",
       "counterpart": "workloads/crypto_hkdf_262144.ts",
       "rustReference": "parity/crypto_hkdf_262144.rs",
-      "sourceSha256": "24ecc95c1d39415a93e81e523d6e62e5954b5943d0ea4e135f68260f8fe7925d",
+      "sourceSha256": "56db3c98dd636b549820ea7bf700375b796652d23a6fd55aa75d218ecfe6c2e0",
       "counterpartSha256": "c240e078be30539190ddcc5f62c984244e86b94e3b03359f830069484648527a",
       "rustReferenceSha256": "ecf57620943daa7b21577aab4748ffe1edfd08ec1f07875057f48429e8f10670"
     },
@@ -22153,7 +22153,7 @@
       "measured": true,
       "notes": "Gate 188 owned-byte operations accepted with focused evidence. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Thirteen retained scalar observations: initial length, append success and invalid-input code/offset, unchanged trailing byte, copied length, successful writes, independent copy and source contents, empty end copy, invalid range offset and final length. Independent arithmetic oracle and validated Uint8Array counterpart.",
-      "sourceSha256": "78133871e0c5c58315c29c1fbf908ec14fb3d3edf9a59cc7f47730df2c8333dd",
+      "sourceSha256": "422d6961d4cba09bdb2ab8aad65f0636f86f372ca74d789b035580857bd0bb7c",
       "counterpartSha256": "ec3eaa566d0813c094d53b4e61a66d40e1d5b0f268e70991ff2fc186d05c52ca",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22240,7 +22240,7 @@
       "measured": true,
       "notes": "Gate 189 public byte views. Native and Node-after-tsc correctness verified untimed. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence. Rust reference construction and copying use try_reserve_exact and preserve the allocation-error fallbacks: construction returns [-1000000], copy records -2, then later iterations continue. Infallible collect/to_vec can eliminate temporary buffers and is not an equivalent allocation policy.",
       "specification": "Twelve retained scalar observations per iteration: readonly view length, first and last byte, first byte of a nested view, length of an independent copy of the view, write success through an exclusive view, index error code length and offset for a write outside the view, the owner byte changed through the view, range error code length and offset for a view beyond the owner, and the offset of a reversed range. Independent arithmetic oracle; Uint8Array.subarray with explicit range validation.",
-      "sourceSha256": "4e0ef31253f4f87a1f7265e1ea542e49203d6ea0cf80697f4e7ac5f5ef86cb52",
+      "sourceSha256": "f76393ba7918fd73b28f5318940f6595424d7e202154107779e8fe8ede76b4d7",
       "counterpartSha256": "718247cc468d50e9e6f41c6ca5db27b2f97edd4859415e8bebf04071460dd5cc",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22269,7 +22269,7 @@
       "measured": true,
       "notes": "Recursive byte-view array storage. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume child arrays during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "f0a3db8b3e119d745381d00070d07c321323e025a8cf2842cfb0458498216378",
+      "sourceSha256": "c87b7ac5647aca44d696093962988b8bae79297b91e98028c7420d197bf41cad",
       "counterpartSha256": "3518a6e4a6d1f0f325ddc984848047aa23fb092317defba807b36b412c06c5fb",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22298,7 +22298,7 @@
       "measured": true,
       "notes": "Nullable recursive byte-view storage. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume nullable next links during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "159ad6b1d3c79d422e5260981b3ad417401cc9f1dd2c5ee5be1078ad3933d919",
+      "sourceSha256": "312043b4c68de4ffcbae9e7916e509458d0a13c509ad86f2820cb6204afdf384",
       "counterpartSha256": "2947db1658ec792a0e49c398f6c0e9e06f0a9d21c86faef9b32a1dcafce1ff91",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22327,7 +22327,7 @@
       "measured": true,
       "notes": "Capturing callbacks returning argument views. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Repeat with a callback borrowing the owner and constructing its returned view during invocation. Observe both returned lengths and first bytes. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "6aebdf3cf85e12129f273315152d33a1fc4ec3af7e614d5b3aa8cd7755d18b6e",
+      "sourceSha256": "9353ce9a8129f1dd8f92baac07f6fb2831638331ff2cb5816db543f46b0c07a9",
       "counterpartSha256": "abac2c843b67ea9b47df7eb60f846189bc7c60172cc0a33b588b9ccf846f60e2",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22356,7 +22356,7 @@
       "measured": true,
       "notes": "Recursive records combine two factories in one stored callback field family and return the final callback through a record parameter. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node nullable chain alternating two callback factories. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, returning the final callback through an owning record parameter after observing its direct view length. Record node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "0cb3c19c71a4310fda2c57a7aa28717f71de771d2397e7389c37df0c02eeeadd",
+      "sourceSha256": "032299091103aad87914981de3030fd046f3c2490eaf1fad42db1f1afb9a9106",
       "counterpartSha256": "b519c217ef660bcd279da69869c7069dc52b4d534bbe22286cb23a77ef340c1c",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22385,7 +22385,7 @@
       "measured": true,
       "notes": "Recursive records retain views only through captured callback environments. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node nullable chain alternating two factories. Each node stores only a Once callback capturing a two-byte view, with no direct view field. Consume callbacks during traversal and return the final callback through an owning record parameter. Observe node count, byte sum and final returned view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "1865e990d4987dc6d42aef32e43f1bfb16c5fb49973961a8c089f50f477eac4e",
+      "sourceSha256": "4442bf908a7b4ef8cc5d6b94be049d834c3a29fb8f8d744dbb7b754c007a92ea",
       "counterpartSha256": "2a1a2ad624145febe015c3baa387d5c33d8f4d4c222929df3f10fc95fe48f63c",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22414,7 +22414,7 @@
       "measured": true,
       "notes": "Nullable callbacks join two capturing factories and an empty factory. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build an empty leaf and 16 parents alternating two view-capturing factories. Consume present callbacks during traversal, then extract the absent leaf callback through an owning parameter. Observe 17 nodes, the sum of 16 first bytes, and a true absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "c40d333a6d93583fb697fbcbe97ec7800545d98cfbb381272854f7b1350de38c",
+      "sourceSha256": "8a2f3290c4cee03c341480c6b93d65429755cf3fc684f29807c1459de0cc0a3b",
       "counterpartSha256": "7a6f58c23892932ebe867c8ee7465823ff5ada79546ca78f505610ec26432fb3",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22443,7 +22443,7 @@
       "measured": true,
       "notes": "Mutable recursive parameters replace optional view-capturing callbacks while retaining caller owner provenance. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build an empty leaf and 16 parents alternating two factories. Replace each parent callback through a mutable record parameter with a closure capturing the second byte window. Consume callbacks during traversal, then extract the absent leaf callback. Observe 17 nodes, the sum of 16 second bytes, and an absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "b144779a385713b40a1b906b9d72fd9aa3f2d2dce19d3db6f4b5e4caaa724592",
+      "sourceSha256": "8008094c39f36c9f90873371c39dc011099f0f85136c67fafbbb7f63ce476dae",
       "counterpartSha256": "1ae4ffa3af2a3823551326bbb9bf3266645686549346211ed1455e2612a3e586",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -22532,7 +22532,7 @@
       "measured": true,
       "notes": "Map view transport and readonly projection verified in five matched native/Node cases. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Construct two eight-entry Maps through mutable parameters. Traverse one in insertion order; return a readonly subview from the other after its Map ends. Observe size, key sum, byte sum, projected first byte and length. Node uses Map and Uint8Array.subarray; independent arithmetic oracle.",
-      "sourceSha256": "b9541a93d94adfc11a30d903e55ddf0c5c247927fa5d6e88c35b16422db7f307",
+      "sourceSha256": "bc7394e7e584d857403002a2c7b2a1d29780df3af1b392b07c6bdf4d3dcba511",
       "counterpartSha256": "93dfcdd12b0ba246a3c1a7c4170340173c8afe3f0e420087e2c9728e9f2b1007",
       "verificationEvidence": "runtime/results/2026-10-11T10-04-18-452Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
@@ -22742,7 +22742,7 @@
       "measured": false,
       "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
       "specification": "For iteration i, create or truncate a private output file, borrow the first (i+seed)%64+1 bytes of four ASCII hexadecimal blocks, write them, close, reopen, read and observe length and sum. One write must complete the regular-file range.",
-      "sourceSha256": "d3a79cab0a6e41e436e3dcfbec3eed8d77b2f52b5b707ed52802880b6b878dbc",
+      "sourceSha256": "e54667241f38995cd06e0c9abe92acf307cf2cacfe6699659546cdd3afe212c1",
       "counterpartSha256": "e13a9f3c9e92d747b0ad0d7b42bcc26203721eecf9d1b22a01e8868df811eaa3"
     },
     {
@@ -22770,7 +22770,7 @@
       "measured": false,
       "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
       "specification": "For iteration i, create or truncate a private output file, borrow the first (i+seed)%64+1 bytes of four ASCII hexadecimal blocks, write them, close, reopen, read and observe length and sum. writeAll retries short writes; Node loops writeSync equivalently.",
-      "sourceSha256": "1078e47f882c109d46e25aa8f5938b9f8cb48580f5af8158bc133b659e695854",
+      "sourceSha256": "70fa3b7459d0e2ed9a6211565954bfc9d83fca8b125e10c2df97a46f52299489",
       "counterpartSha256": "b65df1b86bf2dda3693195115defff10448346a1ea069c0d267370fd1ec1021d"
     },
     {
@@ -22826,7 +22826,7 @@
       "measured": false,
       "notes": "Matched successful regular-file buffered I/O. Buffer preparation is inside each sample; temporary directory and initial fixture preparation are outside measured bodies. No timing yet; pending S09 milestone.",
       "specification": "For each iteration, write an ASCII hexadecimal prefix in 3-byte borrowed chunks through a 16-byte writer, close to flush, then read through a 16-byte reader in at most 3-byte owned chunks until EOF. Return total byte length and sum. Node uses explicit buffers of the same capacities, flush policy, chunk boundaries and deterministic close.",
-      "sourceSha256": "16405071cf85b8f61c7ef7f834cf0bfc27ebf717c6383828530a237eab04db87",
+      "sourceSha256": "5587ffde4120b12f2fd59dbc16bf13c09cbfd076e1b0648f49ddab690260d1eb",
       "counterpartSha256": "c4414cbf01d31cdc2eadf9d2ac6fbec41d23e744eed90a6c3938b97c6ffd5a5f"
     },
     {
@@ -23192,7 +23192,7 @@
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Construct items [42,null] and last-wins name hello; add 34 encoded ASCII bytes per iteration.",
       "notes": "Tsrust constructors transfer values without default construction quotas; explicit budgets opt into validation. Node uses ordinary arrays and Object.fromEntries. Native reused string input is explicitly copied. Includes encoding.",
-      "sourceSha256": "1c5a367092dd438bed42834dfd6fbf5c0ff054e62af59c35e91ee2f3dc06a31c",
+      "sourceSha256": "a4a6b606c9ae5aa9bcaf6d75769e30903d7138896e1b02ca38df2ebfb8aa6c5a",
       "counterpartSha256": "6939ab9f0d0d3845eef81bafced7e86ce9925f61e780cf7f14ab0631e3a98fe8"
     },
     {
@@ -25814,7 +25814,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "b08e4c25314f4790a4daa6aa355a66e48af3480a812b02eb2d9c1a2662335f6d",
+      "sourceSha256": "cbe08df10c378a790de5068ffe613f0949333e9616bf527eff724b0de9154097",
       "counterpartSha256": "a6f02e4db093f8dd7bc908c8731f2f35bc0a349b8e85ff59ba3b6ddbc81e488d"
     },
     {
@@ -25841,7 +25841,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "b08e4c25314f4790a4daa6aa355a66e48af3480a812b02eb2d9c1a2662335f6d",
+      "sourceSha256": "cbe08df10c378a790de5068ffe613f0949333e9616bf527eff724b0de9154097",
       "counterpartSha256": "a6f02e4db093f8dd7bc908c8731f2f35bc0a349b8e85ff59ba3b6ddbc81e488d"
     },
     {
@@ -25868,7 +25868,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "b08e4c25314f4790a4daa6aa355a66e48af3480a812b02eb2d9c1a2662335f6d",
+      "sourceSha256": "cbe08df10c378a790de5068ffe613f0949333e9616bf527eff724b0de9154097",
       "counterpartSha256": "a6f02e4db093f8dd7bc908c8731f2f35bc0a349b8e85ff59ba3b6ddbc81e488d"
     },
     {
@@ -25895,7 +25895,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "175278e8efd7c351af998b76e2a7387ea64614c72844ee15d449fc47a052e5ac",
+      "sourceSha256": "4b134e152615c60e1b96a26cc903ac940e289b7634dc7d953c8ccd2bbacd6c52",
       "counterpartSha256": "fa6df7e31e2165407926fe2a264b890932a0f1be6e40c46a396ea6cb6bb1ed45"
     },
     {
@@ -25922,7 +25922,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "175278e8efd7c351af998b76e2a7387ea64614c72844ee15d449fc47a052e5ac",
+      "sourceSha256": "4b134e152615c60e1b96a26cc903ac940e289b7634dc7d953c8ccd2bbacd6c52",
       "counterpartSha256": "fa6df7e31e2165407926fe2a264b890932a0f1be6e40c46a396ea6cb6bb1ed45"
     },
     {
@@ -25949,7 +25949,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "175278e8efd7c351af998b76e2a7387ea64614c72844ee15d449fc47a052e5ac",
+      "sourceSha256": "4b134e152615c60e1b96a26cc903ac940e289b7634dc7d953c8ccd2bbacd6c52",
       "counterpartSha256": "fa6df7e31e2165407926fe2a264b890932a0f1be6e40c46a396ea6cb6bb1ed45"
     },
     {
@@ -25976,7 +25976,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "7fbdd1ad8e0e401d2e15b3ca50ff2ef1b1545e58f320ca5fde0666dfc42b1ab1",
+      "sourceSha256": "582ecdb5b4476da88bee257b5eab0732114195b1ecc4e8e8260ac9673a6bd1e7",
       "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
@@ -26003,7 +26003,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "7fbdd1ad8e0e401d2e15b3ca50ff2ef1b1545e58f320ca5fde0666dfc42b1ab1",
+      "sourceSha256": "582ecdb5b4476da88bee257b5eab0732114195b1ecc4e8e8260ac9673a6bd1e7",
       "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
@@ -26030,7 +26030,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "7fbdd1ad8e0e401d2e15b3ca50ff2ef1b1545e58f320ca5fde0666dfc42b1ab1",
+      "sourceSha256": "582ecdb5b4476da88bee257b5eab0732114195b1ecc4e8e8260ac9673a6bd1e7",
       "counterpartSha256": "4e29f74467bb9423a9d55fd3dcc34c4a0e85f97162911fa2832625dca4aa8131"
     },
     {
@@ -26057,7 +26057,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "04950074326267691009710f39cf522eaec4240b26c48a4e1b3637dbd80cfdc8",
+      "sourceSha256": "6dbf85da87ae5949d4d1824b62abed8eea62cfa48302b299ff327fa2535fe9d4",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
     {
@@ -26084,7 +26084,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "04950074326267691009710f39cf522eaec4240b26c48a4e1b3637dbd80cfdc8",
+      "sourceSha256": "6dbf85da87ae5949d4d1824b62abed8eea62cfa48302b299ff327fa2535fe9d4",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
     {
@@ -26111,7 +26111,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "Signed widths1/2/4/8, unsigned1/2/4 and IEEE32/64 at fixed unaligned positions. Explicit order alternates by record. Read input construction occurs once per invocation; write destination is reused. Reads retain exact integer checksum with float values checked against fixed scaled markers; writes include a full byte-checksum scan. Each complete iteration retains length/checksum/record-count.",
-      "sourceSha256": "04950074326267691009710f39cf522eaec4240b26c48a4e1b3637dbd80cfdc8",
+      "sourceSha256": "6dbf85da87ae5949d4d1824b62abed8eea62cfa48302b299ff327fa2535fe9d4",
       "counterpartSha256": "36538cfa646d8d45613ea74840e71942a38f1d04425841b0443965402d17302b"
     },
     {
@@ -26138,7 +26138,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4fd67040ca78ef4c47809a504a9180f769ddaccc17a1287f8bbc1492e06c32ae",
+      "sourceSha256": "05b5e54e40275e39d83ced6a0939c45eb7ccf2a16bfe98a4edac06a86f9a179f",
       "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
@@ -26165,7 +26165,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4fd67040ca78ef4c47809a504a9180f769ddaccc17a1287f8bbc1492e06c32ae",
+      "sourceSha256": "05b5e54e40275e39d83ced6a0939c45eb7ccf2a16bfe98a4edac06a86f9a179f",
       "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
@@ -26192,7 +26192,7 @@
       "measured": false,
       "measurementStatus": "pending-byte-operations",
       "specification": "ASCII byte97 corpus; second input is independently owned. Tail differences and literal needles are fixed independently. Input allocation occurs once per invocation and remains timed/amortized. Comparison/search results are offset by +1 for the existing nonnegative exact-array ABI. Every iteration retains three scalar facts. Overlap uses one exclusive owner; no hidden temporary.",
-      "sourceSha256": "4fd67040ca78ef4c47809a504a9180f769ddaccc17a1287f8bbc1492e06c32ae",
+      "sourceSha256": "05b5e54e40275e39d83ced6a0939c45eb7ccf2a16bfe98a4edac06a86f9a179f",
       "counterpartSha256": "340bcd93b9bbb20f24fdb4eb602d8590fe140836bef4f269631ed8c22c058d00"
     },
     {
@@ -26276,7 +26276,7 @@
       "measured": false,
       "notes": "v0.2 filesystem utility workload. Existing timing/process/sample protocols retained; owned metadata/entry snapshots, host copy defaults and no durability sync. Correctness and measurements pending.",
       "specification": "Write seven UTF8 bytes, append LF, open read/write, observe size8, truncate without cursor move, rewrite seven bytes, close and strict-decode readback. Observe[8,7,(i+seed)%17].",
-      "sourceSha256": "275e3ac06c7b331135ace6d410ec7fc2e7080162684e2a4388256eb4f28cc5e2",
+      "sourceSha256": "b8faad8149893c3b1fffaf24766d53a17de214d39bffd6d8c13db3c339358178",
       "counterpartSha256": "54d62dfa826ad8a174dee66def0f255cb5b502039b7a10bc5dc4635dc13600d0"
     },
     {
@@ -26332,7 +26332,7 @@
       "measured": false,
       "notes": "Separate explicit durability-request timing. Each sync follows a fresh one-byte write; no sync is hidden in ordinary I/O rows. Rust uses identical std seek/read/stream_position plus sync_data/sync_all. Node uses fdatasyncSync/fsyncSync and positioned readback, inferring its owned cursor from writes; Native-vs-Rust is the primary facade control. These requests preserve host/filesystem semantics without a hardware-level durability guarantee. Existing five semantic cases and timing/sample/process protocols retained; acceptance and timing pending.",
       "specification": "Open a private read/write output with create/truncate. For each iteration write a then syncData, write b then syncAll, read both bytes back, and return [2*(i+1),195+(i+seed)%17]. Native/Rust seek back two bytes before readback and query the cursor; Node positioned reads leave the write cursor unchanged and infer its position from complete writes. Close once after the loop.",
-      "sourceSha256": "d470889de161abd95df812975edb841321165a4dd8ae9f7db8c47a6f0413e6de",
+      "sourceSha256": "f96b9389f428513c3882fb2ebd45ebefaeb4444d235f40f85d77393d2e2d3e1f",
       "counterpartSha256": "a6fc4301a21b021d8d48c793a4336f4994bb64aad2213b988936298dd8d41ae2"
     },
     {
@@ -27139,7 +27139,7 @@
       "measurementStatus": "measured-async-io",
       "specification": "async-io-contract.mjs",
       "notes": "One runtime per process; setup and cleanup included per invocation. Existing protocol: 8 warmups, 3 processes, 31 samples. Memory adapters clone payload storage explicitly per iteration. File copy includes filesystem setup/open/close and observation. Actual matched timings stored in measurements.sqlite; allocation counts reviewed separately.",
-      "sourceSha256": "c1d0d1225ab5ad461fea3ed093a813a9552b2f4de462729564cab062dd4eebb8",
+      "sourceSha256": "63e865cfb7501729322167f8126b801608a6bd18c8b8c3ab0d63b781b6c59975",
       "counterpartSha256": "d72dc7ed64f8aea24621ee30382057ec777ee4f9f66c9a9bd0d7b645c59109c6"
     },
     {
@@ -27355,7 +27355,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "36410f538637ea4a2998fb3cfebe62cb23cf352d6723ae5fc2215aa6cc517bab",
+      "sourceSha256": "08512a3b455c952d5b0db11359e8fb9e3cf23a86ca079fc0764960dabd8b7ba9",
       "counterpartSha256": "401fac6ade444835d983c6f506d4f927e6f3e1861088afc92fec71d009910a8b"
     },
     {
@@ -27379,7 +27379,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "c1ac89415af036fe42cafac7654346fc78e525d68d61f6a93efcfdd1670a9057",
+      "sourceSha256": "6376ab2dca91f1d9a0089d3ebab075e7959aa4584972b8da436d23bd4794fdef",
       "counterpartSha256": "0c8b2ec7dcecb282b8a6d9a10f249c8cf0e63d18373dad74c91bddefadf01542"
     },
     {
@@ -27403,7 +27403,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "9a1e27226233c7bb0eff89a3ac36fe0e6b41923800bd57875f01995e5f31a037",
+      "sourceSha256": "739fe448eee7de5560311cf5767851c6ba2dd3b68e2baa854711ea61f1ad6250",
       "counterpartSha256": "401fac6ade444835d983c6f506d4f927e6f3e1861088afc92fec71d009910a8b"
     },
     {
@@ -27427,7 +27427,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "68d600fb9e21029f3abd6c82bab74ef91048e2cbbda5869b21c770cdd112e34d",
+      "sourceSha256": "39df11e2b58f63070c485bc1e4321c1731881997cab721978befa8652c788074",
       "counterpartSha256": "0c8b2ec7dcecb282b8a6d9a10f249c8cf0e63d18373dad74c91bddefadf01542"
     },
     {
@@ -27451,7 +27451,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "2a5bab9cb3c16d84763a44f8ffad9ab5e8d29dd0ef6d93aa51e2979311f39546",
+      "sourceSha256": "c62d764658df5ba4abf64034a4e6557551f36c11034a33eb62092361c431de3e",
       "counterpartSha256": "607e5699e16d5e124c8b5636a7df4387ffec94568a42bb117612018e2a257914"
     },
     {
@@ -27475,7 +27475,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "52ee950b5bd80f3a326269dc1b1896c75ef3784c8e30708aebeb9165ddead744",
+      "sourceSha256": "110b02419ec3d846876edc998a48bae8c7eb2e6056eed6e27a7de49d224a7eeb",
       "counterpartSha256": "a250c3f6b9b96eb9c657f03ea061bc56f06eaff9c91a17fcaf5c369fcdd07b98"
     },
     {
@@ -27499,7 +27499,7 @@
       "measurementStatus": "unmeasured-network-transport",
       "specification": "network-transport-contract.mjs",
       "notes": "Original3processes,8warmups,31samples. One runtime/process, persistent connection/socket pair per invocation; setup/cleanup and one server task included. TCP reuses read_exact destination, Node exact reader queues chunks without Buffer.concat; full raw Rust floor does not split, split floor uses into_split without extra adapter boxes. UDP owns fresh received bytes at both endpoints. Node explicitly sets noDelay=false to match Rust default.60000-byte UDP requires supporting host; current host has paired EMSGSIZE admission evidence, no throughput claim. All source output bytes folded independently.",
-      "sourceSha256": "d79906e447647e531ab24cd19298fd452fe48b709068a12833c7cd6fe2f423ca",
+      "sourceSha256": "d68b2503d8a7cd2e97fbe355dc85f7020ca2d333f9dcccfd5502ff13dc6b45f6",
       "counterpartSha256": "0d939f40c3a4197bcfd43669efa1e7edf45e7dce8a101e6e36fc85d2823f2df4"
     },
     {
@@ -28495,7 +28495,7 @@
       "measurementStatus": "measured-native-rust-node-execution",
       "specification": "Complete observed results; independent checksum in collection-numeric-date-contract.mjs.",
       "notes": "Setup and snapshot construction are inside each iteration. Three processes, 31 samples after 8 warmups. Node exact integers use BigInt. No allocation parity claim; native/Rust/Node execution timings are stored in measurements.sqlite.",
-      "sourceSha256": "eb5e405446a5202897dfa9761f269f5cbfb9913172dfa0c0d60876e2e515a0c9",
+      "sourceSha256": "c9e93f5cc90a70751aeb28de11184d9967ae085650cb3088c28c629fb9f784c5",
       "counterpartSha256": "3190951a0ecece602247ff3a8246c34236719811a65c78f258daedced8894f4d"
     },
     {

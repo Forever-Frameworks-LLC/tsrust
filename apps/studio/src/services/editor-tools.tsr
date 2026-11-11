@@ -1,7 +1,8 @@
 import { JsonLimits } from 'std:json';
+
 import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
-import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
 import { SearchHit } from '../lib/explorer/search.tsr';
+import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
 
 export interface EditorTool {
   name: string;

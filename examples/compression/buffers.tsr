@@ -1,4 +1,11 @@
-import { gzip, gunzip, deflate, inflate, deflateRaw, inflateRaw } from 'std:compression';
+import {
+  gzip,
+  gunzip,
+  deflate,
+  inflate,
+  deflateRaw,
+  inflateRaw
+} from 'std:compression';
 import { ThreadPool } from 'std:threads';
 import { fromUtf8, toUtf8 } from 'std:bytes';
 async function main(): Task<void> {

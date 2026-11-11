@@ -1,6 +1,7 @@
+import { fromUtf8, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { run } from 'std:process';
-import { fromUtf8, toUtf8 } from 'std:bytes';
+
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
 
 // Buffer bytes travel over stdin; formatting never needs a temporary source file.

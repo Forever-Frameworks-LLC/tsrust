@@ -1,9 +1,17 @@
+import { Channel } from 'std:futures';
 import { test, strictEqual } from 'std:testing';
 import { signal, Signal } from 'std:ui';
-import { Channel } from 'std:futures';
-import { TerminalWorkspace, emptyTerminals, addTerminal, activateTerminal, removeTerminal, terminalExited } from '../src/lib/workspace/terminals.tsr';
-import { TerminalSessionAuthority, terminalSessionTools, invokeTerminalSessionTool } from '../src/services/terminal-sessions.tsr';
+
+import {
+  TerminalWorkspace,
+  emptyTerminals,
+  addTerminal,
+  activateTerminal,
+  removeTerminal,
+  terminalExited
+} from '../src/lib/workspace/terminals.tsr';
 import { TerminalToolResult } from '../src/services/terminal-actions.tsr';
+import { TerminalSessionAuthority, terminalSessionTools, invokeTerminalSessionTool } from '../src/services/terminal-sessions.tsr';
 
 test('terminal sessions keep distinct identity and choose an adjacent session when removed', () => {
   const state = emptyTerminals();

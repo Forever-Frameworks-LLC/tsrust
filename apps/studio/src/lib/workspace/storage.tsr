@@ -1,4 +1,5 @@
 import { FsError, readTextFile, writeTextFileAtomic } from 'std:fs';
+
 import { Document, SaveConflict, dirty, markSaved, edit } from './documents.tsr';
 
 function writeDocument(document: Mutable<Document>, expected: ReadOnly<string>): Result<void, FsError> {

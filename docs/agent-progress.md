@@ -8,6 +8,63 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Import formatting rules — accepted 2026-11-11, followsc0046c0c.
+Owner requested std: imports first, one blank line before other imports, path
+sorting, and wrapping >5 bindings. Shared compiler formatter organizes consecutive
+import declarations as whole source slices. Binding order, aliases, literal paths
+and attached comments remain intact; bare side-effect imports are order barriers.
+Lists above5named bindings wrap one binding per line, including inline comments.
+organizeImports defaults true; importWrapThreshold defaults5, accepts0–100,0off.
+Studio global/project models, GUI/settings persistence and existing formatting/
+CLI-task/guarded AI adapters share both fields. Actual AI hosting and Studio LSP
+transport remain unimplemented; this change does not claim either acceptance.
+
+Focused evidence (no full regression/performance run):
+- Internal grouping/sorting/wrapping/token-multiset/options/barrier/idempotence
+  witness1/1PASS0.01s,3m58s setup, /tmp/studio-import-rules-test.log. Initial test
+  compile used an incorrect crate self-reference; corrected before execution.
+- Existing formatter entrypoints/options/stdin3/3PASS0.79s,2m25s setup,
+  /tmp/studio-import-existing-format-tests.log. Inline-comment wrapping then
+  tightened; affected public witness1/1PASS0.00s,2m24s setup,
+  /tmp/studio-import-comment-test.log. Unchanged passed checks not replayed.
+- LSP stdio grouping/wrapping/idempotence1/1PASS0.40s,1.39s setup,
+  /tmp/studio-import-lsp-test.log. First fixture incorrectly used languageId tsrx;
+  existing registered LSP ID is tsrust for the .tsrx path; fixture corrected.
+- Public std:testing settings persistence/partial project overrides1/1PASS2.22ms
+  test execution (setup not instrumented), /tmp/studio-import-settings-test.log.
+- Installed CLI custom organize=false/threshold2 via stdin:PASS plus idempotence,
+  no files written. Locale258keys/2catalogsPASS. Diff checkPASS.
+
+Studio57files intentionally organized. Required whole formatter356files/192doc
+snippets/64benchmark fingerprints; repeated pass0/0/0. Checkpoint tool explicitly
+sets organizeImports=false to preserve benchmark import-evaluation order/token
+identities; wrapping stays on. Extra diff review proved tokens/comments identical
+for410format-only sources, allowing only header import-declaration reordering in
+Studio. Four Studio settings/test implementation files reviewed separately.
+Final normal SDK build2m57s after embedded stdlib/docs whitespace updates;
+/tmp/studio-import-final-sdk.log. Pair atomically installed and independently
+matched target hashes: CLI308e0cba820750051fbb318c601b27bf8b9e3661bb00cd541c1b0ff9deac5d83;
+LSPe4fd6544c161a6c8cd499d6927b67afd4f7de877a92b802fae21486e28d721d3.
+
+Live MAT PASS: split check-panel/problems-panel show std-first/path-sorted imports,
+group gap and wrapped lists. Settings controls on/5; increment6,restore5,toggle
+off/on,Reload retained on/5; independently read persisted values. Settings window
+left on Formatting rules. CUA ended "Verified import rules and preferences".
+Owner's format/check on-save preferences remain on. Recovery drafts[]; all10tabs
+clean,0errors/0warnings after automatic reload. An earlier transient7Problems
+state disappeared on reload; no claim about unrelated persisted diagnostics.
+CURRENT supervisor71128/PTY31480, app79429; keep one preview. No supervisor restart
+needed for formatter-only compiler changes; normal dev source reload succeeded.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794438364788629000-0/Tsrust Studio.app.
+Last auto reload85.887s:check49.7471s,emit2.9708s,backend60.2ms,native/link32.5896s,
+runtimehit. Development observation, not a benchmark. Pruned50obsolete native cache
+variants under nonblocking cache/build locks, retaining current app/test programs,
+their two recent runtimes/workspaces and the shared Cargo target. Studio private
+cache13GiB→2GiB (rounded du observations). No cold rebuild after cleanup.
+NEXT real LSP/diagnostics/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native footer-slot follow-up remains below. No push.
+
 Panel tab underline — accepted 2026-11-11, follows191e9a0b.
 Owner wants the active underline across the entire padded tab, flush with the
 panel's left border. Removed Studio's spacer-only TabsPrefix. Shared Underline

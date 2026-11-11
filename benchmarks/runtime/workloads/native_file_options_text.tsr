@@ -1,4 +1,14 @@
-import { writeTextFile, appendFile, openFile, fileStat, truncate, writeAll, close, readTextFile, stat } from "std:fs";
+import {
+  writeTextFile,
+  appendFile,
+  openFile,
+  fileStat,
+  truncate,
+  writeAll,
+  close,
+  readTextFile,
+  stat
+} from "std:fs";
 import { fromUtf8 } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[][] {

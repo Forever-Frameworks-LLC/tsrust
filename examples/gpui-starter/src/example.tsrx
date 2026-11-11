@@ -1,4 +1,16 @@
-import { View, Text, Node, Child, Link, Markdown, CopyButton, Separator, Tabs, Tab, TabsContent } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  Child,
+  Link,
+  Markdown,
+  CopyButton,
+  Separator,
+  Tabs,
+  Tab,
+  TabsContent
+} from 'std:ui';
 
 interface PageHeaderProps {
   summary: string;

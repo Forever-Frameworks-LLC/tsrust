@@ -1,8 +1,9 @@
-import { Signal, controlTerminal, readTerminal, useId } from 'std:ui';
 import { JsonLimits } from 'std:json';
+import { Signal, controlTerminal, readTerminal, useId } from 'std:ui';
+
 import { TerminalWorkspace, addTerminal, activateTerminal, removeTerminal } from '../lib/workspace/terminals.tsr';
-import { TerminalToolResult } from './terminal-actions.tsr';
 import { EditorTool } from './editor-tools.tsr';
+import { TerminalToolResult } from './terminal-actions.tsr';
 
 export interface TerminalSessionAuthority {
   allowRead: boolean;

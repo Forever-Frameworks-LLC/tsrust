@@ -1,4 +1,11 @@
-import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromArray,
+  view,
+  at,
+  length
+} from "std:bytes";
 
 function byteWindow(owner: ReadOnly<Bytes>): ByteView {
   match (view(owner, 0, 2)) {

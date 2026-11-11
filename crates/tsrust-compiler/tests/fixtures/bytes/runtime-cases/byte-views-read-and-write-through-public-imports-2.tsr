@@ -1,4 +1,16 @@
-import { Bytes, ByteView, ByteViewMut, fromUtf8, view, viewMut, length, at, set, copy, toUtf8 } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  ByteViewMut,
+  fromUtf8,
+  view,
+  viewMut,
+  length,
+  at,
+  set,
+  copy,
+  toUtf8
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Window = {

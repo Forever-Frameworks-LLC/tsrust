@@ -1,33 +1,51 @@
-import { SaveConflicts } from './components/editor/save-conflict.tsrx';
-import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
-import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
-import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, useId, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args, get } from 'std:env';
 import { Channel } from 'std:futures';
-import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
-import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
-import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
-import { CheckPanel } from './components/tasks/check-panel.tsrx';
-import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
-import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
-import { Problem, collectProblems } from './lib/workspace/problems.tsr';
-import { QueuedFormatting, FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
-import { formattingWorker } from './services/formatting.tsr';
 import { extname } from 'std:path';
-import { openWorkspace } from './lib/workspace/workspace.tsr';
-import { dirty } from './lib/workspace/documents.tsr';
-import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recovery.tsr';
+import {
+  View,
+  Text,
+  Button,
+  Resizable,
+  ResizablePanel,
+  Node,
+  signal,
+  computed,
+  useId,
+  run,
+  setTheme,
+  registerThemes,
+  useTheme,
+  setLocale,
+  translate,
+  t
+} from 'std:ui';
+
+import communityThemes from './assets/themes/community.json';
+import studioThemes from './assets/themes/studio.json';
+import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
+import { CheckPanel } from './components/tasks/check-panel.tsrx';
+import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
+import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
 import { Chrome } from './components/workbench/chrome.tsrx';
-import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
-import { zoomFontSize } from './lib/workspace/zoom.tsr';
 import { Region } from './components/workbench/layout.tsrx';
 import { Panels, ChatPanel } from './components/workbench/panels.tsrx';
+import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
+import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
+import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
+import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
 import { configPath, loadConfig, defaultConfig } from './lib/settings/settings.tsr';
-import studioThemes from './assets/themes/studio.json';
-import communityThemes from './assets/themes/community.json';
+import { dirty } from './lib/workspace/documents.tsr';
+import { QueuedFormatting, FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
+import { Problem, collectProblems } from './lib/workspace/problems.tsr';
+import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recovery.tsr';
+import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
+import { openWorkspace } from './lib/workspace/workspace.tsr';
+import { zoomFontSize } from './lib/workspace/zoom.tsr';
+import { formattingWorker } from './services/formatting.tsr';
+import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
 
 function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel<CheckResult>, formattingRequests: ReadOnly<Channel<FormattingRequest>>, formattingResults: Channel<FormattingResult>, program: string): Node {
   const initial = unwrap(openWorkspace(path));

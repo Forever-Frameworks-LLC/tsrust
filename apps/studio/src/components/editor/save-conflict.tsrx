@@ -1,9 +1,24 @@
-import { View, Text, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Diff, Node, Signal, t } from 'std:ui';
-import { Workspace, OpenFile } from '../../lib/workspace/workspace.tsr';
-import { SaveConflict } from '../../lib/workspace/documents.tsr';
-import { DocumentActionContext, resolveDocumentConflict } from '../../services/document-actions.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
+import {
+  View,
+  Text,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Diff,
+  Node,
+  Signal,
+  t
+} from 'std:ui';
+
 import { message } from '../../lib/localization.tsr';
+import { SaveConflict } from '../../lib/workspace/documents.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, OpenFile } from '../../lib/workspace/workspace.tsr';
+import { DocumentActionContext, resolveDocumentConflict } from '../../services/document-actions.tsr';
 
 function conflictAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, target: ReadOnly<SaveConflict>, action: ReadOnly<string>): void {
   const context: DocumentActionContext = {

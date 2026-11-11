@@ -1,4 +1,17 @@
-import { View, Text, Node, Button, Dialog, DialogContent, Command, CommandItem, CommandEmpty, Shortcut, signal, navigate } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  Button,
+  Dialog,
+  DialogContent,
+  Command,
+  CommandItem,
+  CommandEmpty,
+  Shortcut,
+  signal,
+  navigate
+} from 'std:ui';
 import { SearchEntry, searchEntries } from './search-index.tsr';
 
 interface Hit {

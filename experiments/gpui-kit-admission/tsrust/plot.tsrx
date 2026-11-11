@@ -1,4 +1,15 @@
-import { View, Text, Node, signal, run, Plot, PlotLine, PlotArea, PlotBars, SpeechButton } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  signal,
+  run,
+  Plot,
+  PlotLine,
+  PlotArea,
+  PlotBars,
+  SpeechButton
+} from 'std:ui';
 
 function App(): Node {
   const heard = signal('');

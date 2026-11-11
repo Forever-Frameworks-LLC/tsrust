@@ -1,4 +1,11 @@
-import { list, create, marker, count, roundTrip, echo } from './operations.tsr';
+import {
+  list,
+  create,
+  marker,
+  count,
+  roundTrip,
+  echo
+} from './operations.tsr';
 import { strictEqual } from 'std:testing';
 
 async function main(): Task<void> {

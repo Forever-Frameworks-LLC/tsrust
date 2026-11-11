@@ -251,5 +251,10 @@
   "Unknown save action.": "Ação de salvamento desconhecida.",
   "Invalid save action arguments.": "Argumentos inválidos para a ação de salvamento.",
   "Image scroll offsets must be finite nonnegative pixels.": "Os deslocamentos de rolagem da imagem devem ser pixels finitos e não negativos.",
-  "100%": "100%"
+  "100%": "100%",
+  "Organize imports": "Organizar importações",
+  "Sort imports by path, with std: imports first and a blank line before other imports.": "Ordenar importações pelo caminho, com std: primeiro e uma linha em branco antes das outras importações.",
+  "Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.": "Colocar importações nomeadas em linhas separadas acima desta quantidade. Use 0 para desativar (0–100). Inclui aliases.",
+  "format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.importWrapThreshold deve estar entre 0 e 100 (0 desativa a quebra de linhas).",
+  "Wrap named imports above": "Quebrar importações nomeadas acima de"
 }

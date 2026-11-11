@@ -1,4 +1,18 @@
-import { createTempDir, mkdirAll, openFile, writeAll, fileStat, truncate, close, readTextFile, writeTextFile, readDir, copyFile, rename, removeDirAll } from "std:fs";
+import {
+  createTempDir,
+  mkdirAll,
+  openFile,
+  writeAll,
+  fileStat,
+  truncate,
+  close,
+  readTextFile,
+  writeTextFile,
+  readDir,
+  copyFile,
+  rename,
+  removeDirAll
+} from "std:fs";
 import { fromUtf8 } from "std:bytes";
 
 function main() {

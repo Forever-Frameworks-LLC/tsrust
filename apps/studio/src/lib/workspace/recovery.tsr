@@ -1,10 +1,11 @@
-import { readTextFile, writeTextFileAtomic, mkdirAll, stat } from 'std:fs';
-import { homeDir } from 'std:env';
-import { join, separator } from 'std:path';
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
-import { Workspace, openFile, selectFile } from './workspace.tsr';
+import { homeDir } from 'std:env';
+import { readTextFile, writeTextFileAtomic, mkdirAll, stat } from 'std:fs';
+import { join, separator } from 'std:path';
+
 import { dirty, edit } from './documents.tsr';
+import { Workspace, openFile, selectFile } from './workspace.tsr';
 
 interface Draft {
   path: string;

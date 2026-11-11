@@ -1,13 +1,23 @@
-import { unsavedTargets } from '../../services/save-actions.tsr';
+import {
+  View,
+  Button,
+  Shortcut,
+  AppMenuBar,
+  AppMenu,
+  MenuItem,
+  Signal,
+  Node
+} from 'std:ui';
+
 import { accessibleName, message } from '../../lib/localization.tsr';
-import { View, Button, Shortcut, AppMenuBar, AppMenu, MenuItem, Signal, Node } from 'std:ui';
-import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
-import { showSettings } from '../settings/settings-window.tsrx';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { canFormat } from '../../lib/workspace/formatting-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
 import { zoomWorkspace } from '../../lib/workspace/zoom.tsr';
+import { unsavedTargets } from '../../services/save-actions.tsr';
+import { showSettings } from '../settings/settings-window.tsrx';
 
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
   const next = workspace.get();

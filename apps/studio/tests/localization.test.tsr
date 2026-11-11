@@ -1,5 +1,6 @@
 import { test, strictEqual } from 'std:testing';
 import { setLocale, translate, translateWith } from 'std:ui';
+
 import { initializeTranslations, message, accessibleName, localizeError } from '../src/lib/localization.tsr';
 
 test('catalogs translate live props, plurals and errors while preserving paths and fallback', () => {

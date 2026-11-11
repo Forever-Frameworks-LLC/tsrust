@@ -1,4 +1,14 @@
-import { App, Client, Request, Body, request, requestBytes, requestStream, requestChannel, stream } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Body,
+  request,
+  requestBytes,
+  requestStream,
+  requestChannel,
+  stream
+} from 'std:http';
 import { Bytes, fromArray, at, length } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { strictEqual } from 'std:testing';

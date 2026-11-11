@@ -1,4 +1,12 @@
-import { Bytes, ByteViewMut, alloc, viewMut, length, at, set } from "std:bytes";
+import {
+  Bytes,
+  ByteViewMut,
+  alloc,
+  viewMut,
+  length,
+  at,
+  set
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {

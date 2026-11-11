@@ -1,8 +1,16 @@
-import { test, strictEqual } from 'std:testing';
-import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
 import { tempDir } from 'std:env';
+import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
 import { edit, propose, apply, markSaved } from '../src/lib/workspace/documents.tsr';
-import { openWorkspace, openFile, closeFile, moveFile, selectFile, entries } from '../src/lib/workspace/workspace.tsr';
+import {
+  openWorkspace,
+  openFile,
+  closeFile,
+  moveFile,
+  selectFile,
+  entries
+} from '../src/lib/workspace/workspace.tsr';
 
 test('real package files open once with exact Unicode and CRLF contents', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));

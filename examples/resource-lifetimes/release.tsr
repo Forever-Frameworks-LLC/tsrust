@@ -1,4 +1,12 @@
-import { trackedResource, resourceId, closeResource, releaseCount, releaseOrder, liveCount, TrackedResource } from "std:testing";
+import {
+  trackedResource,
+  resourceId,
+  closeResource,
+  releaseCount,
+  releaseOrder,
+  liveCount,
+  TrackedResource
+} from "std:testing";
 import { strictEqual, ok } from "std:testing";
 
 type State = {

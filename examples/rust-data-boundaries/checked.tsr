@@ -1,4 +1,15 @@
-import { signed, unsigned, float32, incrementWide, bytes, incrementOptional, OptionalIntAbsent, OptionalIntPresent, Pair, pair } from './adapter.rs';
+import {
+  signed,
+  unsigned,
+  float32,
+  incrementWide,
+  bytes,
+  incrementOptional,
+  OptionalIntAbsent,
+  OptionalIntPresent,
+  Pair,
+  pair
+} from './adapter.rs';
 import { strictEqual } from 'std:testing';
 import { fromArray, at, length } from 'std:bytes';
 

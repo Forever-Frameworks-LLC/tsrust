@@ -1,8 +1,19 @@
-import { View, Text, Button, CodeEditor, Ticker, Node, Signal, computed, t } from 'std:ui';
 import { Channel, Sender } from 'std:futures';
-import { CheckResult } from '../../services/project-check.tsr';
+import {
+  View,
+  Text,
+  Button,
+  CodeEditor,
+  Ticker,
+  Node,
+  Signal,
+  computed,
+  t
+} from 'std:ui';
+
 import { message, accessibleName } from '../../lib/localization.tsr';
 import { Problem, replaceProblems } from '../../lib/workspace/problems.tsr';
+import { CheckResult } from '../../services/project-check.tsr';
 
 export function beginCheck(requests: ReadOnly<Sender<string>>, running: Signal<boolean>, output: Signal<string>, reveal: boolean = true): void {
   if (running.get()) return;

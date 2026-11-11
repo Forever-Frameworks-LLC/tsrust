@@ -426,3 +426,26 @@ fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repa
     server.finish(0);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn formatting_import_rules_returns_grouped_wrapped_idempotent_edit() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    let uri = "file:///formatter-import-rules.tsrx";
+    let source = "import { Local } from './local.tsr'; import { A, B, C, D, E, F } from 'std:ui'; function main() {}";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    let Message::Response(response) = server.response() else { panic!("format response"); };
+    assert!(response.error.is_none(), "{:?}", response.error);
+    let edits = response.result.unwrap();
+    let formatted = edits[0]["newText"].as_str().unwrap();
+    assert!(formatted.starts_with("import {\n    A,\n    B,\n    C,\n    D,\n    E,\n    F\n} from 'std:ui';\n\nimport { Local } from './local.tsr';"), "{formatted}");
+    server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
+    server.request(3, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none() && r.result == Some(json!([]))));
+    server.request(4, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+}

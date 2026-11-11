@@ -1,6 +1,15 @@
-import { test, strictEqual } from 'std:testing';
 import { Channel } from 'std:futures';
-import { TerminalAuthority, TerminalArguments, terminalCommands, terminalTools, terminalToolSchema, validateTerminalCommand, invokeTerminalTool } from '../src/services/terminal-actions.tsr';
+import { test, strictEqual } from 'std:testing';
+
+import {
+  TerminalAuthority,
+  TerminalArguments,
+  terminalCommands,
+  terminalTools,
+  terminalToolSchema,
+  validateTerminalCommand,
+  invokeTerminalTool
+} from '../src/services/terminal-actions.tsr';
 
 interface TerminalToolSchema {
   type: string;

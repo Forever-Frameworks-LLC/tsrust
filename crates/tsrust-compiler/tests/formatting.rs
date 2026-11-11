@@ -526,3 +526,18 @@ fn arrow_result_annotations_inside_conditionals_keep_type_colons_tight() {
     assert!(result.contains("flag ? (1) : 2;"), "{result}");
     assert_eq!(format(&result).unwrap(), result);
 }
+
+#[test]
+fn import_comment_wrapping_is_stable() {
+    for source in [
+        "import { A, /* retain */ B, C, D, E, F } from 'std:ui';",
+        "import { A, // retain\n B, C, D, E, F /* final */ } from 'std:ui';",
+        "import { A, B, C, D, E, F, /* final */ } from 'std:ui';",
+    ] {
+        let result = format(source).unwrap();
+        assert!(result.contains("import {\n  A,"), "{result}");
+        if source.contains("/* retain */") { assert!(result.contains("\n  /* retain */ B,"), "{result}"); }
+        if source.contains("final") { assert!(result.contains("/* final */\n}"), "{result}"); }
+        assert_eq!(format(&result).unwrap(), result, "{result}");
+    }
+}

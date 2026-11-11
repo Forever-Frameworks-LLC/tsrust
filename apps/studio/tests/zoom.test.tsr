@@ -1,9 +1,10 @@
+import { createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
-import { createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
-import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
-import { restoreRecovery } from '../src/lib/workspace/recovery.tsr';
+
 import { defaultConfig } from '../src/lib/settings/settings.tsr';
+import { restoreRecovery } from '../src/lib/workspace/recovery.tsr';
+import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { zoomFontSize, zoomWorkspace } from '../src/lib/workspace/zoom.tsr';
 
 test('zoom persists per workspace, clamps text size and resets to the configured base', () => {

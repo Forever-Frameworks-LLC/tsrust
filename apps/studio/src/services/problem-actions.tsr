@@ -1,6 +1,7 @@
 import { Signal, writeClipboard } from 'std:ui';
-import { Workspace } from '../lib/workspace/workspace.tsr';
+
 import { Problem, collectProblems, formatProblems } from '../lib/workspace/problems.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorTool } from './editor-tools.tsr';
 
 export interface ProblemActionContext {

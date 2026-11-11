@@ -1,4 +1,5 @@
 import { Reactive, setTranslations, translate, translateWith } from 'std:ui';
+
 import english from '../assets/locales/en.json';
 import portuguese from '../assets/locales/pt-BR.json';
 

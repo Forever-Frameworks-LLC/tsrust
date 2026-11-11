@@ -1,4 +1,13 @@
-import { View, Text, Node, signal, run, Questionnaire, Question, QuestionChoice } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  signal,
+  run,
+  Questionnaire,
+  Question,
+  QuestionChoice
+} from 'std:ui';
 
 function App(): Node {
   const answers = signal('none');

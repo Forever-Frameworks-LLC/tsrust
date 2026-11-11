@@ -1,4 +1,12 @@
-import { View, Text, Button, Input, Node, signal, run } from 'std:ui';
+import {
+  View,
+  Text,
+  Button,
+  Input,
+  Node,
+  signal,
+  run
+} from 'std:ui';
 
 function Slice(): Node {
   const count = signal(0);

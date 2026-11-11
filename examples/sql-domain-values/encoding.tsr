@@ -1,5 +1,15 @@
 import { Decimal, formatFixed } from 'std:decimal';
-import { Date, Time, Instant, formatDate, formatTime, getYear, localDate, localTime, fixedOffset } from 'std:date';
+import {
+  Date,
+  Time,
+  Instant,
+  formatDate,
+  formatTime,
+  getYear,
+  localDate,
+  localTime,
+  fixedOffset
+} from 'std:date';
 // Exact NUMERIC/DECIMAL(38,18); no server rounding is permitted.
 export function decimal38(value: ReadOnly<Decimal>): string {
   const text = unwrap(formatFixed(value, 18));

@@ -1,6 +1,24 @@
-import { fromArray, fromUtf8, toUtf8, length, at, set, view, viewMut, ByteError, Bytes,
-  toHex, fromHex, toBase64 as encode, fromBase64, toBase64Url, fromBase64Url,
-  toUtf8Lossy, fromUtf16, toUtf16 } from "std:bytes";
+import {
+  fromArray,
+  fromUtf8,
+  toUtf8,
+  length,
+  at,
+  set,
+  view,
+  viewMut,
+  ByteError,
+  Bytes,
+  toHex,
+  fromHex,
+  toBase64 as encode,
+  fromBase64,
+  toBase64Url,
+  fromBase64Url,
+  toUtf8Lossy,
+  fromUtf16,
+  toUtf16
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function code<T>(result: Result<T, ByteError>): string {

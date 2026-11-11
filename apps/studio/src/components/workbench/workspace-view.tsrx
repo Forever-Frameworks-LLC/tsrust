@@ -1,8 +1,18 @@
-import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
-import { View, Button, Dock, Node, Signal, computed, signal, t } from 'std:ui';
-import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
+import {
+  View,
+  Button,
+  Dock,
+  Node,
+  Signal,
+  computed,
+  signal,
+  t
+} from 'std:ui';
+
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
 

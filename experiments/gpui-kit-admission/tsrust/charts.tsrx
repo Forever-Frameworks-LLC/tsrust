@@ -1,4 +1,12 @@
-import { View, Node, signal, run, Chart, CodeEditor, Markdown } from 'std:ui';
+import {
+  View,
+  Node,
+  signal,
+  run,
+  Chart,
+  CodeEditor,
+  Markdown
+} from 'std:ui';
 
 function App(): Node {
   const code = signal('fn main() {\n    let total: i32 = (1..=10).sum();\n    println!("total = {total}");\n}\n');

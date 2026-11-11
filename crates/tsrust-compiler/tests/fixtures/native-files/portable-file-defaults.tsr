@@ -1,4 +1,16 @@
-import { open, create, read, write, writeAll, readFile, writeFile, close, bufferReader, bufferWriter, flush } from "std:fs";
+import {
+  open,
+  create,
+  read,
+  write,
+  writeAll,
+  readFile,
+  writeFile,
+  close,
+  bufferReader,
+  bufferWriter,
+  flush
+} from "std:fs";
 import { alloc, length, at } from "std:bytes";
 import { strictEqual } from "std:testing";
 

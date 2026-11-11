@@ -1,5 +1,13 @@
-import { TerminalAction, TerminalRequest, TerminalCommandResult, TerminalSnapshot, controlTerminal, readTerminal } from 'std:ui';
 import { JsonLimits } from 'std:json';
+import {
+  TerminalAction,
+  TerminalRequest,
+  TerminalCommandResult,
+  TerminalSnapshot,
+  controlTerminal,
+  readTerminal
+} from 'std:ui';
+
 import { EditorTool } from './editor-tools.tsr';
 
 export interface TerminalAuthority {
