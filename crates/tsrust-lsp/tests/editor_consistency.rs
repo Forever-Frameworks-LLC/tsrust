@@ -11,6 +11,27 @@ const HEAD: &str = "import {Deque,Heap,OrderedSet,OrderedMap} from 'std:collecti
 const TAIL: &str = "\n}\n";
 
 #[test]
+fn data_signal_help_keeps_snapshot_types_and_ownership_across_server_phases() {
+    let before="import {Signal} from 'std:ui';interface Buffer{path:string;text:string;}function inspect(value:Signal<Buffer[]>){value.";
+    for (mode,delay,broken) in [("settled",None,false),("typed-fast",Some(Duration::ZERO),false),("80ms",Some(Duration::from_millis(80)),false),("syntax-error",None,true)] {
+        let after=if broken{"set([]);}function main(){} function broken(){const = ;}"}else{"set([]);}function main(){}"};
+        let source=format!("{before}{after}");let mut session=Session::start(&[]);
+        if let Some(delay)=delay{let base=before.strip_suffix("value.").unwrap();session.open("main.tsrx",&format!("{base}{after}"));session.settle();session.type_text("main.tsrx",base,"value.",after,delay);}else{session.open("main.tsrx",&source);session.settle();}
+        let reply=session.completion_items("main.tsrx",&source,before.len());let items=if reply.is_array(){reply}else{reply["items"].clone()};
+        for name in ["get","set"] {
+            let item=items.as_array().unwrap().iter().find(|item|item["label"]==name).unwrap_or_else(||panic!("{mode}: {items}"));
+            assert!(item["detail"].as_str().unwrap().contains("Buffer[]"),"{mode}: {item}");
+            assert!(item["documentation"].to_string().contains("independent snapshot")&&item["documentation"].to_string().contains("Ownership:"),"{mode}: {item}");
+        }
+        let at=before.len();let hover=session.hover("main.tsrx",&source,at+1).unwrap_or_default();
+        assert!(hover.contains("Buffer[]")&&hover.contains("Ownership:"),"{mode}: {hover}");
+        let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsrx")},"position":{"line":0,"character":at+4}}));
+        assert!(help.to_string().contains("Buffer[]"),"{mode}: {help}");
+        let counters=session.request("tsrust/counters",Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{mode}: {counters}");}
+    }
+}
+
+#[test]
 fn path_environment_os_help_agrees_across_all_server_phases() {
     let catalog:Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     for module in ["std:path","std:env","std:os"] {

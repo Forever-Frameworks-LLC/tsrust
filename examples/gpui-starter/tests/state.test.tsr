@@ -1,0 +1,54 @@
+import { test, strictEqual } from 'std:testing';
+import { signal, Node, View, Text, document } from 'std:ui';
+
+interface Buffer {
+  path: string;
+  lines: string[];
+  revision: int;
+}
+
+function SnapshotWitness(): Node {
+  const original: Buffer[] = [{
+    path: 'café.tsr', lines: ['first', '🦀\r\n'], revision: 0
+  }];
+  const buffers = signal(original);
+  original[0].lines[0] = 'changed original';
+  strictEqual(buffers.get()[0].lines[0], 'first');
+  const snapshot = buffers.get();
+  snapshot[0].lines[0] = 'edited';
+  snapshot[0].revision += 1;
+  strictEqual(buffers.get()[0].revision, 0);
+  buffers.set(snapshot);
+  snapshot[0].lines[0] = 'changed after set';
+  strictEqual(buffers.get()[0].lines[0], 'edited');
+  strictEqual(buffers.get()[0].lines[1], '🦀\r\n');
+  strictEqual(buffers.get()[0].revision, 1);
+  const maybe: string | null = null;
+  const selected = signal(maybe);
+  strictEqual(selected.get(), null);
+  selected.set('café.tsr');
+  strictEqual(selected.get(), 'café.tsr');
+  const empty: Buffer[] = [];
+  const opened = signal(empty);
+  strictEqual(opened.get().length, 0);
+  opened.set(buffers.get());
+  strictEqual(opened.get()[0].path, 'café.tsr');
+  const ids = signal([1, 2]);
+  const firstIds = ids.get();
+  firstIds[0] = 3;
+  strictEqual(ids.get()[0], 1);
+  ids.set(firstIds);
+  strictEqual(ids.get()[0], 3);
+  const names = signal(['Ada']);
+  const nextNames = names.get();
+  nextNames[0] = 'Grace';
+  strictEqual(names.get()[0], 'Ada');
+  names.set(nextNames);
+  strictEqual(names.get()[0], 'Grace');
+  return <View><Text>{buffers.get()[0].path}</Text></View>;
+}
+
+test('data signals own independent constructor, read and replacement snapshots', () => {
+  const node = SnapshotWitness();
+  strictEqual(document(node, 'State snapshots').includes('café.tsr'), true);
+});

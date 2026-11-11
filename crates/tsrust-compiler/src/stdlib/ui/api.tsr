@@ -994,7 +994,7 @@ export function run(node: Node, title: string, options?: WindowOptions): Result<
   return nativeRun(node, title, JSON.stringify(options ?? {}));
 }
 
-/** Component-owned scalar state. Returning its UI subtree transfers this owner automatically. */
+/** Component-owned data snapshots. Scalars, nullable values, arrays and plain records are supported; resources and callbacks are rejected. get and set copy independent snapshots. Returning the UI subtree transfers this owner automatically. */
 export type Signal<T = int> = NativeSignal<T>;
 
 export function signal<T>(initial: T): Signal<T> {

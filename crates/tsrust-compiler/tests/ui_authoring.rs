@@ -2,6 +2,18 @@ use tsrust_compiler::project::{FileSourceProvider, check_graph, load_project};
 mod support;
 
 #[test]
+fn data_signals_accept_snapshots_but_reject_nested_resources_and_callbacks() {
+ let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+ let check=|source:&str| {std::fs::write(&path,source).unwrap();check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())};
+ check("import {signal,Signal} from 'std:ui';interface Row{text:string;next?:Row;}function main(){const rows:Row[]=[{text:'one'}];const state=signal(rows);const next=state.get();next[0].text='two';state.set(next);const maybe:string|null=null;const optional=signal(maybe);optional.set('ready');}").unwrap().emit_rust();
+ for value in ["<View/>","inner","{nested:[<View/>]}","task"] {
+  let source=format!("import {{signal,View}} from 'std:ui';interface HandlerData{{run:Owned<Function<int>>;}}function main(){{const inner=signal(1);const task:HandlerData={{run:()=>1}};const state=signal({value});}}");
+  let error=check(&source).err().expect("state cannot retain resource owners or callbacks");
+  assert_eq!(error.code,"ui-state-type","{source}: {}",error.message);
+ }
+}
+
+#[test]
 fn known_control_nesting_rejects_before_routes_run_and_respects_component_identity() {
     let directory=tempfile::tempdir().unwrap();
     let path=directory.path().join("main.tsrx");

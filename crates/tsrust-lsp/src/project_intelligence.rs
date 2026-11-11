@@ -19,6 +19,20 @@ pub struct ProjectIndex {
 mod inherited_help_tests {
     use super::*;
     #[test]
+    fn signal_operations_survive_bundled_project_alias_linking() {
+        let root=crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-signal-alias-help"));
+        let entry=SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let text="import {Signal as State} from 'std:ui';function inspect(value:State<string[]>){value.get();}function main(){}";
+        let mut workspace=crate::workspace::Workspace::default();workspace.open(entry.clone(),1,text.into());
+        let analysis=workspace.snapshot().check_with_diagnostics(&entry).unwrap();let uri=file_uri(&entry).unwrap();
+        let offset=text.find("value.get").unwrap()+"value.".len();
+        let params=serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":offset}});
+        for (phase,index) in [("headers",ProjectIndex::new(&analysis.graph)),("checked",ProjectIndex::checked(&analysis))] {
+            let result=index.request("textDocument/completion",&params,uri.as_str()).unwrap().unwrap();
+            assert!(result.to_string().contains("get()")&&result.to_string().contains("set(value:"),"{phase}: {result}");
+        }
+    }
+    #[test]
     fn imported_inherited_fields_keep_help_in_header_and_checked_indices() {
         let root = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-inherited-help"));
         let mut workspace = crate::workspace::Workspace::default();

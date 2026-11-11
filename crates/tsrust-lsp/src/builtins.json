@@ -1,4 +1,23 @@
 {
+  "Signal": [
+    {
+      "name": "get",
+      "signature": "get(): T",
+      "parameters": [],
+      "documentation": "Returns an independent snapshot of the current scalar, nullable, array or plain-record value. Takes no arguments and leaves state unchanged. Editing a returned record or array does not update state; call set(next) to replace it. Throws UiError if the component owner was disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst copy = names.get();\ncopy[0] = \"Grace\";\nconsole.log(names.get()[0]); // Ada\n```\n\nOwnership: copies nested data; this read does not retain the signal owner."
+    },
+    {
+      "name": "set",
+      "signature": "set(value: T): void",
+      "parameters": [
+        {
+          "label": "value: T",
+          "documentation": "Required replacement with the same payload type. Copied independently; no default."
+        }
+      ],
+      "documentation": "Replaces the complete state value with an independent snapshot and refreshes live bindings after the handler. value must match the signal payload type; resources, borrowed views and callbacks are rejected even inside data. Returns void. Later edits to value do not change state. Throws UiError after the component owner is disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst next = names.get();\nnext[0] = \"Grace\";\nnames.set(next);\nconsole.log(names.get()[0]); // Grace\n```\n\nOwnership: borrows the replacement and copies its nested data; bindings do not retain the component owner."
+    }
+  ],
   "std:iterator": [
     {
       "name": "Iterator",
@@ -21971,11 +21990,11 @@
     {
       "name": "signal",
       "signature": "signal<T>(initial: T): Signal<T>",
-      "documentation": "Creates independent component state from an int, number, boolean or string. initial is required; infer T from the value or write signal<string>(\"ready\"). Arrays, records, nullable values, resources and callbacks are rejected. Declare state with const inside a component. Example: const name = signal(\"Ada\"); <Text>{name}</Text> displays Ada; name.set(\"Grace\") changes subsequent reads and bound text. int retains the full signed 64-bit range. number retains IEEE-754 values, including NaN, infinities and signed zero; text displays ordinary number strings, with -0 displayed as 0. Constructor aliases and creation inside anonymous callbacks are unsupported. Ownership: strings are independent snapshots; returning the component tree retains the single owner automatically. Bindings and callback captures never extend its lifetime.\n\n```tsrx\nconst name = signal('Ada');\n<Input value={name.get()} onChange={(event) => { name.set(clone(event.target.value)); }}/>\n<Text>Hello, {name}</Text>\n```",
+      "documentation": "Creates independent component state from scalars, nullable values, arrays or plain data records, including nested data. initial is required; infer T from the value or write signal<string>(\"ready\"). Resources, borrowed views and callbacks are rejected, including inside records or arrays. The constructor, get() and set(next) copy independent snapshots; editing a returned record or array does not change state until set is called. set replaces the whole value and refreshes live UI bindings. For example, const rows = signal([{text: \"one\"}]); const next = rows.get(); next[0].text = \"two\"; rows.set(next); makes the next read contain two. Declare state with const inside a component. Example: const name = signal(\"Ada\"); <Text>{name}</Text> displays Ada; name.set(\"Grace\") changes subsequent reads and bound text. int retains the full signed 64-bit range. number retains IEEE-754 values, including NaN, infinities and signed zero; text displays ordinary number strings, with -0 displayed as 0. Constructor aliases and creation inside anonymous callbacks are unsupported. Ownership: strings are independent snapshots; returning the component tree retains the single owner automatically. Bindings and callback captures never extend its lifetime.\n\n```tsrx\nconst name = signal('Ada');\n<Input value={name.get()} onChange={(event) => { name.set(clone(event.target.value)); }}/>\n<Text>Hello, {name}</Text>\n```",
       "parameters": [
         {
           "label": "initial: T",
-          "documentation": "Required initial int, number, boolean or string. Strings are copied into state; there is no default value."
+          "documentation": "Required scalar, nullable value, array or plain data record. Nested data is copied independently into state; there is no default value. Resources, borrowed views and callbacks are rejected."
         }
       ]
     },
@@ -21987,7 +22006,7 @@
     {
       "name": "Signal",
       "signature": "type Signal<T = int>",
-      "documentation": "Component state holding int, number, boolean or string. T defaults to int when a type argument is omitted; signal(initial) still requires an initial value. Use state directly in Text children and callback bodies. Example: const active = signal(false); active.set(true); active.get(); returns true. String reads are independent snapshots. Ownership: the returned component tree retains one owner; text bindings and captures are non-retaining. Disposed references throw UiError. Signals cannot be cloned or sent to workers.\n\n```tsrx\nconst open = signal(false);\n<Switch checked={open.get()} onChange={(on) => { open.set(on); }}/>\n```"
+      "documentation": "Component state holding scalar, nullable, array or plain-record data snapshots. T defaults to int when a type argument is omitted; signal(initial) still requires an initial value. Use state directly in Text children and callback bodies. Example: const active = signal(false); active.set(true); active.get(); returns true. get() takes no arguments and returns an independent snapshot. set(next) requires the same payload type, returns void and replaces state with an independent copy; mutating next afterwards leaves state unchanged. Nested resources, borrowed views and callbacks are rejected. Only scalar signals can be used directly as text children. Use a scalar computed<T> projection for live record/array-field text: const caption = computed<string>(() => state.get().name); then render caption.get(). Direct data-field JSX children are currently construction-time snapshots. Ownership: the returned component tree retains one owner; text bindings and captures are non-retaining. Disposed references throw UiError. Signals cannot be cloned or sent to workers.\n\n```tsrx\nconst open = signal(false);\n<Switch checked={open.get()} onChange={(on) => { open.set(on); }}/>\n```"
     },
     {
       "name": "UiError",

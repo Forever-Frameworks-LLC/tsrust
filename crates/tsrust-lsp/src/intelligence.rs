@@ -1940,6 +1940,9 @@ impl SourceIndex {
         Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some(payload)=self.ui_state_element(&receiver) && let Some(binding)=tsrust_compiler::native_bindings::ui_method(tsrust_compiler::native_signatures::NativeTypeId::UiSignal,method) {
+            return if binding.name=="get"{payload.into()}else{"void".into()};
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
         if receiver=="string"&&method=="localeCompare"{return "int".into();}
 
@@ -2032,6 +2035,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.ui_state_element(receiver).is_some() && tsrust_compiler::native_bindings::ui_method(tsrust_compiler::native_signatures::NativeTypeId::UiSignal,method).is_some(){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::process_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::network_method(*id,method).is_some()){return true;}
 
@@ -3552,10 +3556,7 @@ impl SourceIndex {
         let ty = ty.as_str();
         let view=["ReadOnly<","Mutable<","Owned<"].into_iter().find_map(|wrapper|ty.strip_prefix(wrapper).and_then(|inner|inner.strip_suffix('>'))).unwrap_or(ty);
         let base=view.split_once('<').map_or(view,|(base,_)|base).trim();
-        let identity=self.native_type_aliases.get(base).copied().or_else(||{
-            let(module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
-            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
-        });
+        let identity=self.native_identity(base);
         // Iterator's source record stores its private pull closure; only its
         // native operations are visible outside the trusted implementation.
         if identity==Some(tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator){return items;}

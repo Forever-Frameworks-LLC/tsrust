@@ -7,6 +7,16 @@ fn borrowed_string_builtins()->Vec<Value> {
 }
 
 impl SourceIndex {
+    pub(super) fn native_identity(&self, name: &str) -> Option<tsrust_compiler::native_signatures::NativeTypeId> {
+        self.native_type_aliases.get(name).copied().or_else(|| {
+            let (module, name) = name.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
+            tsrust_compiler::native_types::lookup(module, name).map(|declaration| declaration.id)
+        })
+    }
+    pub(super) fn ui_state_element(&self, ty: &str) -> Option<String> {
+        let expanded = self.written_type(ty);
+        self.native_collection_element(&expanded, tsrust_compiler::native_signatures::NativeTypeId::UiSignal).map(str::to_owned)
+    }
     pub(super) fn deque_element<'a>(&self, ty: &'a str) -> Option<&'a str> {
         self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::Deque)
     }
@@ -25,7 +35,7 @@ impl SourceIndex {
             .find_map(|wrapper| ty.strip_prefix(wrapper).and_then(|inner| inner.strip_suffix('>')))
             .unwrap_or(ty);
         let (name, arguments) = ty.split_once('<')?;
-        (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
+        (self.native_identity(name.trim()) == Some(identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
     pub(super) fn schema_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::Schema) }
     pub(super) fn validation_context_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::ValidationContext) }
@@ -80,6 +90,18 @@ impl SourceIndex {
         entries
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
+        if let Some(payload) = self.ui_state_element(ty) {
+            let identity = tsrust_compiler::native_signatures::NativeTypeId::UiSignal;
+            let mut entries = builtins_for("Signal");
+            entries.retain(|entry| entry["name"].as_str().is_some_and(|name| tsrust_compiler::native_bindings::ui_method(identity, name).is_some()));
+            for entry in &mut entries {
+                if let Some(signature) = entry["signature"].as_str() { entry["signature"] = json!(builtin_type_substitution(signature, &[("T", &payload)])); }
+                if let Some(parameters) = entry["parameters"].as_array_mut() {
+                    for parameter in parameters { if let Some(label) = parameter["label"].as_str() { parameter["label"] = json!(builtin_type_substitution(label, &[("T", &payload)])); } }
+                }
+            }
+            return entries;
+        }
         if let Some((input, output, object_policy, json_input, text_input, scalar_constraints)) = self.schema_pipeline_types.get(ty) {
             let accepted = if *json_input {format!("{input} | JsonValue")}else{input.clone()};
             let mut entries = self.schema_pipeline_entries(&accepted, input, output);
@@ -178,10 +200,7 @@ impl SourceIndex {
         let view=ty.strip_prefix("ReadOnly<").and_then(|inner|inner.strip_suffix('>')).map(str::trim).unwrap_or(ty);
         if self.native_type_aliases.get(view)==Some(&tsrust_compiler::native_signatures::NativeTypeId::StringView){return borrowed_string_builtins();}
         let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
-        let identity=self.native_type_aliases.get(base).copied().or_else(|| {
-            let (module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
-            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
-        });
+        let identity=self.native_identity(base);
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
             if identity==tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator{
@@ -279,7 +298,7 @@ impl SourceIndex {
         if matches!(declaration.id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpRouter) { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpServerOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
-        let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };
+        let catalog_module = match declaration.module { "std:log-runtime" => "std:log", "std:testing-runtime" => "std:testing", "std:ui-runtime" => "std:ui", module => module };
         let Some(catalog) = builtin_entry(catalog_module,declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {
@@ -364,6 +383,17 @@ impl SourceIndex {
 #[cfg(test)]
 mod owned_iterator_tests{
     use super::*;
+    #[test]
+    fn bundled_ui_signal_aliases_keep_native_operation_identity() {
+        let module=tsrust_compiler::project::SourceId("std:ui".into());
+        let mut dependency=SourceIndex::with_entry_help(tsrust_compiler::project::bundled_source(&module).unwrap(),false);
+        dependency.import_native("std:ui-runtime","Signal","NativeSignal",Span::default());
+        let source="import {Signal as State} from 'std:ui';function inspect(value:State<string[]>){value.get();}function main(){}";
+        let mut index=SourceIndex::with_entry_help(source,false);
+        assert!(index.import_declaration(&dependency,"Signal","State",Span::default(),"tsrust-stdlib:///std:ui",&Default::default()));
+        assert_eq!(index.ui_state_element("State<string[]>"),Some("string[]".into()),"expanded={} native={:?}",index.written_type("State<string[]>"),index.native_type_aliases);
+        assert_eq!(index.ui_state_element("__tsrust_module_native#std:ui-runtime#Signal<string[]>"),Some("string[]".into()));
+    }
     #[test]
     fn bundled_source_record_imports_keep_native_identity_for_constructor_and_shadowed_instance(){
         let module=tsrust_compiler::project::SourceId("std:iterator".into());

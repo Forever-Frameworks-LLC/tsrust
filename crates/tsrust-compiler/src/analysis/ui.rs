@@ -35,7 +35,7 @@ impl Analyzer {
   Self::arity(args.len(),if matches!(binding.name,"set"|"ownState"){2}else{1},expression.span)?;
   let result=if binding.name=="signal" {
    let payload=self.expression(context,&mut args[0],Mode::Read,loans,None)?;
-   self.ui_scalar(payload,args[0].span)?;
+   self.ui_state_value(payload,args[0].span)?;
    self.thread_application(NativeTypeId::UiSignal,&[payload],expression.span)?
   } else {
    let at=usize::from(binding.name=="ownState");
@@ -45,7 +45,7 @@ impl Analyzer {
    if !matches!(self.program.records[record].native_type,Some(NativeTypeId::UiSignal|NativeTypeId::UiComputed)){return Err(Diagnostic::new("type","Expected component state.",args[at].span));}
    if self.program.records[record].native_type==Some(NativeTypeId::UiComputed)&&binding.name=="set"{return Err(Diagnostic::new("ui-computed-readonly","Computed values are read-only.",expression.span));}
    let payload=self.program.records[record].application.as_ref().expect("applied UI state").resolved_arguments[0];
-   if self.program.records[record].native_type==Some(NativeTypeId::UiSignal){self.ui_scalar(payload,args[at].span)?;}else{self.ui_computed_scalar(payload,args[at].span)?;}
+   if self.program.records[record].native_type==Some(NativeTypeId::UiSignal){self.ui_state_value(payload,args[at].span)?;}else{self.ui_computed_scalar(payload,args[at].span)?;}
    match binding.name {
     "handle"=>ty,
     "get"|"computedGet"=>{let error=self.ui_record(NativeTypeId::UiError);self.thread_result(payload,error,expression.span)?},
@@ -243,7 +243,15 @@ impl Analyzer {
   }}Ok(())
  }
  fn ui_record(&self,identity:NativeTypeId)->Type {Type::Record(self.program.records.iter().position(|record|record.native_type==Some(identity)).expect("registered UI record"))}
- fn ui_scalar(&self,ty:Type,span:Span)->Result<(),Diagnostic>{
-  if matches!(ty,Type::Int|Type::Number|Type::Boolean|Type::String){Ok(())}else{Err(Diagnostic::new("ui-state-type","UI state supports int, number, boolean and string; resources, arrays, records, nullable values and callbacks are not scalar state.",span))}
+ fn ui_state_value(&mut self,ty:Type,span:Span)->Result<(),Diagnostic>{
+  let mut pending=vec![ty];let mut seen=std::collections::HashSet::new();
+  while let Some(value)=pending.pop(){if !seen.insert(value){continue;}match value {
+   Type::Int|Type::Number|Type::Boolean|Type::String|Type::Literal(_,_)|Type::Enum(_,_)|Type::Null|Type::Undefined=>{},
+   Type::Array(element)=>pending.push(element.ty()),
+   Type::Union(id)=>pending.extend(self.unions.members(id)),
+   Type::Record(id) if self.program.records[id].native_type.is_none() && self.program.records[id].map_definition.is_none()=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+   _=>return Err(Diagnostic::new("ui-state-type","UI state supports scalars, nullable values, arrays and plain data records; resources, borrowed views and callbacks cannot be retained in state.",span)),
+  }}
+  self.require_cloneable(ty,span)
  }
 }
