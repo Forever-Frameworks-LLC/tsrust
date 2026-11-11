@@ -2797,6 +2797,8 @@ impl Root {
                     .with_loading(move || div().child(alt.clone()).into_any_element())
                     .with_fallback(move || div().child(fallback.clone()).into_any_element()).into_any_element()
             }
+            // Commands and timers stay mounted without contributing flex gaps or intrinsic size.
+            "Shortcut" | "Ticker" => div().absolute().size_0().into_any_element(),
             "TitleBar" => {
                 let mut bar = TitleBar::new().children(self.content(node, cx));
                 if kit.handles("closeWindow") {bar = bar.on_close_window(cx.listener(move |this, _, _, cx| this.emit(id, "closeWindow", String::new(), cx)));}
@@ -2964,13 +2966,17 @@ impl Root {
                     let mut icons = HashMap::new();
                     tree_icons(node, &mut icons);
                     let row = root.clone();
+                    let text_size=style.text.font_size.clone();
                     let mut view = tree(state, move |index, entry, selected, _, _| {
                         let item = entry.item();
                         let item_id = item.id.to_string();
                         let icon = icons.get(&item_id).and_then(|icon| icon_name(icon)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
                         let root = row.clone();
                         let mut line = ListItem::new(index).selected(selected).disabled(entry.is_disabled()).pl(px(12. * entry.depth() as f32 + 8.))
-                            .child(div().flex().items_center().gap_2().child(Icon::new(icon).size_4()).child(item.label.clone()));
+                            .min_w_0().overflow_hidden()
+                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(Icon::new(icon).size_4())
+                                .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(item.label.clone())));
+                        if let Some(size)=text_size.clone(){line=line.text_size(size);}
                         line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
                     }).refine_style(&style);
                     if let Some(bounce) = kit.prop("scrollBounce") {view = view.scroll_bounce(bounce == "true");}

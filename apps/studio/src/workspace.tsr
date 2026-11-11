@@ -1,18 +1,17 @@
 import { canonicalize, stat, readDir, readTextFile } from 'std:fs';
-import { basename, extname, separator } from 'std:path';
+import { basename, separator } from 'std:path';
 import { Document, createDocument, dirty } from './documents.tsr';
 
 export interface OpenFile {
   document: Document;
   name: string;
-  language: string;
 }
 
 export interface Workspace {
   root: string;
   files: OpenFile[];
   active: string;
-  message: string;
+  error: string;
 }
 
 export interface Entry {
@@ -26,7 +25,7 @@ export function openWorkspace(path: string): Result<Workspace, string> {
     const root = unwrap(canonicalize(path));
     if (!unwrap(stat(root)).isDirectory) return Err('Choose a project directory.');
     return Ok({
-      root, files: [], active: '', message: 'Choose a file to preview.'
+      root, files: [], active: '', error: ''
     });
   } catch (error) {
     return Err(clone(error.message));
@@ -52,17 +51,11 @@ export function entries(path: string): Result<Entry[], string> {
   }
 }
 
-export function language(path: string): string {
-  const extension = extname(path);
-  if (extension === '.tsrx') return 'tsrx';
-  if (extension === '.tsr') return 'tsrust';
-  if (extension === '.rs') return 'rust';
-  if (extension === '.json') return 'json';
-  if (extension === '.md') return 'markdown';
-  if (extension === '.html') return 'html';
-  if (extension === '.css') return 'css';
-  if (extension === '.toml') return 'toml';
-  return '';
+export function selectFile(workspace: Mutable<Workspace>, path: string): boolean {
+  if (!workspace.files.some((file) => file.document.path === path)) return false;
+  workspace.active = clone(path);
+  workspace.error = '';
+  return true;
 }
 
 export function openFile(workspace: Mutable<Workspace>, path: string): Result<void, string> {
@@ -72,7 +65,7 @@ export function openFile(workspace: Mutable<Workspace>, path: string): Result<vo
     if (!resolved.startsWith(prefix)) return Err('This file is outside the open project directory.');
     if (workspace.files.some((file) => file.document.path === resolved)) {
       workspace.active = clone(resolved);
-      workspace.message = 'Read-only preview • ' + resolved;
+      workspace.error = '';
       return Ok();
     }
 
@@ -85,13 +78,13 @@ export function openFile(workspace: Mutable<Workspace>, path: string): Result<vo
       },
       Ok(document) => {
         workspace.files.push({
-          document, name: basename(resolved), language: language(resolved)
+          document, name: basename(resolved)
         });
       }
     }
 
     workspace.active = clone(resolved);
-    workspace.message = 'Read-only preview • ' + resolved;
+    workspace.error = '';
     return Ok();
   } catch (error) {
     return Err(clone(error.message));
@@ -107,13 +100,22 @@ export function closeFile(workspace: Mutable<Workspace>, path: string, discard: 
   if (workspace.active === path) {
     if (workspace.files.length === 0) {
       workspace.active = '';
-      workspace.message = 'Choose a file to preview.';
+      workspace.error = '';
     } else {
       const next = index < workspace.files.length ? index : workspace.files.length - 1;
       workspace.active = clone(workspace.files[next].document.path);
-      workspace.message = 'Read-only preview • ' + workspace.active;
+      workspace.error = '';
     }
   }
 
   return Ok();
+}
+
+export function moveFile(workspace: Mutable<Workspace>, path: string, direction: int): void {
+  const index = workspace.files.findIndex((file) => file.document.path === path);
+  const next = index + direction;
+  if (index < 0 || next < 0 || next >= workspace.files.length) return;
+  const file = clone(workspace.files[index]);
+  workspace.files.splice(index, 1);
+  workspace.files.splice(next, 0, file);
 }

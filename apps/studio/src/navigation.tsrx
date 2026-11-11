@@ -1,0 +1,60 @@
+import { View, Text, Input, Button, Node, Signal, signal, computed } from 'std:ui';
+import { Workspace, Entry, entries, openFile } from './workspace.tsr';
+
+function projectFiles(path: string): Result<Entry[], string> {
+  const files: Entry[] = [];
+  match (entries(path)) {
+    Err(message) => {
+      return Err(clone(message));
+    },
+    Ok(children) => {
+      for (const entry of children) {
+        if (entry.directory) {
+          match (projectFiles(entry.path)) {
+            Err(message) => {
+              return Err(clone(message));
+            },
+            Ok(nested) => {
+              for (const file of nested) files.push(clone(file));
+            }
+          }
+        } else {
+          files.push(clone(entry));
+        }
+      }
+    }
+  }
+
+  return Ok(files);
+}
+
+function SearchResult(file: ReadOnly<Entry>, root: string, workspace: Signal<Workspace>, query: Signal<string>, font: Signal<int>): Node {
+  const path = clone(file.path);
+  const label = file.path.slice(root.length + 1);
+  const searchText = label.toLowerCase();
+  const resultClass = computed<string>(() => 'w-full flex-row items-center justify-start px-2 py-1 rounded-sm hover:bg-accent text-[' + font.get().toString() + 'px]');
+  return <View hidden={!searchText.includes(query.get().toLowerCase())} className="flex-col">
+    <Button className={resultClass.get()} onPress={() => {
+      const next = workspace.get();
+      match (openFile(next, path)) { Ok(_) => {}, Err(message) => { next.error = clone(message); } }
+      workspace.set(next);
+    }}><Text className="truncate">{label}</Text></Button>
+  </View>;
+}
+
+export function FileSearch(root: string, workspace: Signal<Workspace>, font: Signal<int>): Node {
+  const query = signal('');
+  match (projectFiles(root)) {
+    Err(message) => {
+      return <Text>{message}</Text>;
+    },
+    Ok(files) => {
+      const results: Node[] = [];
+      for (const file of files) results.push(SearchResult(file, clone(root), workspace, query, font));
+      return <View className="flex-col size-full p-3 gap-2">
+        <Input className="w-full min-w-0" value={query.get()} placeholder="Find a file by name or path" aria-label="Find project file" onChange={(event) => { query.set(clone(event.target.value)); }} />
+        <View className="flex-col grow min-h-0 overflow-y-auto">{...results}</View>
+      </View>;
+    }
+  }
+}

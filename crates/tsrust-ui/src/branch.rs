@@ -54,6 +54,31 @@ mod tests {
         control.set(1).unwrap();root.refresh().unwrap();assert_eq!(texts(&root),["head","row 0"]);
     }
     #[test]
+    fn identified_list_rows_keep_edited_state_when_moved_and_release_removed_rows() {
+        let order=Signal::new(vec![String::from("one"),String::from("two"),String::from("three")]);
+        let read=order.handle();let control=order.handle();
+        let prefix=Signal::new(false);let prefix_read=prefix.handle();
+        let slot=Node::each(move||{
+            let mut rows=read.get()?.into_iter().map(|id|Ok(Child::Node(Node::input_control(None,Some(id.clone()),"{}",String::new(),None)?.with_semantics(&format!("{{\"id\":\"{id}\"}}"))?))).collect::<Result<Vec<_>,String>>()?;
+            if prefix_read.get()?{rows.insert(0,Child::Node(Node::input_control(None,Some("prefix".into()),"{}",String::new(),None)?));}
+            Ok(Some(Node::view(rows,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let ids=root.visible_children().map(|node|node.identity.get()).collect::<Vec<_>>();
+        root.input(ids[0],"draft 🦀").unwrap();
+        control.set(vec!["three".into(),"one".into()]).unwrap();root.refresh().unwrap();
+        assert_eq!(root.visible_children().map(|node|node.identity.get()).collect::<Vec<_>>(),[ids[2],ids[0]]);
+        assert_eq!(root.visible_children().nth(1).unwrap().text,"draft 🦀");
+        assert!(!root.mounted_nodes().contains(&ids[1]));
+        prefix.set(true).unwrap();root.refresh().unwrap();
+        assert_eq!(root.visible_children().nth(2).unwrap().identity.get(),ids[0]);
+        assert_eq!(root.visible_children().nth(2).unwrap().text,"draft 🦀");
+        control.set(vec!["one".into(),"one".into()]).unwrap();
+        assert!(root.refresh().unwrap_err().contains("distinct document IDs"));
+        assert!(root.mounted_nodes().contains(&ids[0]));
+    }
+
+    #[test]
     fn root_slots_are_transparent_and_failed_replacements_drop_the_previous_branch() {
         let show=Signal::new(true);let select=show.handle();let control=show.handle();let released=Rc::new(RefCell::new(0));let drops=released.clone();
         let mut root=Node::branch(move||select.get(),move||{let probe=Probe(drops.clone());Ok(Some(Node::button_children(vec![],String::new(),false,Some(Box::new(move||{let _=&probe;Ok(())})))?))},||Err("Branch construction failed".into())).unwrap().own_state(show).unwrap();
@@ -113,11 +138,16 @@ impl Node {
         let Some(build)=&mut self.each else{return Ok(0)};
         let mut fresh=build()?.map(|wrapper|wrapper.children).unwrap_or_default();
         for row in &mut fresh{row.refresh_inner()?;}
+        let mut keys=std::collections::BTreeSet::new();
+        for row in &fresh {if !row.semantics.id.is_empty()&&!keys.insert(&row.semantics.id){return Err("Reactive list rows require distinct document IDs".into());}}
         let previous=std::mem::take(&mut self.children);let removed=previous.len().saturating_sub(fresh.len());
-        let mut previous=previous.into_iter();let mut changed=usize::from(removed>0);
-        for row in fresh {
-            match previous.next() {
-                Some(kept) if kept.shape()==row.shape()=>self.children.push(kept),
+        let keys=previous.iter().enumerate().filter(|(_,row)|!row.semantics.id.is_empty()).map(|(index,row)|(row.semantics.id.clone(),index)).collect::<std::collections::BTreeMap<_,_>>();
+        let mut previous=previous.into_iter().map(Some).collect::<Vec<_>>();let mut changed=usize::from(removed>0);
+        for (index,row) in fresh.into_iter().enumerate() {
+            let position=if row.semantics.id.is_empty(){previous.get(index).and_then(Option::as_ref).filter(|old|old.semantics.id.is_empty()).map(|_|index)}else{keys.get(&row.semantics.id).copied()};
+            let kept=position.and_then(|position|previous.get_mut(position).and_then(Option::take));
+            match kept {
+                Some(kept) if kept.semantics.id==row.semantics.id && kept.shape()==row.shape()=>{changed+=usize::from(position!=Some(index));self.children.push(kept);},
                 _=>{row.reset_identities();self.children.push(row);changed+=1;}
             }
         }
@@ -128,7 +158,7 @@ impl Node {
     fn shape(&self)->String {
         fn write(node:&Node,out:&mut String){
             use std::fmt::Write;
-            let _=write!(out,"{:?}|{}|",node.kind,node.class_name);
+            let _=write!(out,"{:?}|{}|{}|",node.kind,node.semantics.id,if node.class_binding.is_some(){"<live>"}else{&node.class_name});
             if node.editable.is_none(){out.push_str(&node.text);}
             if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={value}");}}}
             out.push('[');for child in &node.children{write(child,out);}out.push(']');

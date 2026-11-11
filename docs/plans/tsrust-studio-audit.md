@@ -513,3 +513,79 @@ is also required before native close/reordering: current reactive lists retain
 rows by position/shape. Safe-save atomicity/external-change detection, recovery,
 native close prompts, editable undo/redo, full AX/IME and agent file isolation
 remain open. The app remains read-only.
+
+## Editor shell alignment — November 10 (in progress)
+
+Owner requests visual design alongside technical work: coherent gray surfaces,
+explicit rail/tree/editor dividers, collapse/resize, tooltip icons in a custom
+header, no app-name banner or development footer, text zoom, close/reorder,
+localization and configurable navigation/terminal/chat placement. Full details
+are required scope in the plan and apps/studio/AGENTS.md. Persistence, localization
+and docking are not implemented by merely adding a settings menu.
+
+The shell now uses a custom draggable macOS header with native traffic lights,
+Files/Find file activity buttons, Kit Resizable, real filtered filename results,
+native tabs with close buttons, appearance/text/move-tab menu actions and keyboard
+commands. Chrome, navigation and editor components are separate `.tsrx` files.
+Errors display on failure; the permanent read-only/path status bar is removed.
+The new JSON theme uses two neutral surfaces and explicit borders.
+
+Removed the Studio-specific extension/language function and stored language field.
+CodeEditor receives the extension token; existing std:ui Tsrust aliases and Kit's
+syntax lookup select the grammar. In the active lightweight Syntect backend,
+imports map to preproc, whose prior theme color matched plain text. The Studio
+theme now gives preproc the keyword color. Actual main.tsrx/workspace.tsr imports
+render distinctly. An initial Tree-sitter hypothesis was unrelated to the selected
+backend and was discarded: no backend/grammar dependency change remains. Its
+standalone experiment compiled in4m43s but ran0tests and is NOT acceptance evidence.
+The queued obsolete compiler build was stopped; the dev supervisor was preserved.
+
+Native testing caught a stale click after a close button: the parent tab event
+could reselect a path already removed, leaving a blank editor. selectFile now
+rejects paths that are no longer open. The native close round trip restores the
+remaining main.tsrx editor without an extra click. Model moves preserve active
+session and dirty text. Full suite11/11PASS6.47ms execution/120,031.5ms setup; after
+the stale-selection witness, workspace5/5PASS4.23ms/93,605.9ms setup. These setup
+times include rebuilding affected native support and are not benchmark claims.
+
+The shared Node list reconciler now uses distinct nonempty document IDs for rows,
+preserving unchanged nodes across moves and sibling removal. Unlabelled rows keep
+position semantics. Mixed insertion cannot steal a retained keyed row. Duplicate
+IDs reject before discarding the previous tree. Live class bindings are excluded
+from structural fingerprints so font changes preserve state. New ownership/identity
+witness passes1/1 in0.00s (final3.53s setup), including Unicode draft preservation,
+move/removal, unlabelled prefix insertion and duplicate rejection. Existing list
+control passes1/1 in0.01s on the final test binary.
+
+Tree rendering now forwards the component's text size to ListItem (which otherwise
+sets its own default size) and constrains labels to one-line ellipsis. Shortcut
+and Ticker native elements are now absolute/zero-size: their previous empty flex
+items created80px of trailing gap in the title bar. App commands also sit outside
+the visual action group. This fixes the shared nonvisual layout behavior rather
+than adding compensating margins. The final compiler/native build and live update
+are pending after the mixed-row edge repair.
+
+Before that update, actual CUA verifies custom header/no visible app-name, visible
+rail divider, left-aligned search, exact workspace query/results and opening a
+result, closing back to an intact editor, sidebar collapse/full editor width,
+actual divider resize (image coordinates588,500 to788,500), settings actions and
+separate Cmd+=/Cmd+- editor zoom. The action icons now reach the intended right
+inset after removing invisible-command gaps. Resize and commands work, but Tree
+zoom/ellipsis, reordered native editor state, light theme, complete IME/AX and
+docking/localization/persistence still need focused acceptance.
+
+Workspace/all-target compilation passed1m31s and separate compiler/LSP backend
+all-target compilation passed1m20s. Warnings are in unchanged test helpers, including
+unused imports/dead code and an existing fetch_update deprecation. No changed UI
+source emitted a warning. Final mixed-row code is covered by its library witness;
+final compiler/native load still pending. Current live supervisor remains41326/
+session6863, running the previous accepted renderer. Do not restart without the
+required keep-running authorization.
+
+Final mixed-row compiler build passed2m16s and the final native Studio executable
+build passes. Candidate CLI SHA256 is
+42db19302c4f46245262af62e6e2351c6044e6d4cb7e22957d323b1171a88519.
+The retained supervisor still embeds the previous renderer; new Tree behavior
+and keyed native editor state need a one-time authorized load before acceptance.
+CUA phase “Verified compact editor shell controls” completed for the already live
+shell. The existing unlabelled-row control also passes on the final test binary.

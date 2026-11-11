@@ -1,0 +1,173 @@
+{
+  "name": "Studio",
+  "themes": [
+    {
+      "name": "Studio Dark",
+      "mode": "dark",
+      "colors": {
+        "background": "#202020",
+        "foreground": "#d4d4d4",
+        "border": "#303030",
+        "muted.background": "#181818",
+        "muted.foreground": "#9d9d9d",
+        "title_bar.background": "#181818",
+        "title_bar.border": "#303030",
+        "tab.background": "#181818",
+        "tab.active.background": "#202020",
+        "tab.active.foreground": "#d4d4d4",
+        "tab.foreground": "#9d9d9d",
+        "list.background": "#181818",
+        "list.active.background": "#264f78",
+        "input.background": "#202020",
+        "input.border": "#303030",
+        "sidebar.background": "#181818",
+        "sidebar.foreground": "#d4d4d4",
+        "popover.background": "#181818",
+        "popover.foreground": "#d4d4d4",
+        "primary.background": "#007acc",
+        "primary.foreground": "#ffffff"
+      },
+      "highlight": {
+        "editor.background": "#202020",
+        "editor.foreground": "#d4d4d4",
+        "editor.line_number": "#9d9d9d",
+        "editor.active_line_number": "#d4d4d4",
+        "editor.active_line.background": "#242424",
+        "syntax": {
+          "keyword": {
+            "color": "#c586c0"
+          },
+          "type": {
+            "color": "#4ec9b0"
+          },
+          "constructor": {
+            "color": "#4ec9b0"
+          },
+          "function": {
+            "color": "#dcdcaa"
+          },
+          "string": {
+            "color": "#ce9178"
+          },
+          "comment": {
+            "color": "#6a9955"
+          },
+          "number": {
+            "color": "#b5cea8"
+          },
+          "boolean": {
+            "color": "#569cd6"
+          },
+          "variable": {
+            "color": "#9cdcfe"
+          },
+          "property": {
+            "color": "#9cdcfe"
+          },
+          "attribute": {
+            "color": "#9cdcfe"
+          },
+          "tag": {
+            "color": "#569cd6"
+          },
+          "operator": {
+            "color": "#d4d4d4"
+          },
+          "punctuation.bracket": {
+            "color": "#d4d4d4"
+          },
+          "punctuation.delimiter": {
+            "color": "#d4d4d4"
+          },
+          "preproc": {
+            "color": "#c586c0"
+          }
+        }
+      }
+    },
+    {
+      "name": "Studio Light",
+      "mode": "light",
+      "colors": {
+        "background": "#ffffff",
+        "foreground": "#333333",
+        "border": "#dddddd",
+        "muted.background": "#f3f3f3",
+        "muted.foreground": "#616161",
+        "title_bar.background": "#f3f3f3",
+        "title_bar.border": "#dddddd",
+        "tab.background": "#f3f3f3",
+        "tab.active.background": "#ffffff",
+        "tab.active.foreground": "#333333",
+        "tab.foreground": "#616161",
+        "list.background": "#f3f3f3",
+        "list.active.background": "#cce8ff",
+        "input.background": "#ffffff",
+        "input.border": "#dddddd",
+        "sidebar.background": "#f3f3f3",
+        "sidebar.foreground": "#333333",
+        "popover.background": "#f3f3f3",
+        "popover.foreground": "#333333",
+        "primary.background": "#007acc",
+        "primary.foreground": "#ffffff"
+      },
+      "highlight": {
+        "editor.background": "#ffffff",
+        "editor.foreground": "#333333",
+        "editor.line_number": "#616161",
+        "editor.active_line_number": "#333333",
+        "editor.active_line.background": "#f7f7f7",
+        "syntax": {
+          "keyword": {
+            "color": "#af00db"
+          },
+          "type": {
+            "color": "#267f99"
+          },
+          "constructor": {
+            "color": "#267f99"
+          },
+          "function": {
+            "color": "#795e26"
+          },
+          "string": {
+            "color": "#a31515"
+          },
+          "comment": {
+            "color": "#008000"
+          },
+          "number": {
+            "color": "#098658"
+          },
+          "boolean": {
+            "color": "#0000ff"
+          },
+          "variable": {
+            "color": "#001080"
+          },
+          "property": {
+            "color": "#001080"
+          },
+          "attribute": {
+            "color": "#001080"
+          },
+          "tag": {
+            "color": "#800000"
+          },
+          "operator": {
+            "color": "#333333"
+          },
+          "punctuation.bracket": {
+            "color": "#333333"
+          },
+          "punctuation.delimiter": {
+            "color": "#333333"
+          },
+          "preproc": {
+            "color": "#af00db"
+          }
+        }
+      }
+    }
+  ]
+}

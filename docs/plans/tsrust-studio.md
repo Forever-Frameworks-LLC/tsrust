@@ -211,6 +211,30 @@ new marketplace. Browser-hosted Studio, multiplayer, mobile clients and Linux
 delivery are outside this agreed initial scope. Supported-file syntax editing and
 language-service capabilities must be stated separately for each file type.
 
+## Purposeful layout and configuration — owner clarification, November 10
+
+UI design and reusable native capabilities progress together with safe document
+editing and storage. Do not leave styling/interaction cleanup until the end.
+Every region needs consistent surfaces, deliberate dividers, compact tooltip
+icons, shared text zoom, truncation/overflow behavior, resize/collapse and verified
+keyboard/focus states. Keep `.tsrx` composition split into chrome, navigation and
+editor panes; format coherent UI sections during development as well as checkpoints.
+
+Configuration must cover locale/i18n and every user-visible label, appearance and
+text sizing, navigation side, activity-rail side, terminal docking and AI-chat
+docking. Defaults are navigation/rail left, terminal bottom beneath the editor
+(with navigation full height) and AI chat right. These are movable defaults.
+Use one validated, persisted settings model with explicit user/workspace scopes;
+retain drafts/editor state when settings or layout change. Reuse std:ui locale,
+translation, Dock, Resizable and Settings capabilities, extending public wrappers
+where native Kit functionality is missing. Do not add separate ad-hoc layout
+switches, invented docking machinery or empty terminal/chat placeholders.
+
+Current shell is an incremental implementation, not acceptance of those settings
+or docking requirements. Persistent configuration, translation catalogs, full
+native docking, working terminal/chat, drag tab reorder and reliable save/recovery
+remain required alongside the current UI correction.
+
 ## Internal execution phases
 
 1. **Capability and acceptance audit.** Inventory current APIs and editor behavior,

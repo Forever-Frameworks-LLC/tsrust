@@ -1,4 +1,4 @@
-import { Node, Text, Tree, TreeItem, Signal } from 'std:ui';
+import { Node, Text, Tree, TreeItem, Signal, computed } from 'std:ui';
 import { stat } from 'std:fs';
 import { Workspace, entries, openFile } from './workspace.tsr';
 
@@ -30,25 +30,26 @@ function directoryItems(path: string): Result<Node[], string> {
   }
 }
 
-export function ProjectTree(path: string, workspace: Signal<Workspace>): Node {
+export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>): Node {
+  const treeClass = computed<string>(() => 'size-full min-w-0 text-[' + font.get().toString() + 'px]');
   match (directoryItems(path)) {
     Err(message) => {
       return <Text>{message}</Text>;
     },
     Ok(children) => {
-      return <Tree defaultSelected={workspace.get().active} className="size-full" onSelect={(selectedPath) => {
+      return <Tree defaultSelected={workspace.get().active} className={treeClass.get()} onSelect={(selectedPath) => {
         const next = workspace.get();
         match (stat(selectedPath)) {
           Ok(metadata) => { if (metadata.isDirectory) return; },
           Err(error) => {
-            next.message = clone(error.message);
+            next.error = clone(error.message);
             workspace.set(next);
             return;
           }
         }
         match (openFile(next, selectedPath)) {
           Ok(_) => {},
-          Err(message) => { next.message = clone(message); }
+          Err(message) => { next.error = clone(message); }
         }
         workspace.set(next);
       }}>

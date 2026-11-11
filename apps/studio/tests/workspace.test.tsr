@@ -2,7 +2,7 @@ import { test, strictEqual } from 'std:testing';
 import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
 import { tempDir } from 'std:env';
 import { edit, propose, apply } from '../src/documents.tsr';
-import { openWorkspace, openFile, closeFile, entries } from '../src/workspace.tsr';
+import { openWorkspace, openFile, closeFile, moveFile, selectFile, entries } from '../src/workspace.tsr';
 
 test('real package files open once with exact Unicode and CRLF contents', () => {
   const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
@@ -14,10 +14,10 @@ test('real package files open once with exact Unicode and CRLF contents', () => 
     unwrap(openFile(workspace, root + '/src/café.tsr'));
     const source = clone(workspace.active);
     strictEqual(workspace.files[0].document.text, 'café 🦀 e\u0301\r\n');
-    strictEqual(workspace.files[0].language, 'tsrust');
+    strictEqual(workspace.files[0].name, 'café.tsr');
     unwrap(openFile(workspace, root + '/tsrust.config.json'));
     strictEqual(workspace.files.length, 2);
-    strictEqual(workspace.files[1].language, 'json');
+    strictEqual(workspace.files[1].name, 'tsrust.config.json');
     unwrap(openFile(workspace, root + '/src/../src/café.tsr'));
     strictEqual(workspace.active, source);
     strictEqual(workspace.files.length, 2);
@@ -103,10 +103,41 @@ test('dirty close refuses data loss and reopening rejects proposals from the pri
     strictEqual(apply(workspace.files[1].document, old), false);
     strictEqual(workspace.files[1].document.text, 'disk');
     unwrap(closeFile(workspace, path));
+    strictEqual(selectFile(workspace, path), false);
     strictEqual(workspace.active, other);
     unwrap(closeFile(workspace, other));
     strictEqual(workspace.active, '');
     strictEqual(workspace.files.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('moving tabs preserves active session and draft contents', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-'));
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'a'));
+    unwrap(writeTextFile(root + '/b.tsr', 'b'));
+    const workspace = unwrap(openWorkspace(root));
+    unwrap(openFile(workspace, root + '/a.tsr'));
+    const path = clone(workspace.active);
+    const session = clone(workspace.files[0].document.session);
+    edit(workspace.files[0].document, 'draft 🦀');
+    unwrap(openFile(workspace, root + '/b.tsr'));
+    unwrap(openFile(workspace, path));
+    moveFile(workspace, path, -1);
+    strictEqual(workspace.files[0].document.path, path);
+    moveFile(workspace, path, 1);
+    strictEqual(workspace.files[1].document.session, session);
+    strictEqual(workspace.files[1].document.text, 'draft 🦀');
+    strictEqual(workspace.active, path);
+    moveFile(workspace, path, 1);
+    strictEqual(workspace.files[1].document.path, path);
+    moveFile(workspace, path, -1);
+    strictEqual(workspace.files[0].document.session, session);
+    strictEqual(workspace.files[0].document.text, 'draft 🦀');
+    moveFile(workspace, 'not-open', 1);
+    strictEqual(workspace.files.length, 2);
   } finally {
     unwrap(removeDirAll(root));
   }

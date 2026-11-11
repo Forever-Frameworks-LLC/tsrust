@@ -50,3 +50,21 @@ silence diagnostics. Keep behavioral tests and examples consistent with the code
 the components and `tsrust ui add <Component>` copies an editable wrapper into
 `src/components/`. `tsrust dev` rebuilds and restarts the window on save, and
 `tsrust package` builds downloadable artifacts (see the packaging guide).
+
+## Purposeful layout and configuration — owner, 2026-11-10
+
+Develop visual design alongside editor/storage capabilities. Use a coherent
+neutral palette, explicit region dividers, compact tooltip icons, left-aligned
+truncated file labels, and shared text zoom for navigation and editor surfaces.
+Inspect the running app for spacing, overflow, resize/collapse, empty/error states
+and keyboard behavior before claiming the UI is accepted. Format coherent UI
+changes during development and keep chrome, navigation, editor panes and models
+in separate composable files.
+
+Configuration must cover locale/i18n, theme/text sizing, navigation/activity-bar
+side, terminal docking and AI-chat docking. Default terminal placement is a
+resizable bottom panel beneath the editor, while navigation keeps full height;
+these placements are defaults, not fixed product restrictions. Use existing Kit
+docking/layout capabilities and one validated settings model; avoid one-off
+position toggles or placeholder panels. Safe editing, saves and recovery remain
+required alongside UI work.

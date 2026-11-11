@@ -18,14 +18,15 @@ Attachment: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29f
 Initial workspace is **apps/studio only**, per owner's correction at e09f8fcd;
 do not open/index the whole compiler checkout yet. No decorative headers, pretend
 tabs or placeholder actions. Follow VS Code/Visual Studio/Zed/IntelliJ patterns.
-The current native window now browses its actual package and opens source/config
-files in real tabs with syntax highlighting, full-height flat code views, active-
-file Find through Cmd+F. Native std:ui Tree/TreeItem shows workspace contents
-directly, without a studio root row; the convenience button bar is removed. All previews are explicitly read-only. Saving,
+The current native window uses a custom macOS header, Files/Find-file activity
+rail, collapsible/resizable native Tree, native file tabs with close controls and
+full-height code views. Header actions are tooltip icons; the app-name banner and
+permanent debug status bar are removed. Cmd+F searches within a file; filename
+search is a separate pane. Workspace contents start directly, without a root row. All previews are explicitly read-only. Saving,
 editable buffers, recovery and the complete editor/agent inventory remain required.
 
 **KEEP DEV RUNNING. Current live tool PTY session6863, supervisorPID41326,
-childPID48203** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
+childPID76014** (child changes after source rebuild), bundle dev.tsrust.studio.dev.
 Command, from apps/studio, with desktop access (require_escalated), login=false:
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
@@ -186,12 +187,70 @@ Latest appPID48203, same supervisor41326/session6863. Normal rebuild after forma
 actual documents.tsr opens in a native tab through the integrated document record.
 No native save/close control is exposed; app remains read-only.
 
-Next: keep session6863 alive. Add safe file-save/recovery primitives and wire
-revisioned editing, external changes and native close prompts. Also fix positional
-reactive list retention before closing/reordering panels; prevent test-only changes
-with an identical native binary from needlessly replacing the app (observed3,015ms
-cache-hit restart). Unsaved draft preservation across legitimate dev reloads is
-required before enabling editing. Model guards alone do not prove disk safety.
+Current UI alignment section (not checkpointed yet): chrome.tsrx, navigation.tsrx,
+editor.tsrx and themes/studio.json now separate the shell. Native custom header
+uses View.windowDragRegion and reserves the macOS traffic-light leading area.
+Settings/search use icon triggers with tooltips. Explicit rail dividers and a
+two-surface palette replace mixed grays. Filename results align left and truncate;
+Input has explicit available-width constraints. Sidebar collapse and actual divider
+resize are verified. Tree text sizing/ellipsis and stable keyed rows are in the
+new renderer awaiting a live load. No Git/extension/terminal/chat filler controls.
+
+Removed workspace.language and its hardcoded extension map. editor.tsrx passes
+the extension to std:ui/Kit, reusing existing tsr/tsrx aliases and syntax lookup.
+The active Syntect backend maps imports to preproc; Studio theme now assigns it
+the keyword color. Actual TSX/TSR imports are visibly distinct. Initial unrelated
+Tree-sitter hypothesis was discarded. Its host build ran0tests after4m43s setup
+and proves nothing; no grammar/backend/dependency change remains. An obsolete
+compiler build was stopped. Do not rerun that experiment.
+
+Native close testing found a stale parent tab click could reselect a removed path
+and blank the editor. selectFile rejects closed paths; native close now restores
+main.tsrx without another click. Full model suite11/11PASS6.47ms execution,
+120,031.5ms setup; final affected workspace5/5PASS4.23ms,93,605.9ms setup includes
+stale selection. Six document cases retained unchanged after that affected rerun.
+
+Shared Node.each uses distinct nonempty document IDs as stable row identities;
+unlabelled rows keep positional semantics. Mixed insertion cannot consume keyed
+rows. Duplicate IDs fail before old ownership is discarded. Dynamic class values
+do not reset row identity. Final new regression1/1PASS0.00s,3.53s setup; existing
+list control1/1PASS0.01s on the final test binary. Tree forwards text size to its
+ListItem and uses ellipsis. Shortcut/Ticker are now absolute/zero-size: ordinary
+empty flex children had created80px trailing action-row gaps. Commands also sit
+outside the visual action row.
+
+Workspace/all-target checkPASS1m31s and separate backend compiler/LSP all-target
+checkPASS1m20s before the final mixed-row/native-only repair. Warnings are confined
+to unchanged test helpers, including unused/dead code and fetch_update deprecation.
+Final repaired Node code passes its test/control; compiler buildPASS2m16s.
+Candidate CLI SHA25642db19302c4f46245262af62e6e2351c6044e6d4cb7e22957d323b1171a88519.
+Final native buildPASS (session28153 terminal); retained dev6863/supervisor41326 still
+uses ebf586f9 renderer. Installed CLI/LSP remain prior accepted images. No live
+supervisor restart is authorized for this new renderer yet.
+
+CUA phase “Verified compact editor shell controls” completed: header/no app label,
+rail divider, left-aligned exact workspace filename filtering/open, tab close
+restoration, collapse/full editor width, actual divider resize (image coordinates
+588,500 to788,500), settings font actions and separate Cmd+=/Cmd+- editor zoom.
+Right action inset is corrected. Light appearance, Tree zoom/ellipsis, native state
+across moves, drag reorder, full AX/IME and layout persistence are still unverified.
+Live appPID76014 after normal source rebuild (child changes on source saves).
+
+Owner explicitly requires configurable locale/i18n, appearance/text sizes, navigation
+and activity-rail sides, terminal and AI-chat docking. These are required scope
+in the plan/AGENTS, not implemented by the current temporary settings menu. Defaults:
+rail/tree left, terminal in a resizable bottom panel under editor, chat right.
+Use existing std:ui locale, Dock/Resizable/Settings and one validated persisted
+settings model. Do not make one-off side toggles or empty panel placeholders.
+
+Next: finish formatted checkpoint,
+request one concrete supervisor restart to load the built renderer, then verify
+Tree zoom/ellipsis and editor state during close/reorder. Keep6863 running until
+replacement is authorized. Continue validated settings/i18n/docking alongside
+safe file-save/recovery primitives and revisioned editing. Test-only identical
+app-cache restarts and draft preservation across legitimate dev reloads remain
+required fixes before editable buffers. Full saving, recovery, PTY and chat are
+not implemented; model guards alone do not prove file safety.
 Native checked resource/streaming/session ownership, held-out AI work,
 all editor workflows, cloud/external agents and Windows remain required. Use the
 actual apps/studio package for visible acceptance as implementation proceeds.
