@@ -74,6 +74,15 @@ mod tests {
     }
 }
 impl Node {
+    /// Mounted identities include hidden panels; only removal disposes native state.
+    #[cfg(any(test,feature="gpui"))]
+    pub(crate) fn mounted_nodes(&self)->std::collections::BTreeSet<u64>{
+        fn collect(node:&Node,ids:&mut std::collections::BTreeSet<u64>){
+            let id=node.identity.get();if id!=0{ids.insert(id);}
+            for child in &node.children{collect(child,ids);}
+        }
+        let mut ids=std::collections::BTreeSet::new();collect(self,&mut ids);ids
+    }
     /// Route reading positions exclude shared navigation and other layout panes.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn reading_nodes(&self)->std::collections::BTreeSet<u64>{

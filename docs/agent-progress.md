@@ -97,7 +97,7 @@ Passed checks to preserve; do not replay unchanged executables:
   TSRUST_LSP_AGREEMENT_TYPE='Signal<string[]>'. Session10828 is terminal. The
   complete candidate scan was preserved; no member or receiver was excluded.
 
-Current verified repository binaries: CLI SHA256
+Prior accepted tool pair (still installed and used by the live supervisor): CLI SHA256
 0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
 LSP SHA2564d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
 Installed PATH pair was refreshed with staged copies and atomic replacements,
@@ -133,9 +133,26 @@ Model artifacts remain ignored under target/studio-models. No unchanged replay.
 Latest native Tree/root-removal rebuild13,356ms passed, with runtime preparation
 4,419.3ms. No unchanged acceptance executables were replayed for this layout change.
 
-Next: keep supervisor51314 alive. Correct native tab state
-retention and implement revisioned editing, safe saves, external-change/draft/close
-protection. Native checked resource/streaming/session ownership, held-out AI work,
+Current active section: native panel state retention. The renderer now retains
+Kit state, ordinary input state and input options by all mounted node identities,
+including hidden panels; only visible nodes create/synchronize native state.
+Removed nodes dispose state; hidden AppMenuBar state is retired so its external
+menus reinstall when shown. New lifecycle regression1/1PASS,0.00s execution,3.66s
+setup. Compiler build after final safeguardPASS2m41s. Initial workspace/all-target
+checkPASS2m30s with warnings in unrelated test helpers. Final backend/all-target
+checkPASS3m26s and native app buildPASS. Final workspace/all-target checkPASS1m28s; all check/build handles are terminal. Current
+supervisor15826/app29484 remain on the old renderer; native retention is unverified.
+
+A one-time supervisor replacement request is pending through request_user_input_async;
+no permission has yet been received. Candidate repository CLI SHA256 is
+ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899;
+installed CLI/LSP and retained supervisor remain on the prior accepted images.
+
+Next: load the new renderer with an authorized dev
+supervisor replacement and check scroll, selection and search across file tabs.
+Keep the existing session running until replacement is authorized. Then implement
+revisioned editing, safe saves, external-change/draft/close protection.
+Native checked resource/streaming/session ownership, held-out AI work,
 all editor workflows, cloud/external agents and Windows remain required. Use the
 actual apps/studio package for visible acceptance as implementation proceeds.
 

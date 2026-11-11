@@ -413,3 +413,31 @@ Latest native Tree/root-removal source rebuild passed in13,356ms, including
 4,419.3ms runtime preparation. Typed data/compiler/LSP prerequisite is locally
 checkpointed at791d4d43; the package viewer and these records form the next checkpoint.
 No unchanged acceptance executables were replayed for the layout correction.
+
+## Retained native panel state — November 10
+
+The package viewer is checkpointed at89cd2a72. Investigation of tab scroll resets
+found that sync_inputs and sync_kit both used visible nodes as the disposal set.
+The renderer now retains native editor/input/component state by mounted identity,
+including hidden panels and retained routes, while creation and prop synchronization
+still visit visible nodes only. Removed nodes retire state. Hidden application
+menu owners remain an exception: their application-wide menus are removed while
+hidden and reinstall when shown. No app-side overlapping-panel workaround is used.
+
+The new node-lifecycle regression passes1/1, with0.00s execution reported by the
+Rust harness and3.66s compile/setup. It checks hidden membership, stable identities,
+conditional removal, and exactly-once destruction of retained state. The original
+compiler build passed in2m22s; review then added the menu side-effect safeguard,
+and the final compiler build passed in2m41s. These are setup observations, not
+performance benchmarks. Workspace/all-target compilation passed in2m30s before
+that final renderer-string safeguard, with warnings in unrelated existing test
+helpers. Final backend/all-target compilation passed in3m26s, again with warnings in
+unrelated test helpers. The final native Studio executable builds successfully.
+The final workspace/all-target compilation also passed in1m28s. Warnings
+remain confined to unchanged test helpers; no renderer/node warning was emitted.
+
+The live dev supervisor15826 embeds the earlier renderer templates. It and app29484
+remain running. Native scroll/selection/search retention has not yet been accepted;
+the new runtime must be loaded before that check. A one-time supervisor replacement
+request is pending because the owner asked to keep the dev session running. No unchanged native test suites
+or AI executables were replayed.

@@ -298,7 +298,7 @@ impl Root {
         }
     }
 
-    /// Keep one Kit input state per visible editable node and push controlled
+    /// Retain Kit input state while mounted, and push controlled
     /// values into it when the Node value no longer matches the edited text.
     /// Input options (masking, masks, rows, search...) apply at creation and whenever they change.
     fn sync_inputs(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -312,8 +312,9 @@ impl Root {
         }
         let mut fields = Vec::new();
         collect(&self.node, &mut fields);
-        self.inputs.retain(|id, _| fields.iter().any(|field| field.0 == *id));
-        self.input_options.retain(|id, _| fields.iter().any(|field| field.0 == *id));
+        let mounted=self.node.mounted_nodes();
+        self.inputs.retain(|id, _| mounted.contains(id));
+        self.input_options.retain(|id, _| mounted.contains(id));
         for (id, value, placeholder, multiline, options) in fields {
             if !self.inputs.contains_key(&id) {
                 // Edits update the Node and refresh the tree like any handler; focus, blur and Enter are events.

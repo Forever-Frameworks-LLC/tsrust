@@ -1291,7 +1291,9 @@ impl Root {
         let mut keys = Vec::new();
         shortcuts(&self.node, &mut keys);
         for (keys, command) in keys {bind_shortcut(&keys, &command, cx);}
-        self.states.retain(|id, _| found.iter().any(|(other, _, _)| other == id));
+        let mounted=self.node.mounted_nodes();
+        // Hidden menu owners must reinstall their application-wide side effect when shown again.
+        self.states.retain(|id, state| mounted.contains(id) && (!matches!(state,KitState::AppMenuBar(..)) || found.iter().any(|(visible,_,_)|visible==id)));
         let mut dialog = None;
         let mut sheet = None;
         for (id, name, props) in found {
