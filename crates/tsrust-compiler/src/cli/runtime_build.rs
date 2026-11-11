@@ -102,9 +102,11 @@ impl Prepared {
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
   let explicit_target=std::env::var_os("CARGO_TARGET_DIR");
   let cargo=artifacts::Build::new(root,manifest.clone(),build_root.join("artifacts"),temporary.join("runtime.stdout"),explicit_target.as_deref().map(Path::new),&library_name)?;
-  let target=&cargo.target;
+  // GPUI shader build scripts append `/file` to OUT_DIR, invalid in verbatim Windows paths.
+  // Keep the canonical target for locking; give Cargo its ordinary drive/UNC spelling.
+  let target=cargo_target_path(&cargo.target,cfg!(windows));
   let mut command=crate::backend_cargo_command();command.current_dir(&package).args(["build","--offline","--locked","--lib","--message-format=json-render-diagnostics","--manifest-path"]).arg(&manifest)
-   .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(target).env("CARGO_INCREMENTAL","0");
+   .arg("--config").arg(package.join(".cargo/config.toml")).arg("--target-dir").arg(&target).env("CARGO_INCREMENTAL","0");
   command.current_dir(root).env("CARGO_HOME",crate::backend_sources::cargo_home()?);
   // Compiler-owned support must not inherit user Cargo profiles or wrappers:
   // those would change artifacts without changing the verified cache identity.
@@ -198,6 +200,20 @@ pub(crate) fn application_optimization(release:bool,native_ui:bool)->&'static st
 /// The runtime build profile a program links against; it keys application caches.
 pub(crate) fn profile_identity(rust: &str) -> &'static str {profiles(rust.contains("mod tsrust_native_ui {"))}
 
+fn cargo_target_path(path:&Path,windows:bool)->PathBuf {
+ if windows && let Some(text)=path.to_str(){return PathBuf::from(tsrust_compiler::display_path(text).as_ref());}
+ path.to_owned()
+}
+
+#[test]
+fn cargo_target_paths_allow_build_scripts_to_append_forward_slashes(){
+ for (canonical,ordinary) in [(r"\\?\D:\a\tsrust\target",r"D:\a\tsrust\target"),(r"\\?\UNC\server\share\target",r"\\server\share\target")]{
+  assert_eq!(cargo_target_path(Path::new(canonical),true),PathBuf::from(ordinary));
+  assert_eq!(cargo_target_path(Path::new(canonical),false),PathBuf::from(canonical));
+ }
+ assert_eq!(cargo_target_path(Path::new("/tmp/target"),false),PathBuf::from("/tmp/target"));
+}
+
 pub(crate) fn profiles(native_ui: bool) -> &'static str {
  // Third-party debug assertions stay off in dev, as in release: GPUI panics when
  // GPUI Kit's own NumberInput draws one focus handle twice for accessibility.
@@ -233,6 +249,8 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
     let manifest=fs::read_to_string(manifest).unwrap().parse::<toml_edit::DocumentMut>().unwrap();let name=manifest["lib"]["name"].as_str().unwrap().to_owned();
     let target=prepared.cargo.as_ref().unwrap().target.clone();// Distinct cache roots share one target only through an explicit CARGO_TARGET_DIR (as in CI).
     if let Some(first)=&first_target{if std::env::var_os("CARGO_TARGET_DIR").is_some(){assert_eq!(first,&target);}}else{first_target=Some(target);}
+    let cargo_target=command.get_args().skip_while(|arg|*arg!="--target-dir").nth(1).map(PathBuf::from).unwrap();
+    assert_eq!(cargo_target,cargo_target_path(&prepared.cargo.as_ref().unwrap().target,cfg!(windows)));
     prepared.acquire_target(true).unwrap();let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
     if index==2 {let text=fs::read_to_string(temporary.join("runtime.stdout")).unwrap();let fresh=text.lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok()).any(|row|row["reason"]=="compiler-artifact"&&row["target"]["name"]==name&&row["fresh"]==true);assert!(fresh,"Unchanged A must use Cargo's fresh graph");}
     prepared.finish().unwrap();let bytes=fs::read(prepared.library.as_ref().unwrap()).unwrap();

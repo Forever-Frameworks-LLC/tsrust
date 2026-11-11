@@ -16,7 +16,24 @@ Studio in a separate chat; do not edit, stage, reset or switch it. No authorizat
 was given to send that chat messages. Shared Cargo target remains the original
 checkout's target, incremental off/jobs1. First release push completed at7b256e4a6621794e0a0834f5cd286659fad42182.
 PR#18 targets stag: https://github.com/Forever-Frameworks-LLC/tsrust/pull/18.
-CI42926496496 and Documentation42926496344 are running. No merge/publication yet.
+First Documentation42926496344 passed. First CI42926496496 passed docs-independent
+lint/library/extension and all3 packaged builds; runtime/host groups were still
+active when the proven publisher-recovery repair changed the input. Current
+candidate0984945028d8ba9539710a87ac20c65a5fed13c7 is pushed on PR#18. Final CI42928362164
+and Documentation42928362199 passed. CI42928362164 passed lint/tooling, compiler/LSP
+libraries, extension and all3 packaged builds. Windows runtime137 suites completed:
+136passed, only examples/gpui-starter/tests failed. GPUI shader build.rs appends
+forward slashes to verbatim OUT_DIR (`\\?\D:\.../quad_vs.h`), causing Windows
+InvalidFilename123. Runtime_artifacts canonicalizes the target for locking; that
+spelling was also passed to Cargo. Repair retains canonical locks/artifact checks
+but passes the existing display_path drive/UNC spelling to Cargo. Non-Unicode paths
+are retained without lossy conversion. Drive/UNC and non-Windows regression1/1
+passed (0.00s execution,9.14s build); actual Cargo graph/cache-lock regression1/1
+passed (1.45s execution,0.12s setup). Distribution/promotion26/26 passed again.
+Whole formatter0files; Windows shader compilation still requires hosted verification.
+Fail-fast cancelled Mac/Linux runtime groups; all3 host-boundary groups remain in
+progress. Preserve their outcome before pushing the diagnosed repair. No merge/
+publication yet.
 Candidate checkpoint3fbfad83 passed clean
 v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
 not fetched before offline suites, and Linux speech builds lacked ALSA headers;
