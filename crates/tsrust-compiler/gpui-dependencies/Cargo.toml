@@ -128,6 +128,7 @@ crypto-password = ["crypto", "dep:argon2", "dep:zeroize", "threads", "async"]
 signals = ["async"]
 
 [patch.crates-io]
+gpui-base = { path = "../patched-dependencies/gpui-base" }
 url = { path = "../patched-dependencies/url" }
 
 # GPUI layout and text shaping are unusable unoptimized; application code keeps

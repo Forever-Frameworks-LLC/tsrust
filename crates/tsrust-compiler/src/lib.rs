@@ -301,4 +301,6 @@ mod nesting_probe;
 pub mod ui_project;
 
 #[doc(hidden)]
+pub use native::dependency_patches as native_dependency_patches;
+#[doc(hidden)]
 pub use native::url_patch as native_url_patch;

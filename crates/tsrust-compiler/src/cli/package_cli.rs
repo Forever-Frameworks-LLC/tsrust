@@ -99,7 +99,7 @@ pub(crate) fn run(command:&str,args:impl Iterator<Item=String>)->Result<u8,Strin
  }
  Bindings::parse(&serde_json::to_string(&binding).map_err(|error|error.to_string())?)?;
  // Cargo add may have used a range. Re-pin without re-resolving unrelated packages.
- fs::write(cargo.join("Cargo.toml"),tsrust_compiler::native_url_patch::normalize_manifest(&binding.manifest()).map_err(|error|error.to_string())?).map_err(|error|error.to_string())?;
+ fs::write(cargo.join("Cargo.toml"),tsrust_compiler::native_dependency_patches::normalize_manifest(&binding.manifest()).map_err(|error|error.to_string())?).map_err(|error|error.to_string())?;
  cargo_output(&cargo,&["metadata","--format-version","1","--locked"],options.offline)?;
  let lockfile=fs::read_to_string(cargo.join("Cargo.lock")).map_err(|error|error.to_string())?;
  binding.lockfile=Some(lockfile.clone());let encoded=serde_json::to_string_pretty(&binding).map_err(|error|error.to_string())?+"\n";
@@ -143,9 +143,9 @@ fn select_manifest(root:&Path,explicit:Option<&Path>)->Result<PathBuf,String>{
 }
 pub(crate) fn prepare(root:&Path,binding:&Bindings,lock:Option<&str>)->Result<(),String>{
  fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;
- let manifest=binding.manifest();let normalized=tsrust_compiler::native_url_patch::normalize_manifest(&manifest).map_err(|error|error.to_string())?;
+ let manifest=binding.manifest();let normalized=tsrust_compiler::native_dependency_patches::normalize_manifest(&manifest).map_err(|error|error.to_string())?;
  fs::write(root.join("Cargo.toml"),normalized).map_err(|error|error.to_string())?;
- tsrust_compiler::native_url_patch::install(root,&manifest).map_err(|error|error.to_string())?;
+ tsrust_compiler::native_dependency_patches::install(root,&manifest).map_err(|error|error.to_string())?;
  if let Some(lock)=lock{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}Ok(())
 }
 fn cargo_owned(root:&Path,args:&[String],offline:bool)->Result<Vec<u8>,String>{let args=args.iter().map(String::as_str).collect::<Vec<_>>();cargo_output(root,&args,offline)}
@@ -175,8 +175,8 @@ fn lock_packages(text:&str)->std::collections::BTreeSet<(String,String)>{
    let manifest=std::fs::read_to_string(temporary.0.join("Cargo.toml")).unwrap();let document=manifest.parse::<toml_edit::DocumentMut>().unwrap();
    assert_eq!(document["patch"]["crates-io"]["url"]["path"].as_str(),Some("patched-dependencies/url"));
    assert_eq!(binding.manifest(),original);assert_eq!(std::fs::read(temporary.0.join("Cargo.lock")).unwrap(),b"locked bytes");
-   assert_eq!(tsrust_compiler::native_url_patch::source_identity(&manifest).unwrap(),tsrust_compiler::native_url_patch::source_identity(&original).unwrap());
-   let mut files=0;tsrust_compiler::native_url_patch::visit(&temporary.0,&manifest,|_,_|{files+=1;Ok(())}).unwrap();assert!(files>0);
+   assert_eq!(tsrust_compiler::native_dependency_patches::source_identity(&manifest).unwrap(),tsrust_compiler::native_dependency_patches::source_identity(&original).unwrap());
+   let mut files=0;tsrust_compiler::native_dependency_patches::visit(&temporary.0,&manifest,|_,_|{files+=1;Ok(())}).unwrap();assert!(files>0);
   }
  }
 

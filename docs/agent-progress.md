@@ -21,6 +21,57 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
+Current accepted section (checkpoint pending): shared native fast-divider fix.
+Managed gpui-base0.9.0 path patch applies the final release position and returns on
+unchanged size before syncing stale painted bounds. Source from published .crate
+SHA256cff6377e30f0c857681662e7edc7286bf30f5606033390401b0706d7bd930833;
+registry untouched. Generic exact-byte/path/restore guards now handle URL+GPUI;
+legacy URL alias and backend cache identity preserved. GPUI app/runtime/support
+keys include lock+patch bytes. Production locked/offline gpui metadata selects
+path source; lock only removes gpui-base registry source/hash. Roster221files.
+
+Checks: patch safety3/3PASS0.17s exec/6m42s setup incl lock wait; CLI cache2/2PASS
+0s+0.17s, support restoration2/2PASS0.03s, URL binding relocation1/1PASS0.04s.
+Initial GPUI setup omitted test-support; no test ran. First complete resize run
+12/13PASS0.04s exposed stale no-op sizes; corrected worker passed13/13 in0.04s,
+setup2m45s incl lock wait. Final CLI/LSP buildPASS3m14s incl lock wait. Formatter,
+UI generator,2locales/89messages and diff checks PASS. Full matrices not replayed.
+
+Native app96611: fast body drag horizontal412/412 to472/352; vertical360.5/360.5
+to421/300; sidebar248to288logicalpx, then restored248. Three panes main top-left,
+zoom bottom-left,chrome right. Warm restart app98589 restored exact nested layout,
+open paths and owner-updated zoom-3 (11px/base14). No drafts or file text changed.
+Global active path was main before restart and chrome afterward; whether caused by
+initial Dock notifications or concurrent owner use remains unproven. Do not claim
+focused-group restoration accepted. CUA completion: Verified native resize and
+restoration. Temporary mouse tracer/padding experiments gone from source and live
+image. User changed zoom during checks; preserve their latest value, not historical2.
+
+**KEEP DEV RUNNING: PTY31628,supervisor96902,app98589**, dev.tsrust.studio.dev.
+Standard launch below. Initial patched native build236748ms:check14043.6,emit1103.1,
+backend175.4,runtime prep3037.9,build+publish206695.9,native+link220781.9ms. Warm
+restart16222ms:check14249.3,emit1079.7,backend127.8,app hit112.3,native+link0ms.
+Single launch observations, not benchmarks. Current caches appe8f9c034f19d55dc,
+runtime6c110a65bedc33e5. Removed6proven trace/padding caches under locks:
+2,063,201,456apparent bytes, plus diagnostic target/studio56,644,840bytes.
+Installed/target CLIc17e15a1bd76fcf987a28d676fc8d7e438193542891a1c431e158cef9eeb0848,
+LSP2f60607825455025a1e10bf15ba1fa2060a551674a15022b1db82ca509821ef5.
+
+Next section: owner reports theme import keywords look like imported identifiers,
+and asks to follow Zed. Research begun, no highlighting edits yet. Actual active
+backend is GPUI syntect (gpui-highlight -> gpui-kit/syntect), not inspected unused
+Tree-sitter queries. syntect semantic_name maps keyword.control.import to preproc;
+many themes omit preproc. Broad meta exclusion also precedes meta.mapping.key/
+meta.function-call checks; JSON keys need real scope proof. Zed primary docs and
+PR47435 separate keyword.import/declaration, use Tree-sitter captures and fallback
+styles; user wants that proven design. GPUI supports selective tree-sitter grammar
+features and public LanguageRegistry; investigate using those before vendoring
+another crate or custom highlighter. Existing TSX query is only upstream TS overlay,
+while TS query is full; JSON equal-range precedence is first-wins. Candidate coherent
+fix: selective structural grammars with compatible TS/TSX/JSON queries and fallback
+styles, verified on real Tsrust syntax/theme catalog, memory/setup effects and native
+viewers. Preserve one writer and backend isolation. No code decision accepted yet.
+
 Current section follows7d192232 (open-file restoration) and36fe5ddc
 (localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError
 through the generated std:ui facade and LSP documentation. It reuses Kit's own

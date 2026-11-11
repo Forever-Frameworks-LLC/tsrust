@@ -31,8 +31,8 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
     let result = (|| -> Result<(), String> {
         fs::create_dir(root.join("src")).map_err(|e|e.to_string())?;
         fs::create_dir(root.join(".cargo")).map_err(|e|e.to_string())?;
-        fs::write(root.join("Cargo.toml"), tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-        tsrust_compiler::native_url_patch::install(root,manifest).map_err(|e|e.to_string())?;
+        fs::write(root.join("Cargo.toml"), tsrust_compiler::native_dependency_patches::normalize_manifest(manifest).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+        tsrust_compiler::native_dependency_patches::install(root,manifest).map_err(|e|e.to_string())?;
         fs::write(root.join("Cargo.lock"), lock).map_err(|e|e.to_string())?;
         fs::write(root.join("src/lib.rs"), include_str!("../../backend-dependencies/src/lib.rs")).map_err(|e|e.to_string())?;
         fs::write(root.join(".cargo/config.toml"), "[net]\noffline = true\n").map_err(|e|e.to_string())?;
@@ -46,7 +46,7 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
 /// preserve the directory while omitting generated source/configuration files.
 pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),String>{
     let directories=[root.to_owned(),root.join("src"),root.join(".cargo")];
-    let normalized=tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?;
+    let normalized=tsrust_compiler::native_dependency_patches::normalize_manifest(manifest).map_err(|e|e.to_string())?;
     let files=[("Cargo.toml",normalized.as_bytes(),false),("Cargo.lock",lock.as_bytes(),true),
         ("src/lib.rs",include_bytes!("../../backend-dependencies/src/lib.rs").as_slice(),false),
         (".cargo/config.toml",b"[net]\noffline = true\n".as_slice(),true)];
@@ -72,7 +72,7 @@ pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),Str
     for path in &directories[1..]{match fs::create_dir(path){Ok(())=>{},Err(e) if e.kind()==std::io::ErrorKind::AlreadyExists=>{},Err(e)=>return Err(format!("Cannot restore shared backend directory {}: {e}",path.display()))}}
     for (path,bytes) in missing{use std::io::Write;fs::OpenOptions::new().write(true).create_new(true).open(&path)
         .and_then(|mut file|file.write_all(bytes)).map_err(|e|format!("Cannot restore shared backend support {}: {e}",path.display()))?;}
-    tsrust_compiler::native_url_patch::restore_missing(root,manifest).map_err(|e|format!("Cannot restore shared backend URL patch in {}: {e}",root.display()))
+    tsrust_compiler::native_dependency_patches::restore_missing(root,manifest).map_err(|e|format!("Cannot restore shared backend dependency patch in {}: {e}",root.display()))
 }
 
 pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), String> {
@@ -85,7 +85,7 @@ pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), Str
         || fs::read_to_string(root.join(".cargo/config.toml")).map_err(|e|e.to_string())? != "[net]\noffline = true\n" {
         return Err("Shared backend support metadata was modified; preserved it. Remove the affected private runtime workspace before retrying.".into());
     }
-    tsrust_compiler::native_url_patch::visit(root,manifest,|_,_|Ok(())).map_err(|e|e.to_string())?;
+    tsrust_compiler::native_dependency_patches::visit(root,manifest,|_,_|Ok(())).map_err(|e|e.to_string())?;
     Ok(())
 }
 
@@ -158,7 +158,7 @@ pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<S
 
 pub(crate) fn dependency_identity()-> &'static str {
  static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
- VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
+ VALUE.get_or_init(||tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY)).as_str()
 }
 
 #[cfg(test)] mod restoration_tests {

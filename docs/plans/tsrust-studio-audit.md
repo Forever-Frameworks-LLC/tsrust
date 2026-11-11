@@ -1087,3 +1087,69 @@ Final pair audit caught that the host-test build had refreshed target CLI after
 the first installation. Atomically refreshed installed CLI to87633e19 (the target
 image used by all later native/zoom checks); LSP stayedc79c86fa. Both installed
 hashes now match independently. No functional tests or supervisor restart repeated.
+
+
+## Fast native divider release — 2026-11-11
+
+Follow-up to the accepted Dock/zoom checkpoint b8aedbde. Temporary mouse tracing
+proved a fast body gesture reached the divider: the first displaced move started
+GPUI's drag and stopped propagation; no second displaced move reached its resize
+listener. Mouse-up still had an active drag, but upstream discarded its final
+position. Header/image control gestures received another move and worked. Editor
+inset experiments did not solve the issue and were removed. Registry sources were
+not edited; temporary trace source is removed, with the diagnostic executable
+awaiting replacement after final compiler setup.
+
+Use a compiler-managed gpui-base0.9.0 path patch from the published archive,
+SHA256 cff6377e30f0c857681662e7edc7286bf30f5606033390401b0706d7bd930833,
+following the existing URL payload model. The archive hash matches the previously
+admitted production lock. License/provenance and all original crate files remain.
+Mouse-up applies its final position through the existing bounded resize worker.
+An unchanged requested size returns before synchronizing stale painted sizes.
+This preserves same-frame moves. The patch has a one-move/newer-release regression;
+existing cancellation, repeated-release, fixed-size and bounds cases remain.
+
+Managed payload orchestration now handles URL and GPUI with the same exact-byte,
+registered-path, symlink, relocation and restore guards. Existing URL cache
+identity is unchanged. GPUI lock and patch bytes key application/runtime/support
+workspaces so an older renderer cannot satisfy the new build. Exported URL helper
+alias stays compatible. Production Cargo metadata --locked --offline --features
+gpui selects the managed package; the production lock only removes gpui-base's
+registry source/hash, with every version unchanged. Payload roster parity221files.
+
+Focused checks: managed patch safety3/3PASS,0.17s execution/6m42s setup with lock
+wait. CLI cache identity2/2PASS,0s+0.17s; support restoration2/2PASS0.03s; unchanged
+URL binding relocation1/1PASS0.04s. CLI setup7m08s plus21.89s waiting, then0.24/0.12s
+startups. First standalone GPUI setup omitted test-support and executed no tests.
+The next run12/13PASS0.04s, exposing the stale-size no-op defect above; that failure
+was repaired in the worker. Corrected complete resizable family13/13PASS0.04s,
+setup2m45s including shared-target lock wait. Earlier passed unrelated scope retained.
+Whole-project formatter0changes; UI generator and2locale/89message catalog checks
+PASS. Compiler/LSP build before no-op correction PASS2m54s; final source buildPASS3m14s
+including lock wait.
+
+Native app96611 accepted fast horizontal body drag412/412to472/352, vertical
+360.5/360.5to421/300 and sidebar248to288logicalpx (restored248). Warm app98589
+restored exact nested Dock shape/sizes/open paths and owner-selected zoom-3/base14.
+No drafts or file text changed. Global active path changed main to chrome across
+restart; concurrent owner interaction versus startup notification remains unresolved.
+Focused-group restoration remains unaccepted. CUA: Verified native resize and
+restoration. Current dev PTY31628/supervisor96902/app98589; keep it running.
+
+Initial patched launch236748ms:check14043.6,emit1103.1,backend175.4,runtime prep3037.9,
+runtime build+publish206695.9,native+link220781.9ms. Warm launch16222ms:check14249.3,
+emit1079.7,backend127.8,app hit112.3,native+link0ms. Single observations, not benchmarks.
+Current appe8f9c034f19d55dc/runtime6c110a65bedc33e5. Under namespace locks removed6
+proven trace/padding cache dirs2,063,201,456apparent bytes and obsolete diagnostic
+public executable56,644,840bytes. Retained current and accepted controls.
+Installed/target CLI SHA256c17e15a1bd76fcf987a28d676fc8d7e438193542891a1c431e158cef9eeb0848;
+LSP2f60607825455025a1e10bf15ba1fa2060a551674a15022b1db82ca509821ef5.
+
+Following owner theme complaint and request to study Zed, primary references:
+https://zed.dev/docs/extensions/languages#syntax-highlighting and
+https://github.com/zed-industries/zed/pull/47435 . Zed separates import/declaration
+captures, permits theme fallbacks, and uses structural grammars. Local runtime
+currently uses GPUI Syntect, mapping import to preproc, often absent from themes.
+Unused GPUI Tree-sitter query investigation is not evidence about the active parser.
+No highlighting fix accepted yet; next section should use existing Kit grammar
+support and measure its costs, rather than add palette colors to mask missing roles.

@@ -196,11 +196,11 @@ mod artifact_tests {
         assert!(BASE_IDENTITY.starts_with("native-dependencies-1\n"));
         assert!(BASE_IDENTITY.contains(sources::MANIFEST));
         assert!(BASE_IDENTITY.contains(sources::LOCK));
-        assert_eq!(dependency_identity(),tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY));
+        assert_eq!(dependency_identity(),tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY));
     }
 }
 
 pub(crate) fn dependency_identity()-> &'static str {
  static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
- VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
+ VALUE.get_or_init(||tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY)).as_str()
 }
