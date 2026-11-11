@@ -1,4 +1,4 @@
-import { View, Text, Button, Tabs, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme } from 'std:ui';
+import { View, Text, Button, Dock, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme } from 'std:ui';
 import { currentDir, args } from 'std:env';
 import { extname } from 'std:path';
 import { OpenFile, openWorkspace, selectFile } from './workspace.tsr';
@@ -7,8 +7,8 @@ import { Recovery, recoveryPath, restoreRecovery } from './recovery.tsr';
 import { ProjectTree } from './browser.tsrx';
 import { FileSearch } from './navigation.tsrx';
 import { ContentSearch } from './search-panel.tsrx';
-import { Chrome } from './chrome.tsrx';
-import { FileTab, FilePanel } from './editor.tsrx';
+import { Chrome, closeTab } from './chrome.tsrx';
+import { FilePanel } from './editor.tsrx';
 import { Panels } from './panels.tsrx';
 import { configPath, loadConfig } from './settings.tsr';
 import studioThemes from './themes/studio.json';
@@ -100,13 +100,14 @@ function App(path: string): Node {
             <Resizable vertical={true} className="size-full min-w-0 min-h-0">
               <ResizablePanel minSize={160}>
                 <View className="flex-col size-full min-w-0 min-h-0 bg-background">
-                  <Tabs value={workspace.get().active} onChange={(path) => { const next = workspace.get(); if (selectFile(next, path)) workspace.set(next); }} size="small" variant="tab" menu={true} className="shrink-0">
-                    {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FileTab(file, workspace))}
-                  </Tabs>
                   <View hidden={workspace.get().files.length !== 0} className="flex-col grow items-center justify-center">
                     <Button icon="file-search" variant="ghost" onPress={() => { mode.set('filesearch'); sidebar.set(true); }}>Open a file</Button>
                   </View>
-                  <View className="flex-col grow min-h-0">{...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace, font, recovery))}</View>
+                  <View hidden={workspace.get().files.length === 0} className="flex-col grow min-h-0">
+                    <Dock value={workspace.get().active} tabbed={true} className="size-full" onChange={(path) => { const next = workspace.get(); if (next.active !== path && selectFile(next, clone(path))) workspace.set(next); }} onClose={(path) => { closeTab(workspace, clone(path)); }}>
+                      {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace, font, recovery))}
+                    </Dock>
+                  </View>
                   <View hidden={workspace.get().error === ''} className="px-3 py-2"><Text className="text-destructive">{error.get()}</Text></View>
                 </View>
               </ResizablePanel>

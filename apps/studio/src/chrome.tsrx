@@ -1,5 +1,5 @@
 import { View, Button, Shortcut, Signal, Node } from 'std:ui';
-import { Workspace, closeFile, moveFile } from './workspace.tsr';
+import { Workspace, closeFile } from './workspace.tsr';
 import { showSettings } from './settings-window.tsrx';
 import { Recovery } from './recovery.tsr';
 import { saveActive } from './document-actions.tsr';
@@ -13,13 +13,6 @@ export function closeTab(workspace: Signal<Workspace>, path: string): void {
     }
   }
 
-  workspace.set(next);
-}
-
-function moveTab(workspace: Signal<Workspace>, direction: int): void {
-  const next = workspace.get();
-  const path = clone(next.active);
-  moveFile(next, path, direction);
   workspace.set(next);
 }
 
@@ -45,7 +38,5 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font); }} />
     <Shortcut command="search-workspace" keys="secondary-shift-f" onTrigger={() => { mode.set('search'); sidebar.set(true); }} />
     <Shortcut command="close-tab" keys="secondary-w" onTrigger={() => { closeTab(workspace, workspace.get().active); }} />
-    <Shortcut command="move-tab-left" keys="secondary-alt-Left" onTrigger={() => { moveTab(workspace, -1); }} />
-    <Shortcut command="move-tab-right" keys="secondary-alt-Right" onTrigger={() => { moveTab(workspace, 1); }} />
   </View>;
 }

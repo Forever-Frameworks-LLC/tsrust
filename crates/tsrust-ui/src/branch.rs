@@ -79,6 +79,23 @@ mod tests {
     }
 
     #[test]
+    fn dock_panel_values_keep_editor_identity_when_tabs_reorder_or_close() {
+        let order=Signal::new(vec![String::from("one"),String::from("two")]);let read=order.handle();
+        let slot=Node::each(move||{
+            let rows=read.get()?.into_iter().map(|value|{
+                let editor=Node::input_control(None,Some(value.clone()),"{}",String::new(),None)?;
+                Ok(Child::Node(Node::kit("DockPanel",vec![Child::Node(editor)],String::new())?.with_kit_prop("value",&value)?))
+            }).collect::<Result<Vec<_>,String>>()?;
+            Ok(Some(Node::view(rows,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let editor=root.visible_children().next().unwrap().children[0].identity.get();
+        root.input(editor,"unsaved 🦀").unwrap();order.set(vec!["two".into(),"one".into()]).unwrap();root.refresh().unwrap();
+        let kept=&root.visible_children().nth(1).unwrap().children[0];assert_eq!(kept.identity.get(),editor);assert_eq!(kept.text,"unsaved 🦀");
+        order.set(vec!["one".into()]).unwrap();root.refresh().unwrap();assert_eq!(root.visible_children().next().unwrap().children[0].identity.get(),editor);
+        order.set(vec!["one".into(),"one".into()]).unwrap();assert!(root.refresh().is_err());
+    }
+    #[test]
     fn controlled_kit_rows_keep_identity_and_local_state_when_live_props_change() {
         let text=Signal::new(String::from("before"));let read=text.handle();let control=text.handle();
         let slot=Node::each(move||{
@@ -156,19 +173,24 @@ impl Node {
         let mut fresh=build()?.map(|wrapper|wrapper.children).unwrap_or_default();
         for row in &mut fresh{row.refresh_inner()?;}
         let mut keys=std::collections::BTreeSet::new();
-        for row in &fresh {if !row.semantics.id.is_empty()&&!keys.insert(&row.semantics.id){return Err("Reactive list rows require distinct document IDs".into());}}
+        for row in &fresh {if !row.row_key().is_empty()&&!keys.insert(row.row_key()){return Err("Reactive list rows require distinct document IDs".into());}}
         let previous=std::mem::take(&mut self.children);let removed=previous.len().saturating_sub(fresh.len());
-        let keys=previous.iter().enumerate().filter(|(_,row)|!row.semantics.id.is_empty()).map(|(index,row)|(row.semantics.id.clone(),index)).collect::<std::collections::BTreeMap<_,_>>();
+        let keys=previous.iter().enumerate().filter(|(_,row)|!row.row_key().is_empty()).map(|(index,row)|(row.row_key().to_owned(),index)).collect::<std::collections::BTreeMap<_,_>>();
         let mut previous=previous.into_iter().map(Some).collect::<Vec<_>>();let mut changed=usize::from(removed>0);
         for (index,row) in fresh.into_iter().enumerate() {
-            let position=if row.semantics.id.is_empty(){previous.get(index).and_then(Option::as_ref).filter(|old|old.semantics.id.is_empty()).map(|_|index)}else{keys.get(&row.semantics.id).copied()};
+            let position=if row.row_key().is_empty(){previous.get(index).and_then(Option::as_ref).filter(|old|old.row_key().is_empty()).map(|_|index)}else{keys.get(row.row_key()).copied()};
             let kept=position.and_then(|position|previous.get_mut(position).and_then(Option::take));
             match kept {
-                Some(kept) if kept.semantics.id==row.semantics.id && kept.shape()==row.shape()=>{changed+=usize::from(position!=Some(index));self.children.push(kept);},
+                Some(kept) if kept.row_key()==row.row_key() && kept.shape()==row.shape()=>{changed+=usize::from(position!=Some(index));self.children.push(kept);},
                 _=>{row.reset_identities();self.children.push(row);changed+=1;}
             }
         }
         Ok(changed)
+    }
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
+    fn row_key(&self)->&str {
+        if !self.semantics.id.is_empty(){return &self.semantics.id;}
+        self.kit.as_deref().filter(|kit|kit.name=="DockPanel").and_then(|kit|kit.prop("value")).unwrap_or("")
     }
     /// A structural fingerprint: kind, classes, text and component props, ignoring state the node keeps itself.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]

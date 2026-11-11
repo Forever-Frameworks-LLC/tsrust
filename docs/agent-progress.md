@@ -21,7 +21,67 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current section adds separate persistent Settings, 38 named themes,
+Current Dock section follows checkpointbd88e292. It replaces the manual Studio
+tab strip/hidden editor stack with native Kit Dock. Dock now reconciles keyed live
+panels, selects existing panels in their groups, updates titles/close guards and
+reports activation/close callbacks. DockPanel.value keys retained rows; native
+Split Right/Down buttons move a tab from a group with multiple documents. Dirty
+panels refuse native close. A separate controlled close action handles the final
+file, which Kit normally keeps as the last group. Old manual tab-move shortcuts
+were removed; native dragging now owns the tab arrangement.
+
+**KEEP DEV RUNNING: current tool PTY71555, supervisor98978, app99663.** Previous
+70385/92991 stopped normally. Current installed/target CLI SHA256
+a2cdbc6072bebdf98462532ae7231a4a41797a1a3b103b7cd9403c0defe9429e; LSP
+c372c2ac20d25592f036c8981dee5a67dd46d8a5e0a0cc15c06e689b11efa5a1.
+Both consumers were atomically refreshed and independently verified. Current native
+startup66,407ms:runtime miss40,724.0ms,check11113.9ms,emit907.4ms,
+backend151.5ms,native+link53712.9ms. Observations only, not benchmark comparisons.
+
+Dock acceptance/evidence:
+- Existing branch/list regressions6/6PASS0.00s execution,3.58s setup after key
+  support; new Dock row identity/reorder/close/duplicate regression1/1PASS0.00s,
+  1m49s setup including lock wait. New formatted compiler callback-contract witness
+  1/1PASS1.63s,2m22s setup; borrowed-string callbacks check/emit, int callbacks reject.
+- Explicit Studio main checkPASS; generated Kit/LSP parity checkPASS; native public
+  build51954PASS before toolbar additions. Latest dev checks/emits/compiles/links
+  complete current source successfully. Whole formatter repeatedly stable0files,
+  with no snippets/fingerprint changes. Preserve unchanged18/18 Studio suite evidence.
+- Actual native tab reorder observed in app67272. Unsaved Unicode text and undo
+  survive dragging; final-file Close document observed in app81249. Current app
+  99663 verifies direct horizontal then nested vertical splits, all three buffers
+  painting correctly WITHOUT focusing or sidebar workarounds. Focused split Cmd+S
+  writes exact Unicode bytes ONLY to .gitignore; config hash unchanged. Undo/Save
+  restored both hashes and empty recovery journal. Three clean files remain open.
+- Native toolbar initially panicked reading TabGroup during its own render; fixed
+  by caching can_split in Root.sync_dock. Only changed props notify. Inactive pane
+  painting then failed after nested splits. Root/editor notifications alone were
+  insufficient. DockEvent::LayoutChanged now coalesces one next-frame invalidation
+  of each cached DockContent, retained editor states and root, after new bounds
+  are laid out. This passes the exact native three-pane witness. Earlier wrong
+  defer arities/icon enum references and all failed attempts remain failures,
+  followed by corrected native builds; no installed dependency source was edited.
+
+Still unverified/incomplete: pointer divider resizing and edge-drop splitting
+showed no movement in CUA. Coordinate click calibration184,34 toggled the sidebar.
+An optional async question asks whether real-mouse gestures work; no answer
+observed. Do not call gestures accepted without evidence. Native AX tab labels
+are empty and cached inactive editor AX nodes are incomplete; repair accessibility.
+Selected-tab auto-reveal has upstream support but remains unverified with overflow.
+Layout persistence, duplicate views of one buffer, opening in the focused group,
+file-tree moves, JSON key colors and the rest of the full editor/agent plan remain
+required. No full Dock/editor acceptance or goal completion is claimed.
+
+Pruned5,921,494,744bytes of obsolete Studio runtime/application cache variants;
+keep runtime754fd283c74c75dd and current applicationaceb2dcec93b341d, plus the
+unchanged test caches. Native supervisor/app remain live; source checkpoints
+replace old executables, not archive directories.
+
+Next section: verify/fix gestures and AX, selected-tab reveal, persist pane/view
+state, then complete filesystem moves and configuration/docking/i18n. Keep this
+running preview and preserve drafts. Do not replay unchanged save or model tests.
+
+Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
 content regex/case search, image routing, Markdown source/preview, status/panel
 controls, workspace launch arguments, editable buffers/Cmd+S, atomic saves and
 workspace recovery. Full goal remains active; drag/drop, splits, selected-tab
@@ -29,23 +89,20 @@ reveal, JSON key colors, docking/i18n configuration and native workflows remain
 required. No completion claim. The per-item table in the Studio plan distinguishes
 observed behavior from implementation.
 
-**KEEP DEV RUNNING. Current tool PTY session50677, supervisorPID45349,
-childPID49918** (child changes after source rebuild). Session35489 was stopped
-normally to verify actual unsaved recovery. Current build succeeded and app is
-running. Inspect this specific handle before any restart. Command from
+The current live session is identified above. Command from
 apps/studio, desktop access, login=false, tty=true:
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
 /Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
 Previous app31675 was read-only. The current supervisor loads the shared Kit
 bound-prop identity fix required for editable row/preview state retention.
 
-Current installed and target/debug consumers were atomically refreshed:
+Historical bd88e292 installed consumer identities (superseded above):
 CLI SHA256280dbb8fbd9954946e94378ce4730da61cca4f132bd962a3125fe0e9baaefd08;
 LSP SHA2561392874ec607b81a3b05620bc3bf34508b8beda37979797c8c9af7ff066e602f.
 No active VSCode document/server at previous observation; do not open the entire
 checkout to force a server restart.
 
-Current section evidence:
+Retained bd88e292 evidence:
 - Combined Studio model/storage/recovery/search/settings/workspace suite18/18PASS,
   90.14ms test execution. Setup timing was not captured for that run.
 - Expanded 38-theme settings round-trip1/1PASS291.02ms execution,
@@ -108,6 +165,8 @@ change; one writer per workspace (first creation not coordinated); missing-file
 recovery fails visibly and preserves the journal. Corrupt/outside-root journals
 must never be overwritten. Saving rejects external changes. The app still needs
 native editing/undo/IME/restart acceptance, close/discard UX and richer recovery.
+
+Historical pre-bd88e292 evidence below (superseded UI behavior; retain passed checks).
 
 CUA completed: Opened Studio package in tabs; Verified package tabs and status;
 Verified native tree without clutter.

@@ -104,3 +104,18 @@ fn malformed_nested_tsrx_reports_diagnostics_without_panicking_after_unicode_tex
         for error in errors {assert!(source.is_char_boundary(error.location.span.start));assert!(source.is_char_boundary(error.location.span.end));}
     }
 }
+
+#[test]
+fn dock_selection_and_close_callbacks_keep_borrowed_string_contracts() {
+    let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+    let check=|source:&str| {
+        let formatted=support::format_round_trip(source);
+        std::fs::write(&path,formatted).unwrap();
+        check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())
+    };
+    check("import {Node,Dock,DockPanel,Text,signal} from 'std:ui';function main(){const selected=signal('a');const dirty=signal(false);const node=<Dock tabbed={true} value={selected.get()} onChange={(value)=>{selected.set(clone(value));}} onClose={(value)=>{console.log(value);}}><DockPanel value='a' title='First' closable={!dirty.get()} padded={false}><Text>Editor</Text></DockPanel></Dock>;}").unwrap().emit_rust();
+    for property in ["onChange", "onClose"] {
+        let source=format!("import {{Dock}} from 'std:ui';function main(){{const node=<Dock {property}={{(value:int)=>{{console.log(value);}}}}/>;}}");
+        assert!(check(&source).is_err(),"{property} accepted an integer callback instead of borrowed text");
+    }
+}

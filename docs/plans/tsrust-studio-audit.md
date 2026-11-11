@@ -716,3 +716,38 @@ current native cache remain. No archive/source snapshot/command-log import, broa
 unchanged suite replay, performance timing campaign, push or release occurred.
 Atomic storage has focused macOS acceptance; safe Studio saves, recovery, settings
 and Windows implementation remain required.
+
+
+## Native document docking — November 11
+
+The section following bd88e292 uses Kit Dock for editor tabs/panes. Public
+Dock.tabbed/value/onChange/onClose and DockPanel.value/closable/padded/splitControls
+are checked/generated alongside their LSP help. Native keyed reconciliation keeps
+user splits and editor instances across panel additions/removals. Final-file close
+uses the controlled close callback; dirty panels disable closing. Shared row
+identity/duplicate regression passes1/1 (0.00s execution,1m49s setup including lock
+wait); existing branch tests6/6 (0.00s,3.58s). The formatted Dock callback contract
+witness passes1/1 (1.63s,2m22s): borrowed strings check/emit; int callbacks reject.
+
+Actual CUA observes native tab reorder with an unsaved Unicode draft and retained
+undo, final-file closing, direct right/down splits, nested three-pane redraw and
+focused Cmd+S writing exact Unicode bytes only to the focused file. The .gitignore
+test bytes were undone/saved back to SHA256ad8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483;
+config remains6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439.
+Recovery contains0drafts afterward. No owner draft was discarded.
+
+Failed native compile attempts exposed defer closure arities, missing builder
+trait and wrong legacy icon enum; corrected with current APIs/asset icons. A
+real first-document panic exposed reentrant TabGroup reads from its toolbar;
+can_split is now cached during root synchronization. Native nested splits then
+exposed stale cached pane content: root/editor notifications alone failed. A
+coalesced next-frame invalidation of cached DockContent plus editor/root after
+DockEvent::LayoutChanged passes the exact no-focus-workaround three-pane witness.
+No upstream installed dependency source was changed. Latest native dev compiles,
+links and starts current source; prior failed attempts are not acceptance passes.
+
+Pointer resize/edge drops, AX tab names and inactive editor nodes, overflow reveal,
+layout persistence and duplicate views remain incomplete/unverified. The optional
+owner mouse-gesture check has no response yet. No complete Dock/editor or broader
+Studio goal acceptance is claimed. Native startup66,407ms includes40,724.0ms runtime
+build/publish; these are setup observations, not comparable performance measures.

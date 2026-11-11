@@ -375,7 +375,7 @@ Each item requires observed behavior; source changes alone do not close it.
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
 | 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
 | 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |
-| 6 | Tab/tree drag/drop, resizable editor splits | Pending |
+| 6 | Tab/tree drag/drop, resizable editor splits | Native tab reorder/draft/undo, direct right/down splits, nested-pane redraw and focused save observed; divider/edge gestures, shared views/layout persistence and tree moves pending |
 | 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |
 | 8 | Distinct JSON syntax categories | Pending |
 | 9 | Workspace launch argument; later code-dot/dock directory opening | Root uses launch argument/current directory; package default observed; alternate launch/drop pending |

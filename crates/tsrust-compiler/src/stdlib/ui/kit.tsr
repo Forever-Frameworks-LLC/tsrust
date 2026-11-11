@@ -9113,18 +9113,46 @@ export function MessageScroller(props: MessageScrollerProps): Node {
 export interface DockProps {
   /** Stacks the panels top to bottom instead of side by side. */
   vertical?: ReactiveValue<boolean>;
+  /** Initially groups all panels into one tab bar instead of separate splits. Read at mount; subsequent dragging owns the arrangement. */
+  tabbed?: ReactiveValue<boolean>;
+  /** Selects the panel with this value in its current group. Update from onChange. Other visible split groups stay open. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Reports a panel value when its tab becomes active. */
+  onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Reports a panel value after a user closes it. Remove that DockPanel child to accept; retaining it restores the panel. Set closable=false to prevent closing dirty content. */
+  onClose?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** DockPanel elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
 
-/** A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. */
+/** A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests. */
 export function Dock(props: DockProps): Node {
   let node = kitNode('Dock', props.children ?? [], props.className);
   const prop_vertical = props.vertical;
   if (prop_vertical !== undefined) {
     node = kitFlag(node, 'vertical', prop_vertical);
+  }
+
+  const prop_tabbed = props.tabbed;
+  if (prop_tabbed !== undefined) {
+    node = kitFlag(node, 'tabbed', prop_tabbed);
+  }
+
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const event_onChange = props.onChange;
+  if (event_onChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'change', event_onChange));
+  }
+
+  const event_onClose = props.onClose;
+  if (event_onClose !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'close', event_onClose));
   }
 
   return node;
@@ -9135,6 +9163,14 @@ export interface DockPanelProps {
   title?: ReactiveValue<string> | TextBinding;
   /** Initial width (or height when vertical) in pixels; omitted panels share the remaining space. */
   size?: ReactiveValue<number>;
+  /** Distinct stable panel value for Dock selection and events. Defaults to this mounted node identity. */
+  value?: ReactiveValue<string> | TextBinding;
+  /** Whether native close controls can close this panel. Defaults to true; changes update without resetting its layout or content. */
+  closable?: ReactiveValue<boolean>;
+  /** Adds the default content padding. Set false for edge-to-edge editors; defaults to true. */
+  padded?: ReactiveValue<boolean>;
+  /** Shows native Split Right and Split Down toolbar buttons. They move this panel into a resizable split when its group has another tab; otherwise they are disabled. Defaults to false. */
+  splitControls?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -9152,6 +9188,26 @@ export function DockPanel(props: DockPanelProps): Node {
   const prop_size = props.size;
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
+  }
+
+  const prop_value = props.value;
+  if (prop_value !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'value', prop_value));
+  }
+
+  const prop_closable = props.closable;
+  if (prop_closable !== undefined) {
+    node = kitFlag(node, 'closable', prop_closable);
+  }
+
+  const prop_padded = props.padded;
+  if (prop_padded !== undefined) {
+    node = kitFlag(node, 'padded', prop_padded);
+  }
+
+  const prop_splitControls = props.splitControls;
+  if (prop_splitControls !== undefined) {
+    node = kitFlag(node, 'splitControls', prop_splitControls);
   }
 
   return node;

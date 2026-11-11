@@ -43,7 +43,7 @@ use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHi
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
-use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
+use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, PanelId, DockPlacement, PanelStyle, TabGroup, InsertTarget, DockEvent, panel_handle};
 use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireInput, QuestionnaireInputDefinition, QuestionnaireShortcutMode, QuestionnaireItemStatus, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings, SelectIndex};
 use gpui_kit::component::tag::Tag;
@@ -220,7 +220,7 @@ enum KitState {
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
     Scroller(Entity<MessageScrollerState>, usize),
-    Dock(Entity<DockArea>),
+    Dock(DockState),
     Questionnaire(Entity<QuestionnaireState>),
     Speech(Entity<SpeechState>),
     /// A running Ticker's timer task (dropping it stops the ticks) and the props it was started with.
@@ -620,22 +620,56 @@ fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
 }
 
 /// One DockPanel: its content is the node's children, drawn through the root.
-struct DockContent {root: WeakEntity<Root>, node: u64, title: SharedString, focus: FocusHandle}
+struct DockContent {root: WeakEntity<Root>, dock: u64, node: u64, value: String, title: SharedString, closable: bool, padded: bool, split_controls: bool, can_split: bool, last_close: bool, area: WeakEntity<DockArea>, group: Option<WeakEntity<TabGroup>>, focus: FocusHandle}
+struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool}
 impl EventEmitter<PanelEvent> for DockContent {}
 impl Focusable for DockContent {
     fn focus_handle(&self, _: &App) -> FocusHandle {self.focus.clone()}
 }
 impl BasePanel for DockContent {
     fn panel_name(&self) -> &'static str {"TsrustDockPanel"}
+    fn closable(&self, _: &App) -> bool {self.closable}
+    fn on_added_to(&mut self,group:WeakEntity<TabGroup>,_:&mut Window,_:&mut Context<Self>){self.group=Some(group);}
+    fn set_active(&mut self, active: bool, _: &mut Window, cx: &mut Context<Self>) {
+        if !active{return;}
+        let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
+        cx.defer(move|cx|{let _=root.update(cx,|root,cx|root.emit(dock,"change",value,cx));});
+    }
+    fn on_removed(&mut self, _: &mut Window, cx: &mut Context<Self>) {
+        let root=self.root.clone();let dock=self.dock;let node=self.node;let value=self.value.clone();
+        cx.defer(move|cx|{let _=root.update(cx,|root,cx|{
+            // Programmatic removals have already retired the panel from this map.
+            if matches!(root.states.get(&dock),Some(KitState::Dock(state)) if state.panels.contains_key(&node)) {root.emit(dock,"close",value,cx);}
+        });});
+    }
 }
 impl DockPanelView for DockContent {
     fn title(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {self.title.clone()}
+    fn inner_padding(&self, _: &App) -> bool {false}
+    fn toolbar_buttons(&mut self,_:&mut Window,cx:&mut Context<Self>)->Option<Vec<Button>> {
+        let mut buttons=Vec::new();
+        if self.split_controls {
+            let enabled=self.can_split;
+            for (icon,placement,label) in [(gpui_kit::assets::IconName::Columns2,Placement::Right,"Split right"),(gpui_kit::assets::IconName::Rows2,Placement::Bottom,"Split down")] {
+                let area=self.area.clone();let group=self.group.clone();let panel=PanelId::from(cx.entity_id());
+                buttons.push(Button::new(label).icon(icon).accessibility_label(label).tooltip(label).disabled(!enabled).on_click(move|_,window,cx|{
+                    if let Some(group)=group.as_ref().and_then(WeakEntity::upgrade) {let node=group.read(cx).node();let _=area.update(cx,|area,cx|area.move_panel(panel,InsertTarget::Split{node,placement,size:None},window,cx));}
+                }));
+            }
+        }
+        if self.last_close {
+            let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
+            buttons.push(Button::new("close-document").icon(gpui_kit::assets::IconName::X).accessibility_label("Close document").tooltip("Close document").disabled(!self.closable).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"close",value.clone(),cx));}));
+        }
+        if buttons.is_empty(){None}else{Some(buttons)}
+    }
 }
 impl Render for DockContent {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let node = self.node;
         let content = self.root.update(cx, |root, cx| root.content_of(node, cx)).unwrap_or_default();
-        div().size_full().p_2().children(content)
+        let view=div().size_full();
+        (if self.padded{view.p_2()}else{view}).children(content)
     }
 }
 
@@ -1037,6 +1071,42 @@ impl Root {
         let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
         self.settle(result, cx);
+    }
+
+    fn sync_dock(&mut self,id:u64,window:&mut Window,cx:&mut Context<Self>) {
+        let Some(node)=find(&self.node,id) else{return;};
+        let selected=node.kit.as_deref().map(|kit|kit.text("value")).unwrap_or_default();
+        let controlled=node.kit.as_deref().is_some_and(|kit|kit.handles("close"));
+        let panels=items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>();
+        let Some(KitState::Dock(state))=self.states.get_mut(&id) else{return;};
+        let area=state.area.clone();let root=cx.entity();let mut values=std::collections::BTreeSet::new();
+        let last_close=controlled && panels.len()==1;
+        let wanted=panels.iter().map(|panel|panel.0).collect::<std::collections::BTreeSet<_>>();
+        let removed=state.panels.keys().filter(|node|!wanted.contains(node)).copied().collect::<Vec<_>>();
+        for node in removed {if let Some(panel)=state.panels.remove(&node){area.update(cx,|area,cx|area.remove_panel(panel,window,cx));}}
+        for (node,value,title,closable,padded,split_controls) in panels {
+            let value=if value.is_empty(){node.to_string()}else{value};
+            if !values.insert(value.clone()){fail(&self.failure,"Dock panels require distinct values".into());}
+            if let Some(panel)=state.panels.get(&node) {
+                panel.update(cx,|panel,cx|{
+                    let can_split=panel.group.as_ref().and_then(WeakEntity::upgrade).is_some_and(|group|group.read(cx).panels().len()>1);
+                    let title:SharedString=title.into();
+                    if panel.value!=value || panel.title!=title || panel.closable!=closable || panel.padded!=padded || panel.split_controls!=split_controls || panel.last_close!=last_close || panel.can_split!=can_split {
+                        panel.value=value;panel.title=title;panel.closable=closable;panel.padded=padded;panel.split_controls=split_controls;panel.last_close=last_close;panel.can_split=can_split;cx.notify();
+                    }
+                });
+                if controlled && area.read(cx).panel(PanelId::from(panel.entity_id())).is_none(){area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));}
+            }else{
+                let weak=root.downgrade();
+                let panel=cx.new(|cx|{cx.observe(&root,|_,_,cx|cx.notify()).detach();DockContent{root:weak,dock:id,node,value,title:title.into(),closable,padded,split_controls,can_split:false,last_close,area:area.downgrade(),group:None,focus:cx.focus_handle()}});
+                area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));
+                state.panels.insert(node,panel);
+            }
+        }
+        if state.selected!=selected {
+            if let Some(panel)=state.panels.values().find(|panel|panel.read(cx).value==selected){area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));}
+            state.selected=selected;
+        }
     }
 
     /// The style refinement for a utility class string.
@@ -1512,7 +1582,8 @@ impl Root {
                             }
                         }
                     }
-                    KitState::Dock(_) | KitState::Speech(_) => {}
+                    KitState::Dock(_) => {self.sync_dock(id,window,cx);}
+                    KitState::Speech(_) => {}
                 }
                 continue;
             }
@@ -1753,22 +1824,46 @@ impl Root {
                     KitState::Table(state, grid_shape(node))
                 }
                 "Dock" => {
-                    // The layout is built once; afterwards the user owns the arrangement.
                     let vertical = text("vertical") == "true";
-                    let panels = find(&self.node, id).map(|node| items(node, "DockPanel").map(|(child, item)| (child.identity.get(), item.text("title"), item.number("size"))).collect::<Vec<_>>()).unwrap_or_default();
-                    let (area, _) = DockSkin::dock_area(format!("dock-{id}"), None, window, cx);
+                    let tabbed = text("tabbed") == "true";
+                    let panels = find(&self.node,id).map(|node|items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.number("size"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>()).unwrap_or_default();
+                    let (area, skin) = DockSkin::dock_area(format!("dock-{id}"), None, window, cx);
+                    skin.set_close_button_visible(true,cx);skin.set_panel_style(PanelStyle::TabBar,cx);
+                    cx.observe(&area,|_,_,cx|cx.notify()).detach();
+                    cx.subscribe_in(&area,window,move|root,_,event:&DockEvent,window,cx|{
+                        if !matches!(event,DockEvent::LayoutChanged){return;}
+                        let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};
+                        if state.repaint_pending{return;}state.repaint_pending=true;
+                        let weak=cx.entity().downgrade();
+                        // Cached editors must repaint after the new pane bounds have been laid out.
+                        window.on_next_frame(move|_,cx|{let _=weak.update(cx,|root,cx|{
+                            let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};state.repaint_pending=false;
+                            let panels=state.panels.values().cloned().collect::<Vec<_>>();
+                            for panel in panels{panel.update(cx,|_,cx|cx.notify());}
+                            let editors=root.states.values().filter_map(|state|if let KitState::Editor(editor,_)=state{Some(editor.clone())}else{None}).collect::<Vec<_>>();
+                            for editor in editors{editor.update(cx,|_,cx|cx.notify());}cx.notify();
+                        });});
+                    }).detach();
                     let root = cx.entity();
                     let mut layout = if vertical {DockLayout::v_split()} else {DockLayout::h_split()};
-                    for (node, title, size) in panels {
+                    let last_close=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("close")) && panels.len()==1;
+                    let mut group=DockLayout::tabs();let mut held=std::collections::BTreeMap::new();let mut values=std::collections::BTreeSet::new();
+                    for (node, value, title, size, closable, padded, split_controls) in panels {
+                        let value=if value.is_empty(){node.to_string()}else{value};
+                        if !values.insert(value.clone()){fail(&self.failure,"Dock panels require distinct values".into());}
                         let weak = root.downgrade();
                         let panel = cx.new(|cx| {
                             cx.observe(&root, |_, _, cx| cx.notify()).detach();
-                            DockContent {root: weak, node, title: title.into(), focus: cx.focus_handle()}
+                            DockContent {root:weak,dock:id,node,value,title:title.into(),closable,padded,split_controls,can_split:false,last_close,area:area.downgrade(),group:None,focus:cx.focus_handle()}
                         });
-                        layout = layout.child(DockLayout::tabs().panel_view(panel_handle(panel), cx), size.map(|size| px(size as f32)));
+                        if tabbed{group=group.panel_view(panel_handle(panel.clone()),cx);}else{layout=layout.child(DockLayout::tabs().panel_view(panel_handle(panel.clone()),cx),size.map(|size|px(size as f32)));}
+                        held.insert(node,panel);
                     }
-                    area.update(cx, |area, cx| area.set_center(layout, window, cx));
-                    KitState::Dock(area)
+                    area.update(cx, |area, cx| area.set_center(if tabbed{group}else{layout}, window, cx));
+                    if let Some(selected)=props.get("value") && let Some(panel)=held.values().find(|panel|panel.read(cx).value==*selected) {
+                        area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));
+                    }
+                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false})
                 }
                 "Ticker" => {
                     let task = ticker(id, &props, cx);
@@ -3399,7 +3494,7 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Dock" => match self.states.get(&id) {
-                Some(KitState::Dock(area)) => div().size_full().child(area.clone()).into_any_element(),
+                Some(KitState::Dock(state)) => div().size_full().child(state.area.clone()).into_any_element(),
                 _ => div().into_any_element(),
             },
             "MessageScroller" => match self.states.get(&id) {
@@ -3426,7 +3521,6 @@ impl Root {
                 Some(KitState::AppMenuBar(bar,_)) if !cfg!(target_os="macos") => div().child(bar.clone()).into_any_element(),
                 _ => div().into_any_element(),
             },
-            "Shortcut" | "Ticker" => div().into_any_element(),
             // Item and slot components render through their container.
             // A trigger nested inside other content toggles its nearest Collapsible.
             "CollapsibleTrigger" => match ancestor_named(&self.node, id, "Collapsible") {

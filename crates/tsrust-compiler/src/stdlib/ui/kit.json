@@ -3981,7 +3981,7 @@
           "doc": "Horizontal placement along that edge."
         }
       ],
-      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">👍 2</Button></BubbleReactions>"
+      "example": "<BubbleReactions><Button size=\"xsmall\" variant=\"ghost\">\ud83d\udc4d 2</Button></BubbleReactions>"
     },
     {
       "name": "BubbleGroup",
@@ -4209,7 +4209,7 @@
       "children": true,
       "doc": "Trailing content of a ListItem, such as a count or shortcut.",
       "props": [],
-      "example": "<ListItemSuffix><Kbd>⌘K</Kbd></ListItemSuffix>"
+      "example": "<ListItemSuffix><Kbd>\u2318K</Kbd></ListItemSuffix>"
     },
     {
       "name": "ListSeparator",
@@ -5840,7 +5840,7 @@
         }
       ],
       "children": "MarkerIcon, MarkerContent or any content",
-      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking…</MarkerContent>\n</Marker>"
+      "example": "<Marker variant=\"separator\" loading={true} loadingStyle=\"shimmer\">\n  <MarkerIcon><Icon name=\"sparkles\" /></MarkerIcon>\n  <MarkerContent>Thinking\u2026</MarkerContent>\n</Marker>"
     },
     {
       "name": "MarkerIcon",
@@ -5870,7 +5870,7 @@
         {
           "name": "description",
           "type": "string",
-          "doc": "Secondary text, such as PDF · 2.4 MB."
+          "doc": "Secondary text, such as PDF \u00b7 2.4 MB."
         },
         {
           "name": "icon",
@@ -5896,7 +5896,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Upload progress, 0–100, while uploading."
+          "doc": "Upload progress, 0\u2013100, while uploading."
         },
         {
           "name": "tooltip",
@@ -5946,7 +5946,7 @@
           "doc": "Shows a retry button on failure; called when it is clicked."
         }
       ],
-      "example": "<Attachment title=\"report.pdf\" description=\"PDF · 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
+      "example": "<Attachment title=\"report.pdf\" description=\"PDF \u00b7 2.4 MB\" icon=\"file-text\" onRemove={() => { remove(); }}/>",
       "children": "AttachmentMedia, AttachmentContent and AttachmentActions"
     },
     {
@@ -5963,7 +5963,7 @@
       "children": true,
       "doc": "An Attachment's secondary text; it shows the status while in progress or failed.",
       "props": [],
-      "example": "<AttachmentDescription>PDF · 2.4 MB</AttachmentDescription>"
+      "example": "<AttachmentDescription>PDF \u00b7 2.4 MB</AttachmentDescription>"
     },
     {
       "name": "AttachmentTitle",
@@ -6552,16 +6552,38 @@
     },
     {
       "name": "Dock",
-      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels.",
+      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests.",
       "props": [
         {
           "name": "vertical",
           "type": "boolean",
           "doc": "Stacks the panels top to bottom instead of side by side."
+        },
+        {
+          "name": "tabbed",
+          "type": "boolean",
+          "doc": "Initially groups all panels into one tab bar instead of separate splits. Read at mount; subsequent dragging owns the arrangement."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selects the panel with this value in its current group. Update from onChange. Other visible split groups stay open."
         }
       ],
       "children": "DockPanel",
-      "example": "<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>"
+      "example": "<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>",
+      "events": [
+        {
+          "value": "string",
+          "doc": "Reports a panel value when its tab becomes active.",
+          "prop": "onChange"
+        },
+        {
+          "value": "string",
+          "doc": "Reports a panel value after a user closes it. Remove that DockPanel child to accept; retaining it restores the panel. Set closable=false to prevent closing dirty content.",
+          "prop": "onClose"
+        }
+      ]
     },
     {
       "name": "DockPanel",
@@ -6576,6 +6598,26 @@
           "name": "size",
           "type": "number",
           "doc": "Initial width (or height when vertical) in pixels; omitted panels share the remaining space."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Distinct stable panel value for Dock selection and events. Defaults to this mounted node identity."
+        },
+        {
+          "name": "closable",
+          "type": "boolean",
+          "doc": "Whether native close controls can close this panel. Defaults to true; changes update without resetting its layout or content."
+        },
+        {
+          "name": "padded",
+          "type": "boolean",
+          "doc": "Adds the default content padding. Set false for edge-to-edge editors; defaults to true."
+        },
+        {
+          "name": "splitControls",
+          "type": "boolean",
+          "doc": "Shows native Split Right and Split Down toolbar buttons. They move this panel into a resizable split when its group has another tab; otherwise they are disabled. Defaults to false."
         }
       ],
       "children": true,
@@ -6854,7 +6896,7 @@
     },
     {
       "name": "PlotTooltip",
-      "doc": "A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot’s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels.",
+      "doc": "A hover overlay for its parent Plot. The pointer chooses the nearest category band; automatic rows show each available series value. Uses the plot\u2019s stable identity and releases hover state with the plot. No tooltip is shown for an empty plot or over axis labels.",
       "item": true,
       "children": "PlotTooltipRow",
       "props": [
@@ -6866,7 +6908,7 @@
         {
           "name": "progress",
           "type": "number",
-          "doc": "Optional overlay opacity, clamped to 0–1. Must be finite. Omit to use Kit’s hover fade."
+          "doc": "Optional overlay opacity, clamped to 0\u20131. Must be finite. Omit to use Kit\u2019s hover fade."
         },
         {
           "name": "title",
@@ -6929,7 +6971,7 @@
         {
           "name": "valueColor",
           "type": "string",
-          "doc": "Optional text color for this row’s value. Uses the same color names as Plot marks; omit to inherit tooltip text color."
+          "doc": "Optional text color for this row\u2019s value. Uses the same color names as Plot marks; omit to inherit tooltip text color."
         }
       ],
       "example": "<PlotTooltipRow label=\"Target\" value=\"100\" valueColor=\"green-500\"/>"
@@ -6947,7 +6989,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -6989,7 +7031,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "curve",
@@ -7021,7 +7063,7 @@
         {
           "name": "color",
           "type": "string",
-          "doc": "Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
+          "doc": "Theme color (chart-1 \u2026 chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color."
         },
         {
           "name": "label",
