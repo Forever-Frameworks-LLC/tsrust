@@ -49,6 +49,23 @@ identities, proof contracts, current checks and unresolved prerequisites.
   actions. Use actual document tabs and working editor actions. Visual polish
   must serve editing rather than website branding.
 
+## Current native terminal integration — 2026-11-11
+
+The native Terminal, checked command/snapshot API and Studio's first shell are now
+implemented. Public guarded-action2/2, real-PTY2/2, UI-node/HTML1/1 and compiler
+facade1/1 focused witnesses pass. Native shell input, correct apps/studio cwd,
+8x136 grid, ANSI red and Unicode/CJK/emoji were observed. This does not prove full
+terminal/editor acceptance or integrated AI transport.
+
+Owner feedback now requires a right session rail for multiple shells, replacing
+the extra full-width controls header. Panel and editor tab labels must follow the
+configured size/zoom, and the panel header must have one bottom line. These are
+next. Cancellation through the button, multiple-session retention, resize/zoom,
+copy/selection, restart/quit and dev-shutdown process-tree behavior remain pending.
+Unix dev group termination does not cover a PTY's separate session by itself;
+prove and fix HUP-ignoring-job cleanup before completing that lifecycle gate.
+Installed public consumers still need atomic refresh after the normal pair build.
+
 ## Current terminal prerequisite — 2026-11-11
 
 After search checkpoint0b6f35d5, the managed GPUI graph admits exact

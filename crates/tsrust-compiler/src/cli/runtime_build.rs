@@ -146,6 +146,7 @@ impl Prepared {
    if runtime.contains("// tsrust-ui-highlight-selected\n"){features.push("gpui-highlight");}
    if runtime.contains("// tsrust-ui-speech-selected\n"){features.push("gpui-speech");}
    if runtime.contains("// tsrust-ui-http-selected\n"){features.push("gpui-http");}
+   if runtime.contains("// tsrust-ui-terminal-selected\n"){features.push("gpui-terminal");}
    command.args(["--features",&features.join(",")]);
   }
 

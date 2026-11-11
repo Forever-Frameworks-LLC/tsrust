@@ -1,0 +1,149 @@
+import { TerminalAction, TerminalRequest, TerminalCommandResult, TerminalSnapshot, controlTerminal, readTerminal } from 'std:ui';
+import { JsonLimits } from 'std:json';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface TerminalAuthority {
+  sessionId: string;
+  allowRead: boolean;
+  allowInput: boolean;
+  allowNavigation: boolean;
+  allowClipboard: boolean;
+  allowTerminate: boolean;
+}
+
+export interface TerminalCommandDefinition {
+  name: TerminalAction | 'read';
+  description: string;
+  effect: 'read' | 'navigation' | 'input' | 'clipboard' | 'terminate';
+  text: boolean;
+  lines: boolean;
+}
+
+// One definition supplies discovery, argument requirements and host capability checks.
+export function terminalCommands(): TerminalCommandDefinition[] {
+  return [{
+    name: 'read', description: 'Read the visible terminal grid, selection and session status without changing focus.', effect: 'read', text: false, lines: false
+  }, {
+    name: 'focus', description: 'Focus the explicitly requested terminal.', effect: 'navigation', text: false, lines: false
+  }, {
+    name: 'write', description: 'Send exact UTF-8 input. Enter can execute commands; requires an isolated terminal or an explicit host grant.', effect: 'input', text: true, lines: false
+  }, {
+    name: 'paste', description: 'Paste text using terminal bracketed-paste mode when enabled. Enter can execute commands.', effect: 'input', text: true, lines: false
+  }, {
+    name: 'interrupt', description: 'Send Ctrl+C to the foreground job.', effect: 'input', text: false, lines: false
+  }, {
+    name: 'select', description: 'Select an inclusive zero-based viewport range [startRow,startColumn,endRow,endColumn]. Does not send input.', effect: 'navigation', text: false, lines: false
+  }, {
+    name: 'copy', description: 'Copy the local terminal selection to the system clipboard.', effect: 'clipboard', text: false, lines: false
+  }, {
+    name: 'scroll', description: 'Scroll terminal history by signed lines; positive moves upward.', effect: 'navigation', text: false, lines: true
+  }, {
+    name: 'restart', description: 'Start a new shell after the old one has exited. Changes the session generation and clears its old grid.', effect: 'input', text: false, lines: false
+  }, {
+    name: 'close', description: 'Force-terminate the terminal foreground job and shell. Does not let programs save.', effect: 'terminate', text: false, lines: false
+  }];
+}
+
+export interface TerminalArguments {
+  id: string;
+  generation?: int;
+  text?: string;
+  lines?: int;
+  selection?: int[];
+}
+
+export interface TerminalToolResult {
+  ok: boolean;
+  data: string;
+  error: string;
+}
+
+export function terminalToolSchema(command: ReadOnly<TerminalCommandDefinition>): string {
+  const generation = command.name === 'read' ? '' : ',"generation":{"type":"integer","minimum":1}';
+  const text = command.text ? ',"text":{"type":"string"}' : '';
+  const lines = command.lines ? ',"lines":{"type":"integer","minimum":-2147483648,"maximum":2147483647}' : '';
+  const selection = command.name === 'select' ? ',"selection":{"type":"array","items":{"type":"integer","minimum":0},"minItems":4,"maxItems":4}' : '';
+  const required = '"id"' + (command.name === 'read' ? '' : ',"generation"') + (command.text ? ',"text"' : '') + (command.lines ? ',"lines"' : '') + (command.name === 'select' ? ',"selection"' : '');
+  return '{"type":"object","properties":{"id":{"type":"string","minLength":1}' + generation + text + lines + selection + '},"required":[' + required + ']}';
+}
+
+export function terminalTools(): EditorTool[] {
+  return terminalCommands().map((command: ReadOnly<TerminalCommandDefinition>): EditorTool => ({
+    name: 'terminal_' + `${command.name}`, description: clone(command.description), inputSchema: terminalToolSchema(command)
+  }));
+}
+
+function parseTerminalArguments(payload: ReadOnly<string>): Result<TerminalArguments, string> {
+  if (payload.length > 2 * 1024 * 1024) return Err('Terminal tool arguments exceed 2 MiB.');
+  try {
+    const limits: JsonLimits = {
+      maxBytes: 2 * 1024 * 1024, maxDepth: 8, maxEntries: 16, maxNodes: 32
+    };
+    return Ok(JSON.parse<TerminalArguments>(payload, limits));
+  } catch (_) {
+    return Err('Invalid terminal tool arguments.');
+  }
+}
+
+export function validateTerminalCommand(authority: ReadOnly<TerminalAuthority>, name: string, args: ReadOnly<TerminalArguments>): Result<TerminalRequest | undefined, string> {
+  const command = terminalCommands().find((command) => command.name === name);
+  if (command === undefined) return Err('Unknown terminal command.');
+  if (args.id === '' || args.id !== authority.sessionId) return Err('Terminal session is outside the granted scope.');
+  const permitted = command.effect === 'read' ? authority.allowRead : command.effect === 'navigation' ? authority.allowNavigation : command.effect === 'input' ? authority.allowInput : command.effect === 'clipboard' ? authority.allowClipboard : authority.allowTerminate;
+  if (!permitted) return Err('Terminal action is not permitted by the host.');
+  if (name !== 'read' && (args.generation ?? 0) < 1) return Err('Terminal action requires the observed session generation.');
+  if (command.text && args.text === undefined) return Err('Terminal action requires text.');
+  if ((args.text ?? '').length > 1024 * 1024) return Err('Terminal input exceeds 1 MiB per request.');
+  if (command.lines && args.lines === undefined) return Err('Terminal scroll requires lines.');
+  const lines = args.lines ?? 0;
+  if (lines < -2147483648 || lines > 2147483647) return Err('Terminal scroll requires a signed 32-bit line count.');
+  if (name === 'select' && (args.selection ?? []).length !== 4) return Err('Terminal selection requires four viewport coordinates.');
+  const action = command.name;
+  if (action === 'read') return Ok(undefined);
+  return Ok({
+    action: action, text: clone(args.text), lines: args.lines, selection: clone(args.selection), expectedGeneration: args.generation
+  });
+}
+
+// The integrated host supplies authority; payload fields cannot grant permissions.
+export function invokeTerminalTool(authority: ReadOnly<TerminalAuthority>, name: string, payload: ReadOnly<string>, onResult: Owned<Function<void, [result: ReadOnly<TerminalToolResult>]>>): void {
+  const registered = terminalTools();
+  if (!registered.some((tool) => tool.name === name)) {
+    onResult({
+      ok: false, data: '', error: 'Unknown terminal tool.'
+    });
+    return;
+  }
+
+  match (parseTerminalArguments(payload)) {
+    Err(error) => {
+      onResult({
+        ok: false, data: '', error: clone(error)
+      });
+    },
+    Ok(args) => {
+      match (validateTerminalCommand(authority, name.slice(9), args)) {
+        Err(error) => {
+          onResult({
+            ok: false, data: '', error: clone(error)
+          });
+        },
+        Ok(request) => {
+          if (request === undefined) {
+            readTerminal(args.id, (snapshot: ReadOnly<TerminalSnapshot>) => {
+              onResult({
+                ok: snapshot.found, data: JSON.stringify(snapshot), error: snapshot.found ? '' : 'Terminal session is not mounted.'
+              });
+            });
+          } else {
+            controlTerminal(args.id, request, (result: ReadOnly<TerminalCommandResult>) => {
+              onResult({
+                ok: result.ok, data: '', error: clone(result.error ?? '')
+              });
+            });
+          }
+        }
+      }
+    }
+  }
+}

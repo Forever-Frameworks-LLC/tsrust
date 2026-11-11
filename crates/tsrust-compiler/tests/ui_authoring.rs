@@ -2,6 +2,18 @@ use tsrust_compiler::project::{FileSourceProvider, check_graph, load_project};
 mod support;
 
 #[test]
+fn terminal_facade_has_checked_commands_and_opt_in_native_dependencies() {
+ let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+ for (body,selected) in [("const view=<Terminal id='shell' directory='/tmp' fontSize={14}/>;controlTerminal('shell',{action:'interrupt'},(result)=>{console.log(result.ok);});readTerminal('shell',(snapshot)=>{console.log(snapshot.found);});",true),("controlTerminal('absent',{action:'focus'},(result)=>{console.log(result.ok);});",false)] {
+  std::fs::write(&path,support::format_round_trip(&format!("import {{Terminal,controlTerminal,readTerminal}} from 'std:ui';function main(){{{body}}}"))).unwrap();
+  let rust=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap().emit_rust();
+  assert_eq!(tsrust_compiler::native_runtime::separate(&rust).runtime.unwrap_or_default().contains("// tsrust-ui-terminal-selected"),selected);
+ }
+ std::fs::write(&path,"import {controlTerminal} from 'std:ui';function main(){controlTerminal('shell',{action:'format-disk'},(result)=>{});}").unwrap();
+ assert!(check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).is_err());
+}
+
+#[test]
 fn data_signals_accept_snapshots_but_reject_nested_resources_and_callbacks() {
  let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
  let check=|source:&str| {std::fs::write(&path,source).unwrap();check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap())};

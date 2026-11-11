@@ -133,6 +133,10 @@ impl Kit {
             if matches!(name,"defaultPage"|"defaultGroup") && value.parse::<usize>().is_err() {return Err(format!("Settings {name} requires a nonnegative integer"));}
             if matches!(name,"sidebarWidth"|"sidebarMinWidth"|"sidebarMaxWidth") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && value>=0. && value<=f32::MAX as f64) {return Err(format!("Settings {name} requires finite nonnegative native pixels"));}
         }
+        if self.name=="Terminal" {
+            if name=="id" && value.trim().is_empty() {return Err("Terminal id must not be empty".into());}
+            if name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err("Terminal fontSize requires an integer from 8 through 40".into());}
+        }
         if self.name=="SpeechButton" && name=="stopTimeout" && value.parse::<u64>().is_err() {return Err("SpeechButton stopTimeout requires nonnegative integer milliseconds".into());}
         if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}
         if self.name=="Diff" {
@@ -523,4 +527,17 @@ mod settings_value_tests {
   let node=node.with_kit_prop("sidebarMaxWidth","100").unwrap();
   assert!(node.kit.as_deref().unwrap().settings_sidebar().is_err());
  }
+}
+
+#[cfg(test)]
+mod terminal_tests {
+    use super::Node;
+    #[test]
+    fn terminal_validates_font_and_identity_without_spawning_a_shell_in_html() {
+        for size in ["0", "7", "41", "-1", "14.5", "NaN"] {assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("fontSize", size).is_err());}
+        for size in ["8", "14", "40"] {assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("fontSize", size).is_ok());}
+        assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", " ").is_err());
+        let node=Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", "shell").unwrap();
+        assert!(crate::web::document(&node,"Terminal").contains("Native terminal is unavailable in HTML output."));
+    }
 }

@@ -3,6 +3,7 @@ import { View, Text, Button, Shortcut, Resizable, ResizablePanel, Node, signal, 
 import { currentDir, args, get } from 'std:env';
 import { Channel, Sender } from 'std:futures';
 import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
+import { TerminalPanel } from './components/tasks/terminal-panel.tsrx';
 import { CheckPanel, beginCheck } from './components/tasks/check-panel.tsrx';
 import { extname } from 'std:path';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
@@ -77,7 +78,7 @@ function App(path: string, requests: Sender<string>, shortcutRequests: Sender<st
   const browser = ProjectTree(workspace.get().root, workspace, font, recovery, settings);
   const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
   const contentSearch = ContentSearch(workspace, recovery, font);
-  const panelView = Panels(panel, CheckPanel(requests, cancellations, results, font, checking, checkOutput));
+  const panelView = Panels(panel, CheckPanel(requests, cancellations, results, font, checking, checkOutput), TerminalPanel(workspace.get().root, font));
   const chatView = ChatPanel(chat);
   const status = computed<string>(() => {
     const state = workspace.get();

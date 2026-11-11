@@ -23331,6 +23331,60 @@
       "documentation": "Removes every notification in the active window.\n\n```tsrx\nclearNotifications();\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
     },
     {
+      "name": "TerminalAction",
+      "signature": "type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'scroll' | 'close' | 'restart' | 'select'",
+      "documentation": "Native terminal operations addressed by session id. focus changes keyboard focus; write sends exact UTF-8 bytes; paste normalizes line endings and uses bracketed paste when requested by the application; interrupt sends Ctrl+C through the PTY; copy copies local selection; scroll moves history by signed lines; close force-terminates foreground job and shell. Hiding a Terminal does not close it. Example: {action: 'interrupt'} stops a foreground program which handles Ctrl+C. Ownership: plain command data. restart starts a fresh shell only after exit; select sets an inclusive viewport cell range without sending PTY input."
+    },
+    {
+      "name": "TerminalRequest",
+      "signature": "interface TerminalRequest",
+      "documentation": "Arguments for controlTerminal: action is required; text supplies write/paste input, limited to 1 MiB after encoding; lines supplies scroll delta from -2147483648 through 2147483647, positive upward. No Enter is added; include \\r explicitly to submit a command. Example: {action: 'write', text: 'pwd\\r'} runs pwd in the shell. Input can execute code and affect files; agent hosts must enforce grants and isolation before calling. Ownership: an owned record queued in the originating window. expectedGeneration must match the generation reported by readTerminal; omission targets the current instance. Agent callers must supply the observed positive generation. selection supplies exactly four nonnegative viewport coordinates [startRow,startColumn,endRow,endColumn] for select; each coordinate must lie inside the current grid."
+    },
+    {
+      "name": "TerminalCommandResult",
+      "signature": "interface TerminalCommandResult",
+      "documentation": "Asynchronous terminal action outcome. ok=true means the action was delivered, not that a shell command completed or succeeded. ok=false carries error for missing session, unsupported action, invalid arguments or failed PTY input. Example: result.ok=false with error Terminal session is not mounted means the named Terminal has not been displayed. Ownership: copied result data; callbacks borrow it for their duration."
+    },
+    {
+      "name": "TerminalSnapshot",
+      "signature": "interface TerminalSnapshot",
+      "documentation": "Copied native terminal state: found is required; directory, title, exited, exitCode (nullable), error, text, selectedText, columns, rows, scrollOffset and focused are optional and absent when not found. text contains only the visible grid, not the full scrollback or raw output. Reading has no focus, input or scrolling effects. Example: a mounted 80-column terminal reports columns=80; an unknown id reports found=false. Ownership: independent snapshot; later terminal output does not mutate it. generation identifies the mounted shell instance and changes on restart. Use it as expectedGeneration to reject a stale action."
+    },
+    {
+      "name": "controlTerminal",
+      "signature": "controlTerminal(id: string, request: TerminalRequest, onResult: Owned<Function<void, [result: ReadOnly<TerminalCommandResult>]>>): void",
+      "parameters": [
+        {
+          "label": "id",
+          "documentation": "Unique nonempty id of the mounted Terminal in the originating window."
+        },
+        {
+          "label": "request",
+          "documentation": "Action plus text for write/paste or signed 32-bit lines for scroll. close force-terminates jobs; interrupt sends Ctrl+C."
+        },
+        {
+          "label": "onResult",
+          "documentation": "Called once with delivery success or an error. Delivery is not command completion."
+        }
+      ],
+      "documentation": "Queues an action on the native terminal identified by id and calls onResult on the next frame. Unknown/unmounted ids and unavailable terminal support return ok=false. write sends exact UTF-8; paste normalizes CRLF/CR and honors bracketed-paste mode. Input is at most 1 MiB per request and may execute commands when it includes Enter. close is forceful and does not let applications save. Caller-owned agent grants/isolation are required before sending input to a live terminal.\n\n```tsrx\ncontrolTerminal('shell', {action: 'interrupt'}, (result) => { console.log(result.ok); });\n```\n\nPrints true when Ctrl+C was delivered to the mounted session. Ownership: owns request and callback; session stays owned by its mounted node. A mismatched expectedGeneration returns ok=false without applying the action. restart rejects a running shell; select requires four in-grid coordinates and does not focus or send input."
+    },
+    {
+      "name": "readTerminal",
+      "signature": "readTerminal(id: string, onRead: Owned<Function<void, [snapshot: ReadOnly<TerminalSnapshot>]>>): void",
+      "parameters": [
+        {
+          "label": "id",
+          "documentation": "Unique terminal id in the originating window."
+        },
+        {
+          "label": "onRead",
+          "documentation": "Called once with copied visible text, selected text, geometry, status and focus; found=false when no mounted session matches."
+        }
+      ],
+      "documentation": "Reads a native Terminal on the next frame. Returns no value immediately; onRead receives a snapshot. No input, focus or scroll changes occur. Visible text is bounded by the viewport rather than full scrollback. An unmounted id reports found=false.\n\n```tsrx\nreadTerminal('shell', (snapshot) => { console.log(snapshot.found); });\n```\n\nPrints true for a previously displayed shell session, including when hidden. Ownership: owns the callback and copied id; callback borrows an independent snapshot."
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [
@@ -25985,6 +26039,22 @@
       "name": "CarouselPaginationProps",
       "signature": "interface CarouselPaginationProps",
       "documentation": "One dot per slide; clicking a dot shows that slide.\n\nProps:\n- `accessibilityLabel`: Name screen readers announce for the dots.\n- `size`: Size: xsmall, small, medium (default) or large.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<CarouselPagination />\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "Terminal",
+      "signature": "Terminal(props: TerminalProps): Node",
+      "parameters": [
+        {
+          "label": "props: TerminalProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount.\n\nProps:\n- `id`: Unique nonempty session identifier within this window. Required for programmatic control and reading.\n- `directory`: Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell.\n- `fontSize`: Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid.\n- `accessibilityLabel`: Accessible terminal name. Defaults to Terminal.\n- `onExit`: Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TerminalProps",
+      "signature": "interface TerminalProps",
+      "documentation": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount.\n\nProps:\n- `id`: Unique nonempty session identifier within this window. Required for programmatic control and reading.\n- `directory`: Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell.\n- `fontSize`: Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid.\n- `accessibilityLabel`: Accessible terminal name. Defaults to Terminal.\n- `onExit`: Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"h-64\"/>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "CodeEditor",

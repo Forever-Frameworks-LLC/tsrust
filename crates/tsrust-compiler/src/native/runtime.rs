@@ -91,6 +91,7 @@ pub fn separate(source:&str)->Units {
     if ["CodeEditor","Markdown","Diff"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
     if source.contains("String::Borrowed(\"SpeechButton\")"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
     if ["Avatar","Image"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HTTP_MARKER);}
+    if source.contains("String::Borrowed(\"Terminal\")"){runtime.push_str(crate::stdlib::ui::TERMINAL_MARKER);}
     // GPUI Kit embeds only its default icons; a program naming any other catalog
     // icon registers the complete bundled set instead.
     let all_icons=include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")")));

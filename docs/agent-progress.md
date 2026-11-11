@@ -9,6 +9,89 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+Current terminal continuation — first native integration, before the owner's new
+multi-session rail and typography requests. Full Studio goal active. New std:ui
+Terminal wraps alacritty_terminal0.26.0 through compiler-owned native modules;
+checked controlTerminal/readTerminal, opt-in marker/runtime feature, catalog/docs,
+HTML unsupported output, generation guards, typed guarded terminalTools catalog
+and callable adapter are implemented. Studio's initial single-session panel is
+running. The extra terminal controls header is explicitly superseded by owner
+feedback: replace it with a VS Code-style right session rail supporting multiple
+shells, selection/new/close; remove that extra full-width row. Owner also reports
+panel and editor tab labels ignore configured font size, and the panel header has
+a duplicate bottom line. Address all tab typography in shared rendering.
+
+Evidence for this first integration: public terminal-actions.test.tsr2/2PASS0.87ms
+execution/setup20.967s (check1.282s, emit0.259s, native/link19.203s); actual registered
+adapter denies forged input/terminate grants, malformed/unregistered requests;
+command definitions generate tool schemas and validate targets/generations/bounds.
+Core PTY2/2PASS0.05s after completion/palette support; UI model1/1PASS0s/setup2.69s
+(font/id bounds, HTML never spawns a shell); compiler facade1/1PASS2.99s/setup2m34s
+(typed commands, invalid action rejection and no Terminal dependency marker when
+only its facade is used). No full compiler/LSP/UI matrix. Whole formatter passed,
+last run2files changed; locales2catalogs/150keys and diff checks pass.
+
+SDK normal pair built after four coherent native source iterations; each build
+about2m34–2m37s. Native compilation first found five GPUI API mismatches (focus
+needs cx, danger color, Stateful accessibility id), then one entity read-borrow
+held across painting. Fixed by copying frame content under a short read, then
+painting without the entity borrow. Wide-character backgrounds now precede all
+glyphs; fixed cell advance supplied to shaping. GPUI startup stays on main thread.
+The first native dependency compile rebuilt GPUI after optional dependency feature
+changes; later runtime repairs reused it. These are build observations, not timing
+benchmarks. Installed CLI/LSP have NOT yet been refreshed for this public checkpoint;
+the focused compiler test may have replaced target/debug/tsrust with its test-profile
+variant. Restore normal pair before atomic installed refresh and project-check MAT.
+
+LIVE supervisor62791/PTY11755/app65759, one preview; current bundle is
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-62791-1794412820045355000-0/Tsrust Studio.app.
+First load50.238s; formatter-triggered rebuild53.806s. Owner journal retained five
+open paths, active src/components/editor/editor.tsrx, single pane, drafts0, zoom-1.
+Owner was actively navigating; preserve their current state rather than older
+left/right splits. Native Terminal first mount verified pwd=apps/studio, stty8x136,
+Unicode/CJK/emoji/combining text and red ANSI foreground. Screenshot confirms full
+wide glyphs and shared text scale in the terminal itself. Initial shell64584 was
+replaced by formatter reload; current shell65845 (parent65844), app65759. The
+interrupt button was clicked during /bin/sleep30, but its timing/outcome is NOT
+proved; do not count it as a cancellation pass. Need repeat with a long identifiable
+job and inspect prompt/child state after the UI/tool route. Copy, select, hide/show,
+resize, zoom, restart and quit cleanup MAT remain pending.
+
+Two Finder missing-file alerts were caused by CUA using stale App objects after
+dev replaced/deleted its temporary bundle. Tool errors name the obsolete .app,
+not an edited document. Reacquire using the current live bundle path from ps after
+reload; never reuse a native App binding across replacement. Bundle-ID resolution
+can retain a deleted path. Finder had no alert in its AX tree; CoreServicesUIAgent
+is running (com.apple.coreservices.uiagent) but CUA could not inspect it (timeouts).
+Do not claim the alert was dismissed. CUA phase closed with Identified stale preview
+launch warning. Future inspections must use the live bundle path and avoid racing
+rebuilds. User's two screenshots correspond to these tooling failures.
+
+Important lifecycle gap found by source inspection: Unix dev Process.stop only
+kills the app process group. PTY shells create another session/group. Native normal
+quit closes/reaps through GPUI hooks and a completion-only App-global ledger
+(no resource-handle registry), but forced dev SIGTERM can bypass those hooks.
+Default-shell HUP likely exits; HUP-ignoring foreground jobs are NOT proved cleaned
+by dev shutdown. Add a real witness, then a graceful termination bridge or managed
+cleanup fix before claiming complete dev terminal lifecycle. No speculative pass.
+
+Public terminal limitations: current OSC override queries report themed defaults,
+though override colors draw; Windows/IME/middle/right mouse and broader resource
+acceptance remain unverified. Raw local selection, scroll, paste, F keys, mouse and
+focus modes are implemented but need native witnesses. Programmatic tools require
+trusted host permissions and observed session generation; live AI transport is
+still unconnected. Agent live-shell execution remains denied absent host grant.
+
+Next immediate owner-priority work: shared Tab text-size override (native Kit Tab
+currently overwrites custom font with text_sm), pass Studio font into panel Tabs and
+Dock labels, use TabsSuffix for close control to keep one underline, and replace
+TerminalPanel with a right-hand multiple-session rail. Reactive rows must have
+semantic View ids; hidden nodes retain PTY state, actual removal drops it. Reuse
+std:ui Sidebar/List/Resizable components. Then build once, load and perform native
+MAT using fresh current-path CUA handles. Keep full scope and all above evidence.
+
+
+
 Latest owner feedback: Save belongs in the native File menu (Save, Save As and
 related file commands), not the workspace title bar. Removed that standalone
 button from components/workbench/chrome.tsrx; existing Cmd/Ctrl+S still invokes

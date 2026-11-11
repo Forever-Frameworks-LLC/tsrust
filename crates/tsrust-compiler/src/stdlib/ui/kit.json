@@ -4959,6 +4959,40 @@
       "example": "<CarouselPagination />"
     },
     {
+      "name": "Terminal",
+      "doc": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount.",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Unique nonempty session identifier within this window. Required for programmatic control and reading."
+        },
+        {
+          "name": "directory",
+          "type": "string",
+          "doc": "Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Accessible terminal name. Defaults to Terminal."
+        }
+      ],
+      "example": "<Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"h-64\"/>",
+      "events": [
+        {
+          "prop": "onExit",
+          "value": "void",
+          "doc": "Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session."
+        }
+      ]
+    },
+    {
       "name": "CodeEditor",
       "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles.",
       "props": [

@@ -5,6 +5,7 @@ use alacritty_terminal::{
     grid::Dimensions,
     sync::FairMutex,
     term::{Config, Osc52, Term},
+    vte::ansi::Rgb,
     tty,
 };
 use std::{borrow::Cow, io, path::Path, sync::{Arc, Mutex, OnceLock}, thread::JoinHandle};
@@ -30,6 +31,7 @@ pub(super) struct Proxy {
     status: Arc<Mutex<Status>>,
     sender: Arc<OnceLock<EventLoopSender>>,
     size: Arc<Mutex<Size>>,
+    colors: Arc<Mutex<[Rgb; 269]>>,
 }
 impl EventListener for Proxy {
     fn send_event(&self, event: Event) {
@@ -50,8 +52,13 @@ impl EventListener for Proxy {
                 let size = self.size.lock().unwrap().0;
                 self.write(format(size).into_bytes());
             }
+            // shortcut: OSC override queries use theme defaults; add ordered query delivery before dynamic palette configuration.
+            Event::ColorRequest(index, format) => {
+                let color = self.colors.lock().unwrap().get(index).copied();
+                if let Some(color) = color {self.write(format(color).into_bytes());}
+            }
             // Terminal output cannot read/write the clipboard or launch a URL.
-            Event::ClipboardStore(..) | Event::ClipboardLoad(..) | Event::ColorRequest(..) => return,
+            Event::ClipboardStore(..) | Event::ClipboardLoad(..) => return,
             _ => {}
         }
         // Grid/status are authoritative; only one pending redraw notification is needed.
@@ -70,6 +77,7 @@ pub(super) struct Session {
     proxy: Proxy,
     sender: EventLoopSender,
     thread: Option<JoinHandle<()>>,
+    pub completed: async_channel::Receiver<()>,
     #[cfg(unix)]
     controller: std::fs::File,
     #[cfg(unix)]
@@ -81,7 +89,7 @@ impl Session {
         if size.columns() < 2 || size.screen_lines() == 0 {return Err(io::Error::other("Terminal dimensions must be at least 2 columns and 1 row"));}
         if !directory.is_dir() {return Err(io::Error::other("Terminal working directory does not exist"));}
         let (wake, receiver) = async_channel::bounded(1);
-        let proxy = Proxy {wake, status: Arc::default(), sender: Arc::default(), size: Arc::new(Mutex::new(size))};
+        let proxy = Proxy {wake, status: Arc::default(), sender: Arc::default(), size: Arc::new(Mutex::new(size)), colors: Arc::new(Mutex::new(palette(0xd4d4d4, 0x1e1e1e)))};
         let terminal = Arc::new(FairMutex::new(Term::new(Config {scrolling_history: history, osc52: Osc52::Disabled, ..Config::default()}, &size, proxy.clone())));
         let mut options = tty::Options {shell, working_directory: Some(directory.to_owned()), drain_on_exit: true, ..tty::Options::default()};
         options.env.insert("TERM".into(), "xterm-256color".into());
@@ -93,20 +101,25 @@ impl Session {
         let sender = event_loop.channel();
         let _ = proxy.sender.set(sender.clone());
         let worker = event_loop.spawn();
+        let (completion, completed) = async_channel::bounded(1);
         // Consume the returned event loop so its PTY is dropped/reaped on natural exit.
         let finished = proxy.clone();
         let thread = std::thread::spawn(move || {
             drop(worker.join());
             finished.status.lock().unwrap().exited = true;
+            let _ = completion.try_send(());
             let _ = finished.wake.try_send(());
         });
-        Ok(Self {terminal, wake: receiver, proxy, sender, thread: Some(thread), #[cfg(unix)] controller, #[cfg(unix)] pid})
+        Ok(Self {terminal, wake: receiver, proxy, sender, thread: Some(thread), completed, #[cfg(unix)] controller, #[cfg(unix)] pid})
     }
 
     pub fn status(&self) -> Status {self.proxy.status.lock().unwrap().clone()}
 
+    pub fn set_colors(&self, foreground: u32, background: u32) { *self.proxy.colors.lock().unwrap() = palette(foreground, background); }
+    pub fn colors(&self) -> [Rgb; 269] {*self.proxy.colors.lock().unwrap()}
+
     pub fn write(&self, bytes: Vec<u8>) -> Result<(), String> {
-        if self.status().exited {return Err("Terminal session has exited".into());}
+        if self.thread.is_none() || self.status().exited {return Err("Terminal session has exited".into());}
         self.sender.send(Msg::Input(Cow::Owned(bytes))).map_err(|error| error.to_string())
     }
 
@@ -142,6 +155,19 @@ impl Session {
 }
 
 impl Drop for Session {fn drop(&mut self) {self.close();}}
+
+fn palette(foreground: u32, background: u32) -> [Rgb; 269] {
+    let rgb = |value: u32| Rgb {r: (value >> 16) as u8, g: (value >> 8) as u8, b: value as u8};
+    let mut colors = [rgb(foreground); 269];
+    for (index, value) in [0x000000, 0xcd3131, 0x0dbc79, 0xe5e510, 0x2472c8, 0xbc3fbc, 0x11a8cd, 0xe5e5e5, 0x666666, 0xf14c4c, 0x23d18b, 0xf5f543, 0x3b8eea, 0xd670d6, 0x29b8db, 0xffffff].into_iter().enumerate() {colors[index] = rgb(value);}
+    let component = |value: usize| if value == 0 {0} else {(55 + value * 40) as u8};
+    for index in 16..232 {let value = index - 16; colors[index] = Rgb {r: component(value / 36), g: component(value / 6 % 6), b: component(value % 6)};}
+    for index in 232..256 {let value = (8 + (index - 232) * 10) as u8; colors[index] = Rgb {r: value, g: value, b: value};}
+    colors[257] = rgb(background);
+    for index in 259..267 {let color = colors[index - 259]; colors[index] = Rgb {r: color.r / 2, g: color.g / 2, b: color.b / 2};}
+    colors[268] = Rgb {r: colors[256].r / 2, g: colors[256].g / 2, b: colors[256].b / 2};
+    colors
+}
 
 #[cfg(all(test, unix))]
 mod tests {

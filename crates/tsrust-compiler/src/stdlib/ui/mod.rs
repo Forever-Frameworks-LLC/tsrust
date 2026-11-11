@@ -158,6 +158,8 @@ pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
 pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";
 /// Selects an HTTP client for remote image sources in programs that use Avatar or Image.
 pub(crate) const HTTP_MARKER:&str="// tsrust-ui-http-selected\n";
+/// Selects native PTY/VT dependencies only for Terminal programs.
+pub(crate) const TERMINAL_MARKER:&str="// tsrust-ui-terminal-selected\n";
 
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked
@@ -201,7 +203,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
         .replace("feature = \"runtime\"", "feature = \"ui\"").replace("feature=\"runtime\"", "feature = \"ui\"");
     if with_native {
-        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs")].concat()));
+        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs"), &format!("#[cfg(feature=\"gpui-terminal\")] mod terminal {{\n{}\n}}\n#[cfg(feature=\"gpui-terminal\")] mod terminal_view {{\n{}\n}}", include_str!("terminal.rs"), include_str!("gpui_terminal.rs"))].concat()));
     }
     format!("mod tsrust_native_ui {{\n{body}\n}}\n")
 }

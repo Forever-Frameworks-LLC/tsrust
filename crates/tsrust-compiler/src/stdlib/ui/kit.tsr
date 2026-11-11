@@ -6945,6 +6945,52 @@ export function CarouselPagination(props: CarouselPaginationProps): Node {
   return node;
 }
 
+export interface TerminalProps {
+  /** Unique nonempty session identifier within this window. Required for programmatic control and reading. */
+  id?: ReactiveValue<string> | TextBinding;
+  /** Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell. */
+  directory?: ReactiveValue<string> | TextBinding;
+  /** Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid. */
+  fontSize?: ReactiveValue<int>;
+  /** Accessible terminal name. Defaults to Terminal. */
+  accessibilityLabel?: ReactiveValue<string> | TextBinding;
+  /** Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session. */
+  onExit?: Owned<Function<void>>;
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id="shell" directory="/tmp" fontSize={14} className="size-full"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory is read once at mount. */
+export function Terminal(props: TerminalProps): Node {
+  let node = kitNode('Terminal', [], props.className);
+  const prop_id = props.id;
+  if (prop_id !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'id', prop_id));
+  }
+
+  const prop_directory = props.directory;
+  if (prop_directory !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'directory', prop_directory));
+  }
+
+  const prop_fontSize = props.fontSize;
+  if (prop_fontSize !== undefined) {
+    node = kitInt(node, 'fontSize', prop_fontSize);
+  }
+
+  const prop_accessibilityLabel = props.accessibilityLabel;
+  if (prop_accessibilityLabel !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'accessibilityLabel', prop_accessibilityLabel));
+  }
+
+  const event_onExit = props.onExit;
+  if (event_onExit !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'exit', event_onExit));
+  }
+
+  return node;
+}
+
 export interface CodeEditorProps {
   /** Controlled full text. Omission preserves local edits; a changed value replaces the buffer. Pair with onChange to retain user edits. */
   value?: ReactiveValue<string> | TextBinding;

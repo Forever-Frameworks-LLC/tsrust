@@ -215,6 +215,8 @@ enum KitState {
     Command(Entity<CommandState>),
     AppMenuBar(Entity<AppMenuBar>, Vec<ApplicationMenu>),
     Carousel(Entity<CarouselState>),
+    #[cfg(feature="gpui-terminal")]
+    Terminal(Entity<terminal_view::TerminalView>),
     Editor(Entity<EditorState>, std::collections::BTreeMap<String,String>),
     Tree(Entity<TreeState>, String),
     List(Entity<ListState<TsrustList>>),
@@ -522,7 +524,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["CodeEditor", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["Terminal", "CodeEditor", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -1476,7 +1478,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Terminal" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -1644,6 +1646,8 @@ impl Root {
                             state.update(cx, |state, cx| state.set_value(color, window, cx));
                         }
                     }
+                    #[cfg(feature="gpui-terminal")]
+                    KitState::Terminal(state) => {state.update(cx, |state, cx| state.configure(number("fontSize").unwrap_or(14.), cx));}
                     KitState::Editor(state, current) => {
                         if let Some(value)=props.get("value") && state.read(cx).value().as_ref()!=value {state.update(cx,|state,cx|state.set_value(value.clone(),window,cx));}
                         if *current != props {
@@ -1904,6 +1908,12 @@ impl Root {
                     if let Err(error)=install_application_menus(&menus,cx) {fail(&self.failure,error);}
                     KitState::AppMenuBar(AppMenuBar::new(cx),menus)
                 }
+                #[cfg(feature="gpui-terminal")]
+                "Terminal" => {
+                    let state = cx.new(|cx| terminal_view::TerminalView::new(if text("directory").is_empty() {std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned()} else {text("directory")}, number("fontSize").unwrap_or(14.), window, cx));
+                    cx.subscribe_in(&state, window, move |this, _, _: &terminal_view::TerminalEvent, _, cx| this.emit(id, "exit", String::new(), cx)).detach();
+                    KitState::Terminal(state)
+                },
                 "CodeEditor" => {
                     let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
@@ -2360,6 +2370,22 @@ impl Root {
                         let reply = std::rc::Rc::new(std::cell::RefCell::new(Some(reply)));
                         let note = notification(&value, Some((cx.entity().downgrade(), reply)));
                         window.push_notification(note, cx);
+                        continue;
+                    }
+                    if name == "terminal" || name == "read-terminal" {
+                        #[cfg(feature="gpui-terminal")]
+                        let response = {
+                        let target = value["id"].as_str().unwrap_or_default();
+                        let mut states = self.node.mounted_nodes().into_iter().filter_map(|id| find(&self.node, id).and_then(|node| node.kit.as_deref()).filter(|kit| kit.name == "Terminal" && kit.prop("id") == Some(target)).and_then(|_| match self.states.get(&id) {Some(KitState::Terminal(state)) => Some(state.clone()), _ => None})).collect::<Vec<_>>();
+                        if states.len()>1 {if name=="read-terminal" {serde_json::json!({"found": false, "error": "Terminal id is ambiguous"})} else {serde_json::json!({"ok": false, "error": "Terminal id is ambiguous"})}} else {match states.pop() {
+                            Some(state) if name == "read-terminal" => state.read(cx).snapshot(window),
+                            Some(state) => match state.update(cx, |state, cx| state.command(&value, window, cx)) {Ok(()) => serde_json::json!({"ok": true}), Err(error) => serde_json::json!({"ok": false, "error": error})},
+                            None => if name == "read-terminal" {serde_json::json!({"found": false})} else {serde_json::json!({"ok": false, "error": "Terminal session is not mounted"})},
+                        }}
+                        };
+                        #[cfg(not(feature="gpui-terminal"))]
+                        let response = if name == "read-terminal" {serde_json::json!({"found": false, "error": "Native terminal support is not selected"})} else {serde_json::json!({"ok": false, "error": "Native terminal support is not selected"})};
+                        self.reply(reply, &response.to_string(), cx);
                         continue;
                     }
                     if name == "read-input" {
@@ -3367,6 +3393,8 @@ impl Root {
                 }
                 _ => div().into_any_element(),
             },
+            #[cfg(feature="gpui-terminal")]
+            "Terminal" => match self.states.get(&id) {Some(KitState::Terminal(state)) => div().id(ElementId::Integer(id)).size_full().refine_style(&self.node_style(node)).accessibility_id(kit.text("id")).role(Role::Group).aria_label(if kit.text("accessibilityLabel").is_empty() {"Terminal".to_owned()} else {kit.text("accessibilityLabel")}).child(state.clone()).into_any_element(), _ => div().into_any_element()},
             "CodeEditor" => match self.states.get(&id) {
                 Some(KitState::Editor(state,_)) => {
                     let mut editor=Editor::new(state).h_full().readonly(kit.flag("readOnly")).disabled(kit.flag("disabled")).refine_style(&self.node_style(node));

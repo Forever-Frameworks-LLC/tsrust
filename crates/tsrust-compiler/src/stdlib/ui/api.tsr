@@ -518,6 +518,63 @@ export function controlInput(id: string, action: InputAction, options?: InputAct
   })));
 }
 
+/** Native terminal commands. close force-terminates the foreground job and shell; hiding the node keeps them alive. */
+export type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'scroll' | 'close' | 'restart' | 'select';
+
+/** A command for the explicitly named terminal session. */
+export interface TerminalRequest {
+  /** Expected snapshot generation; omission targets the current mounted session. Agents must supply the generation they observed. */
+  expectedGeneration?: int;
+  action: TerminalAction;
+  /** UTF-8 input for write or clipboard-style text for paste, at most 1 MiB after encoding. Neither action adds Enter. */
+  text?: string;
+  /** Signed 32-bit scrollback line delta; positive moves upward. Used by scroll only. */
+  lines?: int;
+  /** Inclusive viewport cell range [startRow, startColumn, endRow, endColumn], zero based; used by select. */
+  selection?: int[];
+}
+
+/** A command's asynchronous outcome. An unknown/unmounted session reports ok=false and an error. */
+export interface TerminalCommandResult {
+  ok: boolean;
+  error?: string;
+}
+
+/** A bounded snapshot of the visible terminal grid, not the entire history. */
+export interface TerminalSnapshot {
+  generation?: int;
+  found: boolean;
+  directory?: string;
+  title?: string;
+  exited?: boolean;
+  exitCode?: int | null;
+  error?: string;
+  text?: string;
+  selectedText?: string;
+  columns?: int;
+  rows?: int;
+  scrollOffset?: int;
+  focused?: boolean;
+}
+
+/** Queues a native terminal action in this window and reports its outcome on the next frame. Example: controlTerminal('shell', {action: 'interrupt'}, (result) => { if (!result.ok) console.error(result.error ?? 'Terminal action failed'); }). write/paste can execute shell commands when their text contains Enter; callers must enforce actor grants and isolation. close is forceful, not a request for a program to save. */
+export function controlTerminal(id: string, request: TerminalRequest, onResult: Owned<Function<void, [result: ReadOnly<TerminalCommandResult>]>>): void {
+  unwrap(nativeCommandReply('terminal', JSON.stringify({
+    id: id, expectedGeneration: request.expectedGeneration ?? 0, action: `${request.action}`, text: request.text ?? '', lines: request.lines ?? 0, selection: request.selection ?? []
+  }), (text: ReadOnly<string>): void => {
+    onResult(JSON.parse<TerminalCommandResult>(text));
+  }));
+}
+
+/** Reads the native session addressed by id on the next frame. Example: readTerminal('shell', (snapshot) => { output.set(snapshot.text ?? ''); }). found=false means no matching session has mounted. The visible grid, selection and status are copied; reading does not focus, scroll or send input. */
+export function readTerminal(id: string, onRead: Owned<Function<void, [snapshot: ReadOnly<TerminalSnapshot>]>>): void {
+  unwrap(nativeCommandReply('read-terminal', JSON.stringify({
+    id: id
+  }), (text: ReadOnly<string>): void => {
+    onRead(JSON.parse<TerminalSnapshot>(text));
+  }));
+}
+
 /** A field's text, selection and scroll position, read by readInput. */
 export interface InputSnapshot {
   /** False when no mounted field has the id; the other fields are then absent. */
