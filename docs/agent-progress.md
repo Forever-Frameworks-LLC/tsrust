@@ -88,9 +88,9 @@ No native inference/quality/minimum-machine acceptance. No unchanged retries.
 Candle0.11 Qwen fully dequantizes embeddings; concrete memory-cost candidate,
 not proven allocation attribution. Investigate compiled llama-cpp-2 Rust library
 as alternative managed inference (no separate server), retain Candle training proof.
-Primary research done, CMake available; no alternative dependency admitted yet.
+Primary research and CMake inventory preceded the successful native candidate below.
 
-Current accepted cache-memory section, checkpoint pending: NativeCache checksum
+Accepted cache-memory section at65665fb6: NativeCache checksum
 now streams64KiB with exact legacy byte-slice Hash compatibility; native bundle
 extraction validates headers/paths/duplicates/full lengths before creating output,
 then streams payloads instead of allocating the entire802MiB packed bundle.
@@ -112,8 +112,36 @@ invalid-limitPASS0.362375ms; stop critical pressure at10.239s total, system swap
 absolute swap4294.94MiB at observation. Keep all three failed/incomplete resource
 proofs. No more unchanged Candle retries; investigate memory-mapped native backend.
 
-Next: checkpoint bounded cache-memory section, keep current dev process/window;
-continue native inference admission with a changed backend hypothesis. Full held-out evaluation/training/quantized artifact qualification,
+Current native-library inference gate PASS, checkpoint pending. New managed
+llama.bindings.json/lock and ai/llama_admission.rs, ordinary admission config
+@engine alias (same worker/test assertions). Root/sys llama-cpp0.1.161, VCS e7af607,
+lock66eb63527e2cbbd31e682c8034efaa14ed62e3fde411a1f9266167d52e1f329a.
+Metal+mmap required, context2080 for unchanged2048input/32output bounds, microbatch128,
+2CPU threads, strict embedded/external tokenizer IDs. CMAKE_BUILD_PARALLEL_LEVEL=1
+explicit (--parallel1 observed); LLAMA_BUILD_SHARED_LIBS=0, LLAMA_LIB_PROFILE=Release.
+Native code is engine primitive only; prompts/workers/tests remain Tsrust.
+
+Actual offline suite2/2PASS31,970.943958ms (model31,969.934667; invalid0.225625),
+setup163,195.539917ms; total195.485s, stopnull, swap-usage delta0MiB, sampled ownedRSS
+1,251,000,320B. Exact answer5/EOS. No coding-quality or complete8GiB claim.
+Actual27,548,728B executable target/tsrust-native/v2/094d7eedb78f0baf/program links
+only macOS system dylibs/frameworks; no AI server/OpenSSL runtime dependency. CMake
+common=ON transitively despite SDK defaultFeaturesfalse; server/tools/app/shared/
+OpenMP=OFF, Metal=ON. Homebrew OpenSSL found during build, not linked; minimal build/
+portable-export closure unverified. Native GPU startup logs are verbose; no raw logs
+saved. Default source resource/stage descriptions in audit and admission README.
+
+Dev metadata refinement accepted at acb92c73: dev metadata now keeps
+only name/id, ignoring version/repo/signing options that can be supplied later at
+package time. Regression2/2PASS0.01s, setup9.01s, actualplutil valid; source change
+in app_package_cli.rs is committed. Existing retained dev remains running and
+normal Studio config is unaffected. Do not restart it to load this refinement.
+
+Next: checkpoint native candidate proof and small metadata refinement separately;
+then add repeated unload/reload and cooperative-cancellation witnesses, followed
+by checked native streaming/session capabilities and held-out evaluation. Keep
+dev session15252/PID74090 and current app76050; no superseded standalone bundle
+remains (its3verified generated files were removed). Full held-out evaluation/training/quantized artifact qualification,
 revisioned document store/safe isolated tools, complete editor services, cloud/external
 agents and Windows remain required. No full regressions, comparative measurements,
 AI distribution or release acceptance claimed.

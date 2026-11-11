@@ -277,3 +277,44 @@ No answer or suite summary. Pressure subsequently returned to normal level1.
 The cache change did not establish inference feasibility; a changed native backend
 hypothesis is required before another model run. Do not relax limits or hide any
 of the three incomplete resource attempts.
+
+## Native library inference candidate — bounded gate passed
+
+Source adds compiler-owned ai/llama_admission.rs, a checked managed binding package
+and an ordinary admission-project path alias. The same worker and test assertions
+select @engine through tsrust.config.json; no alternate pass criteria were added.
+Dependency roots llama-cpp-2/llama-cpp-sys-2 are both0.1.161, root VCS commit
+`e7af607ebd5ec2932709ef918c17cca2f9b0fce4`. Binding-lock SHA256:
+`66eb63527e2cbbd31e682c8034efaa14ed62e3fde411a1f9266167d52e1f329a`.
+Uses the previously verified unchanged official model and tokenizer artifacts.
+The native function requires GPU offload/mmap support, checks embedded token IDs
+against Tokenizers0.22.2 exactly, uses context2080 (2048 input+32 output admission
+budget), batch2048/microbatch128 and2 CPU threads. All orchestration stays in Tsrust.
+
+Build setup163,195.539917ms; invalid-limit control0.225625ms PASS; actual offline
+model generation31,969.934667ms PASS, entire execution31,970.943958ms,2/2 tests.
+The exact text oracle is5 with EOS; tokenizer equality is checked before decode.
+Host supervisor exit0, stopnull,195.485s total, observed peak swap-usage delta0MiB,
+sampled owned process-tree RSS1,251,000,320 bytes. Native logs identify Apple M3,
+unified Metal memory and embedded shader libraries (initial compilation5.787s).
+This is not a speed benchmark, complete GPU/whole-machine allocation inventory,
+proof of zero swap I/O, coding-quality result or full8GiB/editor/LSP/build acceptance.
+Retained Studio dev supervisor74090/app76050 stayed alive throughout.
+
+Actual native test executable cache094d7eedb78f0baf is27,548,728 bytes. otool lists
+only macOS system libraries/frameworks (System, iconv, Foundation, Metal/MetalKit,
+Accelerate, libc++, CoreFoundation, objc); no separate AI runtime, OpenSSL dylib or
+model server. Actual CMake: shared=OFF, Metal=ON, OpenMP=OFF, server/tools/app=OFF.
+The SDK defaults are disabled, but its sys dependency still enables common=ON
+transitively; do not claim otherwise. CMake detects Homebrew OpenSSL headers/libs
+for common, yet none is linked into this executable. Clean-machine build closure,
+portable export, licensing distribution notices and Windows remain unverified.
+
+CMake parallelism was explicitly1 (observed --parallel1), because upstream chooses
+all cores when CMAKE_BUILD_PARALLEL_LEVEL is absent even if Cargo jobs=1. Library
+profileRelease and LLAMA_BUILD_SHARED_LIBS=0 were explicit. No dependency was added
+to ordinary backend manifests; managed experimental binding isolation remains.
+
+Native owners drop on return; this run's log includes context buffer teardown and
+Metal deallocation. Repeated load/unload, cooperative cancellation during stages,
+streaming and safe task/tool coordination still require dedicated witnesses.

@@ -123,6 +123,7 @@ Initial inference candidates:
 |---|---|---|
 | Candle | Rust ML framework with CPU/CUDA/Metal support and quantized model examples; exposes differentiation and optimizer primitives. | Exact selected coding-model coverage, usable streaming/tool output, device memory, adapter training and checkpoint portability through Tsrust. |
 | mistral.rs Rust SDK | Rust-library integration, quantization and supported-model loading are documented. | Dependency closure, optional-feature isolation, selected model/device support, cancellation, Windows build and 8 GiB behavior. |
+| llama-cpp-2 Rust SDK | Pinned 0.1.161 static native library now passes the bounded Metal/mmap quantized-model smoke with strict tokenizer agreement. | Persistent streaming/session API, cancellation, held-out coding quality, full-machine acceptance, clean build/export closure and Windows. Training remains a separate Candle investigation. |
 
 Do not choose a backend from feature claims alone. Pin exact revisions, review
 transitive native build requirements and test through the actual Tsrust facade.
@@ -258,7 +259,9 @@ Unresolved: exact backend and model revisions; public API shapes; worker boundar
 training hardware and budget; numeric quality/resource limits; final list of
 language-service implementations; debug/source-map depth; and exact component
 gaps. Resolve these with bounded research witnesses, not speculative general
-frameworks. No model has been downloaded, run, fine-tuned or qualified by this plan.
+frameworks. The initial bounded quantized inference witness now passes through a Tsrust
+worker/test harness using a pinned native library. No model has been fine-tuned
+or qualified for distribution or full minimum-machine acceptance; see the audit.
 
 ## Primary research sources
 
@@ -276,3 +279,27 @@ Existing repository foundations: [GPUI application platform](gpui-application-pl
 [development acceptance workflow](../development-workflow.md) and the current
 [continuation record](../agent-progress.md). This planning work does not silently
 change unrelated v0.2.0 acceptance or authorize a release.
+
+## Current implementation acceptance — November 10
+
+- Initial capability/gap audit and bounded resource contract recorded in
+  [the audit](tsrust-studio-audit.md). Final language-service selections, coding
+  quality floors and full-workflow latency/resource gates remain open.
+- Ordinary Studio project and functional scratch-editor preview run under the
+  retained supported dev workflow. macOS dev identity and failed-build recovery
+  verified; whole-file proposal revision guards pass4/4. Complete document/project
+  services, persisted recovery and all other editor inventory rows remain open.
+- Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model
+  attempts stopped on resource conditions, without answers. Those results remain.
+- Exact same official Qwen1.5B Q4 model and arithmetic oracle pass with pinned
+  llama-cpp-2/sys0.1.161, Metal/mmap, static linking, strict tokenizer agreement,
+  unchanged context/output/deadline/swap ceilings and the Studio dev window open.
+  Two native tests pass; all source/resource identities and observations are in
+  the audit. This proves a bounded buffered inference primitive only. Streaming,
+  cooperative cancellation measurement, repeated unload/reload, compiler/test
+  tools, proposed diffs, held-out quality and full8GiB acceptance remain required.
+- Native cache checksum/extraction whole-artifact buffers replaced by bounded
+  streaming with protocol/validation regressions passing. Performance measurement
+  remains separate; retained dev still uses its existing supervisor image.
+- No cloud integration, model specialization/distribution, Windows, complete
+  application, signing/packaging milestone or release acceptance is claimed.
