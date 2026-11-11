@@ -650,10 +650,11 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
         let selected=visible.iter().position(|(_,panel)|Some(panel.panel_id(cx))==active).unwrap_or(0);
         let selection=active.map(|id|(id,selected));
         if self.2.replace(selection)!=selection {self.1.scroll_to_item(selected);}
-        let mut tabs=Vec::new();
+        let mut tabs=Vec::new();let mut choices=Vec::new();
         for (ix,panel) in visible {
             let id=panel.panel_id(cx);
             let title=PanelHandle::of(panel).and_then(|handle|handle.panel().tab_name(cx)).unwrap_or_else(||panel.panel_name(cx).into());
+            choices.push((ix,title.clone(),Some(id)==active));
             let select=group.clone();
             let mut tab=Tab::new().label(title.clone()).aria_label(title.clone()).selected(!group.is_collapsed() && Some(id)==active)
                 .on_click(move|_,window,cx|select.select_tab(ix,window,cx));
@@ -684,7 +685,16 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
         let panel=handle.map(PanelHandle::panel);
         let control=panel.as_ref().and_then(|panel|panel.zoom_control(cx));
         let zoomed=group.is_zoomed();let closable=group.is_closable();
-        let mut toolbar=div().flex().items_center().gap_1().children(buttons.unwrap_or_default().into_iter().map(|button|button.xsmall().ghost().tab_stop(false)));
+        let select_group=group.clone();
+        let overflow=Button::new("open-tabs").icon(gpui_kit::assets::IconName::ChevronDown).xsmall().ghost()
+            .accessibility_label("Open tabs").tooltip("Open tabs").dropdown_menu(move|mut menu,_,_| {
+                for (ix,title,selected) in &choices {
+                    let group=select_group.clone();let ix=*ix;
+                    menu=menu.item(PopupMenuItem::new(title.clone()).checked(*selected).on_click(move|_,window,cx|group.select_tab(ix,window,cx)));
+                }
+                menu.scrollable(true)
+            }).anchor(Anchor::TopRight);
+        let mut toolbar=div().flex().items_center().gap_1().child(overflow).children(buttons.unwrap_or_default().into_iter().map(|button|button.xsmall().ghost().tab_stop(false)));
         if zoomed || control.is_some_and(|control|control.toolbar_visible()) {
             let zoom=group.clone();let label=if zoomed{"Restore pane"}else{"Maximize pane"};
             toolbar=toolbar.child(Button::new("zoom-pane").icon(gpui_kit::assets::IconName::Maximize).xsmall().ghost().accessibility_label(label).tooltip(label)
@@ -697,7 +707,7 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
                     .when(closable,|menu|menu.separator().menu("Close",Box::new(ClosePanel)))
             }).anchor(Anchor::TopRight));
         let drop=group.clone();let item_drop=group.clone();
-        TabBar::new("tab-bar").track_scroll(&self.1).selected_index(selected).max_width(px(220.)).menu(true).children(tabs)
+        TabBar::new("tab-bar").track_scroll(&self.1).selected_index(selected).max_width(px(220.)).children(tabs)
             .last_empty_space(div().id("tab-bar-empty-space").h_full().flex_grow_1()
                 .on_drop(move|drag:&DragPanel,window,cx|drop.drop_panel(drag.clone(),None,true,window,cx))
                 .on_drop(move|drag:&AnyDrag,window,cx|item_drop.drop_item(drag.clone(),None,window,cx)))

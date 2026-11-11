@@ -381,7 +381,7 @@ Each item requires observed behavior; source changes alone do not close it.
 | 9 | Workspace launch argument; later code-dot/dock directory opening | Root uses launch argument/current directory; package default observed; alternate launch/drop pending |
 | 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; IME/conflict/close UX and larger recovery scope pending |
 | 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; Catppuccin Latte native preview/Save/Reload observed; full catalog contrast/rendering pending |
-| 12 | Selected-tab auto-reveal; respect manual scrolling | Pending |
+| 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual scrolling remains unverified |
 | 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |
 | 14 | Terminal toggle; planned-feature surfaces and controls | Real terminal-panel toggle and labeled planned tabs observed; PTY/debug/Git/AI/extension functionality remains pending |
 

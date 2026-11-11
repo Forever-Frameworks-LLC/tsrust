@@ -21,86 +21,55 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current section follows checkpointb0504b89. Shared native Dock now uses Kit's
-renderer hooks: Kit Tab/TabBar labels supply accessible file names, close buttons
-have explicit names, and live Tsrust pane children no longer sit inside a second
-cached AnyView. Kit's base layout, resizing/drop machinery, chrome, menus and
-editor entities remain in use. Native split controls, close guards, tab overflow
-and pane maximize/restore remain functional. No installed dependency was edited.
+Current section follows checkpoint8020b8e3. Native Dock retains Kit's base
+layout/drop/resize machinery, Tab/TabBar components, live Tsrust pane children,
+editor entities, close guards and pane actions. The outer AnyView cache is gone;
+all visible editors and named tabs/close actions passed native AX checks. The
+new labeled **Open tabs** Kit popup replaces the unnamed TabBar overflow button.
+It lists every visible panel in that group, checks the active file, and selects
+existing panels. No installed dependency or public API changed.
 
-**KEEP DEV RUNNING: current tool PTY94264, supervisor21372, app22030.** Previous
-PTY71555 stopped normally after confirming zero recovery drafts. Current installed
-and target CLI SHA2562c3cb0c391a6b041ae1e8fcc700fb6e3caf984dd348cd5cf3807bc9e1c4b5c14;
-LSP70ca9934ec7c2748efb5fc3356ff42bc2eb92caaef0ad5b84b59bf0c4f8759ab.
-Both were atomically refreshed and independently verified. Native public Studio
-buildPASS; current dev compiles/links/starts all changes. Startup66,552ms:
-check11315.8ms,emit923.3ms,backend198.9ms,native+link53585.8ms including
-runtime miss41047.9ms. These are setup observations, not benchmark comparisons.
+**KEEP DEV RUNNING: current tool PTY24959, supervisor30710, app31387.** Previous
+PTY94264 stopped normally after confirming zero recovery drafts. Current installed
+and target CLI SHA25600ef7f70abe8dbfc1997fec921b489ba6252fe69934958257503d7e41cbc7bb9;
+LSP33ef7da029e516410b5427144160833df1dafea724868b98982a1fcdb81902f3.
+Both consumers were atomically refreshed and independently verified. Compiler/LSP
+buildPASS2m42s setup; public native Studio buildPASS; current dev runtime/app
+buildPASS. Dev startup65,916ms:check11318.9ms,emit920.0ms,backend176.5ms,
+native+link52957.2ms including runtime miss40529.8ms. Setup observations only.
 
-Actual app22030 now passes full-AX assertions for all three visible editors and
-named active tabs after direct right/down nested splits. Before this change,
-app99663 exposed only one of those three editor fields and unnamed tabs. Native
-AGENTS.md tab drag reordered ahead of .gitignore; the unsaved Unicode draft was
-retained and Undo restored the clean original. Dirty tabs withhold close actions.
-Labeled close, pane menu maximize and Restore pane were exercised; full AX again
-contains all three editors after restoration. An initial assertion counted a
-returned AX diff, not the full tree; corrected full-tree assertion passes. CUA
-completion: Verified accessible dock panes. Pointer divider drag still shows no
-movement; this is unresolved, not passed. Overflow menu buttons still lack AX
-names; full keyboard/focus/overflow acceptance remains pending.
+Actual app31387: two editor panes, four left-group files (.gitignore and three
+Studio sources), config right. Newly opened last tab remains fully visible in
+an overflowing group. Named Open tabs exposes all four file names and marks the
+active one; choosing the clipped first file reveals its complete tab and existing
+buffer, then choosing the clipped final file reveals that complete tab/buffer.
+Full AX assertion verifies the active final tab. An initial menu-index regex did
+not account for AX diff markers; the observed current item index was used and
+full-tree assertion passes. CUA completion: Verified named tab overflow.
+Manual horizontal CUA wheel scrolling still shows no movement; no manual-scroll
+preservation pass claimed. Pointer divider/edge dragging also remains unresolved.
 
-No user files changed: .gitignore SHA256
-ad8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483;
-tsrust.config.json6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439.
-Recovery drafts0. Current three clean panes remain visible. App RSS76480KiB,
-CPU2.4%; supervisor5440KiB,0.0%, single observations, not leak acceptance.
-Pruned966,874,559bytes of obsolete b050 runtime/app caches; current dev uses
-runtimee0f5582494a780ef/appf2012bab73ba5990; public-build and unchanged test caches
-remain. No broad unchanged test suites were replayed. Whole formatter and final
-checkpoint verification are recorded in the audit below.
+Previous native acceptance remains preserved at8020b8e3 andb0504b89: three visible
+editors with named active tabs after nested splits, Unicode draft and Undo across
+tab reordering, dirty close guards, labeled close, maximize/restore, focused save
+and unchanged file hashes. Exact proof/failures are in the linked audit. No
+unchanged compiler/Studio/storage suite was replayed for this renderer-only menu
+change. Whole-project formatter and diff checks precede the local checkpoint.
 
-Previous checkpointb0504b89 acceptance/evidence:
-- Existing branch/list regressions6/6PASS0.00s execution,3.58s setup after key
-  support; new Dock row identity/reorder/close/duplicate regression1/1PASS0.00s,
-  1m49s setup including lock wait. New formatted compiler callback-contract witness
-  1/1PASS1.63s,2m22s setup; borrowed-string callbacks check/emit, int callbacks reject.
-- Explicit Studio main checkPASS; generated Kit/LSP parity checkPASS; native public
-  build51954PASS before toolbar additions. Latest dev checks/emits/compiles/links
-  complete current source successfully. Whole formatter repeatedly stable0files,
-  with no snippets/fingerprint changes. Preserve unchanged18/18 Studio suite evidence.
-- Actual native tab reorder observed in app67272. Unsaved Unicode text and undo
-  survive dragging; final-file Close document observed in app81249. Current app
-  99663 verifies direct horizontal then nested vertical splits, all three buffers
-  painting correctly WITHOUT focusing or sidebar workarounds. Focused split Cmd+S
-  writes exact Unicode bytes ONLY to .gitignore; config hash unchanged. Undo/Save
-  restored both hashes and empty recovery journal. Three clean files remain open.
-- Native toolbar initially panicked reading TabGroup during its own render; fixed
-  by caching can_split in Root.sync_dock. Only changed props notify. Inactive pane
-  painting then failed after nested splits. Root/editor notifications alone were
-  insufficient. DockEvent::LayoutChanged now coalesces one next-frame invalidation
-  of each cached DockContent, retained editor states and root, after new bounds
-  are laid out. This passes the exact native three-pane witness. Earlier wrong
-  defer arities/icon enum references and all failed attempts remain failures,
-  followed by corrected native builds; no installed dependency source was edited.
+Recovery drafts0; no document text was edited in this overflow witness. Five
+clean files remain open across two panes. App RSS67312KiB/CPU0.0%, supervisor
+5600KiB/0.0%, single observations, not leak acceptance. Pruned1,934,800,837bytes
+of obsolete8020 runtime/app caches. Keep current dev runtimeae2f6864dca52716,
+app6c2c4bbd8c770260, current public-build caches and unchanged test consumers.
 
-Still unverified/incomplete: pointer divider resizing and edge-drop splitting
-showed no movement in CUA. Coordinate click calibration184,34 toggled the sidebar.
-An optional async question asks whether real-mouse gestures work; no answer
-observed. Do not call gestures accepted without evidence. Native tab names and all three visible editor AX nodes are now verified above;
-overflow-menu AX labels remain missing.
-Selected-tab auto-reveal has upstream support but remains unverified with overflow.
-Layout persistence, duplicate views of one buffer, opening in the focused group,
-file-tree moves, JSON key colors and the rest of the full editor/agent plan remain
-required. No full Dock/editor acceptance or goal completion is claimed.
-
-Pruned5,921,494,744bytes of obsolete Studio runtime/application cache variants;
-keep runtime754fd283c74c75dd and current applicationaceb2dcec93b341d, plus the
-unchanged test caches. Native supervisor/app remain live; source checkpoints
-replace old executables, not archive directories.
-
-Next section: verify/fix gestures and overflow-menu AX, selected-tab reveal, persist pane/view
-state, then complete filesystem moves and configuration/docking/i18n. Keep this
-running preview and preserve drafts. Do not replay unchanged save or model tests.
+Remaining: manual scroll/resize/edge gestures, full keyboard/focus, pane/view
+persistence, duplicate views, opening into the focused group, tree file moves,
+JSON key colors, configuration/docking/i18n and full editor/agent workflows. Do
+not claim complete Dock/editor acceptance. Next coherent product section is one
+validated settings model wired through navigation/activity sides, panel placement
+and live locale, preserving old theme/font config files. Current config only has
+schemaVersion/theme/fontSize. App source changes use the running supervisor;
+shared embedded native SDK changes require compiler rebuild and supervisor restart.
 
 Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
 content regex/case search, image routing, Markdown source/preview, status/panel

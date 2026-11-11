@@ -794,3 +794,35 @@ miss41,047.9ms; RSSapp76,480KiB/supervisor5,440KiB are single observations, not
 comparable benchmarks or leak acceptance. Removed966,874,559bytes obsolete
 runtime754fd283c74c75dd/appaceb2dcec93b341d caches; keep current dev/runtime,
 public-build and unchanged test consumers. Full Studio goal remains active.
+
+
+### Named tab overflow and selected reveal — 2026-11-11, after8020b8e3
+
+Shared SDK source SHA2569a389a78ff5c4e7fca0c86219003371c32fd2b1aaecf125680ee5bf4f1a328ae.
+Replaced the unnamed Kit TabBar overflow control with a named Kit Button/PopupMenu.
+Each menu item retains the source group index, file title and active check state;
+selecting it invokes Kit's existing TabGroupContext.select_tab. Kit Tab/TabBar,
+scroll tracking, editor entities, split controls and close guards are unchanged.
+No public bindings or installed dependency source changed.
+
+Native app31387 passes: named Open tabs control; menu lists all four left-pane
+files with active check; newly opened final source tab is fully visible despite
+overflow; selecting clipped first .gitignore reveals its complete tab and buffer;
+selecting clipped last document-actions.tsr reveals that complete tab/buffer.
+The config pane remains visible. Full AX assertion verifies final active tab.
+A menu-selection regex initially missed AX diff markers; using the observed
+current item and a full snapshot resolves the test harness issue. Manual CUA
+horizontal wheel scrolling shows no movement, so respect for deliberate manual
+scrolling remains unverified. No divider/edge gesture pass is claimed.
+
+Compiler/LSP buildPASS2m42s setup, public native Studio buildPASS, current dev
+runtime/application buildPASS. FormatterPASS0files/0snippets/0fingerprints and
+final diff check before checkpoint. Unchanged Studio/compiler/storage evidence
+is preserved, not replayed. Installed CLI/LSP independently match target/debug:
+00ef7f70abe8dbfc1997fec921b489ba6252fe69934958257503d7e41cbc7bb9 /
+33ef7da029e516410b5427144160833df1dafea724868b98982a1fcdb81902f3.
+PTY24959, supervisor30710, app31387 remain live. Five clean documents across two
+panes, recovery drafts0. No text edited during this witness. Startup65,916ms
+includes runtime miss40,529.8ms; app RSS67,312KiB/CPU0.0%, supervisor5,600KiB/0.0%
+are single observations, not benchmarks or leak acceptance. Removed1,934,800,837
+bytes obsolete8020 caches; current dev/public/test consumers retained.
