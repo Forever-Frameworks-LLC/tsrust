@@ -1,4 +1,5 @@
-import { View, Button, CodeEditor, Markdown, Image, DockPanel, Node, Signal, computed, signal } from 'std:ui';
+import { accessibleName, message } from './localization.tsr';
+import { View, Button, CodeEditor, Markdown, Image, DockPanel, Node, Signal, computed, signal, tWith } from 'std:ui';
 import { extname } from 'std:path';
 import { Workspace, OpenFile, selectFile } from './workspace.tsr';
 import { dirty } from './documents.tsr';
@@ -30,14 +31,14 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
   const editorClass = computed<string>(() => 'grow min-h-0 text-[' + font.get().toString() + 'px]');
   if (file.kind === 'image') {
     return <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}><View id={clone(file.document.session)} className="flex-col size-full min-h-0 p-4">
-      <Image src={clone(file.document.path)} fit="contain" alt={'Unable to decode ' + file.name} className="size-full" />
+      <Image src={clone(file.document.path)} fit="contain" alt={tWith('Unable to decode {name}', { name: clone(file.name) })} className="size-full" />
     </View></DockPanel>;
   }
 
   return <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}><View id={clone(file.document.session)} className="flex-col size-full min-h-0">
     <View hidden={!markdown} className="flex-row justify-end shrink-0 border-b border-border px-2">
-      <Button icon="code" variant="ghost" size="xsmall" selected={!preview.get()} tooltip="Markdown source" aria-label="Markdown source" onPress={() => { preview.set(false); }} />
-      <Button icon="eye" variant="ghost" size="xsmall" selected={preview.get()} tooltip="Markdown preview" aria-label="Markdown preview" onPress={() => { preview.set(true); }} />
+      <Button icon="code" variant="ghost" size="xsmall" selected={!preview.get()} tooltip={message("Markdown source")} aria-label={accessibleName("Markdown source")} onPress={() => { preview.set(false); }} />
+      <Button icon="eye" variant="ghost" size="xsmall" selected={preview.get()} tooltip={message("Markdown preview")} aria-label={accessibleName("Markdown preview")} onPress={() => { preview.set(true); }} />
     </View>
     <View hidden={preview.get()} className="flex-col grow min-h-0">
       <CodeEditor id={clone(file.document.path)} language={extname(file.document.path).slice(1)} value={text.get()} onChange={(value) => { updateDraft(workspace, recovery, editPath, value); }} onFocus={() => { const next = workspace.get(); if (next.active !== focusPath && selectFile(next, clone(focusPath))) workspace.set(next); }} appearance={false} bordered={false} accessibilityLabel={clone(file.document.path)} className={editorClass.get()} />

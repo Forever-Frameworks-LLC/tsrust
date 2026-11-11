@@ -131,3 +131,19 @@ fn resizable_reverse_accepts_live_boolean_ordering_only() {
         assert_eq!(checked.is_ok(),valid,"{value}: {:?}",checked.err());
     }
 }
+
+
+#[test]
+fn localized_tooltips_and_placeholders_accept_live_text_only() {
+    let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+    for component in ["Button","Input","Textarea"] {
+        let property=if component=="Button"{"tooltip"}else{"placeholder"};
+        for (value,valid) in [("busy.get() ? 'Saving' : 'Save'",true),("t('Save')",true),("123",false)] {
+            let markup=if component=="Button"{format!("<Button {property}={{{value}}}>Save</Button>")}else{format!("<{component} {property}={{{value}}}/>")};
+            let source=format!("import {{Button,Input,Textarea,signal,t}} from 'std:ui';function main(){{const busy=signal(false);const field={markup};}}");
+            std::fs::write(&path,support::format_round_trip(&source)).unwrap();
+            let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap());
+            assert_eq!(checked.is_ok(),valid,"{component} {value}: {:?}",checked.err());
+        }
+    }
+}

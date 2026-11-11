@@ -877,3 +877,73 @@ supervisor5,536KiB/0.0% are single observations, not leak/benchmark acceptance.
 Removed1,934,753,405bytes obsoleteaff native caches; current dev/public/settings/
 previous full-suite consumers retained. Locale/i18n, geometry/view persistence,
 manual gestures and actual terminal/AI services remain incomplete.
+
+
+### Live localization and stable Codex dev launches — 2026-11-11, after31e070a3
+
+Source adds en/pt-BR catalogs (89keys), persisted optional locale with legacy English
+defaults, native language selector and live preview/Save/Reload. English message
+IDs provide fallback. Owned controls/status/plural summaries/errors translate;
+file/code/config/theme identifiers and external diagnostic detail stay literal.
+Coverage checker validates catalog keys/placeholders and owned UI props/notices/
+text/errors. Locale resources and orchestration are JSON/.tsr/.tsrx, without new
+runtime dependencies or a host service.
+
+Shared Button.tooltip and Input/Textarea.placeholder now support ReactiveValue
+and TextBinding. kit.rs synchronizes canonical placeholders at initialization and
+refresh so HTML and native use the same value while retaining edited text/identity.
+Native Dock action labels translate while IDs remain stable. Separate nullable
+accessibleName getter preserves the existing metadata contract; no ownership or
+variance rules were relaxed. SDK SHA256f2ee5328f3dddfc2f63f16fbdaed0b0be2f85aa69c7c82e7e95a146d71316bb8;
+core kit.rs9c7fb6f401aa3054885792bf8b0ef1ae679093ba68400c9176f744971055c139.
+
+Focused checks:
+- Final formatted std:testing settings/localization batch4/4PASS562.41ms execution,
+  setup not separately timed. Includes38theme/36layout cases, locale migration/
+  round-trip/invalid-write preservation, live getters, plurals, fallback, Unicode
+  names/paths and localized app errors. Earlier575.91/570.39ms passes were before
+  the final nullable-name addition; final proof uses the current formatted source.
+- Compiler UI contract1/1PASS7.80s execution,2m21s setup; all three component props
+  accept state-based and translated strings, numeric values reject. Main checkPASS.
+- Core placeholder regression1/1PASS0.00s,4.40s setup; immediate and refreshed HTML
+  escaping, edited value and identity retained. Catalog/parity/formatter PASS.
+- CLI/LSP buildPASS2m29s; public native buildPASS. Unchanged full compiler/LSP,
+  Studio/storage evidence preserved, not replayed. Intermediate old-API errors and
+  non-nullable getter mismatch are failures corrected before final validation.
+
+Native app85970: Settings and workspace switch to Portuguese, including title,
+Save/Reload, tooltips/help, native Dock, search hint and zero-plural summary. Preview
+then Reload restores saved English without saving the preview. Query text, both
+split editors and Unicode draft persist; query and editor Undo remain valid.
+App88329 after supervisor restart restores persisted Portuguese and exact dirty
+Unicode draft. The original English settings bytes and clean buffer were restored.
+Cua.selectText fails because the native editor lacks a settable selected-text range;
+keyboard selection succeeds. Select popup option rows are unnamed in AX; keyboard
+selection works. These gaps are not accessibility passes. CUA completion: Verified
+live language switching. No test draft was saved to disk.
+
+The restart also exposed avoidable tooling cache invalidation. Exact runtime-cache
+identity comparison e92265ef354f6265 vs31e3a02184d4c5e7 has10fields; only field9
+changes, an environment/config digest. All runtime source/profile/lock/backend
+fields0–8 are byte-identical. backend_sources::identity includes the complete
+effective Cargo environment, and Codex supplies a per-call CODEX_TOOL_CALL_ID.
+Our launch now uses env -u CODEX_TOOL_CALL_ID; compiler guards remain unchanged.
+First normalized launch68452 Built72,131ms (runtime miss42,113.6ms). The second
+identical normalized launch15272 reports application cache HIT120.0ms and zero
+native/link work, Built15,288ms:check13366.1ms,emit1035.0ms,backend188.2ms.
+These single cold/warm observations are not comparable performance benchmarks or
+a measured code speedup. The program cache hit bypasses runtime lookup, so no
+independent runtime hit is claimed. Normalize future Codex native build/test/dev
+commands consistently; ordinary user terminals use the normal CLI.
+
+Final live PTY15272/supervisor94662/app94794, main.tsrx open clean in Studio's own
+package, src expanded. Installed/target CLI1ffb409abf7eac1c72edd4d09d017441fa49f74657a5d1ea5e603831142c5c4d
+and LSP083ab7e1eb8bbee97385b597e8207b2a0e56ca267ec28135b6787ee79c471780 independently match.
+Original home config hash0c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb,
+.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483,
+project config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
+unchanged, recovery drafts0. App RSS50,576KiB/CPU0.0%, supervisor5,360KiB/0.0%
+are one observation, not leak acceptance. Removed5,724,164,099bytes obsolete native
+cache variants; current normalized dev/public/current and unchanged test consumers
+retained. Wider localization/RTL/IME, AX ranges, pointer gestures, view persistence
+and actual terminal/LSP/Git/AI services remain unfinished. Full Studio goal active.

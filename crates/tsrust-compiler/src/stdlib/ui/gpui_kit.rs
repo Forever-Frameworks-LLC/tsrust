@@ -660,7 +660,7 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
                 .on_click(move|_,window,cx|select.select_tab(ix,window,cx));
             if !group.is_collapsed() {
                 if group.is_panel_closable(id,cx) {
-                    let close=group.clone();let label=format!("Close {title}");
+                    let close=group.clone();let label=super::i18n::translate("Close {name}",&serde_json::json!({"name":title.to_string()}).to_string());
                     tab=tab.suffix(Button::new(("close-tab",ix)).icon(gpui_kit::assets::IconName::X).xsmall().ghost()
                         .accessibility_label(label.clone()).tooltip(label).tab_stop(false)
                         .on_click(move|_,window,cx|{cx.stop_propagation();close.close(id,window,cx);}));
@@ -687,7 +687,7 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
         let zoomed=group.is_zoomed();let closable=group.is_closable();
         let select_group=group.clone();
         let overflow=Button::new("open-tabs").icon(gpui_kit::assets::IconName::ChevronDown).xsmall().ghost()
-            .accessibility_label("Open tabs").tooltip("Open tabs").dropdown_menu(move|mut menu,_,_| {
+            .accessibility_label(super::i18n::translate("Open tabs","{}")).tooltip(super::i18n::translate("Open tabs","{}")).dropdown_menu(move|mut menu,_,_| {
                 for (ix,title,selected) in &choices {
                     let group=select_group.clone();let ix=*ix;
                     menu=menu.item(PopupMenuItem::new(title.clone()).checked(*selected).on_click(move|_,window,cx|group.select_tab(ix,window,cx)));
@@ -696,15 +696,15 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
             }).anchor(Anchor::TopRight);
         let mut toolbar=div().flex().items_center().gap_1().child(overflow).children(buttons.unwrap_or_default().into_iter().map(|button|button.xsmall().ghost().tab_stop(false)));
         if zoomed || control.is_some_and(|control|control.toolbar_visible()) {
-            let zoom=group.clone();let label=if zoomed{"Restore pane"}else{"Maximize pane"};
-            toolbar=toolbar.child(Button::new("zoom-pane").icon(gpui_kit::assets::IconName::Maximize).xsmall().ghost().accessibility_label(label).tooltip(label)
+            let zoom=group.clone();let label=super::i18n::translate(if zoomed{"Restore pane"}else{"Maximize pane"},"{}");
+            toolbar=toolbar.child(Button::new("zoom-pane").icon(gpui_kit::assets::IconName::Maximize).xsmall().ghost().accessibility_label(label.clone()).tooltip(label)
                 .on_click(move|_,window,cx|zoom.toggle_zoom(window,cx)));
         }
-        toolbar=toolbar.child(Button::new("pane-menu").icon(gpui_kit::assets::IconName::Ellipsis).xsmall().ghost().accessibility_label("Pane actions").tooltip("Pane actions")
+        toolbar=toolbar.child(Button::new("pane-menu").icon(gpui_kit::assets::IconName::Ellipsis).xsmall().ghost().accessibility_label(super::i18n::translate("Pane actions","{}")).tooltip(super::i18n::translate("Pane actions","{}"))
             .dropdown_menu(move|menu,window,cx| {
                 menu.when_some(panel.clone(),|menu,panel|panel.dropdown_menu(menu,window,cx)).separator()
-                    .menu_with_disabled(if zoomed{"Restore pane"}else{"Maximize pane"},Box::new(ToggleZoom),!control.is_some_and(|control|control.menu_visible()))
-                    .when(closable,|menu|menu.separator().menu("Close",Box::new(ClosePanel)))
+                    .menu_with_disabled(super::i18n::translate(if zoomed{"Restore pane"}else{"Maximize pane"},"{}"),Box::new(ToggleZoom),!control.is_some_and(|control|control.menu_visible()))
+                    .when(closable,|menu|menu.separator().menu(super::i18n::translate("Close","{}"),Box::new(ClosePanel)))
             }).anchor(Anchor::TopRight));
         let drop=group.clone();let item_drop=group.clone();
         TabBar::new("tab-bar").track_scroll(&self.1).selected_index(selected).max_width(px(220.)).children(tabs)
@@ -756,14 +756,15 @@ impl DockPanelView for DockContent {
             let enabled=self.can_split;
             for (icon,placement,label) in [(gpui_kit::assets::IconName::Columns2,Placement::Right,"Split right"),(gpui_kit::assets::IconName::Rows2,Placement::Bottom,"Split down")] {
                 let area=self.area.clone();let group=self.group.clone();let panel=PanelId::from(cx.entity_id());
-                buttons.push(Button::new(label).icon(icon).accessibility_label(label).tooltip(label).disabled(!enabled).on_click(move|_,window,cx|{
+                let text=super::i18n::translate(label,"{}");
+                buttons.push(Button::new(label).icon(icon).accessibility_label(text.clone()).tooltip(text).disabled(!enabled).on_click(move|_,window,cx|{
                     if let Some(group)=group.as_ref().and_then(WeakEntity::upgrade) {let node=group.read(cx).node();let _=area.update(cx,|area,cx|area.move_panel(panel,InsertTarget::Split{node,placement,size:None},window,cx));}
                 }));
             }
         }
         if self.last_close {
             let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
-            buttons.push(Button::new("close-document").icon(gpui_kit::assets::IconName::X).accessibility_label("Close document").tooltip("Close document").disabled(!self.closable).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"close",value.clone(),cx));}));
+            buttons.push(Button::new("close-document").icon(gpui_kit::assets::IconName::X).accessibility_label(super::i18n::translate("Close document","{}")).tooltip(super::i18n::translate("Close document","{}")).disabled(!self.closable).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"close",value.clone(),cx));}));
         }
         if buttons.is_empty(){None}else{Some(buttons)}
     }

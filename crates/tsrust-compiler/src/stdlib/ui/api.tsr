@@ -226,8 +226,8 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   selected?: ReactiveValue<boolean>;
   /** Adds a dropdown caret after the label. */
   caret?: boolean;
-  /** Tooltip shown on hover. */
-  tooltip?: string;
+  /** Constant or live tooltip text shown on hover. Omitted or empty text hides the tooltip. */
+  tooltip?: ReactiveValue<string> | TextBinding;
   /** A Shortcut command whose keys the tooltip shows, such as save. */
   tooltipCommand?: string;
   /** Side the tooltip opens on. Defaults to top. */
@@ -296,8 +296,8 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   value?: InputValue;
   /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
   defaultValue?: string | int | number;
-  /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
-  placeholder?: string;
+  /** Constant or live hint shown when empty. Changing it preserves field contents and selection. A visible Label or aria-label should provide the accessible name. */
+  placeholder?: ReactiveValue<string> | TextBinding;
   /** Disabled fields cannot edit or receive focus. State-reading TSRX conditions refresh after handlers. */
   disabled?: boolean | ReactiveBoolean;
   /** Read-only fields retain selection/focus but cannot change text. State-reading TSRX conditions refresh after handlers. */
@@ -598,12 +598,17 @@ function TextField(props: TextFieldOptions): Node {
   const classes = typeof className === 'string' ? clone(className) : '';
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
   const options: InputOptions = {
-    placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
+    placeholder: '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
   const config = JSON.stringify(options);
   const handler = props.onChange;
   const created = handler !== undefined ? unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)) : unwrapNode(nativeInput(props.value, props.defaultValue, config, classes));
   let node = applyProperties(inputFlags(created, disabled, readOnly), metadata, className, variant);
+  const placeholder = props.placeholder;
+  if (placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', placeholder));
+  }
+
   const size = props.size;
   const role = props.role;
   const height = props.height;
@@ -754,7 +759,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
-  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
+  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false);
   const extra: [string, string][] = [];
   if (props.tooltipCommand !== undefined) {
     extra.push(['tooltipCommand', clone(props.tooltipCommand)]);
@@ -808,6 +813,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
     extra.push(['activeColor', clone(props.activeColor)]);
   }
 
+  const tooltip = props.tooltip;
   const progress = props.progress;
   const toggled = props.toggled;
   const onHover = props.onHover;
@@ -842,6 +848,10 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
     node = unwrapNode(nativeKitSet(node, name, value));
   }
 
+  if (tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', tooltip));
+  }
+
   if (progress !== undefined) {
     node = kitNumber(node, 'progress', progress);
   }
@@ -858,7 +868,7 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
 }
 
 /** Kit button options that are set, as name/value pairs. */
-function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean, tooltip: string): [string, string][] {
+function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean): [string, string][] {
   const options: [string, string][] = [];
   if (variant !== undefined) {
     options.push(['variant', variant]);
@@ -884,9 +894,6 @@ function buttonOptions(variant: string | undefined, size: string | undefined, ic
     options.push(['caret', 'true']);
   }
 
-  if (tooltip !== '') {
-    options.push(['tooltip', tooltip]);
-  }
 
   return options;
 }

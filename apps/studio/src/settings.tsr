@@ -2,6 +2,7 @@ import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
 import { homeDir } from 'std:env';
 import { join } from 'std:path';
 import themeNames from './themes/names.json';
+import localeNames from './locales/names.json';
 
 export function themes(): string[] {
   return clone(themeNames);
@@ -15,6 +16,7 @@ export interface StudioConfig {
   activityBarSide: string;
   panelPosition: string;
   chatPosition: string;
+  locale: string;
 }
 
 // Existing version-one files may omit layout fields; resolve them before use.
@@ -26,11 +28,12 @@ interface StoredConfig {
   activityBarSide?: string;
   panelPosition?: string;
   chatPosition?: string;
+  locale?: string;
 }
 
 export function defaultConfig(): StudioConfig {
   return {
-    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right'
+    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en'
   };
 }
 
@@ -41,12 +44,13 @@ export function parseConfig(text: ReadOnly<string>): Result<StudioConfig, string
     if (config.fontSize < 8 || config.fontSize > 48) return Err('fontSize must be between 8 and 48.');
     if (!themeNames.includes(config.theme)) return Err('Choose a theme from the installed Studio catalog.');
     const resolved: StudioConfig = {
-      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right'
+      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en'
     };
     if (!['left', 'right'].includes(resolved.navigationSide)) return Err('navigationSide must be left or right.');
     if (!['left', 'right'].includes(resolved.activityBarSide)) return Err('activityBarSide must be left or right.');
     if (!['left', 'right', 'bottom'].includes(resolved.panelPosition)) return Err('panelPosition must be left, right or bottom.');
     if (!['left', 'right', 'bottom'].includes(resolved.chatPosition)) return Err('chatPosition must be left, right or bottom.');
+    if (!localeNames.includes(resolved.locale)) return Err('locale must be en or pt-BR.');
     return Ok(resolved);
   } catch (error) {
     return Err('Settings must contain schemaVersion, theme and an integer fontSize.');

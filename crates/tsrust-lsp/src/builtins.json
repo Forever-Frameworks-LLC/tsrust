@@ -22495,6 +22495,9 @@
         },
         "aria-controls": {
           "documentation": "Optional constant or live nullable space-separated element IDs; undefined or empty removes the relationship. <Button aria-controls={open.get() ? clone(panelId) : undefined}>Details</Button> references the currently visible panel. ASCII whitespace is normalized; other control characters throw. Native accessibility ignores missing or hidden targets. This does not open content or install a handler. No function arguments. Ownership: consumes the ID string or evaluator; clone explicitly when another owner also needs the ID."
+        },
+        "tooltip": {
+          "documentation": "Optional constant or live hover text; omitted or empty text hides the tooltip. A ReactiveValue<string> getter or TextBinding updates the retained button without remounting its children. Example: <Button tooltip={busy.get() ? \"Saving\" : \"Save\"}>Save</Button>. Tooltip commands, placement and delay keep their existing meaning. Ownership: transfers text or its owned evaluator once; component-state captures stay non-retaining."
         }
       }
     },
@@ -22560,7 +22563,7 @@
           "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
         },
         "placeholder": {
-          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+          "documentation": "Optional constant or live hint shown only while empty. Omission or empty text displays no hint. A ReactiveValue<string> getter or TextBinding updates the existing field without resetting its text, selection or focus. Example: <Input placeholder={busy.get() ? \"Waiting\" : \"Search\"}/>. Provide a Label or aria-label for its accessible name. Ownership: transfers text or an owned evaluator once; component-state captures stay non-retaining."
         },
         "disabled": {
           "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."
@@ -22625,7 +22628,7 @@
           "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
         },
         "placeholder": {
-          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+          "documentation": "Optional constant or live hint shown only while empty. Omission or empty text displays no hint. A ReactiveValue<string> getter or TextBinding updates the existing field without resetting its text, selection or focus. Example: <Input placeholder={busy.get() ? \"Waiting\" : \"Search\"}/>. Provide a Label or aria-label for its accessible name. Ownership: transfers text or an owned evaluator once; component-state captures stay non-retaining."
         },
         "disabled": {
           "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."
@@ -22696,7 +22699,7 @@
           "documentation": "Optional initial uncontrolled string, int or number; defaults to empty. <Input defaultValue=\"Ada\"/> starts at Ada and retains user edits. An explicit value overrides it, including empty string/zero. Later defaultValue updates are not reactive. Single-line CR/LF are removed; Textarea normalizes CRLF/CR to LF. Ownership: consumes the initial value."
         },
         "placeholder": {
-          "documentation": "Optional empty-field hint, default empty. <Input aria-label=\"Name\" placeholder=\"Your name\"/> displays Your name only while its value is empty. The hint is not an accessible name; use a visible label or aria-label. No numeric parsing or validation occurs. Ownership: consumes the hint string."
+          "documentation": "Optional constant or live hint shown only while empty. Omission or empty text displays no hint. A ReactiveValue<string> getter or TextBinding updates the existing field without resetting its text, selection or focus. Example: <Input placeholder={busy.get() ? \"Waiting\" : \"Search\"}/>. Provide a Label or aria-label for its accessible name. Ownership: transfers text or an owned evaluator once; component-state captures stay non-retaining."
         },
         "disabled": {
           "documentation": "Optional boolean or compiler-generated state predicate, default false. <Input disabled={locked.get()}/> cannot edit, receive pointer activation or enter keyboard focus while true. Value and application state stay intact. Refresh errors stop and dispose the mounted tree. Ownership: copies the flag or consumes a non-retaining predicate."

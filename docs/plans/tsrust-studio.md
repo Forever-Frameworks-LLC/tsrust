@@ -370,7 +370,7 @@ Each item requires observed behavior; source changes alone do not close it.
 
 | # | Requirement | Current acceptance |
 |---|---|---|
-| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persistent file, legacy theme/font migration and live region-placement Save/reopen observed |
+| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persisted region/locale preferences, preview rollback and legacy defaults observed |
 | 2 | Matching navigation/editor text sizing | Shared zoom observed; monospace tree/editor screenshot appears matched; full layout acceptance pending |
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
 | 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
@@ -388,8 +388,10 @@ Each item requires observed behavior; source changes alone do not close it.
 Layout configuration now has model acceptance for all36combinations of navigation
 and activity sides plus task/chat placement. Three native arrangements verify all
 supported positions, independent visibility, saved-setting reload, Unicode draft,
-split-pane and Undo preservation. Locale/i18n and pane/view persistence across
-restart remain required.
+split-pane and Undo preservation. English/Brazilian-Portuguese catalogs and live locale Save/Reload/startup recovery
+are verified for owned Studio UI, with query/editor Undo retained across language
+changes. Wider locale/RTL/native-control coverage, AX selected-range support and
+pane/view persistence across restart remain required.
 
 Owner permits supervisor restarts whenever needed without another permission
 question. Keep one current dev session running. Planned-feature placeholders are

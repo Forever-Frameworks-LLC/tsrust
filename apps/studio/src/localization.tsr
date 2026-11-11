@@ -1,0 +1,30 @@
+import { Reactive, setTranslations, translate, translateWith } from 'std:ui';
+import english from './locales/en.json';
+import portuguese from './locales/pt-BR.json';
+
+export function initializeTranslations(): void {
+  setTranslations('en', english);
+  setTranslations('pt-BR', portuguese);
+}
+
+// A live string prop also works for accessible names and input placeholders.
+export function message(key: string): Reactive<string> {
+  return {
+    evaluate: () => translate(key)
+  };
+}
+
+// Accessible-name props have a nullable getter contract so names can be removed.
+export function accessibleName(key: string): Reactive<string | undefined> {
+  return {
+    evaluate: () => translate(key)
+  };
+}
+
+export function localizeError(value: ReadOnly<string>): string {
+  const preserved = 'Draft recovery could not be read. Its file was preserved: ';
+  if (value.startsWith(preserved)) return translateWith('Draft recovery could not be read. Its file was preserved: {path}', {
+    path: value.slice(preserved.length)
+  });
+  return translate(value);
+}

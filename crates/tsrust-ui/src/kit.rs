@@ -184,6 +184,7 @@ impl Node {
         let kit=self.kit_mut()?;
         kit.validate_prop(name,value)?;
         kit.props.insert(name.to_owned(), value.to_owned());
+        self.sync_input_placeholder();
         Ok(self)
     }
     /// A live prop: its value is read now and after every handler.
@@ -193,7 +194,14 @@ impl Node {
         kit.validate_prop(name,&value)?;
         kit.props.insert(name.to_owned(), value);
         kit.bindings.push((name.to_owned(), binding));
+        self.sync_input_placeholder();
         Ok(self)
+    }
+    fn sync_input_placeholder(&mut self) -> usize {
+        match (self.editable.as_mut(),self.kit.as_deref().and_then(|kit|kit.prop("placeholder"))) {
+            (Some(field),Some(value)) if field.placeholder!=value => {field.placeholder=value.to_owned();1},
+            _=>0,
+        }
     }
     /// A text, number or live value (signal, reactive prop or translation); None leaves the prop unset.
     pub fn with_kit_value(self, name: &str, value: Option<Box<dyn FnMut() -> Result<String, String>>>) -> Result<Self, String> {
@@ -225,7 +233,7 @@ impl Node {
             kit.validate_prop(name,&value)?;
             if kit.props.get(name) != Some(&value) {kit.props.insert(name.clone(), value); changed += 1;}
         }
-        Ok(changed)
+        Ok(changed+self.sync_input_placeholder())
     }
     /// Deliver a component event to the visible node with this identity.
         pub(crate) fn kit_event(&mut self, target: u64, event: &str, value: &str) -> Result<bool, String> {
@@ -257,6 +265,21 @@ impl Node {
 #[cfg(test)]
 mod tests {
     use super::super::{Child, Node, Signal};
+    #[test]
+    fn live_placeholders_keep_field_identity_and_contents_and_render_in_html() {
+        let hint=Signal::new(String::from("English <hint>"));let read=hint.handle();
+        let mut field=Node::input_control(None,Some("seed".into()),"{}",String::new(),None).unwrap()
+            .with_kit_binding("placeholder",read.text_binding(|value|value.clone())).unwrap();
+        assert_eq!(field.editable.as_ref().unwrap().placeholder,"English <hint>");
+        assert!(super::super::document(&field,"Field").contains("placeholder=\"English &lt;hint&gt;\""));
+        field.refresh().unwrap();let identity=field.identity.get();
+        assert!(field.input(identity,"typed λ").unwrap());
+        hint.set("Português & dica".into()).unwrap();field.refresh().unwrap();
+        assert_eq!(field.identity.get(),identity);
+        assert_eq!(field.editable.as_ref().unwrap().value,"typed λ");
+        assert_eq!(field.editable.as_ref().unwrap().placeholder,"Português & dica");
+        assert!(super::super::document(&field,"Field").contains("placeholder=\"Português &amp; dica\""));
+    }
     #[test]
     fn kit_props_refresh_from_bindings_and_events_reach_their_node() {
         let checked = Signal::new(false);

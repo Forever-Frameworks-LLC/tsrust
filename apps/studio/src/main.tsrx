@@ -1,4 +1,5 @@
-import { View, Text, Button, Dock, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme } from 'std:ui';
+import { accessibleName, message, initializeTranslations, localizeError } from './localization.tsr';
+import { View, Text, Button, Dock, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args } from 'std:env';
 import { extname } from 'std:path';
 import { OpenFile, openWorkspace, selectFile } from './workspace.tsr';
@@ -48,6 +49,7 @@ function App(path: string): Node {
     Ok(path) => {
       match (loadConfig(path)) {
         Ok(config) => {
+          setLocale(config.locale);
           font.set(config.fontSize);
           useTheme(clone(config.theme));
           settings.set(config);
@@ -71,19 +73,19 @@ function App(path: string): Node {
   const contentSearch = ContentSearch(workspace);
   const panelView = Panels(panel);
   const chatView = ChatPanel(chat);
-  const error = computed<string>(() => workspace.get().error);
+  const error = computed<string>(() => localizeError(workspace.get().error));
   const status = computed<string>(() => {
     const state = workspace.get();
     for (const file of state.files) {
-      if (file.document.path === state.active) return (file.kind === 'image' ? 'Image' : extname(file.document.path).slice(1) + ' • UTF-8') + (dirty(file.document) ? ' • Unsaved' : '');
+      if (file.document.path === state.active) return (file.kind === 'image' ? translate('Image') : extname(file.document.path).slice(1) + ' • UTF-8') + (dirty(file.document) ? ' • ' + translate('Unsaved') : '');
     }
 
-    return 'No file open';
+    return translate('No file open');
   });
   const chrome = Chrome(workspace, sidebar, mode, font, panel, recovery, settings);
   const editor = <View className="flex-col size-full min-w-0 min-h-0 bg-background">
                   <View hidden={workspace.get().files.length !== 0} className="flex-col grow items-center justify-center">
-                    <Button icon="file-search" variant="ghost" onPress={() => { mode.set('filesearch'); sidebar.set(true); }}>Open a file</Button>
+                    <Button icon="file-search" variant="ghost" onPress={() => { mode.set('filesearch'); sidebar.set(true); }}>{t("Open a file")}</Button>
                   </View>
                   <View hidden={workspace.get().files.length === 0} className="flex-col grow min-h-0">
                     <Dock value={workspace.get().active} tabbed={true} className="size-full" onChange={(path) => { const next = workspace.get(); if (next.active !== path && selectFile(next, clone(path))) workspace.set(next); }} onClose={(path) => { closeTab(workspace, clone(path)); }}>
@@ -110,12 +112,12 @@ function App(path: string): Node {
     {navigationArea}
   </View>;
   const rail = <View id="activity-bar" className={settings.get().activityBarSide === 'left' ? 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-r border-border bg-muted' : 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-l border-border bg-muted'}>
-        <Button icon="files" variant="ghost" selected={sidebar.get() && mode.get() === 'files'} tooltip="Files" aria-label="Files" onPress={() => { sidebar.set(mode.get() !== 'files' || !sidebar.get()); mode.set('files'); }} />
-        <Button icon="search" variant="ghost" selected={sidebar.get() && mode.get() === 'search'} tooltip="Search contents" aria-label="Search contents" onPress={() => { sidebar.set(mode.get() !== 'search' || !sidebar.get()); mode.set('search'); }} />
-        <Button icon="git-branch" variant="ghost" selected={panel.get() === 'git'} tooltip="Source Control (planned)" aria-label="Source Control" onPress={() => { panel.set(panel.get() === 'git' ? '' : 'git'); }} />
-        <Button icon="bug" variant="ghost" selected={panel.get() === 'debug'} tooltip="Run and Debug (planned)" aria-label="Run and Debug" onPress={() => { panel.set(panel.get() === 'debug' ? '' : 'debug'); }} />
-        <Button icon="blocks" variant="ghost" selected={panel.get() === 'extensions'} tooltip="Extensions (planned)" aria-label="Extensions" onPress={() => { panel.set(panel.get() === 'extensions' ? '' : 'extensions'); }} />
-        <Button icon="bot" variant="ghost" selected={chat.get()} tooltip="AI Chat (planned)" aria-label="AI Chat" onPress={() => { chat.set(!chat.get()); }} />
+        <Button icon="files" variant="ghost" selected={sidebar.get() && mode.get() === 'files'} tooltip={message("Files")} aria-label={accessibleName("Files")} onPress={() => { sidebar.set(mode.get() !== 'files' || !sidebar.get()); mode.set('files'); }} />
+        <Button icon="search" variant="ghost" selected={sidebar.get() && mode.get() === 'search'} tooltip={message("Search contents")} aria-label={accessibleName("Search contents")} onPress={() => { sidebar.set(mode.get() !== 'search' || !sidebar.get()); mode.set('search'); }} />
+        <Button icon="git-branch" variant="ghost" selected={panel.get() === 'git'} tooltip={message("Source Control (planned)")} aria-label={accessibleName("Source Control")} onPress={() => { panel.set(panel.get() === 'git' ? '' : 'git'); }} />
+        <Button icon="bug" variant="ghost" selected={panel.get() === 'debug'} tooltip={message("Run and Debug (planned)")} aria-label={accessibleName("Run and Debug")} onPress={() => { panel.set(panel.get() === 'debug' ? '' : 'debug'); }} />
+        <Button icon="blocks" variant="ghost" selected={panel.get() === 'extensions'} tooltip={message("Extensions (planned)")} aria-label={accessibleName("Extensions")} onPress={() => { panel.set(panel.get() === 'extensions' ? '' : 'extensions'); }} />
+        <Button icon="bot" variant="ghost" selected={chat.get()} tooltip={message("AI Chat (planned)")} aria-label={accessibleName("AI Chat")} onPress={() => { chat.set(!chat.get()); }} />
       </View>;
   return <View className="flex-col size-full bg-background text-foreground">
     {chrome}
@@ -126,14 +128,16 @@ function App(path: string): Node {
       </Resizable>
     </View>
     <View className="flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border">
-      <Button icon="terminal" variant="ghost" size="xsmall" tooltip="Toggle terminal" aria-label="Toggle terminal" onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-      <Button icon="circle-alert" variant="ghost" size="xsmall" tooltip="Problems: language service not connected" onPress={() => { panel.set('problems'); }} />
-      <Text className="text-xs">LSP: not connected</Text><View className="grow" /><Text className="text-xs">{status.get()}</Text>
+      <Button icon="terminal" variant="ghost" size="xsmall" tooltip={message("Toggle terminal")} aria-label={accessibleName("Toggle terminal")} onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
+      <Button icon="circle-alert" variant="ghost" size="xsmall" tooltip={message("Problems: language service not connected")} onPress={() => { panel.set('problems'); }} />
+      <Text className="text-xs">{t("LSP: not connected")}</Text><View className="grow" /><Text className="text-xs">{status.get()}</Text>
     </View>
   </View>;
 }
 
 function main() {
+  initializeTranslations();
+  setLocale('en');
   setTheme('dark');
   registerThemes(studioThemes);
   registerThemes(communityThemes);

@@ -1,4 +1,5 @@
-import { View, Text, Input, Button, Node, Signal, signal, computed, controlInput } from 'std:ui';
+import { accessibleName, message, localizeError } from './localization.tsr';
+import { View, Text, Input, Button, Node, Signal, signal, computed, controlInput, translateWith } from 'std:ui';
 import { Workspace, openFile } from './workspace.tsr';
 import { SearchHit, searchContents } from './search.tsr';
 
@@ -21,20 +22,24 @@ export function ContentSearch(workspace: Signal<Workspace>): Node {
   const hits = signal<SearchHit[]>([]);
   const error = signal('');
   const skipped = signal(0);
-  const summary = computed<string>(() => hits.get().length.toString() + ' matching lines • ' + skipped.get().toString() + ' files skipped');
+  const summary = computed<string>(() => translateWith('matchingLines', {
+    count: hits.get().length
+  }) + ' • ' + translateWith('skippedFiles', {
+    count: skipped.get()
+  }));
   return <View className="flex-col size-full min-h-0 p-2 gap-2">
-    <Input value={query.get()} placeholder="Search file contents" aria-label="Search file contents" className="w-full min-w-0" onChange={(event) => { query.set(clone(event.target.value)); }} />
+    <Input value={query.get()} placeholder={message("Search file contents")} aria-label={accessibleName("Search file contents")} className="w-full min-w-0" onChange={(event) => { query.set(clone(event.target.value)); }} />
     <View className="flex-row items-center gap-1">
-      <Button variant="ghost" size="small" selected={sensitive.get()} tooltip="Match case" onPress={() => { sensitive.set(!sensitive.get()); }}>Aa</Button>
-      <Button variant="ghost" size="small" selected={regex.get()} tooltip="Use regular expression" onPress={() => { regex.set(!regex.get()); }}>.*</Button>
-      <Button icon="search" variant="ghost" size="small" tooltip="Run content search" aria-label="Run content search" onPress={() => {
+      <Button variant="ghost" size="small" selected={sensitive.get()} tooltip={message("Match case")} onPress={() => { sensitive.set(!sensitive.get()); }}>Aa</Button>
+      <Button variant="ghost" size="small" selected={regex.get()} tooltip={message("Use regular expression")} onPress={() => { regex.set(!regex.get()); }}>.*</Button>
+      <Button icon="search" variant="ghost" size="small" tooltip={message("Run content search")} aria-label={accessibleName("Run content search")} onPress={() => {
         match (searchContents(workspace.get(), query.get(), regex.get(), sensitive.get())) {
           Ok(result) => { hits.set(result.hits); skipped.set(result.skipped); error.set(''); },
           Err(message) => { hits.set([]); error.set(message); }
         }
       }} />
     </View>
-    <Text>{summary.get()}</Text><Text className="text-destructive">{error.get()}</Text>
+    <Text>{summary.get()}</Text><Text className="text-destructive">{localizeError(error.get())}</Text>
     <View className="flex-col grow min-h-0 overflow-y-auto">{...hits.get().map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace))}</View>
   </View>;
 }

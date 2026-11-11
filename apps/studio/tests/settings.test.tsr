@@ -89,3 +89,31 @@ test('layout defaults migrate existing settings and every supported placement ro
     unwrap(removeDirAll(root));
   }
 });
+
+
+test('locale preferences round trip and legacy settings stay English', () => {
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).locale, 'en');
+  const root = unwrap(createTempDir(undefined, 'studio-locale-'));
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    for (const locale of ['en', 'pt-BR']) {
+      const config = defaultConfig();
+      config.locale = clone(locale);
+      unwrap(saveConfig(path, JSON.stringify(config)));
+      strictEqual(unwrap(loadConfig(path)).locale, locale);
+    }
+
+    const baseline = unwrap(readTextFile(path));
+    const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"locale":"missing"}';
+    match (saveConfig(path, invalid)) {
+      Ok(_) => {
+        throw 'unsupported locale saved';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), baseline);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

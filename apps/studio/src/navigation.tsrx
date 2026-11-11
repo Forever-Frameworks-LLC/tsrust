@@ -1,3 +1,4 @@
+import { accessibleName, message, localizeError } from './localization.tsr';
 import { View, Text, Input, Button, Node, Signal, signal, computed } from 'std:ui';
 import { Workspace, Entry, projectFiles, openFile } from './workspace.tsr';
 
@@ -20,13 +21,14 @@ export function FileSearch(root: string, workspace: Signal<Workspace>, font: Sig
   const query = signal('');
   match (projectFiles(root)) {
     Err(message) => {
-      return <Text>{message}</Text>;
+      const errorText = computed<string>(() => localizeError(message));
+      return <Text>{errorText.get()}</Text>;
     },
     Ok(files) => {
       const results: Node[] = [];
       for (const file of files) results.push(SearchResult(file, clone(root), workspace, query, font));
       return <View className="flex-col size-full p-3 gap-2">
-        <Input className="w-full min-w-0" value={query.get()} placeholder="Find a file by name or path" aria-label="Find project file" onChange={(event) => { query.set(clone(event.target.value)); }} />
+        <Input className="w-full min-w-0" value={query.get()} placeholder={message("Find a file by name or path")} aria-label={accessibleName("Find project file")} onChange={(event) => { query.set(clone(event.target.value)); }} />
         <View className="flex-col grow min-h-0 overflow-y-auto">{...results}</View>
       </View>;
     }

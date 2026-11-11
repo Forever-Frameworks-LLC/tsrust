@@ -1,3 +1,4 @@
+import { localizeError } from './localization.tsr';
 import { Node, Text, Tree, TreeItem, Signal, computed } from 'std:ui';
 import { stat } from 'std:fs';
 import { Workspace, entries, openFile } from './workspace.tsr';
@@ -34,7 +35,8 @@ export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Si
   const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
   match (directoryItems(path)) {
     Err(message) => {
-      return <Text>{message}</Text>;
+      const errorText = computed<string>(() => localizeError(message));
+      return <Text>{errorText.get()}</Text>;
     },
     Ok(children) => {
       return <Tree defaultSelected={workspace.get().active} className={treeClass.get()} onSelect={(selectedPath) => {
