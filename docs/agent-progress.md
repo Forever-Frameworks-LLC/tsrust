@@ -112,7 +112,7 @@ invalid-limitPASS0.362375ms; stop critical pressure at10.239s total, system swap
 absolute swap4294.94MiB at observation. Keep all three failed/incomplete resource
 proofs. No more unchanged Candle retries; investigate memory-mapped native backend.
 
-Current native-library inference gate PASS, checkpoint pending. New managed
+Current native-library inference gate PASS at02de4640. New managed
 llama.bindings.json/lock and ai/llama_admission.rs, ordinary admission config
 @engine alias (same worker/test assertions). Root/sys llama-cpp0.1.161, VCS e7af607,
 lock66eb63527e2cbbd31e682c8034efaa14ed62e3fde411a1f9266167d52e1f329a.
@@ -137,9 +137,15 @@ package time. Regression2/2PASS0.01s, setup9.01s, actualplutil valid; source cha
 in app_package_cli.rs is committed. Existing retained dev remains running and
 normal Studio config is unaffected. Do not restart it to load this refinement.
 
-Next: checkpoint native candidate proof and small metadata refinement separately;
-then add repeated unload/reload and cooperative-cancellation witnesses, followed
-by checked native streaming/session capabilities and held-out evaluation. Keep
+Next: implement real project/document opening, working document tabs and safe
+saves. Owner narrowed the initial open directory to apps/studio itself, not the
+whole Tsrust checkout. Use that package's real source/config/tests for editor
+dogfooding; expand only for a concrete workflow. Preserve unchanged executable
+test passes rather than replaying them. Record/array UI signals are still a
+compiler prerequisite for the typed document store; inspect existing generic
+native Signal and snapshot/clone handling rather than serializing application
+state into strings. Native lifecycle/cancellation, streaming/session capabilities
+and held-out evaluation remain required after this editor section. Keep
 dev session15252/PID74090 and current app76050; no superseded standalone bundle
 remains (its3verified generated files were removed). Full held-out evaluation/training/quantized artifact qualification,
 revisioned document store/safe isolated tools, complete editor services, cloud/external

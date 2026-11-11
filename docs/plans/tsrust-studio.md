@@ -8,6 +8,10 @@ identities, proof contracts, current checks and unresolved prerequisites.
 
 ## Owner requirements
 
+- Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust
+  checkout. Exercise its real source/config/tests through the editor. Broaden the
+  open directory later only for a demonstrated workflow; whole-repository
+  indexing is not part of the first document/project section.
 - Studio lives inside this repository, provisionally at `apps/studio`, and starts
   as an ordinary `tsrust new studio` project using the supported UI setup. Its
   application, worker, agent, evaluation and training orchestration source is

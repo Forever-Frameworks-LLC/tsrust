@@ -9,6 +9,12 @@ placeholder controls, pretend tabs or website-style branding. File names belong
 in functional document tabs; actions belong in compact editor toolbars/menus.
 Validate behavior in the running app, not only its appearance.
 
+## Initial editor test workspace — owner, 2026-11-10
+
+Use this `apps/studio` package as the initial open directory when developing and
+testing Studio. Do not initially open/index the entire Tsrust checkout. Expand
+the workspace only when a concrete workflow requires it.
+
 Read `tsrust.config.json` before changing entrypoints, output paths, UI targets or
 component locations. Tsrust checks ownership and supported language/library APIs;
 use its diagnostics and local source instead of assuming every TypeScript or Node
