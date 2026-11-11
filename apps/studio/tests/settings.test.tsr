@@ -1,6 +1,6 @@
 import { test, strictEqual } from 'std:testing';
 import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
-import { defaultConfig, parseConfig, loadConfig, saveConfig, themes } from '../src/settings.tsr';
+import { defaultConfig, parseConfig, loadConfig, saveConfig, formatConfig, themes } from '../src/settings.tsr';
 
 test('settings validate before persistence and round trip their named theme and shared text size', () => {
   const root = unwrap(createTempDir(undefined, 'studio-settings-'));
@@ -113,6 +113,33 @@ test('locale preferences round trip and legacy settings stay English', () => {
     }
 
     strictEqual(unwrap(readTextFile(path)), baseline);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('GUI settings formatting and stale writes preserve configuration data', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-settings-edit-'));
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    const config = defaultConfig();
+    const formatted = formatConfig(config);
+    strictEqual(formatted.includes('\n  "theme": '), true);
+    strictEqual(JSON.stringify(unwrap(parseConfig(formatted))), JSON.stringify(config));
+    unwrap(saveConfig(path, formatted));
+    const external = clone(config);
+    external.fontSize = 19;
+    const changed = formatConfig(external);
+    unwrap(saveConfig(path, changed, formatted));
+    match (saveConfig(path, formatted, formatted)) {
+      Ok(_) => {
+        throw 'stale settings overwrote an external edit';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), changed);
   } finally {
     unwrap(removeDirAll(root));
   }

@@ -57,7 +57,7 @@ runtime6c110a65bedc33e5. Removed6proven trace/padding caches under locks:
 Installed/target CLIc17e15a1bd76fcf987a28d676fc8d7e438193542891a1c431e158cef9eeb0848,
 LSP2f60607825455025a1e10bf15ba1fa2060a551674a15022b1db82ca509821ef5.
 
-Latest section accepted, checkpoint pending: detailed syntax capture/theme fix.
+Accepted checkpoint0bfaf967: detailed syntax capture/theme fix.
 Owner Gruvbox screenshot and Zed request traced to active Syntect import=>preproc,
 theme schema dropping unknown detailed names, and JSON inner strings hiding outer
 meta.mapping.key.json. Community catalog104names/65detailed. Pinned GPUI component
@@ -108,6 +108,52 @@ complete editor scope, prioritizing active/focused-pane cursor/scroll retention,
 tree moves and real terminal/task/LSP services, with existing Kit/native APIs.
 Keep one writer/no agents, one preview; protect owner changes. Do not claim full
 Studio/AI goal complete. No pushes/releases/signing/model publication.
+
+
+Current feature section accepted, checkpoint pending: GUI-first native Settings.
+Owner now prioritizes feature throughput and human manual acceptance over frequent
+narrow automation; NO full regressions ran this turn. Updated apps/studio/AGENTS.md
+with exact direction. Use VS Code/Xcode/Zed patterns and Kit components. Remaining
+priorities include custom file-type icons and connected terminal/task/LSP services.
+
+Settings now uses std:ui Settings/Page/Group/SettingItem: searchable General and
+Workbench pages; theme/font/locale and four region placement controls. GUI edits
+save immediately. Custom draggable chrome with GUI/JSON/reload actions; optional
+formatted JSON editor fills remaining window height, explicit Save/Cmd+S. Reuse
+contextual save-file command name to avoid overwriting the app's global key binding
+with a separate Settings command. Error window also has a drag region. Actions/model
+separated in settings-actions.tsr/settings.tsr. Records with opaque Signal fields
+cannot be cloned; each callback gets an independent context constructed with shared
+signal handles and its own cloned path. Earlier ownership/numeric typing errors
+fixed without compiler changes. No callback-clone workaround or framework added.
+
+saveConfig accepts optional exact expected bytes. GUI tracks baseline/presence and
+refuses unreadable-file saves until Reload; existing external edits produce conflict.
+Initial creation retains one-writer shortcut documented in source. formatConfig is
+an explicit typed settings serializer with scalar JSON escaping (generic JSON
+pretty printing is not currently in stdlib). Existing invalid JSON stays visible
+for repair. Tree/editor both explicitly use font-mono; removed top terminal button,
+leaving status-bar toggle and existing shortcut.112messages/2locales pass audit.
+
+Native app12683 verified Settings categories/custom titlebar/layout controls, GUI
+font14to15 persisted on disk immediately, formatted full-height JSON font15, then
+GUI restored14. Home config now pretty with explicit layout defaults, all original
+values restored; owner zoom-3 retained, drafts0. CUA: Built categorized native
+Settings controls. Focused settings.test.tsr4/4PASS527.01ms execution (includes
+existing schema/placement/locale cases and new formatting/stale-write witness),
+setup not separately timed. No full matrix replay. Whole formatter ran; final
+source auto-rebuilt after contextual-save and formatting updates to app14694.
+Current dev supervisor8045/PTY73753, one preview. CLI/LSP still0bfaf967 installed
+pair3cbf37e3/0b55e2ea (no compiler change). Latest auto rebuild50215ms:check15983.2,
+emit1227,backend188.2,native+link20253.1,runtime hit. Single observation, not benchmark.
+
+Next: final whole formatter/diff/local GUI-feature checkpoint, then custom file
+icons. Found existing editors/vscode/icons/tsrust.svg. Kit Icon supports inline SVG,
+but TreeItem exposes only named icons; extend its existing shared renderer/catalog
+with SVG/tint support, not a custom tree. Prefer data-driven icon mappings and
+existing/pinned standard language glyphs, with resource provenance. After that,
+real terminal/task/LSP integration remains required. Keep one preview and preserve
+owner feedback; no full suite unless meaningful family milestone requires it.
 
 Current section follows7d192232 (open-file restoration) and36fe5ddc
 (localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError

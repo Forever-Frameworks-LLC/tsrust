@@ -42,21 +42,22 @@ watching, cancellation and Enter-to-search remain required.
 PNG viewing and Markdown source/preview are verified in the app. Other routed
 image formats still need decoder acceptance. Cmd+=, Cmd+- and Cmd+0 control the
 shared tree/editor text size. Settings opens a separate window backed by
-`~/.tsrust/studio/tsrust_studio.config.json`. Use its searchable theme selector
-or JSON editor, then Save. The catalog contains two Studio themes and 36 upstream
+`~/.tsrust/studio/tsrust_studio.config.json`. Its searchable, categorized controls
+save changes immediately. The formatted JSON view fills the window; use Cmd+S or
+its Save action to apply JSON edits. The catalog has two Studio themes and 36 upstream
 community variants; source revision, authors, URLs and hashes are in
 `src/themes/sources.json`, with upstream license files alongside them.
 
 Layout settings use `navigationSide` and `activityBarSide` (`left` or `right`),
-plus `panelPosition` and `chatPosition` (`left`, `right` or `bottom`). Save in
-Settings to apply them to the current workspace. Older theme/font configuration
+plus `panelPosition` and `chatPosition` (`left`, `right` or `bottom`). Changes apply
+immediately to the current workspace. Older theme/font configuration
 files retain their meaning: omitted layout fields default to left navigation and
 activity bar, bottom task/terminal panel and right AI Chat. The chat toggle opens
 an independent region, so chat and terminal can remain visible together.
 
-The Language selector previews English or Brazilian Portuguese. Save persists
-`locale` (`en` or `pt-BR`); Reload restores the saved language/theme and discards
-an unsaved preview. Older settings default to English. Catalogs in `src/locales`
+The Language selector immediately applies and persists `locale` (`en` or `pt-BR`).
+Reload rereads the saved configuration and discards unsaved JSON edits. Older
+settings default to English. Catalogs in `src/locales`
 cover app controls, accessible names/tooltips, search summaries and owned errors.
 File names, file contents, theme names, configuration keys and external technical
 diagnostics retain their original text. Catalog keys use English message IDs as

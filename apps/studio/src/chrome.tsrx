@@ -27,7 +27,6 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     </View>
     <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
       <Button icon="save" variant="ghost" size="small" aria-label={accessibleName("Save file")} tooltip={message("Save file")} tooltipCommand="save-file" onPress={() => { saveActive(workspace, recovery); }} />
-      <Button icon="terminal" variant="ghost" size="small" aria-label={accessibleName("Toggle terminal")} tooltip={message("Toggle terminal")} onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
       <Button icon="settings" variant="ghost" size="small" aria-label={accessibleName("Settings")} tooltip={message("Settings")} onPress={() => { showSettings(font, settings, workspace); }} />
     </View>
     <Shortcut command="toggle-sidebar" keys="secondary-b" onTrigger={() => { sidebar.set(!sidebar.get()); }} />

@@ -89,13 +89,13 @@ export function loadConfig(path: ReadOnly<string>): Result<StudioConfig, string>
   }
 }
 
-export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>): Result<StudioConfig, string> {
+export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>, expected?: string): Result<StudioConfig, string> {
   match (parseConfig(text)) {
     Err(error) => {
       return Err(error);
     },
     Ok(config) => {
-      match (writeTextFileAtomic(path, text)) {
+      match (writeTextFileAtomic(path, text, expected)) {
         Err(error) => {
           return Err(clone(error.message));
         },
@@ -105,4 +105,9 @@ export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>): Resu
       }
     }
   }
+}
+
+
+export function formatConfig(config: ReadOnly<StudioConfig>): string {
+  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition)].join(',\n') + '\n}\n';
 }

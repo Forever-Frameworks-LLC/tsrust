@@ -28,7 +28,7 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
   });
   const preview = signal(false);
   const markdown = extname(path).toLowerCase() === '.md';
-  const editorClass = computed<string>(() => 'grow min-h-0 text-[' + font.get().toString() + 'px]');
+  const editorClass = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
   if (file.kind === 'image') {
     return <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}><View id={clone(file.document.session)} className="flex-col size-full min-h-0 p-4">
       <Image src={clone(file.document.path)} fit="contain" alt={tWith('Unable to decode {name}', { name: clone(file.name) })} className="size-full" />

@@ -370,8 +370,8 @@ Each item requires observed behavior; source changes alone do not close it.
 
 | # | Requirement | Current acceptance |
 |---|---|---|
-| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persisted region/locale preferences, preview rollback and legacy defaults observed |
-| 2 | Matching navigation/editor text sizing | Shared tree/editor zoom and per-workspace restart retention observed; Cmd+0 records reset and Settings Reload retains offset; full layout acceptance pending |
+| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own custom-chrome window; Kit searchable General/Workbench pages with GUI theme/font/locale/region controls, immediate persistence, formatted full-height optional JSON and Save/Reload; external-write protection and legacy defaults verified |
+| 2 | Matching navigation/editor text sizing | Shared explicit font-mono family, zoom and per-workspace restart retention observed; Cmd+0 records reset and Settings Reload retains offset; full layout acceptance pending |
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
 | 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
 | 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |

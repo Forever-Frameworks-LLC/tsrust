@@ -90,3 +90,16 @@ editor splits and a substantial theme catalog with verified persistence. Restore
 a useful status bar and terminal/panel toggles. This update explicitly authorizes
 clearly labeled planned-feature panels/controls, superseding the earlier ban on
 placeholders. Keep the original functional-UI requirements for implemented work.
+
+
+## Feature implementation and human review — owner, 2026-11-11
+
+Prioritize usable features and live manual acceptance. Batch the smallest relevant
+checks after a coherent feature; do not repeatedly run full regressions or unchanged
+executables. Keep data-preservation checks, build requirements and meaningful
+regressions, but do not let speculative preference testing displace implementation.
+Use established VS Code/Xcode/Zed layouts and the existing std:ui/GPUI Kit controls.
+Settings must use categorized Settings pages with GUI controls first, custom window
+chrome, and optional formatted full-height JSON. Keep file-type icons, consistent
+navigation/editor typography, one terminal toggle, and real service integration on
+the implementation path. Owner will provide preference feedback through the live app.
