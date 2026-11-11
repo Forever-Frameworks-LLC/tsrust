@@ -68,5 +68,9 @@
     "sha256": "77e43d450cac9c68c048221441daebd336bb76db20da35d4924c2db6ae7c23ec",
     "adaptation": "Existing Tr geometry converted to a single-color cutout for native icon tinting.",
     "packagedSha256": "9a36d34e52f0977ee88b6490b33a8a166e82a7e8924c087aee90b92828e0ac98"
+  },
+  "tsrustComponent": {
+    "source": "Original Studio component glyph; angle brackets distinguish TSRX markup from the solid Tr source glyph.",
+    "packagedSha256": "7965c48da94f38f407d255868f6c8caf1f2550ae6e1bf9480101a011741b8611"
   }
 }

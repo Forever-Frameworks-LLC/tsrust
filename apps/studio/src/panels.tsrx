@@ -1,7 +1,7 @@
 import { accessibleName, message } from './localization.tsr';
 import { View, Text, Button, Tabs, Tab, Node, Signal, t } from 'std:ui';
 
-export function Panels(panel: Signal<string>): Node {
+export function Panels(panel: Signal<string>, output: Node): Node {
   return <View className="flex-col size-full min-h-0 bg-muted">
     <View className="flex-row items-center shrink-0 border-b border-border">
       <Tabs value={panel.get()} variant="underline" size="small" className="grow min-w-0" onChange={(value) => { panel.set(clone(value)); }}>
@@ -9,10 +9,10 @@ export function Panels(panel: Signal<string>): Node {
       </Tabs>
       <Button icon="x" variant="ghost" size="xsmall" tooltip={message("Close panel")} aria-label={accessibleName("Close panel")} onPress={() => { panel.set(''); }} />
     </View>
-    <View className="p-3 grow min-h-0">
+    <View className="grow min-h-0">
       <View hidden={panel.get() !== 'terminal'}><Text>{t("Terminal integration is planned. No shell session is running.")}</Text></View>
       <View hidden={panel.get() !== 'problems'}><Text>{t("Language-service diagnostics are not connected yet.")}</Text></View>
-      <View hidden={panel.get() !== 'output'}><Text>{t("Build and task output will appear here when task execution is connected.")}</Text></View>
+      <View hidden={panel.get() !== 'output'} className="size-full min-h-0">{output}</View>
       <View hidden={panel.get() !== 'debug'}><Text>{t("Debugger integration is planned. No debug session is running.")}</Text></View>
       <View hidden={panel.get() !== 'git'}><Text>{t("Repository status, diffs and staging are planned.")}</Text></View>
       <View hidden={panel.get() !== 'extensions'}><Text>{t("Extension management is planned.")}</Text></View>

@@ -1,0 +1,19 @@
+import { test, strictEqual } from 'std:testing';
+import { formatCheckReport } from '../src/project-check.tsr';
+
+test('structured compiler reports retain file locations and failures', () => {
+  const clean = formatCheckReport('{"ok":true,"diagnostics":[]}');
+  strictEqual(clean.failed, false);
+  strictEqual(clean.output, 'Check passed.\n');
+  const failure = formatCheckReport('{"ok":false,"diagnostics":[{"file":"/project/界.tsr","code":"type","message":"Expected int","location":{"line":3,"column":7}}]}');
+  strictEqual(failure.failed, true);
+  strictEqual(failure.output, '/project/界.tsr:3:7 [type] Expected int\nCheck failed.\n');
+  let rejected = false;
+  try {
+    formatCheckReport('{"diagnostics":[]}');
+  } catch (_) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});

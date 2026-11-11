@@ -27,7 +27,6 @@
   "Close AI Chat": "Close AI Chat",
   "Terminal integration is planned. No shell session is running.": "Terminal integration is planned. No shell session is running.",
   "Language-service diagnostics are not connected yet.": "Language-service diagnostics are not connected yet.",
-  "Build and task output will appear here when task execution is connected.": "Build and task output will appear here when task execution is connected.",
   "Debugger integration is planned. No debug session is running.": "Debugger integration is planned. No debug session is running.",
   "Repository status, diffs and staging are planned.": "Repository status, diffs and staging are planned.",
   "Extension management is planned.": "Extension management is planned.",
@@ -112,5 +111,11 @@
   "Bottom": "Bottom",
   "Reload the settings file before saving.": "Reload the settings file before saving.",
   "File icons": "File icons",
-  "Show language and file-type symbols in the explorer.": "Show language and file-type symbols in the explorer."
+  "Show language and file-type symbols in the explorer.": "Show language and file-type symbols in the explorer.",
+  "Check project (Cmd+Shift+B)": "Check project (Cmd+Shift+B)",
+  "Check project": "Check project",
+  "Checking saved project files…": "Checking saved project files…",
+  "Project check": "Project check",
+  "Project check output": "Project check output",
+  "Cancel project check": "Cancel project check"
 }

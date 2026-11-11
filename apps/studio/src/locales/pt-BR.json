@@ -27,7 +27,6 @@
   "Close AI Chat": "Fechar chat de IA",
   "Terminal integration is planned. No shell session is running.": "A integração do terminal está planejada. Nenhuma sessão de shell está em execução.",
   "Language-service diagnostics are not connected yet.": "Os diagnósticos do serviço de linguagem ainda não estão conectados.",
-  "Build and task output will appear here when task execution is connected.": "A saída de compilações e tarefas aparecerá aqui quando a execução de tarefas estiver conectada.",
   "Debugger integration is planned. No debug session is running.": "A integração do depurador está planejada. Nenhuma sessão de depuração está em execução.",
   "Repository status, diffs and staging are planned.": "O status do repositório, as diferenças e a preparação de alterações estão planejados.",
   "Extension management is planned.": "O gerenciamento de extensões está planejado.",
@@ -112,5 +111,11 @@
   "Bottom": "Inferior",
   "Reload the settings file before saving.": "Recarregue o arquivo de configurações antes de salvar.",
   "File icons": "Ícones dos arquivos",
-  "Show language and file-type symbols in the explorer.": "Exibir símbolos de linguagens e tipos de arquivo no explorador."
+  "Show language and file-type symbols in the explorer.": "Exibir símbolos de linguagens e tipos de arquivo no explorador.",
+  "Check project (Cmd+Shift+B)": "Verificar projeto (Cmd+Shift+B)",
+  "Check project": "Verificar projeto",
+  "Checking saved project files…": "Verificando arquivos salvos do projeto…",
+  "Project check": "Verificação do projeto",
+  "Project check output": "Saída da verificação do projeto",
+  "Cancel project check": "Cancelar verificação do projeto"
 }

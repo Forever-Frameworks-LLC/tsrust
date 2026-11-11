@@ -3,13 +3,22 @@
     {
       "name": "Tsrust",
       "extensions": [
-        "tsr",
-        "tsrx"
+        "tsr"
       ],
       "filenames": [],
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><path fill-rule=\"evenodd\" d=\"M3 1h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2z M3 4h8v2H8v6H6V6H3z M11 8h2v1h-1v3h-1z\"/></svg>",
       "icon": "",
       "color": "#CE7045"
+    },
+    {
+      "name": "Tsrust component",
+      "extensions": [
+        "tsrx"
+      ],
+      "filenames": [],
+      "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><path d=\"M5 2 0 8l5 6 1.5-1.5L2.7 8l3.8-4.5L5 2zm6 0-1.5 1.5L13.3 8l-3.8 4.5L11 14l5-6-5-6zM7 6h2v4H7z\"/></svg>",
+      "icon": "",
+      "color": "#A78BFA"
     },
     {
       "name": "typescript",

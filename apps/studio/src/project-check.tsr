@@ -1,0 +1,97 @@
+import { Channel, Sender, race } from 'std:futures';
+import { run } from 'std:process';
+import { toUtf8 } from 'std:bytes';
+
+export interface CheckResult {
+  output: string;
+  failed: boolean;
+}
+
+interface CheckLocation {
+  file?: string;
+  line: int;
+  column: int;
+}
+
+interface CheckDiagnostic {
+  file?: string;
+  code: string;
+  message: string;
+  location?: CheckLocation;
+}
+
+interface CheckReport {
+  ok: boolean;
+  diagnostics: CheckDiagnostic[];
+}
+
+// Read the CLI's structured diagnostics, never terminal styling or error prose.
+export function formatCheckReport(text: ReadOnly<string>): CheckResult {
+  const report = JSON.parse<CheckReport>(text);
+  let output = '';
+  for (const diagnostic of report.diagnostics) {
+    const location = diagnostic.location;
+    output += diagnostic.file ?? (location === undefined ? '' : location.file ?? '');
+    if (location !== undefined) output += ':' + location.line.toString() + ':' + location.column.toString();
+    output += ' [' + diagnostic.code + '] ' + diagnostic.message + '\n';
+  }
+
+  output += report.ok ? 'Check passed.\n' : 'Check failed.\n';
+  return {
+    output, failed: !report.ok
+  };
+}
+
+async function runCheck(root: ReadOnly<string>, program: ReadOnly<string>): Task<CheckResult> {
+  let result: CheckResult = {
+    output: '', failed: true
+  };
+  match (await run(program, ['check', '--json', '--color=never'], {
+    cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
+  })) {
+    Ok(output) => {
+      try {
+        result = formatCheckReport(unwrap(toUtf8(output.stdout)));
+        if (!output.status.success) result.failed = true;
+      } catch (_) {
+        match (toUtf8(output.stderr)) {
+          Ok(text) => {
+            result.output = text === '' ? 'The compiler returned an invalid check report.\n' : clone(text);
+          },
+          Err(_) => {
+            result.output = 'The compiler output is not valid UTF-8.\n';
+          }
+        }
+      }
+    },
+    Err(error) => {
+      result.output = clone(error.message);
+    }
+  }
+
+  return result;
+}
+
+async function cancelled(requests: ReadOnly<Channel<string>>): Task<CheckResult> {
+  await requests.receive();
+  return {
+    output: 'Check cancelled.\n', failed: true
+  };
+}
+
+export async function projectCheckWorker(root: string, program: string, requests: Channel<string>, results: Sender<CheckResult>): Task<void> {
+  while (true) {
+    try {
+      await requests.receive();
+    } catch (_) {
+      return;
+    }
+    // Check never spawns Cargo/native children; dropping its task reaps the CLI process.
+    const result = await race([runCheck(root, program), cancelled(requests)]);
+    try {
+      await results.send(result);
+    } catch (_) {
+      return;
+    }
+  }
+}

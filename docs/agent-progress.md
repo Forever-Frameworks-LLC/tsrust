@@ -155,6 +155,27 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+Current section after0f5ef449/ff925577: distinct TSRX glyph plus real project-check
+service IN PROGRESS. TSR coral Tr vs TSRX purple component brackets, original own
+SVG provenance updated. New .tsr worker uses std:futures channels and std:process
+run --json; main owns/cancels/awaits worker around native UI. Check runs saved
+project files in workspace cwd, bounded5min/4MiB, no shell. race cancellation drops
+check task/reaps compiler; no Cargo/native children. Kit Output editor, play/stop,
+CmdShiftB,100ms completion ticker active only while running. Live still old app23352
+under19300/PTY99098 while changed-source builds occur. Native service unverified.
+Model+icon selected batch3/3PASS0.90ms execution/setup5.361s; structured report
+file/Unicode/location/failure/malformed guards. Race/stop added after this pure
+format witness, so actual lifecycle acceptance still pending. No full regressions.
+119localized messages (rerun checker final); formatter before checkpoint pending.
+
+Owner additionally requests source organization: categorize lib/components/subdirs.
+Next: checkpoint current feature draft, move code by area, rewrite all relative
+imports/tests/assets, preserve current journal open/draft/Dock paths via a one-time
+atomic path migration AFTER stopping old supervisor/BEFORE queued replacement.
+Journal currently drafts0 but read freshest bytes at migration, do not discard
+later owner drafts. Current source open:main/chrome/settings/config. Main stays
+src/main.tsrx. Keep one writer and preview. No push/release.
+
 Accepted file-icon section (checkpoint pending): existing std:ui TreeItem now
 has documented iconSvg/iconColor props and generated wrappers/LSP help, using Kit
 Icon.data/tint. Decorations excluded from structural fingerprint so toggles keep

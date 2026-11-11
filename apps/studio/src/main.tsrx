@@ -1,6 +1,9 @@
 import { accessibleName, message, initializeTranslations } from './localization.tsr';
 import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
-import { currentDir, args } from 'std:env';
+import { currentDir, args, get } from 'std:env';
+import { Channel, Sender } from 'std:futures';
+import { CheckResult, projectCheckWorker } from './project-check.tsr';
+import { CheckPanel } from './check-panel.tsrx';
 import { extname } from 'std:path';
 import { openWorkspace } from './workspace.tsr';
 import { dirty } from './documents.tsr';
@@ -17,7 +20,7 @@ import { configPath, loadConfig, defaultConfig } from './settings.tsr';
 import studioThemes from './themes/studio.json';
 import communityThemes from './themes/community.json';
 
-function App(path: string): Node {
+function App(path: string, requests: Sender<string>, shortcutRequests: Sender<string>, cancellations: Sender<string>, results: Channel<CheckResult>): Node {
   const initial = unwrap(openWorkspace(path));
   let journal: Recovery = {
     path: '', baseline: '', ready: false
@@ -72,7 +75,7 @@ function App(path: string): Node {
   const browser = ProjectTree(workspace.get().root, workspace, font, recovery, settings);
   const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
   const contentSearch = ContentSearch(workspace, recovery);
-  const panelView = Panels(panel);
+  const panelView = Panels(panel, CheckPanel(panel, requests, shortcutRequests, cancellations, results, font));
   const chatView = ChatPanel(chat);
   const status = computed<string>(() => {
     const state = workspace.get();
@@ -125,7 +128,7 @@ function App(path: string): Node {
   </View>;
 }
 
-function main() {
+async function main(): Task<void> {
   initializeTranslations();
   setLocale('en');
   setTheme('dark');
@@ -134,7 +137,23 @@ function main() {
   useTheme('Studio Dark');
   const parameters = unwrap(args());
   const path = parameters.length > 1 ? clone(parameters[1]) : unwrap(currentDir());
-  unwrap(run(App(path), 'Tsrust Studio', {
-    titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
-  }));
+  const requests = new Channel<string>(1);
+  const results = new Channel<CheckResult>(1);
+  const actions = requests.sender();
+  const shortcuts = requests.sender();
+  const cancellations = requests.sender();
+  const replies = results.sender();
+  const configured = unwrap(get('TSRUST'));
+  const program: string = configured ?? 'tsrust';
+  const worker = projectCheckWorker(clone(path), program, requests, replies).start();
+  try {
+    unwrap(run(App(path, actions, shortcuts, cancellations, results), 'Tsrust Studio', {
+      titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
+    }));
+  } finally {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (_) {}
+  }
 }
