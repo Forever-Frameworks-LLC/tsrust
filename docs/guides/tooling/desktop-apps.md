@@ -19,7 +19,9 @@ run offline from the locked crate sets it downloads. `new --ui` creates a deskto
 app from the GPUI starter. Programs that use `CodeEditor` or `Markdown` get syntax highlighting automatically. Programs that use
 `SpeechButton` likewise get system speech recognition; packaged macOS apps carry
 the microphone and speech-recognition usage descriptions it needs. `tsrust dev` rebuilds and
-restarts the window whenever a source or locale file changes. `tsrust ui list`
+restarts the window after changed application inputs build successfully. Unrelated
+test edits retain the running window when application inputs and macOS app metadata
+are unchanged; failed builds also preserve the last working app. `tsrust ui list`
 shows the GPUI Kit components; `tsrust ui add Settings DataTable` copies editable
 wrappers into `src/components/` (`--all` adds every component, `--force`
 replaces existing files).

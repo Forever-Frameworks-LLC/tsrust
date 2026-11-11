@@ -51,6 +51,9 @@ impl NativeCache {
     #[doc(hidden)]
     pub fn identity_key(&self)->&str {self.directory.file_name().unwrap().to_str().unwrap()}
 
+    /// Compare complete build inputs, rather than the possibly colliding directory hash.
+    pub fn same_inputs(&self,other:&Self)->bool {self.identity==other.identity}
+
     pub fn lookup(&self) -> Option<PathBuf> {
         let executable = self
             .directory

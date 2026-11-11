@@ -92,6 +92,11 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     assert!(!lines.iter().any(|line|line.contains("Started program")));
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
     wait(&rx,&mut lines,"first-version");wait(&rx,&mut lines,"Started program");let old=pid(&lines);
+    fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('unrelated edit',()=>{strictEqual(2,2);});")).unwrap();
+    wait(&rx,&mut lines,"Application unchanged; kept running.");
+    assert_eq!(pid(&lines),old,"test-only edits must retain the live program");
+    assert_eq!(unsafe {kill(old,0)},0,"unchanged program was stopped");
+    assert_eq!(lines.iter().filter(|line|line.contains("Started program")).count(),1);
     let config=fs::read(root.join("tsrust.config.json")).unwrap();
     fs::write(root.join("tsrust.config.json"),"{invalid-json").unwrap();
     wait(&rx,&mut lines,"tsrust.config.json:");
@@ -106,9 +111,14 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     while lines.iter().filter(|line|line.contains("Started program")).count()<2 {lines.push(rx.recv_timeout(Duration::from_secs(5)).unwrap());}
     assert!(lines.iter().any(|line|line.contains("syntax reused=1") && line.contains("headers reused=2")),"{lines:?}");
     let new=pid(&lines);assert_ne!(old,new);assert_ne!(unsafe {kill(old,0)},0,"old program must be reaped");
+    unsafe {kill(new,15);}
+    wait(&rx,&mut lines,"Program exited with");
+    fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('another unrelated edit',()=>{strictEqual(3,3);});")).unwrap();
+    while lines.iter().filter(|line|line.contains("Started program")).count()<3 {lines.push(rx.recv_timeout(Duration::from_secs(30)).unwrap());}
+    let restarted=pid(&lines);assert_ne!(new,restarted);assert_eq!(unsafe {kill(restarted,0)},0,"an exited app must start again even with unchanged inputs");
     unsafe {kill(dev.0.id() as i32,2);}
     wait(&rx,&mut lines,"[dev] Stopped.");
-    assert!(dev.0.wait().unwrap().success());assert_ne!(unsafe {kill(new,0)},0,"interrupted dev must reap its program");
+    assert!(dev.0.wait().unwrap().success());assert_ne!(unsafe {kill(restarted,0)},0,"interrupted dev must reap its program");
 }
 
 #[cfg(unix)]

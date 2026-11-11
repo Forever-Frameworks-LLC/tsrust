@@ -187,7 +187,7 @@ Latest appPID48203, same supervisor41326/session6863. Normal rebuild after forma
 actual documents.tsr opens in a native tab through the integrated document record.
 No native save/close control is exposed; app remains read-only.
 
-Current UI alignment section (not checkpointed yet): chrome.tsrx, navigation.tsrx,
+UI alignment checkpoint acbcb8ed: chrome.tsrx, navigation.tsrx,
 editor.tsrx and themes/studio.json now separate the shell. Native custom header
 uses View.windowDragRegion and reserves the macOS traffic-light leading area.
 Settings/search use icon triggers with tooltips. Explicit rail dividers and a
@@ -243,8 +243,33 @@ rail/tree left, terminal in a resizable bottom panel under editor, chat right.
 Use existing std:ui locale, Dock/Resizable/Settings and one validated persisted
 settings model. Do not make one-off side toggles or empty panel placeholders.
 
-Next: finish formatted checkpoint,
-request one concrete supervisor restart to load the built renderer, then verify
+A one-time supervisor restart question is pending through request_user_input_async;
+no reply yet. Keep session6863 running. Prior goal turn made progress with local
+checkpoint acbcb8ed and removal of the redundant language lookup.
+
+Current section: suppress unchanged dev replacements before editable buffers.
+Running now owns its complete native cache input identity and, on macOS, the
+generated Info.plist bytes. A successful rebuild retains the child only when
+those exact inputs match and try_wait confirms it is alive. This uses full input
+bytes, not the hash directory name. Exited children still relaunch on the next
+edit; failed builds retain the previous app. Candidate directories drop on the
+unchanged path. No arbitrary memory cap or source/watch exclusion was added.
+
+Identity unit passes1/1 in0.00s. Initial Cargo invocation accidentally used an
+unqualified exact filter and ran0tests (2m12s build); direct final test-binary
+invocation used the qualified path and ran the intended witness. Extended existing
+process lifecycle test covers test-only edit/PID retention, actual dependency edit,
+failed build, exited-child relaunch and interrupt cleanup. Its final run passes1/1 in3.22s execution,12.51s build/setup
+(session48574 terminal). Backend compiler/LSP all-target compilation passes1m19s
+(session27102 terminal); warnings remain in unchanged host test helpers and
+reference controls (unused/dead code and existing fetch_update deprecation). No
+changed dev/cache source warning. Repository CLI SHA256 is now
+074d80e8c16f828d279e44d00c9df866d3baf8b1fd3e7c8f61693ac7b7a5b426.
+Installed consumers and the retained supervisor still use prior images. No live supervisor replacement yet. Settings/save work is
+still pending; this fixes a concrete draft-loss prerequisite.
+
+Next: checkpoint this validated lifecycle section, then load the renderer
+only if the pending restart is approved, and verify
 Tree zoom/ellipsis and editor state during close/reorder. Keep6863 running until
 replacement is authorized. Continue validated settings/i18n/docking alongside
 safe file-save/recovery primitives and revisioned editing. Test-only identical

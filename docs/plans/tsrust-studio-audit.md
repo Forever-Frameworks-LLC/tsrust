@@ -562,8 +562,8 @@ sets its own default size) and constrains labels to one-line ellipsis. Shortcut
 and Ticker native elements are now absolute/zero-size: their previous empty flex
 items created80px of trailing gap in the title bar. App commands also sit outside
 the visual action group. This fixes the shared nonvisual layout behavior rather
-than adding compensating margins. The final compiler/native build and live update
-are pending after the mixed-row edge repair.
+than adding compensating margins. Final compiler/native build results after the mixed-row edge repair are below;
+the live renderer update remains pending.
 
 Before that update, actual CUA verifies custom header/no visible app-name, visible
 rail divider, left-aligned search, exact workspace query/results and opening a
@@ -578,7 +578,7 @@ Workspace/all-target compilation passed1m31s and separate compiler/LSP backend
 all-target compilation passed1m20s. Warnings are in unchanged test helpers, including
 unused imports/dead code and an existing fetch_update deprecation. No changed UI
 source emitted a warning. Final mixed-row code is covered by its library witness;
-final compiler/native load still pending. Current live supervisor remains41326/
+final native load still pending. Current live supervisor remains41326/
 session6863, running the previous accepted renderer. Do not restart without the
 required keep-running authorization.
 
@@ -589,3 +589,30 @@ The retained supervisor still embeds the previous renderer; new Tree behavior
 and keyed native editor state need a one-time authorized load before acceptance.
 CUA phase “Verified compact editor shell controls” completed for the already live
 shell. The existing unlabelled-row control also passes on the final test binary.
+
+
+## Retaining unchanged development applications — 2026-11-10
+
+UI checkpoint acbcb8ed preserves the compiled/tested shell section. The next
+prerequisite addresses observed test-only source edits resetting the live app
+after an identical application cache hit. The dev supervisor now compares exact
+native cache input bytes and generated macOS Info.plist bytes, then checks the
+existing child is alive before retaining it. Changed app inputs or app metadata
+still replace the child. An exited child relaunches after the next successful
+build, even if inputs match. Failed builds retain the last working process.
+Fresh unused candidate directories are dropped. No new dependency, application
+host, source exclusion or unbounded historical identity list is introduced.
+
+New identity unit passes1/1 in0.00s, covering equal/changed native inputs and
+changed/removed macOS metadata. Initial Cargo exact-filter invocation selected
+0tests after2m12s build; this is setup only, not acceptance. Correct direct binary
+invocation ran the fully qualified witness. Existing public dev process regression
+is extended for unchanged test-file edits and relaunch after child exit; final
+process test passes1/1 in3.22s execution (12.51s build/setup); backend compiler/LSP
+all-target compilation passes1m19s. Warnings remain in unchanged host test helpers
+and reference controls, including unused/dead code and existing fetch_update
+deprecation. No changed dev/cache source warning. Repository CLI SHA256 is now
+074d80e8c16f828d279e44d00c9df866d3baf8b1fd3e7c8f61693ac7b7a5b426; installed
+consumers retain their previous images pending native acceptance. Kept the actual Studio
+supervisor41326/session6863 running throughout. Restart question is pending;
+no authorization reply or live load is claimed.

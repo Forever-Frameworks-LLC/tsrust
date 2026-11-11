@@ -37,7 +37,8 @@ projects use their own configuration:
 - `tsrust run`: build and run the configured native entry once.
 - `tsrust build`: write the configured native executable.
 - `tsrust dev`: watch inputs, preserve the last working application on a failed
-  build, and replace it after a successful rebuild. Ctrl+C stops its descendants.
+  build, and replace it after a successful rebuild with changed application inputs.
+  Unchanged live applications retain their state. Ctrl+C stops its descendants.
 
 Check, format and test a complete change before calling it finished. Preserve
 unrelated changes. Fix ownership errors deliberately; do not add clones merely to

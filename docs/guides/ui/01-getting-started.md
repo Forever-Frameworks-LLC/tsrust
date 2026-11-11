@@ -15,7 +15,9 @@ tsrust dev
 ```
 
 `tsrust dev` builds the app, opens its window and rebuilds when you save a
-file. The project holds `src/main.tsrx`, `src/locales/*.json` for
+file. Successful rebuilds retain the running window when application inputs and
+macOS app metadata are unchanged, so editing an unrelated test does not reset
+the UI. Changed application inputs restart the window. The project holds `src/main.tsrx`, `src/locales/*.json` for
 translations, `icon.png` and `tsrust.config.json`.
 
 ## Your first component

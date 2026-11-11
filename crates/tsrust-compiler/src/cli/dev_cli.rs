@@ -62,7 +62,21 @@ mod platform {
     impl Drop for Process {fn drop(&mut self){self.stop();}}
     }
     #[cfg(unix)] use unix::{Process,Signals,STOP};
-    struct Running {process:Process,_files:TempDirectory}
+    struct ApplicationIdentity {
+        native:tsrust_compiler::native_cache::NativeCache,
+        #[cfg(target_os="macos")]
+        bundle:Option<Vec<u8>>,
+    }
+    impl ApplicationIdentity {
+        fn same_application(&self,other:&Self)->bool {
+            if !self.native.same_inputs(&other.native){return false;}
+            #[cfg(target_os="macos")]
+            if self.bundle!=other.bundle{return false;}
+            true
+        }
+    }
+    struct Built {_files:TempDirectory,binary:PathBuf,identity:ApplicationIdentity}
+    struct Running {process:Process,build:Built}
     fn wait_for_build(process:&mut Process,root:&Path,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<std::process::ExitStatus>,String> {
         let mut last_input_check=Instant::now();
         loop {
@@ -75,7 +89,7 @@ mod platform {
             std::thread::sleep(Duration::from_millis(20));
         }
     }
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<Built>,String> {
         use std::sync::mpsc::{self,TrySendError,RecvTimeoutError};
         let inputs=expected.as_ref().map_err(Clone::clone)?;
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
@@ -171,12 +185,38 @@ mod platform {
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         #[cfg(target_os="macos")]
         let binary=if frontend.features.contains(&"ui"){crate::app_package_cli::development_bundle(project,&binary)?}else{binary};
-        Ok(Some((files,binary)))
+        let identity=ApplicationIdentity {
+            native:cache,
+            #[cfg(target_os="macos")]
+            bundle:if frontend.features.contains(&"ui") {
+                Some(std::fs::read(binary.parent().unwrap().parent().unwrap().join("Info.plist")).map_err(|error|error.to_string())?)
+            }else{None},
+        };
+        Ok(Some(Built{_files:files,binary,identity}))
     }
     #[cfg(all(test,unix))]
     mod tests {
         use super::unix::kill;
         use super::*;
+        #[test]
+        fn application_identity_checks_exact_native_inputs_and_bundle_metadata() {
+            fn identity(input:&[u8])->ApplicationIdentity {
+                ApplicationIdentity {
+                    native:tsrust_compiler::native_cache::NativeCache::new(Path::new("cache"),&[input]),
+                    #[cfg(target_os="macos")]
+                    bundle:Some(b"first app identity".to_vec()),
+                }
+            }
+            let first=identity(b"first");
+            assert!(first.same_application(&identity(b"first")));
+            assert!(!first.same_application(&identity(b"changed")));
+            #[cfg(target_os="macos")]
+            {
+                let mut renamed=identity(b"first");renamed.bundle=Some(b"renamed app identity".to_vec());
+                assert!(!first.same_application(&renamed));
+                renamed.bundle=None;assert!(!first.same_application(&renamed));
+            }
+        }
         #[test]
         fn stopping_a_process_group_reaps_its_shell_and_descendant() {
             use std::io::{BufRead,BufReader};
@@ -226,14 +266,20 @@ mod platform {
                 previous=Some(input.clone());
                 let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
-                    Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
+                    Ok(Some(build)) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
                         report(Status::Success,format_args!("{} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0));built_once=true;
+                        if let Some(active)=&mut running {
+                            if active.build.identity.same_application(&build.identity) && active.process.child.try_wait().map_err(|error|error.to_string())?.is_none() {
+                                report(Status::Info,"Application unchanged; kept running.");
+                                continue;
+                            }
+                        }
                         if let Some(mut old)=running.take(){old.process.stop();}
-                        let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
+                        let mut command=Command::new(&build.binary);command.current_dir(&root).args(&program_args);
                         match Process::spawn(&mut command) {
                             Ok(process)=>{
                                 if verbose {report(Status::Info,format_args!("Started program (pid {}).",process.child.id()));}
-                                running=Some(Running{process,_files:files});
+                                running=Some(Running{process,build});
                             },
                             Err(error)=>report(Status::Error,format_args!("Cannot start program: {error}")),
                         }
