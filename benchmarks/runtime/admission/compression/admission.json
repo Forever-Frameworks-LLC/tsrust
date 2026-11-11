@@ -1,0 +1,196 @@
+{
+  "scope": "B09 source-only admission; no public implementation or backend selection",
+  "baseCommit": "3bd92b7c",
+  "packages": [
+    {
+      "name": "adler2",
+      "version": "2.0.1",
+      "archiveSha256": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+      "license": "0BSD OR MIT OR Apache-2.0",
+      "declaredRustVersion": null,
+      "repository": "https://github.com/oyvindln/adler2",
+      "advisories": []
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "archiveSha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+      "license": "MIT OR Apache-2.0",
+      "declaredRustVersion": "1.32",
+      "repository": "https://github.com/rust-lang/cfg-if",
+      "advisories": []
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.5.2",
+      "archiveSha256": "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78",
+      "license": "MIT OR Apache-2.0",
+      "declaredRustVersion": "1.63",
+      "repository": "https://github.com/srijs/rust-crc32fast",
+      "advisories": []
+    },
+    {
+      "name": "flate2",
+      "version": "1.1.10",
+      "archiveSha256": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "license": "MIT OR Apache-2.0",
+      "declaredRustVersion": "1.67.0",
+      "repository": "https://github.com/rust-lang/flate2-rs",
+      "advisories": []
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.9.1",
+      "archiveSha256": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "declaredRustVersion": null,
+      "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+      "advisories": []
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "archiveSha256": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+      "license": "MIT",
+      "declaredRustVersion": null,
+      "repository": "https://github.com/mcountryman/simd-adler32",
+      "advisories": []
+    },
+    {
+      "name": "zlib-rs",
+      "version": "0.6.8",
+      "archiveSha256": "b268e58e7c693d7c271f93ffc4ba3b380412554231c85bf61ca7af91042a4112",
+      "license": "Zlib",
+      "declaredRustVersion": "1.75",
+      "repository": "https://github.com/trifectatechfoundation/zlib-rs",
+      "advisories": [
+        "RUSTSEC-2024-0401.md"
+      ]
+    }
+  ],
+  "rustSecSnapshot": "26fd2d43f7280a1fb925a3743ec463017afe7119",
+  "advisoryAssessment": {
+    "RUSTSEC-2024-0401": "zlib-rs<=0.3.1 affected; patched>=0.4.0; selected locked0.6.8 is patched. Snapshot review, not future vulnerability guarantee."
+  },
+  "backendCandidates": {
+    "miniz": {
+      "flate2DefaultFeatures": false,
+      "features": [
+        "rust_backend",
+        "runtime_detection"
+      ],
+      "selectedCore": "miniz_oxide0.9.1 +simd (flate2 dependency feature)",
+      "nativeBuild": false
+    },
+    "zlib-rs": {
+      "flate2DefaultFeatures": false,
+      "features": [
+        "zlib-rs",
+        "runtime_detection"
+      ],
+      "selectedCore": "zlib-rs0.6.8 +rust-allocator,+std; C allocator/default and any C zlib disabled",
+      "nativeBuild": false
+    }
+  },
+  "featureRule": "Exactly one Rust backend; flate2 selects zlib-rs over miniz when both families are unified. Public compiler, backend, native, handwritten/parity closures and exports must pin the final same selection; currently only admission manifest is prepared.",
+  "targets": [
+    {
+      "triple": "x86_64-unknown-linux-gnu",
+      "admission": "pending actual target build/runtime; pure Rust package metadata alone is not platform proof"
+    },
+    {
+      "triple": "aarch64-apple-darwin",
+      "admission": "pending actual target build/runtime; pure Rust package metadata alone is not platform proof"
+    },
+    {
+      "triple": "x86_64-apple-darwin",
+      "admission": "pending actual target build/runtime; pure Rust package metadata alone is not platform proof"
+    },
+    {
+      "triple": "x86_64-pc-windows-msvc",
+      "admission": "pending actual target build/runtime; pure Rust package metadata alone is not platform proof"
+    }
+  ],
+  "contract": {
+    "compressionOptions": "level?:int; absent calls Compression::default()==6; validate explicit0..9 before backend construction. Format is one of gzip,zlib,raw for adapters; six named buffer operations fix their format.",
+    "decompressionOptions": "maxOutputBytes?:int; absent has no expansion ceiling. Explicit nonnegative target-fitting count is enforced incrementally before retaining excess decoded bytes; zero permits only empty output.",
+    "gzip": "GzBuilder mtime0/OS255, no filename/comment; MultiGzDecoder consumes every concatenated member and rejects non-gzip suffix. Verify deterministic metadata and checksum/ISIZE/truncation.",
+    "zlibAndRaw": "bufread decoder validates backend StreamEnd on EOF; reject any unconsumed suffix. zlib verifies Adler32; raw DEFLATE has no checksum and cannot detect every bit flip.",
+    "writerFinish": "Raw/zlib writer prototype uses flate2::Decompress status to certify StreamEnd, preserving strict truncation/trailing semantics; gzip uses backend MultiGzDecoder. Sink/flush/finish failures propagate. Drop is not a successful finish.",
+    "ownership": "Transforms own source/sink and backend state; exclusive read/write, explicit finish transfers inner resource once. No owner cloning, arbitrary per-stream cap, or unsafe facade code.",
+    "errors": "Preserve checked level/format/policy categories and underlying I/O operation/OS-code/error fields. Pool admission/completion/cancellation uses existing typed B06 transport, not string erasure. Exact public error record remains pending backend and B05 integration review.",
+    "asyncEntrypoints": "Owner/integrator accepted explicit caller ThreadPool/submission capability plus owned Bytes/state, returning Task<Result<...>>; retain typed pool admission/completion failures. Never implicitly clone borrowed ByteViews, introduce a hidden pool or use unbounded spawn_blocking. Reader/writer transforms retain one owned state and explicit finish; async I/O remains outside the CPU-worker blocking boundary as appropriate."
+  },
+  "integration": {
+    "B02": "Borrow Bytes/ByteView for whole buffers; return independently owned Bytes; no Vec retention bridge when existing byte ownership can move.",
+    "B05": "Current stdlib-io-integration has owned Reader/Writer enum and staged blocking resources plus HTTP Bytes frames; compression requires a finite codec resource variant or owned staging hook, not a trait-object global registry. Preserve readInto, partial bytes and cancellation settlement. No B05 source modified.",
+    "B06": "Use explicit owned ThreadPool.submission capability and taskAsync for CPU work; lazy admission, full/closed typed errors, cancellation before start drops capture, after start waits noninterruptible codec work and drains children. No hidden global unbounded pool. Existing B06 witnesses reusable; compression-state capture/cancellation witness remains required. Prepared pool-contract.rs includes the exact existing futures/core/async runtime, with lazy/full/closed, queued owner drop-once, started CPU cancellation/drain and owned compressed result witnesses. Compilation/execution pending separate existing Tokio+Rayon artifact lease; no private pool replacement."
+  },
+  "profile": {
+    "backends": 2,
+    "strategies": [
+      "writer",
+      "reader"
+    ],
+    "formats": [
+      "gzip",
+      "zlib",
+      "raw"
+    ],
+    "operations": [
+      "compress",
+      "decompress"
+    ],
+    "patterns": [
+      "compressible",
+      "seeded random"
+    ],
+    "levels": [
+      0,
+      1,
+      "backend default",
+      9
+    ],
+    "chunks": [
+      64,
+      8192,
+      16384
+    ],
+    "payloadBytes": 16384,
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "allocationBuild": "separate; Rust only",
+    "output": "Exact144fixture keys/engine, domains and duplicate checks; every compressed fixture is independently decoded to full expected bytes. Compression samples/allocations join that fixture size/checksum; all31sample checksum/length/duration cells are externally validated. Decode outputs join independent original bytes/checksum. Negative validator self-checks reject altered matrix/domain/checksum/length/duration and retained bytes.",
+    "resources": "per-process CPU user/system and peak RSS; exact Rust per-operation allocation requested/peak/retained scoped separately",
+    "pending": "All compiler/native executions, source self-checks, dependency locked-feature/target validation, async B05/B06 state-capture witness, generated facade and full package/export acceptance.",
+    "executionEstimate": "Unmeasured conservative5\u201312minutes under30minute/5,000,000KiB process-tree watchdog. Full6groups total2592timing rows=80352samples plus20736warmups and1728Rust allocation rows. Each format.operation group48cases completes3processes\u00d73engines (9timing scopes), and6Rust allocation scopes; complete group written before next. Subset selection preserves original protocol without repeating already measured groups.",
+    "decodeCorpus": "One24-file Node-generated immutable corpus (3formats\u00d72patterns\u00d74levels) shared byte-for-byte across both Rust backends, Node and both reader/writer strategies. Record SHA256/length/checksum, verify before/after each complete group. Own-backend encoder round trips remain separate correctness evidence.",
+    "failureArtifacts": "Announce COMPRESSION_SCOPE_DIR before compilation. Preserve immutable corpus, binaries, source/dependency hashes, command stdout/stderr, validated process scopes and complete groups on failure; no source snapshots. Successful scratch removed after final JSON publication. TSRUST_COMPRESSION_GROUPS selects whole format.operation groups for remaining timings, each retaining3processes\u00d731samples after8warmups.",
+    "cleanupBoundary": "Node Transform resolves only after readable end and codec close, matching completion plus disposal of Rust codec state; timed output checksum observation remains included. Exact Node zlib version is reported. No Node allocator-equivalence claim."
+  },
+  "officialSources": [
+    {
+      "url": "https://github.com/rust-lang/flate2-rs/releases/tag/1.1.10",
+      "purpose": "Official selected flate2 release; latest label observed2026-11-05"
+    },
+    {
+      "url": "https://github.com/trifectatechfoundation/zlib-rs/releases/tag/v0.6.8",
+      "purpose": "Official selected zlib-rs release; latest label observed2026-11-05"
+    },
+    {
+      "url": "https://rustsec.org/advisories/RUSTSEC-2024-0401.html",
+      "purpose": "Official advisory, affected<=0.3.1 patched>=0.4.0; current cached snapshot agrees"
+    }
+  ],
+  "existingApplicationUsage": [
+    {
+      "path": "crates/tsrust-compiler/src/cli/dev_web.rs",
+      "operation": "flate2::write::GzEncoder with Compression::fast for bundled assets"
+    },
+    {
+      "path": "crates/tsrust-compiler/src/cli/toolchain_release.rs",
+      "operation": "flate2::read::GzDecoder in explicitly bounded installer archive path; that installer policy is not an ordinary B09 limit"
+    }
+  ]
+}

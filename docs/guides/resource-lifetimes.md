@@ -62,5 +62,4 @@ Resource queue entries own accepted payloads until delivery finishes, stale deli
 is discarded, or the owner is destroyed. Rejected enqueue returns the original
 resource in `Err`; rejection does not destroy or clone it. Queue payload destruction
 has no tree-order guarantee. These are synchronous candidate contracts exercised by
-`experiments/ui-tsrust-owner-handles/witnesses/tracked-release.tsr`; the [synchronous UI matrix](../../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md)
-is accepted within its explicit transport and executor limits.
+`crates/tsrust-compiler/tests/fixtures/owner-handles/tracked-release.tsr`.

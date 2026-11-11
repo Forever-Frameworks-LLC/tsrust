@@ -1,0 +1,10 @@
+import { requestForm, FormField } from 'std:http';
+import { fromArray } from 'std:bytes';
+
+export function main() {
+  const fields: FormField[] = [{
+    name: "q", value: "é +"
+  }];
+  const input = requestForm("POST", "http://localhost/", fields);
+  console.log(input.method(), fields.length);
+}

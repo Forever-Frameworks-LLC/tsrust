@@ -1,0 +1,51 @@
+import { parseAddress, listenTcp, connectTcp, bindUdp, TcpListener, UdpSocket } from 'std:net';
+import { readExact, writeAll, close } from 'std:io';
+import { alloc, set, at, length } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const bind = unwrap(parseAddress('127.0.0.1:0'));
+  const listener = unwrap(await listenTcp(bind));
+  const endpoint = unwrap(listener.localAddress());
+  const worker = serve(listener, n).start();
+  let sum: int = 0;
+  try {
+    const client = unwrap(await connectTcp(endpoint));
+    const payload = unwrap(alloc(16384));
+    for (let j: int = 0; j < 16384; j++) {
+      unwrap(set(payload, j, (seed + j) % 251));
+    }
+
+    const destination = unwrap(alloc(16384));
+
+    for (let i: int = 0; i < n; i++) {
+      unwrap(await writeAll(client, payload));
+      unwrap(await readExact(client, destination));
+      for (let j: int = 0; j < 16384; j++) {
+        sum = (sum * 131 + unwrap(at(destination, j))) % 1000000007;
+      }
+    }
+
+    client.close();
+  } catch (failure) {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await worker;
+  return sum;
+}
+
+async function serve(listener: Owned<TcpListener>, n: int): Task<void> {
+  const [peer, remote] = unwrap(await listener.accept());
+  listener.close();
+  const bytes = unwrap(alloc(16384));
+  for (let i: int = 0; i < n; i++) {
+    unwrap(await readExact(peer, bytes));
+    unwrap(await writeAll(peer, bytes));
+  }
+
+  peer.close();
+}

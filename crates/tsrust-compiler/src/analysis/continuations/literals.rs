@@ -95,7 +95,7 @@ impl Analyzer {
             ExprKind::Record(fields)
                 if !fields.iter().any(|(key, _)| key.text == "record#spread") =>
             {
-                let frame = self.prepare_record_work(fields, expected, expr.span)?;
+                let frame = self.prepare_record_work(context, fields, expected, expr.span)?;
                 Ok(Some(LiteralFrame::Record {
                     frame: Box::new(frame),
                     next: 0,
@@ -120,7 +120,7 @@ impl Analyzer {
                 let annotated = annotation.as_ref().map(|value| self.resolve_value_annotation(value, false)).transpose()?;
                 let array = annotated.map(|ty| self.constructor_array_type(ty, expr.span)).transpose()?;
                 if let Some(array) = array { self.require(array, expected, expr.span)?; }
-                if values.is_empty() && !matches!(array.or(expected), Some(Type::Array(_))) {
+                if values.is_empty() && self.array_literal_context(array.or(expected)).is_none() {
                     return Err(Diagnostic::new("array-type", "An empty Array.of needs an explicit element type or array context.", expr.span));
                 }
                 let element = self.array_literal_element_hint(context, values, array.or(expected), expr.span)?;
@@ -136,6 +136,7 @@ impl Analyzer {
         context: &mut Context,
         expr: &mut Expr,
         frame: &mut LiteralFrame,
+        loans: &Loans,
     ) -> Result<Advance, Diagnostic> {
         match frame {
             LiteralFrame::Record { frame, next } => {
@@ -147,7 +148,7 @@ impl Analyzer {
                         .finish_record_work(context, fields, frame, expr.span)
                         .map(Advance::Done);
                 };
-                let (expected, field) = self.prepare_record_child(context, key, value, frame)?;
+                let (expected, field) = self.prepare_record_child(context, key, value, frame, loans)?;
                 Ok(Advance::Child(Child {
                     index: *next,
                     mode: Mode::Consume,

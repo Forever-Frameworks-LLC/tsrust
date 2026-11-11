@@ -1,0 +1,17 @@
+import { create, open, bufferReader, bufferWriter, write as syncWrite, read as syncRead } from 'std:fs';
+import { reader, writer, readAll, writeAll, flush, close } from 'std:io';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const buffered = unwrap(bufferWriter(unwrap(create('buffered-io.txt')), 8));
+  unwrap(syncWrite(buffered, unwrap(fromUtf8('first'))));
+  const output = writer(buffered);
+  unwrap(await writeAll(output, unwrap(fromUtf8('-last'))));
+  unwrap(await flush(output));
+  unwrap(await close(output));
+  const source = unwrap(bufferReader(unwrap(open('buffered-io.txt')), 8));
+  console.log(unwrap(toUtf8(unwrap(syncRead(source, 2)))));
+  const input = reader(source);
+  console.log(unwrap(toUtf8(unwrap(await readAll(input)))));
+  unwrap(await close(input));
+}

@@ -20,7 +20,7 @@ try {
  fs.writeFileSync(rust,emitted.replace('fn main()','fn source_main()')+'\n'+adaptRustDriver('',row,{emitted,source}));
  fs.writeFileSync(typed,ts+'\n'+adaptTSDriver('',row));
  fs.writeFileSync(config,JSON.stringify({extends:path.join(here,'tsconfig.json'),files:[typed],compilerOptions:{outDir:directory}}));
- run('rustup',['run','1.96.1','rustc','--edition=2024','-Copt-level=3','-Coverflow-checks=on','-Awarnings',rust,'-o',path.join(directory,'env')]);
+ run('rustup',['run','1.99.1','rustc','--edition=2024','-Copt-level=3','-Coverflow-checks=on','-Awarnings',rust,'-o',path.join(directory,'env')]);
  run(process.execPath,[path.join(here,'node_modules/typescript/bin/tsc'),'--project',config]);
  const env=environmentFor(row,{...process.env,TSRUST_BENCH_ENV_MISSING:'must disappear'});
  for(const [n,seed] of [[0,0],[1,0],[3,7],[137,1000000],[20000,7]]) {

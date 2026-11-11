@@ -1,0 +1,6 @@
+import { WebSocketClientOptions } from "std:http";
+
+export function main() {
+  const value: WebSocketClientOptions = {};
+  console.log(value.ca);
+}

@@ -55,7 +55,7 @@ function main(){
 #[test]
 fn typed_json_rejects_non_data_targets_and_wrong_arity() {
     for (source, code) in [
-        ("function main(){JSON.parse<void>('null');}", "error[type]"),
+        ("function main(){JSON.parse<void>('null');}", "json-type"),
         (
             "function main(){JSON.parse<ReadOnly<Function<int>>>('null');}",
             "callback-escape",

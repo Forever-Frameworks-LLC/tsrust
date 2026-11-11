@@ -136,14 +136,6 @@ fn disk_stamp(id: &SourceId) -> Option<DiskStamp> {
     })
 }
 impl WorkspaceSnapshot {
-    /// A compiler-development facade opened as a document is the immutable
-    /// bundled module, not an application importing private runtime bindings.
-    /// Both canonical location and exact snapshot bytes must match. Copies and
-    /// modified buffers remain ordinary user modules under the compiler's guard.
-    fn entry_identity(&self, importer: Option<&SourceId>, id: SourceId) -> Result<SourceId,String> {
-        if importer.is_some(){return Ok(id);}
-        Ok(tsrust_compiler::project::bundled_entry(self,&id).unwrap_or(id))
-    }
     /// Retain only inputs actually observed by a completed analysis. Active jobs
     /// still need every open buffer for resolution; cached results do not.
     pub(crate) fn retained(&self) -> Self {
@@ -235,7 +227,9 @@ impl SourceProvider for WorkspaceSnapshot {
         if let Some(result) = self.resolved.borrow().get(&key) {
             return result.clone();
         }
-        let result = self.resolve_path(importer, path);
+        let result = self.resolve_path(importer, path).map(|id| {
+            if importer.is_none() {tsrust_compiler::project::bundled_entry(self,&id).unwrap_or(id)} else {id}
+        });
         self.resolved.borrow_mut().insert(key, result.clone());
         result
     }
@@ -280,9 +274,9 @@ impl WorkspaceSnapshot {
         } else {tsrust_compiler::project_resolution::discover(Path::new(path),|path|self.read_config(path))?;vec![PathBuf::from(path)]};
         for candidate in &candidates {
             let id=self.observe_path(candidate)?;
-            if self.open.contains_key(&id) {return self.entry_identity(importer,id);}
+            if self.open.contains_key(&id) {return Ok(id);}
             match std::fs::metadata(&id.0) {
-                Ok(metadata) if metadata.is_file()=>return self.entry_identity(importer,id),
+                Ok(metadata) if metadata.is_file()=>return Ok(id),
                 Ok(_)=>{},Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{},
                 Err(error)=>return Err(format!("{}: {error}",id.0)),
             }
@@ -320,6 +314,8 @@ impl WorkspaceSnapshot {
             if disk_stamp(&id)!=before {self.consistent.set(false);return Err(format!("Configuration changed while reading {}",id.0));}
             result
         };
+        // Configurations are loaded inputs too: diagnostics map into their text.
+        if let Ok(Some(text))=&value {self.read.borrow_mut().insert(id.clone(),Arc::new(text.clone()));}
         self.configs.borrow_mut().insert(id,value.clone());value
     }
 
@@ -328,6 +324,23 @@ impl WorkspaceSnapshot {
 #[cfg(test)]
 mod scan_input_tests {
     use super::*;
+    #[test]
+    fn compiler_facade_parts_use_bundled_context_only_when_all_parts_match() {
+        let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("../tsrust-compiler/src/stdlib");
+        let mut workspace=Workspace::default();
+        for (relative,module) in [("ui/api.tsr","std:ui"),("ui/kit.tsr","std:ui"),("logging/source.tsr","std:log")] {
+            let path=root.join(relative).canonicalize().unwrap();
+            assert_eq!(workspace.snapshot().resolve(None,path.to_str().unwrap()).unwrap(),SourceId(module.into()));
+            let id=SourceId(path.to_str().unwrap().into());
+            assert_eq!(workspace.snapshot().resolve(Some(&id),&format!("./{}",path.file_name().unwrap().to_str().unwrap())).unwrap(),id);
+        }
+        let kit=root.join("ui/kit.tsr").canonicalize().unwrap();
+        workspace.open(SourceId(kit.to_str().unwrap().into()),1,"import {kit} from 'std:ui-runtime';".into());
+        for relative in ["ui/api.tsr","ui/kit.tsr"] {
+            let path=root.join(relative).canonicalize().unwrap();
+            assert_eq!(workspace.snapshot().resolve(None,path.to_str().unwrap()).unwrap(),SourceId(path.to_str().unwrap().into()));
+        }
+    }
     #[test]
     fn retained_analysis_releases_unrelated_revisions_without_losing_dependency_guards() {
         let root = std::env::temp_dir();

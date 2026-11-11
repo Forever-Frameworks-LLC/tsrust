@@ -1,0 +1,16 @@
+import { ThreadPool, join } from 'std:threads';
+
+// Source-only contrast: no ThreadPool crosses the started task's capture
+// boundary because its public owner is constructed inside the task body.
+// This uses today's blocking join only as a checker witness, never a benchmark.
+async function local(): Task<int> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  return unwrap(join(unwrap(pool.task((): int => 7))));
+}
+
+async function main(): Task<void> {
+  const job = local().start();
+  console.log(await job);
+}

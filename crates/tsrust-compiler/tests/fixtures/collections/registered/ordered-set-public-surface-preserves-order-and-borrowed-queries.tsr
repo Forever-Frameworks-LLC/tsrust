@@ -1,0 +1,51 @@
+import { OrderedSet as Tree } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function total(...values: int[]): int {
+  let sum = 0;
+  for (const value of values) {
+    sum += value;
+  }
+
+  return sum;
+}
+
+export function main() {
+  const values = new Tree<int>();
+  strictEqual(values.size, 0);
+  values.add(3);
+  values.add(1);
+  values.add(2);
+  values.add(1);
+  strictEqual(values.size, 3);
+  let ordered = '';
+  for (const value of values) {
+    ordered += String(value);
+  }
+
+  strictEqual(ordered, '123');
+  strictEqual(values.has(2), true);
+  strictEqual(values.has(4), false);
+  strictEqual(total(...values), 6);
+  const array = [...values];
+  strictEqual(array[0], 1);
+  strictEqual(array[2], 3);
+  const copied = clone(values);
+  strictEqual(copied.delete(2), true);
+  strictEqual(copied.delete(2), false);
+  strictEqual(values.size, 3);
+  copied.clear();
+  strictEqual(copied.size, 0);
+  const words = new Tree<string>();
+  const owned = 'z'.repeat(2);
+  words.add(owned);
+  words.add('a');
+  const query = 'z'.repeat(2);
+  strictEqual(words.has(query), true);
+  strictEqual(query.length, 2);
+  strictEqual(words.delete(query), true);
+  strictEqual(query.length, 2);
+  for (const word of words) {
+    strictEqual(word, 'a');
+  }
+}

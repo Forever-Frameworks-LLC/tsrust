@@ -16,6 +16,9 @@ impl Analyzer {
         let Type::Array(element)=receiver? else {
             return Err(Diagnostic::new("unsupported","entries() is available on data arrays.",base.span));
         };
+        if !native_capabilities::checked_array_capabilities(Type::Array(element), &self.program.records, |id| self.unions.members(id)).expect("checked array").supports("entries") {
+            return Err(Diagnostic::new("void-array-entry", "entries() cannot store a scalar void tuple field; use keys() or iterate the unit results.", base.span));
+        }
         self.require_cloneable(Type::Array(element),base.span)?;
         let types=crate::generic_inference::Types { callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation {

@@ -1,0 +1,8 @@
+import { PasswordHashOptions } from 'std:crypto';
+
+export function main() {
+  const options: PasswordHashOptions = {
+    memoryKiB: 32
+  };
+  console.log(options.memoryKiB);
+}

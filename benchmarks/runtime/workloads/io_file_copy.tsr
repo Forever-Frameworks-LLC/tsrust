@@ -1,0 +1,35 @@
+import { createTempDir, writeFile, open, create, readFile, removeDirAll } from 'std:fs';
+import { reader, writer, copy, close } from 'std:io';
+import { fromArray, at, length } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const directory = unwrap(createTempDir(undefined, 'tsrust-io-'));
+  const source = directory + '/source';
+  const target = directory + '/target';
+  const data: int[] = [];
+  for (let j: int = 0; j < 4096; j++) {
+    data.push((seed + j) % 251);
+  }
+
+  unwrap(writeFile(source, unwrap(fromArray(data))));
+  let sum: int = 0;
+  try {
+    for (let i: int = 0; i < n; i++) {
+      const input = reader(unwrap(open(source)));
+      const output = writer(unwrap(create(target)));
+      const count = unwrap(await copy(input, output, 257));
+      unwrap(await close(input));
+      unwrap(await close(output));
+      sum = (sum * 131 + count) % 1000000007;
+      const bytes = unwrap(readFile(target));
+      for (let j: int = 0; j < length(bytes); j++) {
+        sum = (sum * 131 + unwrap(at(bytes, j))) % 1000000007;
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(directory));
+  }
+
+  return sum;
+}
+
+function main() {}

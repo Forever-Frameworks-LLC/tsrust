@@ -1,0 +1,1 @@
+function workload(n:number,seed:number):number{let checksum=seed;let i=0;while(i<n){const values=Array.from(new Set([seed+3,seed+1,seed+2])).sort((a,b)=>a-b);const map=new Map(values.map(v=>[v,v]));const keys=Array.from(map.keys());checksum+=values[0]+values[values.length-1]+keys[0]+keys[keys.length-1];i++;}return checksum;}

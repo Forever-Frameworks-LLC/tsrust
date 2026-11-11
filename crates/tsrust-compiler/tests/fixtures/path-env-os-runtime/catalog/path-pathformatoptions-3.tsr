@@ -1,0 +1,8 @@
+import { PathFormatOptions, format } from 'std:path';
+
+export function run() {
+  const options: PathFormatOptions = {
+    name: 'notes', ext: 'txt'
+  };
+  console.log(format(options));
+}

@@ -1,0 +1,16 @@
+import { parseLocale, createNumberFormat } from 'std:locale';
+import { delay } from 'std:futures';
+async function local(): Task<void> {
+  {
+    const locale = unwrap(parseLocale('en'));
+    const formatter = unwrap(createNumberFormat(locale));
+    console.log(formatter.format(1));
+  }
+
+  await delay(0);
+}
+
+async function main(): Task<void> {
+  const job = local().start();
+  await job;
+}

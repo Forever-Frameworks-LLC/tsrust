@@ -20,7 +20,7 @@ icon-only SVG can have its own accessible name.
 ## Markdown repair
 
 Opening the expanded property table exposed a Wasm memory trap. The recursive
-Markdown dispatcher retained a 173,216-byte frame for every nesting level. JSX
+Markdown dispatcher retained a 173,216-byte frame for every nesting level. TSRX
 construction now belongs to nonrecursive helpers; recursive block and inline
 traversal retain only their dispatch state. The block dispatch frame is now
 17,040 bytes. Existing stack limits, semantic validation, source order, example

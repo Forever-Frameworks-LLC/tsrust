@@ -26,7 +26,7 @@ pub fn project(records: &mut Vec<Record>, signature: &Signature, span: Span) -> 
 
 pub fn project_with_parameters(records: &mut Vec<Record>, signature: &Signature, parameters: &[Signature], span: Span) -> Result<ValueAnnotation, Diagnostic> {
     let start = records.len();
-    let result = Resolver { records, nodes: 0, parameters }.signature(signature, span, 0);
+    let result = Resolver { records, nodes: 0, parameters }.signature(signature, span, 0, None);
     if result.is_err() { records.truncate(start); }
     result
 }
@@ -52,9 +52,7 @@ impl Resolver<'_> {
         });
         let mut fields = Vec::new();
         for field in item.fields {
-            let mut annotation = if let Signature::Parameter(index) = field.signature {
-                named(item.type_parameters.get(index).ok_or_else(|| Diagnostic::new("native-type-argument", "Missing native field type parameter.", span))?, span)
-            } else { self.signature(&field.signature, span, depth + 1)? };
+            let mut annotation = self.signature(&field.signature, span, depth + 1, Some(item.type_parameters))?;
             if field.optional {
                 annotation = ValueAnnotation { kind: Kind::Union(vec![annotation, named("undefined", span)]), span };
             }
@@ -66,17 +64,22 @@ impl Resolver<'_> {
         self.records[index].fields = fields;
         Ok(index)
     }
-    fn signature(&mut self, signature: &Signature, span: Span, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
+    fn signature(&mut self, signature: &Signature, span: Span, depth: usize, field_parameters: Option<&[&str]>) -> Result<ValueAnnotation, Diagnostic> {
         self.bound(span, depth)?;
         let kind = match signature {
             Signature::Parameter(index) => {
+                if let Some(names) = field_parameters {
+                    return Ok(named(names.get(*index).ok_or_else(|| Diagnostic::new("native-type-argument", "Missing native field type parameter.", span))?, span));
+                }
                 let argument = *self.parameters.get(*index).ok_or_else(|| Diagnostic::new("native-type-argument", format!("Missing native type argument at index {index}."), span))?;
-                return self.signature(&argument, span, depth + 1);
+                return self.signature(&argument, span, depth + 1, None);
             }
             Signature::String => return Ok(named("string", span)),
+            Signature::StringLiteral(value) => Kind::Literal(crate::type_syntax::LiteralAnnotation::String((*value).into())),
             Signature::Boolean => return Ok(named("boolean", span)),
             Signature::Int => return Ok(named("int", span)),
             Signature::Number => return Ok(named("number", span)),
+            Signature::Undefined => return Ok(named("undefined", span)),
             Signature::Void => return Ok(named("void", span)),
             Signature::Null => return Ok(named("null", span)),
             Signature::Named(id) => {
@@ -92,15 +95,16 @@ impl Resolver<'_> {
                 self.declaration(*id, span, depth + 1)?;
                 Kind::Applied {
                     name: TypeName { text: linked_name(*id), span },
-                    arguments: arguments.iter().map(|argument| self.signature(argument, span, depth + 1)).collect::<Result<_, _>>()?,
+                    arguments: arguments.iter().map(|argument| self.signature(argument, span, depth + 1, field_parameters)).collect::<Result<_, _>>()?,
                 }
             }
-            Signature::Array(element) => Kind::Array(Box::new(self.signature(element, span, depth + 1)?)),
-            Signature::Union(members) => Kind::Union(members.iter().map(|member|self.signature(member,span,depth+1)).collect::<Result<_,_>>()?),
-            Signature::Optional(element) => Kind::Union(vec![self.signature(element, span, depth + 1)?, named("undefined", span)]),
+            Signature::Array(element) => Kind::Array(Box::new(self.signature(element, span, depth + 1, field_parameters)?)),
+            Signature::Tuple(members)=>Kind::Tuple(members.iter().map(|member|self.signature(member,span,depth+1,field_parameters)).collect::<Result<_,_>>()?),
+            Signature::Union(members) => Kind::Union(members.iter().map(|member|self.signature(member,span,depth+1,field_parameters)).collect::<Result<_,_>>()?),
+            Signature::Optional(element) => Kind::Union(vec![self.signature(element, span, depth + 1, field_parameters)?, named("undefined", span)]),
             Signature::Result(value, error) => Kind::Applied {
                 name: TypeName { text: "Result".into(), span },
-                arguments: vec![self.signature(value, span, depth + 1)?, self.signature(error, span, depth + 1)?],
+                arguments: vec![self.signature(value, span, depth + 1, field_parameters)?, self.signature(error, span, depth + 1, field_parameters)?],
             },
             Signature::Intrinsic(_) => return Err(Diagnostic::new("native-type", "Private callable intrinsics cannot be native record fields.", span)),
         };
@@ -184,6 +188,28 @@ mod tests {
         assert_eq!(instances[1].application.as_ref().unwrap().resolved_arguments, vec![crate::syntax::Type::String]);
         assert_ne!(instances[0].name.text, instances[1].name.text);
         assert!(matches!(crate::native_exports::lookup("std:collections", "Deque"), Ok(crate::native_exports::Export::Type(_))));
+    }
+
+    #[test]
+    fn generic_native_array_fields_keep_their_template_parameter_scope() {
+        let span = Span::default();
+        let mut program = crate::syntax::parse("function main(){}").unwrap();
+        let template = intern(&mut program.records, NativeTypeId::IteratorCursor, span).unwrap();
+        let Kind::Array(element) = &program.records[template].fields[0].annotation.kind else { panic!("expected array field"); };
+        assert!(matches!(&element.kind, Kind::Named(name) if name.text == "T"));
+        for argument in [Signature::Int, Signature::String] {
+            let signature = Signature::Applied(NativeTypeId::IteratorCursor, &[Signature::Parameter(0)]);
+            program.type_argument_checks.push(project_with_parameters(&mut program.records, &signature, &[argument], span).unwrap());
+        }
+        let scalar = project_with_parameters(&mut program.records, &Signature::Parameter(0), &[Signature::String], span).unwrap();
+        assert!(matches!(&scalar.kind, Kind::Named(name) if name.text == "string"));
+        crate::generic_records::specialize_in(&mut program, &crate::unions::UnionArena::default(), &mut crate::callable_resolution::Tables::default()).unwrap();
+        let instances = program.records.iter().filter(|record| record.native_type == Some(NativeTypeId::IteratorCursor)).collect::<Vec<_>>();
+        assert_eq!(instances.len(), 2);
+        for (record, expected) in instances.into_iter().zip(["int", "string"]) {
+            let Kind::Array(element) = &record.fields[0].annotation.kind else { panic!("expected specialized array field"); };
+            assert!(matches!(&element.kind, Kind::Named(name) if name.text == expected));
+        }
     }
 
     #[test]

@@ -1,0 +1,21 @@
+import { Channel } from 'std:futures';
+async function workload(n: int, seed: int): Task<int> {
+  const queue = new Channel<int>(4);
+  const sender = queue.sender();
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    for (let j: int = 0; j < 4; j++) {
+      unwrap(sender.trySend(seed + i + j));
+    }
+
+    for (let j: int = 0; j < 4; j++) {
+      sum = (sum * 131 + unwrap(queue.tryReceive())) % 1000000007;
+    }
+  }
+
+  sender.close();
+  queue.close();
+  return sum;
+}
+
+function main() {}

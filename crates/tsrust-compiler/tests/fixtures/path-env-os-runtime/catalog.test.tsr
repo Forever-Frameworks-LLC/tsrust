@@ -1,0 +1,34 @@
+import { describe, test } from 'std:testing';
+import { run as case0 } from './catalog/env-envvar-0.tsr';
+import { run as case1 } from './catalog/os-oserror-1.tsr';
+import { run as case2 } from './catalog/path-patherror-2.tsr';
+import { run as case3 } from './catalog/path-pathformatoptions-3.tsr';
+import { run as case4 } from './catalog/os-availableparallelism-4.tsr';
+import { run as case5 } from './catalog/env-currentdir-5.tsr';
+import { run as case6 } from './catalog/env-currentexe-6.tsr';
+import { run as case7 } from './catalog/path-delimiter-7.tsr';
+import { run as case8 } from './catalog/env-homedir-8.tsr';
+import { run as case9 } from './catalog/os-hostname-9.tsr';
+import { run as case10 } from './catalog/path-pathparts-10.tsr';
+import { run as case11 } from './catalog/path-resolve-11.tsr';
+import { run as case12 } from './catalog/path-separator-12.tsr';
+import { run as case13 } from './catalog/env-tempdir-13.tsr';
+import { run as case14 } from './catalog/env-vars-14.tsr';
+
+describe('path environment OS catalog', () => {
+  test('env-envvar-0', case0);
+  test('os-oserror-1', case1);
+  test('path-patherror-2', case2);
+  test('path-pathformatoptions-3', case3);
+  test('os-availableparallelism-4', case4);
+  test('env-currentdir-5', case5);
+  test('env-currentexe-6', case6);
+  test('path-delimiter-7', case7);
+  test('env-homedir-8', case8);
+  test('os-hostname-9', case9);
+  test('path-pathparts-10', case10);
+  test('path-resolve-11', case11);
+  test('path-separator-12', case12);
+  test('env-tempdir-13', case13);
+  test('env-vars-14', case14);
+});

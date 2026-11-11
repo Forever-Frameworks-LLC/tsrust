@@ -1,0 +1,81 @@
+import { App, Router, Context, ContextNext, Request, Response, Client, CorsOptions, Middleware, cors, secureHeaders, compress, request, text } from 'std:http';
+import { strictEqual, ok } from 'std:testing';
+
+type PolicyFactory = Function<Middleware>;
+
+type CorsFactory = Function<Middleware, [options?: ReadOnly<CorsOptions>]>;
+
+function pass<T>(value: Owned<T>): T {
+  return value;
+}
+
+async function main(): Task<void> {
+  const router = new Router();
+  router.use(async (c: Mutable<Context>, next: ContextNext): Task<void> => {
+    c.header('x-before', 'one');
+    await next();
+    c.header('x-after', 'two');
+  });
+  const options: CorsOptions = {
+    origins: ['https://allowed.example'], methods: ['POST'], allowedHeaders: ['x-input'], exposeHeaders: ['x-after'], credentials: true, maxAgeSeconds: 0
+  };
+  const makeCors: CorsFactory = cors;
+  const secure: PolicyFactory = secureHeaders;
+  const encoding: PolicyFactory = compress;
+  router.use('/api/*', pass(makeCors(options)), secure(), encoding());
+  router.post('/api/echo', async (c: Mutable<Context>): Task<Response> => {
+    const body = await c.req.text();
+    return c.text(body);
+  });
+  router.get('/outside', c => c.text('outside'));
+  router.get('/api/failure', (): Response => {
+    throw 'checked route failure';
+  });
+  const server = await router.listen('127.0.0.1:0');
+  try {
+    const base = 'http://' + server.address();
+    const client = new Client({
+      noProxy: true
+    });
+    const input = request('POST', base + '/api/echo', 'exclusive body é');
+    input.setHeader('origin', 'https://allowed.example');
+    input.setHeader('accept-encoding', 'identity');
+    const reply = await client.send(input);
+    strictEqual(reply.header('access-control-allow-origin')!, 'https://allowed.example');
+    strictEqual(reply.header('x-frame-options')!, 'SAMEORIGIN');
+    strictEqual(reply.header('x-before')!, 'one');
+    strictEqual(reply.header('x-after')!, 'two');
+    strictEqual(await reply.text(), 'exclusive body é');
+    const outside = await client.send(request('GET', base + '/outside', ''));
+    ok(outside.header('x-frame-options') === undefined);
+    ok(outside.header('access-control-allow-origin') === undefined);
+    strictEqual(await outside.text(), 'outside');
+    const preflight = request('OPTIONS', base + '/api/echo', '');
+    preflight.setHeader('origin', 'https://allowed.example');
+    preflight.setHeader('access-control-request-method', 'POST');
+    const checked = await client.send(preflight);
+    strictEqual(checked.status(), 200);
+    strictEqual(checked.header('access-control-allow-credentials')!, 'true');
+    const failure = request('GET', base + '/api/failure', '');
+    failure.setHeader('origin', 'https://allowed.example');
+    const failed = await client.send(failure);
+    strictEqual(failed.status(), 500);
+    strictEqual(failed.header('x-frame-options')!, 'SAMEORIGIN');
+    const plain = new App();
+    const policy: Middleware = cors();
+    plain.use(policy);
+    let rejected = false;
+    try {
+      cors({
+        origins: ['*'], credentials: true
+      });
+    } catch (error) {
+      rejected = error.code === 'options';
+    }
+
+    ok(rejected);
+    console.log('source middleware exact');
+  } finally {
+    await server.shutdown();
+  }
+}

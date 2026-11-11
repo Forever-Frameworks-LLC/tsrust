@@ -1,0 +1,9 @@
+import { request } from 'std:http';
+
+export async function main(): Task<void> {
+  const input = request('POST', 'http://localhost/', 'a=one+two&a=%C3%A9');
+  input.setHeader('content-type', 'application/x-www-form-urlencoded');
+  const fields = await input.form();
+  console.log(fields[0].value);
+  console.log(fields[1].value);
+}

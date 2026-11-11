@@ -173,7 +173,8 @@ pub(super) enum Work {
     JsxAttributes(Box<super::jsx::Frame>),
     JsxAttribute(Box<super::jsx::Frame>, Box<Token>),
     JsxChildren(Box<super::jsx::Frame>),
-    JsxChild(Box<super::jsx::Frame>, bool),
+    /// A JSX child: braced, and the `...` span of a spread child (`{...rows}`).
+    JsxChild(Box<super::jsx::Frame>, bool, Option<Span>),
     // Blocks and bodies. Each completes with one entry on `bodies`. `outer`
     // holds the declarations that were pending for the enclosing statement
     // list; they return to `Parser::pending` when the body completes.

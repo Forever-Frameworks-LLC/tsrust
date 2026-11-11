@@ -5,8 +5,10 @@ use crate::{
     syntax::Type,
 };
 pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> String {
-    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"route"){return String::new();}
+    if matches!(binding.name,"computed"|"computedGet"|"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitPredicate"|"kitStep"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return String::new();}
     if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
+    if binding.name=="createLocation" {return result_bridge(program,binding,"initial:&String".into(),"tsrust_native_ui::navigation::create_location(initial.as_ref(),|value|String::Owned(value),|value:&String|value.as_ref().to_owned())".into());}
+    if binding.name=="routeParam" {return result_bridge(program,binding,"path:&String,pattern:&String,name:&String".into(),"tsrust_native_ui::navigation::route_parameter(path.as_ref(),pattern.as_ref(),name.as_ref()).map(String::Owned)".into());}
     let node = program
         .records
         .iter()
@@ -14,7 +16,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
         .unwrap();
     let NativeBackend::Bundled { symbol } = binding.backend;
     let (parameters,call)=match binding.name {
-        "svg"|"view"|"staticButton"|"button"|"link"|"text" => {
+        "svg"|"view"|"staticButton"|"button"|"link"|"text"|"kit" => {
             let array=crate::native_binding_types::resolve(&program.records,&super::CHILDREN).unwrap();
             let Type::Array(element)=array else{unreachable!()};let Type::Union(union)=element.ty() else{unreachable!()};
             let members=&program.unions[union.index()].members;
@@ -29,11 +31,12 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
                 "link"=>{parameters.push_str(",href:&String");"tsrust_native_ui::navigation::link(parts,class_name.as_ref().to_owned(),href.as_ref())"},
                 "svg"=>{parameters.push_str(",options:&String");"tsrust_native_ui::Node::svg(parts,class_name.as_ref().to_owned(),options.as_ref())"},
                 "view"=>"tsrust_native_ui::Node::view(parts,class_name.as_ref().to_owned())",
+                "kit"=>{parameters.push_str(",name:&String");"tsrust_native_ui::Node::kit(name.as_ref(),parts,class_name.as_ref().to_owned())"},
                 "staticButton"=>{parameters.push_str(",disabled:bool");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,None)"},
                 "button"=>{parameters.push_str(",disabled:bool,handler:impl FnMut()->Result<(),std::string::String>+'static");"tsrust_native_ui::Node::button_children(parts,class_name.as_ref().to_owned(),disabled,Some(Box::new(handler)))"},
                 _=>unreachable!(),
             };
-            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.as_ref().to_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
+            (parameters,format!("{{let mut parts=Vec::with_capacity(children.len());while let Some(child)=children.pop(){{parts.push(match child{{{absent}{scalars}Union{union}::V{literal}(text)=>tsrust_native_ui::Child::Text(tsrust_native_ui::TextPart::Literal(text.into_owned())),{bindings}Union{union}::V{child}(node)=>tsrust_native_ui::Child::Node(node)}});}}parts.reverse();{factory}}}",union=union.index()))
         },
         "path"=>("data:&String,class_name:&String,options:&String".into(),"tsrust_native_ui::Node::svg_path(data.as_ref(),class_name.as_ref().to_owned(),options.as_ref())".into()),
         "validateRoot"=>(format!("node:&Record{node}"),"node.validate_root()".into()),
@@ -50,6 +53,23 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
             (format!("node:Record{node},config:&String,mode:&{}",crate::emit::ty(mode)),"node.with_theme_binding(config.as_ref(),mode.text_binding(|value|value.as_ref().to_owned()))".into())
         },
         "semantics" => (format!("node:Record{node},config:&String"),"node.with_semantics(config.as_ref())".into()),
+        "command" => ("name:&String,payload:&String".into(),"tsrust_native_ui::command(name.as_ref(),payload.as_ref())".into()),
+        "openWindow" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::open_window(node,title.as_ref().to_owned(),options.as_ref())".into()),
+        "appearance" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::appearance())}}\n"),
+        "appInfo" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::app_info())}}\n"),
+        "locale" => return format!("fn {symbol}()->String{{String::Owned(tsrust_native_ui::locale())}}\n"),
+        "setLocale" => return format!("fn {symbol}(locale:&String){{tsrust_native_ui::set_locale(locale.as_ref())}}\n"),
+        "translate" => return format!("fn {symbol}(key:&String,values:&String)->String{{String::Owned(tsrust_native_ui::translate(key.as_ref(),values.as_ref()))}}\n"),
+        "translation" => {
+            let binding=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::UiTextBinding)).unwrap();
+            return format!("fn {symbol}(key:&String,values:&String)->Record{binding}{{tsrust_native_ui::translation(key.as_ref().to_owned(),values.as_ref().to_owned())}}\n");
+        },
+        "setTranslations" => ("locale:&String,messages:&String".into(),"tsrust_native_ui::set_translations(locale.as_ref(),messages.as_ref())".into()),
+        "kitSet" => (format!("node:Record{node},name:&String,value:&String"),"node.with_kit_prop(name.as_ref(),value.as_ref())".into()),
+        "kitBind" => {
+            let binding=program.records.iter().position(|r|r.native_type==Some(NativeTypeId::UiTextBinding)).unwrap();
+            (format!("node:Record{node},name:&String,binding:Record{binding}"),"node.with_kit_binding(name.as_ref(),binding)".into())
+        },
         "document" => return format!("fn {symbol}(node:&Record{node},title:&String)->String{{String::Owned(tsrust_native_ui::document(node,title.as_ref()))}}\n"),
         "run" => (format!("node:Record{node},title:&String,options:&String"),"tsrust_native_ui::run_configured(node,title.as_ref().to_owned(),options.as_ref())".into()),
         _=>unreachable!(),

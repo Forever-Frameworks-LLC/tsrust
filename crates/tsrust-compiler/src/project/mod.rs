@@ -36,13 +36,26 @@ pub trait SourceProvider {
 /// require this tool's canonical implementation path and exact bundled bytes.
 /// Call only for an entry; imported user files retain normal private-binding checks.
 pub fn bundled_entry(provider:&impl SourceProvider,id:&SourceId)->Option<SourceId> {
-    static UI:std::sync::LazyLock<PathBuf>=std::sync::LazyLock::new(||{
-        let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib/ui/api.tsr");
-        std::fs::canonicalize(&path).unwrap_or(path)
-    });
-    if Path::new(&id.0)!=UI.as_path(){return None;}
-    let logical=SourceId("std:ui".into());
-    (provider.read(id).ok()?.as_str()==bundled_source(&logical)?).then_some(logical)
+    const PARTS: &[(&str,&str,&str)] = &[
+        ("ui/api.tsr","std:ui",include_str!("../stdlib/ui/api.tsr")),
+        ("ui/kit.tsr","std:ui",include_str!("../stdlib/ui/kit.tsr")),
+        ("logging/source.tsr","std:log",include_str!("../stdlib/logging/source.tsr")),
+    ];
+    let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib");
+    for &(relative,module,_) in PARTS {
+        let path=root.join(relative);
+        let canonical=std::fs::canonicalize(&path).unwrap_or(path);
+        if Path::new(&id.0)!=canonical {continue;}
+        // Split facades share one module; observe every part before granting its context.
+        for &(part,owner,expected) in PARTS {
+            if owner!=module {continue;}
+            let path=root.join(part);
+            let source=SourceId(std::fs::canonicalize(&path).unwrap_or(path).to_str()?.into());
+            if provider.read(&source).ok()?.as_str()!=expected {return None;}
+        }
+        return Some(SourceId(module.into()));
+    }
+    None
 }
 
 pub struct FileSourceProvider;
@@ -755,6 +768,7 @@ fn visit(
                 import.span,
             ));
         }
+        if import.path=="std:log-runtime" && id.0!="std:log"{return Err(error(&id,"module-native","Logging runtime bindings are private; import from std:log.",import.span));}
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
         }
@@ -770,7 +784,8 @@ fn visit(
             for binding in &import.bindings {
                 let native = crate::native_exports::lookup(&import.path, &binding.exported)
                     .map_err(|message| error(&id, "module-native", message, binding.span))?;
-                import.native = Some(native.module());
+                // Shared declarations may live elsewhere; sibling exports still use the written module.
+                import.native = Some(crate::native_exports::known_module(&import.path).unwrap_or(native.module()));
             }
             continue;
         }

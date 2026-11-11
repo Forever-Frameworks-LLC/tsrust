@@ -1,0 +1,9 @@
+import { request } from "std:http";
+
+export function main() {
+  const input = request("GET", "http://localhost/?tag=a+b&tag=c", "");
+  const value = input.query("tag");
+  if (value !== undefined) {
+    console.log(value);
+  }
+}

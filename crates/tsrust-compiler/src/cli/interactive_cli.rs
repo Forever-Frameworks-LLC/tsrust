@@ -144,7 +144,8 @@ pub(super) fn select(title: &str, choices: &[(&str, &str)], searchable: bool) ->
 pub(super) fn choose(title: &str, choices: &[&str]) -> Result<Option<usize>, String> {
     select(title, &choices.iter().map(|label| (*label, "")).collect::<Vec<_>>(), false)
 }
-#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
+// Kept for `tsrust ui add` component selection.
+#[allow(dead_code)]
 fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
     writeln!(output,"{title}\n").map_err(|e|e.to_string())?;
     for (index,(label,hint)) in choices.iter().enumerate(){writeln!(output,"  {}) {label}  {hint}",index+1).map_err(|e|e.to_string())?;}
@@ -158,23 +159,14 @@ fn multiple_from(input:&mut impl BufRead,output:&mut impl Write,title:&str,choic
         writeln!(output,"Choose at least one number from 1 to {}, or q to cancel.",choices.len()).map_err(|e|e.to_string())?;
     }
 }
-#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
+// Kept for `tsrust ui add` component selection.
+#[allow(dead_code)]
 pub(super) fn multiselect(title:&str,choices:&[(&str,&str)])->Result<Option<Vec<usize>>,String> {
     if !rich(){return multiple_from(&mut io::stdin().lock(),&mut io::stderr().lock(),title,choices);}
     header()?;
     let mut prompt=cliclack::multiselect(format!("{title}  ·  ↑↓ move, Space toggle, Enter install, Esc cancel")).max_rows(visible_rows(console::Term::stderr().size().0)).required(true);
     for (index,(label,hint)) in choices.iter().enumerate(){prompt=prompt.item(index,label,hint);}
     prompt_result(interact_selection(||prompt.interact()))
-}
-#[cfg_attr(not(feature = "legacy-ui"), allow(dead_code))]
-pub(super) fn targets() -> Result<Vec<String>, String> {
-    header()?;
-    interact_selection(|| cliclack::multiselect("UI targets  ·  ↑↓ move, Space toggle, Enter confirm")
-        .max_rows(visible_rows(console::Term::stderr().size().0))
-        .item("native", "Native desktop", "GPU rendering with native windows")
-        .item("web", "Web", "Browser output through the bounded Wasm builder")
-        .required(true).interact()).map(|values| values.into_iter().map(str::to_owned).collect())
-        .map_err(|error| if error.kind() == io::ErrorKind::Interrupted {"UI target selection cancelled; no files created".into()}else{error.to_string()})
 }
 pub(super) fn note(title: &str, text: &str) -> Result<(), String> {
     if rich() { cliclack::note(title, text).map_err(|e| e.to_string()) }
@@ -194,21 +186,12 @@ pub(super) fn command() -> Result<Option<Vec<String>>, String> {
     loop {
         let mut categories = Vec::new();
         if project.is_some() { categories.extend([("Development", "Watch, run and build this application"), ("Quality", "Type checks, tests and formatting")]); }
-        if cfg!(feature = "legacy-ui") { categories.push(("UI", "Browse legacy offline components and add editable source")); }
         categories.extend([("Project", "Create a backend or console application"), ("Help", "Command reference and examples"), ("Exit", "Return to your shell")]);
         let Some(category) = select("What would you like to do?", &categories, false)? else { return Ok(None); };
         let selection = match categories[category].0 {
             "Development" => action("Development", &[("Start development", "tsrust dev", &["dev"]), ("Run once", "tsrust run", &["run"]), ("Build executable", "tsrust build", &["build"])])?,
             "Quality" => action("Quality", &[("Check types", "tsrust check", &["check"]), ("Run tests", "tsrust test", &["test"]), ("Check formatting", "tsrust format --check", &["format", "--check"])])?,
             "Project" => action("Project", &[("Create a project", "Choose a destination and application type", &["new"])])?,
-            "UI" => loop {
-                let Some(choice) = select("UI", &[("Browse components", "Search current offline components and inspect details"), ("Add components", "Select several and install editable source together"), ("Consolidate license notices", "Move full component notices into attributions/"), ("Back", "Return to categories")], false)? else { return Ok(None); };
-                if choice == 3 { break Some(Vec::new()); }
-                if choice == 1 { break Some(vec!["ui".into(), "add".into()]); }
-                if choice == 2 { break Some(vec!["ui".into(), "attributions".into()]); }
-                let Some(args) = super::ui_cli::browse()? else { return Ok(None); };
-                if !args.is_empty() { break Some(std::iter::once("ui".into()).chain(args).collect()); }
-            },
             "Help" => Some(vec!["--help".into()]),
             _ => { if rich() { cliclack::outro("See you next time.").map_err(|e| e.to_string())?; } return Ok(None); },
         };

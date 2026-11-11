@@ -462,6 +462,7 @@ pub enum ArrayElement {
     Boolean(u8),
     Null(u8),
     Undefined(u8),
+    Void(u8),
     String(u8),
     Record(usize, u8),
     Enum(usize, EnumKind, u8),
@@ -482,6 +483,7 @@ impl ArrayElement {
             Type::Boolean => Self::Boolean(0),
             Type::Null => Self::Null(0),
             Type::Undefined => Self::Undefined(0),
+            Type::Void => Self::Void(0),
             Type::String => Self::String(0),
             Type::Record(id) => Self::Record(id, 0),
             Type::Enum(id, kind) => Self::Enum(id, kind, 0),
@@ -502,6 +504,7 @@ impl ArrayElement {
             | Self::Boolean(depth)
             | Self::Null(depth)
             | Self::Undefined(depth)
+            | Self::Void(depth)
             | Self::String(depth)
             | Self::Literal(_, _, depth) | Self::Enum(_, _, depth) | Self::Set(_, depth) | Self::Map(_, depth)
             | Self::Record(_, depth)
@@ -516,6 +519,7 @@ impl ArrayElement {
             Self::Boolean(_) => Self::Boolean(depth),
             Self::Null(_) => Self::Null(depth),
             Self::Undefined(_) => Self::Undefined(depth),
+            Self::Void(_) => Self::Void(depth),
             Self::String(_) => Self::String(depth),
             Self::Record(id, _) => Self::Record(id, depth),
             Self::Enum(id, kind, _) => Self::Enum(id, kind, depth),
@@ -536,6 +540,7 @@ impl ArrayElement {
             Self::Boolean(_) => Type::Boolean,
             Self::Null(_) => Type::Null,
             Self::Undefined(_) => Type::Undefined,
+            Self::Void(_) => Type::Void,
             Self::String(_) => Type::String,
             Self::Record(id, _) => Type::Record(id),
             Self::Enum(id, kind, _) => Type::Enum(id, kind),
@@ -655,17 +660,19 @@ impl NumericConstant {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SetMethod { Add, Has, Delete, Clear, Values, Entries(usize), IsSubsetOf, IsSupersetOf, IsDisjointFrom, Union, Intersection, Difference, SymmetricDifference }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize) }
+pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize), FirstKey, LastKey }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OrderedSetMethod { Add, Has, Delete, Clear }
+pub enum OrderedSetMethod { Add, Has, Delete, Clear, Values, Entries(usize), First, Last }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum HeapMethod { Push, Peek, Pop, Clear }
+pub enum HeapMethod { Push, Peek, Pop, Clear, ToSortedArray }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear }
+pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear, Values }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallTarget {
+    IteratorCursor,
+    IteratorNext,
     DequeMethod(DequeMethod),
     HeapMethod(HeapMethod),
     OrderedSetMethod(OrderedSetMethod),
@@ -1778,6 +1785,8 @@ pub struct FunctionApplication {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub(crate) diagnostic_first: Option<Span>,
+    /// Successful bodies in the last failed replay, shared across recursive-mode retries.
+    pub(crate) diagnostic_completed: Option<std::sync::Arc<std::sync::Mutex<std::collections::HashSet<Span>>>>,
     pub(crate) diagnostic_skips: std::collections::HashSet<usize>,
     /// Compiler-generated continuation statements may be omitted after definite exit.
     pub(crate) generated_continuations: std::collections::HashSet<usize>,
@@ -1973,6 +1982,7 @@ impl Parser<'_> {
         !matches!(
             self.peek().kind,
             TokenKind::String
+                | TokenKind::JsxText
                 | TokenKind::TemplateHead
                 | TokenKind::TemplateMiddle
                 | TokenKind::TemplateTail
@@ -2309,6 +2319,7 @@ impl Parser<'_> {
         let mut registration = Vec::new();
         let mut program = Program {
             diagnostic_first: None,
+            diagnostic_completed: None,
             diagnostic_skips: Default::default(),
             generated_continuations: Default::default(),
             diagnostic_contracts: Default::default(),
@@ -3379,6 +3390,7 @@ fn checked_array_leaf_conversion_preserves_identity_and_rank_limit() {
         Type::Boolean,
         Type::Null,
         Type::Undefined,
+        Type::Void,
         Type::String,
         Type::Record(17),
         Type::StoredCallable(23),
@@ -3393,7 +3405,6 @@ fn checked_array_leaf_conversion_preserves_identity_and_rank_limit() {
         assert!(ArrayElement::from_value_type(Type::Array(element)).is_none());
     }
     for unsupported in [
-        Type::Void,
         Type::Closure(0),
         Type::Callback(0),
         Type::Callable(0),

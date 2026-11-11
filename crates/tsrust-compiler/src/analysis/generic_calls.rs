@@ -36,35 +36,32 @@ impl Analyzer {
         context: &Context,
         args: &[Expr],
     ) -> crate::generic_inference::CallableShapes {
-        args.iter()
-            .filter_map(|argument| {
-                let ty = self.expression_type_hint(context, argument)?;
-                let payload = self.unions.payload(ty).unwrap_or(ty);
-                self.checked_generic_callable_shape(payload)
-                    .map(|shape| (payload, shape))
-            })
-            .collect()
+        // A named callback can itself return a Task or another callable.
+        // Those nested constraints need the same checked shapes as inline hints.
+        self.checked_inference_callable_shapes(args.iter().filter_map(|argument| {
+            let ty = self.expression_type_hint(context, argument)?;
+            Some(self.unions.payload(ty).unwrap_or(ty))
+        }))
     }
 
-    pub(super) fn inline_generic_callable_shape(&self, argument: &Expr) -> Option<(Vec<Type>, Type)> {
+    pub(super) fn inline_generic_callable_shape(&mut self, argument: &Expr) -> Option<(Vec<Type>, Type)> {
         let ExprKind::Closure {
             params,
-            result: ResultAnnotation::Named(result),
+            result,
             ..
         } = &argument.kind
         else {
             return None;
         };
-        let parameters = params
-            .iter()
-            .map(|parameter| {
-                let ParameterAnnotation::Named(annotation) = &parameter.ty else {
-                    return None;
-                };
-                resolve_value_type(annotation, false, &self.record_names, &self.unions).ok()
-            })
-            .collect::<Option<Vec<_>>>()?;
-        let result = resolve_value_type(result, false, &self.record_names, &self.unions).ok()?;
+        if matches!(result,ResultAnnotation::Inferred(_)){return None;}
+        let parameters = params.iter().map(|parameter|match &parameter.ty{
+            ParameterAnnotation::Named(annotation)=>self.resolve_value_annotation(annotation,false).ok(),
+            ParameterAnnotation::Callback(annotation)=>self.resolve_callback(annotation).ok(),
+            ParameterAnnotation::Inferred(_)=>None,
+        }).collect::<Option<Vec<_>>>()?;
+        // A stated result may itself be a Task/owned callable. Resolve metadata
+        // without checking its body or changing argument/capture effects.
+        let result = self.resolve_result(result).ok()?;
         Some((parameters, result))
     }
 
@@ -202,7 +199,8 @@ impl Analyzer {
                 &mut self.record_names,
                 &self.unions, &mut self.callables,
             )?;
-            self.callable_resolver().resolve_value_annotation(&argument, false)?;
+            // Type arguments may be unit payloads; parameter/value positions still reject void.
+            self.callable_resolver().resolve_value_annotation(&argument, true)?;
         }
         append_checked_record_fields(
             &mut self.program.records,
@@ -233,7 +231,7 @@ impl Analyzer {
                     if let Some(callback) = callback {
                         self.resolve_callback(callback)
                     } else {
-                        self.resolve_value_annotation(annotation, false)
+                        self.callable_resolver().resolve_value_annotation(annotation, false)
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?;
@@ -275,4 +273,16 @@ impl Analyzer {
         )?;
         Ok(concrete)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn inline_generic_hints_preserve_explicit_task_result_contracts(){
+ let parsed=crate::syntax::parse("function main(){const factory=(value:int):Task<int>=>missing();const inferred=(value:int)=>missing();}").unwrap();
+ let mut analyzer=Analyzer::new(parsed).unwrap();let main=analyzer.function_names["main"];
+ let expressions=analyzer.program.functions[main].body.iter().filter_map(|statement|if let StmtKind::Let{value,..}=&statement.kind{Some(value.clone())}else{None}).collect::<Vec<_>>();
+ let(parameters,result)=analyzer.inline_generic_callable_shape(&expressions[0]).expect("stated Task result is a known callback shape");assert_eq!(parameters,vec![Type::Int]);
+ let Type::Callable(id)=result else{panic!("Task result contract: {result:?}")};let contract=&analyzer.callables.results[id];assert_eq!(analyzer.callables.shapes.get(contract.structural).kind,Some(CallbackKind::Task));assert!(contract.params.is_empty());assert_eq!(contract.result,Type::Int);assert!(analyzer.is_task_type(result));
+ assert!(analyzer.inline_generic_callable_shape(&expressions[1]).is_none(),"An inferred body still uses the existing checked discovery path");
+ assert!(analyzer.checked[main].is_none(),"Hints do not execute/check the missing() body");
 }

@@ -1,0 +1,15 @@
+// Unit result collections preserve one Rust () entry per completed operation.
+import { strictEqual } from 'std:testing';
+
+function done(): void {}
+
+function main() {
+  const values: void[] = [done(), done()];
+  strictEqual(values.length, 2);
+  let count = 0;
+  for (const value of values) {
+    count += 1;
+  }
+
+  strictEqual(count, 2);
+}

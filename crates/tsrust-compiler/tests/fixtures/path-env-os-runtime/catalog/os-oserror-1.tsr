@@ -1,0 +1,8 @@
+import { OsError } from 'std:os';
+
+export function run() {
+  const error: OsError = {
+    code: 'Io', message: 'observation unavailable'
+  };
+  console.log(error.code);
+}

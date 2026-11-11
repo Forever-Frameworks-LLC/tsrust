@@ -177,7 +177,7 @@ Key goals include:
 * Interfaces/traits.
 * Discriminated unions.
 * Async/await.
-* JSX-style syntax where useful.
+* TSRX-style syntax where useful.
 * Strong control-flow narrowing.
 * Native executables.
 * No V8 dependency.
@@ -236,7 +236,7 @@ Backend-first design
 HTTP, JSON, validation, databases, HTML, async, and observability matter before browser compatibility.
 Hono-compatible native HTTP experience
 Make familiar backend code a language-level showcase.
-Native JSX server HTML
+Native TSRX server HTML
 React-like authoring ergonomics without React’s client runtime model.
 npm inspection and migration tooling
 Treat ecosystem migration as a compiler/tooling problem.

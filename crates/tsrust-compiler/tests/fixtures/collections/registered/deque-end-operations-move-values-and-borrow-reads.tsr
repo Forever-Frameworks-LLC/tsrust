@@ -1,0 +1,35 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+export function main() {
+  const values = new Deque<int>();
+  strictEqual(values.size, 0);
+  strictEqual(values.popFront(), undefined);
+  values.pushBack(2);
+  values.pushFront(1);
+  values.pushBack(3);
+  strictEqual(values.size, 3);
+  strictEqual(values.front()!, 1);
+  strictEqual(values.back()!, 3);
+  strictEqual(values.at(1)!, 2);
+  strictEqual(values.at(-1), undefined);
+  strictEqual(values.at(3), undefined);
+  strictEqual(values.popFront()!, 1);
+  strictEqual(values.popBack()!, 3);
+  strictEqual(values.popBack()!, 2);
+  strictEqual(values.popBack(), undefined);
+  values.pushBack(9);
+  values.clear();
+  strictEqual(values.size, 0);
+  const words = new Deque<string>();
+  words.pushBack('owned');
+  {
+    const word = words.front();
+    if (word !== undefined) {
+      strictEqual(word.length, 5);
+    }
+  }
+
+  const moved = words.popFront()!;
+  strictEqual(moved, 'owned');
+}

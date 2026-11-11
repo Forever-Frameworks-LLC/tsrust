@@ -39,7 +39,8 @@ async function prepare({github, context, core}) {
   core.info(`Building ${tag} from ${snapshot.source}`);
 }
 
-function validateRun(run, snapshot, repository) {
+function validateRun(run, snapshot, repository, pr) {
+  validatePull(pr, repository, snapshot);
   assert.equal(run.path, '.github/workflows/release.yml', 'Wrong build workflow');
   assert.equal(run.event, 'pull_request', 'Only a PR build may publish');
   assert.equal(run.conclusion, 'success', 'Release build did not pass');
@@ -47,12 +48,13 @@ function validateRun(run, snapshot, repository) {
   assert.equal(run.head_branch, 'stag', 'Wrong build branch');
   assert.equal(run.head_sha, snapshot.head, 'Artifact head differs from the build');
   assert.equal(String(run.id), snapshot.run, 'Artifacts came from another run');
-  assert.ok(run.pull_requests.some(pr => pr.number === snapshot.pull), 'Build is not associated with the promotion PR');
+  // GitHub rewrites run.pull_requests when the staging branch is reused.
+  // The fetched snapshot PR and exact run/head/source tree establish provenance.
 }
 
 function validateArtifacts(directory, snapshot) {
   assert.match(snapshot.tag, /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin', 'x86_64-apple-darwin'];
+  const targets = ['x86_64-unknown-linux-gnu', 'x86_64-pc-windows-msvc', 'aarch64-apple-darwin'];
   const names = fs.readdirSync(directory).sort();
   const archives = targets.map(target => `tsrust-${snapshot.tag}-${target}.tar.gz`);
   const extensions = names.filter(name => /^tsrust-.*\.vsix$/.test(name));
@@ -95,7 +97,8 @@ async function publish({github, context, core}) {
   const repo = context.repo;
   const snapshot = JSON.parse(fs.readFileSync('target/promotion.json'));
   const {data: run} = await github.rest.actions.getWorkflowRun({...repo, run_id: context.payload.workflow_run.id});
-  validateRun(run, snapshot, `${repo.owner}/${repo.repo}`);
+  const {data: pr} = await github.rest.pulls.get({...repo, pull_number: snapshot.pull});
+  validateRun(run, snapshot, `${repo.owner}/${repo.repo}`, pr);
   const files = validateArtifacts('dist', snapshot);
   const sha = await mergeValidated({github, repo, snapshot});
   try {

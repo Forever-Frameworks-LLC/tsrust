@@ -1,0 +1,65 @@
+import { fromArray, fromUtf8, toUtf8, length, at, set, view, viewMut, ByteError, Bytes,
+  toHex, fromHex, toBase64 as encode, fromBase64, toBase64Url, fromBase64Url,
+  toUtf8Lossy, fromUtf16, toUtf16 } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function code<T>(result: Result<T, ByteError>): string {
+  match (result) {
+    Ok(_) => {
+      return "unexpected-success";
+    },
+    Err(error) => {
+      return error.code;
+    },
+  }
+}
+
+function main() {
+  const bytes = unwrap(fromArray([0, 251, 255]));
+  strictEqual(unwrap(toHex(bytes)), "00fbff");
+  strictEqual(unwrap(toHex(unwrap(fromHex("00FBff")))), "00fbff");
+  const encodeStored = encode;
+  const decodeStored = fromBase64;
+  strictEqual(unwrap(encodeStored(bytes)), "APv/");
+  strictEqual(unwrap(toHex(unwrap(decodeStored("APv/")))), "00fbff");
+  strictEqual(unwrap(toBase64Url(bytes)), "APv_");
+  strictEqual(unwrap(toHex(unwrap(fromBase64Url("APv_")))), "00fbff");
+  strictEqual(length(bytes), 3);
+  const part = unwrap(view(bytes, 1, 3));
+  strictEqual(unwrap(toHex(part)), "fbff");
+  strictEqual(unwrap(encodeStored(part)), "+/8=");
+  strictEqual(unwrap(toBase64Url(part)), "-_8");
+  const writable = unwrap(fromHex("616263"));
+  const window = unwrap(viewMut(writable, 0, 3));
+  unwrap(set(window, 0, 65));
+  strictEqual(unwrap(toUtf8Lossy(window)), "Abc");
+  strictEqual(unwrap(toHex(window)), "416263");
+  const little = unwrap(fromUtf16("A😀", "little"));
+  const big = unwrap(fromUtf16("A😀", "big"));
+  strictEqual(unwrap(toHex(little)), "41003dd800de");
+  strictEqual(unwrap(toHex(big)), "0041d83dde00");
+  strictEqual(unwrap(toUtf16(little, "little")), "A😀");
+  strictEqual(unwrap(toUtf16(big, "big")), "A😀");
+  const encode16 = fromUtf16;
+  const decode16 = toUtf16;
+  const order: "little" | "big" = "big";
+  const encoded16 = unwrap(encode16("B", order));
+  const encodedView = unwrap(view(encoded16, 0, length(encoded16)));
+  strictEqual(unwrap(decode16(encodedView, order)), "B");
+  const bom = unwrap(fromUtf16("\uFEFF\u0000é", "little"));
+  strictEqual(unwrap(toUtf16(bom, "little")), "\uFEFF\u0000é");
+  const bad = unwrap(fromArray([65, 195, 40]));
+  strictEqual(unwrap(toUtf8Lossy(bad)), "A�(");
+  strictEqual(code(toUtf8(bad)), "utf8");
+  strictEqual(code(fromHex("0")), "hex-length");
+  strictEqual(code(fromHex("0g")), "hex-digit");
+  strictEqual(code(fromBase64("Zh==")), "base64-trailing-bits");
+  strictEqual(code(fromBase64("Zg")), "base64-padding");
+  strictEqual(code(fromBase64Url("Zg==")), "base64-padding");
+  strictEqual(code(fromBase64("Z g==")), "base64-byte");
+  strictEqual(code(toUtf16(unwrap(fromHex("00d8")), "little")), "utf16");
+  strictEqual(code(toUtf16(unwrap(fromHex("00")), "little")), "utf16");
+  strictEqual(unwrap(toHex(unwrap(fromHex("")))), "");
+  strictEqual(unwrap(encode(unwrap(fromArray([])))), "");
+  strictEqual(unwrap(toUtf8Lossy(unwrap(fromArray([])))), "");
+}

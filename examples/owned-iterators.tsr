@@ -1,0 +1,8 @@
+import { Iterator } from 'std:iterator';
+
+function main() {
+  const values = Iterator.from([1, 2, 3, 4]).filter(value => value % 2 === 0).map(value => value * 3);
+  console.log(values.toArray().join(','));
+  console.log(Iterator.from([1, 2, 3]).reduce((sum, value) => sum + value, 0));
+  console.log(Iterator.from([1, 2, 3]).flatMap(value => [value, value]).take(3).toArray().join(','));
+}

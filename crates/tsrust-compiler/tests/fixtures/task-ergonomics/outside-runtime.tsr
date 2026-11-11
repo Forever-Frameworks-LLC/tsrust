@@ -1,0 +1,15 @@
+import { Interval } from 'std:futures';
+
+function main() {
+  try {
+    const timer = new Interval(1);
+  } catch (error) {
+    console.log(error.code);
+  }
+
+  try {
+    const timer = new Interval(0);
+  } catch (error) {
+    console.log(error.code);
+  }
+}

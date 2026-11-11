@@ -1,7 +1,0 @@
-import config from '../tsrust.config.json';
-import { run, withTheme } from 'std:ui';
-import { Page } from './app/page';
-
-function main() {
-  run(withTheme(Page(), config.ui.theme), 'Reactive props');
-}

@@ -1,0 +1,23 @@
+import { test, strictEqual } from 'std:testing';
+interface TextProps {
+  children: string[];
+}
+
+function Text(props: TextProps): string {
+  return props.children.join('');
+}
+
+function punctuation(): string {
+  return <Text><Text>café</Text>.<Text>A</Text>!<Text>B</Text>?<Text>C</Text>?.<Text>D</Text>(<Text>E</Text>[<Text>F</Text>as<Text>G</Text>in<Text>H</Text>satisfies<Text>I</Text></Text>;
+}
+
+function expressionSuffix(): int {
+  return (<Text><Text>ab</Text>.</Text>).length;
+}
+
+test('nested TSRX keeps punctuation and keyword text as children', () => {
+  strictEqual(punctuation(), 'café.A!B?C?.D(E[FasGinHsatisfiesI');
+});
+test('ordinary postfix expressions after TSRX still parse', () => {
+  strictEqual(expressionSuffix(), 3);
+});

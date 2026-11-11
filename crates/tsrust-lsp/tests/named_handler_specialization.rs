@@ -8,13 +8,13 @@ fn named_handler_project_checks_without_internal_failure_and_keeps_ownership_err
     workspace.open(
         owner,
         1,
-        include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/owner.tsr").to_owned(),
+        include_str!("../../tsrust-compiler/tests/fixtures/owner-handles/owner.tsr").to_owned(),
     );
     workspace.open(
         main.clone(),
         1,
         include_str!(
-            "../../../experiments/ui-tsrust-owner-handles/witnesses/named-self-replacement.tsr"
+            "../../tsrust-compiler/tests/fixtures/owner-handles/named-self-replacement.tsr"
         )
         .to_owned(),
     );
@@ -30,7 +30,7 @@ fn named_handler_project_checks_without_internal_failure_and_keeps_ownership_err
     }
     let invalid = source_id("file:///ui-b4/invalid.tsr").unwrap();
     let source =
-        include_str!("../../../experiments/ui-state-lifecycle/witnesses/consumed-owner.tsr")
+        include_str!("../../tsrust-compiler/tests/fixtures/owner-handles/consumed-owner.tsr")
             .lines()
             .filter(|line| !line.contains("@tsrust ignore"))
             .collect::<Vec<_>>()

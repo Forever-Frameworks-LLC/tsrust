@@ -1,0 +1,14 @@
+import { parseIp, formatIp, parseAddress, formatAddress, isIPv4, isIPv6 } from 'std:net';
+
+function main() {
+  const loopback = unwrap(parseIp('127.0.0.1'));
+  const address = unwrap(parseAddress('[2001:db8::1]:8080'));
+  console.log(formatIp(loopback), isIPv4(loopback), isIPv6(loopback));
+  console.log(formatAddress(address), formatAddress(clone(address)));
+  match (parseAddress('localhost:80')) {
+    Ok(_) => {
+      throw 'hostname accepted';
+    },
+    Err(error) => console.log(error.code, error.operation)
+  }
+}

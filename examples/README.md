@@ -11,11 +11,9 @@ project-specific setup. Native execution requires the pinned Rust backend.
 | HTTP routing and request state | [http-context/](http-context/) and [http-state/](http-state/) |
 | An integrated service | [service/](service/) |
 | SQL values and migrations | [sql-domain-values/](sql-domain-values/) and [sql-migrations/](sql-migrations/) |
+| Files, directory snapshots and temporary trees | [filesystem-utilities/](filesystem-utilities/) |
 | A cache or queue | [cache/](cache/) and [work-queue/](work-queue/) |
 | Rust bindings | [rust-data-boundaries/](rust-data-boundaries/) and [rust-regex/](rust-regex/) |
-| Retained reactive UI | [ui-application/](ui-application/) and [ui-composition/](ui-composition/) |
-| Retained shared docs application | [../docs/](../docs/) |
 
 Examples demonstrate scoped supported behavior. They are not blanket compatibility
-claims for TypeScript, Hono or shadcn. Some require databases, a graphical desktop,
-Wasm tooling or explicit environment variables; read their setup before running.
+claims for TypeScript or Hono. Some require databases or explicit environment variables; read their setup before running.

@@ -15,8 +15,8 @@ pub(crate) fn adapter(program:&mut Program,binding:&NativeBinding)->Result<Funct
     };
     let limit=crate::native_type_resolution::project(&mut program.records,&limit,function.name.span)?;
     let replacements=std::collections::HashMap::from([("S".to_owned(),annotation),("L".to_owned(),limit)]);
-    crate::source_walk::function_annotations(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements))?;
-    crate::source_walk::function_body(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements),&mut |expression|{
+    crate::source_walk::substitute_function_annotations(&mut function,&replacements)?;
+    crate::source_walk::substitute_function_body(&mut function,&replacements,&mut |expression|{
         shift(&mut expression.span);
         if matches!(&expression.kind,ExprKind::Name(name) if name=="backend"){expression.kind=ExprKind::Name(format!("@native:std:schema#{}",binding.name));}
         Ok(())

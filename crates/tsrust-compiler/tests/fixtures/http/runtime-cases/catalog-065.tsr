@@ -1,0 +1,8 @@
+import { WebSocketOptions } from "std:http";
+
+export function main() {
+  const value: WebSocketOptions = {
+    readBufferSize: 4096
+  };
+  console.log(value.readBufferSize);
+}

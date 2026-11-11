@@ -14,6 +14,25 @@ pub(super) struct Plan {
 }
 
 impl Emitter<'_> {
+    /// A required field of the compiler's empty callback enum makes the whole
+    /// ordinary record uninhabited. Optional/array/opaque fields do not prove it.
+    pub(super) fn absent_record_field(&self,ty:Type)->Option<usize>{
+        let Type::Record(record)=ty else{return None;};let record=&self.program.records[record];
+        if record.native_type.is_some(){return None;}
+        record.fields.iter().position(|field|!field.optional && matches!(field.ty,Some(Type::Callback(id))if self.program.absent_callback_payloads.contains(&id)))
+    }
+
+    fn coalesce_physical_record_tag(&self,target:UnionId,actual:Type)->Option<usize>{
+        let Type::Record(source)=actual else{return None;};
+        let mut matches=self.program.unions[target.index()].members.iter().enumerate().filter_map(|(tag,ty)|{
+            let Type::Record(destination)=*ty else{return None;};
+            (self.native_record_declaration(source)==self.native_record_declaration(destination)
+                && self.native_type(actual)==self.native_type(*ty)
+                && self.union_stored_type(target,actual,self.native_type(actual))==self.union_stored_type(target,*ty,self.native_type(*ty))).then_some(tag)
+        });
+        let tag=matches.next()?;if matches.next().is_some(){return None;}Some(tag)
+    }
+
     pub(super) fn prepare_coalesce_emission<'a>(&self, expr: &Expr, left: &'a Expr, mode: Mode) -> (Plan, &'a Expr) {
         let undefined_only=matches!(expr.kind,ExprKind::Binary{op:BinaryOp::PatternDefault,..});
         let absent_only = left.ty.is_some_and(|ty| {
@@ -61,7 +80,9 @@ impl Emitter<'_> {
         let fallback = if let Some(target) = result.union() {
             let actual = right.ty.expect("coalescing fallback");
             let prefix = if target_view { "ViewUnion" } else { "Union" };
-            if let Some(from) = actual.union() {
+            if let Some(field)=self.absent_record_field(actual){
+                format!("match ({fallback}).field{field} {{}}")
+            }else if let Some(from) = actual.union() {
                 if from == target {
                     fallback
                 } else {
@@ -72,33 +93,50 @@ impl Emitter<'_> {
                         .iter()
                         .enumerate()
                         .map(|(index, member)| {
+                            if let Some(field)=self.absent_record_field(*member){
+                                return format!("{}{}::V{index}(payload)=>match payload.field{field} {{}}",if source_view{"ViewUnion"}else{"Union"},from.index());
+                            }
                             let to = self.program.unions[target.index()]
                                 .members
                                 .iter()
                                 .position(|ty| {
-                                    ty == member
+                                    ty.accepts_scalar_value(*member)
                                         || matches!(ty, Type::Callback(_))
                                             && matches!(
                                                 member,
                                                 Type::Closure(_) | Type::Callback(_)
                                             )
                                 })
-                                .expect("fallback subset");
+                                .or_else(||self.coalesce_physical_record_tag(target,*member))
+                                .unwrap_or_else(||{
+                                    #[cfg(test)]
+                                    eprintln!("COALESCE_FALLBACK_REJECT span={:?} source={actual:?} target={result:?} member={member:?} source_members={:?} target_members={:?}",right.span,self.program.unions[from.index()].members,self.program.unions[target.index()].members);
+                                    #[cfg(test)]
+                                    for ty in std::iter::once(member).chain(self.program.unions[target.index()].members.iter()){if let Type::Record(id)=*ty{eprintln!("COALESCE_RECORD id={id} native={} declaration={} fields={:?}",self.native_type(*ty),self.native_record_declaration(id),self.program.records[id].fields.iter().map(|field|(field.name.text.as_str(),field.ty)).collect::<Vec<_>>());}}
+                                    panic!("fallback subset")
+                                });
                             format!(
                                 "{}{}::V{index}(payload)=>{prefix}{}::V{to}({})",
                                 if source_view { "ViewUnion" } else { "Union" },
-                                from.index(),target.index(),if !target_view&&!source_view{self.union_transfer_payload(from,target,*member,"payload")}else{"payload".into()}
+                                from.index(),target.index(),if target_view{self.data_view_payload(*member,"payload",source_view)}else if !source_view{self.union_transfer_payload(from,target,*member,"payload")}else{"payload".into()}
                             )
                         })
                         .collect::<Vec<_>>()
                         .join(",");
-                    format!("match {fallback} {{{arms}}}")
+                    // A scalar constructor leaves the other physical payloads
+                    // unconstrained, even when their arms are uninhabited.
+                    let physical = self.native_argument_type(ArgumentContract {
+                        ty: actual, mode: if source_view { Mode::Read } else { Mode::Consume },
+                        omission: crate::ParameterOmission::Required, rest: false,
+                    }, "");
+                    format!("match std::convert::identity::<{physical}>({fallback}) {{{arms}}}")
                 }
             } else {
                 let index = self.program.unions[target.index()]
                     .members
                     .iter()
-                    .position(|ty| *ty == actual)
+                    .position(|ty| ty.accepts_scalar_value(actual))
+                    .or_else(||self.coalesce_physical_record_tag(target,actual))
                     .expect("fallback member");
                 let code = if target_view && actual.is_copy() {
                     format!("&({fallback})")
@@ -120,6 +158,8 @@ impl Emitter<'_> {
                     .contains(member)
                 {
                     "unreachable!(\"checked nullable guard\")".to_owned()
+                } else if let Some(field)=self.absent_record_field(*member){
+                    format!("match payload.field{field} {{}}")
                 } else if *member==Type::Undefined || (!undefined_only && *member==Type::Null) {
                     fallback.clone()
                 } else if let Some(target) = result.union() {
@@ -127,10 +167,11 @@ impl Emitter<'_> {
                         .members
                         .iter()
                         .position(|ty| {
-                            ty == member
+                            ty.accepts_scalar_value(*member)
                                 || matches!(ty, Type::Callback(_))
                                     && matches!(member, Type::Closure(_) | Type::Callback(_))
                         })
+                        .or_else(||self.coalesce_physical_record_tag(target,*member))
                         .expect("retained payload variant");
                     let payload = if target_view { self.data_view_payload(*member,"payload",borrowed) } else if borrowed && target.copy { "*payload".to_owned() } else { self.union_transfer_payload(union,target,*member,"payload") };
                     format!("{}{}::V{to}({payload})",if target_view { "ViewUnion" } else { "Union" },target.index())
@@ -167,4 +208,31 @@ impl Emitter<'_> {
         } else { format!("&pattern_default_owner_{slot}") };
         format!("{{pattern_default_owner_{slot}={owner};{view}}}")
     }
+}
+
+#[cfg(test)]
+#[test]
+fn coalescing_literal_subset_preserves_borrowed_and_owned_scalar_payloads(){
+ let source=include_str!("../../tests/fixtures/coalesce-literal-subsets/main.tsr");let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);let checked=crate::check(&formatted).unwrap_or_else(|error|panic!("{}",error.render("coalesce-literal-subsets.tsr",&formatted)));drop(checked.emit_rust());
+}
+
+#[cfg(test)]
+#[test]
+fn coalescing_empty_callback_fallback_has_its_checked_physical_union_context(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string;function observe(value:ReadOnly<Value>):void{if(typeof value==='string'){console.log(value);}else{console.log('reactive');}}function main(){const value:Value|undefined=undefined;observe(value??'');}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();let emitter=super::emitter_for(&checked.program,"");
+ let find=|absent:bool,nullable:bool|checked.program.unions.iter().enumerate().find_map(|(index,union)|{
+  (union.members.len()==(if nullable{3}else{2}) && union.members.contains(&Type::Undefined)==nullable && union.members.contains(&Type::String) && union.members.iter().any(|member|matches!(member,Type::Record(_))) && union.members.iter().any(|member|emitter.absent_record_field(*member).is_some())==absent).then_some(UnionId{index:index.try_into().unwrap(),copy:false,scalar_members:false})
+ }).unwrap();
+ let from=find(true,false);let target=find(false,false);let left=find(true,true);assert_ne!(from,target);assert!(checked.program.unions[left.index()].members.contains(&Type::Undefined));
+ let tag=checked.program.unions[from.index()].members.iter().position(|member|*member==Type::String).unwrap();
+ let mut right=Expr::new(ExprKind::Name("fallback".into()),crate::Span::default());right.ty=Some(Type::Union(from));
+ for view in [false,true]{
+  let mode=if view{Mode::Read}else{Mode::Consume};
+  let physical=emitter.native_argument_type(ArgumentContract{ty:Type::Union(from),mode,omission:crate::ParameterOmission::Required,rest:false},"");
+  let plan=Plan{absent_only:false,undefined_only:false,left_mode:mode,right_mode:mode,logical_union:Some(left),union:Some(left),result:Type::Union(target),borrowed:view,target_view:view};
+  let code=emitter.finish_coalesce_emission(plan,&right,"left".into(),format!("{}{}::V{tag}(scalar)",if view{"ViewUnion"}else{"Union"},from.index()));
+  assert!(code.contains(&format!("match std::convert::identity::<{physical}>(")),"{code}");assert_eq!(code.matches("(scalar)").count(),1);assert!(code.contains("=>match payload.field0 {}"));
+ }
 }

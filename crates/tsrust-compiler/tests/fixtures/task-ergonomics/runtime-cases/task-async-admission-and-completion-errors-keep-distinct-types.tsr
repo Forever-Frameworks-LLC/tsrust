@@ -1,0 +1,22 @@
+import { ThreadPool } from 'std:threads';
+
+export async function run(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  console.log(await pool.taskAsync((): int => 7));
+  try {
+    await pool.taskAsync((): int => {
+      throw 'cause';
+    });
+  } catch (error) {
+    console.log(error.code);
+  }
+
+  unwrap(pool.shutdown());
+  try {
+    await pool.taskAsync((): int => 8);
+  } catch (error) {
+    console.log(error.code);
+  }
+}

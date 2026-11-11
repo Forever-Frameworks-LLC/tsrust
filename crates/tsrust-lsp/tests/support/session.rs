@@ -159,13 +159,20 @@ impl Session {
     }
 
     /// Wait until the server has published diagnostics and stays quiet.
+    /// Once every open document's current version is published, only a short
+    /// quiet window remains for related workspace publications.
     pub fn settle(&mut self) {
+        let mut pending = self.versions.iter().map(|(name, version)| (self.uri(name), *version)).collect::<std::collections::BTreeMap<_, _>>();
         let mut quiet = Duration::from_millis(900);
         let deadline = Instant::now() + Duration::from_secs(10);
         while Instant::now() < deadline {
             match self.messages.recv_timeout(quiet) {
                 Ok(Message::Notification(notification)) if notification.method == "textDocument/publishDiagnostics" => {
-                    quiet = Duration::from_millis(400);
+                    let current = notification.params["uri"].as_str().and_then(|uri| pending.get(uri).map(|version| (uri.to_owned(), *version)));
+                    if let Some((uri, _)) = current.filter(|(uri, version)| diagnostic_publication_matches(&notification, uri, Some(*version))) {
+                        pending.remove(&uri);
+                    }
+                    quiet = if pending.is_empty() { Duration::from_millis(50) } else { Duration::from_millis(400) };
                 }
                 Ok(_) => {}
                 Err(_) => return,

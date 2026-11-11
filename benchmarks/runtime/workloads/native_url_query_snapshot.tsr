@@ -1,0 +1,34 @@
+import { parseUrl, searchParams, setSearchParams, formatQuery } from 'std:url';
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = unwrap(parseUrl(input));
+    const params = searchParams(value);
+    const rows = params.entries();
+    params.set('tag', 'next');
+    params.append('q', 'a b+');
+    params.sort();
+    const encoded = formatQuery(params);
+    if (encoded !== 'q=a+b%2B&tag=next&z=last' || rows.length !== 3 || rows[0].name !== 'tag' || rows[0].value !== 'one' || rows[1].name !== 'tag' || rows[1].value !== 'two' || rows[2].name !== 'z' || rows[2].value !== 'last') {
+      throw 'Invalid query snapshot';
+    }
+
+    setSearchParams(value, params);
+    params.delete('tag');
+    const result = value.search!;
+    if (result.length !== 25 || !result.startsWith('?q=a+b%2B&tag=next&z=last')) {
+      throw 'Invalid query replacement';
+    }
+
+    checksum += encoded.length + result.length + rows[0].value.length + rows[1].value.length + rows[2].value.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'https://example.com/?tag=one&tag=two&z=last'));
+}

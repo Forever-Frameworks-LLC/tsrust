@@ -1,0 +1,8 @@
+import { Client } from "std:http";
+
+export function main() {
+  const client = new Client({
+    bodyLimit: 4096
+  });
+  console.log("bounded client");
+}

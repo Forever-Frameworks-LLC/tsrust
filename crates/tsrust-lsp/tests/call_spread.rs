@@ -89,7 +89,7 @@ fn native(source: &str, expected: &str) {
             vec![
                 "rustup".into(),
                 "run".into(),
-                "1.96.1".into(),
+                "1.99.1".into(),
                 "rustc".into(),
                 "--edition=2024".into(),
                 "-C".into(),

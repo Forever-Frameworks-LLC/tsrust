@@ -1,0 +1,8 @@
+import { PasswordVerifyOptions } from 'std:crypto';
+
+export function main() {
+  const options: PasswordVerifyOptions = {
+    maxMemoryKiB: 32, maxIterations: 1, maxParallelism: 1
+  };
+  console.log(options.maxIterations);
+}

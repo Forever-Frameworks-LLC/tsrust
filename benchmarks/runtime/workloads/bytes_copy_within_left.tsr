@@ -1,0 +1,29 @@
+import { alloc, length, at, copyWithin } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[] {
+  let size = 32;
+  if (input === "4k") {
+    size = 4096;
+  }
+
+  if (input === "1m") {
+    size = 1048576;
+  }
+
+  const bytes = unwrap(alloc(size, 97));
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    unwrap(copyWithin(bytes, 0, 1, size));
+    output.push(length(bytes));
+    output.push(unwrap(at(bytes, 0)));
+    output.push(unwrap(at(bytes, length(bytes) - 1)));
+    i += 1;
+  }
+
+  return output;
+}
+
+function main() {
+  workload(1, 7, "token");
+}

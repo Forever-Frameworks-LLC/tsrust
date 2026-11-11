@@ -1,0 +1,17 @@
+import { ThreadPool, join } from 'std:threads';
+
+// Existing lifecycle witness, not the proposed taskAsync implementation.
+// The body uses today's blocking bridge solely to expose its pool borrow to
+// the compiler; admission never executes this fixture as a runtime benchmark.
+async function borrowed(pool: ReadOnly<ThreadPool>): Task<int> {
+  return unwrap(join(unwrap(pool.task((): int => 7))));
+}
+
+async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  // @tsrust ignore - Intentional task-transfer negative: strict emit must reject the retained caller loan.
+  const job = borrowed(pool).start();
+  console.log(await job);
+}

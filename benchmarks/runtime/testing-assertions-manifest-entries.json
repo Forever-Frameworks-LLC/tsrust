@@ -145,5 +145,93 @@
     },
     "sourceSha256": "08f3e9e9051e81a542449d25568c3332bbcf344287c93056e5c45c36172fc26e",
     "counterpartSha256": "9b06ae4fd2d2f2f057dcc47dde0000d2cfb776a053babe3dc4573e10920c96ee"
+  },
+  {
+    "id": "testing_deep_data",
+    "category": "testing",
+    "family": "testing-assertions",
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 1024,
+    "operationsPerIteration": 2,
+    "operationUnit": "successful structural assertion calls",
+    "specification": "Borrow independently constructed equal and unequal supported data; preserve exact scalar values and observe a base131 checksum of selected square keys.",
+    "notes": "Whole assertion pipeline including setup and checksum. Typed borrowed traversal has no clone/serialization. Direct Rust uses ordinary typed data and std collections as a control, not a claim of identical collection representation. No whole-framework speed score.",
+    "methodExpressions": {
+      "native": [
+        "deepStrictEqual(left[at],right[at])",
+        "notDeepStrictEqual(left[at],right[(at+1)%8])"
+      ],
+      "typescript": [
+        "deepStrictEqual(left[at],right[at])",
+        "notDeepStrictEqual(left[at],right[(at+1)%8])"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "from 'std:testing'",
+        "const at=(i*13+seed)%8;"
+      ],
+      "typescript": [
+        "from 'node:assert/strict'",
+        "const at=(i*13+seed)%8;"
+      ]
+    },
+    "sourceSha256": "c69911bb2464b0b7b28a359c121f534119ae06540ea2b727cfc0a6a20affdfde",
+    "counterpartSha256": "dd91dc977e29f494200ee413bc32ed9223a6e2ca23f2019b8ae0ec4baa94cb9b",
+    "rustReference": "parity/testing_deep_data.rs",
+    "source": "workloads/testing_deep_data.tsr",
+    "counterpart": "workloads/testing_deep_data.ts",
+    "measured": false,
+    "measurementStatus": "unmeasured-structural-assertions",
+    "rustReferenceSha256": "271b6f586b1769c892bf73e2af230f97d580fd04ab6c9cb715975fa6bb878acc"
+  },
+  {
+    "id": "testing_deep_collections",
+    "category": "testing",
+    "family": "testing-assertions",
+    "result": "int",
+    "parameters": [
+      "int",
+      "int"
+    ],
+    "iterations": 1024,
+    "operationsPerIteration": 3,
+    "operationUnit": "successful structural assertion calls",
+    "specification": "Borrow independently constructed equal and unequal supported data; preserve exact scalar values and observe a base131 checksum of selected square keys.",
+    "notes": "Whole assertion pipeline including setup and checksum. Typed borrowed traversal has no clone/serialization. Direct Rust uses ordinary typed data and std collections as a control, not a claim of identical collection representation. No whole-framework speed score.",
+    "methodExpressions": {
+      "native": [
+        "deepStrictEqual(first,second)",
+        "deepStrictEqual(setA,setB)",
+        "notDeepStrictEqual(first,different)"
+      ],
+      "typescript": [
+        "deepStrictEqual(first,second)",
+        "deepStrictEqual(setA,setB)",
+        "notDeepStrictEqual(first,different)"
+      ]
+    },
+    "sourceRequired": {
+      "native": [
+        "from 'std:testing'",
+        "const at=(i*13+seed)%8;"
+      ],
+      "typescript": [
+        "from 'node:assert/strict'",
+        "const at=(i*13+seed)%8;"
+      ]
+    },
+    "sourceSha256": "e6940709970ddd32d3ca33526ed246ef1dbbf91344fc329d1b2ea93b11f4f388",
+    "counterpartSha256": "3aa8182393d0c52d7de7c9e5ee9e7045bff5560cf9d60a2f7838cf2dc3c1caae",
+    "rustReference": "parity/testing_deep_collections.rs",
+    "source": "workloads/testing_deep_collections.tsr",
+    "counterpart": "workloads/testing_deep_collections.ts",
+    "measured": false,
+    "measurementStatus": "unmeasured-structural-assertions",
+    "rustReferenceSha256": "628b5c03d924582220a88da2826377c1fbd3bb7ba2bb54e5863a6a2444b03754"
   }
 ]

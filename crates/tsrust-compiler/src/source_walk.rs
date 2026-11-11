@@ -3,6 +3,8 @@ use crate::syntax::*;
 use crate::type_syntax::ValueAnnotation;
 use crate::Diagnostic;
 
+type Substitutions = std::collections::HashMap<String,ValueAnnotation>;
+
 enum AnnotationWork<'a> {
     Parameter(&'a mut CallableParameter),
     Callback(&'a mut CallbackAnnotation),
@@ -14,12 +16,17 @@ enum AnnotationWork<'a> {
 fn annotations(
     root: AnnotationWork<'_>,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
+    substitutions:Option<&Substitutions>,
 ) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(next) = pending.pop() {
         match next {
             AnnotationWork::Parameter(parameter) => match &mut parameter.ty {
-                ParameterAnnotation::Named(value) => visit(value)?,
+                ParameterAnnotation::Named(value) => {
+                    let adjust=substitutions.is_some_and(|bindings|crate::type_substitution::substitutes_parameter(value,bindings));
+                    visit(value)?;
+                    if adjust && (crate::type_substitution::copy_annotation(value) || crate::type_substitution::task_annotation(value)&&parameter.access.as_ref().is_some_and(|access|access.text=="consume")) {parameter.access=None;}
+                },
                 ParameterAnnotation::Callback(callback) => pending.push(AnnotationWork::Callback(callback)),
                 ParameterAnnotation::Inferred(_) => {}
             },
@@ -40,64 +47,65 @@ fn annotations(
     Ok(())
 }
 
-pub(crate) fn visit_parameter(
-    value: &mut CallableParameter,
-    visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
-) -> Result<(), Diagnostic> {
-    annotations(AnnotationWork::Parameter(value), visit)
-}
-pub(crate) fn callback_annotation(
-    value: &mut CallbackAnnotation,
-    visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
-) -> Result<(), Diagnostic> {
-    annotations(AnnotationWork::Callback(value), visit)
-}
 pub(crate) fn result_annotation(
     value: &mut ResultAnnotation,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    annotations(AnnotationWork::Result(value), visit)
+    annotations(AnnotationWork::Result(value), visit,None)
 }
 pub(crate) fn function_annotations(
     function: &mut Function,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    for (_, annotation, callback) in &mut function.params {
+    function_annotations_with_substitution(function,visit,None)
+}
+fn function_annotations_with_substitution(function:&mut Function,visit:&mut impl FnMut(&mut ValueAnnotation)->Result<(),Diagnostic>,substitutions:Option<&Substitutions>)->Result<(),Diagnostic>{
+    for (position,(_,annotation,callback))in function.params.iter_mut().enumerate() {
+        let adjust=substitutions.is_some_and(|bindings|crate::type_substitution::substitutes_parameter(annotation,bindings));
         visit(annotation)?;
-        if let Some(callback) = callback {
-            callback_annotation(callback, visit)?;
-        }
+        if adjust && let Some(access)=function.parameter_access.get_mut(position)
+            && (crate::type_substitution::copy_annotation(annotation)||crate::type_substitution::task_annotation(annotation)&&access.is_some_and(|(mode,_)|mode==crate::Mode::Consume)){*access=None;}
+        if let Some(callback)=callback {annotations(AnnotationWork::Callback(callback),visit,substitutions)?;}
     }
-    if let Some(result) = &mut function.result {
-        result_annotation(result, visit)?;
-    }
+    if let Some(result)=&mut function.result {annotations(AnnotationWork::Result(result),visit,substitutions)?;}
     Ok(())
+}
+// Only lexical generic substitution may normalize a callable mirror's data access.
+// Alias materialization, validation and coordinate remapping keep their old walks.
+pub(crate) fn substitute_function_annotations(function:&mut Function,bindings:&Substitutions)->Result<(),Diagnostic>{
+    function_annotations_with_substitution(function,&mut |value|crate::type_substitution::apply(value,bindings),Some(bindings))
+}
+pub(crate) fn substitute_result_annotation(result:&mut ResultAnnotation,bindings:&Substitutions)->Result<(),Diagnostic>{
+    annotations(AnnotationWork::Result(result),&mut |value|crate::type_substitution::apply(value,bindings),Some(bindings))
+}
+pub(crate) fn substitute_function_body(function:&mut Function,bindings:&Substitutions,visit:&mut impl FnMut(&mut Expr)->Result<(),Diagnostic>)->Result<(),Diagnostic>{
+    walk(&mut function.body,&mut function.parameter_initializers,None,&mut |value|crate::type_substitution::apply(value,bindings),&mut |value|{visit(value)?;Ok(true)},Some(bindings))
 }
 pub(crate) fn body(
     body: &mut [Stmt],
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(body, &mut [], None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) })
+    walk(body, &mut [], None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) },None)
 }
 pub(crate) fn body_pruned(body:&mut [Stmt],visit:&mut impl FnMut(&mut Expr)->Result<bool,Diagnostic>)->Result<(),Diagnostic>{
-    walk(body,&mut [],None,&mut |_|Ok(()),visit)
+    walk(body,&mut [],None,&mut |_|Ok(()),visit,None)
 }
 pub(crate) fn function_body(
     function: &mut Function,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    walk(&mut function.body, &mut function.parameter_initializers, None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) })
+    walk(&mut function.body, &mut function.parameter_initializers, None, annotation_visit, &mut |value| { expression_visit(value)?; Ok(true) },None)
 }
 pub(crate) fn expression(
     value:&mut Expr,
     visit:&mut impl FnMut(&mut Expr)->Result<(),Diagnostic>,
 )->Result<(),Diagnostic> {
-    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),&mut |value| { visit(value)?; Ok(true) })
+    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),&mut |value| { visit(value)?; Ok(true) },None)
 }
 pub(crate) fn expression_pruned(value:&mut Expr,visit:&mut impl FnMut(&mut Expr)->Result<bool,Diagnostic>)->Result<(),Diagnostic> {
-    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),visit)
+    walk(&mut [],&mut [],Some(value),&mut |_|Ok(()),visit,None)
 }
 fn walk(
     body: &mut [Stmt],
@@ -105,6 +113,7 @@ fn walk(
     expression: Option<&mut Expr>,
     annotation_visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
     expression_visit: &mut impl FnMut(&mut Expr) -> Result<bool, Diagnostic>,
+    substitutions:Option<&Substitutions>,
 ) -> Result<(), Diagnostic> {
     enum Work<'a> {
         Statement(&'a mut Stmt),
@@ -119,7 +128,7 @@ fn walk(
         match node {
             Work::Statement(statement) => match &mut statement.kind {
                 StmtKind::LocalFunction(function) => {
-                    function_annotations(function, annotation_visit)?;
+                    function_annotations_with_substitution(function, annotation_visit,substitutions)?;
                     work.extend(function.body.iter_mut().map(Work::Statement));
                     for initializer in &mut function.parameter_initializers {
                         if let ParameterInitializer::Default { value, .. } = initializer { work.push(Work::Expression(value)); }
@@ -185,10 +194,10 @@ fn walk(
                         ..
                     } => {
                         for parameter in params {
-                            visit_parameter(parameter, annotation_visit)?;
+                            annotations(AnnotationWork::Parameter(parameter),annotation_visit,substitutions)?;
                             if let ParameterInitializer::Default { value, .. } = &mut parameter.initializer { work.push(Work::Expression(value)); }
                         }
-                        result_annotation(result, annotation_visit)?;
+                        annotations(AnnotationWork::Result(result),annotation_visit,substitutions)?;
                         work.extend(body.iter_mut().map(Work::Statement));
                     }
                     ExprKind::Conditional {
@@ -393,4 +402,91 @@ pub(crate) fn returned_values(body:&[Stmt])->Vec<&Expr>{
         StmtKind::Try(region)=>pending.extend(region.statements()),
         _=>{}
     }}values
+}
+
+#[cfg(test)]
+mod substitution_access_tests {
+    use super::*;
+    use crate::type_syntax::parse;
+    fn function(source:&str)->Function {crate::syntax::parse(source).unwrap().functions.remove(0)}
+    fn callback(function:&Function)->&CallbackAnnotation{function.params[0].2.as_ref().unwrap()}
+
+    #[test]
+    fn substitution_normalizes_nested_and_returned_callable_mirrors_only(){
+        let mut value=function("function apply<T>(action:Owned<Function<T,[value:Owned<T>,inner:Owned<Function<T,[item:ReadOnly<T>]>>]>>):Owned<Function<T,[next:Mutable<T>]>>{return action;}");
+        value.params[0].2.as_mut().unwrap().kind=CallbackKind::Program;
+        let bindings=Substitutions::from([("T".into(),parse("int").unwrap())]);
+        substitute_function_annotations(&mut value,&bindings).unwrap();
+        let action=callback(&value);assert_eq!(action.kind,CallbackKind::Program);assert!(action.params[0].access.is_none());
+        let ParameterAnnotation::Callback(inner)=&action.params[1].ty else{panic!("nested callback")};assert!(inner.params[0].access.is_none());assert!(inner.kind.is_owned());
+        let Some(ResultAnnotation::Callable{params,..})=&value.result else{panic!("returned callback")};assert!(params[0].access.is_none());
+        let raw=crate::callable_annotations::callback(&value.params[0].1).unwrap();assert!(raw.params[0].access.is_none());
+    }
+    #[test]
+    fn substitution_preserves_owned_nonclone_and_readonly_owner_access(){
+        for actual in ["string","NonCloneOwner"]{
+            let mut value=function("function apply<T>(action:Owned<Function<T,[owned:Owned<T>,borrowed:ReadOnly<T>,changed:Mutable<T>]>>):void{}");
+            substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse(actual).unwrap())])).unwrap();
+            let action=callback(&value);assert!(action.kind.is_owned());
+            assert_eq!(action.params.iter().map(|value|value.access.as_ref().unwrap().text.as_str()).collect::<Vec<_>>(),vec!["consume","read","mutate"]);
+            let mut data=function("function data<T>(owned:Owned<T>,borrowed:ReadOnly<T>,changed:Mutable<T>):void{}");
+            substitute_function_annotations(&mut data,&Substitutions::from([("T".into(),parse(actual).unwrap())])).unwrap();
+            assert_eq!(data.parameter_access.iter().map(|value|value.as_ref().unwrap().0).collect::<Vec<_>>(),vec![crate::Mode::Consume,crate::Mode::Read,crate::Mode::Mutate]);
+        }
+    }
+    #[test]
+    fn substitution_body_visits_closures_and_local_function_mirrors(){
+        let mut value=crate::syntax::parse_module("function outer<T>():void{function local(action:Function<T,[value:Owned<T>]>):void{}const action=(value:Owned<T>):T=>value;}",false,Default::default(),Default::default()).unwrap().functions.remove(0);
+        substitute_function_body(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())]),&mut |_|Ok(())).unwrap();
+        let StmtKind::LocalFunction(local)=&value.body[0].kind else{panic!("local function")};assert!(callback(local).params[0].access.is_none());
+        let StmtKind::Let{value,..}=&value.body[1].kind else{panic!("closure binding")};let ExprKind::Closure{params,..}=&value.kind else{panic!("closure")};assert!(params[0].access.is_none());
+    }
+    #[test]
+    fn substitution_error_does_not_normalize_unfinished_or_later_parameters(){
+        let mut value=function("function make<T,U>():Function<T,[first:Owned<T>,second:ReadOnly<U<int>>,later:Owned<T>]>{throw 1;}");
+        let bindings=Substitutions::from([("T".into(),parse("int").unwrap()),("U".into(),parse("string").unwrap())]);
+        let error=substitute_result_annotation(value.result.as_mut().unwrap(),&bindings).unwrap_err();assert_eq!(error.code,"type");
+        let Some(ResultAnnotation::Callable{params,..})=&value.result else{panic!("returned callback")};assert!(params[0].access.is_none());assert!(params[1].access.is_some());assert!(params[2].access.is_some());
+        let mut data=function("function data<T,U>(first:Owned<T>,broken:ReadOnly<U<int>>,later:Owned<T>):void{}");
+        assert_eq!(substitute_function_annotations(&mut data,&bindings).unwrap_err().code,"type");
+        assert!(data.parameter_access[0].is_none());assert!(data.parameter_access[1].is_some());assert!(data.parameter_access[2].is_some());
+    }
+    #[test]
+    fn explicit_scalar_and_alias_access_stays_invalid_and_ordinary_walks_do_not_normalize(){
+        for annotation in ["int","ScalarAlias"]{
+            let mut value=function(&format!("function invalid<T>(action:Function<int,[value:Owned<{annotation}>]>):void{{}}"));
+            substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())])).unwrap();assert!(callback(&value).params[0].access.is_some());
+            let source=format!("type ScalarAlias=int;function invalid(action:Function<int,[value:Owned<{annotation}>]>):void{{}}function main(){{invalid((value:int):int=>value);}}");
+            assert_eq!(crate::check(&source).err().unwrap().code,"callback-access");
+            for access in ["Owned","ReadOnly","Mutable"] {
+                let source=format!("type ScalarAlias=int;function invalid<T>(value:{access}<{annotation}>,other:T):T{{return other;}}function main(){{invalid(7,7);}}");
+                assert_eq!(crate::check(&source).err().unwrap().code,"callback-access");
+            }
+        }
+        let mut value=function("function apply(action:Function<int,[value:Owned<ScalarAlias>]>):void{}");
+        function_annotations(&mut value,&mut |annotation|{if matches!(&annotation.kind,crate::type_syntax::ValueAnnotationKind::Named(name)if name.text=="ScalarAlias"){*annotation=parse("int").unwrap();}Ok(())}).unwrap();
+        assert!(callback(&value).params[0].access.is_some(),"ordinary alias/materialization visitors must not erase explicit access");
+    }
+    #[test]
+    fn generic_owned_scalar_callback_specialization_checks(){
+        for access in ["Owned","ReadOnly","Mutable"] {
+            let mut value=function(&format!("function data<T>(value:{access}<T>):void{{}}"));
+            substitute_function_annotations(&mut value,&Substitutions::from([("T".into(),parse("int").unwrap())])).unwrap();
+            assert!(value.parameter_access[0].is_none());
+        }
+        let source="function apply<T>(value:Owned<T>,action:Owned<Function<T,[value:Owned<T>]>>):T{return action(value);}function main(){console.log(apply(7,(value:int):int=>value+1));}";
+        crate::check(source).unwrap();
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn generic_task_value_substitution_preserves_read_but_uses_intrinsic_consumption(){
+ let mut function=crate::syntax::parse("function apply<T>(action:Owned<Function<int,[owned:Owned<T>,observed:ReadOnly<T>]>>,owned:Owned<T>,observed:ReadOnly<T>){}").unwrap().functions.remove(0);
+ let bindings=Substitutions::from([("T".into(),crate::type_syntax::parse("Task<int>").unwrap())]);
+ substitute_function_annotations(&mut function,&bindings).unwrap();
+ let callback=function.params[0].2.as_ref().unwrap();assert!(callback.params[0].access.is_none());assert_eq!(callback.params[1].access.as_ref().unwrap().text,"read");
+ let ParameterAnnotation::Named(value)=&callback.params[0].ty else{panic!("substituted task value")};assert!(crate::type_substitution::task_annotation(value));
+ assert!(function.parameter_access[1].is_none());assert_eq!(function.parameter_access[2].unwrap().0,crate::Mode::Read);
+ let mut explicit=crate::syntax::parse("function original<T>(action:Owned<Function<int,[work:Owned<Fixed>]>>){}").unwrap().functions.remove(0);substitute_function_annotations(&mut explicit,&bindings).unwrap();assert_eq!(explicit.params[0].2.as_ref().unwrap().params[0].access.as_ref().unwrap().text,"consume","An unrelated source contract is never normalized");
 }

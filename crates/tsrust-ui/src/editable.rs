@@ -26,7 +26,7 @@ pub(crate) struct Editable {
     pub name:String,
     pub auto_complete:String,
     pub binding: Option<ValueBinding>,
-    #[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),allow(dead_code))]
+    #[cfg_attr(not(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web"))),allow(dead_code))]
     pub changed: Option<ChangeHandler>,
 }
 
@@ -39,7 +39,7 @@ impl Editable {
         Ok(true)
     }
 
-    #[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),allow(dead_code))]
+    #[cfg_attr(not(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web"))),allow(dead_code))]
     pub fn input(&mut self, value: &str,id:&str) -> Result<bool, String> {
         if self.disabled || self.read_only { return Ok(false); }
         let value = normalize(value, self.multiline);

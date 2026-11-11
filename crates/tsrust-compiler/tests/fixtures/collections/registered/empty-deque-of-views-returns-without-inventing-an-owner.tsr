@@ -1,0 +1,12 @@
+import { Deque } from 'std:collections';
+import { ByteView } from 'std:bytes';
+
+function empty(): Deque<ByteView> {
+  return new Deque<ByteView>();
+}
+
+function accept(values: Deque<ByteView>) {}
+
+export function main() {
+  accept(empty());
+}

@@ -1,0 +1,9 @@
+import { Bytes, ByteError, fromArray } from 'std:bytes';
+
+export type Outcome = Result<Bytes, ByteError>;
+
+export function build(): Outcome {
+  return fromArray([1, 2]);
+}
+
+export type Plain = Result<int, string>;

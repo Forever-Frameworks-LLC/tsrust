@@ -23,7 +23,7 @@ fn main() {
 }
 "##).unwrap();
     let mut command = std::process::Command::new("rustup");
-    command.args(["run", "1.96.1", "cargo", "run", "--offline", "--locked"])
+    command.args(["run", "1.99.1", "cargo", "run", "--offline", "--locked"])
         .arg("--manifest-path").arg(root.join("Cargo.toml"))
         .arg("--config").arg(root.join(".cargo/config.toml"))
         .current_dir(&dir.0)

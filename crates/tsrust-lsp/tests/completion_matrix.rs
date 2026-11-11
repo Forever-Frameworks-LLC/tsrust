@@ -11,8 +11,17 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
-    Ui,
+    Process,
+    Network,
+    Compression,
+    Filesystem,
+    Url,
+    Regex,
+    Locale,
+    Io,
+    PathEnvOs,
     Crypto,
+    Logging,
     Signals,
     Cache,
     Temporal,
@@ -20,6 +29,12 @@ enum Kind {
     Uuid,
     Decimal,
     Numeric,
+    Deque,
+    Heap,
+    OrderedSet,
+    OrderedMap,
+    Iterator,
+    IteratorConstructor,
     TrackedResource,
     Sqlite,
     Sql,
@@ -28,6 +43,8 @@ enum Kind {
     Job,
     AsyncChannel,
     AsyncSender,
+    Interval,
+    CancellationToken,
     Local,
     Keyword,
     ImportedValue,
@@ -56,9 +73,18 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 43] = [
-    Kind::Ui,
+const KINDS: &[Kind] = &[
+    Kind::Process,
+    Kind::Network,
+    Kind::Compression,
+    Kind::Filesystem,
+    Kind::Url,
+    Kind::Regex,
+    Kind::Locale,
+    Kind::Io,
+    Kind::PathEnvOs,
     Kind::Crypto,
+    Kind::Logging,
     Kind::Signals,
     Kind::Cache,
     Kind::Temporal,
@@ -66,6 +92,12 @@ const KINDS: [Kind; 43] = [
     Kind::Uuid,
     Kind::Decimal,
     Kind::Numeric,
+    Kind::Deque,
+    Kind::Heap,
+    Kind::OrderedSet,
+    Kind::OrderedMap,
+    Kind::Iterator,
+    Kind::IteratorConstructor,
     Kind::TrackedResource,
     Kind::Sqlite,
     Kind::Sql,
@@ -74,6 +106,8 @@ const KINDS: [Kind; 43] = [
     Kind::Job,
     Kind::AsyncChannel,
     Kind::AsyncSender,
+    Kind::Interval,
+    Kind::CancellationToken,
     Kind::Local,
     Kind::Keyword,
     Kind::ImportedValue,
@@ -123,7 +157,7 @@ struct Row {
 /// fallen back to scope completion.
 const NOT_MEMBERS: &[&str] = &["function", "const", "main", "greeting"];
 
-const SHAPES: &str = "export type Point = { x: int; y: int; };\nexport function origin(): Point { return { x: 0, y: 0 }; }\nexport function scale(point: ReadOnly<Point>, factor: int): Point { return { x: point.x * factor, y: point.y * factor }; }\n";
+const SHAPES: &str = "export type UnitResults = void[];\nexport type UnitPair = [void[]];\nexport type UnitPairs = UnitPair[];\nexport type Point = { x: int; y: int; };\nexport function origin(): Point { return { x: 0, y: 0 }; }\nexport function scale(point: ReadOnly<Point>, factor: int): Point { return { x: point.x * factor, y: point.y * factor }; }\n";
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
 const FILES: [(&str, &str); 6] = [("shapes.tsr", SHAPES), ("greeting.tsr", GREETING), ("compute.rs", "pub fn echo(value:String)->String{value}"), ("api.bindings.json",r#"{"schemaVersion":1,"source":"./api.rs","dependencies":{}}"#),("api.bindings.lock","version = 4"),("api.rs","pub struct Reply{pub text:String,pub count:i64}pub fn reply()->Reply{Reply{text:String::new(),count:0}}")];
 
@@ -133,51 +167,121 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::Process,name:"Process public imports",before:"import { ".into(),typed:"",after:" } from 'std:process';function main(){}",includes:&["Child", "CommandOptions", "ExitStatus", "Output", "ProcessError", "spawn", "run"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process Child alias members",before:"import {Child as Subject} from 'std:process';function inspect(value:Subject){".into(),typed:"value.",after:"id;}function main(){}",includes:&["id", "takeStdin", "takeStdout", "takeStderr", "wait", "tryWait", "kill"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process CommandOptions alias members",before:"import {CommandOptions as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"cwd;}function main(){}",includes:&["cwd", "env", "clearEnv", "stdin", "stdout", "stderr", "input", "deadlineMs", "maxOutputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process ExitStatus alias members",before:"import {ExitStatus as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"success;}function main(){}",includes:&["success", "code", "signal"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process Output alias members",before:"import {Output as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"status;}function main(){}",includes:&["status", "stdout", "stderr"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Process,name:"Process ProcessError alias members",before:"import {ProcessError as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message", "osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network public imports",before:"import { ".into(),typed:"",after:" } from 'std:net';function main(){}",includes:&["IpAddress", "SocketAddress", "NetError", "TcpListener", "TcpStream", "UdpSocket", "Datagram", "parseIp", "formatIp", "parseAddress", "formatAddress", "isIPv4", "isIPv6", "listenTcp", "connectTcp", "bindUdp"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network IpAddress alias members",before:"import {IpAddress as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque address values expose module functions, not members."),needs_check:false},
+ Row {kind:Kind::Network,name:"Network SocketAddress alias members",before:"import {SocketAddress as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque address values expose module functions, not members."),needs_check:false},
+ Row {kind:Kind::Network,name:"Network NetError alias members",before:"import {NetError as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message", "osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network TcpListener alias members",before:"import {TcpListener as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"accept;}function main(){}",includes:&["accept", "localAddress", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network TcpStream alias members",before:"import {TcpStream as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"localAddress;}function main(){}",includes:&["localAddress", "peerAddress", "setNoDelay", "shutdownWrite", "split", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network UdpSocket alias members",before:"import {UdpSocket as Subject} from 'std:net';function inspect(value:Subject){".into(),typed:"value.",after:"sendTo;}function main(){}",includes:&["sendTo", "receiveFrom", "localAddress", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network Datagram alias members",before:"import {Datagram as Subject} from 'std:net';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"data;}function main(){}",includes:&["data", "remote"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression public imports",before:"import { ".into(),typed:"",after:" } from 'std:compression';function main(){}",includes:&["CompressionOptions", "DecompressionOptions", "CompressionError", "CompressionReader", "CompressionWriter", "CompressionFormat", "gzip", "gunzip", "deflate", "inflate", "deflateRaw", "inflateRaw", "compressReader", "decompressReader", "compressWriter", "decompressWriter"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionOptions alias members",before:"import {CompressionOptions as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"level;}function main(){}",includes:&["level"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression DecompressionOptions alias members",before:"import {DecompressionOptions as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"maxOutputBytes;}function main(){}",includes:&["maxOutputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionError alias members",before:"import {CompressionError as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code", "operation", "message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionReader alias members",before:"import {CompressionReader as Subject} from 'std:compression';function inspect(value:Subject){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read", "readInto", "readExact", "readAll", "finish", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionWriter alias members",before:"import {CompressionWriter as Subject} from 'std:compression';function inspect(value:Subject){".into(),typed:"value.",after:"write;}function main(){}",includes:&["write", "writeAll", "flush", "finish", "close"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Compression,name:"Compression CompressionFormat alias members",before:"import {CompressionFormat as Subject} from 'std:compression';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length", "includes", "startsWith"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Network,name:"Network DNS imports",before:"import { ".into(),typed:"",after:" } from 'std:dns';function main(){}",includes:&["lookup"],excludes:&["__lookup","lookup_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::StdModule,name:"everyday testing assertion imports",before:"import {".into(),typed:" ",after:" } from 'std:testing';function main(){}",includes:&["deepStrictEqual","notDeepStrictEqual","rejects"],excludes:&["deepEqual","testing_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::StdModule,name:"everyday testing structural call",before:"import {deepStrictEqual} from 'std:testing';function main(){".into(),typed:"deep",after:"([[1]],[[1]]);}",includes:&["deepStrictEqual"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::StdModule,name:"everyday testing rejects alias",before:"import {rejects as expectRejection} from 'std:testing';async function main():Task<void>{await ".into(),typed:"expectRej",after:"(async()=>{throw 'expected';});}",includes:&["expectRejection"],excludes:&["deepEqual","testing_intrinsic"],silent:None,needs_check:false},
+
+ Row{kind:Kind::PathEnvOs,name:"path public imports",before:"import { ".into(),typed:"",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError","parse","format","resolve","separator","delimiter"],excludes:&["hostname","setCurrentDir"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path partial import",before:"import { ".into(),typed:"Path",after:" } from 'std:path';function main(){}",includes:&["PathParts","PathFormatOptions","PathError"],excludes:&["parse","format"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment public imports",before:"import { ".into(),typed:"",after:" } from 'std:env';function main(){}",includes:&["EnvVar","EnvError","get","args","vars","currentDir","currentExe","tempDir","homeDir"],excludes:&["set","remove","setCurrentDir"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"OS observation imports",before:"import { ".into(),typed:"",after:" } from 'std:os';function main(){}",includes:&["OsError","hostname","availableParallelism","platform","arch","endianness"],excludes:&["setHostname","kill"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path parsed components",before:"import {parse} from 'std:path';function main(){const value=parse('file.txt');".into(),typed:"value.",after:"name;}",includes:&["root","dir","base","ext","name"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path component prefix",before:"import {PathParts as Parts} from 'std:path';function inspect(value:ReadOnly<Parts>){".into(),typed:"value.ex",after:"t;}function main(){}",includes:&["ext"],excludes:&["base","root","name","function"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path format option fields",before:"import {PathFormatOptions} from 'std:path';function inspect(value:ReadOnly<PathFormatOptions>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["root","dir","base","ext","name"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment pair fields",before:"import {EnvVar} from 'std:env';function inspect(value:ReadOnly<EnvVar>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","value"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"environment snapshot indexed fields",before:"import {vars} from 'std:env';function main(){const rows=unwrap(vars());".into(),typed:"rows[0].v",after:"alue;}",includes:&["value"],excludes:&["name","function","main"],silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"path checked error fields",before:"import {PathError} from 'std:path';function inspect(value:ReadOnly<PathError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row{kind:Kind::PathEnvOs,name:"OS checked error fields",before:"import {OsError} from 'std:os';function inspect(value:ReadOnly<OsError>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::ArrayMember,name:"void result array",before:"type Results<T>=T[];function main(){const values:Results<void>=[];".into(),typed:"values.",after:"length;}",includes:&["length","push","slice","reverse","sort","toSorted"],excludes:&["at","pop","shift","find","findLast","entries","join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array named tuple alias",before:"type Pair=[void[]];function probe(values:ReadOnly<Pair[]>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","at","entries","slice"],excludes:&["join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array imported unit alias",before:"import {UnitResults as Results} from './shapes.tsr';function probe(values:ReadOnly<Results>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","push","slice","reverse"],excludes:&["at","pop","shift","find","findLast","entries","join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::ArrayMember,name:"void result array imported tuple alias",before:"import {UnitPairs as Pairs} from './shapes.tsr';function probe(values:ReadOnly<Pairs>){".into(),typed:"values.",after:"length;}function main(){}",includes:&["length","at","entries","slice"],excludes:&["join","toString","toLocaleString","function","main"],silent:None,needs_check:true},
+ Row {kind:Kind::StringMember,name:"ordinary string literal union readonly members",before:"type Origin='start'|'current'|'end';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","normalize","concat","codePointAt","valueOf"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
+ Row {kind:Kind::StringMember,name:"grouped string literal union indexed members",before:"type Origin=('left'|'right');function inspect(values:ReadOnly<Origin[]>){".into(),typed:"values[0].",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["push","left","right","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"native string literal alias readonly members",before:"import {SeekOrigin as Origin} from 'std:fs';function inspect(value:ReadOnly<Origin>){".into(),typed:"value.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase","substring","toString"],excludes:&["push","start","current","end","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem cursor alias partial import",before:"import { ".into(),typed:"Seek",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin"],excludes:&["FileTime","seek","position"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem cursor alias string members",before:"import {SeekOrigin} from 'std:fs';function inspect(origin:SeekOrigin){".into(),typed:"origin.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["start","current","end","unixSeconds","function","main"],silent:None,needs_check:false},
+
+ Row {kind:Kind::Filesystem,name:"filesystem import path prefix",before:"import {openFile} from '".into(),typed:"std:f",after:"';function main(){}",includes:&["std:fs"],excludes:&["std:sql"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem public imports",before:"import { ".into(),typed:"",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin","seek","position","File","FsError","OpenOptions","FileTime","Metadata","DirEntry","openFile","stat","lstat","fileStat","readDir","mkdir","mkdirAll","rename","copyFile","removeFile","removeDir","removeDirAll","canonicalize","readLink","hardLink","appendFile","readTextFile","writeTextFile","truncate","syncAll","syncData","createTempDir"],excludes:&["__open","fs_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial imports",before:"import { ".into(),typed:"read",after:" } from 'std:fs';function main(){}",includes:&["read","readFile","readDir","readTextFile","readLink"],excludes:&["writeFile","openFile"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem open option fields",before:"import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read","write","append","create","createNew","truncate"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem exact timestamp fields",before:"import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){".into(),typed:"value.",after:"unixSeconds;}function main(){}",includes:&["unixSeconds","nanoseconds"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem metadata snapshot fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.",after:"size;}function main(){}",includes:&["isFile","isDirectory","isSymlink","size","readOnly","modified","accessed","created"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem directory entry fields",before:"import {DirEntry} from 'std:fs';function inspect(value:ReadOnly<DirEntry>){".into(),typed:"value.",after:"path;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem partial metadata fields",before:"import {Metadata} from 'std:fs';function inspect(value:ReadOnly<Metadata>){".into(),typed:"value.is",after:"File;}function main(){}",includes:&["isFile","isDirectory","isSymlink"],excludes:&["size","readOnly","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem aliased directory entry",before:"import {DirEntry as Entry} from 'std:fs';function inspect(value:ReadOnly<Entry>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","path","isFile","isDirectory","isSymlink"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+
+
+ Row {kind:Kind::Io,name:"IO public imports",before:"import { ".into(),typed:"",after:" } from 'std:io';function main(){}",includes:&["Reader","Writer","LineReader","Stdin","IoError","reader","writer","readInto","readExact","readAll","writeAll","copy","close"],excludes:&["__readInto","__copy","io_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Io,name:"IO failure alias fields",before:"import {IoError as Failure} from 'std:io';function inspect(value:ReadOnly<Failure>){".into(),typed:"value.",after:"code;}function main(){}",includes:&["code","operation","message","osCode"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale public imports",before:"import { ".into(),typed:"",after:" } from 'std:locale';function main(){}",includes:&["Locale","Collator","Segmenter","NumberFormat","SegmentRange","LocaleError","CollatorOptions","NumberFormatOptions","parseLocale","formatLocale","createCollator","createSegmenter","createNumberFormat"],excludes:&["__compare","__formatNumber","locale_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale collator alias",before:"import {Collator as Owner} from 'std:locale';function inspect(value:ReadOnly<Owner>){".into(),typed:"value.",after:"compare('a','b');}function main(){}",includes:&["compare"],excludes:&["format","segment","clone","__compare"],silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale segmenter alias",before:"import {Segmenter as Owner} from 'std:locale';function inspect(value:ReadOnly<Owner>){".into(),typed:"value.",after:"segment('a');}function main(){}",includes:&["segment"],excludes:&["compare","format","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale formatter alias",before:"import {NumberFormat as Owner} from 'std:locale';function inspect(value:ReadOnly<Owner>){".into(),typed:"value.",after:"format(1);}function main(){}",includes:&["format"],excludes:&["compare","segment","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale byte range fields",before:"import {SegmentRange} from 'std:locale';function inspect(value:ReadOnly<SegmentRange>){".into(),typed:"value.",after:"start;}function main(){}",includes:&["start","end"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Locale,name:"Locale string reuse",before:"import {Collator} from 'std:locale';function inspect(text:string,value:ReadOnly<Collator>){".into(),typed:"text.locale",after:"Compare('b',value);}function main(){}",includes:&["localeCompare"],excludes:&["function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex public imports",before:"import { ".into(),typed:"",after:" } from 'std:regex';function main(){}",includes:&["Regex","RegexMatch","RegexCaptures","RegexError","RegexOptions","compile","escape"],excludes:&["__find","__stringMatch","regex_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex aliased owner methods",before:"import {Regex as Pattern} from 'std:regex';function inspect(value:ReadOnly<Pattern>){".into(),typed:"value.",after:"isMatch('a');}function main(){}",includes:&["isMatch","find","findAll","captures","capturesAll","replace","replaceAll","split"],excludes:&["__find","function","main","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex capture record fields",before:"import {RegexCaptures as Captured} from 'std:regex';function inspect(value:ReadOnly<Captured>){".into(),typed:"value.",after:"match;}function main(){}",includes:&["match","groups"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Regex,name:"Regex String entry points",before:"import {Regex} from 'std:regex';function inspect(text:string,value:ReadOnly<Regex>){".into(),typed:"text.ma",after:"tch(value);}function main(){}",includes:&["match","matchAll"],excludes:&["search","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL import path prefix",before:"import {Url} from '".into(),typed:"std:u",after:"';function main(){}",includes:&["std:url"],excludes:&["std:sql"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL public imports",before:"import { ".into(),typed:"",after:" } from 'std:url';function main(){}",includes:&["Url","UrlError","SearchParams","QueryEntry","StringView","parseUrl","resolveUrl","formatUrl","parseQuery","formatQuery","searchParams","setSearchParams","pathToFileUrl","fileUrlToPath","encodeURIComponent","decodeURIComponent"],excludes:&["__href","__setHref","__get","url_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL partial imports",before:"import { ".into(),typed:"parse",after:" } from 'std:url';function main(){}",includes:&["parseUrl","parseQuery"],excludes:&["formatUrl","__get"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL aliased computed properties",before:"import {Url as Address} from 'std:url';function inspect(value:ReadOnly<Address>){".into(),typed:"value.",after:"href;}function main(){}",includes:&["href","protocol","username","password","hostname","port","pathname","search","hash","origin"],excludes:&["function","main","__href","__setHref","clone"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL partial computed property write",before:"import {Url} from 'std:url';function inspect(value:Mutable<Url>){".into(),typed:"value.pa",after:"thname='/next';}function main(){}",includes:&["pathname","password"],excludes:&["port","protocol","__pathname","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL parsed owner property prefix",before:"import {parseUrl} from 'std:url';function main(){const value=unwrap(parseUrl('https://example.com/'));".into(),typed:"value.h",after:"ref;}",includes:&["href","hostname","hash"],excludes:&["pathname","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL borrowed pathname members",before:"import {Url} from 'std:url';function inspect(value:ReadOnly<Url>){".into(),typed:"value.pathname.",after:"length;}function main(){}",includes:&["length","startsWith","endsWith","includes","indexOf","lastIndexOf"],excludes:&["trim","split","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL SearchParams aliased methods",before:"import {SearchParams as Query} from 'std:url';function inspect(params:Mutable<Query>){".into(),typed:"params.",after:"append('x','one');}function main(){}",includes:&["get","getAll","has","append","set","delete","entries","sort"],excludes:&["href","pathname","__get","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL SearchParams partial methods",before:"import {SearchParams} from 'std:url';function inspect(params:SearchParams){".into(),typed:"params.get",after:"('x');}function main(){}",includes:&["get","getAll"],excludes:&["append","sort","__get","function","main"],silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL error fields",before:"import {UrlError} from 'std:url';function inspect(error:ReadOnly<UrlError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","operation","message"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Url,name:"URL query entry fields",before:"import {QueryEntry} from 'std:url';function inspect(entry:ReadOnly<QueryEntry>){".into(),typed:"entry.",after:"value;}function main(){}",includes:&["name","value"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::Http,name:"realtime SseEvent fields",before:"import {SseEvent} from 'std:http';function inspect(value:ReadOnly<SseEvent>){".into(),typed:"value.",after:"data;}function main(){}",includes:&["data","event","id","retryMs"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime SseOptions fields",before:"import {SseOptions} from 'std:http';function inspect(value:ReadOnly<SseOptions>){".into(),typed:"value.",after:"keepAliveMs;}function main(){}",includes:&["keepAliveMs","keepAliveText"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketOptions fields",before:"import {WebSocketOptions} from 'std:http';function inspect(value:ReadOnly<WebSocketOptions>){".into(),typed:"value.",after:"readBufferSize;}function main(){}",includes:&["readBufferSize","writeBufferSize","maxWriteBufferSize","maxMessageSize","maxFrameSize","acceptUnmaskedFrames"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketClientOptions fields",before:"import {WebSocketClientOptions} from 'std:http';function inspect(value:ReadOnly<WebSocketClientOptions>){".into(),typed:"value.",after:"ca;}function main(){}",includes:&["ca","headers","socket"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketHeader fields",before:"import {WebSocketHeader} from 'std:http';function inspect(value:ReadOnly<WebSocketHeader>){".into(),typed:"value.",after:"name;}function main(){}",includes:&["name","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketText fields",before:"import {WebSocketText} from 'std:http';function inspect(value:ReadOnly<WebSocketText>){".into(),typed:"value.",after:"kind;}function main(){}",includes:&["kind","data"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketBinary fields",before:"import {WebSocketBinary} from 'std:http';function inspect(value:ReadOnly<WebSocketBinary>){".into(),typed:"value.",after:"kind;}function main(){}",includes:&["kind","data"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketClose fields",before:"import {WebSocketClose} from 'std:http';function inspect(value:ReadOnly<WebSocketClose>){".into(),typed:"value.",after:"kind;}function main(){}",includes:&["kind","code","reason"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketHalves fields",before:"import {WebSocketHalves} from 'std:http';function inspect(value:ReadOnly<WebSocketHalves>){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read","write"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocket methods",before:"import {WebSocket} from 'std:http';async function inspect(value:Mutable<WebSocket>):Task<void>{await ".into(),typed:"value.",after:"receive();}function main(){}",includes:&["receive","send","split","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketRead methods",before:"import {WebSocketRead} from 'std:http';async function inspect(value:Mutable<WebSocketRead>):Task<void>{await ".into(),typed:"value.",after:"receive();}function main(){}",includes:&["receive"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime WebSocketWrite methods",before:"import {WebSocketWrite} from 'std:http';async function inspect(value:Mutable<WebSocketWrite>):Task<void>{await ".into(),typed:"value.",after:"send({kind:'text',data:'hello'});}function main(){}",includes:&["send","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"realtime public imports",before:"import { ".into(),typed:"",after:" } from 'std:http';function main(){}",includes:&["sse","sseWithProducer","connectWebSocket","WebSocketMessage","SseEvent","SseOptions","WebSocket","WebSocketRead","WebSocketWrite","WebSocketHalves","WebSocketOptions","WebSocketClientOptions","WebSocketHeader","WebSocketText","WebSocketBinary","WebSocketClose"],excludes:&["__sse","__sseWithProducer","__connectWebSocket","__routerWebSocket"],silent:None,needs_check:false},
+ Row {kind:Kind::Http,name:"HTTP client explicit transport options",before:"import {ClientOptions} from 'std:http';function probe(options:ReadOnly<ClientOptions>){".into(),typed:"options.",after:"timeoutMs;}function main(){}",includes:&["ca","bodyLimit","timeoutMs","connectTimeoutMs","followRedirects","maxRedirects","proxy","noProxy"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+  Row {kind:Kind::Http,name:"HTTP CORS explicit policy options",before:"import {CorsOptions} from 'std:http';function probe(options:ReadOnly<CorsOptions>){".into(),typed:"options.",after:"origins;}function main(){}",includes:&["origins","methods","allowedHeaders","exposeHeaders","credentials","maxAgeSeconds"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"HTTP multipart optional metadata",before:"import {MultipartPart} from 'std:http';function probe(part:ReadOnly<MultipartPart>){".into(),typed:"part.",after:"name;}function main(){}",includes:&["name","fileName","contentType","data"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Http,name:"HTTP client explicit body budget",before:"import {ClientOptions} from 'std:http';function probe(options:ReadOnly<ClientOptions>){".into(),typed:"options.",after:"bodyLimit;}function main(){}",includes:&["ca","bodyLimit"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Http,name:"HTTP body readers owned request",before:"import {Request} from 'std:http';async function inspect(input:Request):Task<void>{await ".into(),typed:"input.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Http,name:"HTTP body readers contextual request",before:"import {Context} from 'std:http';async function inspect(context:Mutable<Context>):Task<void>{await ".into(),typed:"context.req.",after:"json();}function main(){}",includes:&["json","body","text","form","multipart"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
- Row {kind:Kind::RecordField,name:"input change target",before:"import {InputChangeEvent} from 'std:ui';function inspect(event:ReadOnly<InputChangeEvent>){".into(),typed:"event.target.",after:"value;}function main(){}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
- Row {kind:Kind::CallbackParameter,name:"input inferred callback",before:"import {Input} from 'std:ui';function main(){const node=Input({onChange:(event)=>{console.log(".into(),typed:"event.target.",after:"value);}});}",includes:&["value","name","id"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
- Row {kind:Kind::StringMember,name:"scalar state string result",before:"import {signal} from 'std:ui';function main(){const label=signal('text');".into(),typed:"label.get().",after:"length;}",includes:&["length","split","trim"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::ArrayMember,name:"generic alias defaults",before:"type Values<T=string>=T[];function main(){const values:Values=['text'];".into(),typed:"values.",after:"length;}",includes:&["length","map","join"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
 
  Row {kind:Kind::Temporal,name:"temporal imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseTime","formatTime","compareTimes","parseISO","formatISO","now","startOfSecond","fromUnixMilliseconds","toUnixMilliseconds","fromUnixSeconds","toUnixSeconds","compareInstants","durationFromNanoseconds","durationFromMilliseconds","durationFromSeconds","durationToNanoseconds","durationToMilliseconds","addDurations","subtractDurations","addDuration","difference","parseTimeZone","fixedOffset","zoneName","offsetSeconds","localDate","localTime","resolveDateTime"],excludes:&["setHours"],silent:None,needs_check:false},
- Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth"],excludes:&["parse","round"],silent:None,needs_check:false},
+ Row {kind:Kind::Date,name:"calendar imports",before:"import { ".into(),typed:"",after:" } from 'std:date';function main(){}",includes:&["parseDate","formatDate","format","addDays","addMonths","differenceInCalendarDays","compareAsc","isLeapYear","getYear","getMonth","getDate","startOfMonth","endOfMonth","getDay","startOfYear","endOfYear","getHours","getMinutes","getSeconds","getNanoseconds"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Cache,name:"cache imports",before:"import { ".into(),typed:"",after:" } from 'std:cache';function main(){}",includes:&["LruCache","CacheEntry","CacheInsertError"],excludes:&["__create"],silent:None,needs_check:false},
  Row {kind:Kind::Cache,name:"cache methods",before:"import {LruCache} from 'std:cache';function probe(cache:LruCache<int,string>){".into(),typed:"cache.",after:"clear();}function main(){}",includes:&["get","peek","set","remove","size","clear"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache entry",before:"import {CacheEntry} from 'std:cache';function probe(entry:ReadOnly<CacheEntry<int,string>>){".into(),typed:"entry.",after:"key;}function main(){}",includes:&["key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Cache,name:"cache insertion error",before:"import {CacheInsertError} from 'std:cache';function probe(error:ReadOnly<CacheInsertError<int,string>>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","key","value"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
- Row {kind:Kind::Crypto,name:"crypto imports",before:"import { ".into(),typed:"",after:" } from 'std:crypto';function main(){}",includes:&["randomBytes","sha256","timingSafeEqual"],excludes:&["md5"],silent:None,needs_check:false},
- Row {kind:Kind::Ui,name:"UI disclosure attributes",before:"import {Button,signal} from 'std:ui';function main(){const open=signal(false);const node=<Button ".into(),typed:"aria-",after:"expanded={open.get()}/>;}",includes:&["aria-expanded","aria-controls"],excludes:&["aria-lable","ownState"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI instance ID imports",before:"import { ".into(),typed:"useI",after:"d } from 'std:ui';function main(){}",includes:&["useId"],excludes:&["useEffect","handle"],silent:None,needs_check:false},
- Row {kind:Kind::Ui,name:"UI live metadata attributes",before:"import {Input,signal} from 'std:ui';function main(){const changed=signal(false);const node=<Input ".into(),typed:"aria-",after:"invalid={changed.get()?true:undefined}/>;}",includes:&["aria-label","aria-hidden","aria-describedby","aria-invalid"],excludes:&["aria-lable","ownState"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI live metadata forwarding",before:"import {Button,ButtonProps,Node} from 'std:ui';interface Props extends ButtonProps{}function Action(props:Props):Node{return <Button {...props}/>;}function main(){const node=<Action ".into(),typed:"data-",after:"size=\"sm\"/>;}",includes:&["data-size","data-slot","data-variant"],excludes:&["data-unknown","ownState"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI lazy children imports",before:"import { ".into(),typed:"Lazy",after:" } from 'std:ui';function main(){}",includes:&["LazyChildren"],excludes:&["LazyText","ownState"],silent:None,needs_check:false},
- Row {kind:Kind::Ui,name:"UI lazy children attributes",before:"import {View,Node,LazyChildren} from 'std:ui';interface Base<T>{children?:T;}interface Props extends Base<LazyChildren>{id?:string;}function Panel(props:Props):Node{const render=props.children;return <View children={render===undefined?[]:render()}/>;}function main(){const node=<Panel ".into(),typed:"chi",after:"ldren={()=>[<View/>]}/>;}",includes:&["children"],excludes:&["handle","onClick"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI lazy children props",before:"import {View,Node,LazyChildren} from 'std:ui';interface Props{children?:LazyChildren;id?:string;}function Panel(props:Props):Node{".into(),typed:"props.",after:"children;return <View/>;}function main(){const node=<Panel><View/></Panel>;}",includes:&["children","id"],excludes:&["get","set","handle"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI vector imports",before:"import { ".into(),typed:"Sv",after:" } from 'std:ui';function main(){}",includes:&["Svg", "SvgProps"],excludes:&["Canvas", "SignalSvg"],silent:None,needs_check:false},
- Row {kind:Kind::Ui,name:"UI vector props",before:"import {Svg} from 'std:ui';function main(){const node=<Svg ".into(),typed:"stroke",after:"/>;}",includes:&["stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin", "strokeMiterlimit"],excludes:&["onClick", "stroke-width"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI vector cap",before:"import {Svg} from 'std:ui';function main(){const node=<Svg strokeLinecap=\"".into(),typed:"ro",after:"und\"/>;}",includes:&["round"],excludes:&["butt", "square"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI vector path partial",before:"import {Svg,Path} from 'std:ui';function main(){const node=<Svg><Path d=\"M0 0L24 24\" ".into(),typed:"stro",after:"/></Svg>;}",includes:&["stroke", "strokeWidth", "strokeLinecap", "strokeLinejoin", "strokeMiterlimit"],excludes:&["children", "onClick"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI vector path",before:"import {Svg,Path} from 'std:ui';function main(){const node=<Svg><Path ".into(),typed:"d",after:"=\"M0 0L24 24\"/></Svg>;}",includes:&["d", "data-slot", "data-size", "data-variant"],excludes:&["children", "onClick"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI computed",before:"import {computed} from 'std:ui';function main(){const total=computed<int>(()=>42);".into(),typed:"total.",after:"get();}",includes:&["get"],excludes:&["set","add","handle","clone"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI state",before:"import {signal} from 'std:ui';function main(){const count=signal(0);".into(),typed:"count.",after:";}",includes:&["get","set"],excludes:&["add","handle","clone"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI responsive visibility",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"lg:hidd",after:"en\"/>;}",includes:&["lg:hidden"],excludes:&["lg:hidden-ish","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI Empty tracking",before:"import {Text} from 'std:ui';function main(){const node=<Text className=\"".into(),typed:"tracking-",after:"tight\"/>;}",includes:&["tracking-tight","tracking-normal"],excludes:&["tracking-arbitrary","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI Empty SVG selectors",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"[&_svg]:",after:"size-4\"/>;}",includes:&["[&_svg]:size-4","[&_svg]:pointer-events-none"],excludes:&["[&_svg]:absolute","[&_svg]:font-bold","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI Empty heading tokens",before:"import {ThemeTypography} from 'std:ui';function inspect(typography:ReadOnly<ThemeTypography>){".into(),typed:"typography.",after:"base;}function main(){}",includes:&["base","xl","headingFamily"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI classes",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"bg-",after:"\"/>;}",includes:&["bg-primary","bg-background"],excludes:&["add","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI explicit children",before:"import {View} from 'std:ui';function main(){const node=<View ".into(),typed:"chi",after:"ldren={[]}/>;}",includes:&["children"],excludes:&["handle","onClick"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI condition props",before:"import {Button} from 'std:ui';function main(){const node=<Button ".into(),typed:"dis",after:"/>;}",includes:&["disabled"],excludes:&["handle","onClick"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI semantic attributes",before:"import {View} from 'std:ui';function main(){const node=<View ".into(),typed:"aria-",after:"/>;}",includes:&["aria-label","aria-hidden","aria-orientation"],excludes:&["ariaLabel","handle"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI composed span",before:"import {View} from 'std:ui';function main(){const node=<View as=\"".into(),typed:"sp",after:"\">Ready</View>;}",includes:&["span"],excludes:&["div","section"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI grid tracks",before:"import {View} from 'std:ui';function main(){const node=<View className=\"grid ".into(),typed:"grid-cols-",after:"\"/>;}",includes:&["grid-cols-2","grid-cols-12","grid-cols-[1fr_auto]"],excludes:&["grid-cols-0","grid-cols-13","w-2"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI color opacity",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"hover:bg-primary/",after:"\"/>;}",includes:&["hover:bg-primary/50","hover:bg-primary/100"],excludes:&["hover:bg-primary/101","hover:w-4/50"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI size metadata",before:"import {View} from 'std:ui';function main(){const node=<View ".into(),typed:"data-",after:"/>;}",includes:&["data-size","data-slot","data-variant"],excludes:&["dataSize","data-anything"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI parent positioning",before:"import {View} from 'std:ui';function main(){const node=<View className=\"absolute ".into(),typed:"top-",after:"\"/>;}",includes:&["top-2","top-auto","top-1/2"],excludes:&["top-screen","top-NaN"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI structural states",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"group-data-[size=sm]/panel:hover:bg-",after:"\"/>;}",includes:&["group-data-[size=sm]/panel:hover:bg-primary","group-data-[size=sm]/panel:hover:bg-card"],excludes:&["bg-primary","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI radius fields",before:"import {ThemeRadius} from 'std:ui';function read(radius:ReadOnly<ThemeRadius>){".into(),typed:"radius.",after:"xl;}function main(){}",includes:&["sm","md","lg","xl"],excludes:&["get","onPress","XL"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI card typography",before:"import {View} from 'std:ui';function main(){const node=<View className=\"".into(),typed:"font-",after:"\"/>;}",includes:&["font-medium","font-semibold","font-serif","font-mono"],excludes:&["font-unknown","function"],silent:None,needs_check:true},
- Row {kind:Kind::Ui,name:"UI imports",before:"import { ".into(),typed:"",after:" } from 'std:ui';function main(){}",includes:&["signal","Text","Button","withTheme","Child"],excludes:&["add","handle","SignalHandle","ownState","SignalText"],silent:None,needs_check:false},
+ Row {kind:Kind::Logging,name:"logging imports",before:"import { ".into(),typed:"",after:" } from 'std:log';function main(){}",includes:&["Logger","LoggerOptions","LogError","LogLevel","createLogger","debug","info","warn","error","child","flush","close"],excludes:&["emit","enabled","create","__emit"],silent:None,needs_check:false},
+ Row {kind:Kind::Logging,name:"Logger alias members",before:"import {Logger as Subject} from 'std:log';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"flush();}function main(){}",includes:&["debug","info","warn","error","child","flush","close"],excludes:&["dispatch","sink","fields","emit","share"],silent:None,needs_check:true},
+ Row {kind:Kind::Logging,name:"LoggerOptions alias fields",before:"import {LoggerOptions as Subject} from 'std:log';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"sink;}function main(){}",includes:&["sink","path","level"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Crypto,name:"crypto imports",before:"import { ".into(),typed:"",after:" } from 'std:crypto';function main(){}",includes:&["randomBytes","sha256","sha384","sha512","createHasher","Hasher","hmacSha256","verifyHmacSha256","hkdfSha256","randomInt","hashPassword","verifyPassword","verifyPasswordBounded","PasswordHashOptions","PasswordVerifyOptions","CryptoError","timingSafeEqual"],excludes:&["md5","__update","__finalize","__hashPassword","__verifyPassword","__verifyPasswordBounded"],silent:None,needs_check:false},
+ Row {kind:Kind::Crypto,name:"crypto Hasher alias members",before:"import {Hasher as Subject} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(value:Mutable<Subject>,input:ReadOnly<Bytes>){".into(),typed:"value.",after:"update(input);}function main(){}",includes:&["update","finalize"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Crypto,name:"crypto PasswordHashOptions alias members",before:"import {PasswordHashOptions as Subject} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(value:ReadOnly<Subject>,input:ReadOnly<Bytes>){".into(),typed:"value.",after:"memoryKiB;}function main(){}",includes:&["memoryKiB","iterations","parallelism","outputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+ Row {kind:Kind::Crypto,name:"crypto PasswordVerifyOptions alias members",before:"import {PasswordVerifyOptions as Subject} from 'std:crypto';import {Bytes} from 'std:bytes';function inspect(value:ReadOnly<Subject>,input:ReadOnly<Bytes>){".into(),typed:"value.",after:"maxMemoryKiB;}function main(){}",includes:&["maxMemoryKiB","maxIterations","maxParallelism"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Signals,name:"signal imports",before:"import { ".into(),typed:"",after:" } from 'std:signals';function main(){}",includes:&["listen","receive","SignalListener"],excludes:&["kill"],silent:None,needs_check:false},
  Row {kind:Kind::Uuid,name:"uuid imports",before:"import { ".into(),typed:"",after:" } from 'std:uuid';function main(){}",includes:&["parseUuid","formatUuid","fromBytes","toBytes","compare","version","randomUuid"],excludes:&["parse","round"],silent:None,needs_check:false},
  Row {kind:Kind::Decimal,name:"decimal imports",before:"import { ".into(),typed:"",after:" } from 'std:decimal';function main(){}",includes:&["parseDecimal","fromInt","format","formatFixed","add","subtract","multiply","divideExact","compare","toInt","toNumber"],excludes:&["parse","round"],silent:None,needs_check:false},
@@ -191,7 +295,13 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Uuid,name:"uuid opaque",before:"import {Uuid} from 'std:uuid';function probe(value:ReadOnly<Uuid>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque UUID operations use named module functions."),needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal error",before:"import {DecimalError} from 'std:decimal';function probe(error:ReadOnly<DecimalError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
  Row {kind:Kind::Decimal,name:"decimal opaque",before:"import {Decimal} from 'std:decimal';function probe(value:ReadOnly<Decimal>){".into(),typed:"value.",after:";}function main(){}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque decimal operations use named module functions."),needs_check:true},
-        Row {kind:Kind::Numeric,name:"numeric exact module",before:"import { ".into(),typed:"",after:" } from 'std:numeric';function main(){}",includes:&["toInt","toNumber","toFloat32","checkSigned","checkUnsigned","parseInt"],excludes:&["parse","round"],silent:None,needs_check:false},
+        Row {kind:Kind::Iterator,name:"owned Iterator instance",before:"import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]);".into(),typed:"values.",after:"next();}",includes:&["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"],excludes:&["from","_pull"],silent:None,needs_check:true},
+        Row {kind:Kind::IteratorConstructor,name:"owned Iterator constructor",before:"import {Iterator} from 'std:iterator';function main(){".into(),typed:"Iterator.",after:"from([1,2]);}",includes:&["from"],excludes:&["next","map","_pull"],silent:None,needs_check:true},
+        Row {kind:Kind::OrderedSet,name:"OrderedSet completion",before:"import {OrderedSet} from 'std:collections';function main(){const values=new OrderedSet<string>();".into(),typed:"values.",after:";}",includes:&["values","keys","entries","forEach","first","last"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::OrderedMap,name:"OrderedMap completion",before:"import {OrderedMap} from 'std:collections';function main(){const values=new OrderedMap<string,int>();".into(),typed:"values.",after:";}",includes:&["firstKey","lastKey","keys","values"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Deque,name:"Deque completion",before:"import {Deque} from 'std:collections';function main(){const values=new Deque<int[]>();".into(),typed:"values.",after:";}",includes:&["values","front","back"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Heap,name:"Heap completion",before:"import {Heap} from 'std:collections';function main(){const values=new Heap<number>();".into(),typed:"values.",after:";}",includes:&["toSortedArray","peek","pop"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Numeric,name:"numeric exact module",before:"import { ".into(),typed:"",after:" } from 'std:numeric';function main(){}",includes:&["toInt","toNumber","toFloat32","checkSigned","checkUnsigned","parseInt","parseNumber","checkedAdd","checkedSubtract","checkedMultiply","checkedDivide","checkedRemainder"],excludes:&["parse","round"],silent:None,needs_check:false},
         Row {kind:Kind::Numeric,name:"numeric error fields",before:"import {NumericError} from 'std:numeric';function probe(error:ReadOnly<NumericError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::TrackedResource,name:"tracked resource opaque receiver",before:"import {trackedResource} from 'std:testing';function main(){const resource=trackedResource();".into(),typed:"resource.",after:";}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque resources expose borrowed inspection through module functions, not fields."),needs_check:true},
         Row {kind:Kind::Task,name:"lazy task scheduling",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&["start","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -206,8 +316,10 @@ fn rows() -> Vec<Row> {
         Row {kind:Kind::Http,name:"Router inferred nested request",before:"import {Router} from 'std:http';function main(){const app=new Router();app.get('/',ctx=>{".into(),typed:"ctx.req.",after:";return ctx.text('ok');});}",includes:&["query","queries","header","text"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Http,name:"HTTP app routes",before:"import {App} from 'std:http';function main(){const app=new App();".into(),typed:"app.",after:";}",includes:&["get","post","use","listen","fallback","configure"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Job,name:"started job lifecycle",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const job=answer().start();".into(),typed:"job.",after:";await job;}",includes:&["cancel","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
-        Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
-        Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::Interval,name:"interval exclusive tick",before:"import {Interval as Timer} from 'std:futures';async function main():Task<void>{const timer=new Timer(1,'skip');await ".into(),typed:"timer.",after:"tick();}",includes:&["tick"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::CancellationToken,name:"explicit cancellation handles",before:"import {CancellationToken as Token} from 'std:futures';async function main():Task<void>{const parent=new Token();const token=parent.child();".into(),typed:"token.",after:"cancel();}",includes:&["share","child","cancel","isCancelled","cancelled"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncChannel,name:"async channel methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);".into(),typed:"queue.",after:"close();}",includes:&["sender","send","receive","close","trySend","tryReceive"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
+        Row {kind:Kind::AsyncSender,name:"async sender methods",before:"import {Channel} from 'std:futures';async function main():Task<void>{const queue=new Channel<int>(2);const sender=queue.sender();await ".into(),typed:"sender.",after:"send(1);}",includes:&["send","trySend","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportNames,name:"future imports",before:"import { ".into(),typed:"yi",after:" } from 'std:futures';function main(){}",includes:&["yield"],excludes:&["yieldNow"],silent:None,needs_check:false},
         Row {kind:Kind::ImportedMember,name:"Rust binding struct",before:"import {reply} from './api.bindings.json';function main(){const response=reply();".into(),typed:"response.",after:"text.toUpperCase();}",includes:&["text","count"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::ImportedMember,name:"Rust bridge result",before:"import {echo} from './compute.rs';function main(){const message=echo('hello');".into(),typed:"message.",after:"toUpperCase();}",includes:&["length","toUpperCase"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
@@ -467,7 +579,7 @@ fn failures(row: &Row, mode: Mode, labels: &Result<BTreeSet<String>, String>) ->
 #[test]
 fn every_kind_and_std_module_has_a_row() {
     let rows = rows();
-    for kind in KINDS {
+    for &kind in KINDS {
         assert!(rows.iter().any(|row| row.kind == kind), "no completion row for {kind:?}");
     }
     for row in &rows {
@@ -476,7 +588,7 @@ fn every_kind_and_std_module_has_a_row() {
     // Every importable std module needs an import-path expectation. The list
     // comes from the compiler, so a new module cannot land without a row.
     // `std:schema` and `std:testing` have no native binding of their own name.
-    let modules = tsrust_compiler::native_bindings::BINDINGS.iter().map(|binding| binding.module).filter(|module| module.starts_with("std:") && !module.ends_with("-runtime")).chain(["std:schema", "std:testing"]).collect::<BTreeSet<_>>();
+    let modules = tsrust_compiler::native_bindings::BINDINGS.iter().map(|binding| binding.module).filter(|module| module.starts_with("std:") && !module.ends_with("-runtime")).chain(["std:schema", "std:testing", "std:log"]).collect::<BTreeSet<_>>();
     let mut session = Session::start(&FILES);
     let before = "import { x } from '";
     let text = format!("{before}std:';\nfunction main() {{}}\n");
@@ -494,7 +606,7 @@ fn completion_answers_at_typing_speed() {
     let mut lines = Vec::new();
     let mut failed = Vec::new();
     for row in rows() {
-        if only.as_ref().is_some_and(|only| !row.name.contains(only.as_str())) {
+        if only.as_ref().is_some_and(|only| !only.split(',').any(|wanted| !wanted.is_empty() && row.name.contains(wanted))) {
             continue;
         }
         let settled = observe(&row, Mode::Settled);
@@ -502,7 +614,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if matches!(mode, Mode::Immediate | Mode::Paced) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression|Kind::Crypto|Kind::Logging|Kind::Http) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);
@@ -512,9 +624,9 @@ fn completion_answers_at_typing_speed() {
             }
         }
     }
+    assert!(!lines.is_empty(), "No completion rows matched the selected filter");
     if let Some(path) = report {
         std::fs::write(path, lines.join("\n") + "\n").unwrap();
-        return;
     }
     assert!(failed.is_empty(), "{} completion failures:\n{}", failed.len(), failed.join("\n"));
 }

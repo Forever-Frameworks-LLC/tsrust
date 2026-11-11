@@ -89,7 +89,7 @@ fn native(source: &str, expected: &str) {
             vec![
                 "rustup".into(),
                 "run".into(),
-                "1.96.1".into(),
+                "1.99.1".into(),
                 "rustc".into(),
                 "--edition=2024".into(),
                 "-C".into(),
@@ -196,7 +196,7 @@ function main(){console.log(total(),total(undefined,1,2,3));}"#;
         ("Item[]", "Item[]"),
         ("int[][]", "int[][]"),
         ("Box<int>[]", "Box<int>[]"),
-        ("((input:int)=>int)[]", "Function<int, [input: int]>[]"),
+        ("((input:int)=>int)[]", "((input:int)=>int)[]"),
     ] {
         let source = format!(
             "type Item={{id:int;}};type Box<T>={{value:T;}};function size(...values:{array}):int{{return values.length;}}function main(){{console.log(size());}}"
@@ -209,7 +209,7 @@ function main(){console.log(total(),total(undefined,1,2,3));}"#;
             .as_str()
             .unwrap();
         assert!(
-            // Declaration help keeps the source spelling; hover shows the canonical one.
+            // Explicit callback annotations keep their declared spelling in both views.
             label.contains("...values:") && (label.contains(element) || label.contains(array)),
             "{array}: {help}"
         );

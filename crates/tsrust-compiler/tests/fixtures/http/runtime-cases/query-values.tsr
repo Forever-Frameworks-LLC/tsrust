@@ -1,0 +1,54 @@
+import { request } from 'std:http';
+import { strictEqual } from 'std:testing';
+
+export async function main(): Task<void> {
+  const input = request('POST', 'http://localhost/?tag=a+b&tag=c&bare&empty=&utf=%C3%A9&bad=%FF%20ok%2G&eq=a=b&%61=first&a=second&plus=%2B&=ignored', 'body');
+  const tags = input.queries('tag');
+  if (tags === undefined) {
+    throw 'missing tags';
+  }
+
+  strictEqual(tags.join(','), 'a b,c');
+  tags[0] = 'changed';
+  const first = input.query('tag');
+  if (first === undefined) {
+    throw 'missing tag';
+  }
+
+  strictEqual(first, 'a b');
+  const bare = input.query('bare');
+  if (bare === undefined) {
+    throw 'missing bare';
+  }
+
+  strictEqual(bare, '');
+  const utf = input.query('utf');
+  if (utf === undefined) {
+    throw 'missing utf';
+  }
+
+  strictEqual(utf, 'é');
+  const bad = input.query('bad');
+  if (bad === undefined) {
+    throw 'missing bad';
+  }
+
+  strictEqual(bad, '%FF%20ok%2G');
+  const encoded = input.query('a');
+  if (encoded === undefined) {
+    throw 'missing encoded key';
+  }
+
+  strictEqual(encoded, 'first');
+  const plus = input.query('plus');
+  if (plus === undefined) {
+    throw 'missing plus';
+  }
+
+  strictEqual(plus, '+');
+  strictEqual(input.query('') === undefined, true);
+  strictEqual(input.query('Tag') === undefined, true);
+  strictEqual(input.query('missing') === undefined, true);
+  strictEqual(input.queries('missing') === undefined, true);
+  strictEqual(await input.text(), 'body');
+}

@@ -1,0 +1,1 @@
+function workload(n:number,seed:number):number{let checksum=seed;let i=0;while(i<n){const a=BigInt(seed+i+10);const three=3n;const values=[a+three,a-three,a*three,a/three,a%three];for(const value of values){if(value< -9223372036854775808n||value>9223372036854775807n){throw 'range';}}checksum+=Number(values[0]+values[1]+values[2]+values[3]+values[4]);i++;}return checksum;}

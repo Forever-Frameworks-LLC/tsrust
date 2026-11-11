@@ -63,6 +63,29 @@ pub(crate) fn family_slots(
     closures: &[CheckedClosure],
     span: crate::Span,
 ) -> Result<Option<Family>,crate::Diagnostic> {
+    family_slots_with_ownership(contract,signatures,origins,closures,span,false)
+}
+
+/// Finite owned pull environments retain their concrete origins without borrowing.
+/// Ownership is certified independently before sharing the scoped family ABI.
+pub(crate) fn owned_family_slots(
+    contract:&crate::analysis::CallbackContract,
+    signatures:&crate::callable_contracts::Contracts,
+    origins:impl IntoIterator<Item=usize>,
+    closures:&[CheckedClosure],
+    span:crate::Span,
+)->Result<Option<Family>,crate::Diagnostic>{
+    family_slots_with_ownership(contract,signatures,origins,closures,span,true)
+}
+
+fn family_slots_with_ownership(
+    contract:&crate::analysis::CallbackContract,
+    signatures:&crate::callable_contracts::Contracts,
+    origins:impl IntoIterator<Item=usize>,
+    closures:&[CheckedClosure],
+    span:crate::Span,
+    fully_owned:bool,
+)->Result<Option<Family>,crate::Diagnostic>{
     let Some(storage)=crate::callable_storage::StorageContract::checked(signatures,contract.structural) else {return Ok(None);};
     let invocation=storage.invocation(signatures);
     let mut origins=origins.into_iter().collect::<Vec<_>>();
@@ -81,6 +104,7 @@ pub(crate) fn family_slots(
             let actual=&closure.function.bindings[binding];
             if actual.input_ty.unwrap_or(actual.ty)!=expected.ty || actual.mode!=expected.mode {return Ok(None);}
         }
+        if fully_owned { storage.environment(signatures,closure,span)?; }
         let slots=match carried_slots(closure) {
             Some(slots)=>{carries_view=true;slots},
             None if !closure.borrowed && closure.lifetime_count==0=>Vec::new(),
@@ -88,7 +112,7 @@ pub(crate) fn family_slots(
         };
         alternatives.push(Alternative{origin,slots});
     }
-    Ok(carries_view.then_some(Family{signature:contract.structural,invocation,alternatives}))
+    Ok((carries_view || fully_owned && !alternatives.is_empty()).then_some(Family{signature:contract.structural,invocation,alternatives}))
 }
 
 /// Check backend eligibility before exposing a scoped family to code generation.

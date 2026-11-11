@@ -29,7 +29,34 @@ impl Analyzer {
             return Ok((output.unwrap(),self.unions.intern(errors,span)?));
         }
         if !self.is_task_type(ty){return Err(Diagnostic::new("future-input","Expected a lazy Task or a started Job.",span));}
+        if self.has_pending_result(ty){return Err(Self::pending_result(span));}
         let (_,output)=self.checked_generic_callable_shape(ty).ok_or_else(||Self::pending_result(span))?;
+        // A known specialization may still be queued when its enclosing task is scheduled.
+        let mut pending=match ty {
+            Type::Closure(id)=>vec![id],
+            Type::StoredCallable(id)=>self.callables.storage.origins(id).map_or_else(Vec::new,|origins|origins.to_vec()),
+            _=>Vec::new(),
+        };
+        // Error contracts require full bodies even during callable-result discovery.
+        let discovering=self.discovering_results;let effects_only=self.effects_only;
+        if discovering {self.discovering_results=false;self.effects_only=false;}
+        let prepared=(|| {
+            let mut seen=HashSet::new();
+            while let Some(id)=pending.pop(){if !seen.insert(id){continue;}
+                let closure=&self.closures[id];
+                let forward=closure.forward;
+                let bodies=std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))
+                    .map(|function|(function.body.clone(),function.result)).collect::<Vec<_>>();
+                if let Some(ClosureForward::Once(inner))=forward{pending.push(inner);}
+                if let Some(ClosureForward::Function(origin))=forward {
+                    self.prepare_selected_task_function(origin,span,discovering)?;
+                }
+                for (body,result) in bodies{self.check_pending_region_functions(&body,result,discovering)?;}
+            }
+            Ok::<(),Diagnostic>(())
+        })();
+        self.discovering_results=discovering;self.effects_only=effects_only;
+        prepared?;
         let effects=self.discovery_error_effects();
         let failures=match ty {
             Type::Closure(id)=>effects.closure_errors[id].clone(),
@@ -51,6 +78,11 @@ impl Analyzer {
                     if closure.program_scoped || !closure.program_captures.is_empty(){return Err(Diagnostic::new("task-transfer","Started tasks must own their inputs and cannot borrow program state.",span));}
                     for capture in &closure.captures {let ty=closure.function.bindings[capture.inner].ty;if capture.storage!=Mode::Consume && !(capture.storage==Mode::Copy && ty.is_copy()){return Err(Diagnostic::new("task-transfer","Started tasks cannot retain caller loans. Move owned inputs into the async function.",span));}pending.push(ty);}
                 },
+                Type::Closure(id)=>{
+                    let closure=&self.closures[id];
+                    if closure.program_scoped || !closure.program_captures.is_empty(){return Err(Diagnostic::new("task-transfer","Started worker tasks cannot borrow program state.",span));}
+                    thread_transfer::require_owned_captures(closure,&self.program.records,&|id|self.unions.members(id)).map_err(|_|Diagnostic::new("task-transfer","Started worker tasks must own their callback captures.",span))?;
+                },
                 Type::Array(element)=>pending.push(element.ty()),
                 Type::Union(id)=>pending.extend(self.unions.members(id)),
                 Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::Job)=>{},
@@ -62,13 +94,39 @@ impl Analyzer {
     pub(super) fn future_channel_constructor(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::NativeConstructor(args,Some(annotation))=&mut expression.kind else{return Ok(None);};
         let ty=self.resolve_value_annotation(annotation,false)?;
-        let Type::Record(id)=ty else{return Ok(None);};if self.program.records[id].native_type!=Some(NativeTypeId::AsyncChannel){return Ok(None);}
-        if args.len()!=1{return Err(Diagnostic::new("arity","new Channel<T> requires capacity: int (1..1000000).",expression.span));}
+        let Type::Record(id)=ty else{return Ok(None);};
+        if matches!(self.program.records[id].native_type,Some(NativeTypeId::Interval|NativeTypeId::CancellationToken)) {
+            let interval=self.program.records[id].native_type==Some(NativeTypeId::Interval);
+            if (interval && !(1..=2).contains(&args.len())) || (!interval && !args.is_empty()){return Err(Diagnostic::new("arity",if interval{"new Interval requires periodMs and optional missedTickBehavior."}else{"new CancellationToken takes no arguments."},expression.span));}
+            if interval {
+                self.expression(context,&mut args[0],Mode::Read,loans,Some(Type::Int))?;
+                if args.len()==2 {
+                    let behavior=crate::native_binding_types::resolve_signature(&self.program.records,&surface::MISSED_TICK,&[]).expect("prepared interval policy");
+                    self.expression(context,&mut args[1],Mode::Read,loans,Some(behavior))?;
+                }
+            }
+            self.require(ty,expected,expression.span)?;
+            expression.target=Some(CallTarget::NativeBinding(crate::native_bindings::by_symbol(if interval{"@native:std:futures#__interval"}else{"@native:std:futures#__token"}).unwrap().0));return Ok(Some(ty));
+        }
+        if self.program.records[id].native_type!=Some(NativeTypeId::AsyncChannel){return Ok(None);}
+        if args.len()!=1{return Err(Diagnostic::new("arity","new Channel<T> requires capacity: int (positive, within the target semaphore limit).",expression.span));}
         let payload=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         thread_transfer::require_channel_payload(payload,&self.program.records,&|id|self.unions.members(id)).map_err(|_|Diagnostic::new("channel-transfer","Channel messages must be owned transferable data without endpoints or jobs.",expression.span))?;
         self.expression(context,&mut args[0],Mode::Read,loans,Some(Type::Int))?;
         self.require(ty,expected,expression.span)?;
         expression.target=Some(CallTarget::NativeBinding(crate::native_bindings::by_symbol("@native:std:futures#__channel").unwrap().0));Ok(Some(ty))
+    }
+    /// Publish only the concrete type needed by a nested endpoint receiver.
+    /// Generic preparation does not evaluate or lower the sender operation.
+    pub(super) fn prepare_future_sender_hint(&mut self,context:&Context,expression:&Expr)->Result<(),Diagnostic>{
+        let ExprKind::Call(callee,args)=&expression.kind else{return Ok(());};
+        let ExprKind::Field(base,member)=&callee.kind else{return Ok(());};
+        if member!="sender" || !args.is_empty(){return Ok(());}
+        let Some(Type::Record(channel))=self.expression_type_hint(context,base)else{return Ok(());};
+        if self.program.records[channel].native_type!=Some(NativeTypeId::AsyncChannel){return Ok(());}
+        let payload=self.program.records[channel].application.as_ref().expect("checked channel application").resolved_arguments[0];
+        self.thread_application(NativeTypeId::AsyncSender,&[payload],expression.span)?;
+        Ok(())
     }
     pub(super) fn future_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expression.kind else{return Ok(None);};
@@ -77,15 +135,40 @@ impl Analyzer {
             let identity=hint.and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
             let operation=match (identity,member.as_str()) {
                 (_,"start") if hint.is_none_or(|ty|self.is_task_type(ty) || self.job_parameters(ty).is_some())=>Some("__start"),(_,"timeout") if hint.is_none_or(|ty|self.is_task_type(ty) || self.job_parameters(ty).is_some())=>Some("__timeout"),
+                (Some(NativeTypeId::Interval),"tick")=>Some("__tick"),
+                (Some(NativeTypeId::CancellationToken),"share")=>Some("__tokenShare"),
+                (Some(NativeTypeId::CancellationToken),"child")=>Some("__tokenChild"),
+                (Some(NativeTypeId::CancellationToken),"cancel")=>Some("__tokenCancel"),
+                (Some(NativeTypeId::CancellationToken),"isCancelled")=>Some("__tokenIsCancelled"),
+                (Some(NativeTypeId::CancellationToken),"cancelled")=>Some("__tokenCancelled"),
                 (Some(NativeTypeId::Job),"cancel")=>Some("__cancel"),
                 (Some(NativeTypeId::AsyncChannel),"sender")=>Some("__sender"),
                 (Some(NativeTypeId::AsyncChannel),"receive")=>Some("__receive"),
-                (Some(NativeTypeId::AsyncChannel),"close")=>Some("__close"),
+                (Some(NativeTypeId::AsyncChannel),"tryReceive")=>Some("__tryReceive"),
+                (Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender),"trySend")=>Some("__trySend"),
+                (Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender),"close")=>Some("__close"),
                 (Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender),"send")=>Some("__send"),_=>None,
             };
             if let Some(name)=operation {
                 args.insert(0,(**base).clone());
-                if matches!(name,"__timeout"|"__send"|"__receive") {let args=std::mem::take(args);surface::lazy(expression,name,args);return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);}
+                if matches!(name,"__timeout"|"__send"|"__receive"|"__tick"|"__tokenCancelled") {
+                    // A send's payload context comes from its checked endpoint,
+                    // not the intrinsic's ObservedValue signature. Preserve it
+                    // where lazy lowering evaluates an owned record temporary.
+                    let payload_context=if name=="__send"&&args.get(1).is_some_and(|arg|matches!(arg.kind,ExprKind::Record(_))){
+                        let Some(Type::Record(endpoint))=hint else{unreachable!("checked channel endpoint")};
+                        let payload=self.program.records[endpoint].application.as_ref().expect("checked channel application").resolved_arguments[0];
+                        Some(self.checked_value_annotation(payload,args[1].span)?)
+                    }else{None};
+                    let args=std::mem::take(args);surface::lazy(expression,name,args);
+                    if let Some(payload_context)=payload_context{
+                        let ExprKind::Match{id,body}=&mut expression.kind else{unreachable!("lowered lazy send")};
+                        let payload=format!("future#{id}#1");
+                        let annotation=body.iter_mut().find_map(|statement|if let StmtKind::Let{name,annotation,..}=&mut statement.kind{(name.text==payload).then_some(annotation)}else{None}).expect("lowered record payload temporary");
+                        *annotation=Some(payload_context);
+                    }
+                    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
+                }
                 callee.kind=ExprKind::Name(format!("@native:std:futures#{name}"));
             }
         }
@@ -93,8 +176,14 @@ impl Analyzer {
         let Some((id,binding))=crate::native_bindings::by_symbol(name).filter(|(_,binding)|binding.module=="std:futures") else{return Ok(None);};
         let span=expression.span;
         if !binding.accepts_arity(args.len()){return Err(Diagnostic::new("arity",format!("{} expects {} arguments including its receiver.",binding.name,binding.parameters.len()),span));}
-        if matches!(binding.name,"__join"|"__timeout"|"__delay"|"__yield"|"__race"|"__allSettled"|"__send"|"__receive") && !context.task_body {return Err(Diagnostic::new("async-context","This operation must run inside an async task.",span));}
+        if matches!(binding.name,"__join"|"__timeout"|"__delay"|"__yield"|"__race"|"__allSettled"|"__all"|"__send"|"__receive"|"__tick"|"__tokenCancelled") && !context.task_body {return Err(Diagnostic::new("async-context","This operation must run inside an async task.",span));}
         let result=match binding.name {
+            "__tick"|"__tokenShare"|"__tokenChild"|"__tokenCancel"|"__tokenIsCancelled"|"__tokenCancelled"=>{
+                let ty=self.expression(context,&mut args[0],if binding.name=="__tick"{Mode::Mutate}else{Mode::Read},loans,None)?;
+                let required=if binding.name=="__tick"{NativeTypeId::Interval}else{NativeTypeId::CancellationToken};
+                if !matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(required)){return Err(Diagnostic::new("future-receiver","Expected the checked timer or cancellation receiver.",span));}
+                match binding.name{"__tokenShare"|"__tokenChild"=>ty,"__tokenIsCancelled"=>Type::Boolean,_=>Type::Void}
+            },
             "__start"=>{
                 if !context.task_body{return Err(Diagnostic::new("async-context","Start jobs inside an async function driven by the runtime.",span));}
                 let ty=self.future_input(context,&mut args[0],loans)?;
@@ -105,26 +194,27 @@ impl Analyzer {
                 self.thread_application(NativeTypeId::Job,&[output,error],span)?
             },
             "__cancel"=>{let ty=self.expression(context,&mut args[0],Mode::Read,loans,None)?;if self.job_parameters(ty).is_none(){return Err(Diagnostic::new("job-cancel","cancel requires a started Job; await it afterward to account for cleanup.",span));}Type::Boolean},
-            "__join"|"__timeout"|"__race"|"__allSettled"=>{
+            "__join"|"__timeout"|"__race"|"__allSettled"|"__all"=>{
                 let (output,error)=if args.is_empty(){(Type::Void,Type::Undefined)}else{
                 let ty=self.future_input(context,&mut args[0],loans)?;
-                let item=if matches!(binding.name,"__race"|"__allSettled") {match ty {Type::Array(item)=>item.ty(),Type::Record(_)=>ty,_=>return Err(Diagnostic::new("future-input","Task groups take an owned array of tasks or jobs.",span))}}else{ty};
+                let item=if matches!(binding.name,"__race"|"__allSettled"|"__all") {match ty {Type::Array(item)=>item.ty(),Type::Record(_)=>ty,_=>return Err(Diagnostic::new("future-input","Task groups take an owned array of tasks or jobs.",span))}}else{ty};
                 self.future_shape(item,span)?};
                 if binding.name=="__timeout" {self.expression(context,&mut args[1],Mode::Read,loans,Some(Type::Int))?;}
                 let failure=self.thread_application(NativeTypeId::AsyncError,&[error],span)?;
+                let output=if binding.name=="__all"{Type::Array(crate::syntax::ArrayElement::from_value_type(output).ok_or_else(||Diagnostic::new("future-result","Unsupported all result element.",span))?)}else{output};
                 let result=self.thread_result(output,failure,span)?;
                 if binding.name=="__allSettled" {Type::Array(crate::syntax::ArrayElement::from_value_type(result).ok_or_else(||Diagnostic::new("future-result","Unsupported settlement result element.",span))?)}else{result}
             },
             "__delay"|"__yield"=>{if !args.is_empty(){self.expression(context,&mut args[0],Mode::Read,loans,Some(Type::Int))?;}let failure=self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?;self.thread_result(Type::Void,failure,span)?},
-            "__sender"|"__close"|"__send"|"__receive"=>{
-                let access=if binding.name=="__close"{Mode::Mutate}else{Mode::Read};
+            "__sender"|"__close"|"__send"|"__receive"|"__trySend"|"__tryReceive"=>{
+                let access=if matches!(binding.name,"__close"|"__tryReceive"){Mode::Mutate}else{Mode::Read};
                 let ty=self.expression(context,&mut args[0],access,loans,None)?;
                 let Type::Record(record)=ty else{return Err(Diagnostic::new("channel-receiver","Expected an async channel endpoint.",span));};
                 if !matches!(self.program.records[record].native_type,Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender)){return Err(Diagnostic::new("channel-receiver","Expected an async channel endpoint.",span));}
                 let payload=self.program.records[record].application.as_ref().unwrap().resolved_arguments[0];
                 if binding.name=="__sender"{self.thread_application(NativeTypeId::AsyncSender,&[payload],span)?}else if binding.name=="__close"{Type::Void}else{
-                    if binding.name=="__send"{let mut active=loans.clone();for root in Self::loan_roots(&args[0],access){active.entry(root).or_default().push((access,args[0].span));}let actual=self.expression(context,&mut args[1],Mode::Consume,&active,Some(payload))?;self.require(actual,Some(payload),args[1].span)?;}
-                    let failure=self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?;self.thread_result(if binding.name=="__receive"{payload}else{Type::Void},failure,span)?
+                    if matches!(binding.name,"__send"|"__trySend"){let mut active=loans.clone();for root in Self::loan_roots(&args[0],access){active.entry(root).or_default().push((access,args[0].span));}let actual=self.expression(context,&mut args[1],Mode::Consume,&active,Some(payload))?;self.require(actual,Some(payload),args[1].span)?;}
+                    let failure=match binding.name {"__send"|"__trySend"=>self.thread_application(NativeTypeId::SendError,&[payload],span)?,"__tryReceive"=>Type::Record(self.schema_native_dependency(NativeTypeId::ChannelError,span)?),_=>self.thread_application(NativeTypeId::AsyncError,&[Type::Undefined],span)?};self.thread_result(if matches!(binding.name,"__receive"|"__tryReceive"){payload}else{Type::Void},failure,span)?
                 }
             },
             _=>return Err(Diagnostic::new("future-call","Call this future operation directly.",span)),
@@ -141,7 +231,7 @@ pub(super) fn validate(program:&CheckedProgram)->Result<(),Diagnostic>{
         for expression in crate::error_effects::checked_expressions(function){
             let Some(CallTarget::NativeBinding(id))=expression.target else{continue;};
             let binding=&crate::native_bindings::BINDINGS[id];
-            if binding.module!="std:futures" || !matches!(binding.name,"__start"|"__timeout"|"__race"|"__allSettled"){continue;}
+            if binding.module!="std:futures" || !matches!(binding.name,"__start"|"__timeout"|"__race"|"__allSettled"|"__all"){continue;}
             let ExprKind::Call(_,args)=&expression.kind else{continue;};let Some(input)=args.first()else{continue;};
             let result=expression.ty.unwrap();
             let expected=if binding.name=="__start"{
@@ -191,5 +281,40 @@ mod tests {
   assert!(validate(&program).is_ok());
   for id in affected {program.error_effects.closure_errors[id].explicit.push(Type::Undefined);}
   assert_eq!(validate(&program).unwrap_err().code,"future-errors");
+ }
+ #[test]
+ fn async_owned_once_callback_capture_observes_without_releasing_ownership(){
+  let source="async function invoke<T>(action:Once<Function<Task<T>>>):Task<T>{return await action();}async function main():Task<void>{const values=[1,2];const count=await invoke(async()=>{const owned=values;return owned.length;});console.log(count);}";
+  drop(crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source))).emit_rust());
+  let borrowed="async function invoke(action:ReadOnly<Function<Task<int>>>):Task<int>{return await action();}function main(){}";
+  assert_eq!(crate::check(borrowed).err().expect("a lazy task cannot own a borrowed callback input").code,"callback-escape");
+ }
+
+
+}
+
+#[cfg(test)]
+mod copied_task_capture_tests {
+ use super::*;
+ #[test]
+ fn consuming_task_scalar_writes_use_owned_copy_metadata(){
+  let source="async function main():Task<void>{let value=1;const factory=async()=>{value=7;return value;};console.log(value);console.log(await factory());console.log(value);}";
+  let checked=crate::check(source).unwrap();
+  let mut writes=0;
+  for &origin in &checked.program.task_origins {
+   let closure=&checked.program.closures[origin];
+   for capture in &closure.captures {
+    if capture.storage==Mode::Copy && capture.access==Mode::Mutate {
+     writes+=1;
+     let binding=&closure.function.bindings[capture.inner];
+     assert_eq!(closure.invocation,Mode::Consume);
+     assert_eq!(binding.mode,Mode::Copy);
+     assert!(!binding.capture_reference,"private copied task fields are not references");
+     assert!(binding.mutable);
+    }
+   }
+  }
+  assert!(writes>0,"the witness exercises a mutated scalar capture");
+  drop(checked.emit_rust());
  }
 }

@@ -1,0 +1,3 @@
+declare const Buffer:{byteLength(value:string,encoding:string):number};
+function segmentRanges(value:Intl.Segmenter,text:string):{start:number;end:number}[]{let start=0;return Array.from(value.segment(text),part=>{const end=start+Buffer.byteLength(part.segment,'utf8');const range={start,end};start=end;return range;});}
+function workload(n:number,seed:number,input:string):number{let checksum=seed;let i=0;while(i<n){const value=new Intl.Segmenter('und',{granularity:'grapheme'});const ranges=segmentRanges(value,input);for(const range of ranges){checksum+=range.start+range.end+1;}i++;}return checksum;}

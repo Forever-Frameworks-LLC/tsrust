@@ -1,0 +1,52 @@
+import { strictEqual } from 'std:testing';
+import { Bytes, ByteView, alloc, view, length, at } from 'std:bytes';
+
+type First = {
+  read: Once<Function<ByteView>>;
+  next?: Second;
+};
+
+type Second = {
+  read: Once<Function<ByteView>>;
+  next?: First;
+};
+
+function bytes(value: int): Bytes {
+  return unwrap(alloc(2, value));
+}
+
+function read(owner: ReadOnly<Bytes>): ByteView {
+  return unwrap(view(owner, 0, 2));
+}
+
+function first(value: ByteView): First {
+  return {
+    read: () => value
+  };
+}
+
+function second(value: ByteView): Second {
+  return {
+    read: () => value
+  };
+}
+
+// Both members own callbacks; omitted links require one finite empty component.
+export function run() {
+  const left = bytes(3);
+  const right = bytes(7);
+  const root = first(read(left));
+  root.next = second(read(right));
+  const child = root.next!;
+  child.next = first(read(left));
+  const rootValue = root.read();
+  const childValue = child.read();
+  strictEqual(length(rootValue), 2);
+  strictEqual(unwrap(at(rootValue, 0)), 3);
+  strictEqual(length(childValue), 2);
+  strictEqual(unwrap(at(childValue, 0)), 7);
+  const grandchild = child.next!;
+  const grandchildValue = grandchild.read();
+  strictEqual(length(grandchildValue), 2);
+  strictEqual(unwrap(at(grandchildValue, 0)), 3);
+}

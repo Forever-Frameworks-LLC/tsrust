@@ -1,0 +1,17 @@
+import { ThreadPool, join } from 'std:threads';
+
+// Source-only transfer control for the existing bridge, not taskAsync.
+// Owning the public pool argument removes caller loans but still crosses the
+// native ThreadPool transfer boundary. Never execute this blocking control.
+async function owned(pool: ThreadPool): Task<int> {
+  return unwrap(join(unwrap(pool.task((): int => 7))));
+}
+
+async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  // @tsrust ignore - Intentional task-transfer negative: strict emit must reject public pool transfer.
+  const job = owned(pool).start();
+  console.log(await job);
+}

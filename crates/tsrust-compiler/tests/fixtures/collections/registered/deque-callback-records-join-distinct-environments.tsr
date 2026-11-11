@@ -1,0 +1,32 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+type Reader = {
+  read: ReadOnly<Function<int>>;
+};
+
+export function main() {
+  const text = 'one';
+  const other = 'seven';
+  const values = new Deque<Reader>();
+  values.pushBack({
+    read: () => text.length
+  });
+  values.pushBack({
+    read: () => other.length
+  });
+  let sum = 0;
+  for (const item of values) {
+    sum += item.read();
+  }
+
+  strictEqual(sum, 8);
+  const first = values.popFront()!;
+  const last = values.popBack()!;
+  strictEqual(first.read(), 3);
+  strictEqual(last.read(), 5);
+  values.pushBack({
+    read: () => text.length + other.length
+  });
+  strictEqual(values.popFront()!.read(), 8);
+}

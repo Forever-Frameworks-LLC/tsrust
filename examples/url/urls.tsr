@@ -1,0 +1,20 @@
+import { parseUrl, resolveUrl, searchParams, setSearchParams, formatQuery, encodeURIComponent, decodeURIComponent } from 'std:url';
+
+function main() {
+  const base = unwrap(parseUrl('https://EXAMPLE.com:443/reports/'));
+  const target = unwrap(resolveUrl(base, '../search?tag=one&tag=two'));
+  console.log(target.href);
+  console.log(target.pathname.length);
+
+  const query = searchParams(target);
+  query.append('page', '1');
+  console.log(formatQuery(query));
+  setSearchParams(target, query);
+  query.set('tag', 'changed');
+  console.log(target.search);
+
+  target.pathname = '/new';
+  console.log(target.pathname);
+  console.log(encodeURIComponent('é +'));
+  console.log(unwrap(decodeURIComponent('%C3%A9%20%2B')));
+}

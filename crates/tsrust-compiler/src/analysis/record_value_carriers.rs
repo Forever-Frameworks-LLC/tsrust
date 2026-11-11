@@ -12,15 +12,24 @@ impl Analyzer {
                 pending:Option<usize>,
             },
             Wrapper(Type,Span),
+            Inject(Type,Span),
         }
         let mut work=vec![Task::Value(value)];
         let mut result=Type::Void;
         while let Some(task)=work.pop(){
             match task {
+                Task::Inject(checked,span)=>{
+                    if let (Type::Record(actual),Some(Type::Record(expected)))=(result,self.unions.payload(checked))
+                        && self.scoped_records.declaration(actual)==self.scoped_records.declaration(expected) {
+                        let members=self.unions.members(checked.union().unwrap()).into_iter().map(|ty|if matches!(ty,Type::Record(_)){result}else{ty}).collect::<Vec<_>>();
+                        result=self.unions.intern(members,span)?;
+                    }else{result=checked;}
+                }
                 Task::Wrapper(checked,span)=>{
                     if result==checked{continue;}
                     result=if let(Type::Record(a),Type::Record(b))=(result,checked){
                         self.join_record_types(a,b,span)?.unwrap_or(checked)
+                    }else if let Some(joined)=self.join_nullable_record_unions(result,checked,span)?{joined
                     }else if let Some(family)=self.common_borrowed_conditional_family(result,checked,span)?{
                         Type::BorrowedCallable(family)
                     }else{checked};
@@ -43,19 +52,22 @@ impl Analyzer {
                     // An expression of an unchecked generic body has no storage to plan.
                     let Some(checked)=value.ty else{result=Type::Void;continue;};
                     result=checked;
-                    if !matches!(checked,Type::Map(_) | Type::Record(_) | Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)){continue;}
+                    if !matches!(checked,Type::Map(_) | Type::Record(_) | Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)) && !matches!(self.unions.payload(checked),Some(Type::Record(_))){continue;}
                     if let(Some(binding),Some((_,path)))=(Self::root_binding(value),Self::direct_fields(value)){
                         let binding_info=&context.bindings[binding];
                         if !binding_info.parameter && !binding_info.capture_reference && let Some(ty)=self.record_field_type(*plans.get(&binding).unwrap_or(&binding_info.ty),&path) && (matches!((checked,ty),(Type::Record(_),Type::Record(_)) | (Type::Map(_),Type::Map(_))) || matches!((checked,ty),(Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_),Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_)))){result=ty;continue;}
                     }
                     match &value.kind{
+                        ExprKind::Inject{value:inner,..} if matches!(self.unions.payload(checked),Some(Type::Record(_)))=>{
+                            work.push(Task::Inject(checked,value.span));work.push(Task::Value(inner));
+                        }
                         ExprKind::Record(values)=>{
                             let Type::Record(record)=checked else{continue;};
                             let fields=self.program.records[record].fields.iter().map(|field|field.ty.unwrap()).collect();
                             work.push(Task::Record{record,checked,fields,remaining:values.iter(),pending:None});
                         }
                         ExprKind::Sequence(values)=>work.push(Task::Value(values.last().expect("nonempty sequence"))),
-                        ExprKind::Unary{op:UnaryOp::RecordCarrier | UnaryOp::CallableStore,value:inner,..} if matches!(checked,Type::Record(_) | Type::BorrowedCallable(_))=>{
+                        ExprKind::Unary{op:UnaryOp::RecordCarrier | UnaryOp::CallableStore,value:inner,..} if matches!(checked,Type::Record(_) | Type::BorrowedCallable(_)) || matches!(self.unions.payload(checked),Some(Type::Record(_)))=>{
                             work.push(Task::Wrapper(checked,value.span));
                             work.push(Task::Value(inner));
                         }
@@ -115,5 +127,21 @@ mod tests {
         let mut last=Expr::new(ExprKind::Null,Span::default());last.ty=Some(Type::Int);
         let mut sequence=Expr::new(ExprKind::Sequence(vec![unchecked,last]),Span::default());sequence.ty=Some(Type::Record(0));
         assert_eq!(analyzer.record_value_carrier_type(&context,&sequence,&HashMap::new()).unwrap(),Type::Int);
+    }
+}
+
+#[cfg(test)]
+mod nullable_injection_tests {
+    use super::*;
+    #[test]
+    fn injected_record_physical_carrier_is_not_hidden_by_checked_union(){
+        let mut analyzer=Analyzer::new(crate::syntax::parse("type Item={value:int;};function main(){}").unwrap()).unwrap();
+        let live=analyzer.scoped_records.materialize(0,vec![Type::Boolean],&mut analyzer.program.records);
+        let span=Span::default();let checked=analyzer.unions.intern([Type::Record(0),Type::Undefined,Type::Null],span).unwrap();
+        let mut payload=Expr::new(ExprKind::Name("physical".into()),span);payload.ty=Some(Type::Record(live));
+        let mut value=Expr::new(ExprKind::Inject{value:Box::new(payload),union:checked.union().unwrap()},span);value.ty=Some(checked);
+        let result=analyzer.record_value_carrier_type(&Context::new("probe".into()),&value,&HashMap::new()).unwrap();
+        let actual=analyzer.unions.members(result.union().unwrap());assert_eq!(actual.len(),3);for ty in [Type::Record(live),Type::Null,Type::Undefined]{assert!(actual.contains(&ty));}
+        assert_eq!(value.ty,Some(checked),"query must not publish a new checked expression");
     }
 }

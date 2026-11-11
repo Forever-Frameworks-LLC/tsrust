@@ -46,6 +46,7 @@ pub(super) fn resolve(root: &crate::type_syntax::ValueAnnotation, allow_void: bo
                                 "string" => Some(ArrayElement::String(depth)),
                                 "null" => Some(ArrayElement::Null(depth)),
                                 "undefined" => Some(ArrayElement::Undefined(depth)),
+                                "void" => Some(ArrayElement::Void(depth)),
                                 _ => names.get(&name.text).copied().and_then(|id| ArrayElement::from_value_type(unions.named_type(id))).map(|leaf| leaf.with_depth(depth)),
                             };
                             results.push(Type::Array(element.ok_or_else(|| array_error(value.span))?));
@@ -73,7 +74,7 @@ fn leaf(
             let literal=crate::literal_types::LiteralValue::checked(value,annotation.span)?;
             record_names.get(&literal.key()).map(|&id|Type::Literal(id,literal.kind())).ok_or_else(||Diagnostic::new("literal-type","Literal type identity has not been materialized.",annotation.span))
         },
-        Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
+        Kind::NativeCallable { origin } | Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
         Kind::Group(_) | Kind::Union(_) | Kind::Array(_) => unreachable!("scheduled data annotation"),
         Kind::Tuple(_) => Err(Diagnostic::new("type", "Tuple annotation has not been materialized.", annotation.span)),
         Kind::Applied { .. } => Err(Diagnostic::new(

@@ -1,0 +1,8 @@
+import { WebSocketText } from "std:http";
+
+export function main() {
+  const value: WebSocketText = {
+    kind: 'text', data: 'hello'
+  };
+  console.log(value.kind);
+}

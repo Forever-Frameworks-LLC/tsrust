@@ -93,6 +93,7 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    pub array_capabilities: Vec<(SourceLocation, crate::ArrayCapabilities)>,
     pub record_fields: Vec<(ProjectType, String, SourceLocation, ProjectType, bool)>,
     /// Program-owned declarations, with source identity preserved across imports.
     pub module_values: Vec<ProjectExpressionTypeInfo>,
@@ -233,6 +234,7 @@ impl ProjectAnalysis {
             }
         }
         ProjectCheckedTypeFacts {
+            array_capabilities: facts.array_capabilities.into_iter().filter_map(|(span, capability)| Some((self.source_location(span)?, capability))).collect(),
             record_fields,
             module_values,
             enum_scalars,

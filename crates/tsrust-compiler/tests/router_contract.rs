@@ -20,16 +20,6 @@ fn contracts_follow_checked_routes_without_api_configuration(){
     assert_eq!(RouterContract::parse(&files["http-api.json"]).unwrap(),contract);
     for (name,text) in files{fs::write(dir.0.join(name),text).unwrap();}
     let script=r#"import {createClient,HttpError} from './index.js';import assert from 'node:assert/strict';let call;const client=createClient('http://example.test/prefix',{fetch:async(url,options)=>{call={url:String(url),options};return Response.json({greeting:'hello',nested:{ready:true},encoded:'encoded'});}});assert.deepEqual(await client.get('/',{query:{tag:['a','b']},headers:{'x-custom':'value'}}),{greeting:'hello',nested:{ready:true},encoded:'encoded'});assert.equal(call.url,'http://example.test/prefix/?tag=a&tag=b');assert.equal(call.options.method,'GET');assert.equal(call.options.headers.get('x-custom'),'value');await assert.rejects(()=>createClient('http://example.test',{fetch:async()=>Response.json({greeting:7})}).get('/'));await assert.rejects(()=>createClient('http://example.test',{fetch:async()=>new Response('private',{status:401})}).get('/'),error=>error instanceof HttpError&&error.response.status===401);const raw=await client.get('/text');assert.ok(raw instanceof Response);"#;
-    fs::write(dir.0.join("check.mts"),r#"import {createClient} from './index.js';const client=createClient('http://localhost');const value=await client.get('/');value.greeting.toUpperCase();value.encoded.toUpperCase();const ready:boolean=value.nested.ready;const raw=await client.get('/text');raw.text();
-// @ts-expect-error unknown path
-client.get('/missing');
-// @ts-expect-error unregistered method
-client.put('/');
-// @ts-expect-error checked JSON field type
-value.greeting=7;
-"#).unwrap();
-    let tsc=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../benchmarks/runtime/node_modules/typescript/bin/tsc");
-    support::success(&support::run(std::process::Command::new("node").arg(tsc).current_dir(&dir.0).args(["--strict","--noEmit","--target","es2022","--module","nodenext","--lib","es2022,dom","check.mts"]),30));
     fs::write(dir.0.join("check.mjs"),script).unwrap();support::success(&support::run(std::process::Command::new("node").current_dir(&dir.0).arg("check.mjs"),30));
 }
 

@@ -3,7 +3,7 @@ use super::*;
 use crate::analysis::generic_call_work::{Arguments, Prepared, call};
 use std::rc::Rc;
 struct Pass { frame: Arguments, contexts: Vec<Option<Type>>, next: usize, progress: bool, deferred: Option<Diagnostic> }
-enum Phase { Start, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, Done }
+enum Phase { Start, Receiver, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, ClosureHint { pass: Pass, index: usize, key: Option<(usize, usize)>, context: ContextId, discovering: bool, effects: bool }, Done }
 pub(super) struct GenericTask { expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>, phase: Phase }
 impl GenericTask {
     pub(super) fn new(expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>) -> Self {
@@ -26,20 +26,53 @@ fn prepared<'a>(analyzer: &mut Analyzer, task: &mut GenericTask, value: Prepared
             task.phase = Phase::Function { restore_name };
             if !ready? { return Ok(Some(Task::Function(Box::new(functions::FunctionTask::new(index))))); }
         }
-        Prepared::Arguments(frame) => {
-            let contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &frame)?;
+        Prepared::Arguments(mut frame) => {
+            let contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &mut frame)?;
             task.phase = Phase::Pass(Pass { frame, contexts, next: 0, progress: false, deferred: None });
         }
     }
     Ok(None)
 }
-pub(super) fn step<'a>(analyzer: &mut Analyzer, mut task: Box<GenericTask>, mut completion: Option<Completion<'a>>) -> Step<'a> {
+// Probe only independently typed or already solved inputs; unknown inputs never
+// become guessed void parameters. Real argument checking retains all effects.
+fn closure_hint_key(analyzer: &mut Analyzer, expression: &mut Expr, index: usize, inputs:Option<&[(Type,Option<crate::type_syntax::ParameterAccess>)]>) -> Option<(usize, usize)> {
+    let ExprKind::Call(callee, args) = &mut call(expression).kind else { return None; };
+    let ExprKind::Closure { params, result: ResultAnnotation::Inferred(_), .. } = &args[index].kind else { return None; };
+    for (position,parameter) in params.iter().enumerate() {
+        match &parameter.ty {
+            ParameterAnnotation::Named(annotation) => { analyzer.resolve_value_annotation(annotation, false).ok()?; }
+            ParameterAnnotation::Callback(annotation) => { analyzer.resolve_callback(annotation).ok()?; }
+            ParameterAnnotation::Inferred(_) => {let ty=inputs?.get(position)?.0;if ty==Type::Void || analyzer.has_pending_result(ty){return None;}},
+        }
+    }
+    let (name, _) = Analyzer::generic_call_name(callee)?;
+    let (_, pattern, _) = analyzer.generic_functions.template(name)?.params.get(index)?;
+    crate::callable_annotations::ownership(pattern)?;
+    Some((pattern.span.start, pattern.span.end))
+}
+pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: Box<GenericTask>, mut completion: Option<Completion<'a>>) -> Step<'a> {
     let action = (|| -> Result<Option<Task<'a>>, Diagnostic> {
         loop {
             match std::mem::replace(&mut task.phase, Phase::Start) {
                 Phase::Start => {
+                    // Prepare inner source factories before recognizing an outer
+                    // iterator method. This pass publishes types, not operand effects.
+                    if matches!(&call(&mut task.expression).kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,name) if crate::stdlib::iterator::METHODS.contains(&name.as_str()) && matches!(base.kind,ExprKind::Call(..)))) {
+                        let receiver=Analyzer::call_preparation_receiver(call(&mut task.expression));
+                        let span=receiver.span;
+                        let value=Box::new(std::mem::replace(receiver,Expr::new(ExprKind::Undefined,span)));
+                        task.phase=Phase::Receiver;
+                        return Ok(Some(Task::Generic(Box::new(GenericTask::new(value,task.context.clone(),None)))));
+                    }
                     let value = analyzer.start_generic_preparation(&task.context, &mut task.expression, task.expected)?;
                     if let Some(child) = prepared(analyzer, &mut task, value)? { return Ok(Some(child)); }
+                }
+                Phase::Receiver => {
+                    let Completion::Generic(value,result)=completion.take().expect("iterator receiver preparation") else{unreachable!()};
+                    *Analyzer::call_preparation_receiver(call(&mut task.expression))=*value;
+                    result?;
+                    let value=analyzer.start_generic_preparation(&task.context,&mut task.expression,task.expected)?;
+                    if let Some(child)=prepared(analyzer,&mut task,value)?{return Ok(Some(child));}
                 }
                 Phase::Spread => {
                     let Completion::Generic(prototype, result) = completion.take().expect("spread generic prototype") else { unreachable!() };
@@ -67,10 +100,55 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, mut task: Box<GenericTask>, mut 
                     let ExprKind::Call(_, args) = &mut call(&mut task.expression).kind else { unreachable!() };
                     args[index] = *value;
                     match result {
-                        Ok(()) => { pass.frame.prepared[index] = true; pass.progress = true; }
-                        Err(error) if error.code == "generic-inference" => { if pass.deferred.is_none() { pass.deferred = Some(error); } }
+                        Ok(()) => {
+                            let key=closure_hint_key(analyzer,&mut task.expression,index,pass.frame.parameter_hints[index].as_deref());
+                            let ExprKind::Call(_,args)=&call(&mut task.expression).kind else{unreachable!()};
+                            let array=matches!(args[index].kind,ExprKind::Array(_)) && !pass.frame.value_hints.contains_key(&index)
+                                && analyzer.generic_argument_hint(&task.context,&args[index],pass.contexts[index]).is_none();
+                            if key.is_some_and(|key|!pass.frame.inline_shapes.contains_key(&key)) || array {
+                                let mut value=Box::new(args[index].clone());
+                                if let ExprKind::Closure{params,..}=&mut value.kind {
+                                    for(position,parameter)in params.iter_mut().enumerate(){
+                                        if matches!(parameter.ty,ParameterAnnotation::Inferred(_)) {
+                                            let (ty,access)=&pass.frame.parameter_hints[index].as_ref().expect("resolved probe inputs")[position];
+                                            parameter.ty=ParameterAnnotation::Named(Box::new(analyzer.checked_value_annotation(*ty,parameter.name.span)?));
+                                            parameter.access=access.as_ref().map(|access|crate::syntax::Token{kind:crate::syntax::TokenKind::Name,text:access.mode.as_str().into(),span:access.span});
+                                        }
+                                    }
+                                }
+                                let context=contexts.push(Box::new((*task.context).clone()));
+                                let discovering=analyzer.discovering_results;let effects=analyzer.effects_only;
+                                analyzer.discovering_results=true;analyzer.effects_only=true;
+                                let child=Task::Expression(ExpressionTask::new(Expression::Child(value),context,Mode::Consume,ActiveLoans::Shared(Rc::new(Loans::new())),pass.contexts[index]));
+                                task.phase=Phase::ClosureHint{pass,index,key,context,discovering,effects};
+                                return Ok(Some(child));
+                            }
+                            pass.frame.prepared[index] = true; pass.progress = true;
+                        }
+                        // A context-free empty array may gain T from a sibling that
+                        // is itself a generic call; retry it after that sibling is prepared.
+                        Err(error) if error.code == "generic-inference" || error.code == "array-type" && pass.contexts[index].is_none() => { if pass.deferred.is_none() { pass.deferred = Some(error); } }
                         Err(error) => return Err(error),
                     }
+                    task.phase = Phase::Pass(pass);
+                }
+                Phase::ClosureHint { mut pass, index, key, context, discovering, effects } => {
+                    // Discovery publishes only reusable shapes. Real argument checking
+                    // still owns creation effects, capture loans and validated bodies.
+                    drop(contexts.take(context));
+                    analyzer.discovering_results = discovering;
+                    analyzer.effects_only = effects;
+                    let Completion::Expression(value, result) = completion.take().expect("closure shape discovery") else { unreachable!() };
+                    let span = value.into_child().span;
+                    let actual = result?;
+                    if analyzer.has_pending_result(actual) { return Err(Analyzer::pending_result(span)); }
+                    if let Some(key)=key {
+                        let shape=analyzer.checked_generic_callable_shape(actual).ok_or_else(||Analyzer::pending_result(span))?;
+                        pass.frame.inline_shapes.insert(key,shape);
+                    }else{pass.frame.value_hints.insert(index,actual);}
+                    pass.frame.prepared[index] = true;
+                    pass.progress = true;
+                    pass.contexts=analyzer.generic_preparation_contexts(&task.context,&mut task.expression,task.expected,&mut pass.frame)?;
                     task.phase = Phase::Pass(pass);
                 }
                 Phase::Pass(mut pass) => {
@@ -85,11 +163,11 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, mut task: Box<GenericTask>, mut 
                         return Ok(Some(child));
                     }
                     if pass.frame.prepared.iter().all(|value| *value) {
-                        let value = analyzer.finish_generic_preparation(&task.context, &mut task.expression, task.expected, &pass.frame)?;
+                        let value = analyzer.finish_generic_preparation(&task.context, &mut task.expression, task.expected, &mut pass.frame)?;
                         if let Some(child) = prepared(analyzer, &mut task, value)? { return Ok(Some(child)); }
                     } else {
                         if !pass.progress { return Err(pass.deferred.expect("unprepared generic argument")); }
-                        pass.contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &pass.frame)?;
+                        pass.contexts = analyzer.generic_preparation_contexts(&task.context, &mut task.expression, task.expected, &mut pass.frame)?;
                         pass.next = 0; pass.progress = false; pass.deferred = None;
                         task.phase = Phase::Pass(pass);
                     }
@@ -118,6 +196,16 @@ mod tests {
         assert!(checked.program.closures.len() > count);
         drop(checked.emit_rust());
         drop(checked);
+    }
+    #[test]
+    fn empty_array_generic_arguments_take_context_from_generic_siblings() {
+        let prefix = "function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}";
+        for body in ["const selected=first(identity([]),identity([7]));console.log(selected.length);", "const selected=first(identity([7]),identity([]));console.log(selected.length);"] {
+            let source = crate::format(&format!("{prefix}function main(){{{body}}}")).unwrap();
+            drop(crate::check(&source).unwrap().emit_rust());
+        }
+        let source = crate::format(&format!("{prefix}function main(){{const selected=first(identity([]),identity([]));}}")).unwrap();
+        assert_eq!(crate::check(&source).err().expect("no sibling supplies T").code, "array-type");
     }
     #[test]
     fn generic_argument_preparation_restores_failed_nested_call_names() {
@@ -184,4 +272,98 @@ mod entry_tests {
             assert_eq!(&source[error.span.start..error.span.end],"missing","{kind}: {error:?}");
         }
     }
+}
+
+#[cfg(test)]
+mod closure_hint_tests {
+    use super::*;
+    #[test]
+    fn inferred_async_closure_results_constrain_generic_task_payloads() {
+        let source = "function invoke<T>(action:Once<Function<Task<T>>>):Task<T>{return action();}async function main():Task<void>{const number:int=await invoke(async()=>{return 7;});const text:string=await invoke(async()=>{return 'ready';});await invoke(async()=>{});console.log(number,text);}";
+        let checked = crate::check(source).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",source)));
+        drop(checked.emit_rust());
+        let wrong = source.replace("const number:int", "const number:string");
+        let error = crate::check(&wrong).err().expect("the inferred payload remains int");
+        assert_ne!(error.code,"generic-inference");
+    }
+    #[test]
+    fn failed_array_shape_discovery_restores_phase_flags_and_source() {
+        let source=crate::format("function keep<T>(values:Owned<T[]>):T[]{return values;}function main(){keep([missing]);identity(7);}function identity<T>(value:T):T{return value;}").unwrap();
+        let mut program=crate::syntax::parse(&source).unwrap();
+        let StmtKind::Expr(value)=program.functions[1].body.remove(0).into_kind() else{panic!("array call")};
+        let StmtKind::Expr(valid)=program.functions[1].body.remove(0).into_kind() else{panic!("valid call")};
+        let mut analyzer=Analyzer::new(program).unwrap();
+        for(discovering,effects)in[(false,false),(true,true)]{
+            analyzer.discovering_results=discovering;analyzer.effects_only=effects;
+            let mut probe=value.clone();let error=analyzer.prepare_generic_call(&Context::new("main".into()),&mut probe,None).expect_err("bad array element");
+            assert_eq!(&source[error.span.start..error.span.end],"missing");
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+            let ExprKind::Call(_,arguments)=&probe.kind else{panic!("restored call")};assert!(matches!(arguments[0].kind,ExprKind::Array(_)));
+            let mut next=valid.clone();analyzer.prepare_generic_call(&Context::new("main".into()),&mut next,None).unwrap();
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+        }
+    }
+    #[test]
+    fn failed_closure_shape_discovery_restores_phase_flags_and_source() {
+        let source = crate::format("function invoke<T>(action:Once<Function<Task<T>>>):Task<T>{return action();}function main(){invoke(async()=>{return missing;});identity(7);}function identity<T>(value:T):T{return value;}").unwrap();
+        let mut program = crate::syntax::parse(&source).unwrap();
+        let StmtKind::Expr(value) = program.functions[1].body.remove(0).into_kind() else {panic!("call")};
+        let StmtKind::Expr(valid) = program.functions[1].body.remove(0).into_kind() else {panic!("valid call")};
+        let mut analyzer = Analyzer::new(program).unwrap();
+        for (discovering,effects) in [(false,false),(true,true)] {
+            analyzer.discovering_results=discovering;
+            analyzer.effects_only=effects;
+            let mut probe=value.clone();
+            let error=analyzer.prepare_generic_call(&Context::new("main".into()),&mut probe,None).expect_err("invalid inferred body");
+            assert_eq!(&source[error.span.start..error.span.end],"missing");
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+            let ExprKind::Call(callee,args)=&probe.kind else{panic!("failed call restored")};
+            assert!(matches!(&callee.kind,ExprKind::Name(name) if name=="invoke"));
+            assert!(args[0].ty.is_none(),"discovery never publishes a checked argument prototype");
+            assert_eq!(format!("{:?}",args[0].kind),format!("{:?}",match &value.kind{ExprKind::Call(_,args)=>&args[0].kind,_=>unreachable!()}));
+            let mut valid=valid.clone();
+            let mut context=Context::new("main".into());
+            analyzer.prepare_generic_call(&context,&mut valid,None).expect("unrelated preparation after failure");
+            assert_eq!(analyzer.expression(&mut context,&mut valid,Mode::Consume,&Loans::new(),Some(Type::Int)).unwrap(),Type::Int);
+            assert_eq!((analyzer.discovering_results,analyzer.effects_only),(discovering,effects));
+        }
+    }
+    #[test]
+    fn inferred_closure_preparation_preserves_real_capture_consumption() {
+        let source="function invoke<T>(action:Once<Function<Task<T>>>):Task<T>{return action();}async function main():Task<void>{const values=[1,2];const count=await invoke(async()=>{const owned=values;return owned.length;});console.log(count,values.length);}";
+        let error=crate::check(source).err().expect("the actual closure still consumes its captured owner");
+        assert_ne!(error.code,"generic-inference");
+        assert_eq!(&source[error.span.start..error.span.end],"values");
+    }
+}
+
+#[cfg(test)]
+mod receiver_failure_tests {
+ use super::*;
+ #[test]
+ fn failed_nested_receiver_preparation_restores_source_before_outer_arity_checks(){
+  for arguments in ["(value:int):int=>value", ""] {
+   let source=crate::format(&format!("function broken<T>(value:T){{return missing;}}function main(){{broken(7).map({arguments});}}")).unwrap();
+   assert_eq!(crate::format(&source).unwrap(),source);
+   let mut program=crate::syntax::parse(&source).unwrap();
+   let StmtKind::Expr(mut expression)=program.functions[1].body.remove(0).into_kind() else{panic!("receiver call")};
+   let original=expression.clone();
+   let mut analyzer=Analyzer::new(program).unwrap();
+   let context=Context::new("main".into());
+   let error=analyzer.prepare_generic_call(&context,&mut expression,None).expect_err("inner factory fails before outer method arity");
+   assert_eq!(&source[error.span.start..error.span.end],"missing");
+   assert_eq!(expression.span,original.span);
+   assert!(expression.target.is_none(),"preparation never publishes an executed call");
+   let ExprKind::Call(callee,args)=&expression.kind else{panic!("outer call restored")};
+   let ExprKind::Field(base,name)=&callee.kind else{panic!("member restored")};
+   assert_eq!(name,"map");
+   let ExprKind::Call(callee,inner_args)=&base.kind else{panic!("inner call restored")};
+   assert!(matches!(&callee.kind,ExprKind::Name(name) if name=="broken"));
+   assert!(matches!(&inner_args[0].kind,ExprKind::Integer(value) if value=="7"));
+   assert!(inner_args[0].ty.is_none());
+   let ExprKind::Call(_,original_args)=&original.kind else{unreachable!()};
+   assert_eq!(format!("{args:?}"),format!("{original_args:?}"),"outer callback syntax and metadata remain untouched");
+   assert!(context.bindings.is_empty());assert!(context.names.is_empty());
+  }
+ }
 }

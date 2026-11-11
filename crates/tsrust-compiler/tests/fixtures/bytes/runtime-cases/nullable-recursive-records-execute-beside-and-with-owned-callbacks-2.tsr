@@ -1,0 +1,18 @@
+import { strictEqual } from 'std:testing';
+
+type Link = {
+  value: int;
+  read: Function<int>;
+  next?: Link;
+};
+
+export function run() {
+  const link: Link = {
+    value: 7, read: (): int => 3, next: {
+      value: 11, read: (): int => 5
+    }
+  };
+  strictEqual(link.read(), 3);
+  const child = link.next!;
+  strictEqual(child.read(), 5);
+}

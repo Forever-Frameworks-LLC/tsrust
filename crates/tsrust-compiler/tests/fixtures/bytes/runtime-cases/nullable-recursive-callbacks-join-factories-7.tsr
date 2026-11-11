@@ -1,0 +1,56 @@
+import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Holder = {
+  read?: Once<Function<ByteView>>;
+  next?: Holder;
+};
+
+function bytes(value: int): Bytes {
+  match (alloc(2, value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function read(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function build(first: ByteView, second: ByteView): Holder {
+  return {
+    read: () => second
+  };
+}
+
+function other(first: ByteView, second: ByteView): Holder {
+  return {
+    read: () => second
+  };
+}
+
+function empty(first: ByteView): Holder {
+  return {};
+}
+
+export function run() {
+  const first = bytes(3);
+  const second = bytes(7);
+  const holder = build(read(first), read(second));
+  holder.next = empty(read(first));
+  const child = holder.next!;
+  strictEqual(child.read === undefined, true);
+  const result = holder.read!();
+  strictEqual(length(result), 2);
+}

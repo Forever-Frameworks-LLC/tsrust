@@ -235,7 +235,7 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn spread_expression(operator: Span, value: Expr) -> Expr {
+    pub(super) fn spread_expression(operator: Span, value: Expr) -> Expr {
         let span = Span::new(operator.start, value.span.end);
         Expr::new(ExprKind::Unary { op: UnaryOp::Spread, operator, value: Box::new(value) }, span)
     }

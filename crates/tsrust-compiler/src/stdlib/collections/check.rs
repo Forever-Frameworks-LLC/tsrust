@@ -35,6 +35,7 @@ impl Analyzer {
     pub(super) fn deque_method_type(&self, id: usize, name: &str, span: Span) -> Result<Type, Diagnostic> {
         match name {
             "pushFront" | "pushBack" | "clear" => Ok(Type::Void),
+            "values"=>ArrayElement::from_value_type(self.program.records[id].native_element().unwrap()).map(Type::Array).ok_or_else(||Diagnostic::new("type","Deque snapshots require array-compatible values.",span)),
             "popFront" | "popBack" | "front" | "back" | "at" => self.unions.intern([self.program.records[id].native_element().unwrap(), Type::Undefined], span),
             _ => Err(Diagnostic::new("deque-member", "Unsupported Deque method.", span)),
         }
@@ -46,11 +47,11 @@ impl Analyzer {
             "pushFront" => DequeMethod::PushFront, "pushBack" => DequeMethod::PushBack,
             "popFront" => DequeMethod::PopFront, "popBack" => DequeMethod::PopBack,
             "front" => DequeMethod::Front, "back" => DequeMethod::Back,
-            "at" => DequeMethod::At, "clear" => DequeMethod::Clear,
+            "at" => DequeMethod::At, "clear" => DequeMethod::Clear,"values"=>DequeMethod::Values,
             _ => return Err(Diagnostic::new("deque-member", "Unsupported Deque method.", callee.span)),
         };
         let push = matches!(method, DequeMethod::PushFront | DequeMethod::PushBack);
-        let read = matches!(method, DequeMethod::Front | DequeMethod::Back | DequeMethod::At);
+        let read = matches!(method, DequeMethod::Front | DequeMethod::Back | DequeMethod::At | DequeMethod::Values);
         Self::arity(arguments.len(), usize::from(push || method == DequeMethod::At), expression.span)?;
         let Type::Record(mut id) = self.expression(context, base, Mode::Read, loans, None)? else { unreachable!() };
         let element = self.program.records[id].native_element().unwrap();
@@ -83,7 +84,8 @@ impl Analyzer {
             self.record_native_element_store(context, base, &arguments[0])?;
         }
         let mut result = self.deque_method_type(id, name, expression.span)?;
-        if read && !result.is_copy() {
+        if method==DequeMethod::Values{self.require_cloneable(element,base.span)?;}
+        if read && method!=DequeMethod::Values && !result.is_copy() {
             if !Self::stable_at_receiver(base) { return Err(Diagnostic::new("borrow", "Borrowed Deque reads require a stored receiver.", base.span)); }
             result = Type::BorrowedUnion(result.union().unwrap());
         }

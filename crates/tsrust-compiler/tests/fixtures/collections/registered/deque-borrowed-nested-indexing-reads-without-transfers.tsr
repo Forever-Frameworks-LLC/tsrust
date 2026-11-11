@@ -1,0 +1,24 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function consume(value: string): string {
+  return value;
+}
+
+function change(values: Mutable<Deque<int[]>>): int {
+  values.clear();
+  return 0;
+}
+
+export function main() {
+  const values = new Deque<int[]>();
+  values.pushBack([4, 5]);
+  strictEqual(values.front()![0], 4);
+  strictEqual(values.back()![1], 5);
+  strictEqual(values.at(0)![0], 4);
+  strictEqual(values.size, 1);
+  const words = new Deque<string[]>();
+  words.pushBack(['word']);
+  strictEqual(words.front()![0].length, 4);
+  strictEqual(words.size, 1);
+}

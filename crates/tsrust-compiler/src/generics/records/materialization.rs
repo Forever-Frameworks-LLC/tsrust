@@ -15,7 +15,7 @@ impl Context<'_> {
                 };
                 self.unions.register_literal_type(id,kind);
             },
-            Kind::Polymorphic { .. } => {},
+            Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if name.text == "Result" {
                     return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));
@@ -63,12 +63,8 @@ impl Context<'_> {
                 let types = arguments
                     .iter().enumerate()
                     .map(|(position, argument)| {
-                        crate::analysis::resolve_value_type(
-                            argument,
-                            position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job))),
-                            &self.names,
-                            self.unions,
-                        )
+                        let allow_void=position == 0 && self.templates.get(&name.text).is_some_and(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Job)));
+                        self.callables.resolver(&self.names,self.unions).resolve_value_annotation(argument,allow_void)
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 let (index, fields) = self.begin_instance(&name.text, arguments, types, value.span)?;

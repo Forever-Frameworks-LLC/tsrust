@@ -1,7 +1,7 @@
 //! Export a standalone, relocatable source package. No registry access or rustc
 //! invocation is needed during export; compilation is the recipient's next step.
 use std::{fs,io,path::Path};
-pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::PathBuf,Vec<u8>)])->io::Result<()> {
+pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
  let dependencies=tsrust_compiler::native_runtime::separate(rust).dependencies;
  if dependencies {
   let packages=crate::rust_binding_packages::packages(rust).map_err(io::Error::other)?;
@@ -23,40 +23,45 @@ pub(crate) fn export(root:&Path,rust:&str,web_only:bool,notices:&[(std::path::Pa
    ("[package]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\nedition = \"2024\"\npublish = false\n\n[workspace]\n".into(),
     "version = 4\n\n[[package]]\nname = \"tsrust-export\"\nversion = \"0.1.0\"\n".into())
   };
-  if rust.contains("mod tsrust_native_threads {") || rust.contains("mod tsr_rust") { manifest = manifest.replace("default = []", "default = [\"threads\"]"); }
-  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = []", "default = [\"http\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"http\"]",
-                );}
-  if rust.contains("mod tsrust_native_futures {") {manifest=manifest.replace("default = []", "default = [\"async\"]").replace("default = [\"threads\"]", "default = [\"threads\", \"async\"]",
-                );
-        }
-  if rust.contains("mod tsrust_native_ui {"){manifest=manifest.replace("default = [", "default = [\"ui\", ");}
-        if rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::") {
-            let feature=if web_only{"ui-web"}else{"ui-native"};manifest = manifest.replace("default = [", &format!("default = [\"{feature}\", "));}
+  if rust.contains("mod tsrust_native_threads {") || rust.contains("use rayon as tsr_rayon;") { manifest = manifest.replace("default = [", "default = [\"threads\", "); }
+  if rust.contains("mod tsrust_native_cancellation {"){manifest=manifest.replace("default = [", "default = [\"cancellation\", ");}
+  if rust.contains("mod tsrust_native_logging {"){manifest=manifest.replace("default = [", "default = [\"logging\", ");}
+  if rust.contains("mod tsrust_native_locale {"){manifest=manifest.replace("default = [", "default = [\"locale\", ");}
+  if rust.contains("mod tsrust_native_compression_streams {"){manifest=manifest.replace("default = [", "default = [\"compression-streams\", ");}
+  if rust.contains("mod tsrust_native_compression {"){manifest=manifest.replace("default = [", "default = [\"compression\", ");}
+  if rust.contains("mod tsrust_native_regex {"){manifest=manifest.replace("default = [", "default = [\"regex\", ");}
+  if rust.contains("mod tsrust_native_url {"){manifest=manifest.replace("default = [", "default = [\"url\", ");}
+  if rust.contains("mod tsrust_native_http {"){manifest=manifest.replace("default = [", "default = [\"http\", ");}
+  if rust.contains("// tsrust-http-websocket-selected\n"){manifest=manifest.replace("default = [", "default = [\"http-websocket\", ");}
+  if rust.contains("// tsrust-http-middleware-selected\n"){manifest=manifest.replace("default = [", "default = [\"http-middleware\", ");}
+  if rust.contains("mod tsrust_native_process {"){manifest=manifest.replace("default = [", "default = [\"process\", ");}
+  if rust.contains("mod tsrust_native_io {"){manifest=manifest.replace("default = [", "default = [\"io\", ");}
+  if rust.contains("mod tsrust_native_futures {"){manifest=manifest.replace("default = [", "default = [\"async\", ");}
+  if tsrust_compiler::native_runtime::requires_byte_codecs(rust){manifest=manifest.replace("default = [", "default = [\"byte-codecs\", ");}
+  if tsrust_compiler::native_runtime::requires_byte_search(rust){manifest=manifest.replace("default = [", "default = [\"byte-search\", ");}
+  if tsrust_compiler::native_runtime::requires_hostname(rust){manifest=manifest.replace("default = [", "default = [\"hostname\", ");}
+  if tsrust_compiler::native_runtime::requires_temporary_files(rust){manifest=manifest.replace("default = [", "default = [\"temporary-files\", ");}
   if rust.contains("mod tsrust_native_files {"){manifest=manifest.replace("default = [", "default = [\"files\", ");}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}
   if rust.contains("mod tsrust_native_crypto {"){manifest=manifest.replace("default = [", "default = [\"crypto\", ");}
+  if rust.contains("mod tsrust_native_crypto_password {"){manifest=manifest.replace("default = [", "default = [\"crypto-password\", ");}
   if rust.contains("mod tsrust_native_signals {"){manifest=manifest.replace("default = [", "default = [\"signals\", ");}
   if rust.contains("mod tsrust_native_uuid {"){manifest=manifest.replace("default = [", "default = [\"uuid\", ");}
   if rust.contains("mod tsrust_native_decimal {"){manifest=manifest.replace("default = [", "default = [\"decimal\", ");}
   if rust.contains("mod tsrust_native_sql {"){manifest=manifest.replace("default = [", "default = [\"sql\", ");}
   if rust.contains("mod tsrust_native_sqlite {"){manifest=manifest.replace("default = [", "default = [\"sqlite\", ");}
   manifest.push_str("\n[[bin]]\nname = \"program\"\npath = \"src/main.rs\"\n");
-  manifest.push_str(crate::runtime_build::profiles(rust.contains("mod tsrust_native_ui {") && rust.contains("use vello::")));
+  manifest.push_str(crate::runtime_build::profiles(false));
   fs::write(root.join("Cargo.toml"),manifest)?;fs::write(root.join("Cargo.lock"),lock)?;
   if !dependencies {fs::write(root.join(".cargo/config.toml"),"[net]\noffline = true\n")?;}
   let config=root.join(".cargo/config.toml");
   let mut settings=fs::read_to_string(&config)?;settings.push_str(&crate::runtime_build::exported_linker_config());fs::write(config,settings)?;
   fs::write(root.join("src/main.rs"),rust)?;
-  for (path,bytes) in notices {
-   tsrust_compiler::ui_project::safe_relative(path).map_err(io::Error::other)?;
-   if !path.starts_with("attributions"){return Err(io::Error::other("Attribution must be under attributions/"));}
-   let path=root.join(path);fs::create_dir_all(path.parent().unwrap())?;fs::write(path,bytes)?;
-  }
   fs::write(root.join("rust-toolchain.toml"),format!("[toolchain]\nchannel = {:?}\nprofile = \"minimal\"\n",tsrust_compiler::RUST_BACKEND_VERSION))?;
   let prerequisites=serde_json::json!({"schemaVersion":1,"compilerVersion":env!("CARGO_PKG_VERSION"),
    "rustToolchain":tsrust_compiler::RUST_BACKEND_VERSION,"dependencySources":if dependencies{"vendor"}else{"none"},
    "exportHost":{"os":std::env::consts::OS,"architecture":std::env::consts::ARCH},
-   "buildTarget":if web_only{Some("wasm32-unknown-unknown")}else{None},
+   "buildTarget":serde_json::Value::Null,
    "buildPrerequisites":{"windows":"Rust MSVC target and matching Visual Studio C++ build tools/Windows SDK",
     "macos":"Rust target and Xcode command-line build tools","linux":"Rust target, system linker and C/C++ build tools for native dependencies"},
    "targetPolicy":"A null buildTarget uses Cargo's selected host target. Cross-compilation requires its target libraries, linker and platform SDK; exportHost does not certify target execution."});

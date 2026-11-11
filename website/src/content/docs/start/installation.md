@@ -19,8 +19,8 @@ it. Releases also contain SHA256SUMS. For example, after downloading the matchin
 archive and checksum file from that official release:
 
 ```sh
-grep 'tsrust-v0.1.1-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
-  tar -xzf tsrust-v0.1.1-aarch64-apple-darwin.tar.gz
+grep 'tsrust-v0.2.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
+  tar -xzf tsrust-v0.2.0-aarch64-apple-darwin.tar.gz
 ```
 
 Substitute the actual version and target. Linux uses `sha256sum --check`; Windows
@@ -67,7 +67,7 @@ for trust, recovery and platform acceptance.
 
 ## Install the native backend
 
-Native build, run, test and dev currently select **Rust 1.96.1 exactly**, through
+Native build, run, test and dev currently select **Rust 1.99.1 exactly**, through
 [Rustup](https://rustup.rs/). A newer default Rust installation does not replace
 that selected toolchain. Setup keeps the pin alongside your other Rust versions
 without changing the global default.

@@ -1,0 +1,26 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+type Row = {
+  text: string;
+};
+
+function mixed(first: ReadOnly<[string, Row]>, second: [string, Row]): string {
+  return first[0] + first[1].text + second[0] + second[1].text;
+}
+
+function read(first: ReadOnly<[string, Row]>, second: ReadOnly<[string, Row]>): string {
+  return first[0] + first[1].text + second[0] + second[1].text;
+}
+
+export function main() {
+  const values = new OrderedMap<string, Row>();
+  values.set('b', {
+    text: '2'
+  });
+  values.set('a', {
+    text: '1'
+  });
+  strictEqual(read(...values), 'a1b2');
+  strictEqual(mixed(...values), 'a1b2');
+}

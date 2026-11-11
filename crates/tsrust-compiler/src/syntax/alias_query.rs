@@ -111,6 +111,7 @@ fn render(root: &ValueAnnotation) -> String {
                         values.push(name.text.clone());
                         continue;
                     }
+                    Kind::NativeCallable { .. } => { values.push("Function".into()); continue; }
                     Kind::Polymorphic { declaration, .. } => {
                         values.push(declaration.text.clone());
                         continue;

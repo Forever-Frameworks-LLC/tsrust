@@ -128,7 +128,8 @@ fn nullable_record_fields_compose_with_scoped_array_storage() {
 #[test]
 fn nullable_callback_records_join_environments_through_control_flow() {
     let holder="type Holder={run:ReadOnly<Function<int>>;};type Box={saved:Holder|undefined;};";
-    let run=|body:&str,expected:&str|{support::execute(&support::format_round_trip(&format!("{holder}{body}")),expected,None);};
+    let mut cases=Vec::new();
+    let mut run=|body:&str,expected:&str|{cases.push((support::format_round_trip(&format!("{holder}{body}")),expected.to_owned()));};
     // Locals: one branch, both branches, loop, exception region and clearing in a branch.
     run("function f(flag:boolean):void{const a=[3];let s:Holder|undefined=undefined;if(flag)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());else console.log(\"none\");}function main():void{f(true);f(false);}","3\nnone\n");
     run("function f(flag:boolean):void{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){s={run:():int=>a[0]};}else{s={run:():int=>b[0]};}if(s!==undefined)console.log(s.run());s=undefined;console.log(s===undefined);}function main():void{f(true);f(false);}","3\ntrue\n4\ntrue\n");
@@ -146,6 +147,9 @@ fn nullable_callback_records_join_environments_through_control_flow() {
     run("function main():void{const a=[3];let box:Box={saved:undefined};let i=0;while(i<2){box={saved:{run:():int=>a[0]}};i+=1;}console.log(box.saved!==undefined?box.saved.run():0);}","3\n");
     // A scope end releases the joined environments.
     run("function main():void{const a=[3];{let s:Holder|undefined=undefined;if(a[0]>1)s={run:():int=>a[0]};if(s!==undefined)console.log(s.run());}a[0]=9;console.log(a[0]);}","3\n9\n");
+    assert_eq!(cases.len(),13);
+    let cases=cases.iter().map(|(source,expected)|(source.as_str(),expected.as_str())).collect::<Vec<_>>();
+    support::execute_batch(&cases,None);
     let disposal=support::format_round_trip(&format!("{holder}function f(flag:boolean):void{{const a=[3];const b=[4];let s:Holder|undefined=undefined;if(flag){{s={{run:():int=>a[0]}};}}else{{s={{run:():int=>b[0]}};}}if(s!==undefined)console.log(s.run());s=undefined;console.log(\"cleared\");}}function main():void{{f(true);f(false);}}"));
     verify_disposal(&disposal,2,"3\ndrop 0\ncleared\n4\ndrop 1\ncleared\n");
 }
@@ -699,7 +703,8 @@ fn nested_iteration_controls_join_only_their_target_storage() {
     let source = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});outer:while(true){while(true){handlers.delete('first');break;}break outer;}console.log(handlers.size);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}";
     support::execute(&support::format_round_trip(source), "1\nsecond 5\n", None);
     verify_disposal(&support::format_round_trip(source), 2, "drop 0\n1\nsecond 5\ndrop 1\n");
-    let escaping = source.replace("handlers.delete('first');break;", "handlers.delete('first');break outer;");
+    // The inner loop now exits only through `break outer`; drop the dead outer break.
+    let escaping = source.replace("handlers.delete('first');break;}break outer;}", "handlers.delete('first');break outer;}}");
     support::execute(&support::format_round_trip(&escaping), "1\nsecond 5\n", None);
     let counted = source.replace("outer:while(true){while(true){", "outer:for(let turn=0;turn<1;turn++){for(const item of [0]){");
     support::execute(&support::format_round_trip(&counted), "1\nsecond 5\n", None);
@@ -707,7 +712,7 @@ fn nested_iteration_controls_join_only_their_target_storage() {
 
 #[test]
 fn ordinary_map_loop_without_backedge_releases_capture_before_return() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}return 0;}function main():void{console.log('result',scenario());}");
+    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}}function main():void{console.log('result',scenario());}");
     support::execute(&source,"result 4\n",None);
     verify_disposal(&source,2,"drop 0\ndrop 1\nresult 4\n");
     let failed=source.replace("return first[0];","throw first[0];").replace("console.log('result', scenario());","try{console.log('result',scenario());}catch(error){if(typeof error==='number')console.log('error',error);else throw error;}");
@@ -834,13 +839,15 @@ fn labelled_map_cleanup_loop_preserves_survivors_and_control() {
 
 #[test]
 fn map_cleanup_loop_without_backedge_releases_deleted_capture() {
-    let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}return 0;}function main():void{console.log('result',scenario());}");
+    // Bounded variants can finish the loop and need the trailing return; the
+    // infinite base loop must not have it, because it would be unreachable.
+    let template="type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{console.log('cleanup',handlers.size);for(const [key,entry] of handlers){console.log('kept',key,entry.run());}}}TAIL}function main():void{console.log('result',scenario());}";
+    let source=support::format_round_trip(&template.replace("TAIL",""));
     support::execute(&source,"cleanup 1\nkept second 5\nresult 4\n",None);
     verify_disposal(&source,2,"drop 1\ncleanup 1\nkept second 5\ndrop 0\nresult 4\n");
     for replacement in ["for(let step=0;step<3;step+=1){","do{","for(const step of [0,1,2]){"] {
-        let mut variant=source.replace("while (true) {",replacement);
-        assert_ne!(variant,source);
-        if replacement=="do{" {variant=variant.replace("return 0;","while(false);");}
+        let variant=template.replace("while(true){",replacement).replace("TAIL",if replacement=="do{" {"while(false);"} else {"return 0;"});
+        assert_ne!(variant,template);
         support::execute(&support::format_round_trip(&variant),"cleanup 1\nkept second 5\nresult 4\n",None);
     }
     let unsafe_cleanup=source.replace("} finally {","}finally{first[0]+=10;");
@@ -3409,5 +3416,41 @@ function main():void{console.log(handlerCleanupOverrideEntry(3,0),handlerCleanup
         support::success(&support::run(support::rustc().args(["--edition=2024","-A","warnings","-C",&format!("opt-level={level}")]).arg(&path).arg("-o").arg(&binary),60));
         let output=support::run(std::process::Command::new(&binary).args(std::iter::empty::<&str>()),60);
         support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+    }
+}
+
+
+#[test]
+fn indexed_callback_collection_receivers_evaluate_once_and_release_owners(){
+    project(r#"
+        import {strictEqual} from "std:testing";
+        type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};
+        function index(calls:Mutable<int[]>):int{calls[0]+=1;return 0;}
+        function main(){
+            const first=[3];const second=[7];const calls=[0];
+            {
+                const boxes:Box[][]=[[{items:[{run:():int=>first[0]}]}]];
+                boxes[index(calls)][index(calls)].items.push({run:():int=>second[0]});
+                strictEqual(calls[0],2);
+                const removed=boxes[0][0].items.pop();
+                if(removed!==undefined)strictEqual(removed.run(),7);
+                strictEqual(boxes[0][0].items[0].run(),3);
+            }
+            first[0]=11;second[0]=13;strictEqual(first[0]+second[0],24);
+        }
+    "#);
+}
+
+#[test]
+fn indexed_callback_collection_insertion_keeps_actual_native_view_restrictions(){
+    use tsrust_compiler::project::{FileSourceProvider,check_graph,load_project};
+    let prefix="import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';";
+    for body in [
+        "function main(){const bytes=unwrap(fromUtf8('abc'));const boxes:ByteView[][]=[[]];boxes[0].push(unwrap(view(bytes,0,1)));console.log(boxes[0].length);}",
+        "type Holder={run:ReadOnly<Function<int>>;part:ByteView;};type Box={items:Holder[];};function main(){const values=[3];const bytes=unwrap(fromUtf8('abc'));const boxes:Box[]=[{items:[]}];boxes[0].items.push({run:():int=>values[0],part:unwrap(view(bytes,0,1))});console.log(boxes[0].items.length);}",
+        "type Holder={run:ReadOnly<Function<int>>;};type Box={items:Holder[];};function main(){const bytes=unwrap(fromUtf8('abc'));const part=unwrap(view(bytes,0,1));const boxes:Box[]=[{items:[]}];boxes[0].items.push({run:():int=>length(part)});console.log(boxes[0].items.length);}",
+    ]{
+        let directory=support::TempDirectory::new();let source=support::format_round_trip(&format!("{prefix}{body}"));let path=directory.source(&source);
+        let error=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).err().expect("actual payload view keeps strict indexed storage rule");assert_eq!(error.code,"native-view-source","{}",error.message);
     }
 }

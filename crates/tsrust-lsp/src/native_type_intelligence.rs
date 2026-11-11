@@ -1,6 +1,11 @@
 //! Project imported native declarations into editor symbols using shared metadata.
 use super::*;
 
+// Shared borrowed-string observations are a strict subset of owned string methods.
+fn borrowed_string_builtins()->Vec<Value> {
+    builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect()
+}
+
 impl SourceIndex {
     pub(super) fn deque_element<'a>(&self, ty: &'a str) -> Option<&'a str> {
         self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::Deque)
@@ -50,6 +55,29 @@ impl SourceIndex {
         use tsrust_compiler::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,LiteralAnnotation};
         fn all_strings(value:&ValueAnnotation)->bool{match &value.kind{Kind::Literal(LiteralAnnotation::String(_))=>true,Kind::Group(inner)=>all_strings(inner),Kind::Union(members)=>members.iter().all(all_strings),_=>false}}
         tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
+    }
+    pub(super) fn receiver_builtins_at(&self, ty: &str, token: usize) -> Vec<Value> {
+        // Imported constructor values retain their declaration identity even when
+        // checked call inference supplies an instance result at the same token.
+        let ty=self.resolve_token(token).and_then(|id|{
+            let symbol=&self.symbols[id];
+            (symbol.kind==23 && symbol.scope==0 && symbol.owner.is_none()
+                && self.native_type_aliases.get(&symbol.name)==Some(&tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator)).then_some(symbol.ty.as_str())
+        }).unwrap_or(ty);
+        let mut entries = self.receiver_builtins(ty);
+        let Some(token) = self.tokens.get(token) else { return entries; };
+        let capability = self.checked_array_capabilities.iter().filter(|(span, _)| span.start <= token.span.start && span.end == token.span.end).min_by_key(|(span, _)| span.end - span.start).map(|(_, capability)| *capability);
+        if let Some(capability) = capability {
+            entries.retain(|entry| capability.supports(entry["name"].as_str().unwrap_or("")));
+            for entry in &mut entries {
+                if matches!(entry["name"].as_str(), Some("sort" | "toSorted")) {
+                    let (before, after) = if capability.default_sort { ("compare:", "compare?:") } else { ("compare?:", "compare:") };
+                    if let Some(signature) = entry["signature"].as_str() { entry["signature"] = json!(signature.replace(before, after)); }
+                    if let Some(parameters) = entry["parameters"].as_array_mut() { for parameter in parameters { if let Some(label) = parameter.as_str() { *parameter = json!(label.replace(before, after)); } } }
+                }
+            }
+        }
+        entries
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if let Some((input, output, object_policy, json_input, text_input, scalar_constraints)) = self.schema_pipeline_types.get(ty) {
@@ -146,6 +174,9 @@ impl SourceIndex {
             }
             return entries;
         }
+        // Borrowing access changes neither the view's native identity nor its observers.
+        let view=ty.strip_prefix("ReadOnly<").and_then(|inner|inner.strip_suffix('>')).map(str::trim).unwrap_or(ty);
+        if self.native_type_aliases.get(view)==Some(&tsrust_compiler::native_signatures::NativeTypeId::StringView){return borrowed_string_builtins();}
         let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
         let identity=self.native_type_aliases.get(base).copied().or_else(|| {
             let (module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
@@ -153,10 +184,19 @@ impl SourceIndex {
         });
         if let Some(identity) = identity {
             let declaration = tsrust_compiler::native_types::declaration(identity);
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator{
+                return if arguments.is_empty(){builtins_for("IteratorConstructor")}else{builtins_for(&format!("Iterator{arguments}"))};
+            }
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::StringView{return borrowed_string_builtins();}
+            if declaration.module=="std:log-runtime"{return builtins_for(declaration.name);}
+            if identity==tsrust_compiler::native_signatures::NativeTypeId::CryptoHasher{return builtins_for("Hasher");}
+
+            if matches!(declaration.module,"std:regex"|"std:locale"|"std:compression"|"std:process"|"std:net") {return builtins_for(declaration.name);}
+            if declaration.module=="std:url" {return if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url{Vec::new()}else{builtins_for(declaration.name)};}
 
             if declaration.module == "std:sql" {return builtins_for(&format!("Sql{}",declaration.name));}
             if declaration.module == "std:sqlite" {return builtins_for(&format!("Sqlite{}",declaration.name));}
-            if matches!(declaration.module,"std:http"|"std:ui-runtime") {
+            if declaration.module=="std:http" {
                 let mut entries=builtins_for(&format!("{}{}",if declaration.module=="std:http"{"Http"}else{"Ui"},declaration.name));
                 let values=tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation|if let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied{arguments,..}=annotation.into_kind(){Some(arguments.into_iter().map(|argument|ty[argument.span.start..argument.span.end].to_owned()).collect::<Vec<_>>())}else{None}).unwrap_or_default();
                 let substitutions=declaration.type_parameters.iter().enumerate().map(|(index,name)|(*name,values.get(index).map(String::as_str).unwrap_or("null"))).collect::<Vec<_>>();
@@ -167,10 +207,10 @@ impl SourceIndex {
                 return entries;
             }
             if declaration.module == "std:futures" {return builtins_for(&format!("{}{arguments}",match declaration.id {tsrust_compiler::native_signatures::NativeTypeId::AsyncChannel=>"AsyncChannel",tsrust_compiler::native_signatures::NativeTypeId::AsyncSender=>"AsyncSender",_=>declaration.name}));}
-            if matches!(declaration.module,"std:threads"|"std:cache") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
+            if matches!(declaration.module,"std:threads"|"std:cache"|"std:iterator") { return builtins_for(&format!("{}{arguments}", declaration.name)); }
         }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
-        if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
+        if ty=="__tsrust_json_string_read" {return borrowed_string_builtins();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}
         let Some((family,element)) = self.deque_element(ty).map(|element|("Deque",element)).or_else(||self.heap_element(ty).map(|element|("Heap",element))).or_else(||self.ordered_set_element(ty).map(|element|("OrderedSet",element))) else { return builtins_for(ty); };
         let mut entries = builtins_for(family);
@@ -206,7 +246,7 @@ impl SourceIndex {
             self.generic_aliases.get_or_insert_with(Default::default).import_as(catalog,&declaration.name,local,|name|mappings.get(name).cloned().unwrap_or_else(||name.into()));
             if let Some(parameters)=dependency.generic_parameters.get(&declaration.name){self.generic_parameters.insert(local.into(),parameters.clone());}
             let mut symbol=declaration.clone();symbol.name=local.into();symbol.ty=local.into();symbol.signature=symbol.signature.replacen(&format!("type {}",declaration.name),&format!("type {local}"),1);symbol.span=span;symbol.extent=span;
-            if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==declaration.name) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
+            if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtin_entry(module,declaration.name.as_str()) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
             self.foreign_definitions.insert(self.symbols.len(),json!({"uri":uri,"range":dependency.range(declaration.span)}));self.symbols.push(symbol);return true;
         }
         let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };
@@ -239,8 +279,8 @@ impl SourceIndex {
         if matches!(declaration.id,tsrust_compiler::native_signatures::NativeTypeId::HttpApp|tsrust_compiler::native_signatures::NativeTypeId::HttpRouter) { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpServerOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
-        let catalog_module = if declaration.module == "std:testing-runtime" { "std:testing" } else if declaration.module == "std:ui-runtime" { "std:ui" } else { declaration.module };
-        let Some(catalog) = builtins_for(catalog_module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
+        let catalog_module = if declaration.module == "std:log-runtime" { "std:log" } else if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };
+        let Some(catalog) = builtin_entry(catalog_module,declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {
             self.generic_parameters.insert(local.into(), declaration.type_parameters.iter().map(|name| (*name).to_owned()).collect());
@@ -275,6 +315,16 @@ impl SourceIndex {
             if !existing.docs.is_empty() { replacement.docs = format!("{}\n\n{}", existing.docs, replacement.docs); }
             *existing = replacement;
         } else { self.symbols.push(symbol); }
+        if declaration.id==tsrust_compiler::native_signatures::NativeTypeId::Url {
+            for member in tsrust_compiler::native_bindings::url_property_names() {
+                let (getter,setter)=tsrust_compiler::native_bindings::url_property(declaration.id,member).unwrap();
+                let ty=getter.result.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL property signature").into_owned();
+                let write=setter.map(|setter|setter.parameters[1].ty.signature().render(|id|Some(self.native_type_spelling(id).into())).expect("URL write signature").into_owned());
+                let signature=format!("(property) {local}.{member}: {ty}{}",write.map_or_else(||" (read-only)".into(),|input|format!("; assign {input}; throws UrlError")));
+                let docs=builtin_entry("Url",member).and_then(|entry|entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
+                self.symbols.push(Symbol{name:member.into(),kind:8,span,extent:span,scope:0,ty,signature,docs,parameters:Vec::new(),owner:Some(local.into())});
+            }
+        }
         for field in declaration.fields {
             let mut ty = render(&field.signature);
             if field.optional { ty.push_str(" | undefined"); }
@@ -285,7 +335,7 @@ impl SourceIndex {
                 parameters: Vec::new(), owner: Some(local.into()),
             });
         }
-        if matches!(declaration.module,"std:sqlite"|"std:sql") {
+        if matches!(declaration.module,"std:locale"|"std:regex"|"std:sqlite"|"std:sql"|"std:url") {
             let mut identities=Vec::new();
             for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module==declaration.module) {
                 for ty in binding.parameters.iter().map(|parameter|parameter.ty).chain(std::iter::once(binding.result)) {
@@ -309,4 +359,44 @@ impl SourceIndex {
         }
     }
 
+}
+
+#[cfg(test)]
+mod owned_iterator_tests{
+    use super::*;
+    #[test]
+    fn bundled_source_record_imports_keep_native_identity_for_constructor_and_shadowed_instance(){
+        let module=tsrust_compiler::project::SourceId("std:iterator".into());
+        let dependency=SourceIndex::with_entry_help(tsrust_compiler::project::bundled_source(&module).unwrap(),false);
+        assert!(!dependency.native_type_aliases.contains_key("Iterator"),"the authored interface is not a direct native import");
+        let source="import {Iterator as Cursor} from 'std:iterator';function main(){Cursor.from([1]);}function inspect(Cursor:Cursor<int>){Cursor.next();}";
+        let mut index=SourceIndex::with_entry_help(source,false);
+        let import=index.tokens.iter().find(|token|token.text=="Cursor").unwrap().span;
+        assert!(index.import_declaration(&dependency,"Iterator","Cursor",import,"tsrust-stdlib:///std:iterator",&std::collections::BTreeMap::from([("Iterator".into(),"Cursor".into())])));
+        assert_eq!(index.native_type_aliases.get("Cursor"),Some(&tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator));
+        let constructor=index.tokens.iter().enumerate().find_map(|(id,token)|(token.text=="Cursor"&&index.text(id+1)=="."&&index.text(id+2)=="from").then_some(id)).unwrap();
+        let items=index.member_items("Cursor<int>","",Range::default(),"Cursor",constructor);
+        assert_eq!(items.len(),1,"{items:?}");assert_eq!(items[0]["label"],"from");
+        let instance=index.tokens.iter().enumerate().find_map(|(id,token)|(token.text=="Cursor"&&index.text(id+1)=="."&&index.text(id+2)=="next").then_some(id)).unwrap();
+        let items=index.member_items("Cursor<int>","",Range::default(),"Cursor",instance);
+        assert_eq!(items.len(),12,"{items:?}");assert!(items.iter().all(|item|item["label"]!="from"&&item["label"]!="_pull"));
+        let mut user=SourceIndex::with_entry_help(source,false);
+        assert!(user.import_declaration(&dependency,"Iterator","Cursor",import,"file:///user/iterator.tsr",&std::collections::BTreeMap::from([("Iterator".into(),"Cursor".into())])));
+        assert!(!user.native_type_aliases.contains_key("Cursor"),"an ordinary imported record cannot acquire native identity from its spelling");
+    }
+    #[test]
+    fn owned_iterator_catalog_keeps_constructor_and_instance_contracts_distinct(){
+        let constructors=builtins_for("IteratorConstructor");
+        assert_eq!(constructors.len(),1);assert_eq!(constructors[0]["name"],"from");
+        let methods=builtins_for("Iterator<int>");
+        assert_eq!(methods.len(),12);
+        for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{
+            let entry=methods.iter().find(|entry|entry["name"]==name).unwrap();
+            let docs=entry["documentation"].as_str().unwrap();
+            assert!(docs.contains("Ownership:"));assert!(docs.contains("```tsrust"));
+        }
+        assert!(methods.iter().all(|entry|entry["name"]!="from"));
+        let next=methods.iter().find(|entry|entry["name"]=="next").unwrap();
+        assert_eq!(next["signature"],"next(): IteratorResult<int>");
+    }
 }

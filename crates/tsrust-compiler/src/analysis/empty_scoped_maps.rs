@@ -10,6 +10,30 @@ enum EmptyTask {
 }
 
 
+type EmptyKey=(usize,bool);
+#[derive(Default)]
+struct EmptyWalk{
+ indices:HashMap<EmptyKey,usize>,low:HashMap<EmptyKey,usize>,path:Vec<EmptyKey>,stack:Vec<EmptyKey>,active:HashSet<EmptyKey>,
+ plans:HashMap<EmptyKey,Vec<Type>>,resolved:HashMap<EmptyKey,Type>,
+}
+impl EmptyWalk{
+ fn enter(&mut self,key:EmptyKey)->bool{
+  if let Some(&index)=self.indices.get(&key){
+   if self.active.contains(&key)&&let Some(parent)=self.path.last(){let low=self.low.get_mut(parent).unwrap();*low=(*low).min(index);}
+   return false;
+  }
+  let index=self.indices.len();self.indices.insert(key,index);self.low.insert(key,index);self.path.push(key);self.stack.push(key);self.active.insert(key);true
+ }
+ fn finish(&mut self,key:EmptyKey,types:Vec<Type>)->Option<Vec<(EmptyKey,Vec<Type>)>>{
+  self.plans.insert(key,types);assert_eq!(self.path.pop(),Some(key));
+  if let Some(parent)=self.path.last(){let child=self.low[&key];let low=self.low.get_mut(parent).unwrap();*low=(*low).min(child);}
+  if self.low[&key]!=self.indices[&key]{return None;}
+  let mut component=Vec::new();loop{let member=self.stack.pop().unwrap();self.active.remove(&member);component.push((member,self.plans.remove(&member).unwrap()));if member==key{break;}}
+  Some(component)
+ }
+}
+
+
 impl Analyzer {
     pub(super) fn empty_scoped_map_layout(&mut self,ty:Type)->Result<Type,Diagnostic>{
         self.empty_environment_work(EmptyTask::MapLayout(ty))
@@ -18,7 +42,7 @@ impl Analyzer {
         self.empty_environment_work(EmptyTask::Record(id,false))
     }
     fn empty_environment_work(&mut self,root:EmptyTask)->Result<Type,Diagnostic>{
-        let mut work=vec![root];let mut result=Type::Void;
+        let mut work=vec![root];let mut result=Type::Void;let mut walk=EmptyWalk::default();
         while let Some(task)=work.pop(){match task{
             EmptyTask::MapLayout(ty)=>{
                 result=ty;
@@ -27,14 +51,23 @@ impl Analyzer {
                         let payload=self.program.records[id].map_definition.as_ref().unwrap().value;
                         let Type::Record(record)=payload else{continue;};
                         if self.scoped_records.declaration(record)!=record || !self.aggregate_callable_facts(payload).scoped{continue;}
+                        let key=(id,false);
+                        if let Some(&known)=walk.resolved.get(&key){result=known;continue;}
+                        if !walk.enter(key){continue;}
                         work.push(EmptyTask::MapValue(id));work.push(EmptyTask::Record(record,false));
                     }
                     Type::Record(id)=>work.push(EmptyTask::Record(id,true)),
                     _=>{}
                 }
             }
-            EmptyTask::MapValue(id)=>result=Type::Map(self.scoped_map_value_instance(id,result)),
+            EmptyTask::MapValue(id)=>{
+                let key=self.program.records[id].map_definition.as_ref().unwrap().key;
+                result=self.finish_empty_component(&mut walk,(id,false),vec![key,result])?;
+            },
             EmptyTask::Record(id,maps_only)=>{
+                let key=(id,maps_only);
+                if let Some(&known)=walk.resolved.get(&key){result=known;continue;}
+                if !walk.enter(key){result=Type::Record(id);continue;}
                 let fields=self.program.records[id].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
                 work.push(EmptyTask::Fields{id,fields,types:Vec::new(),index:0,maps_only});
             }
@@ -43,12 +76,15 @@ impl Analyzer {
                 if let Some(&field)=fields.get(index){
                     let child=if maps_only{EmptyTask::MapLayout(field)}else{EmptyTask::Field(field,self.program.records[id].name.span)};
                     work.push(EmptyTask::Fields{id,fields,types,index:index+1,maps_only});work.push(child);
-                }else{result=if types==fields{Type::Record(id)}else{self.empty_environment_record(id,types)};}
+                }else{result=self.finish_empty_component(&mut walk,(id,maps_only),types)?;}
             }
             EmptyTask::Field(ty,span)=>{
                 result=ty;
                 match ty{
-                    Type::Callback(id)=>result=self.absent_callback(id),
+                    Type::Callback(id)=>result=if self.absent_callable_type(ty){ty}else{self.absent_callback(id)},
+                    Type::StoredCallable(family)=>{
+                        if let Some(id)=self.callables.storage.declaration(family) && self.callables.callbacks[id].kind.is_owned(){result=self.absent_callback(id);}else{result=ty;}
+                    }
                     Type::Record(id)=>work.push(EmptyTask::Record(id,false)),
                     Type::Union(id)=>work.push(EmptyTask::Union{span,members:self.unions.members(id),types:Vec::new(),index:0}),
                     Type::Map(_)=>work.push(EmptyTask::MapLayout(ty)),
@@ -61,7 +97,10 @@ impl Analyzer {
                     work.push(EmptyTask::Union{span,members,types,index:index+1});
                     // Union members deliberately preserve map and other payloads.
                     match member{
-                        Type::Callback(id)=>result=self.absent_callback(id),
+                        Type::Callback(id)=>result=if self.absent_callable_type(member){member}else{self.absent_callback(id)},
+                        Type::StoredCallable(family)=>{
+                            if let Some(id)=self.callables.storage.declaration(family) && self.callables.callbacks[id].kind.is_owned(){result=self.absent_callback(id);}else{result=member;}
+                        }
                         Type::Record(id)=>work.push(EmptyTask::Record(id,false)),
                         other=>result=other,
                     }
@@ -69,6 +108,34 @@ impl Analyzer {
             }
         }}
         Ok(result)
+    }
+
+    fn finish_empty_component(&mut self,walk:&mut EmptyWalk,key:EmptyKey,types:Vec<Type>)->Result<Type,Diagnostic>{
+        let original=if self.program.records[key.0].map_definition.is_some(){Type::Map(key.0)}else{Type::Record(key.0)};
+        let Some(component)=walk.finish(key,types)else{return Ok(original);};
+        let unchanged=component.iter().all(|((id,_),types)|{
+            if let Some(map)=&self.program.records[*id].map_definition{types.as_slice()==[map.key,map.value]}
+            else{self.program.records[*id].fields.iter().map(|field|field.ty.unwrap()).eq(types.iter().copied())}
+        });
+        if unchanged{for((id,mode),_)in component{let ty=if self.program.records[id].map_definition.is_some(){Type::Map(id)}else{Type::Record(id)};walk.resolved.insert((id,mode),ty);}return Ok(original);}
+        if component.len()==1{
+            let ((id,mode),types)=component.into_iter().next().unwrap();
+            // A self edge still needs identity reservation/remapping below.
+            let recursive=types.iter().any(|ty|self.empty_type_mentions(*ty,id));
+            if !recursive{let ty=if self.program.records[id].map_definition.is_some(){Type::Map(self.scoped_map_value_instance(id,types[1]))}else{self.empty_environment_record(id,types)};walk.resolved.insert((id,mode),ty);return Ok(ty);}
+            return self.finish_empty_recursive_component(walk,key,vec![((id,mode),types)]);
+        }
+        self.finish_empty_recursive_component(walk,key,component)
+    }
+    fn empty_type_mentions(&self,ty:Type,id:usize)->bool{
+        let mut pending=vec![ty];let mut seen=HashSet::new();while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{Type::Record(record)|Type::Map(record) if record==id=>return true,Type::Array(element)=>pending.push(element.with_depth(0).ty()),Type::Union(union)|Type::BorrowedUnion(union)=>pending.extend(self.unions.members(union)),_=>{}}}false
+    }
+    fn finish_empty_recursive_component(&mut self,walk:&mut EmptyWalk,key:EmptyKey,component:Vec<(EmptyKey,Vec<Type>)>)->Result<Type,Diagnostic>{
+        let start=self.program.records.len();let fields=component.iter().map(|((id,_),types)|(*id,types.clone())).collect();
+        let remap=self.scoped_records.materialize_empty_component(fields,&mut self.program.records,&self.unions)?;
+        for id in start..self.program.records.len(){self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());if self.program.records[id].map_definition.is_some(){self.unions.register_map_type(id);}}
+        for((id,mode),_)in component{let mapped=remap[&id];let ty=if self.program.records[mapped].map_definition.is_some(){Type::Map(mapped)}else{Type::Record(mapped)};walk.resolved.insert((id,mode),ty);}
+        Ok(walk.resolved[&key])
     }
 
     #[inline(never)]
@@ -260,4 +327,57 @@ mod absent_result_tests {
         }
         assert_eq!(depth,4096);assert_eq!(current,Type::Int);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn empty_owned_record_fields_use_explicit_absent_callback_identity(){
+ let source=crate::format("type Holder={run:Owned<Function<int>>;};function main(){}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+ let mut analyzer=Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap();let record=analyzer.record_names["Holder"];
+ let source=*analyzer.fields[record].get("run").unwrap();assert!(matches!(source,Type::StoredCallable(_)));
+ let empty=analyzer.empty_scoped_record_environment(record).unwrap();assert_eq!(analyzer.empty_scoped_record_environment(record).unwrap(),empty);
+ let Type::Record(id)=empty else{panic!("empty record carrier")};let field=*analyzer.fields[id].get("run").unwrap();
+ assert_ne!(field,source);assert!(analyzer.absent_callable_type(field));assert!(analyzer.finite_owned_shape(empty));
+ assert_eq!(analyzer.scoped_records.declaration(id),record);
+}
+
+#[cfg(test)]
+mod recursive_empty_environment_tests{
+ use super::*;
+ fn analyzed(source:&str)->Analyzer{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);Analyzer::new(crate::syntax::parse(&source).unwrap()).unwrap()}
+ fn field(analyzer:&Analyzer,id:usize,name:&str)->Type{analyzer.fields[id][name]}
+ #[test]
+ fn self_recursive_empty_record_reuses_finite_absent_layout(){
+  let mut analyzer=analyzed("type Holder={run:Once<Function<int>>;next?:Holder;};function main(){}");let source=analyzer.record_names["Holder"];
+  let original=field(&analyzer,source,"run");let empty=analyzer.empty_scoped_record_environment(source).unwrap();let Type::Record(id)=empty else{panic!("empty holder")};
+  assert!(analyzer.absent_callable_type(field(&analyzer,id,"run")));assert_eq!(analyzer.unions.payload(field(&analyzer,id,"next")),Some(Type::Record(id)));assert_eq!(field(&analyzer,source,"run"),original);
+  let count=analyzer.program.records.len();assert_eq!(analyzer.empty_scoped_record_environment(source).unwrap(),empty);assert_eq!(analyzer.program.records.len(),count);assert_eq!(analyzer.empty_scoped_record_environment(id).unwrap(),empty);assert_eq!(analyzer.program.records.len(),count);
+ }
+ #[test]
+ fn both_members_of_mutual_empty_component_keep_their_absent_callbacks(){
+  let mut analyzer=analyzed("type A={first:Once<Function<int>>;next?:B;};type B={second:Once<Function<int>>;next?:A;};function main(){}");let a=analyzer.record_names["A"];let b=analyzer.record_names["B"];
+  let Type::Record(empty_a)=analyzer.empty_scoped_record_environment(a).unwrap()else{panic!("empty A")};let Some(Type::Record(empty_b))=analyzer.unions.payload(field(&analyzer,empty_a,"next"))else{panic!("empty B edge")};
+  assert!(analyzer.absent_callable_type(field(&analyzer,empty_a,"first")));assert!(analyzer.absent_callable_type(field(&analyzer,empty_b,"second")));assert_eq!(analyzer.unions.payload(field(&analyzer,empty_b,"next")),Some(Type::Record(empty_a)));
+  let count=analyzer.program.records.len();assert_eq!(analyzer.empty_scoped_record_environment(b).unwrap(),Type::Record(empty_b));assert_eq!(analyzer.program.records.len(),count);assert_eq!(analyzer.scoped_records.declaration(empty_a),a);assert_eq!(analyzer.scoped_records.declaration(empty_b),b);
+ }
+ #[test]
+ fn recursive_map_edges_preserve_maps_only_callback_policy(){
+  let mut analyzer=analyzed("type Holder={run:ReadOnly<Function<int>>;children:Map<int,Holder>;other?:Map<int,Holder>;};function main(){}");let holder=analyzer.record_names["Holder"];let original=field(&analyzer,holder,"run");
+  let Type::Record(empty)=analyzer.empty_scoped_record_environment(holder).unwrap()else{panic!("empty holder")};assert!(analyzer.absent_callable_type(field(&analyzer,empty,"run")));
+  let Type::Map(map)=field(&analyzer,empty,"children")else{panic!("empty map edge")};assert_eq!(analyzer.program.records[map].map_definition.as_ref().unwrap().value,Type::Record(empty));assert_eq!(analyzer.unions.named_type(map),Type::Map(map));let optional=field(&analyzer,empty,"other").union().unwrap();assert!(analyzer.unions.members(optional).contains(&Type::Map(map)));
+  let Type::Record(outer)=analyzer.empty_scoped_map_layout(Type::Record(holder)).unwrap()else{panic!("map-only holder")};assert_eq!(field(&analyzer,outer,"run"),original);let Type::Map(map)=field(&analyzer,outer,"children")else{panic!("map-only child")};let Type::Record(payload)=analyzer.program.records[map].map_definition.as_ref().unwrap().value else{panic!("map-only payload")};assert!(analyzer.absent_callable_type(field(&analyzer,payload,"run")));
+  let count=analyzer.program.records.len();assert_eq!(analyzer.empty_scoped_map_layout(Type::Record(holder)).unwrap(),Type::Record(outer));assert_eq!(analyzer.program.records.len(),count);
+ }
+ #[test]
+ fn full_component_cache_cannot_alias_an_ordinary_root_only_plan(){
+  let mut analyzer=analyzed("type A={first:Once<Function<int>>;next?:B;};type B={second:Once<Function<string>>;next?:A;};function main(){}");let a=analyzer.record_names["A"];let b=analyzer.record_names["B"];
+  let Type::StoredCallable(family)=field(&analyzer,a,"first")else{panic!("owned field")};let callback=analyzer.callables.storage.declaration(family).unwrap();let absent=analyzer.absent_callback(callback);let next=field(&analyzer,a,"next");
+  let start=analyzer.program.records.len();let root_only=analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions,&|_|false).unwrap();
+  for id in start..analyzer.program.records.len(){analyzer.fields.push(analyzer.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+  let Type::Record(empty)=analyzer.empty_scoped_record_environment(a).unwrap()else{panic!("complete empty A")};assert_ne!(empty,root_only);
+  let Some(Type::Record(child))=analyzer.unions.payload(field(&analyzer,empty,"next"))else{panic!("complete empty B")};assert!(analyzer.absent_callable_type(field(&analyzer,child,"second")));
+  let count=analyzer.program.records.len();assert_eq!(analyzer.empty_scoped_record_environment(b).unwrap(),Type::Record(child));assert_eq!(analyzer.program.records.len(),count);
+  assert_eq!(analyzer.scoped_records.materialize_recursive(a,vec![absent,next],&mut analyzer.program.records,&analyzer.unions,&|_|false).unwrap(),root_only);
+ }
+
 }

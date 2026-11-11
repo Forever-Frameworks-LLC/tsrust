@@ -1,0 +1,10 @@
+import { lookup } from 'std:dns';
+import { IpAddress, NetError } from 'std:net';
+async function resolve(host: Owned<string>): Task<Result<IpAddress[], NetError>> {
+  return await lookup(host);
+}
+
+export async function run(): Task<void> {
+  const job = resolve('127.0.0.1').start();
+  console.log(unwrap(await job).length);
+}

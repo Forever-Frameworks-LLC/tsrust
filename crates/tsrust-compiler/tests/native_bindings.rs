@@ -56,5 +56,13 @@ fn os_identity_registry_has_exact_zero_argument_string_exports() {
         assert!(binding.parameters.is_empty());
         assert_eq!(binding.result,tsrust_compiler::native_bindings::NativeType::String);
     }
-    assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").is_err());
+    use tsrust_compiler::native_signatures::{Signature,NativeTypeId};
+    let hostname=lookup("std:os","hostname").unwrap();
+    assert!(hostname.parameters.is_empty());assert!(hostname.accepts_arity(0));assert!(!hostname.accepts_arity(1));
+    assert_eq!(hostname.result.signature(),Signature::Result(&Signature::String,&Signature::Named(NativeTypeId::OsError)));
+    assert_eq!(hostname.returned_borrow,None);
+    assert_eq!(hostname.backend,tsrust_compiler::native_bindings::NativeBackend::Bundled{symbol:"tsrust_std_os_hostname"});
+    assert_eq!(hostname.features,&["hostname"]);
+    assert_eq!(selected_features([("std:os","hostname")]).unwrap().into_iter().collect::<Vec<_>>(),vec!["hostname"]);
+    assert!(lookup("std:os","notAnOsExport").unwrap_err().contains("does not export"));
 }

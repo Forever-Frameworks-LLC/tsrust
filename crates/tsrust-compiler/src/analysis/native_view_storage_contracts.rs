@@ -2,6 +2,21 @@
 use super::*;
 
 impl Analyzer {
+    /// Concrete owned finite environments require specialization, not view lifetimes.
+    pub(super) fn finite_owned_shape(&self,root:Type)->bool{
+        let mut work=vec![root];let mut seen=HashSet::new();
+        while let Some(ty)=work.pop(){
+            if !seen.insert(ty){continue;}
+            match ty{
+                Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)=>return true,
+                Type::Callback(id) if self.callables.callbacks[id].kind.is_owned() && self.absent_callback_payloads.values().any(|&empty|empty==id)=>return true,
+                Type::Record(id)=>work.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                Type::Array(element)=>work.push(element.ty()),
+                Type::Union(id)=>work.extend(self.unions.members(id)),
+                _=>{},
+            }
+        }false
+    }
     // All alternatives of a recursive field share one family, including a
     // nullable payload initialized later from an empty record.
     pub(super) fn recursive_native_field_type(&mut self, actual: Type, nominal: usize, field: usize, span: Span) -> Result<Type, Diagnostic> {
@@ -30,7 +45,7 @@ impl Analyzer {
     }
 
     pub(super) fn scoped_native_storage_contract(&self, actual:Type, expected:Type, span:Span)->Result<bool,Diagnostic> {
-        if !self.native_borrow_types || actual==expected {return Ok(false);}
+        if (!self.native_borrow_types && !self.finite_owned_shape(actual)) || actual==expected {return Ok(false);}
         match (actual,expected) {
             (Type::StoredCallable(source),Type::StoredCallable(target))
                 if self.callables.storage.scoped_native_family(source).is_some()
@@ -99,7 +114,7 @@ impl Analyzer {
     /// Joins two storage types that hold scoped callback families, directly or as
     /// the payload of the same nullable union.
     pub(super) fn join_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
-        if !self.native_borrow_types || left==right {return Ok(None);}
+        if (!self.native_borrow_types && !self.finite_owned_shape(left) && !self.finite_owned_shape(right)) || left==right {return Ok(None);}
         if let Some(joined)=self.common_native_view_storage(left,right,span)? {return Ok(Some(joined));}
         match (left,right) {
             (Type::StoredCallable(a),Type::StoredCallable(b))=>{
@@ -182,13 +197,17 @@ impl Analyzer {
         Ok(None)
     }
     pub(super) fn common_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
-        if !self.native_borrow_types || left==right {return Ok(None);}
+        if (!self.native_borrow_types && !self.finite_owned_shape(left) && !self.finite_owned_shape(right)) || left==right {return Ok(None);}
         let (Type::StoredCallable(source),Type::StoredCallable(target))=(left,right) else{return Ok(None);};
         let (Some(first),Some(second))=(self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) else{return Ok(None);};
         if first.signature!=second.signature || first.invocation!=second.invocation {return Ok(None);}
         let origins=first.alternatives.iter().chain(&second.alternatives).map(|alternative|alternative.origin).collect::<Vec<_>>();
         let declaration=self.callables.storage.declaration(source).expect("checked scoped declaration");
-        self.callables.storage.intern_scoped_native(&self.callables.shapes,&self.callables.callbacks[declaration],declaration,origins,&self.closures,span)
+        if first.lifetimes()==0 && second.lifetimes()==0{
+            self.callables.storage.intern_finite_owned(&self.callables.shapes,&self.callables.callbacks[declaration],declaration,origins,&self.closures,span)
+        }else{
+            self.callables.storage.intern_scoped_native(&self.callables.shapes,&self.callables.callbacks[declaration],declaration,origins,&self.closures,span)
+        }
     }
 
     pub(super) fn native_view_storage_injection(&self,actual:Type,expected:UnionId,span:Span)->Result<Option<Type>,Diagnostic> {

@@ -1,0 +1,3 @@
+mod tsrust_native_futures{pub fn block_on<F:std::future::Future>(future:F)->F::Output{tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(future)}}
+use tokio::io::AsyncReadExt;
+async fn function0(n:i64,seed:i64)->i64{let payload:Vec<u8>=(0..4096).map(|j|((seed+j)%251)as u8).collect();let mut destination=vec![0;257];let mut sum=0;for _ in 0..n{let mut input=std::io::Cursor::new(payload.clone());loop{let count=input.read(&mut destination).await.unwrap();if count==0{break;}for value in &destination[..count]{sum=(sum*131+i64::from(*value))%1000000007;}}}sum}fn main(){}

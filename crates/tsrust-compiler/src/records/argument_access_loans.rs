@@ -20,8 +20,6 @@ impl Loans {
         self.roots.entry(root)
     }
     pub(crate) fn argument(&mut self, root: usize, mode: Mode, arg: &Expr) {
-        let key = (root, mode, arg.span);
-        let previous = self.roots.get(&root).is_some_and(|items| items.contains(&(mode, arg.span)));
         let mut path = Vec::new();
         let mut cursor = arg;
         while let ExprKind::Field(base, name) = &cursor.kind {
@@ -30,12 +28,21 @@ impl Loans {
             cursor = base;
         }
         let proven = !path.is_empty() && matches!(cursor.kind, ExprKind::Name(_)) && cursor.binding == Some(root);
-        if proven {
-            path.reverse();
-            if !previous { self.fields.insert(key, path); }
-            else if self.fields.get(&key) != Some(&path) { self.fields.remove(&key); }
-        } else { self.fields.remove(&key); }
-        self.roots.entry(root).or_default().push((mode, arg.span));
+        if proven { path.reverse(); } else { path.clear(); }
+        self.native_argument(root, mode, arg.span, path);
+    }
+    /// Native provenance supplies a checked owner path, not the view's fields.
+    pub(crate) fn native_argument(&mut self, root: usize, mode: Mode, span: Span, path: Vec<String>) {
+        let key = (root, mode, span);
+        let previous = self.roots.get(&root).is_some_and(|items| items.contains(&(mode, span)));
+        if path.is_empty() {
+            self.fields.remove(&key);
+        } else if !previous {
+            self.fields.insert(key, path);
+        } else if self.fields.get(&key) != Some(&path) {
+            self.fields.remove(&key);
+        }
+        self.roots.entry(root).or_default().push((mode, span));
     }
     pub(crate) fn overlaps(&self, root: usize, mode: Mode, span: Span, path: Option<&[String]>) -> bool {
         match (self.fields.get(&(root, mode, span)), path) {

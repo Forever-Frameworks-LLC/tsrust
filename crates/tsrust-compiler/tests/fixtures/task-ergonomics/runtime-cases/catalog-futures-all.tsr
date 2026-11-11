@@ -1,0 +1,12 @@
+import { all } from 'std:futures';
+async function value(n: int): Task<int> {
+  return n;
+}
+
+async function unit(): Task<void> {}
+
+export async function run(): Task<void> {
+  const values = await all([value(2), value(1).start()]);
+  console.log(values[0], values[1]);
+  console.log((await all([unit(), unit()])).length, (await all([])).length);
+}

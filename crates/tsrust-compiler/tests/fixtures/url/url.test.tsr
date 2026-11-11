@@ -1,0 +1,166 @@
+import { test, strictEqual, ok } from 'std:testing';
+import { Url, parseUrl, resolveUrl, formatUrl, parseQuery, formatQuery, searchParams, setSearchParams, encodeURIComponent, decodeURIComponent } from 'std:url';
+
+function choose(counter: Mutable<int[]>): int {
+  counter[0] += 1;
+  return 0;
+}
+
+function replacement(counter: Mutable<int[]>): string {
+  counter[0] += 10;
+  return '/changed';
+}
+
+function badPort(counter: Mutable<int[]>): int {
+  counter[0] += 10;
+  return 65536;
+}
+
+test('URL owners normalize and borrowed getters stay infallible', () => {
+  const parse = parseUrl;
+  const value = unwrap(parse('https://user:secret@EXAMPLE.com:443/a/../b?q=1#f'));
+  strictEqual(String(value.href), 'https://user:secret@example.com/b?q=1#f');
+  strictEqual(String(value.protocol), 'https:');
+  strictEqual(String(value.username), 'user');
+  strictEqual(String(value.password), 'secret');
+  strictEqual(String(value.hostname), 'example.com');
+  ok(value.port === undefined);
+  strictEqual(String(value.pathname), '/b');
+  strictEqual(String(value.search), '?q=1');
+  strictEqual(String(value.hash), '#f');
+  strictEqual(value.origin, 'https://example.com');
+  const base = unwrap(parseUrl('https://example.com/a/'));
+  const resolved = unwrap(resolveUrl(base, '../c'));
+  strictEqual(String(formatUrl(resolved)), 'https://example.com/c');
+  const format = formatUrl;
+  strictEqual(String(format(resolved)), 'https://example.com/c');
+  const copied = clone(value);
+  copied.pathname = '/copied';
+  strictEqual(String(value.pathname), '/b');
+  strictEqual(String(copied.pathname), '/copied');
+});
+
+test('property writes preserve self reads and evaluate indexed receivers once', () => {
+  const values: Url[] = [unwrap(parseUrl('https://example.com/a'))];
+  const counter = [0];
+  values[choose(counter)].pathname = replacement(counter);
+  strictEqual(counter[0], 11);
+  strictEqual(String(values[0].pathname), '/changed');
+  values[0].pathname = String(values[0].pathname) + '/again';
+  strictEqual(String(values[0].pathname), '/changed/again');
+  counter[0] = 0;
+  let rejected = false;
+  try {
+    values[choose(counter)].port = badPort(counter);
+  } catch (error) {
+    rejected = true;
+    strictEqual(error.code, 'range');
+    strictEqual(counter[0], 11);
+  }
+
+  ok(rejected);
+  ok(values[0].port === undefined);
+});
+
+test('empty hostname rejection preserves the complete URL', () => {
+  const value = unwrap(parseUrl('sc://test:12/'));
+  let rejected = false;
+  try {
+    value.hostname = '';
+  } catch (error) {
+    rejected = true;
+    strictEqual(error.code, 'host');
+  }
+
+  ok(rejected);
+  strictEqual(String(value.href), 'sc://test:12/');
+  ok(value.password === undefined);
+  strictEqual(String(value.hostname), 'test');
+  ok(value.port === 12);
+});
+
+test('query snapshots and returned entry arrays never alias URL storage', () => {
+  const value = unwrap(parseUrl('https://example.com/?x=1&x=2'));
+  const params = searchParams(value);
+  const entries = params.entries();
+  params.set('x', '3');
+  strictEqual(String(value.search), '?x=1&x=2');
+  strictEqual(entries[0].name, 'x');
+  strictEqual(entries[0].value, '1');
+  setSearchParams(value, params);
+  params.delete('x');
+  strictEqual(String(value.search), '?x=3');
+  const sorted = parseQuery('z=last&a=first&a=second');
+  sorted.sort();
+  strictEqual(formatQuery(sorted), 'a=first&a=second&z=last');
+  const decoded = parseQuery('x=a+b&x=%2B&bad=%FF&literal=%');
+  strictEqual(decoded.getAll('x').join('|'), 'a b|+');
+  strictEqual(String(decoded.get('bad')), '�');
+  strictEqual(String(decoded.get('literal')), '%');
+  ok(decoded.has('x'));
+});
+
+test('strict component decoding differs from form query decoding', () => {
+  strictEqual(encodeURIComponent('é /+?%'), '%C3%A9%20%2F%2B%3F%25');
+  strictEqual(unwrap(decodeURIComponent('%C3%A9%20%2B')), 'é +');
+  strictEqual(unwrap(decodeURIComponent('a+b')), 'a+b');
+  let rejected = false;
+  try {
+    unwrap(decodeURIComponent('%FF'));
+  } catch (error) {
+    rejected = true;
+    strictEqual(error.code, 'encoding');
+  }
+
+  ok(rejected);
+});
+
+test('optional borrowed getters release the source in absent branches', () => {
+  const value = unwrap(parseUrl('https://example.com/a'));
+  const missing = value.hash;
+  if (missing === undefined) {
+    value.hostname = 'other.example';
+  } else {
+    strictEqual(missing.length, 0);
+  }
+
+  strictEqual(String(value.hostname), 'other.example');
+  const params = parseQuery('x=one');
+  const copied = clone(params);
+  copied.set('x', 'two');
+  strictEqual(String(params.get('x')), 'one');
+});
+
+test('all writable URL components use checked backend semantics', () => {
+  const value = unwrap(parseUrl('https://example.com/start'));
+  value.protocol = 'http:';
+  value.username = 'user:name';
+  value.password = 'p w';
+  value.hostname = 'EXAMPLE.org';
+  value.port = 0;
+  value.pathname = '/é?#';
+  value.search = '?x=one+two';
+  value.hash = '#é';
+  strictEqual(String(value.href), 'http://user%3Aname:p%20w@example.org:0/%C3%A9%3F%23?x=one+two#%C3%A9');
+  value.password = '';
+  value.username = '';
+  value.port = undefined;
+  value.search = undefined;
+  value.hash = undefined;
+  ok(value.password === undefined);
+  strictEqual(value.origin, 'http://example.org');
+  let rejected = false;
+  try {
+    value.protocol = 'file:';
+  } catch (error) {
+    rejected = true;
+    strictEqual(error.code, 'scheme');
+  }
+
+  ok(rejected);
+  strictEqual(String(value.protocol), 'http:');
+  value.href = 'https://final.example/?#';
+  strictEqual(String(value.hostname), 'final.example');
+  strictEqual(String(value.search), '?');
+  strictEqual(String(value.hash), '#');
+});

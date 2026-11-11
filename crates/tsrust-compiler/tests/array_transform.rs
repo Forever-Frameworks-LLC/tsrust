@@ -183,10 +183,6 @@ fn callback_diagnostics_preserve_source_loans_access_arity_and_type_constraints(
             "type",
         ),
         (
-            "function main(){[1].map((value:int):void=>{});}",
-            "array-element",
-        ),
-        (
             "function main(){[].map(():int=>{return 1;});}",
             "array-type",
         ),
@@ -220,6 +216,8 @@ fn callback_diagnostics_preserve_source_loans_access_arity_and_type_constraints(
             .unwrap_or_else(|| panic!("Expected {code}: {source}"));
         assert_eq!(error.code, code, "{source}: {}", error.message);
     }
+    native(&support::format_round_trip("function main(){let total=0;const units:void[]=[1,2,3].map((value:int):void=>{total=total*10+value;});console.log(units.length,total);}"),"3 123\n","","");
+
 }
 
 #[test]

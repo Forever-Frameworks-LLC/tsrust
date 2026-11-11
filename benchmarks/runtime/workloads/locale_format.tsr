@@ -1,0 +1,18 @@
+import { parseLocale, formatLocale, createCollator, createSegmenter, createNumberFormat } from 'std:locale';
+
+function workload(n: int, seed: int, input: string): int {
+  const value = unwrap(parseLocale(input));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const text = formatLocale(value);
+    checksum += text.length;
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, "iw-IL"));
+}

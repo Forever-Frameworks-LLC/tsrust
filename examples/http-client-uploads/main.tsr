@@ -1,0 +1,92 @@
+import { App, Client, Request, Body, request, requestBytes, requestStream, requestChannel, stream } from 'std:http';
+import { Bytes, fromArray, at, length } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { strictEqual } from 'std:testing';
+
+type TextFactory = Function<Request, [method: ReadOnly<string>, url: ReadOnly<string>, text: Owned<string>]>;
+
+type BinaryFactory = Function<Request, [method: ReadOnly<string>, url: ReadOnly<string>, body: Owned<Bytes>]>;
+
+function method(order: Mutable<int[]>): string {
+  order.push(1);
+  return 'POST';
+}
+
+function target(order: Mutable<int[]>, url: ReadOnly<string>): string {
+  order.push(2);
+  return clone(url);
+}
+
+function payload(order: Mutable<int[]>): Bytes {
+  order.push(3);
+  return unwrap(fromArray([0, 255, 128, 65]));
+}
+
+async function produce(sender: Sender<Bytes>): Task<void> {
+  await sender.send(unwrap(fromArray([0, 255])));
+  await sender.send(unwrap(fromArray([128, 65])));
+}
+
+async function exact(body: Body): Task<void> {
+  const expected: int[] = [0, 255, 128, 65];
+  let offset = 0;
+  while (true) {
+    const chunk = await body.next();
+    if (chunk === undefined) {
+      break;
+    }
+
+    let i = 0;
+    while (i < length(chunk)) {
+      strictEqual(unwrap(at(chunk, i)), expected[offset]);
+      offset++;
+      i++;
+    }
+  }
+
+  strictEqual(offset, 4);
+}
+
+async function main(): Task<void> {
+  const app = new App();
+  app.post('/echo', async (input: Request) => stream(input.body()));
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const url = 'http://' + server.address() + '/echo';
+    const client = new Client({
+      noProxy: true, timeoutMs: 5000, connectTimeoutMs: 5000, maxRedirects: 4
+    });
+    const textFactory: TextFactory = request;
+    strictEqual(await(await client.send(textFactory('POST', url, 'hello é'))).text(), 'hello é');
+    const binaryFactory: BinaryFactory = requestBytes;
+    let rejectedMethod = false;
+    try {
+      binaryFactory('bad method', url, unwrap(fromArray([1])));
+    } catch (error) {
+      strictEqual(error.code, 'method');
+      rejectedMethod = true;
+    }
+
+    strictEqual(rejectedMethod, true);
+    const order: int[] = [];
+    const checked = binaryFactory(method(order), target(order, url), payload(order));
+    strictEqual(order.join(','), '1,2,3');
+    await exact((await client.send(checked)).body());
+    const make = requestBytes;
+    const source = make('POST', url, unwrap(fromArray([0, 255, 128, 65])));
+    const streaming = requestStream;
+    await exact((await client.send(streaming('POST', url, source.body()))).body());
+    const chunks = new Channel<Bytes>(1);
+    const producer = produce(chunks.sender()).start();
+    try {
+      const makeChannel = requestChannel;
+      await exact((await client.send(makeChannel('POST', url, chunks))).body());
+    } finally {
+      await producer;
+    }
+
+    console.log('binary, stream and bounded channel uploads');
+  } finally {
+    await server.shutdown();
+  }
+}

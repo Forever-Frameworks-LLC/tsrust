@@ -1,0 +1,8 @@
+import { requestChannel } from 'std:http';
+import { Channel } from 'std:futures';
+import { Bytes } from 'std:bytes';
+
+export function main() {
+  const input = requestChannel('POST', 'http://localhost/', new Channel<Bytes>(1));
+  console.log(input.method());
+}

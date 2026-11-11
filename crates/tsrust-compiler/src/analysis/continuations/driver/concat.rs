@@ -47,7 +47,7 @@ pub(super) fn resume<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
             let ExprKind::Field(base, _) = &mut callee.kind else { unreachable!() };
             *base = child.into_child();
             let receiver = match result {
-                Ok(ty) if ty.scalar_base() == Type::String => Type::String,
+                Ok(ty) if analyzer.is_string_observation(ty) => Type::String,
                 Ok(ty @ Type::Array(_)) => ty,
                 Ok(_) => { let error = Diagnostic::new("type", "concat() requires a string or array.", base.span); return finish_expression(analyzer, context, task, Err(error)); },
                 Err(error) => return finish_expression(analyzer, context, task, Err(error)),

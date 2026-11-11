@@ -1,0 +1,1 @@
+function workload(n:number,seed:number):number{let checksum=seed;let i=0;while(i<n){const deque=[[seed+i],[seed+i+1]];deque.shift();deque.push([seed+i+2]);const rows=deque.map(row=>row.slice());rows[0].push(9);checksum+=rows[0][0]+rows[0][1]+2*rows[1][0]+deque[0].length;i++;}return checksum;}

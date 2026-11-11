@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "gpui-starter",
+  "build": {
+    "entry": "src/main.tsrx",
+    "output": "target/gpui-starter"
+  }
+}

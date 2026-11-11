@@ -1,5 +1,11 @@
 # Backend-only reset
 
+> Owner update, 2026-11-05: preserve this reset's backend isolation and HTTP
+> contract guarantees. Its UI freeze is superseded for post-v0.2.0 planning by
+> the [GPUI application platform plan](gpui-application-platform.md). Complete
+> v0.2.0 before implementing the requested GPUI/Kit frontend, `.tsr` client and
+> shared-root integration. The earlier React/Electron/Expo direction stays historical.
+
 Owner direction, 2026-10-27; continuation explicitly authorized after goal alignment.
 This supersedes React/Vite/shadcn, Electron/Forge,
 Expo/RNR, TanStack wrappers, frontend package-manager selection, frontend migration

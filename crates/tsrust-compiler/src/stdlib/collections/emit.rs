@@ -5,14 +5,15 @@ impl Emitter<'_> {
         let ExprKind::Field(base, _) = &callee.kind else { unreachable!() };
         let Type::Record(id) = base.ty.unwrap() else { unreachable!() };
         let element = self.program.records[id].native_element().unwrap();
-        let read = matches!(method, DequeMethod::Front | DequeMethod::Back | DequeMethod::At);
+        let read = matches!(method, DequeMethod::Front | DequeMethod::Back | DequeMethod::At | DequeMethod::Values);
         let receiver = self.expr(function, base, if read { Mode::Read } else { Mode::Mutate });
+        if method==DequeMethod::Values{return format!("{{let deque_receiver={receiver};{}}}",self.flat_array_result(expression.ty.unwrap(),"deque_receiver.values.iter().cloned().collect::<Vec<_>>()"));}
         let argument = arguments.first().map(|argument| self.expr(function, argument, if method == DequeMethod::At { Mode::Read } else { Mode::Consume })).unwrap_or_default();
         let operation = match method {
             DequeMethod::PushFront => "push_front", DequeMethod::PushBack => "push_back",
             DequeMethod::PopFront => "pop_front", DequeMethod::PopBack => "pop_back",
             DequeMethod::Front => "front", DequeMethod::Back => "back",
-            DequeMethod::At => "at", DequeMethod::Clear => "clear",
+            DequeMethod::At => "at", DequeMethod::Clear => "clear",DequeMethod::Values=>unreachable!(),
         };
         let selected = format!("deque_receiver.values.{operation}({argument}){}", if read && element.is_copy() { ".copied()" } else { "" });
         let result = match expression.ty.unwrap() {

@@ -1,0 +1,21 @@
+import { get } from 'std:env';
+
+function workload(n: int, seed: int): int {
+  const names = ['TSRUST_B03_TEXT', 'TSRUST_B03_EMPTY', 'TSRUST_B03_MISSING'];
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    for (const name of names) {
+      const value = unwrap(get(name));
+      checksum += value === undefined ? 1 : value.length;
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0));
+}

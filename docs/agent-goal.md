@@ -1,4 +1,72 @@
-# Goal: Tsrust language, CLI, documentation and platform polish
+# Goal: v0.2.0 standard-library implementation
+
+## Current owner mandate — 2026-11-04
+
+The owner approved starting a new autonomous goal from the
+[v0.2.0 standard-library checklist](plans/stdlib-0.2.0.md), including popular
+well-tested Rust package backends and parallel Sol 6.1 implementation/testing.
+The owner also explicitly requires monitoring the pending release PRs all the
+way to main. The owner renewed this active v0.2.0 goal and explicitly
+authorized continuation without routine approval. Complete the full checklist;
+only actual merge/publication or unresolved product design decisions need owner
+input. This ordering supersedes the older scheduling retained below.
+
+1. Finish the already-approved compiler v0.1.2/LSP v0.2.2 release first. Monitor
+   repair PR#15 and its exact CI run, merge through stag only after required
+   checks pass, then monitor promotion PR#14's new release validation, automatic
+   publisher, actual main/tag/assets and production documentation deployment.
+   Diagnose real failures and preserve accepted evidence; do not bypass failed
+   gates or dispatch duplicate runs. The existing version-specific publication
+   approval remains valid for necessary repairs in that release scope.
+2. From the verified release/main baseline, complete B00–B20 and every concrete
+   v0.2.0 implementation/acceptance checkbox. Deliver JS/TS-familiar APIs with Rust
+   semantics, defaults and accuracy. Use safe generated Rust and thin adapters
+   over Rust std/existing backends/maintained packages rather than rewriting
+   established parsers, protocols or algorithms.
+3. Begin with B00 contracts, package admission and direct-Rust profiles. Then run
+   the first independent utility wave: B01 portable files/directories/cursors,
+   B02 bytes/codecs/binary records and B04 URL/query handling. Continue dependency-
+   ready coherent bundles through the plan; do not redefine success around that
+   first wave or claim unchecked APIs are implemented.
+4. Use up to three `gpt-6.1-sol` bundle agents plus the integrator, isolated managed
+   worktrees and one writer per tree. Preserve shared-file ownership, formatter/
+   checkpoint slots, source identities and exact merged acceptance. One Cargo
+   target per physical host, incremental off, jobs=1; serialize heavy local
+   builds/native tests, parallelize suitable lightweight work and separate-host
+   tests, and give quiet timing exclusive access. Follow the plan's memory/time
+   watchdog and test-thread limits.
+5. Profile before implementation choices, complete compiler/native/LSP/docs/
+   examples/oracles together, measure and optimize each completed coherent gate,
+   ingest actual runs with `npm run store:ingest`, and commit accepted measured
+   evidence. Keep unchanged handwritten-Rust/Node reference timings cached. Run
+   the complete lib/suites/host check at meaningful milestones; push only to merge
+   finished work (`docs/plans/ci-build-once.md`).
+6. Keep [agent-progress.md](agent-progress.md) as the only handoff and update the
+   v0.2.0 checklist as items pass. No archives, source snapshots or per-worker
+   handoff files. Preserve owner files and the accepted optimization work; check
+   live PRs/Dependabot immediately before every push.
+7. Owner update, 2026-11-05: finish v0.2.0 first, then pursue the
+   [GPUI application platform plan](plans/gpui-application-platform.md): GPUI/Kit
+   wrappers using retained `.tsrx` signals, complete component/example coverage
+   on desktop and experimental WASM, `.tsr` API clients and shared backend/frontend
+   roots with automatic codegen. The requested research/planning detour does not
+   replace or reduce the active B00–B20 goal.
+8. Complete the plan's real compiler/editor/native/platform/package/performance
+   acceptance before claiming the goal achieved. Implementation is authorized;
+   publishing v0.2.0 still needs explicit version/publication approval on a
+   concrete validated candidate.
+
+Item1 is verified complete: main/tag v0.1.2, all four platform packages,
+publisher and production docs passed. The old optimization/release app goal was
+truthfully completed and the full B00–B20 objective registered with `create_goal`
+on2026-11-04. It is active without a token budget. Implementation now continues
+from released main on `codex/stdlib-0.2.0`; do not publish v0.2.0 without explicit
+owner approval of a concrete validated release.
+
+## Retained earlier direction and evidence
+
+The product principles and applicable acceptance constraints below remain useful;
+their historical milestone ordering does not override the current mandate.
 
 ## Top-level directive (owner, 2026-10-29)
 
@@ -9,7 +77,7 @@ strings, no silent rounding, no JS quirks). Generated code should look like what
 careful Rust programmer writes; extras (limits, validation passes, copies) are
 opt-in or belong to another layer.
 
-## Active owner direction — 2026-10-29 (supersedes the ordering below)
+## Earlier owner direction — 2026-10-29
 
 The owner approved this plan and asked for continuous autonomous work on it:
 
@@ -44,8 +112,7 @@ The owner approved this plan and asked for continuous autonomous work on it:
 
 Measurement rules: time benchmarks only on a quiet machine. The runner must
 check load before each chunk; never build, test or run CI-like work locally
-while timing. Run heavy regression suites on GitHub (dispatch
-`full_regressions`), not locally during measurements. Publish results through
+while timing. Never run test suites while timing. Publish results through
 the SQLite dataset and the generated performance page.
 
 

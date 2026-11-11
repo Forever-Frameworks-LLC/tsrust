@@ -1,0 +1,60 @@
+import { createLogger, close, Logger, LoggerOptions } from 'std:log';
+import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
+
+type Event = {
+  message: string;
+  index: int;
+  ok: boolean
+};
+
+type Line = {
+  timestamp: string;
+  level: string;
+  target: string;
+  fields: Event
+};
+
+function emit(logger: ReadOnly<Logger>, n: int, seed: int): void {
+  for (let i: int = 0; i < n; i++) {
+    logger.info((): Event => ({
+      message: 'é "quoted"\nline', index: i + seed, ok: true
+    }));
+  }
+}
+
+function workload(n: int, seed: int): int {
+  const directory = unwrap(createTempDir(undefined, 'tsrust-log-'));
+  try {
+    const options: LoggerOptions = {
+      sink: 'file', path: `${directory}/events.ndjson`
+    };
+    const logger = unwrap(createLogger(options));
+    emit(logger, n, seed);
+    unwrap(close(logger));
+    if (options.path === undefined) {
+      throw 'missing file path';
+    }
+
+    const text = unwrap(readTextFile(options.path));
+    const lines = text.split('\n');
+    if (lines.length !== n + 1) {
+      throw 'line count';
+    }
+
+    let sum: int = 0;
+    for (let i: int = 0; i < n; i++) {
+      const row = JSON.parse<Line>(lines[i]);
+      if (row.level !== 'INFO' || row.fields.message !== 'é "quoted"\nline' || row.fields.index !== i + seed || !row.fields.ok || row.timestamp.length === 0 || row.target.length === 0) {
+        throw 'event fields';
+      }
+
+      sum = (sum * 131 + row.fields.index) % 1000000007;
+    }
+
+    return sum;
+  } finally {
+    unwrap(removeDirAll(directory));
+  }
+}
+
+function main() {}

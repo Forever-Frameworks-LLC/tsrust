@@ -1,7 +1,0 @@
-import { withTheme, document } from 'std:ui';
-import config from './tsrust.config.json';
-import { Page } from './src/app/page';
-
-function main() {
-  console.log(document(withTheme(Page(), config.ui.theme, 'dark'), 'Project UI'));
-}

@@ -35,9 +35,10 @@ fn reserved_dependencies_fail_without_creating_project_configuration(){
 fn curated_regex_add_requires_no_json_and_real_bindings_execute_in_tests(){
  let dir=support::TempDirectory::new();
  fs::write(dir.0.join("regex.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';import {Search,SearchResultFound,SearchResultMissing,search} from './native.bindings.json';test('real regex',()=>{const request:Search={pattern:'[0-9]+',text:'Order 314 ready'};match(unwrap(search(request))){SearchResultFound(hit)=>strictEqual(hit.value.text,'314'),SearchResultMissing(_)=>{throw 'no match';}}});")).unwrap();
- let output=package(&dir.0,"add",&["regex@1.12.2"]);support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("real regex"));
+ let output=package(&dir.0,"add",&["regex@1.13.1"]);support::success(&output);assert!(String::from_utf8_lossy(&output.stdout).contains("real regex"));
  let source=fs::read(dir.0.join("native.rs")).unwrap();assert!(String::from_utf8_lossy(&source).contains("regex::Regex::new"));
  let manifest=dir.0.join("native.bindings.json");let before=fs::read(&manifest).unwrap();
+ let config:serde_json::Value=serde_json::from_slice(&before).unwrap();assert_eq!(config["dependencies"]["regex"]["version"],"=1.13.1");assert_eq!(config["dependencies"]["regex"]["defaultFeatures"],true);assert_eq!(config["dependencies"]["regex"]["features"],serde_json::json!([]));
  // Removing a used crate must fail in the native adapter and leave the generation intact.
  assert!(!package(&dir.0,"remove",&["regex"]).status.success());assert_eq!(fs::read(&manifest).unwrap(),before);assert_eq!(fs::read(dir.0.join("native.rs")).unwrap(),source);
 }

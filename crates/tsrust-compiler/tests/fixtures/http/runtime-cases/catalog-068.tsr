@@ -1,0 +1,8 @@
+import { WebSocketOptions } from "std:http";
+
+export function main() {
+  const value: WebSocketOptions = {
+    maxMessageSize: 65536
+  };
+  console.log(value.maxMessageSize);
+}

@@ -1,0 +1,15 @@
+import { gzip, gunzip } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const encoded = unwrap(await gzip(pool, unwrap(fromUtf8('hello'))));
+  const decoded = unwrap(await gunzip(pool, encoded, {
+    maxOutputBytes: 5
+  }));
+  console.log(unwrap(toUtf8(decoded)));
+  unwrap(pool.shutdown());
+}

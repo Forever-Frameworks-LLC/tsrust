@@ -1,7 +1,15 @@
-//! One application owns its location. Links and platform listeners retain only weak state.
+//! Each window owns its location. Links and platform listeners retain only weak state.
 use super::{Child,Node,Signal};
 use std::{cell::RefCell,rc::{Rc,Weak}};
-struct Navigation { read:Box<dyn Fn()->Result<String,String>>,write:Box<dyn Fn(String)->Result<(),String>>,#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]history:RefCell<(Vec<String>,usize)> }
+struct Navigation { read:Box<dyn Fn()->Result<String,String>>,write:Box<dyn Fn(String)->Result<(),String>>,#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]history:RefCell<(Vec<String>,usize)> }
+#[derive(Clone,Default)]
+pub(crate) struct Context(Weak<Navigation>);
+pub(crate) struct Scope(Weak<Navigation>);
+impl Drop for Scope {fn drop(&mut self){ACTIVE.with(|active|*active.borrow_mut()=self.0.clone());}}
+impl Context {
+ pub(crate) fn current()->Self {Self(ACTIVE.with(|active|active.borrow().clone()))}
+ pub(crate) fn enter(&self)->Scope {Scope(ACTIVE.with(|active|active.replace(self.0.clone())))}
+}
 thread_local! {static ACTIVE:RefCell<Weak<Navigation>>=const{RefCell::new(Weak::new())};}
 fn active()->Result<Rc<Navigation>,String>{ACTIVE.with(|value|value.borrow().upgrade()).ok_or_else(||"No live UI location owner".into())}
 /// Absolute application paths only. External URLs are deliberately a separate contract.
@@ -12,33 +20,59 @@ pub fn checked_path(path:&str)->Result<String,String>{
     let base=if path.len()>1{path.trim_end_matches('/')}else{path};Ok(match fragment{Some(fragment)=>format!("{base}#{fragment}"),None=>base.into()})
 }
 // Browsers encode Unicode path/fragment bytes even when the authored link has no escapes.
-#[cfg(any(test,all(target_arch="wasm32",feature="ui-web")))]
+#[cfg(any(test,all(target_arch="wasm32",feature="gpui-web")))]
 fn decoded_browser_path(path:&str)->Result<String,String>{
     let mut bytes=Vec::with_capacity(path.len());let mut source=path.as_bytes().iter().copied();
     while let Some(byte)=source.next(){if byte==b'%' {let high=source.next().and_then(|byte|(byte as char).to_digit(16)).ok_or("Invalid browser path escape")?;let low=source.next().and_then(|byte|(byte as char).to_digit(16)).ok_or("Invalid browser path escape")?;let value=(high*16+low)as u8;if value.is_ascii(){return Err("Escaped ASCII application paths are unsupported".into());}bytes.push(value);}else{bytes.push(byte);}}
     let path=String::from_utf8(bytes).map_err(|_|"Browser path is not valid UTF-8")?;checked_path(&path)
 }
-#[cfg(all(target_arch="wasm32",feature="ui-web"))]
+#[cfg(all(target_arch="wasm32",feature="gpui-web"))]
 fn browser_path()->Result<String,String>{use wasm_bindgen::JsValue;let window=web_sys::window().ok_or("Browser window unavailable")?;let location=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("location")).map_err(|_|"Browser location unavailable")?;let get=|name|js_sys::Reflect::get(&location,&JsValue::from_str(name)).ok().and_then(|value|value.as_string()).ok_or_else(||String::from("Browser location is invalid"));decoded_browser_path(&(get("pathname")?+&get("hash")?))}
-#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
+#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]
 fn browser_path()->Result<String,String>{Ok("/".into())}
-#[cfg(all(target_arch="wasm32",feature="ui-web"))]
+#[cfg(all(target_arch="wasm32",feature="gpui-web"))]
 fn browser_history(method:&str,path:Option<&str>)->Result<(),String>{use wasm_bindgen::{JsValue,JsCast};let window=web_sys::window().ok_or("Browser window unavailable")?;let history=js_sys::Reflect::get(window.as_ref(),&JsValue::from_str("history")).map_err(|_|"Browser history unavailable")?;let call=js_sys::Reflect::get(&history,&JsValue::from_str(method)).ok().and_then(|value|value.dyn_into::<js_sys::Function>().ok()).ok_or("Browser history method unavailable")?;match path{Some(path)=>call.call3(&history,&JsValue::NULL,&JsValue::from_str(""),&JsValue::from_str(path)),None=>call.call0(&history)}.map_err(|_|"Browser history update failed")?;Ok(())}
-#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
+#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]
 fn browser_history(_: &str,_:Option<&str>)->Result<(),String>{Ok(())}
 pub fn location<T:Clone+'static>(decode:fn(String)->T,encode:fn(&T)->String)->Result<Signal<T>,String>{
     if ACTIVE.with(|value|value.borrow().upgrade().is_some()){return Err("Create UI location once in the application root".into());}
-    let path=browser_path()?;let state=Signal::new(decode(path.clone()));let read=state.handle();let write=state.handle();
-    let owner=Rc::new(Navigation{read:Box::new(move||read.get().map(|value|encode(&value))),write:Box::new(move|path|write.set(decode(path))),#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]history:RefCell::new((vec![path],0))});
+    create_location(&browser_path()?,decode,encode)
+}
+pub fn create_location<T:Clone+'static>(initial:&str,decode:fn(String)->T,encode:fn(&T)->String)->Result<Signal<T>,String>{
+    let path=checked_path(initial)?;let state=Signal::new(decode(path.clone()));let read=state.handle();let write=state.handle();
+    let owner=Rc::new(Navigation{read:Box::new(move||read.get().map(|value|encode(&value))),write:Box::new(move|path|write.set(decode(path))),#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]history:RefCell::new((vec![path],0))});
     ACTIVE.with(|value|*value.borrow_mut()=Rc::downgrade(&owner));let weak=Rc::downgrade(&owner);
     Ok(state.with_owner(owner,move|next|{let owner=weak.upgrade().ok_or("UI location is disposed")?;let path=checked_path(&encode(next))?;push(&owner,&path)?;Ok(decode(path))}))
 }
-fn push(owner:&Navigation,path:&str)->Result<(),String>{let path=checked_path(path)?;if (owner.read)()?==path{return Ok(());}browser_history("pushState",Some(&path))?;#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]{let mut history=owner.history.borrow_mut();let end=history.1+1;history.0.truncate(end);history.0.push(path);history.1+=1;}Ok(())}
+fn push(owner:&Navigation,path:&str)->Result<(),String>{let path=checked_path(path)?;if (owner.read)()?==path{return Ok(());}browser_history("pushState",Some(&path))?;#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]{let mut history=owner.history.borrow_mut();let end=history.1+1;history.0.truncate(end);history.0.push(path);history.1+=1;}Ok(())}
 pub(crate) fn route_predicate(path:&str,exact:bool)->Result<impl FnMut()->Result<bool,String>+'static,String>{
-    let path=checked_path(path)?;
-    if path.contains('#'){return Err("UI Route paths cannot contain a heading fragment".into());}
+    let path=checked_pattern(path)?;
     let owner=Rc::downgrade(&active()?);
-    Ok(move||{let owner=owner.upgrade().ok_or("UI Route location is disposed")?;let current=(owner.read)()?;let current=current.split('#').next().unwrap_or("/");Ok(current==path || !exact && (path=="/" || current.strip_prefix(&path).is_some_and(|rest|rest.starts_with('/'))))})
+    Ok(move||{let owner=owner.upgrade().ok_or("UI Route location is disposed")?;let current=(owner.read)()?;Ok(matches_path(&path,&current,exact))})
+}
+fn checked_pattern(pattern:&str)->Result<String,String> {
+ let pattern=checked_path(pattern)?;
+ if pattern.contains('#'){return Err("UI Route paths cannot contain a heading fragment".into());}
+ let mut names=std::collections::BTreeSet::new();
+ for segment in pattern.split('/') {if let Some(name)=segment.strip_prefix(':') {
+  if name.is_empty() || !name.bytes().enumerate().all(|(index,byte)|byte.is_ascii_alphabetic() || byte==b'_' || index>0 && byte.is_ascii_digit()) || !names.insert(name.to_owned()) {return Err("UI route parameters require unique identifier names after ':'".into());}
+ }}
+ Ok(pattern)
+}
+fn matches_path(pattern:&str,path:&str,exact:bool)->bool {
+ let path=path.split('#').next().unwrap_or("/");
+ if pattern=="/"{return !exact || path=="/";}
+ let mut current=path.split('/').skip(1);
+ for segment in pattern.split('/').skip(1) {
+  let Some(value)=current.next() else{return false};
+  if segment.starts_with(':') {if value.is_empty(){return false;}} else if segment!=value{return false;}
+ }
+ !exact || current.next().is_none()
+}
+pub fn route_parameter(path:&str,pattern:&str,name:&str)->Result<String,String> {
+ let pattern=checked_pattern(pattern)?;let current=checked_path(path)?;
+ if !matches_path(&pattern,&current,true){return Ok(String::new());}
+ Ok(pattern.split('/').zip(current.split('#').next().unwrap_or("/").split('/')).find_map(|(segment,value)|(segment.strip_prefix(':')==Some(name)).then(||value.to_owned())).unwrap_or_default())
 }
 pub(crate) fn current()->Option<String>{active().ok().and_then(|owner|(owner.read)().ok())}
 pub(crate) fn current_kind(href:&str)->Option<&'static str>{
@@ -48,17 +82,17 @@ pub(crate) fn current_kind(href:&str)->Option<&'static str>{
     let path=current.split('#').next()?;
     if path==href{Some("page")}else if href!="/"&&path.strip_prefix(href).is_some_and(|rest|rest.starts_with('/')){Some("location")}else{None}
 }
-#[cfg(any(test,feature="native"))]
+#[cfg(any(test,feature="gpui"))]
 pub(crate) fn is_current(href:&str)->bool{current_kind(href).is_some()}
 pub fn navigate(path:&str)->Result<(),String>{let path=checked_path(path)?;let owner=active()?;push(&owner,&path)?;(owner.write)(path)}
 pub fn traverse(forward:bool)->Result<(),String>{
     let owner=active()?;
-    #[cfg(all(target_arch="wasm32",feature="ui-web"))]
+    #[cfg(all(target_arch="wasm32",feature="gpui-web"))]
     {let _=owner;browser_history(if forward{"forward"}else{"back"},None)}
-    #[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]
     {let mut history=owner.history.borrow_mut();let next=if forward{(history.1+1).min(history.0.len()-1)}else{history.1.saturating_sub(1)};let path=history.0[next].clone();history.1=next;drop(history);(owner.write)(path)}
 }
-#[cfg(all(target_arch="wasm32",feature="ui-web"))]
+#[cfg(all(target_arch="wasm32",feature="gpui-web"))]
 pub(crate) fn restore_browser()->Result<(),String>{let Ok(owner)=active()else{return Ok(())};(owner.write)(browser_path()?)}
 /// HTTPS links use the platform launcher; application paths retain local routing.
 pub(crate) fn external(href:&str)->bool{href.starts_with("https://")}
@@ -69,7 +103,7 @@ pub fn checked_href(href:&str)->Result<String,String>{
     if url.scheme()!="https" || url.host_str().is_none() || !url.username().is_empty() || url.password().is_some(){return Err("HTTPS links require a host and cannot contain credentials".into());}
     Ok(url.into())
 }
-#[cfg(not(all(target_arch="wasm32",feature="ui-web")))]
+#[cfg(not(all(target_arch="wasm32",feature="gpui-web")))]
 fn open_external(href:&str)->Result<(),String>{
     #[cfg(target_os="macos")]let mut command=std::process::Command::new("/usr/bin/open");
     #[cfg(target_os="windows")]let mut command={let mut command=std::process::Command::new("rundll32.exe");command.arg("url.dll,FileProtocolHandler");command};
@@ -77,7 +111,7 @@ fn open_external(href:&str)->Result<(),String>{
     let result=command.arg(href).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().map_err(|error|format!("Cannot open HTTPS link: {error}"))?;
     if result.success(){Ok(())}else{Err(format!("HTTPS link launcher exited with {result}"))}
 }
-#[cfg(all(target_arch="wasm32",feature="ui-web"))]
+#[cfg(all(target_arch="wasm32",feature="gpui-web"))]
 fn open_external(_:&str)->Result<(),String>{Err("Browser HTTPS links use anchor activation".into())}
 pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String>{
     let path=checked_href(path)?;let href=path.clone();let owner=ACTIVE.with(|value|value.borrow().clone());
@@ -89,6 +123,33 @@ pub fn link(children:Vec<Child>,class_name:String,path:&str)->Result<Node,String
 
 #[cfg(test)]
 mod tests{
+ #[test]fn window_roots_keep_independent_navigation_history_and_disposal(){
+  let first=create_location("/first",String::from,Clone::clone).unwrap();let read_first=first.handle();
+  let mut first=Node::button("first".into(),String::new(),false,||navigate("/first/next")).unwrap().own_state(first).unwrap();
+  first.ensure_identities();let first_id=first.identity.get();let first_context=first.navigation.clone();
+  let second=create_location("/second",String::from,Clone::clone).unwrap();let read_second=second.handle();
+  let mut second=Node::button("second".into(),String::new(),false,||navigate("/second/next")).unwrap().own_state(second).unwrap();
+  second.ensure_identities();let second_id=second.identity.get();
+  first.activate(first_id).unwrap();assert_eq!(read_first.get().unwrap(),"/first/next");assert_eq!(read_second.get().unwrap(),"/second");
+  assert_eq!(current().unwrap(),"/second");
+  second.activate(second_id).unwrap();assert_eq!(read_second.get().unwrap(),"/second/next");
+  {let _scope=first_context.enter();traverse(false).unwrap();assert_eq!(current().unwrap(),"/first");traverse(true).unwrap();assert_eq!(current().unwrap(),"/first/next");}
+  assert_eq!(current().unwrap(),"/second/next");
+  drop(first);assert!(read_first.get().is_err());assert_eq!(read_second.get().unwrap(),"/second/next");
+  {let _scope=first_context.enter();assert!(navigate("/stale").is_err());}
+  assert_eq!(current().unwrap(),"/second/next");
+ }
+ #[test]fn named_route_parameters_match_segments_without_decoding_or_rebinding(){
+  for (pattern,path,exact,expected) in [("/users/:id","/users/42",true,true),("/users/:id","/users/42#bio",true,true),("/users/:id","/users/42/edit",true,false),("/users/:id","/users/42/edit",false,true),("/users/:id","/users",false,false),("/users/:id","/users//edit",false,false),("/users/:id","/users-other/42",false,false),("/","/users",false,true),("/","/users",true,false),("/a//b","/a/b",true,false)] {assert_eq!(matches_path(pattern,path,exact),expected,"{pattern} {path}");}
+  assert_eq!(route_parameter("/users/42#bio","/users/:id","id").unwrap(),"42");
+  assert_eq!(route_parameter("/teams/rust/users/ada/","/teams/:team/users/:user","user").unwrap(),"ada");
+  assert_eq!(route_parameter("/users/42/edit","/users/:id","id").unwrap(),"");
+  assert_eq!(route_parameter("/users/42","/users/:id","missing").unwrap(),"");
+  for pattern in ["/users/:","/users/:1id","/:id/:id","/users#bio"] {assert!(route_parameter("/users/42",pattern,"id").is_err(),"{pattern}");}
+  let state=create_location("/users/1",String::from,Clone::clone).unwrap();
+  let mut matches=route_predicate("/users/:id",true).unwrap();assert!(matches().unwrap());state.set("/users/2".into()).unwrap();assert!(matches().unwrap());
+  state.set("/elsewhere".into()).unwrap();assert!(!matches().unwrap());drop(state);assert!(matches().is_err());
+ }
  #[test]fn selected_links_distinguish_page_ancestors_fragments_and_unrelated_segments(){
   let state=location(String::from,Clone::clone).unwrap();state.set("/docs/ui/components/button#variants".into()).unwrap();
   for (href,expected) in [("/docs/ui/components/button",Some("page")),("/docs",Some("location")),("/docs/ui/components",Some("location")),("/docs/ui/components/button#variants",Some("location")),("/docs/u",None),("/docs/ui/components/buttons",None),("/",None),("/docs/ui/components/button#props",None),("https://example.com/docs",None)]{assert_eq!(current_kind(href),expected,"{href}");}

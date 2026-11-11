@@ -1,12 +1,6 @@
-//! Owned semantic nodes shared by the web and native renderers.
+//! Owned semantic nodes shared by the HTML document writer and the GPUI renderer.
 //! Synchronous handlers mutate explicitly owned state through weak handles.
 
-#[cfg(feature = "native")]
-#[cfg(feature = "runtime")]
-mod native;
-#[cfg(all(target_arch="wasm32",feature="ui-web"))]
-#[cfg(feature = "runtime")]
-pub mod browser;
 #[cfg(feature = "runtime")]
 mod state;
 #[cfg(feature = "runtime")]
@@ -17,14 +11,13 @@ mod identity;
 pub use identity::use_id;
 #[cfg(feature = "runtime")]
 mod vector;
-#[cfg(any(test,feature="native"))]
+#[cfg(any(test,feature="gpui"))]
 #[cfg(feature = "runtime")]
 mod table;
 #[cfg(feature = "runtime")]
 pub mod navigation;
 #[cfg(feature = "runtime")]
 mod branch;
-#[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
 #[cfg(feature = "runtime")]
 mod window;
 #[cfg(test)]
@@ -44,6 +37,20 @@ mod editable;
 #[cfg(feature = "runtime")]
 mod visibility;
 #[cfg(feature = "runtime")]
+mod kit;
+#[cfg(feature = "runtime")]
+mod commands;
+#[cfg(feature = "runtime")]
+mod i18n;
+#[cfg(feature = "runtime")]
+mod update;
+#[cfg(feature = "runtime")]
+pub use update::{app_info,check as check_update,install as install_update};
+#[cfg(feature = "runtime")]
+pub use i18n::{locale,set_locale,set_translations,translate,translation};
+#[cfg(feature = "runtime")]
+pub use commands::{appearance,command,command_reply,open_window};
+#[cfg(feature = "runtime")]
 pub mod clipboard;
 #[cfg(feature = "runtime")]
 pub(crate) use editable::{ValueBinding,ChangeHandler};
@@ -55,16 +62,6 @@ pub mod style;
 pub mod theme;
 #[cfg(feature = "runtime")]
 mod web;
-#[cfg(feature = "native")]
-#[cfg(feature = "runtime")]
-pub use native::run;
-#[cfg(feature = "native")]
-#[cfg(feature = "runtime")]
-pub use native::run_configured;
-#[cfg(feature = "acceptance")]
-#[doc(hidden)]
-#[cfg(feature = "runtime")]
-pub use native::verify_window;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg(feature = "runtime")]
@@ -114,6 +111,7 @@ pub(crate) struct Semantics {
 
 #[cfg(feature = "runtime")]
 pub struct Node {
+    pub(crate) navigation:navigation::Context,
     depth: usize,
     identity:std::cell::Cell<u64>,
     next_identity:std::cell::Cell<u64>,
@@ -136,11 +134,14 @@ pub struct Node {
     collapsed:bool,
     hidden:Option<Box<dyn FnMut()->Result<bool,String>>>,
     branch:Option<branch::Branch>,
+    /// A reactive list slot: rebuilt on refresh, keeping rows whose shape is unchanged.
+    each:Option<Box<dyn FnMut()->Result<Option<Node>,String>>>,
     class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     variant_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     semantic_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
     state: Vec<Box<dyn std::any::Any>>,
     vector:Option<Box<vector::Data>>,
+    pub(crate) kit:Option<Box<kit::Kit>>,
 }
 
 #[cfg(feature = "runtime")]
@@ -213,7 +214,7 @@ impl Node {
     }
     fn has_enabled_controls(&self)->bool {!self.collapsed && (self.enabled_control() || self.children.iter().any(Self::has_enabled_controls))}
     pub(crate) fn enabled_control(&self)->bool {(matches!(self.kind,Kind::Button|Kind::Input|Kind::Textarea) || self.kind==Kind::View && self.semantics.tab_index.is_some()) && !self.is_disabled()}
-    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.copy.as_ref().is_some_and(|copy|copy.pending) || self.editable.as_ref().is_some_and(|field|field.disabled)}
+    pub(crate) fn is_disabled(&self)->bool {self.kind==Kind::DisabledButton || self.copy.as_ref().is_some_and(|copy|copy.pending) || self.editable.as_ref().is_some_and(|field|field.disabled) || self.kit.as_deref().is_some_and(|kit|kit.flag("disabled"))}
     fn apply_disabled(&mut self,next:bool)->bool {
         if let Some(field)=&mut self.editable {let changed=field.disabled!=next;field.disabled=next;changed}
         else {let kind=if next{Kind::DisabledButton}else{Kind::Button};let changed=self.kind!=kind;self.kind=kind;changed}
@@ -246,7 +247,7 @@ impl Node {
         let mut node=Self::new(Kind::View,class_name,String::new(),children)?;
         node.kind=if disabled{Kind::DisabledButton}else{Kind::Button};node.press=press;Ok(node)
     }
-    #[cfg(any(test,feature="native"))]
+    #[cfg(any(test,feature="gpui"))]
     pub(crate) fn content_text(&self)->String {
         fn append(node:&Node,out:&mut String) {
             if node.collapsed || node.semantics.hidden || node.editable.is_some(){return;}
@@ -329,11 +330,12 @@ impl Node {
         let mut node=Self::new(if disabled {Kind::DisabledButton}else{Kind::Button},class_name,text,vec![])?;
         node.press=Some(Box::new(press));Ok(node)
     }
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn refresh(&mut self) -> Result<usize,String> {
+        let _navigation=self.navigation.enter();
         let changed=self.refresh_inner()?;self.ensure_identities();Ok(changed)
     }
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     fn refresh_inner(&mut self) -> Result<usize,String> {
         let retained=self.branch.as_ref().is_some_and(|branch|branch.retained);
         let mut changed=if retained{self.refresh_branch()?}else{0};
@@ -346,6 +348,7 @@ impl Node {
         }
         if !retained {changed+=self.refresh_branch()?;}
         if let Some(data)=&mut self.vector{changed+=data.refresh()?;}
+        changed+=self.refresh_kit()?;
         let metadata=if let Some(binding)=&mut self.semantic_binding{Some(binding()?)}else{None};
         if let Some(config)=metadata{changed+=usize::from(self.apply_semantics(&config,false)?);}
 
@@ -366,21 +369,24 @@ impl Node {
             let text=Self::text_value(&self.parts)?;
             if text!=self.text {self.text=text;changed+=1;}
         }
+        changed+=self.refresh_each()?;
         for child in &mut self.children {changed+=child.refresh_inner()?;}
-        self.depth=usize::from(self.branch.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
+        changed+=self.refresh_text_children();
+        self.depth=usize::from(self.branch.is_none()&&self.each.is_none())+self.children.iter().map(|child|child.depth).max().unwrap_or(0);
         if self.depth>128{return Err("UI nesting exceeds 128 nodes".into());}
         self.validate_structure()?;
         Ok(changed)
     }
-    #[cfg(any(test,feature="native"))]
+    #[cfg(any(test,feature="gpui"))]
     pub(crate) fn disclosure_request(&self,target:u64,expanded:bool)->bool{
         let Some(node)=self.visible_root() else{return false;};
         if node.identity.get()==target{return matches!(node.kind,Kind::Button)&&!node.is_disabled()&&node.semantics.expanded==(if expanded{"false"}else{"true"});}
         node.children.iter().any(|child|child.disclosure_request(target,expanded))
     }
     /// IDs initially follow preorder; removed IDs are never reused within this tree.
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn activate(&mut self, target: u64) -> Result<bool,String> {
+        let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64)->Result<bool,String> {
             if node.collapsed{return Ok(false);}
@@ -400,8 +406,9 @@ impl Node {
         let mut node=Self::new(Kind::View,class_name,String::new(),vec![])?;
         node.kind=if field.multiline{Kind::Textarea}else{Kind::Input};node.text=field.value.clone();node.editable=Some(field);Ok(node)
     }
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
+        let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node:&mut Node,target:u64,value:&str)->Result<bool,String>{
             if node.collapsed{return Ok(false);}
@@ -415,7 +422,7 @@ impl Node {
         visit(self,target,value)
     }
 
-    #[cfg(feature="native")]
+    #[cfg(feature="gpui")]
     fn control_value(&self,target:u64)->Option<&str> {
         fn find(node:&Node,target:u64)->Option<&str>{if node.identity.get()==target{return node.editable.as_ref().map(|field|field.value.as_str());}node.children.iter().find_map(|child|find(child,target))}
         find(self,target)
@@ -445,15 +452,16 @@ impl Node {
         let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
         for child in &children{child.reset_identities();}
         let node=Self {
+            navigation:navigation::Context::current(),
             depth,
-            identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,
+            identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,each:None,
             theme: None,theme_mode:None,theme_inherited:false,
             semantics: Semantics::default(),
             kind,
             class_name,
             text,
             children,
-            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,
+            vector:None,parts: Vec::new(), disabled:None, visibility:None, copy:None, press: None, class_binding:None,variant_binding:None,semantic_binding:None,state: Vec::new(), editable:None, read_only:None,collapsed:false,hidden:None,kit:None,
         };if matches!(kind,Kind::Svg|Kind::SvgPath){node.check_class(&node.class_name)?;}
         if kind!=Kind::Svg && node.children.iter().any(|child|child.kind==Kind::SvgPath){return Err("Path requires an enclosing Svg".into());}Ok(node)
     }
@@ -461,6 +469,7 @@ impl Node {
 
 #[cfg(feature = "runtime")]
 pub fn document(root: &Node, title: &str) -> String {
+    let _navigation=root.navigation.enter();
     web::document(root, title)
 }
 
@@ -708,7 +717,15 @@ mod editable_event_tests {
 #[cfg(feature = "runtime")]
 #[cfg(test)]mod inline_content_tests{
  use super::*;
- #[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){
+ #[test]
+fn inline_paint_styles_are_valid_without_admitting_layout_boxes() {
+  let make=|classes:&str|Node::text(vec![TextPart::Literal("café".into())],classes.into()).and_then(|child|Node::text_children(vec![Child::Node(child)],String::new()));
+  let node=make("italic line-through bg-amber-200 font-mono text-rose-600").unwrap();
+  assert!(document(&node,"Inline").contains("café"));
+  for classes in ["p-2","absolute","flex-row"] {assert!(make(classes).is_err(),"{classes}");}
+}
+
+#[test]fn rich_text_rejects_block_controls_boxes_and_keeps_reactive_children(){
   for child in [Node::view(vec![],String::new()).unwrap(),Node::button("bad".into(),String::new(),false,||Ok(())).unwrap(),Node::text(vec![TextPart::Literal("box".into())],"p-2".into()).unwrap()] {assert!(Node::text_children(vec![Child::Node(child)],String::new()).is_err());}
   let state=Signal::new(1i64);let child=Node::text(vec![TextPart::Signal(state.handle().text_binding(i64::to_string))],"font-bold".into()).unwrap().with_semantics("{\"tag\":\"strong\"}").unwrap();let mut node=Node::text_children(vec![Child::Text(TextPart::Literal("Count ".into())),Child::Node(child)],String::new()).unwrap();node.ensure_identities();let id=node.children[1].identity.get();state.set(2).unwrap();node.refresh().unwrap();assert!(document(&node,"Text").contains(">2</strong>"));assert_eq!(node.children[1].identity.get(),id);drop(state);assert!(node.refresh().unwrap_err().contains("disposed"));
  }

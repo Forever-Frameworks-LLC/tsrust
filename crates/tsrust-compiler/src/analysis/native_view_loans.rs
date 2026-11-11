@@ -26,6 +26,8 @@ pub(crate) enum LifetimeSource {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Segment {
     CallableAlternative(usize),
+    /// Physical outer reference, separate from the captured payload's own slots.
+    CaptureBorrow(usize),
     Field(String),
     Element,
 }
@@ -34,6 +36,14 @@ pub(crate) enum Segment {
 pub(crate) struct VariantGuard {
     pub path: Vec<Segment>,
     pub success: usize,
+}
+
+impl Loan {
+    /// Signature provenance only. Existing capture-loan owners enforce access,
+    /// settlement and escape rules for ordinary callable references.
+    pub(crate) fn environment_borrow(&self)->bool {
+        self.path.iter().any(|segment|matches!(segment,Segment::CaptureBorrow(_)))
+    }
 }
 
 impl LifetimeSource {
@@ -131,6 +141,33 @@ impl Analyzer {
     }
 
     pub(super) fn native_view_value_outputs<'a>(context: &'a Context, expr: &'a Expr, outputs: Option<&'a [super::native_view_calls::Returned]>) -> Result<Vec<Loan>, Diagnostic> {
+        Self::native_view_value_outputs_with(context, expr, outputs, None)
+    }
+
+    /// Only call evaluation may omit a proven fresh owner from its transient
+    /// reservations. Storage, return, capture and mutation summaries use the
+    /// unchanged strict entry point above.
+    pub(super) fn reserve_native_argument_loans(&self, context: &Context, expr: &Expr, active: &mut Loans) -> Result<(), Diagnostic> {
+        if !context.native_view_calls || !expr.ty.is_some_and(|ty|self.native_shape_contains_view(ty)) {
+            return Ok(());
+        }
+        let fresh = |source: &Expr| self.fresh_native_view_owner(context, source);
+        let loans = Self::native_view_value_outputs_with(context, expr, None, Some(&fresh))?;
+        for loan in loans.into_iter().filter(|loan|loan.retained) {
+            // Readonly access to the view descriptor does not weaken an
+            // exclusive borrow of its underlying owner.
+            let mode = if loan.access == BorrowAccess::Exclusive { Mode::Mutate } else { Mode::Read };
+            active.native_argument(loan.root, mode, expr.span, loan.owner_fields);
+        }
+        Ok(())
+    }
+
+    fn native_view_value_outputs_with<'a>(
+        context: &'a Context,
+        expr: &'a Expr,
+        outputs: Option<&'a [super::native_view_calls::Returned]>,
+        fresh: Option<&dyn Fn(&Expr) -> Result<bool, Diagnostic>>,
+    ) -> Result<Vec<Loan>, Diagnostic> {
         if !context.native_view_calls {
             return Ok(Vec::new());
         }
@@ -188,6 +225,7 @@ impl Analyzer {
                 }
                 Task::FinishCapture(start,alternative,capture,output,span) => {
                     if result.len()==start {
+                        if std::env::var_os("TSRUST_TRACE_CARRIERS").is_some(){for(id,binding)in context.bindings.iter().enumerate(){eprintln!("[native-view-capture] effects_only={} binding={id} name={} type={:?} loans={:?}",context.effects_only,binding.name,binding.ty,binding.native_view_loans);}}
                         return Err(Diagnostic::new("native-view-call","The selected callback has no tracked byte-view source lifetime.",span));
                     }
                     if let Some(alternative)=alternative {
@@ -267,7 +305,12 @@ impl Analyzer {
                 ExprKind::Closure {..} => {
                     if let Some(Type::Closure(origin))=value.ty
                         && let Some(captures)=context.native_view_environments.as_ref().and_then(|environments|environments.get(&origin)) {
-                        for &(inner,outer) in captures {
+                        for &(inner,outer,storage) in captures {
+                            if matches!(storage,Mode::Read|Mode::Mutate) {
+                                result.push(Loan{whole:false,root:outer,owner_fields:vec![],source:LifetimeSource::Storage,
+                                    access:if storage==Mode::Mutate{BorrowAccess::Exclusive}else{BorrowAccess::ReadOnly},
+                                    creation:value.span,retained:false,path:vec![Segment::CaptureBorrow(inner)],guards:vec![]});
+                            }
                             for source in context.bindings[outer].native_view_loans.as_deref().into_iter().flatten() {
                                 let mut loan=source.clone();
                                 native_view_projections::wrap(&mut loan,&Segment::Field(format!("capture{inner}")));
@@ -303,13 +346,20 @@ impl Analyzer {
                                         _=>None,
                                     }.ok_or_else(||Diagnostic::new("native-view-call","A returned receiver view requires a stable callable binding.",value.span))?;
                                     if context.bindings.get(root).is_none() {return Err(Diagnostic::new("native-view-call","Returned receiver storage is outside the current lexical environment.",value.span));}
-                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();
                                     loan.owner_fields.insert(0,format!("capture{capture}"));
                                     result.push(loan);continue;
                                 }
+                                super::native_view_calls::Source::ProgramCapture(declaration)=>{
+                                    let root=*context.source_bindings.get(&declaration).ok_or_else(||Diagnostic::new("native-view-call","Program capture has no checked caller storage provenance.",value.span))?;
+                                    let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Program capture storage is outside the current lexical environment.",value.span))?;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();result.push(loan);
+                                    for inherited in binding.native_view_loans.as_deref().into_iter().flatten(){let mut actual=inherited.clone();if super::native_view_calls::transport(&mut actual,output){result.push(actual);}}
+                                    continue;
+                                }
                                 super::native_view_calls::Source::BorrowedCapture(root)=>{
                                     let binding=context.bindings.get(root).ok_or_else(||Diagnostic::new("native-view-call","Captured owner is outside the current lexical environment.",value.span))?;
-                                    let mut loan=output.clone();loan.root=root;loan.retained=true;
+                                    let mut loan=output.clone();loan.root=root;loan.retained=!loan.environment_borrow();
                                     result.push(loan);
                                     for inherited in binding.native_view_loans.as_deref().into_iter().flatten() {
                                         let mut actual=inherited.clone();
@@ -332,7 +382,9 @@ impl Analyzer {
                             match &output.source {
                                 LifetimeSource::Carried(_)|LifetimeSource::VariantCarried{..}=>pending.push(Task::Returned(argument,output)),
                                 LifetimeSource::Storage=>{
-                                    result.extend(super::native_view_calls::storage(context,argument,output)?);
+                                    if !fresh.map_or(Ok(false), |fresh|fresh(argument))? {
+                                        result.extend(super::native_view_calls::storage(context,argument,output)?);
+                                    }
                                     pending.push(Task::Returned(argument,output));
                                 }
                             }
@@ -368,15 +420,22 @@ impl Analyzer {
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {
-                        let mut loans = Self::native_view_source_loans(
-                            context,
-                            &args[contract.source_parameter],
-                            contract,
-                        )?;
+                        let source = &args[contract.source_parameter];
+                        if fresh.map_or(Ok(false), |fresh|fresh(source))? {
+                            // No persistent root is invented for an ephemeral
+                            // owner. Strict extraction never takes this branch.
+                            continue;
+                        }
+                        let mut loans = Self::native_view_source_loans(context, source, contract)?;
                         if matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional) {
                             let (variant, optional_payload) = value.ty.and_then(Type::union).and_then(|union| context.native_view_results.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "A native Result view requires its checked success identity.",value.span))?;
                             for loan in &mut loans {
                                 native_view_projections::result(loan, variant, optional_payload);
+                            }
+                        } else if contract.slot == crate::native_return_borrows::ReturnSlot::DirectOptional {
+                            let payload = value.ty.and_then(Type::union).and_then(|union| context.native_optional_views.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "An optional native view requires its checked payload identity.", value.span))?;
+                            for loan in &mut loans {
+                                native_view_projections::guard(loan, payload);
                             }
                         }
                         result.extend(loans);
@@ -478,7 +537,7 @@ impl Analyzer {
             }
         }
         for loan in &mut result {
-            loan.retained = true;
+            loan.retained = !loan.environment_borrow();
         }
         native_view_projections::normalize(&mut result);
         Ok(result)
@@ -514,7 +573,7 @@ impl Analyzer {
             });
         }
         for loan in &mut result {
-            loan.retained = true;
+            loan.retained = !loan.environment_borrow();
         }
         native_view_projections::normalize(&mut result);
         Ok(result)
@@ -554,6 +613,17 @@ mod tests {
             }],
         );
         id
+    }
+    #[test]
+    fn borrowed_union_injection_preserves_named_storage_but_not_temporary_ownership() {
+        let mut context=Context::new("test".into());let root=local(&mut context,"family");
+        let union=crate::syntax::UnionId{index:0,copy:false,scalar_members:false};
+        let injected=|payload:Expr,borrowed:bool|{let mut value=Expr::new(ExprKind::Inject{value:Box::new(payload),union},Span::default());value.ty=Some(if borrowed{Type::BorrowedUnion(union)}else{Type::Union(union)});value};
+        let sources=super::super::native_view_places::sources(&context,&injected(name(&context,root),true)).unwrap();
+        assert_eq!(sources.len(),1);assert_eq!(sources[0].root,root);
+        let temporary=Expr::new(ExprKind::String("any".into()),Span::default());
+        assert_eq!(super::super::native_view_places::sources(&context,&injected(temporary,true)).unwrap_err().code,"native-view-source");
+        assert_eq!(super::super::native_view_places::sources(&context,&injected(name(&context,root),false)).unwrap_err().code,"native-view-source");
     }
     #[test]
     fn readonly_native_view_blocks_owner_mutation_transfer_and_replacement() {

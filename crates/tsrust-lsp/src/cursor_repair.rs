@@ -43,6 +43,11 @@ impl SourceIndex {
         self.offset(position)
     }
 
+    /// Keep the separator in edits that replace dot access with bracket access.
+    pub(crate) fn member_access_range(&self, separator: usize, offset: usize) -> Range {
+        self.range(Span::new(self.tokens[separator].span.start, offset))
+    }
+
     /// The separator before the cursor and the start of the typed member
     /// prefix, when the cursor is in a member position.
     pub(crate) fn member_position(&self, offset: usize) -> Option<(usize, usize)> {
@@ -172,7 +177,7 @@ impl SourceIndex {
     /// Members of the expression that ends at byte `receiver_end` of this
     /// checked text, filtered by `prefix`. `replace` is a range of the
     /// document the user is editing.
-    pub(crate) fn members_ending_at(&self, receiver_end: usize, prefix: &str, replace: Range, receiver: &str, optional: bool) -> Option<Value> {
+    pub(crate) fn members_ending_at(&self, receiver_end: usize, prefix: &str, replace: Range, access: Range, receiver: &str, optional: bool) -> Option<Value> {
         let end = self.tokens.iter().position(|token| token.span.end == receiver_end)?;
         // The separator is gone from the repaired text; `end + 1` stands for it.
         let ty = if matches!(self.text(end), "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map" | "JSON")
@@ -185,7 +190,9 @@ impl SourceIndex {
         };
         // `?.` reads the member of the present value only.
         let ty = if optional { self.record_alternatives(&ty, true).join(" | ") } else { ty };
-        Some(json!(self.member_items(&ty, prefix, replace, receiver)))
+        let mut items=self.member_items(&ty, prefix, replace, receiver, end);
+        quote_field_edits(&mut items, access, optional);
+        Some(json!(items))
     }
 
     /// Answer a member completion from a repaired single document.
@@ -193,10 +200,11 @@ impl SourceIndex {
         let (separator, prefix_start) = self.member_position(offset)?;
         let prefix = &self.source[prefix_start..offset];
         let replace = self.range(Span::new(prefix_start, offset));
+        let access = self.member_access_range(separator, offset);
         let receiver = self.receiver_text(separator);
         self.declaration_prefix_repairs(offset).into_iter().chain(self.member_repairs(offset)).find_map(|repair| {
             let repaired = SourceIndex::new(&repair.text);
-            repaired.checked().then(|| repaired.members_ending_at(repair.receiver_end, prefix, replace, &receiver, self.text(separator) == "?.")).flatten()
+            repaired.checked().then(|| repaired.members_ending_at(repair.receiver_end, prefix, replace, access, &receiver, self.text(separator) == "?.")).flatten()
         })
     }
 

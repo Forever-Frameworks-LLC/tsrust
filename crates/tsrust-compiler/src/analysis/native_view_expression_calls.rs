@@ -5,7 +5,6 @@ impl Analyzer {
     pub(super) fn remember_native_expression_call(
         &self,context:&mut Context,target:CallTarget,callee:&mut Expr,hint:Type,span:Span,
     )->Result<(),Diagnostic> {
-        if !self.native_borrow_types {return Ok(());}
         match target {
             CallTarget::StoredCallableField(family)=>self.remember_native_family_returns(context,family,span),
             CallTarget::ConditionalClosure(origin)=>self.remember_native_closure_returns(context,origin,None,span),

@@ -1196,7 +1196,6 @@ function noBackedgeEntryReturn(value: int): int {
  const returnNoBackFirst=[value]; const returnNoBackSecond=[value+2]; const returnNoBackEntries=new Map<string,Holder>();
  returnNoBackEntries.set("first",{run:():int=>returnNoBackFirst[0]}); returnNoBackEntries.set("second",{run:():int=>returnNoBackSecond[0]});
  while(true){returnNoBackEntries.delete("first");returnNoBackFirst[0]+=1;return returnNoBackFirst[0];}
- return 0;
 }
 
 function phaseJoinFailure(fail: boolean): void { if(fail)throw 913; }

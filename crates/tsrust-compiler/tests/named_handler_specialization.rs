@@ -1,9 +1,9 @@
 mod support;
 use support::{TempDirectory, run, success};
 
-const OWNER: &str = include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/owner.tsr");
-const NAMED: &str = include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/named-self-replacement.tsr");
-const FACTORY: &str = include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/factory-self-replacement.tsr");
+const OWNER: &str = include_str!("fixtures/owner-handles/owner.tsr");
+const NAMED: &str = include_str!("fixtures/owner-handles/named-self-replacement.tsr");
+const FACTORY: &str = include_str!("fixtures/owner-handles/factory-self-replacement.tsr");
 
 fn project(source: &str) -> TempDirectory {
     let directory = TempDirectory::new();

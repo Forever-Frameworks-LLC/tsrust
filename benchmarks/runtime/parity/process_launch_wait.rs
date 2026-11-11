@@ -1,0 +1,3 @@
+mod tsrust_native_futures{pub fn block_on<F:std::future::Future>(future:F)->F::Output{tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap().block_on(future)}}
+use tokio::io::{AsyncReadExt,AsyncWriteExt};use std::process::Stdio;
+async fn function0(n:i64,seed:i64)->i64{let executable=std::env::var("TSRUST_PROCESS_HELPER").unwrap();let mut sum=0;for i in 0..n{let mut child=tokio::process::Command::new(&executable).arg("silent").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).kill_on_drop(true).spawn().unwrap();let status=child.wait().await.unwrap();assert!(status.success());sum=(sum*131+i64::from(status.code().unwrap())+seed+i)%1000000007;}sum}fn main(){}

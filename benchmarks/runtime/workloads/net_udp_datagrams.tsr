@@ -1,0 +1,58 @@
+import { parseAddress, listenTcp, connectTcp, bindUdp, TcpListener, UdpSocket } from 'std:net';
+import { readExact, writeAll, close } from 'std:io';
+import { alloc, set, at, length } from 'std:bytes';
+async function workload(n: int, seed: int): Task<int> {
+  const bind = unwrap(parseAddress('127.0.0.1:0'));
+  const listener = unwrap(await bindUdp(bind));
+  const endpoint = unwrap(listener.localAddress());
+  const worker = serve(listener, n).start();
+  let sum: int = 0;
+  try {
+    const client = unwrap(await bindUdp(bind));
+    const payload = unwrap(alloc(1400));
+    for (let j: int = 0; j < 1400; j++) {
+      unwrap(set(payload, j, (seed + j) % 251));
+    }
+
+
+    for (let i: int = 0; i < n; i++) {
+      if (unwrap(await client.sendTo(payload, endpoint)) !== 1400) {
+        throw 'short datagram';
+      }
+
+      const packet = unwrap(await client.receiveFrom(1400));
+      if (length(packet.data) !== 1400) {
+        throw 'wrong datagram size';
+      }
+
+      for (let j: int = 0; j < 1400; j++) {
+        sum = (sum * 131 + unwrap(at(packet.data, j))) % 1000000007;
+      }
+    }
+
+    client.close();
+  } catch (failure) {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await worker;
+  return sum;
+}
+
+async function serve(socket: Owned<UdpSocket>, n: int): Task<void> {
+  for (let i: int = 0; i < n; i++) {
+    const packet = unwrap(await socket.receiveFrom(1400));
+    if (length(packet.data) !== 1400) {
+      throw 'wrong server datagram size';
+    }
+
+    unwrap(await socket.sendTo(packet.data, packet.remote));
+  }
+
+  socket.close();
+}

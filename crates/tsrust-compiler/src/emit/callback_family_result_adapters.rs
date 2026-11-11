@@ -12,6 +12,8 @@ impl Emitter<'_> {
         let mut emitted=std::collections::HashSet::new();
         for (callback,(destination_name,destination)) in callbacks {
             let checked=&self.program.callback_contracts[*callback];
+            let task=contract.kind==CallbackKind::Task;
+            if (checked.kind==CallbackKind::Task)!=task{continue;}
             if checked.result!=contract.result || checked.params.len()!=contract.params.len() || !checked.params.iter().zip(&contract.params).all(|(a,b)|a.ty==b.ty && a.mode==b.mode && a.rest==b.rest) {continue;}
             let result=format!("Result<{},{}>",self.native_type(checked.result),destination_name);
             if result==native_result || !emitted.insert(result.clone()) {continue;}
@@ -21,10 +23,10 @@ impl Emitter<'_> {
                 format!("{call}.map_err(|error|{conversion})")
             }else{format!("Ok({call})")};
             for &(trait_name,method,receiver) in traits {
-                let body=convert(format!("self.call({forwarded})"));
+                let body=convert(format!("self.call({forwarded}){}",if task{".await"}else{""}));
                 let _=writeln!(output,"impl{generics} {trait_name}<{arguments},{result}> for {name} {{fn {method}({receiver},args:{arguments})->{result} {{{body}}}");
                 if self.counted_calls {
-                    let body=convert(format!("self.call_with_count(count,{forwarded})"));
+                    let body=convert(format!("self.call_with_count(count,{forwarded}){}",if task{".await"}else{""}));
                     let _=writeln!(output,"fn {method}_with_count({receiver},args:{arguments},count:usize)->{result} {{{body}}}");
                 }
                 output.push_str("}\n");

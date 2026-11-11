@@ -1,0 +1,5 @@
+//! Native network methods reuse checked argument contracts and lazy Result tasks.
+use super::*;
+impl Analyzer{
+ pub(super) fn network_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{let ExprKind::Call(callee,args)=&expression.kind else{return Ok(None)};let ExprKind::Field(receiver,name)=&callee.kind else{return Ok(None)};let Some(Type::Record(record))=self.expression_type_hint(context,receiver)else{return Ok(None)};let Some(binding)=crate::stdlib::net::method(self.program.records[record].native_type,name)else{return Ok(None)};let mut inputs=vec![(**receiver).clone()];inputs.extend(args.iter().cloned());let span=expression.span;if crate::stdlib::net::asynchronous(name){crate::stdlib::futures::lazy_result(expression,"std:net",binding.name,inputs);}else{*expression=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:net#{}",binding.name)),span)),inputs),span);}self.expression(context,expression,Mode::Consume,loans,expected).map(Some)}
+}

@@ -1,3 +1,5 @@
+mod compression;
+mod crypto;
 mod escape_work;
 mod task_diagnostics;
 mod continuations;
@@ -12,11 +14,18 @@ mod thread_transfer;
 mod threads;
 mod futures;
 mod http;
+mod url;
+mod regex;
+mod logging;
+mod locale;
+mod process;
+mod net;
 mod sqlite;
 mod ui;
 mod sql;
 mod channels;
 #[path="../stdlib/cache/check.rs"] mod cache;
+#[path="../stdlib/iterator/check.rs"] mod iterator;
 mod results;
 mod json_typed;
 mod record_union_fields;
@@ -37,7 +46,7 @@ mod native_view_places;
 mod native_view_projections;
 mod native_view_recursive;
 pub(crate) mod native_view_loans;
-mod native_capabilities;
+pub(crate) mod native_capabilities;
 mod retained_capture_projection;
 mod result_construction;
 mod result_matching;
@@ -131,7 +140,9 @@ mod spread_call_work;
 mod array_spread_work;
 mod collection_constructors;
 mod builtin_receivers;
+mod string_observations;
 mod program_testing;
+mod testing_deep;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -470,15 +481,18 @@ struct Context {
     /// a whole record. Their nullable callback records keep one carrier type
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
+    /// Escaping owned environments may plan their private nullable record slots.
+    owned_record_captures: HashSet<usize>,
     native_view_calls: bool,
     cache_last_uses: Option<std::rc::Rc<HashMap<String,usize>>>,
     cache_read_owners: HashSet<(usize,Vec<String>)>,
     /// Lexical depth at which a local holding native views was declared.
     native_view_declaration_depths: HashMap<usize, usize>,
-    native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
+    native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize,Mode)>>>>,
     native_task_constructions: Option<Box<HashMap<usize,Vec<native_view_loans::Loan>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,(usize,Option<usize>)>>>,
+    native_optional_views: Option<Box<HashMap<UnionId,usize>>>,
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
@@ -545,6 +559,7 @@ impl Context {
             match_values: Vec::new(),
             match_loans: Vec::new(),
             control_stored: HashSet::new(),
+            owned_record_captures: HashSet::new(),
             native_recursive_shapes: None,
             native_view_calls: false,
             cache_last_uses: None,
@@ -558,6 +573,7 @@ impl Context {
             program_retained_state: false,
             task_body: false,
             native_view_results: None,
+            native_optional_views: None,
             native_view_function_returns: None,
             storage_exits: Default::default(), native_returns: None, native_mutations: None,
             capture_restoration:None,
@@ -1542,11 +1558,19 @@ impl Analyzer {
         }
         crate::stdlib::ui::prepare(&mut program)?;
         crate::stdlib::cache::prepare(&mut program)?;
+        crate::stdlib::compression::prepare(&mut program)?;
+        crate::stdlib::crypto::prepare(&mut program)?;
         crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::http::prepare(&mut program)?;
+        crate::stdlib::url::prepare(&mut program)?;
+        crate::stdlib::regex::prepare(&mut program)?;
+        crate::stdlib::locale::prepare(&mut program)?;
         crate::stdlib::signals::prepare(&mut program)?;
         crate::stdlib::sqlite::prepare(&mut program)?;
         crate::stdlib::sql::prepare(&mut program)?;
+        crate::stdlib::io::prepare(&mut program)?;
+        crate::stdlib::process::prepare(&mut program)?;
+        crate::stdlib::net::prepare(&mut program)?;
         crate::stdlib::futures::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
@@ -1605,7 +1629,7 @@ impl Analyzer {
                 &unions,
                 &mut callables,
             )?;
-            callables.resolver(&record_names, &unions).resolve_value_annotation(argument, false)?;
+            callables.resolver(&record_names, &unions).resolve_value_annotation(argument, true)?;
         }
         append_checked_record_fields(
             &mut program.records,
@@ -1786,7 +1810,7 @@ impl Analyzer {
                     .map(|(variable, argument)| {
                         Ok((
                             variable.text.clone(),
-                            analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(argument, false)?,
+                            analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(argument, true)?,
                         ))
                     })
                     .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
@@ -1894,7 +1918,8 @@ impl Analyzer {
             return Err(Diagnostic::new("unsupported", "Closure arguments cannot have type void.", param.ty.span()));
         }
         if let Some(access) = param.access.as_ref().filter(|_| !param.rest) {
-            if matches!(self.unions.payload(ty).unwrap_or(ty), Type::Callback(_)) {
+            if let Type::Callback(id)=self.unions.payload(ty).unwrap_or(ty)
+                && !(self.callables.callbacks[id].kind==CallbackKind::Task && access.text=="read") {
                 return Err(Diagnostic::new("callback-access", "A Function argument states its ownership with ReadOnly<Function<...>>, Mutable<Function<...>> or Once<Function<...>>, not a data access wrapper.", access.span));
             }
             if ty.is_copy() {
@@ -2116,6 +2141,7 @@ impl Analyzer {
                 for binding in Self::loan_roots(arg, contract.mode) {
                     active.argument(binding, contract.mode, arg);
                 }
+                self.reserve_native_argument_loans(context, arg, &mut active)?;
             }
         }
         for &(slot, mode) in captures {
@@ -2193,7 +2219,8 @@ impl Analyzer {
                 .iter()
                 .zip(&self.signatures[index].params)
                 .zip(modes)
-                .map(|(((name, _, _), &ty), &mode)| Binding { rest: false,
+                .enumerate()
+                .map(|(position,(((name, _, _), &ty), &mode))| Binding { rest: self.program.functions[index].rest_parameter && position+1==self.signatures[index].params.len(),
                     name: name.text.clone(),
                     ty,
                     parameter: true,
@@ -2215,7 +2242,7 @@ impl Analyzer {
                     transferred: None,
                     moved_fields: BTreeMap::new(),
                     used: None,
-                 omission: crate::ParameterOmission::Required, })
+                 omission: self.program.functions[index].parameter_initializers[position].omission(), })
                 .collect()
         };
         let id = if let Some(&id) = self.function_values.get(&index) {
@@ -2560,6 +2587,7 @@ impl Analyzer {
                     ArrayElement::Boolean(_) => "boolean",
                     ArrayElement::Null(_) => "null",
                     ArrayElement::Undefined(_) => "undefined",
+                    ArrayElement::Void(_) => "void",
                     ArrayElement::String(_) => "string",
                     ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => {
                         return format!("{}{}", self.declaration_name(id), "[]".repeat(usize::from(element.depth()) + 1)).into();
@@ -2669,6 +2697,7 @@ impl Analyzer {
     }
 
     fn run(mut self) -> Result<CheckedProgram, Diagnostic> {
+        if let Some(completed)=&self.program.diagnostic_completed {completed.lock().expect("diagnostic progress lock").clear();}
         if let Some(&main) = self.function_names.get("main") {
             if !self.signatures[main].params.is_empty() || self.signatures[main].result != Type::Void {
                 return Err(Diagnostic::new(
@@ -2688,21 +2717,28 @@ impl Analyzer {
         // A function that catches the failure of a callback field of a record
         // parameter needs the records that later functions construct. Check
         // the rest first, then that function again.
-        let mut postponed = Vec::new();
+        let mut postponed = std::collections::VecDeque::new();
         // Checking consumes a body; keep the source of every function that may
         // need the second attempt, including one reached through a call.
-        let mut discovery_sources = self.discovery_body_sources.take().unwrap_or_default();
-        let sources = self.signatures.iter().zip(&self.program.functions).enumerate()
-            .map(|(index, (signature, function))| discovery_sources.remove(&index).or_else(||
-                (signature.params.iter().any(|ty| matches!(ty, Type::Record(_)))
-                || return_type_inference::has_exception_region(&function.body)).then(|| function.body.clone())))
-            .collect::<Vec<_>>();
+        // Retain the same raw bodies for eligible physical-record specializations
+        // requested after an earlier ordinary (possibly borrowed) call was checked.
+        let mut sources=vec![false;self.program.functions.len()];
+        for(index,(signature,function))in self.signatures.iter().zip(&self.program.functions).enumerate(){
+            if self.discovery_body_sources.as_ref().is_some_and(|sources|sources.contains_key(&index)) {
+                sources[index]=true;
+            }else if signature.params.iter().copied().any(|ty|matches!(ty,Type::Record(_)) || self.owned_record_parameter(ty))
+                || return_type_inference::has_exception_region(&function.body) {
+                self.discovery_body_sources.get_or_insert_with(HashMap::new).insert(index,function.body.clone());
+                sources[index]=true;
+            }
+        }
         // The number of known record callbacks when each function was checked.
         let mut field_origins = vec![usize::MAX; sources.len()];
-        while priority.is_some() || sequence < self.program.functions.len() {
-            let index = if let Some(index)=priority.take() {index} else {
-                let index=sequence;sequence+=1;index
-            };
+        while priority.is_some() || sequence < self.program.functions.len() || !postponed.is_empty() {
+            let (index,retrying) = if let Some(index)=priority.take() {(index,false)} else if sequence < self.program.functions.len() {
+                let index=sequence;sequence+=1;(index,false)
+            }else{(postponed.pop_front().expect("pending catch retry"),true)};
+            if retrying && self.checked[index].is_some(){continue;}
             if self.checked[index].is_none() && self.capturing_function_is_unused(index)? {
                 continue;
             }
@@ -2710,23 +2746,25 @@ impl Analyzer {
                 *known = 0;
             }
             if let Err(error) = self.function(index) {
-                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).is_none_or(Option::is_none) {
+                if !Self::unresolved_catch_contract(&error) || self.checked[index].is_some() || sources.get(index).copied()!=Some(true)
+                    // A retry may discover new concrete factories. Drain them before retrying
+                    // its catch again; without new work, preserve the unresolved diagnostic.
+                    || retrying && sequence == self.program.functions.len()
+                {
+                    if let Some(completed)=&self.program.diagnostic_completed {
+                        *completed.lock().expect("diagnostic progress lock")=self.checked.iter().enumerate().filter_map(|(index,function)|function.as_ref().filter(|function|!function.template).map(|_|self.program.functions[index].name.span)).collect();
+                    }
                     return Err(error);
                 }
-                for (unchecked, source) in sources.iter().enumerate() {
-                    if let Some(source) = source && self.checked[unchecked].is_none() {
-                        self.program.functions[unchecked].body = source.clone();
+                for (unchecked, retained) in sources.iter().copied().enumerate() {
+                    if retained && self.checked[unchecked].is_none() {
+                        self.program.functions[unchecked].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&unchecked)).expect("retained retry source").clone();
                     }
                 }
                 self.visiting.iter_mut().for_each(|visiting| *visiting = false);
                 self.function_stack.clear();
                 self.depth = 0;
-                postponed.push(index);
-            }
-        }
-        for index in postponed {
-            if self.checked[index].is_none() {
-                self.function(index)?;
+                postponed.push_back(index);
             }
         }
         // A handler is typed from the callbacks that constructed records held
@@ -2742,16 +2780,17 @@ impl Analyzer {
                     .flat_map(|family|self.callables.storage.origins(family).unwrap_or_default())
                     .filter_map(|origin|self.closures.get(*origin))
                     .map(|closure|(closure.span.start,closure.span.end)).collect::<HashSet<_>>();
-                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()+schema_origins.len();
+                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()
+                    +crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records).len()+schema_origins.len();
                 let stale = (0..sources.len())
-                    .filter(|&index| sources[index].is_some() && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
+                    .filter(|&index| sources[index] && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
                     .collect::<Vec<_>>();
                 if known == 0 || stale.is_empty() {
                     break;
                 }
                 for &index in &stale {
                     self.checked[index] = None;
-                    self.program.functions[index].body = sources[index].clone().expect("retained source");
+                    self.program.functions[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
                 }
                 for index in stale {
                     self.function(index)?;
@@ -3529,12 +3568,20 @@ impl Analyzer {
     }
 
     fn prepare_specialization(&mut self, index: usize, args: &[Expr], span: Span) -> Result<(usize, bool), Diagnostic> {
-        if !self.templates.contains_key(&index) {
+        let owned_record=self.signatures[index].params.iter().copied().zip(args).any(|(formal,arg)|self.owned_record_parameter(formal)
+            && arg.ty.is_some_and(|actual|self.owned_record_argument_shape(actual)));
+        if !self.templates.contains_key(&index) && !owned_record {
             return Ok((index, false));
         }
         let mut signature = self.signatures[index].clone();
         let mut types = Vec::new();
         for (ty, arg) in signature.params.iter_mut().zip(args) {
+            if self.owned_record_parameter(*ty) && arg.ty.is_some_and(|actual|self.owned_record_argument_shape(actual)) {
+                let actual=arg.ty.expect("checked physical record argument");
+                if self.discovering_results && self.has_pending_result(actual){return Ok((index,false));}
+                self.require(actual,Some(*ty),arg.span)?;
+                *ty=actual;types.push(actual);
+            }
             if let Some(id)=ty.union() && self.unions.payload(*ty).is_some_and(|payload|matches!(payload,Type::Callback(callback) if self.callback_needs_context(callback))) {
                 let origin=match &arg.kind {ExprKind::Inject{value,..}=>value.ty.unwrap_or(arg.ty.unwrap()),_=>arg.ty.unwrap()};
                 let payload=if matches!(origin,Type::Undefined|Type::Null) {
@@ -3563,15 +3610,19 @@ impl Analyzer {
         for (position,initializer) in self.program.functions[index].parameter_initializers.iter().enumerate() {
             if !matches!(initializer,ParameterInitializer::Default{..}) {signature.body_params[position]=signature.params[position];}
         }
-        let key = (index, types);
+        // Physical slots are positional: specializing (live, absent) must not
+        // reuse the body for (absent, live) through the same sparse type list.
+        let key = (index, signature.params.clone());
         if let Some(&id) = self.specializations.get(&key) {
-            return Ok((id, false));
+            // A cached body may have been created during result discovery.
+            // Readiness depends on this call's phase, not the cache's creation.
+            return Ok((id, (!self.discovering_results && self.callable_result_type(self.signatures[id].result)) || self.physical_record_result_needed(self.signatures[id].result)));
         }
         // A callback wrapped in a new closure on every recursive call never
         // reaches a fixed point; rustc rejects it at its recursion limit.
         let checking = if self.discovering_results { self.discovering_function } else { self.function_stack.last().copied() };
         let current = checking.and_then(|f| self.specialization_depths.get(&f)).copied().unwrap_or(0);
-        let depth = 1 + key.1.iter()
+        let depth = 1 + types.iter()
             .filter_map(|&ty| match self.unions.payload(ty).unwrap_or(ty) {
                 Type::Closure(closure) => Some(*self.closure_depths.entry(closure).or_insert(current)),
                 _ => None,
@@ -3585,6 +3636,16 @@ impl Analyzer {
                 span,
             ));
         }
+        let source=if let Some(template)=self.templates.get(&index){template.clone()}else{
+            let mut source=self.program.functions[index].clone();
+            if let Some(body)=self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)) {
+                source.body=body.clone();
+            }else if self.checked[index].is_some() || self.visiting[index] {
+                return Err(Diagnostic::new("unsupported","Physical record specialization requires its retained source body.",span));
+            }
+            // Otherwise checking has not consumed the live source body yet.
+            source
+        };
         let id = self.program.functions.len();
         self.specialization_depths.insert(id, depth);
         // Discovery can call a specialization before its body is checked.
@@ -3597,7 +3658,7 @@ impl Analyzer {
                 .map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read })
                 .collect());
         }
-        self.program.functions.push(self.templates[&index].clone());
+        self.program.functions.push(source);
         self.signatures.push(signature);
         self.checked.push(None);
         self.visiting.push(false);
@@ -3612,7 +3673,7 @@ impl Analyzer {
         // concrete bodies iteratively in run(), rather than unfolding native
         // type contexts on the compiler stack. Callable results still need
         // immediate checking to resolve their concrete returned environment.
-        Ok((id, !self.discovering_results && self.callable_result_type(self.signatures[id].result)))
+        Ok((id, (!self.discovering_results && self.callable_result_type(self.signatures[id].result)) || self.physical_record_result_needed(self.signatures[id].result)))
     }
 
     fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {
@@ -3846,6 +3907,20 @@ impl Analyzer {
                 context.inferred_body_result = self.signatures[index].inferred_result;
                 let _ = self.check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), result);
             }
+            // Physical-result dependencies may have entered definitive checking.
+            // A failed dependency consumed its body before this speculative walk
+            // ignored its error. Replay that source so definitive checking reports
+            // the original error, rather than an empty-body/missing-return cascade.
+            if let Some(sources)=&self.discovery_body_sources {
+                // The function continuation has already drained its active stack
+                // on failure. Retained sources, not that stack, identify bodies
+                // consumed by a failed speculative dependency.
+                for (&dependency,source) in sources {
+                    if self.checked[dependency].is_none() && self.program.functions[dependency].body.is_empty() {
+                        self.program.functions[dependency].body=source.clone();
+                    }
+                }
+            }
             self.visiting.iter_mut().for_each(|visiting| *visiting = false);
             self.function_stack.clear();
             self.depth = 0;
@@ -3891,7 +3966,7 @@ impl Analyzer {
     #[inline(never)]
     fn check_current_region_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet,crate::error_effects::ErrorEffects),Diagnostic> {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
-        self.check_pending_region_functions(body,result)?;
+        self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
             self.region_caller_error_effects(context,body,result)
         }else{self.region_error_effects(context)?};
@@ -3906,18 +3981,88 @@ impl Analyzer {
         let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
+        let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
     }
 
     #[inline(never)]
-    fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type)->Result<(),Diagnostic> {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
-        let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
-        for id in targets {
-            if self.checked[id].is_none() && !self.visiting[id] {self.function(id)?;}
+    fn prepare_selected_task_function(&mut self,id:usize,span:Span,defer_pending_origins:bool)->Result<(),Diagnostic> {
+        if self.checked[id].is_some() || self.visiting[id] {return Ok(());}
+        // Full checking would restart global result discovery before marking the
+        // callee visiting. Let that discovery's dependency queue find its origin.
+        if (defer_pending_origins || self.discovering_function.is_some()) && self.assumed_modes.is_some()
+            && self.callable_result_type(self.signatures[id].result)
+            && !self.known_results.contains_key(&id)
+        {
+            self.note_result_wait(id,span);
+            return Err(Self::pending_result(span));
         }
+        // A known result must not skip the body needed to resolve selected error contracts.
+        let discovering=self.discovering_results;let effects=self.effects_only;
+        // Speculative region checking may ignore a dependency error after full
+        // checking consumed this body. Preserve its source before changing modes,
+        // including factories without record parameters or their own try block.
+        if (discovering || defer_pending_origins) && let Some(sources)=&mut self.discovery_body_sources {
+            sources.entry(id).or_insert_with(||self.program.functions[id].body.clone());
+        }
+        if discovering {self.discovering_results=false;self.effects_only=false;}
+        let checked=self.function(id);
+        self.discovering_results=discovering;self.effects_only=effects;
+        checked
+    }
+
+    fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type,defer_pending_origins:bool)->Result<(),Diagnostic> {
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
+        enum Selected {Function(usize,Span),Closure(usize),Storage(usize)}
+        fn calls(analyzer:&Analyzer,function:&CheckedFunction,pending:&mut Vec<Selected>)->Result<(),Diagnostic>{
+            for value in crate::error_effects::checked_expressions(function){
+                let ExprKind::Call(callee,_)=&value.kind else{continue;};
+                match value.target {
+                    Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>pending.push(Selected::Function(id,value.span)),
+                    Some(CallTarget::Closure(_))=>if let Some(origin)=value.closure_origin(){pending.push(Selected::Closure(origin));},
+                    Some(CallTarget::ConditionalClosure(origin))=>pending.push(Selected::Closure(origin)),
+                    Some(CallTarget::StoredCallableField(family))=>pending.push(Selected::Storage(family)),
+                    Some(CallTarget::StoredCallable(_))=>if let Some(family)=value.storage_family(){pending.push(Selected::Storage(family));},
+                    Some(CallTarget::ClosureMethod(_))=>{
+                        if let Some(id)=callee.generic_invocation{
+                            let plan=analyzer.polymorphic_invocations.checked(id,&analyzer.closures,callee.span)?;
+                            pending.extend(plan.cases.iter().map(|case|Selected::Closure(case.pair.origin)));
+                        }else if let Some(Type::Closure(origin))=callee.ty{pending.push(Selected::Closure(origin));}
+                    },
+                    _=>{},
+                }
+            }
+            Ok(())
+        }
+        let mut pending=Vec::new();calls(self,&caller,&mut pending)?;
+        let mut functions=HashSet::new();let mut closures=HashSet::new();let mut storage=HashSet::new();
+        while let Some(selected)=pending.pop(){match selected{
+            Selected::Function(id,span)=>{
+                if !functions.insert(id){continue;}
+                self.prepare_selected_task_function(id,span,defer_pending_origins)?;
+                if let Some(function)=self.checked[id].as_ref(){calls(self,function,&mut pending)?;}
+                // Checking a selected body may add constructors to an already
+                // selected finite family. Revisit only those selected families.
+                pending.extend(storage.iter().copied().map(Selected::Storage));
+            }
+            Selected::Closure(origin)=>{
+                if !closures.insert(origin){continue;}
+                let Some(closure)=self.closures.get(origin)else{continue;};
+                calls(self,&closure.function,&mut pending)?;
+                for method in &closure.methods{calls(self,&method.function,&mut pending)?;}
+                match closure.forward{
+                    Some(ClosureForward::Function(id))=>pending.push(Selected::Function(id,closure.span)),
+                    Some(ClosureForward::Once(id))=>pending.push(Selected::Closure(id)),
+                    _=>{},
+                }
+            }
+            Selected::Storage(family)=>{
+                storage.insert(family);
+                if let Some(origins)=self.callables.storage.origins(family){pending.extend(origins.iter().copied().filter(|origin|!closures.contains(origin)).map(Selected::Closure));}
+            }
+        }}
         Ok(())
     }
 
@@ -4061,7 +4206,7 @@ impl Analyzer {
     #[inline(never)]
     pub(crate) fn string_position(&self, context: &Context, expr: &Expr) -> bool {
         matches!(&expr.kind, ExprKind::Index(base, _)
-            if self.expression_type_hint(context, base).is_some_and(|ty| self.unions.payload(ty).unwrap_or(ty) == Type::String))
+            if self.expression_type_hint(context, base).is_some_and(|ty| self.is_string_observation(self.unions.payload(ty).unwrap_or(ty))))
     }
 
     fn scalar_assignment(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
@@ -4512,7 +4657,7 @@ impl Analyzer {
                 work.push((body, mode));
             } else if matches!(
                 expr.target,
-                Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
+                Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::OrderedSetMethod(OrderedSetMethod::First|OrderedSetMethod::Last) | CallTarget::MapMethod(MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
             ) && matches!(expr.ty, Some(Type::BorrowedUnion(_)))
             {
                 if let ExprKind::Call(callee, _) = &expr.kind
@@ -4978,6 +5123,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Option<continuations::prelude::Prelude>, Diagnostic> {
         use continuations::prelude::{Prelude,Frame};
+        if let Some(result)=self.url_getter(context,expr,mode,loans,expected)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_typed_encode(context,expr,loans)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_typed_decode(context,expr,loans,expected)?{return Ok(Some(Prelude::Ready(result)));}
         if let Some(result)=self.json_string_length(context,expr,mode,loans)?{return Ok(Some(Prelude::Ready(result)));}
@@ -5154,14 +5300,17 @@ impl Analyzer {
                     ));
                 };
                 if !self.discovering_results && !self.effects_only {
-                    self.callables.storage.register_origin(
+                    let registered=self.callables.storage.register_origin(
                         family,
                         origin,
                         &self.callables.callbacks,
                         &self.callables.shapes,
                         &self.closures,
                         expr.span,
-                    )?;
+                    );
+                    #[cfg(test)]
+                    if let Err(error)=&registered{self.trace_stored_result_error(family,origin,&context.function_name,error);}
+                    registered?;
                 } else if self.speculative_access_run && !self.discovering_results {
                     self.callables.storage.note_speculative_origin(family, origin);
                 }
@@ -5175,15 +5324,17 @@ impl Analyzer {
                 Ok(Type::Closure(id))
             }
             ExprKind::Unary { op: UnaryOp::TaskCreate, value, .. } => {
-                if let ExprKind::Closure { id, .. } = value.kind { if crate::stdlib::futures::borrows_receiver(value) {self.escaping.remove(&id);}else{self.escaping.insert(id);} self.task_sources.insert(id); }
+                if let ExprKind::Closure { id, .. } = value.kind { if crate::stdlib::futures::borrows_inputs(value) {self.escaping.remove(&id);}else{self.escaping.insert(id);} self.task_sources.insert(id); }
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
                 let Type::Closure(origin) = actual else { unreachable!("task environment") };
                 // A task owns its environment even when its body only reads it.
                 self.closures[origin].invocation=Mode::Consume;
-                let owned=self.closures[origin].captures.iter().filter(|capture|capture.storage==Mode::Consume).map(|capture|(capture.inner,capture.access)).collect::<Vec<_>>();
-                for (id,access) in owned {
+                let owned=self.closures[origin].captures.iter().filter(|capture|matches!(capture.storage,Mode::Consume|Mode::Copy)).map(|capture|(capture.inner,capture.access,capture.storage)).collect::<Vec<_>>();
+                for (id,access,storage) in owned {
                     let binding=&mut self.closures[origin].function.bindings[id];
-                    binding.mode=Mode::Consume;
+                    // Consuming a task moves owned fields and private scalar
+                    // copies; neither representation is a receiver reborrow.
+                    binding.mode=storage;
                     binding.capture_reference=false;
                     binding.mutable|=access==Mode::Mutate;
                 }
@@ -5447,10 +5598,17 @@ impl Analyzer {
         if members.members.is_empty() {
             return None;
         }
-        let narrowed = self
-            .unions
-            .intern(members.members.iter().copied(), expr.span)
-            .ok()?;
+        // Reaching record-only facts can name earlier carrier epochs of the
+        // same private owned slot. Select its current checked physical payload;
+        // absent/scalar/unrelated alternatives never receive this normalization.
+        let physical_record=place.fields.is_empty().then(||self.owned_nullable_flow_record(context,place.root)).flatten();
+        let narrowed=if let Some(record)=physical_record.filter(|&record|members.members.iter().all(|member|matches!(*member,Type::Record(source)
+            if self.scoped_records.declaration(source)==self.scoped_records.declaration(record)
+                && self.program.records[source].application.as_ref().map(|application|&application.resolved_arguments)==self.program.records[record].application.as_ref().map(|application|&application.resolved_arguments)
+                && {let facts=self.aggregate_callable_facts(*member);facts.retains && !facts.scoped && !facts.unknown}
+                && !self.native_shape_contains_view(*member)))){Type::Record(record)}else{
+            self.unions.intern(members.members.iter().copied(),expr.span).ok()?
+        };
         (narrowed != Type::Union(union)).then_some((place, union, narrowed))
     }
 
@@ -5477,6 +5635,7 @@ impl Analyzer {
                 self.remember_guard(&mut probe, expr.span, *op, left, right);
                 Some(Self::condition_outcomes(&probe, expr))
             }
+            ExprKind::Call(_,args) if expr.target==Some(CallTarget::ArrayIsArray) && args.len()==1 => self.array_guard_outcomes(context,&args[0],expr.span),
             _ => None,
         }
     }
@@ -5788,9 +5947,8 @@ impl Analyzer {
         Ok(Type::Boolean)
     }
 
-    /// A record literal in a union context takes the record alternative whose
-    /// field names match it. A lone record alternative is used otherwise, so
-    /// its field diagnostics apply.
+    /// Known literal fields select compatible record alternatives before shape
+    /// matching. A lone alternative retains its ordinary field diagnostics.
     #[inline(never)]
     fn record_alternative(
         &self,
@@ -5803,14 +5961,24 @@ impl Analyzer {
             .members(union)
             .into_iter()
             .filter(|member| matches!(member, Type::Record(record) if !self.program.records[*record].is_tuple()))
+            .filter(|member| {
+                let Type::Record(record)=member else{return false;};
+                fields.iter().all(|(key,value)|{
+                    let Some(Type::Literal(id,kind))=self.fields[*record].get(&key.text)else{return true;};
+                    match crate::literal_types::LiteralValue::expression(value,*kind){
+                        Some(Ok(actual))=>self.program.records[*id].literal_definition.as_ref()==Some(&actual),
+                        _=>true,
+                    }
+                })
+            })
             .collect::<Vec<_>>();
         let matching = records
             .iter()
             .copied()
             .filter(|member| {
                 let Type::Record(record) = member else { return false };
-                self.fields[*record].len() == fields.len()
-                    && fields.iter().all(|(key, _)| self.fields[*record].contains_key(&key.text))
+                fields.iter().all(|(key, _)| self.fields[*record].contains_key(&key.text))
+                    && self.program.records[*record].fields.iter().all(|field|field.optional || fields.iter().any(|(key,_)|key.text==field.name.text))
             })
             .collect::<Vec<_>>();
         match (matching.as_slice(), records.as_slice()) {
@@ -5838,15 +6006,17 @@ impl Analyzer {
 
     fn finish_template_part(&self, part: &Expr, actual: Type) -> Result<(), Diagnostic> {
             self.require_native_capability(actual, crate::native_types::Capability::StringConversion, part.span, true)?;
-            if !matches!(
-                actual,
-                Type::String
-                    | Type::Int
-                    | Type::Number
-                    | Type::Boolean
-                    | Type::Null
-                    | Type::Undefined
-            ) {
+            // Literal types and unions of interpolable scalars format like their base values.
+            let mut pending = vec![actual];
+            let mut scalar = true;
+            while let Some(ty) = pending.pop() {
+                match ty {
+                    Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::Literal(..) => {}
+                    Type::Union(id) => pending.extend(self.unions.members(id)),
+                    _ => scalar = false,
+                }
+            }
+            if !scalar {
                 return Err(Diagnostic::new(
                     "type",
                     "Template interpolation requires string, int, number, or boolean.",
@@ -6492,9 +6662,9 @@ impl Analyzer {
     }
 
     fn record_literal(&mut self, context: &mut Context, fields: &mut Vec<(Token, Expr)>, loans: &Loans, expected: Option<Type>, span: Span) -> Result<Type, Diagnostic> {
-        let mut frame = self.prepare_record_work(fields, expected, span)?;
+        let mut frame = self.prepare_record_work(context, fields, expected, span)?;
         for (key, value) in fields.iter_mut() {
-            let (expected, child) = self.prepare_record_child(context, key, value, &mut frame)?;
+            let (expected, child) = self.prepare_record_child(context, key, value, &mut frame, loans)?;
             let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
             self.finish_record_child(context, key, value, &mut frame, child, actual)?;
         }
@@ -6601,7 +6771,7 @@ impl Analyzer {
     #[inline(never)]
     fn native_collection_method_hint(&self,id:usize,name:&str,span:Span)->Option<Type> {
         match self.program.records[id].native_type {
-            Some(crate::native_signatures::NativeTypeId::OrderedSet)=>self.ordered_set_method_type(name,span).ok(),
+            Some(crate::native_signatures::NativeTypeId::OrderedSet)=>{let result=self.ordered_set_method_type(id,name,span).ok()?;Some(if matches!(name,"first"|"last") && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})},
             Some(crate::native_signatures::NativeTypeId::Heap)=>{
                 let result=self.heap_method_type(id,name,span).ok()?;
                 Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})
@@ -6711,6 +6881,18 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    /// A literal can use the sole array alternative without coercing an existing array binding.
+    fn array_literal_context(&self,expected:Option<Type>)->Option<ArrayElement> {
+        let members=match expected? {Type::Union(id)=>self.unions.members(id),value=>vec![value]};
+        let mut found=None;
+        for member in members {match member {
+            Type::Array(element)=>{if found.is_some_and(|previous|previous!=element) {return None;}found=Some(element);},
+            Type::Record(id) if self.program.records[id].is_tuple()=>return None,
+            _=>{},
+        }}
+        found
+    }
+
     fn array_literal_element_hint(
         &mut self,
         context: &mut Context,
@@ -6723,8 +6905,8 @@ impl Analyzer {
         } else {
             None
         };
-        let mut element = match expected {
-            Some(Type::Array(element)) => Some(element),
+        let mut element = match self.array_literal_context(expected) {
+            Some(element) => Some(element),
             _ if mixed.is_some() => mixed,
             _ => values
                 .iter()
@@ -6871,7 +7053,7 @@ impl Analyzer {
     #[inline(never)]
     fn reject_string_position_write(&mut self, context: &Context, target: &Expr) -> Result<(), Diagnostic> {
         if let ExprKind::Index(base, _) = &target.kind
-            && self.expression_type_hint(context, base) == Some(Type::String)
+            && self.string_observation_hint(context,base)
         {
             return Err(Diagnostic::new(
                 "unsupported",
@@ -6887,7 +7069,7 @@ impl Analyzer {
     #[inline(never)]
     fn string_index(&mut self,context:&mut Context,base:&mut Expr,index:&mut Expr,loans:&Loans)->Result<Type,Diagnostic> {
         let ty=self.expression(context,base,Mode::Read,loans,None)?;
-        debug_assert_eq!(ty.scalar_base(),Type::String);
+        debug_assert!(self.is_string_observation(ty));
         let mut active=loans.clone();
         for root in Self::loan_roots(base,Mode::Read){active.entry(root).or_default().push((Mode::Read,base.span));}
         let actual=self.expression(context,index,Mode::Copy,&active,Some(Type::Int))?;
@@ -6907,7 +7089,7 @@ impl Analyzer {
             expr.kind = ExprKind::Field(receiver,name);
             return Ok(result);
         }
-        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base).map(Type::scalar_base)==Some(Type::String) {
+        if !Self::optional_hint_boundary(base) && self.string_observation_hint(context,base) {
             return self.string_index(context,base,index,loans);
         }
         let result=if Self::named_storage(base) {self.array_index(context,base,index,mode,loans,expr.span)} else {self.temporary_array_index(context,base,index,mode,loans,expected)}?;
@@ -7125,7 +7307,7 @@ impl Analyzer {
                     if matches!(
                         expr.target,
                         Some(
-                            CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
+                            CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::OrderedSetMethod(OrderedSetMethod::First|OrderedSetMethod::Last) | CallTarget::MapMethod(MapMethod::Get|MapMethod::FirstKey|MapMethod::LastKey) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
                         )
                     ) =>
                 {
@@ -7211,6 +7393,9 @@ impl Analyzer {
         if named {
             Self::storage_access(context, base, Mode::Read, base.span, loans)?;
         }
+        if !native_capabilities::checked_array_capabilities(Type::Array(element), &self.program.records, |id| self.unions.members(id)).expect("checked array").supports("at") {
+            return Err(Diagnostic::new("void-element-option", "at() cannot represent an optional void result; use length and indexed iteration.", base.span));
+        }
         let result = self
             .unions
             .intern([element.ty(), Type::Undefined], base.span)?;
@@ -7249,6 +7434,9 @@ impl Analyzer {
                 base.span,
             ));
         };
+        if !native_capabilities::checked_array_capabilities(Type::Array(element), &self.program.records, |id| self.unions.members(id)).expect("checked array").supports("pop") {
+            return Err(Diagnostic::new("void-element-option", "pop() and shift() cannot represent an optional void result; use length or splice().", span));
+        }
         Self::storage_access(context, base, Mode::Mutate, span, loans)?;
         self.unions.intern([element.ty(), Type::Undefined], span)
     }
@@ -7499,7 +7687,7 @@ impl Analyzer {
         }
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
         if slice {
-            if !matches!(ty, Type::String | Type::Array(_)) {
+            if !matches!(ty, Type::Array(_)) && !self.is_string_observation(ty) {
                 return Err(Diagnostic::new(
                     "type",
                     "slice() requires a string or array.",
@@ -7507,7 +7695,7 @@ impl Analyzer {
                 ));
             }
         } else {
-            self.require(ty, Some(Type::String), base.span)?;
+            self.require_string_observation(ty,base.span)?;
         }
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) {
@@ -7520,7 +7708,7 @@ impl Analyzer {
             let actual = self.expression(context, arg, Mode::Copy, &active, Some(Type::Int))?;
             self.require(actual, Some(Type::Int), arg.span)?;
         }
-        Ok(ty)
+        Ok(if self.is_string_observation(ty){Type::String}else{ty})
     }
 
     fn transform_array_type(ty: Type, span: Span) -> Result<Type, Diagnostic> {
@@ -7995,7 +8183,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => unreachable!("checked string construction method"),
         }
         let receiver = self.expression(context, base, Mode::Read, loans, None)?;
-        self.require(receiver, Some(Type::String), base.span)?;
+        self.require_string_observation(receiver,base.span)?;
         let mut active = loans.clone();
         for root in Self::loan_roots(base, Mode::Read) {
             active
@@ -8035,8 +8223,8 @@ self.names_materialized_type(element.with_depth(0).ty())
     #[inline(never)]
     fn string_normalize(&mut self, context: &mut Context, base: &mut Expr, args: &mut [Expr], loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
         if args.len() > 1 { return Err(Diagnostic::new("arity", "normalize expects zero or one string form argument.", span)); }
-        let receiver=self.expression(context,base,Mode::Read,loans,Some(Type::String))?;
-        self.require(receiver,Some(Type::String),base.span)?;
+        let receiver=self.expression(context,base,Mode::Read,loans,None)?;
+        self.require_string_observation(receiver,base.span)?;
         if let Some(form)=args.first_mut() {
             let mut active=loans.clone();
             for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read,base.span)); }
@@ -8070,7 +8258,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.builtin_literals = true;
         let receiver = self.expression(context, base, Mode::Read, loans, None);
         self.builtin_literals = previous;
-        if !matches!(receiver?, Type::Array(_)) {
+        let receiver = receiver?;
+        self.require_array_text(receiver, base.span)?;
+        if !matches!(receiver, Type::Array(_)) {
             return Err(Diagnostic::new(
                 "type",
                 "join() requires an array.",
@@ -8112,7 +8302,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let string_proof=self.json_string_proof(context,base);
         if let Some(proof)=string_proof.clone(){Self::use_json_string_proof(context,proof);}
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
-        let string_receiver=ty.scalar_base() == Type::String || string_proof.is_some() || self.is_string_view(context,base);
+        let string_receiver=self.is_string_observation(ty) || string_proof.is_some() || self.is_string_view(context,base);
         let element_type = if string_receiver {
             Type::String
         } else {
@@ -8162,6 +8352,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((Mode::Read, base.span));
         }
+        self.reserve_native_argument_loans(context, base, &mut active)?;
         let needle_proof=if string_receiver{self.json_string_proof(context,&args[0])}else{None};
         if let Some(proof)=needle_proof.clone(){Self::use_json_string_proof(context,proof);}
         let borrowed_needle=string_receiver && (needle_proof.is_some() || self.is_string_view(context,&args[0]));
@@ -8256,7 +8447,7 @@ self.names_materialized_type(element.with_depth(0).ty())
     ) -> Result<(), Diagnostic> {
         Self::arity(arguments, 0, span)?;
         let actual = self.expression(context, receiver, Mode::Read, loans, None)?;
-        self.require(actual, Some(Type::String), receiver.span)
+        self.require_string_observation(actual,receiver.span)
     }
 
     fn number_parse_float(
@@ -8468,13 +8659,15 @@ self.names_materialized_type(element.with_depth(0).ty())
 
     fn resolved_call(
         &mut self,
-        context: &Context,
+        context: &mut Context,
         index: usize,
         args: &[Expr],
         span: Span,
     ) -> Result<(usize, Type), Diagnostic> {
         let index = self.specialize(index, args, span)?;
-        self.resolved_prepared_call(context, index, args, span)
+        let (index,result)=self.resolved_prepared_call(context,index,args,span)?;
+        if self.is_task_type(result){self.retain_task_call_loans(context,index,args,span);}
+        Ok((index,result))
     }
 
     fn resolved_prepared_call(&mut self, context: &Context, index: usize, args: &[Expr], span: Span) -> Result<(usize, Type), Diagnostic> {
@@ -8685,7 +8878,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Field(base, name) = &mut callee.kind else { return };
         if name != "at"
             || !(matches!(base.kind, ExprKind::String(_))
-                || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+                || self.string_observation_hint(context,base))
         {
             return;
         }
@@ -8710,7 +8903,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => return Ok(()),
         };
         if !(matches!(base.kind, ExprKind::String(_))
-            || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+            || self.string_observation_hint(context,base))
         {
             return Ok(());
         }
@@ -8735,7 +8928,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Field(base, name) = &mut callee.kind else { return Ok(()) };
         if name != "codePointAt"
             || !(matches!(base.kind, ExprKind::String(_))
-                || matches!(self.expression_type_hint(context, base), Some(Type::String)))
+                || self.string_observation_hint(context,base))
         {
             return Ok(());
         }
@@ -8975,6 +9168,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                 return Ok(CallDispatch::PrepareReceiver);
             }
         }
+        if let Some(ty)=self.logging_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty)=self.iterator_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if Self::map_group_by_callee(context,expr) {return self.prepare_group_by_transform(context,expr,expected).map(CallDispatch::Transform);}
         if Self::array_from_callee(context, expr) {
             self.array_from(context, expr)?;
@@ -8982,7 +9177,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
             return Ok(CallDispatch::Transform(continuations::transform::Request { options:(false,false,Mode::Read,false,false,true,true),target:CallTarget::ArrayMap,kind:continuations::transform::ResultKind::ArrayFrom,expected }));
         }
-        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
+        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){
+            if let Some(request)=self.transform_request(context,expr,expected,true){return Ok(CallDispatch::Transform(request));}
+            return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
@@ -8990,8 +9187,15 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty) = self.ui_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.sqlite_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.http_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty)=self.process_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty)=self.network_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty) = self.locale_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty) = self.regex_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty) = self.url_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.future_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.cache_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if let Some(ty)=self.crypto_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
+        if let Some(ty)=self.compression_call(context,expr,loans,expected)?{return Ok(CallDispatch::Ready(ty));}
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {
@@ -9177,6 +9381,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             if binding.parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                 if args.len() != binding.parameters.len() { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", binding.name, binding.parameters.len()), span)); }
                 for argument in args.iter_mut() { self.expression(context, argument, Mode::Read, loans, None)?; }
+                if binding.name == "deepEqual" {self.testing_deep_types(args)?;}
                 if binding.name == "containsValue" {
                     let actual = args[0].ty.expect("checked container");
                     let expected = args[1].ty.expect("checked expected");
@@ -9238,10 +9443,15 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if let Some(ty) = alternative {
                     return Ok(ArgumentContract { ty, mode: parameter.access, omission: crate::ParameterOmission::Required, rest: false });
                 }
+                // Regex observers borrow literal-string alternatives without widening or copying.
+                if matches!(binding.module,"std:regex"|"std:locale"|"std:net") && parameter.access==Mode::Read && parameter.ty.signature()==crate::native_signatures::Signature::String
+                    && let Some(ty)=self.expression_type_hint(context,&args[position]).filter(|ty|self.is_string_observation(*ty)) {
+                    return Ok(ArgumentContract{ty,mode:Mode::Read,omission:crate::ParameterOmission::Required,rest:false});
+                }
                 self.native_argument_contract(parameter,args[position].span)
             }).collect::<Result<Vec<_>, Diagnostic>>()?;
             self.check_call_arguments(context, args, &contracts, loans)?;
-            let result = native_type(binding.result, &self.program.records);
+            let result = self.compression_io_result(binding,args).unwrap_or_else(||native_type(binding.result, &self.program.records));
             self.remember_native_call_borrow(context, args, binding, result)?;
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);
@@ -9460,6 +9670,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 for binding in Self::loan_roots(arg, mode) {
                     active.argument(binding, mode, arg);
                 }
+                self.reserve_native_argument_loans(context, arg, &mut active)?;
             }
         }
         selected_capture_boundary.unwind(&mut context.capture_loans);
@@ -9701,6 +9912,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 self.value_builtin_arguments(context, args, loans, false)?;
                 expr.target = Some(CallTarget::ArrayIsArray);
+                if let [source]=args.as_slice() && let Some(outcomes)=self.array_guard_outcomes(context,source,span){context.condition_flows.insert((span.start,span.end),outcomes);}
                 Type::Boolean
             }
             ExprKind::Name(name) if name == "Number" => {
@@ -9878,6 +10090,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                                 .or_default()
                                 .push((Mode::Read, argument.span));
                         }
+                        self.reserve_native_argument_loans(context, argument, &mut active)?;
                     }
                 }
                 capture_boundary.unwind(&mut context.capture_loans);
@@ -9894,6 +10107,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     return Err(Diagnostic::new("unsupported", "toLocaleString locale and options arguments are unsupported; remove the arguments.", args[0].span));
                 }
                 let actual = self.expression(context, base, Mode::Read, loans, None)?;
+                self.require_array_text(actual, base.span)?;
                 expr.target = Some(match actual {
                     Type::Int => CallTarget::IntToLocaleString,
                     Type::Number => CallTarget::NumberToLocaleString,
@@ -9950,6 +10164,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 let receiver = self.expression(context, base, Mode::Read, loans, None);
                 self.builtin_literals = previous;
                 let actual = receiver?;
+                if name == "toString" { self.require_array_text(actual, base.span)?; }
                 if name == "toString" && matches!(actual, Type::Int | Type::Number) {
                     if args.len() > 1 {
                         return Err(Diagnostic::new(
@@ -9976,7 +10191,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
                 Self::arity(args.len(), 0, span)?;
                 expr.target = Some(match (name.as_str(), actual) {
-                    (_, Type::String) => CallTarget::StringIdentity,
+                    (_, ty) if self.is_string_observation(ty) => CallTarget::StringIdentity,
                     ("valueOf", Type::Boolean) => CallTarget::BooleanIdentity,
                     ("toString", Type::Boolean) => CallTarget::BooleanToString,
                     ("toString", Type::Array(_)) => CallTarget::ArrayJoin,
@@ -9997,7 +10212,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         ));
                     }
                 });
-                if name == "toString" {
+                if name == "toString" || self.is_string_observation(actual) {
                     Type::String
                 } else {
                     actual
@@ -10017,7 +10232,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 Self::arity(args.len(), 0, span)?;
                 let actual = self.expression(context, base, Mode::Read, loans, None)?;
-                self.require(actual, Some(Type::String), callee.span)?;
+                self.require_string_observation(actual,callee.span)?;
                 expr.target = Some(match name.as_str() {
                     "trim" => CallTarget::Trim,
                     "trimStart" | "trimLeft" => CallTarget::TrimStart,
@@ -10031,7 +10246,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             ExprKind::Field(base, name)
                 if (name == STRING_CODE_POINT_SLOT || name == "charCodeAt")
                     && (matches!(base.kind, ExprKind::String(_))
-                        || matches!(self.expression_type_hint(context, base), Some(Type::String))) =>
+                        || self.string_observation_hint(context,base)) =>
             {
                 let slot = name == STRING_CODE_POINT_SLOT;
                 if args.len() > 1 {
@@ -10041,8 +10256,8 @@ self.names_materialized_type(element.with_depth(0).ty())
                         span,
                     ));
                 }
-                let receiver = self.expression(context, base, Mode::Read, loans, Some(Type::String))?;
-                self.require(receiver, Some(Type::String), base.span)?;
+                let receiver = self.expression(context, base, Mode::Read, loans, None)?;
+                self.require_string_observation(receiver,base.span)?;
                 if let Some(position) = args.first_mut() {
                     let mut active = loans.clone();
                     for root in Self::loan_roots(base, Mode::Read) {
@@ -10202,7 +10417,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let json_string=self.json_string_proof(context,base).is_some() || self.is_string_view(context,base);
                 let ty = self.collection_search(context, base, args, loans, span, name)?;
-                expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty.map(Type::scalar_base)}, name.as_str()) {
+                expr.target = Some(match (if json_string || base.ty.is_some_and(|ty|self.is_string_observation(ty)){Some(Type::String)}else{base.ty.map(Type::scalar_base)}, name.as_str()) {
                     (Some(Type::String), "startsWith") => CallTarget::StringStartsWith,
                     (Some(Type::String), "endsWith") => CallTarget::StringEndsWith,
                     (Some(Type::String), "includes") => CallTarget::StringIncludes,
@@ -10354,7 +10569,10 @@ self.names_materialized_type(element.with_depth(0).ty())
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
-            self.observing_values && mode == Mode::Read && (!context.is_capture(index) || self.is_task_type(context.bindings[index].ty));
+            self.observing_values && mode == Mode::Read && (!context.is_capture(index)
+                || self.is_task_type(context.bindings[index].ty)
+                || context.bindings[index].callback_kind.is_some_and(|kind|kind.is_owned())
+                || matches!(context.bindings[index].ty,Type::Callback(id) if self.callables.callbacks[id].kind.is_owned()));
         if let Some(kind) = context.bindings[index].callback_kind {
             if !kind.is_owned()
                 && context.returning_closure && !callback_argument

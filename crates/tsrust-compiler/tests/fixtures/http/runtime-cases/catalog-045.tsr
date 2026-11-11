@@ -1,0 +1,10 @@
+import { Router } from 'std:http';
+
+function configure(app: Mutable<Router>, root: string) {
+  app.serveStatic('/web', root, 'index.html');
+  app.serveStatic('/public', root);
+}
+
+export function main() {
+  console.log('ok');
+}

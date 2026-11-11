@@ -89,6 +89,23 @@ fn record_discriminator_fact_is_invalidated_by_replacing_the_union() {
 }
 
 #[test]
+fn literal_record_tags_select_variants_without_text_comparison() {
+    let source=r#"
+    type A={kind:'a';first:int;};type B={kind:'b';second:int;};type C={kind:'b';third:int;};
+    type Loose={kind:string;loose:int;};type Tight={kind:'x';tight:int;};
+    function choose(index:int):A|B|C{if(index===0){return {kind:'a',first:1};}if(index===1){return {kind:'b',second:2};}return {kind:'b',third:3};}
+    function loose(first:boolean):Loose|Tight{if(first){return {kind:'x',tight:1};}return {kind:'y',loose:2};}
+    function main(){const value=choose(2);if(value.kind==='b'){console.log(1);}if('a'!==value.kind){console.log(2);}if(value.kind==='z'){console.log(3);}if(loose(false).kind==='x'){console.log(4);}}
+    "#;
+    let rust=tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{error:?}")).emit_rust();
+    let main=rust.split("fn main() -> ()").nth(1).expect("main function");
+    assert_eq!(main.matches("::V1(_) => true, ").count(),1,"{main}");
+    assert!(main.contains("::V2(_) => true, ")&&main.contains("::V0(_) => true, "),"{main}");
+    assert!(main.contains("{ #[allow(unreachable_patterns)] _ => false }"),"absent literal selects no variant: {main}");
+    assert_eq!(main.matches("string_left == string_right").count(),1,"only the broad string tag compares text: {main}");
+}
+
+#[test]
 fn common_record_union_fields_borrow_nested_records_and_arrays() {
     let source=r#"
     import {s} from 'std:schema';

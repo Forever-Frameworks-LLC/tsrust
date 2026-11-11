@@ -1,0 +1,39 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function build(flag: boolean): OrderedMap<string, int> {
+  const left = new OrderedMap<string, int>();
+  left.set('b', 2);
+  left.set('a', 1);
+  const right = new OrderedMap<string, int>();
+  right.set('d', 4);
+  right.set('c', 3);
+  if (flag) {
+    return left;
+  }
+
+  return right;
+}
+
+function add(values: Mutable<OrderedMap<string, int>>) {
+  values.set('e', 5);
+}
+
+function text(values: ReadOnly<OrderedMap<string, int>>): string {
+  let result = '';
+  for (const entry of values) {
+    result += entry[0] + String(entry[1]);
+  }
+
+  return result;
+}
+
+export function main() {
+  const first = build(true);
+  const second = build(false);
+  strictEqual(text(first), 'a1b2');
+  strictEqual(text(second), 'c3d4');
+  add(first);
+  strictEqual(text(first), 'a1b2e5');
+  strictEqual(text(second), 'c3d4');
+}

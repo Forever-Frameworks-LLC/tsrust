@@ -12,6 +12,7 @@ mod scope;
 #[derive(Clone, PartialEq, Eq)]
 enum Shape {
     Polymorphic(usize),
+    NativeCallable(usize),
     Named(String),
     Literal(crate::type_syntax::LiteralAnnotation),
     Array(Box<Shape>),
@@ -23,6 +24,7 @@ enum Shape {
 }
 fn annotation(value: &ValueAnnotation) -> Shape {
     match &value.kind {
+        Kind::NativeCallable { origin } => Shape::NativeCallable(*origin),
         Kind::Polymorphic { origin, .. } => Shape::Polymorphic(*origin),
         Kind::Named(name) => Shape::Named(name.text.clone()),
         Kind::Literal(value) => Shape::Literal(value.clone()),

@@ -12,15 +12,22 @@ const catalogPath = join(website, '..', 'crates', 'tsrust-lsp', 'src', 'builtins
 const outputRoot = join(website, 'src', 'content', 'docs', 'reference');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
-// Groups that are not part of the backend public surface. std:ui belongs to the
-// frozen UI product; the testing runtime is compiler-internal.
-const excluded = new Set(['std:ui', 'UiComputed', 'UiSignal', 'std:testing-runtime', 'HttpContextNext']);
+// Compiler-internal groups are not public reference modules.
+const excluded = new Set(['std:testing-runtime', 'HttpContextNext']);
 
 // Public modules in reading order. `members` maps a public type name to the
 // catalog group holding its methods and properties.
 const modules = [
+  { module: 'std:ui', summary: 'Experimental native desktop components, signals, navigation and windows backed by GPUI Kit. Browser and complete upstream API parity are not verified.' },
+  { module: 'std:net', summary: 'Parse and format IP/socket addresses; own TCP and UDP endpoints.', members: { TcpListener: 'TcpListener', TcpStream: 'TcpStream', UdpSocket: 'UdpSocket' } },
+  { module: 'std:dns', summary: 'Resolve hostnames with the system resolver.' },
   { module: 'std:env', summary: 'Read command-line arguments and environment variables.' },
+  { module: 'std:url', summary: 'Parse URLs, edit URL components and manage query parameters.', members: { Url: 'Url', SearchParams: 'SearchParams' } },
+  { module: 'std:locale', summary: 'Canonicalize explicit locales, compare text, segment graphemes and format exact numbers.', members: { Collator: 'Collator', Segmenter: 'Segmenter', NumberFormat: 'NumberFormat' } },
+  { module: 'std:regex', summary: 'Compile reusable regular expressions and return UTF-8 match ranges.', members: { Regex: 'Regex' } },
   { module: 'std:path', summary: 'Join, split and normalize path text without touching the filesystem.' },
+  { module: 'std:io', summary: 'Read and write owned asynchronous byte streams.' },
+  { module: 'std:process', summary: 'Launch direct child processes and own their pipes and exit status.', members: { Child: 'Child' } },
   { module: 'std:fs', summary: 'Open, read, write and buffer files with explicit errors.' },
   { module: 'std:bytes', summary: 'Owned byte buffers and borrowed byte views.' },
   { module: 'std:json', summary: 'Owned JSON values, borrowed views, raw fragments and JSON Lines files.' },
@@ -32,11 +39,17 @@ const modules = [
     'Literal schemas': 'SchemaLiteral', 'Enum schemas': 'SchemaEnum', 'Declared enum schemas': 'SchemaDeclaredEnum',
     'Union schemas': 'SchemaUnion',
   } },
+  { module: 'std:compression', summary: 'Encode and decode owned bytes on an explicit bounded CPU pool.', members: { CompressionReader: 'CompressionReader', CompressionWriter: 'CompressionWriter' } },
   { module: 'std:http', summary: 'Serve HTTP applications and send HTTP requests.', members: {
     Router: 'HttpRouter', Context: 'HttpContext', App: 'HttpApp', Request: 'HttpRequest', Response: 'HttpResponse',
-    Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',
+    Body: 'HttpBody', Server: 'HttpServer', Client: 'HttpClient', ClientOptions: 'HttpClientOptions', Next: 'HttpNext', ServerOptions: 'HttpServerOptions',
     FormField: 'HttpFormField', MultipartPart: 'HttpMultipartPart',
+    CorsOptions: 'HttpCorsOptions', SseEvent: 'HttpSseEvent', SseOptions: 'HttpSseOptions',
+    WebSocketOptions: 'HttpWebSocketOptions', WebSocketClientOptions: 'HttpWebSocketClientOptions', WebSocketHeader: 'HttpWebSocketHeader',
+    WebSocketText: 'HttpWebSocketText', WebSocketBinary: 'HttpWebSocketBinary', WebSocketClose: 'HttpWebSocketClose',
+    WebSocketHalves: 'HttpWebSocketHalves', WebSocket: 'HttpWebSocket', WebSocketRead: 'HttpWebSocketRead', WebSocketWrite: 'HttpWebSocketWrite',
   } },
+  { module: 'std:log', summary: 'Write structured events with lazy fields, child context and explicit sink cleanup.', members: { Logger: 'Logger', LoggerOptions: 'LoggerOptions', LogError: 'LogError' } },
   { module: 'std:sql', summary: 'Pooled PostgreSQL, MySQL and SQLite access with bound parameters.', members: {
     Pool: 'SqlPool', Transaction: 'SqlTransaction', Row: 'SqlRow', Cursor: 'SqlCursor', SqlError: 'SqlSqlError',
   } },
@@ -46,6 +59,7 @@ const modules = [
   } },
   { module: 'std:futures', summary: 'Delay, race and cancel async tasks; bounded async channels.', members: {
     'Task methods': 'TaskMethods', Job: 'Job', Channel: 'AsyncChannel', Sender: 'AsyncSender',
+    Interval: 'Interval', CancellationToken: 'CancellationToken',
   } },
   { module: 'std:threads', summary: 'Native threads, scoped threads, thread pools and blocking channels.', members: {
     Thread: 'Thread', ScopedThread: 'ScopedThread', ThreadPool: 'ThreadPool', Channel: 'Channel', Sender: 'Sender',
@@ -54,6 +68,7 @@ const modules = [
   { module: 'std:testing', summary: 'Register tests, hooks and assertions for `tsrust test`.', members: {
     Expectation: 'Expectation', 'Negated expectation': 'NegatedExpectation',
   } },
+  { module: 'std:iterator', summary: 'Experimental owned lazy iterator pipelines; validation is still in progress.', members: { Iterator: 'Iterator', 'Iterator constructor': 'IteratorConstructor' } },
   { module: 'std:collections', summary: 'Ordered maps and sets, double-ended queues and heaps.', members: {
     OrderedMap: 'OrderedMap', OrderedSet: 'OrderedSet', Deque: 'Deque', Heap: 'Heap',
   } },
@@ -65,7 +80,7 @@ const modules = [
   { module: 'std:numeric', summary: 'Checked conversions between int and number widths.' },
   { module: 'std:decimal', summary: 'Exact decimal arithmetic and formatting.' },
   { module: 'std:uuid', summary: 'Parse, format, compare and generate UUIDs.' },
-  { module: 'std:crypto', summary: 'Secure random bytes, SHA-256 and constant-time comparison.' },
+  { module: 'std:crypto', summary: 'Owned digests, incremental SHA, HMAC, HKDF, randomness and explicit bounded password work.', members: { Hasher: 'Hasher' } },
   { module: 'std:os', summary: 'Inspect the host platform, architecture and byte order.' },
   { module: 'std:signals', summary: 'Receive process termination signals for graceful shutdown.' },
   // unwrap is global; this module only keeps an older import spelling working.

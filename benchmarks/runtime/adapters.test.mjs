@@ -62,3 +62,24 @@ test('workload-first source disambiguates same-signature helpers without guessin
  assert.throws(()=>assertABI(emitted,row,{source:'function helper(): int { return 0; } '+source}),/expected one complete/);
  assert.throws(()=>assertABI(emitted.replace('function0','function1'),row,{source}),/expected one complete/);
 });
+
+test('logging allocation drivers preserve checked scalar Result ABI',()=>{
+ const workload={id:'logging_disabled',family:'structured-logging',result:'int'};
+ const emitted='fn function3(value0: i64, value1: i64) -> Result<i64,TsrFunctionError3> {} fn main() {}';
+ assert.equal(assertABI(emitted,workload).fallible,true);
+ const driver=adaptRustDriver(probeDriver,workload,{probe:true,emitted});
+ assert.match(driver,/match function3\(value0,value1\)/);
+ assert.match(driver,/Ok\(value\)=>value/);
+ assert.match(driver,/unexpected checked error/);
+ assert.throws(()=>assertABI(emitted.replace('Result<i64,','Result<f64,'),workload),/Emitter ABI changed/);
+});
+
+
+test('logging handwritten controls keep their authored scalar ABI',()=>{
+ const workload={id:'logging_disabled',family:'structured-logging',result:'int'};
+ const hand='fn function0(n:i64,seed:i64)->i64{n+seed}fn main(){}';
+ const driver=adaptRustDriver(probeDriver,workload,{probe:true,emitted:hand,reference:true});
+ assert.match(driver,/function0\(/);
+ assert.doesNotMatch(driver,/benchmark_checked_workload/);
+ assert.throws(()=>adaptRustDriver(probeDriver,workload,{probe:true,emitted:hand}),/Emitter ABI changed/);
+});

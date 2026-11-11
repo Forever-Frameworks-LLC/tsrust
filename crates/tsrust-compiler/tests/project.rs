@@ -1541,7 +1541,8 @@ fn inferred_generics_preserve_order_ownership_callback_contracts_and_result_cont
     for optimization in ["0","3"] { assert_eq!(native_stdout(&checked.emit_rust(),optimization),"0 1 2 Pat Pat 0 7 9 11\n"); }
     for (source, code) in [
         ("function identity<T>(value:T):T{return value;}function main(){const text='Pat';const moved=identity(text);console.log(text);}","transferred"),
-        ("function identity<T>(value:T):T{return value;}function main(){identity([]);}","generic-inference"),
+        // No argument supplies T, so the empty array itself reports its missing context.
+        ("function identity<T>(value:T):T{return value;}function main(){identity([]);}","array-type"),
         ("function pair<T>(left:T,right:T){}function main(){pair(1,'Pat');}","type"),
         ("function identity<T>(value:T):T{return value;}function main(){const identity=(value:int):int=>{return value+1;};console.log(identity(7));}","pass"),
     ] {
@@ -1596,7 +1597,7 @@ fn inferred_generics_use_numeric_array_context_and_later_nested_argument_hints()
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"1|2|3 3 0 Pat 0 1\n");}
     for (source, code) in [
         ("function identity<T>(value:T):T{return value;}function main(){const value:int=1;const numbers:number[]=identity([value]);}", "type"),
-        ("function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){first(identity([]),identity([]));}", "generic-inference"),
+        ("function identity<T>(value:T):T{return value;}function first<T>(left:T,right:T):T{return left;}function main(){first(identity([]),identity([]));}", "array-type"),
     ] {
         let error=tsrust_compiler::check(source).err().unwrap();
         assert_eq!(error.code,code,"{error:?}");
@@ -1760,11 +1761,15 @@ fn os_identity_zero_argument_native_contract() {
         let memory=Memory::new(&[("main.tsr",&source)]);
         assert_eq!(tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap().code,"type");
     }
-    assert!(tsrust_compiler::native_bindings::lookup("std:os","hostname").unwrap_err().contains("does not export"));
-    let memory=Memory::new(&[("main.tsr","import {hostname} from 'std:os';function main(){console.log(hostname());}")]);
+    let memory=Memory::new(&[("main.tsr","import {hostname as host,OsError} from 'std:os';function main(){const action=host;const observed:Result<string,OsError>=action();match(observed){Ok(name)=>console.log(name.length>0),Err(error)=>console.log(error.code.length>0)}}")]);
+    let hostname=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+    assert!(hostname.warnings().is_empty());
+    assert!(tsrust_compiler::native_runtime::requires_hostname(&hostname.emit_rust()));
+    assert!(tsrust_compiler::native_bindings::lookup("std:os","notAnOsExport").unwrap_err().contains("does not export"));
+    let memory=Memory::new(&[("main.tsr","import {notAnOsExport} from 'std:os';function main(){}")]);
     let error=load_project(&memory,"main.tsr").err().unwrap();
     assert_eq!(error.code,"module-native");
-    assert!(error.message.contains("does not export") && error.message.contains("hostname"));
+    assert!(error.message.contains("does not export") && error.message.contains("notAnOsExport"));
 }
 
 #[test]
@@ -1974,4 +1979,21 @@ fn result_materialization_exceeds_the_former_depth_boundary() {
     let source = format!("type Holder={{value:{annotation};}};function main(){{console.log(7);}}");
     let checked = tsrust_compiler::check(&source).unwrap();
     assert_eq!(native_stdout(&checked.emit_rust(), "0"), "7\n");
+}
+
+#[test]
+fn imported_async_main_remains_a_task_factory_for_named_and_default_exports(){
+    for (dependency,import) in [
+        ("export async function main():Task<int>{return 7;}","import {main as run} from './dep.tsr';"),
+        ("export default async function main():Task<int>{return 7;}","import run from './dep.tsr';"),
+    ] {
+        let source=format!("{import}async function main():Task<void>{{const value:int=await run();console.log(value);}}");
+        let memory=Memory::new(&[("main.tsr",&source),("dep.tsr",dependency)]);
+        let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
+        let _=checked.emit_rust();
+        let source=format!("{import}async function main():Task<void>{{const wrong:string=await run();}}");
+        let memory=Memory::new(&[("main.tsr",&source),("dep.tsr",dependency)]);
+        let error=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).err().unwrap();
+        assert_eq!(error.code,"type","{error:?}");
+    }
 }

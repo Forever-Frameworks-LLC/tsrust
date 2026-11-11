@@ -107,6 +107,7 @@ impl Analyzer {
     pub(super) fn finish_spread_callee(&self,context:&Context,work:&mut Work,ty:Type)->Result<(),Diagnostic>{
         let access=work.ordinary.as_ref().unwrap().invocation;
         for root in Self::loan_roots(&work.callee,access) {Rc::make_mut(&mut work.active).entry(root).or_default().push((access,work.callee.span));}
+        self.reserve_native_argument_loans(context, &work.callee, Rc::make_mut(&mut work.active))?;
         let selected=self.spread_selected(context,&work.callee,work.slot,SpreadSelection::Callee,ty,access);
         let value=std::mem::replace(&mut work.callee,Box::new(selected));
         work.staged=Some(SpreadCallee{value,access,selection:SpreadSelection::Callee});Ok(())
@@ -118,6 +119,7 @@ impl Analyzer {
         }
         let ExprKind::Field(base,_) = &mut work.callee.kind else {unreachable!()};
         for root in Self::loan_roots(base,access) {Rc::make_mut(&mut work.active).entry(root).or_default().push((access,base.span));}
+        self.reserve_native_argument_loans(context, base, Rc::make_mut(&mut work.active))?;
         let selected=self.spread_selected(context,base,work.slot,SpreadSelection::Receiver,ty,access);
         let value=std::mem::replace(base,Box::new(selected));
         work.staged=Some(SpreadCallee{value,access,selection:SpreadSelection::Receiver});Ok(())
@@ -147,7 +149,7 @@ impl Analyzer {
 
         Ok(Segment { index,mode:source_access,expected:expected_source,access,contracts })
     }
-    pub(super) fn finish_spread_segment(&mut self,work:&mut Work,frame:Segment,actual:Type)->Result<(),Diagnostic>{
+    pub(super) fn finish_spread_segment(&mut self,context:&Context,work:&mut Work,frame:Segment,actual:Type)->Result<(),Diagnostic>{
         let Segment { index,access,contracts,.. }=frame;
         let segment=&mut work.segments[index];
             if segment.spread && self.immutable_spread_keys(actual) && access==Mode::Mutate {return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys, Map entry tuples or ordered collection elements; explicitly copy to an array first.",segment.value.span));}
@@ -159,6 +161,7 @@ impl Analyzer {
             if !segment.element.is_copy() && matches!(segment.access,Mode::Read|Mode::Mutate) {
                 for root in Self::loan_roots(&segment.value,segment.access) {std::rc::Rc::make_mut(&mut work.active).entry(root).or_default().push((segment.access,segment.value.span));}
             }
+            self.reserve_native_argument_loans(context, &segment.value, Rc::make_mut(&mut work.active))?;
 
         Ok(())
     }

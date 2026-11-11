@@ -23,9 +23,22 @@ impl Analyzer {
                 arguments.insert(0, (**base).clone());
                 callee.kind = ExprKind::Name(format!("@native:std:threads#{name}"));
             } else if self.owned_pool_receiver(context, base) {
+                if member=="taskAsync" {
+                    if arguments.len()!=1{return Err(Diagnostic::new("arity","pool.taskAsync expects one owned callback.",expression.span));}
+                    let context_type=Type::Record(self.schema_native_dependency(NativeTypeId::TaskContext,expression.span)?);
+                    let annotation=self.checked_value_annotation(context_type,expression.span)?;
+                    if let ExprKind::Closure{id,params,..}=&mut arguments[0].kind {
+                        self.escaping.insert(*id);
+                        if params.len()==1 && matches!(params[0].ty,crate::syntax::ParameterAnnotation::Inferred(_)){params[0].ty=crate::syntax::ParameterAnnotation::Named(Box::new(annotation));}
+                    }
+                    let capability=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@native:std:threads#__poolSubmission".into()),expression.span)),vec![(**base).clone()]),expression.span);
+                    let mut inputs=vec![capability];inputs.append(arguments);
+                    crate::stdlib::futures::lazy_module(expression,"std:threads","__taskAsync",inputs);
+                    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
+                }
                 let name = match member.as_str() {
                     "task" => "__ownedPoolTask", "stats" => "__ownedPoolStats", "shutdown" => "__ownedPoolShutdown",
-                    _ => return Err(Diagnostic::new("pool-member", "ThreadPool supports task, stats and shutdown; its limits are fixed at creation.", callee.span)),
+                    _ => return Err(Diagnostic::new("pool-member", "ThreadPool supports task, taskAsync, stats and shutdown; its limits are fixed at creation.", callee.span)),
                 };
                 arguments.insert(0, (**base).clone());
                 callee.kind = ExprKind::Name(format!("@native:std:threads#{name}"));
@@ -43,8 +56,17 @@ impl Analyzer {
             if !matches!(receiver, Type::Record(id) if self.program.records[id].native_type == Some(NativeTypeId::ThreadPool)) { return Err(Diagnostic::new("pool-receiver", "Expected an owned ThreadPool or a borrow of it.", span)); }
             for root in Self::loan_roots(&arguments[0], Mode::Read) { active.entry(root).or_default().push((Mode::Read, arguments[0].span)); }
         }
-        let callback_index = usize::from(owned);
-        let result = if matches!(binding.name, "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPoolStats, span)?)
+        if binding.name=="__taskAsync" {
+            if !context.task_body{return Err(Diagnostic::new("async-context","taskAsync completion must run inside an async task.",span));}
+            let capability=self.expression(context,&mut arguments[0],Mode::Consume,loans,None)?;
+            if !matches!(capability,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::PoolSubmission)){return Err(Diagnostic::new("pool-receiver","Expected a checked pool submission capability.",span));}
+        }
+        let callback_index = usize::from(owned || binding.name=="__taskAsync");
+        let result = if binding.name=="__poolSubmission" {
+            let receiver=self.expression(context,&mut arguments[0],Mode::Read,loans,None)?;
+            if !matches!(receiver,Type::Record(id) if self.program.records[id].native_type==Some(NativeTypeId::ThreadPool)){return Err(Diagnostic::new("pool-receiver","Expected the explicit ThreadPool owner.",span));}
+            Type::Record(self.schema_native_dependency(NativeTypeId::PoolSubmission,span)?)
+        } else if matches!(binding.name, "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPoolStats, span)?)
         } else if binding.name == "__taskCancelled" {
             let ty = self.expression(context, &mut arguments[0], Mode::Read, loans, None)?;
             if !matches!(ty, Type::Record(record) if self.program.records[record].native_type == Some(NativeTypeId::TaskContext)) { return Err(Diagnostic::new("task-context", "Expected the current worker context.", span)); }
@@ -66,7 +88,7 @@ impl Analyzer {
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
             let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPool, span)?) } else { Type::Void };
             self.thread_result(output, failure, span)?
-        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask") {
+        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask" | "__taskAsync") {
             let context_type = Type::Record(self.schema_native_dependency(NativeTypeId::TaskContext, span)?);
             let annotation = self.checked_value_annotation(context_type, span)?;
             if let ExprKind::Closure { id, params, .. } = &mut arguments[callback_index].kind {
@@ -75,7 +97,8 @@ impl Analyzer {
                     params[0].ty = crate::syntax::ParameterAnnotation::Named(Box::new(annotation));
                 }
             }
-            let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, None)?;
+            let expected=self.expression_type_hint(context,&arguments[callback_index]).filter(|ty|matches!(ty,Type::Closure(_)));
+            let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, expected)?;
             let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete callback.", arguments[callback_index].span)); };
             let closure = &self.closures[origin];
             if closure.parameters.len() > 1 || closure.parameters.first().is_some_and(|&id| closure.function.bindings[id].ty != context_type) || closure.program_scoped || !closure.program_captures.is_empty() {
@@ -90,9 +113,15 @@ impl Analyzer {
             thread_transfer::require_owned_completion(output, failures, runtime, &self.program.records, &|id| self.unions.members(id))
                 .map_err(|_| Diagnostic::new("thread-transfer", "Worker results and thrown payloads must be resolved owned transferable data.", span))?;
             let error = failures.catch_type(&self.unions, runtime, span)?.unwrap_or(Type::Undefined);
-            let handle = self.thread_application(if binding.name == "spawnScoped" { NativeTypeId::ScopedThread } else { NativeTypeId::Thread }, &[output, error], span)?;
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
-            self.thread_result(handle, failure, span)?
+            if binding.name=="__taskAsync"{
+                let completion=self.thread_application(NativeTypeId::ThreadError,&[error],span)?;
+                let failures=self.unions.intern(vec![failure,completion],span)?;
+                self.thread_result(output,failures,span)?
+            }else{
+                let handle=self.thread_application(if binding.name=="spawnScoped"{NativeTypeId::ScopedThread}else{NativeTypeId::Thread},&[output,error],span)?;
+                self.thread_result(handle,failure,span)?
+            }
         } else {
             let handle = self.expression(context, &mut arguments[0], if binding.name == "cancel" { Mode::Read } else { Mode::Consume }, loans, None)?;
             let Type::Record(record) = handle else { return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span)); };
@@ -162,6 +191,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::ThreadPool))) { return Ok(()); }
     let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
     for record in &program.records {
+        if crate::native_binding_types::is_signature_record(record) { continue; }
         if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
         if record.fields.iter().filter_map(|field| field.ty).any(&contains)
             || matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet))
@@ -184,9 +214,9 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];
-                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask") {
+                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask" | "__taskAsync") {
                     let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
-                    let Type::Closure(origin) = arguments[usize::from(binding.name == "__ownedPoolTask")].ty.unwrap() else { unreachable!() };
+                    let Type::Closure(origin) = arguments[usize::from(matches!(binding.name,"__ownedPoolTask"|"__taskAsync"))].ty.unwrap() else { unreachable!() };
                     let closure = &program.closures[origin];
                     let runtime = program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
                     let members = |id:UnionId| program.unions[id.index()].members.clone();
@@ -198,16 +228,22 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     let unions = crate::unions::UnionArena::from_snapshot_with_records(program.unions.clone(), &program.records);
                     let actual = failures.catch_type(&unions,runtime,expression.span)?.unwrap_or(Type::Undefined);
                     let Type::Union(result) = expression.ty.unwrap() else { unreachable!() };
-                    let handle = members(result).into_iter().find_map(|ty| {
-                        let Type::Record(record) = ty else { return None; };
-                        program.records[record].fields.first().and_then(|field| match field.ty {
-                            Some(Type::Record(id)) if matches!(program.records[id].native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) => Some(id),
-                            _ => None,
-                        })
-                    }).expect("checked spawn handle");
-                    if program.records[handle].application.as_ref().unwrap().resolved_arguments[1] != actual {
-                        return Err(Diagnostic::new("thread-transfer", "Worker error inference changed after checking; use a callback with a resolved completion contract.", expression.span));
-                    }
+                    let checked_error=if binding.name=="__taskAsync"{
+                        members(result).into_iter().find_map(|ty|{
+                            let Type::Record(record)=ty else{return None;};
+                            let record=&program.records[record];
+                            if record.application.as_ref()?.declaration.text!="Result#Err"{return None;}
+                            let Type::Union(errors)=record.fields[0].ty?else{return None;};
+                            members(errors).into_iter().find_map(|ty|{let Type::Record(id)=ty else{return None;};let record=&program.records[id];(record.native_type==Some(NativeTypeId::ThreadError)).then(||record.application.as_ref().unwrap().resolved_arguments[0])})
+                        }).expect("checked taskAsync completion error")
+                    }else{
+                        let handle=members(result).into_iter().find_map(|ty|{
+                            let Type::Record(record)=ty else{return None;};
+                            program.records[record].fields.first().and_then(|field|match field.ty {Some(Type::Record(id)) if matches!(program.records[id].native_type,Some(NativeTypeId::Thread|NativeTypeId::ScopedThread))=>Some(id),_=>None})
+                        }).expect("checked spawn handle");
+                        program.records[handle].application.as_ref().unwrap().resolved_arguments[1]
+                    };
+                    if checked_error!=actual{return Err(Diagnostic::new("thread-transfer","Worker error inference changed after checking; use a callback with a resolved completion contract.",expression.span));}
                 }
             }
             if let ExprKind::Call(_, arguments) = &expression.kind {

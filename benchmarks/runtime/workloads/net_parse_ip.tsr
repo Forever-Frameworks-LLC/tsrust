@@ -1,0 +1,12 @@
+import { parseIp, formatIp, isIPv6, parseAddress, formatAddress } from 'std:net';
+
+function workload(n: int, seed: int, text: ReadOnly<string>): int {
+  let sum: int = 0;
+  for (let i: int = 0; i < n; i++) {
+    const address = unwrap(parseIp(text));
+    const family: int = isIPv6(address) ? 6 : 4;
+    sum = (sum * 131 + family + seed + i) % 1000000007;
+  }
+
+  return sum;
+}

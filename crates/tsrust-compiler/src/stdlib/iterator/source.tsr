@@ -1,0 +1,217 @@
+import { ArrayCursor, arrayCursor, arrayNext } from 'std:iterator-runtime';
+
+interface IteratorValue<T> {
+  done: false;
+  value: T
+}
+
+interface IteratorEnd {
+  done: true
+}
+
+export type IteratorResult<T> = IteratorValue<T> | IteratorEnd;
+
+export interface Iterator<T> {
+  _pull: Owned<Function<IteratorResult<T>>>;
+}
+
+type IteratorCountError = {
+  code: 'range';
+  message: string
+};
+
+function _count(count: int): int {
+  if (count < 0) {
+    const error: IteratorCountError = {
+      code: 'range', message: 'Iterator count must be nonnegative'
+    };
+    throw error;
+  }
+
+  return count;
+}
+
+function _create<T>(pull: Owned<Function<IteratorResult<T>>>): Iterator<T> {
+  return {
+    _pull: pull
+  };
+}
+
+function _from<T>(values: Owned<T[]>): Iterator<T> {
+  const cursor: ArrayCursor<T> = arrayCursor(values);
+  return _create<T>((): IteratorResult<T> => arrayNext(cursor));
+}
+
+function _next<T>(source: Mutable<Iterator<T>>): IteratorResult<T> {
+  return source._pull();
+}
+
+function _map<T, U>(source: Owned<Iterator<T>>, callback: Owned<Function<U, [value: Owned<T>]>>): Iterator<U> {
+  return _create<U>((): IteratorResult<U> => {
+    const step = source.next();
+    if (step.done) {
+      return {
+        done: true
+      };
+    }
+
+    return {
+      done: false, value: callback(step.value)
+    };
+  });
+}
+
+function _filter<T>(source: Owned<Iterator<T>>, callback: Owned<Function<boolean, [value: ReadOnly<T>]>>): Iterator<T> {
+  return _create<T>((): IteratorResult<T> => {
+    while (true) {
+      const step = source.next();
+      if (step.done) {
+        return {
+          done: true
+        };
+      }
+
+      if (callback(step.value)) {
+        return step;
+      }
+    }
+  });
+}
+
+function _take<T>(source: Owned<Iterator<T>>, count: int): Iterator<T> {
+  let remaining = _count(count);
+  return _create<T>((): IteratorResult<T> => {
+    if (remaining === 0) {
+      return {
+        done: true
+      };
+    }
+
+    remaining -= 1;
+    return source.next();
+  });
+}
+
+function _drop<T>(source: Owned<Iterator<T>>, count: int): Iterator<T> {
+  let remaining = _count(count);
+  return _create<T>((): IteratorResult<T> => {
+    while (remaining > 0) {
+      remaining -= 1;
+      const skipped = source.next();
+      if (skipped.done) {
+        remaining = 0;
+        return {
+          done: true
+        };
+      }
+    }
+
+    return source.next();
+  });
+}
+
+function _flatMap<T, U>(source: Owned<Iterator<T>>, callback: Owned<Function<U[] | Iterator<U>, [value: Owned<T>]>>): Iterator<U> {
+  let current: Iterator<U> | undefined = undefined;
+  return _create<U>((): IteratorResult<U> => {
+    while (true) {
+      if (current !== undefined) {
+        // This private slot's finite carrier is planned across all stores.
+        // Invoke the same mutable pull leaf used by _next directly.
+        const step = current._pull();
+        if (!step.done) {
+          return step;
+        }
+
+        current = undefined;
+      }
+
+      const outer = source.next();
+      if (outer.done) {
+        return {
+          done: true
+        };
+      }
+
+      const inner: U[] | Iterator<U> = callback(outer.value);
+      if (Array.isArray(inner)) {
+        current = _from(inner);
+      } else {
+        current = inner;
+      }
+    }
+  });
+}
+
+function _toArray<T>(source: Owned<Iterator<T>>): T[] {
+  const values: T[] = [];
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return values;
+    }
+
+    values.push(step.value);
+  }
+}
+
+function _reduce<T, A>(source: Owned<Iterator<T>>, callback: Owned<Function<A, [accumulator: Owned<A>, value: Owned<T>]>>, initial: Owned<A>): A {
+  let accumulator = initial;
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return accumulator;
+    }
+
+    accumulator = callback(accumulator, step.value);
+  }
+}
+
+function _forEach<T>(source: Owned<Iterator<T>>, callback: Owned<Function<void, [value: Owned<T>]>>): void {
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return;
+    }
+
+    callback(step.value);
+  }
+}
+
+function _some<T>(source: Owned<Iterator<T>>, callback: Owned<Function<boolean, [value: Owned<T>]>>): boolean {
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return false;
+    }
+
+    if (callback(step.value)) {
+      return true;
+    }
+  }
+}
+
+function _every<T>(source: Owned<Iterator<T>>, callback: Owned<Function<boolean, [value: Owned<T>]>>): boolean {
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return true;
+    }
+
+    if (!callback(step.value)) {
+      return false;
+    }
+  }
+}
+
+function _find<T>(source: Owned<Iterator<T>>, callback: Owned<Function<boolean, [value: ReadOnly<T>]>>): T | undefined {
+  while (true) {
+    const step = source.next();
+    if (step.done) {
+      return undefined;
+    }
+
+    if (callback(step.value)) {
+      return step.value;
+    }
+  }
+}

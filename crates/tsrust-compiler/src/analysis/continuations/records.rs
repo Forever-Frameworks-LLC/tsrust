@@ -101,6 +101,7 @@ impl Analyzer {
     }
     pub(in crate::analysis) fn prepare_record_work(
         &mut self,
+        context: &Context,
         fields: &mut Vec<(Token, Expr)>,
         expected: Option<Type>,
         span: Span,
@@ -126,12 +127,16 @@ impl Analyzer {
                 ));
             }
         };
-        let Type::Record(index) = self.scoped_records.recursive_parameter(Type::Record(index))
-        else {
-            unreachable!()
+        // A wholly omitted optional environment supplies no callback instance.
+        // Do not adopt an unrelated live component merely because it is the sole
+        // current recursive candidate; that would change an empty factory's ABI
+        // when a later constructor is checked or a source body is replayed.
+        let index=if fields.is_empty(){index}else{
+            let Type::Record(selected)=self.scoped_records.recursive_parameter(Type::Record(index))else{unreachable!()};selected
         };
         if let Some(id) = self.program.records[index].native_type
             && !crate::native_types::declaration(id).source_constructible()
+            && !(id==crate::native_signatures::NativeTypeId::OwnedIterator && context.function_name.starts_with("@stdlib:iterator#create"))
         {
             return Err(Diagnostic::new(
                 "native-opaque",
@@ -161,6 +166,7 @@ impl Analyzer {
         key: &Token,
         value: &mut Expr,
         frame: &mut RecordFrame,
+        loans: &Loans,
     ) -> Result<(Option<Type>, FieldFrame), Diagnostic> {
         let RecordFrame::Named { index, seen, .. } = frame else {
             let RecordFrame::Inferred { types, .. } = frame else {
@@ -173,7 +179,43 @@ impl Analyzer {
                     key.span,
                 ));
             }
-            return Ok((None, FieldFrame::Inferred));
+            // As with a declaration initializer, a callable binding contributes
+            // its concrete environment; the child still uses consuming access.
+            let mut expected=None;
+            if let ExprKind::Name(name)=&value.kind
+                && let Some(&binding)=context.names.get(name)
+            {
+                let ty=context.bindings[binding].ty;
+                if matches!(ty,Type::Closure(_)) || matches!(ty,Type::Callback(id) if self.callables.callbacks[id].kind.is_owned()) {
+                    expected=Some(ty);
+                }
+                // Program storage cannot be transferred. A checked, capture-free
+                // named function denotes a fresh empty environment, not a copy of
+                // a captured/Once callback. Preserve the source binding's access
+                // checks before constructing that declaration's ordinary value.
+                if context.bindings[binding].declaration_span.is_some_and(|span|self.program.module_owner_bindings.contains(&span))
+                    && !context.bindings[binding].rebindable
+                    && !context.bindings[binding].parameter
+                    && !context.bindings[binding].capture_reference
+                    && let Type::Closure(origin)=ty
+                {
+                    let closure=&self.closures[origin];
+                    let declaration=if closure.captures.is_empty() && closure.program_captures.is_empty()
+                        && !closure.borrowed && closure.lifetime_count==0 && !closure.program_scoped
+                        && !closure.program_async && closure.invocation==Mode::Read {
+                        match closure.forward {
+                            Some(ClosureForward::Function(function)) if self.checked[function].is_some() && !self.named_captures.needs_context(function)=>Some(self.program.functions[function].name.text.clone()),
+                            _=>self.deferred_generic_values.get(&origin).filter(|source|source.context.is_none() && source.identities.is_empty()).map(|source|source.declaration.clone()),
+                        }
+                    }else{None};
+                    if let Some(declaration)=declaration.filter(|name|!context.names.contains_key(name)) {
+                        Self::access(context,binding,Mode::Read,value.span,loans)?;
+                        value.kind=ExprKind::Name(declaration);
+                        expected=None;
+                    }
+                }
+            }
+            return Ok((expected, FieldFrame::Inferred));
         };
         let index = *index;
         if !seen.insert(key.text.clone()) {
@@ -262,7 +304,8 @@ impl Analyzer {
                             | Type::String
                             | Type::Array(_)
                             | Type::Record(_)
-                    )
+                            | Type::Closure(_)
+                    ) && !matches!(actual,Type::Callback(id) if self.callables.callbacks[id].kind.is_owned())
                 {
                     return Err(Diagnostic::new(
                         "type",
@@ -300,9 +343,9 @@ impl Analyzer {
                         actual,
                     )?,
                 };
-                let scoped_native = self.native_borrow_types
-                    && actual != field_type
-                    && self.native_shape_contains_view(actual);
+                let scoped_native = actual != field_type
+                    && (self.native_borrow_types && self.native_shape_contains_view(actual)
+                        || matches!(actual,Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)));
                 let contract_type = if let Type::BorrowedCallable(family) = field_type {
                     Type::Callback(
                         self.callables
@@ -399,11 +442,13 @@ impl Analyzer {
                         })
                         .recursive(self.scoped_records.declaration(index));
                     let instance = if recursive {
+                        let absent=&self.absent_callback_payloads;
                         self.scoped_records.materialize_recursive(
                             index,
                             concrete,
                             &mut self.program.records,
                             &self.unions,
+                            &|id|absent.values().any(|&empty|empty==id),
                         )?
                     } else {
                         self.scoped_records

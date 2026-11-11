@@ -180,3 +180,103 @@ Rust or network access. Original UI source and portable dependency metadata rema
 in place. Binding runtime overlays still need their separate shared-cache migration.
 See the current agent progress for acceptance rather than the initial inventory's
 historical descriptions above. Installer/signature/paired-update work remains open.
+
+## v0.2 backend package contract crosswalk
+
+Static reconciliation at `dfc711783046`: all54 common direct dependencies below have identical native/backend manifest declarations and matching identities/checksums in both locks. The11 native-only retained UI dependencies are intentionally absent from the backend manifest. Root workspace lock presence is not required for a dependency used only by a generated runtime (for example `hostname`). This is source/lock bookkeeping, not a fresh Cargo-resolution or platform result.
+
+The table records direct requested features; resolved transitive features remain defined by the selected build graph. `default` means backend defaults remain enabled. MSRV/license values are declarations from the cached selected package manifests, not compilation or legal-review results. The URL dependency additionally uses the maintained compiler-owned patch in `crates/tsrust-compiler/patched-dependencies/url`; an upstream archive does not prove that patched source identity.
+
+| Package/pin | Requested features | Declared MSRV | License |
+| --- | --- | --- | --- |
+| `futures-util=0.3.34` | `std`, `sink` | 1.71 | MIT OR Apache-2.0 |
+| `tokio-tungstenite=0.29.0` | `connect`, `handshake`, `rustls-tls-webpki-roots` | 1.63 | MIT |
+| `webpki-roots=0.26.11` | `default` | undeclared | CDLA-Permissive-2.0 |
+| `pin-project-lite=0.2.17` | `default` | 1.37 | Apache-2.0 OR MIT |
+| `tracing=0.1.44` | `std` | 1.65.0 | MIT |
+| `tracing-subscriber=0.3.23` | `fmt`, `json` | 1.65.0 | MIT |
+| `icu_provider=2.3.1` | `sync` | 1.88 | Unicode-3.0 |
+| `icu_collator=2.3.1` | `default` | 1.88 | Unicode-3.0 |
+| `icu_decimal=2.3.0` | `default`, `alloc` | 1.88 | Unicode-3.0 |
+| `icu_locale=2.3.1` | `default` | 1.88 | Unicode-3.0 |
+| `icu_segmenter=2.3.0` | `compiled_data` | 1.88 | Unicode-3.0 |
+| `fixed_decimal=0.7.3` | none | 1.82 | Unicode-3.0 |
+| `tokio-util=0.7.20` | none | 1.85 | MIT |
+| `regex=1.13.1` | `default` | 1.65 | MIT OR Apache-2.0 |
+| `hostname=0.4.2` | none | 1.74 | MIT |
+| `memchr=2.8.3` | `default` | 1.61 | Unlicense OR MIT |
+| `tempfile=3.27.0` | `default` | 1.63 | MIT OR Apache-2.0 |
+| `percent-encoding=2.3.2` | `default` | 1.51 | MIT OR Apache-2.0 |
+| `base64=0.23.1` | `default` | 1.71.0 | MIT OR Apache-2.0 |
+| `nix=0.31.2` | none | 1.69 | MIT |
+| `sha2=0.11.1` | `zeroize` | 1.88 | MIT OR Apache-2.0 |
+| `subtle=2.6.1` | `default` | undeclared | BSD-3-Clause |
+| `uuid=1.28.0` | `std` | 1.89.0 | Apache-2.0 OR MIT |
+| `getrandom=0.4.3` | `default` | 1.85 | MIT OR Apache-2.0 |
+| `chrono-tz=0.10.4` | `std` | 1.65 | MIT OR Apache-2.0 |
+| `chrono=0.4.45` | `std` | 1.62.0 | MIT OR Apache-2.0 |
+| `bigdecimal=0.4.11` | `default` | undeclared | MIT/Apache-2.0 |
+| `futures-core=0.3.34` | `default` | 1.36 | MIT OR Apache-2.0 |
+| `sqlx=0.9.0` | `runtime-tokio`, `tls-rustls`, `postgres`, `mysql`, `sqlite`, `any`, `migrate` | 1.94.0 | MIT OR Apache-2.0 |
+| `rusqlite=0.39.0` | `default`, `bundled`, `hooks`, `extra_check` | undeclared | MIT |
+| `matchit=0.8.4` | `default` | undeclared | MIT AND BSD-3-Clause |
+| `axum=0.8.9` | `http1`, `http2`, `tokio`, `multipart` | 1.80 | MIT |
+| `tower-http=0.6.11` | `fs` | 1.64 | MIT |
+| `tokio-rustls=0.26.6` | `aws_lc_rs`, `tls12` | 1.71 | MIT OR Apache-2.0 |
+| `reqwest=0.13.5` | `rustls`, `stream`, `http2`, `multipart` | 1.85.0 | MIT OR Apache-2.0 |
+| `http-body=1.1.0` | `default` | 1.61 | MIT |
+| `http-body-util=0.1.5` | `default` | 1.61 | MIT |
+| `hyper-util=0.1.21` | `default`, `server-auto`, `tokio`, `service` | 1.85 | MIT |
+| `tokio=1.53.3` | `default`, `rt-multi-thread`, `time`, `sync`, `net`, `signal` | 1.71 | MIT |
+| `rayon=1.11.0` | `default` | 1.80 | MIT OR Apache-2.0 |
+| `url=2.5.8` | `default` | 1.63 | MIT OR Apache-2.0 |
+| `serde=1.0.229` | `default`, `derive` | 1.56 | MIT OR Apache-2.0 |
+| `serde_json=1.0.151` | `default`, `raw_value` | 1.71 | MIT OR Apache-2.0 |
+| `flate2=1.1.10` | `zlib-rs`, `runtime_detection` | 1.67.0 | MIT OR Apache-2.0 |
+| `form_urlencoded=1.2.2` | `default` | 1.51 | MIT OR Apache-2.0 |
+| `hmac=0.13.0` | `zeroize` | 1.85 | MIT OR Apache-2.0 |
+| `hkdf=0.13.0` | none | 1.85 | MIT OR Apache-2.0 |
+| `rand=0.10.3` | `std`, `std_rng`, `sys_rng`, `unbiased` | 1.85 | MIT OR Apache-2.0 |
+| `argon2=0.6.0` | `alloc`, `password-hash`, `zeroize` | 1.85 | MIT OR Apache-2.0 |
+| `zeroize=1.9.1` | `alloc` | 1.85 | Apache-2.0 OR MIT |
+| `tower=0.5.3` | `util` | 1.64.0 | MIT |
+| `async-compression=0.4.51` | `tokio`, `gzip`, `zlib` | 1.83 | MIT OR Apache-2.0 |
+| `compression-codecs=0.4.47` | `gzip`, `zlib` | 1.83 | MIT OR Apache-2.0 |
+| `compression-core=0.4.34` | `default` | undeclared | MIT OR Apache-2.0 |
+
+Evidence boundaries:
+
+- Existing B09/B11/B12/B13/B16/B17/B19 plan sections and family admission metadata retain primary-source decisions, archives/licenses/notices, target-filtered graph checks and direct operation profiles. Keep those exact source/lock identities; they do not automatically cover a later aggregate lock. B11 and B17 historical admission metadata may still describe dependency-only stages despite later private profile success recorded in the sole handoff.
+- Current production-three-lock audit: RustSec database `309392b18f6b17022f82c701f300433126901068` (commit dated2026-11-06), all three commands exit0 and report zero known vulnerabilities. This is an advisory snapshot, not a claim that the whole project has no warnings or future vulnerabilities. Exact audited lock SHA256s are:
+  - workspace: `f3b431a58dd0af8259fb8f710d753c91fecf20261324acb65a0f86a427ec5273`;
+  - native: `a32781de184e9d1d5052ebb032e31485c93a922c670a0b512939c6f30c1771d5`;
+  - backend: `b3ce935e86b85b8e746b74d61eede955dd1c84bf7d9b551c7d3516fd6bfb11f1`.
+- The backend lock has no audit warnings and contains none of the six warned packages. Both workspace and native reports retain four unmaintained warnings: `ttf-parser0.25.1` (`RUSTSEC-2026-0192`), `zbus_names4.3.5` (`RUSTSEC-2026-0371`), `zvariant5.15.1` (`RUSTSEC-2026-0370`), `zvariant_derive5.15.1` (`RUSTSEC-2026-0372`); both also report yanked `async-executor1.14.0` and `clipboard-win5.4.1`. These warnings are not ignored, upgraded away or described as a clean whole-project audit.
+- Warning activation is retained desktop UI: `winit → sctk-adwaita → ab_glyph → owned_ttf_parser → ttf-parser`; `accesskit_winit → accesskit_unix → async-executor`; `accesskit_unix → zbus → zbus_names`; `accesskit_unix → accesskit_atspi_common → zvariant → zvariant_derive`; and `arboard → clipboard-win`. Native dependencies select these roots only through `ui-native`/`ui-acceptance`; `tsrust-ui` selects them through its explicit `native`/`acceptance` features. Compiler consumers disable `tsrust-ui` default features. The backend manifest excludes these desktop roots entirely. Lock reachability is not proof that an optional feature was activated in a particular binary; future UI revival must revisit these retained maintenance/yank findings. The existing B16/B17 private audits remain separate exact-lock evidence.
+- Declared MSRVs are not all-target compiler proof. The common direct packages include undeclared MSRVs (`webpki-roots`, `subtle`, `bigdecimal`, `rusqlite`, `matchit`, `compression-core`). Do not substitute a guessed value. Archive/source integrity and notices remain closure-wide requirements, including transitive packages.
+- Optional features and empty backend defaults are source-level selection contracts, not measured minimal-program build-time/size evidence. B20 still requires current four-host native/package/installed-consumer acceptance and the accumulated minimal-dependency performance review.
+
+## Current per-export crosswalk refresh
+
+`crates/tsrust-compiler/examples/public_api_inventory.rs` derives exact identities
+and native signatures from the compiler registry, joins the current editor catalog
+and reference routes, and discovers bundled testing/logging/iterator exports.
+Its output lists existing B01–B19 witness target/case selectors independently of
+per-export acceptance. B19 includes adapter-generation workflows, rather than a
+fabricated `std:rust` export family. `tools/domain-reference-inventory.mjs` remains
+upstream declaration comparison; it is not the current host-export ledger.
+
+Each export maps its exact catalog examples and explicit witness review state.
+Filesystem and URL catalog-example executions retain reviewed965de83f passes only
+while their exact group example digests match; other positive/negative/alias/
+platform coverage remains explicitly unreconciled.
+Catalog examples are source witnesses with unreviewed execution, never inferred
+passes. Reconcile these with retained exact-case evidence before changing status;
+a family test or module count alone cannot establish a per-export pass. Keep
+private native lookup identities distinct from user-importable source exports.
+The current generator has executed successfully:1680 discovered rows include671
+native bindings,174 native declarations and43 bundled-source exports. Seventy-eight
+filesystem/URL catalog-example witnesses retain their exact reviewed input digests.
+These counts are discovery metadata; per-symbol negative/alias/native-platform
+reconciliation remains incomplete. Existing `globals-and-imports-coverage.json` remains its separate
+naming-review record; do not replace its reviewed identities with coverage claims.

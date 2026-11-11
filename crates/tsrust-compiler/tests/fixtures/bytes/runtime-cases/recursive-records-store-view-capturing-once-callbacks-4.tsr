@@ -1,0 +1,68 @@
+import { Bytes, ByteViewMut, alloc, viewMut, length, at, set } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Holder = {
+  data: ByteViewMut;
+  read: Once<Function<ByteViewMut>>;
+  next?: Holder;
+};
+
+function bytes(value: int): Bytes {
+  match (alloc(2, value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function read(owner: Mutable<Bytes>): ByteViewMut {
+  match (viewMut(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function build(first: ByteViewMut, second: ByteViewMut): Holder {
+  return {
+    data: first, read: () => second
+  };
+}
+
+export function run() {
+  const first = bytes(3);
+  const second = bytes(7);
+  const third = bytes(11);
+  const fourth = bytes(13);
+  const holder = build(read(first), read(second));
+  strictEqual(length(holder.data), 2);
+  holder.next = build(read(third), read(fourth));
+  const child = holder.next!;
+  const childResult = child.read();
+  match (at(childResult, 0)) {
+    Ok(value) => {
+      strictEqual(value, 13);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  const result = holder.read();
+  set(result, 0, 19);
+  strictEqual(length(result), 2);
+  match (at(result, 0)) {
+    Ok(value) => {
+      strictEqual(value, 19);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

@@ -265,9 +265,21 @@ impl Emitter<'_> {
         let (root, steps) = self.storage_steps(target);
         let id = root.binding?;
         let binding = &fun.bindings[id];
-        if !binding.parameter || id >= fun.parameter_count || binding.mode != Mode::Mutate {
+        if !binding.parameter || id >= fun.parameter_count { return None; }
+        if binding.mode == Mode::Consume && !steps.is_empty() {
+            // Owned parameters have concrete field storage too. An absence-only
+            // replacement must enter that physical carrier before assignment.
+            let mut destination=binding.ty;
+            for step in &steps {
+                let (Type::Record(record),StorageStep::Field(field))=(destination,step) else{return None;};
+                destination=self.program.records[record].fields.get(*field)?.ty?;
+            }
+            if matches!((value.ty,destination),(Some(Type::Union(from)),Type::Union(to)) if from!=to) {
+                return Some(self.record_carrier_conversion(value.ty.unwrap(),destination,code));
+            }
             return None;
         }
+        if binding.mode != Mode::Mutate { return None; }
         let layout = self.record_parameter_layout(fun, id)?;
         let path = steps
             .iter()
@@ -339,4 +351,23 @@ impl Emitter<'_> {
             layout.record
         ))
     }
+}
+
+#[cfg(test)]
+#[test]
+fn owned_record_parameter_field_replacement_keeps_its_actual_union_storage(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;type Config={value:Value};function clear(config:Config):Config{const previous=config.value;config.value=undefined;console.log(typeof previous);return config;}function main(){const result=clear({value:{evaluate:()=> 'live'}});console.log(typeof result.value);}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();
+ let function=checked.program.functions.iter().find(|function|function.name=="clear"&&!function.template).unwrap();assert_eq!(function.bindings[0].mode,Mode::Consume);
+ let Type::Record(record)=function.bindings[0].ty else{panic!("owned record")};let destination=checked.program.records[record].fields[0].ty.unwrap();assert!(destination.union().is_some());
+ let (target,value)=function.body.iter().find_map(|statement|{
+  if let crate::syntax::StmtKind::Assign{target,value,..}=&statement.kind{Some((target,value))}else{None}
+ }).expect("Actual checked field assignment");
+ assert!(matches!((value.ty,destination),(Some(Type::Union(from)),Type::Union(to)) if from!=to));
+ let emitter=super::emitter_for(&checked.program,"");
+ let converted=emitter.record_parameter_replacement(function,target,value,"checked_rhs").expect("Owned field assignment must adapt its actual physical storage");
+ let expected=emitter.record_carrier_conversion(value.ty.unwrap(),destination,"checked_rhs");assert_eq!(converted,expected);
+ assert_eq!(converted.matches("checked_rhs").count(),1);assert!(converted.contains("let nullable_carrier:"));
+ drop(checked.emit_rust());
 }

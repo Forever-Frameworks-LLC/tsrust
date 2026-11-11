@@ -11,7 +11,7 @@ impl Index {
         for (id,record) in program.records.iter().enumerate() {
             let base=program.scoped_records.declaration(id);
             for (position,field) in record.fields.iter().enumerate() {
-                if views.contains(field.ty.expect("checked field")) {fields.insert((base,position));}
+                if views.contains(field.ty.expect("checked field")) || contains_finite_owned(program,field.ty.expect("checked field")) {fields.insert((base,position));}
             }
         }
         Self{fields}
@@ -30,4 +30,20 @@ impl Emitter<'_> {
             || self.scoped_record_native_parameter(ty)
             || self.scoped_record_native_parameter(self.program.records[base].fields[position].ty.expect("checked declared field"))
     }
+}
+
+// Owned finite families parameterize records without introducing view lifetimes.
+pub(super) fn contains_finite_owned(program:&CheckedProgram,root:Type)->bool{
+    let mut pending=vec![root];let mut seen=HashSet::new();
+    while let Some(ty)=pending.pop(){
+        if !seen.insert(ty){continue;}
+        match ty{
+            Type::StoredCallable(family) if program.stored_contracts.scoped_native_family(family).is_some_and(|layout|layout.lifetimes()==0)=>return true,
+            Type::Callback(id) if program.callback_contracts[id].kind.is_owned() && program.absent_callback_payloads.contains(&id)=>return true,
+            Type::Record(id)=>pending.extend(program.records[id].fields.iter().filter_map(|field|field.ty)),
+            Type::Array(element)=>pending.push(element.ty()),
+            Type::Union(id)=>pending.extend(&program.unions[id.index()].members),
+            _=>{},
+        }
+    }false
 }

@@ -3,6 +3,8 @@ use super::*;
 pub(super) struct Arguments {
     pub inline_shapes: HashMap<(usize, usize), (Vec<Type>, Type)>,
     pub prepared: Vec<bool>,
+    pub value_hints: HashMap<usize,Type>,
+    pub parameter_hints: Vec<Option<Vec<(Type,Option<crate::type_syntax::ParameterAccess>)>>>,
 }
 pub(super) enum Prepared {
     Spread(Box<Expr>),
@@ -32,6 +34,8 @@ impl Analyzer {
     }
     pub(super) fn start_generic_preparation(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<Prepared, Diagnostic> {
         let expr = call(expr);
+        self.prepare_future_sender_hint(context,expr)?;
+        self.rewrite_iterator_call(context,expr)?;
         if matches!(&expr.kind, ExprKind::Call(_, args) if args.iter().any(|arg| matches!(arg.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }))) {
             return Ok(self.generic_spread_prototype(context, expr)?.map_or(Prepared::Done, Prepared::Spread));
         }
@@ -84,26 +88,35 @@ impl Analyzer {
             if polymorphic {self.prepare_polymorphic_argument_hint(context,argument)?;}
         }
         let mut inline_shapes = HashMap::new();
-        for ((_, pattern, _), argument) in self
-            .generic_functions
-            .template(name)
-            .expect("generic template")
-            .params
-            .iter()
-            .zip(args.iter())
-        {
-            if let Some(shape) = self.inline_generic_callable_shape(argument) {
-                inline_shapes.insert((pattern.span.start, pattern.span.end), shape);
-            }
+        let patterns=self.generic_functions.template(name).expect("generic template").params.iter().map(|(_,pattern,_)|(pattern.span.start,pattern.span.end)).collect::<Vec<_>>();
+        for (key,argument) in patterns.into_iter().zip(args.iter()) {
+            let shape=self.inline_generic_callable_shape(argument).or_else(||{
+                // A named non-generic declaration has the same stated callable
+                // constraint as an annotated arrow. Real argument checking still
+                // checks the body, captures and typed failure effects exactly once.
+                let ExprKind::Name(name)=&argument.kind else{return None;};
+                if context.names.contains_key(name){return None;}
+                let &index=self.function_names.get(name)?;
+                if !self.program.functions[index].type_parameters.is_empty(){return None;}
+                let signature=&self.signatures[index];
+                let result=self.checked[index].as_ref().map(|function|function.result)
+                    .or_else(||self.known_results.get(&index).copied())
+                    .or_else(||(!signature.inferred_result).then_some(signature.result))?;
+                Some((signature.params.clone(),result))
+            });
+            if let Some(shape)=shape{inline_shapes.insert(key,shape);}
         }
-        Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()] }))
+        Ok(Prepared::Arguments(Arguments { inline_shapes, prepared: vec![false; args.len()], value_hints:HashMap::new(), parameter_hints:vec![None;args.len()] }))
     }
-    pub(super) fn generic_preparation_contexts(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &Arguments) -> Result<Vec<Option<Type>>, Diagnostic> {
+    pub(super) fn generic_preparation_contexts(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &mut Arguments) -> Result<Vec<Option<Type>>, Diagnostic> {
         let expr = call(expr);
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, _) = Self::generic_call_name(callee).expect("generic name");
-            let callable_shapes = self.generic_callable_shapes(context, args);
+            let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.value_hints.values().copied()));
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
+                .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
             annotations.extend(self.polymorphic_argument_annotations(context,args)?);
             let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
@@ -123,20 +136,24 @@ impl Analyzer {
             let hints = args
                 .iter()
                 .zip(&seed)
-                .map(|(argument, expected)| {
-                    self.generic_argument_hint(context, argument, *expected)
+                .enumerate().map(|(index,(argument, expected))| {
+                    frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected))
                 })
                 .collect::<Vec<_>>();
             let contexts =
                 self.generic_functions
                     .parameter_contexts(name, expected, &types, Some(&hints))?;
+        frame.parameter_hints=self.generic_functions.callable_parameter_contexts(name,expected,&types,Some(&hints))?;
         Ok(contexts)
     }
     pub(super) fn finish_generic_preparation(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>, frame: &Arguments) -> Result<Prepared, Diagnostic> {
         let expr = call(expr);
         let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!() };
         let (name, callee_span) = Self::generic_call_name(callee).expect("generic name");
-        let callable_shapes = self.generic_callable_shapes(context, args);
+        let mut callable_shapes = self.generic_callable_shapes(context, args);
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.value_hints.values().copied()));
+            callable_shapes.extend(self.checked_inference_callable_shapes(frame.inline_shapes.values()
+                .flat_map(|(parameters, result)| parameters.iter().copied().chain(std::iter::once(*result)))));
             let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
             annotations.extend(self.polymorphic_argument_annotations(context,args)?);
         let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
@@ -152,7 +169,7 @@ impl Analyzer {
         let hints = args
             .iter()
             .zip(&seed)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
+            .enumerate().map(|(index,(argument, expected))|frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected)))
             .collect::<Vec<_>>();
         let contexts =
             self.generic_functions
@@ -160,7 +177,7 @@ impl Analyzer {
         let hints = args
             .iter()
             .zip(&contexts)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
+            .enumerate().map(|(index,(argument, expected))|frame.value_hints.get(&index).copied().or_else(||self.generic_argument_hint(context, argument, *expected)))
             .collect::<Vec<_>>();
         let arguments = match self.generic_functions.infer(name, &hints, expected, &types, callee_span) {
             Ok(arguments)=>arguments,
@@ -184,4 +201,14 @@ impl Analyzer {
         )?;
         self.publish_generic_preparation(context, name, concrete)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn named_callback_results_constrain_generic_outputs_without_losing_shadowing_or_errors(){
+ let header="function apply<T,U>(value:Owned<T>,action:Owned<Function<U,[value:Owned<T>]>>):U{return action(value);}function failFirst(value:int):int{if(value===0){throw 'selected';}return value;}";
+ for body in ["const result:int=apply(1,failFirst);console.log(result);","const failFirst=(value:int):string=>String(value);const result:string=apply(1,failFirst);console.log(result);"] {
+  let source=format!("{header}function main(){{{body}}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();drop(checked.emit_rust());
+ }
+ let source=format!("{header}function wrong(value:string):string{{return value;}}function main(){{apply(1,wrong);}}");let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(crate::check(&source).is_err(),"Named callback input constraints remain exact");
 }

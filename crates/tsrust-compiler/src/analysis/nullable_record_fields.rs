@@ -21,6 +21,8 @@ impl Analyzer {
         let baseline=value.ty?;
         let paths=self.nullable_record_field_paths(baseline);
         if paths.is_empty(){return None;}
+        // Concrete recursive storage keeps its whole-body carrier across points.
+        if matches!(baseline,Type::Record(record) if self.native_recursive_shapes().recursive.recursive(record)){return Some(baseline);}
         while matches!(value.kind,ExprKind::Unary{op:UnaryOp::RecordCarrier,..}) {
             let span=value.span;
             let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));
@@ -45,6 +47,7 @@ impl Analyzer {
         let Some(binding)=Self::root_binding(target) else{return Ok(());};
         if self.sticky_nullable(context,binding){return Ok(());}
         let Some(Type::Record(record))=results.get(&binding).copied() else{return Ok(());};
+        if self.native_recursive_shapes().recursive.recursive(record){return Ok(());}
         let Some(previous)=self.record_field_type(Type::Record(record),&path) else{return Ok(());};
         if self.nullable_scoped_record_declaration(previous).is_none(){return Ok(());}
         if let Some(next)=self.array_result_replacement_type(value,None,previous,results)? {
@@ -88,6 +91,8 @@ impl Analyzer {
         for write in record_storage_writes::collect(body) {
             if self.sticky_nullable(context,write.binding) {continue;}
             let binding=&context.bindings[write.binding];
+            // Recursive view records already use one checked whole-body carrier.
+            if matches!(binding.ty,Type::Record(record) if self.native_recursive_shapes().recursive.access(record).is_some()) {continue;}
             if write.path.is_empty() {
                 // Elements of a local array join through the array's carrier type.
                 if write.array_element && !binding.parameter && !binding.capture_reference {continue;}
@@ -177,10 +182,28 @@ impl Analyzer {
             }
     }
     }
-    /// A local whose nullable callback records are stored through control flow.
+    /// Flow selects a payload of already checked private owned storage; it
+    /// never manufactures a non-null proof or changes the storage's carrier.
+    pub(super) fn owned_nullable_flow_record(&self,context:&Context,binding:usize)->Option<usize>{
+        if !self.sticky_nullable(context,binding){return None;}
+        let ty=context.bindings[binding].ty;
+        let Type::Record(record)=self.unions.payload(ty)? else{return None;};
+        let facts=self.aggregate_callable_facts(ty);
+        (facts.retains && !facts.scoped && !facts.unknown && !self.native_shape_contains_view(ty)
+            && !context.readonly_parameters.contains(&binding) && !context.mutable_parameters.contains(&binding))
+            .then_some(record)
+    }
+    /// A nullable local whose callback environments share one storage carrier.
     pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {
         let info=&context.bindings[binding];
-        context.control_stored.contains(&binding) && !info.parameter && !info.capture_reference
+        // Owned nullable locals share a carrier; scoped/view locals retain point-sensitive epochs.
+        let owned_local=info.rebindable && info.ty.union().is_some()
+            && self.nullable_scoped_record_declaration(info.ty).is_some()
+            && {let facts=self.aggregate_callable_facts(info.ty);facts.retains && !facts.scoped && !facts.unknown}
+            && !self.native_shape_contains_view(info.ty);
+        (context.control_stored.contains(&binding) || owned_local)
+            && (!info.parameter || context.owned_record_captures.contains(&binding))
+            && (!info.capture_reference || context.owned_record_captures.contains(&binding))
             && (self.nullable_scoped_record_declaration(info.ty).is_some() || !self.nullable_record_field_paths(info.ty).is_empty())
     }
 }
@@ -249,9 +272,45 @@ impl Analyzer {
     }
 
 impl Analyzer {
+    /// Keep physical callback fields selected by concrete function or closure returns.
+    pub(super) fn physical_record_result(&mut self, body:&mut [Stmt], mut result:Type)->Result<Type,Diagnostic> {
+        if let Type::Union(original)=result && self.unions.payload(result).is_none(){
+            let mut values=Vec::new();returned_values(body,&mut values);
+            let mut physical=false;
+            for value in &values{
+                if let Some(actual)=value.ty && let Some(next)=self.finite_record_union_carrier(actual,result.union().unwrap(),value.span)?{physical=true;result=next;}
+            }
+            // An early scalar return can select an empty callback carrier and
+            // a later live return can join back to the original result. Its
+            // tag still needs retargeting even when the final ID is unchanged.
+            if physical||result!=Type::Union(original){for value in values{self.retarget_nullable_store(value,result)?;}}
+        }
+        // A record annotation names its declaration; the checked result must
+        // retain the concrete callback environment selected by its returns.
+        if let Type::Array(ArrayElement::Record(base, depth)) = result
+            && let Some(joined) = self.joined_array_result(body, base, depth)?
+        {
+            result = joined;
+        }
+        if let Type::Record(base) = result
+            && let Some(joined) = self.joined_record_result(body, base)?
+        {
+            result = joined;
+        } else if let Type::Record(base) = result {
+            let actual = self.inferred_body_result(body)?;
+            if let Type::Record(instance) = actual {
+                if self.scoped_records.declaration(instance) == self.scoped_records.declaration(base) {
+                    result = actual;
+                }
+            }
+        }
+        Ok(result)
+    }
+
     /// A record result whose returns differ only in callback environments
     /// takes their join. Each returned value is converted to that join.
     pub(super) fn joined_record_result(&mut self,body:&mut [Stmt],base:usize)->Result<Option<Type>,Diagnostic> {
+        let base=self.scoped_records.declaration(base);
         let mut values=Vec::new();
         returned_values(body,&mut values);
         let mut joined:Option<usize>=None;
@@ -277,10 +336,17 @@ impl Analyzer {
     /// Conditional branches that hold callback records of one declaration, or
     /// a callback record and absence, take one joined environment.
     pub(super) fn conditional_record_join(&mut self,consequent:&mut Expr,alternate:&mut Expr,left:Type,right:Type)->Result<Option<Type>,Diagnostic> {
+        if let (Type::Union(a),Type::Union(b))=(left,right){
+            let other=|id|self.unions.members(id).into_iter().filter(|ty|!matches!(ty,Type::Record(_))).collect::<Vec<_>>();
+            if other(a)==other(b){
+                let joined=if let Some(joined)=self.finite_record_union_carrier(right,a,alternate.span)?{Some(joined)}else{self.finite_record_union_carrier(left,b,consequent.span)?};
+                if let Some(joined)=joined{self.retarget_nullable_store(consequent,joined)?;self.retarget_nullable_store(alternate,joined)?;return Ok(Some(joined));}
+            }
+        }
         fn absent(value:&Expr)->bool {matches!(&value.kind,ExprKind::Inject{value,..} if matches!(value.kind,ExprKind::Null|ExprKind::Undefined))}
         let joined=match(left,right){
             (Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)
-                && self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped=>self.join_sticky_record_types(a,b,consequent.span)?,
+                && (self.aggregate_callable_facts(Type::Record(self.scoped_records.declaration(a))).scoped || self.finite_owned_shape(left) || self.finite_owned_shape(right) || self.scoped_native_record_contract(a,b) || self.scoped_native_record_contract(b,a))=>self.join_sticky_record_types(a,b,consequent.span)?,
             _ if self.nullable_scoped_record_declaration(left).is_some() && self.nullable_scoped_record_declaration(left)==self.nullable_scoped_record_declaration(right)=>{
                 if absent(alternate){Some(left)}else if absent(consequent){Some(right)}else{self.join_nullable_record_unions(left,right,consequent.span)?}
             }
@@ -483,7 +549,7 @@ impl Analyzer {
         let ExprKind::Call(callee,_)=&mut value.kind else{return;};
         if !matches!(value.target,Some(CallTarget::ConditionalCallback(_)|CallTarget::ConditionalClosure(_)|CallTarget::StoredCallableField(_))){return;}
         match planned {
-            Some(ty @ Type::BorrowedCallable(family))=>{callee.ty=Some(ty);value.target=Some(CallTarget::StoredCallableField(family));}
+            Some(ty @ (Type::BorrowedCallable(family)|Type::StoredCallable(family)))=>{callee.ty=Some(ty);value.target=Some(CallTarget::StoredCallableField(family));}
             Some(Type::Closure(origin))=>{callee.ty=Some(Type::Closure(origin));value.target=Some(CallTarget::ConditionalClosure(origin));}
             _=>{}
         }
@@ -566,7 +632,8 @@ impl Analyzer {
     /// An array result of capturing records keeps the joined element
     /// environment of its returns.
     pub(super) fn joined_array_result(&mut self,body:&mut [Stmt],base:usize,depth:u8)->Result<Option<Type>,Diagnostic> {
-        if depth!=0 || self.scoped_records.declaration(base)!=base || !self.aggregate_callable_facts(Type::Record(base)).scoped {return Ok(None);}
+        let base=self.scoped_records.declaration(base);
+        if depth!=0 || !self.aggregate_callable_facts(Type::Record(base)).scoped {return Ok(None);}
         let mut values=Vec::new();
         returned_values(body,&mut values);
         let mut joined:Option<usize>=None;
@@ -593,4 +660,51 @@ impl Analyzer {
         }
         Ok(Some(result))
     }
+}
+
+#[cfg(test)]
+#[test]
+fn owned_nullable_assignment_flow_keeps_only_proven_present_payloads(){
+ use crate::project::{SourceId,SourceProvider,check_graph,load_project};
+ struct Input(String);impl SourceProvider for Input{
+  fn resolve(&self,_:Option<&SourceId>,path:&str)->Result<SourceId,String>{Ok(SourceId(path.into()))}
+  fn read(&self,id:&SourceId)->Result<String,String>{if id.0=="main.tsr"{Ok(self.0.clone())}else{Err(format!("Missing source: {}",id.0))}}
+ }
+ let source="import {Iterator} from 'std:iterator';function counter():Owned<Function<int>>{let current:Iterator<int>|undefined=undefined;return ():int=>{if(current===undefined){current=Iterator.from([3,5]);}const step=current.next();if(step.done){current=undefined;return 0;}return step.value;};}function main(){const next=counter();console.log(next(),next(),next(),next());}";
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=check_graph(load_project(&Input(source),"main.tsr").unwrap()).unwrap_or_else(|error|panic!("{error:?}"));drop(checked.emit_rust());
+ for source in [
+  "import {Iterator} from 'std:iterator';function inspect(flag:boolean):void{let current:Iterator<int>|undefined=undefined;if(flag){current=Iterator.from([1]);}current.next();}function main(){}",
+  "import {Iterator} from 'std:iterator';function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from([1]);}current=undefined;current.next();}",
+  "import {Iterator} from 'std:iterator';function inspect(current:ReadOnly<Iterator<int>|undefined>):void{if(current===undefined){current=Iterator.from([1]);}current.next();}function main(){}",
+  "import {Iterator} from 'std:iterator';function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from(['wrong']);}current.next();}",
+  "import {Iterator} from 'std:iterator';function consume(current:Owned<Iterator<int>|undefined>):void{}function main(){let current:Iterator<int>|undefined=undefined;if(current===undefined){current=Iterator.from([1]);}consume(current);current.next();}",
+ ]{let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);assert!(check_graph(load_project(&Input(source.clone()),"main.tsr").unwrap()).is_err(),"No nullable/borrowed/moved payload may be invented: {source}");}
+}
+
+#[cfg(test)]
+mod recursive_initializer_tests {
+ use super::*;
+ #[test]
+ fn recursive_initializer_keeps_the_planned_carrier_and_conversion(){
+  let mut analyzer=Analyzer::new(crate::syntax::parse("type Node={read:Once<Function<int>>;next?:Node;};function main(){}").unwrap()).unwrap();
+  let read=analyzer.program.records[0].fields[0].ty.unwrap();
+  let initial=analyzer.scoped_records.materialize(0,vec![read,Type::Undefined],&mut analyzer.program.records);
+  let mut value=Expr::new(ExprKind::Name("initial".into()),Span::default());value.ty=Some(Type::Record(initial));value.wrap_record_carrier(Type::Record(0));
+  assert_eq!(analyzer.nullable_record_initializer(&mut value),Some(Type::Record(0)));
+  let ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=&value.kind else{panic!("planned conversion was removed")};
+  assert_eq!(inner.ty,Some(Type::Record(initial)));assert!(matches!(inner.kind,ExprKind::Name(_)));
+ }
+}
+
+#[cfg(test)]
+mod mixed_result_retarget_tests {
+ use super::*;
+ #[test]
+ fn scalar_return_retargets_after_later_live_carrier_restores_original_union(){
+  let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function pass(value:Value):Value{if(value===undefined){return '';}return value;}function main(){console.log(typeof pass({evaluate:()=> 'live'}));console.log(typeof pass(undefined));}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let checked=crate::check(&source).unwrap();
+  let functions=checked.program.functions.iter().filter(|function|!function.template&&function.name=="pass").collect::<Vec<_>>();assert!(!functions.is_empty());
+  for function in functions{let mut body=function.body.clone();let mut values=Vec::new();returned_values(&mut body,&mut values);assert_eq!(values.len(),2);for value in values{assert_eq!(value.ty,Some(function.result),"Every returned physical carrier must agree with the completed function result");if let ExprKind::Inject{union,..}=&value.kind{assert_eq!(Some(*union),function.result.union());}}}
+ }
 }

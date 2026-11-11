@@ -89,9 +89,20 @@ impl ProjectIndex {
         if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
-    pub fn new(graph: &ProjectGraph) -> Self {
+    pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
+    pub fn with_diagnostics(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic]) -> Self {
         let mut index = Self::build(graph);
-        for (id,source) in &mut index.indices {if graph.modules[id].data.is_none(){source.recover_project_member_receivers(graph,id);}}
+        for id in &graph.order {
+            if graph.modules[id].data.is_some(){continue;}
+            let mut source=index.indices.remove(id).expect("indexed project source");
+            source.recover_project_member_receivers(graph,id);
+            if let Some(error)=errors.iter().filter(|error|error.code=="syntax" && error.location.source==*id)
+                .min_by_key(|error|error.location.span.start)
+            {
+                source.recover_project_generic_prefix(graph,id,error.location.span.start,&index.indices);
+            }
+            index.indices.insert(id.clone(),source);
+        }
         index.refresh_references();
         index
     }
@@ -103,13 +114,12 @@ impl ProjectIndex {
             let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
-            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::with_entry_help(&module.declaration_source,false),SourceIndex::with_entry_help(module.checked_source(),id==&graph.entry))};
+            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::for_project(&module.declaration_source,false),SourceIndex::for_project(module.checked_source(),id==&graph.entry))};
             if let Some(data) = &module.data && !text_asset {
                 let schema = data.schema();
-                declaration = SourceIndex::with_entry_help(&module.source.text, false);
+                declaration = SourceIndex::for_project(&module.source.text, false);
                 declaration.add_data_schema(&schema);
                 index.add_data_schema(&schema);
-                index.theme_document=tsrust_compiler::ui_project::theme_document(std::path::Path::new(&id.0),&module.source.text).is_some();
             }
 
             // Declaration text blanks export markers; retain public aliases from the original source.
@@ -204,29 +214,6 @@ impl ProjectIndex {
         let physical = source_id(uri).ok()?;
         let id=self.entry_aliases.get(&physical).unwrap_or(&physical).clone();
         if self.graph.modules.get(&id).is_some_and(|module|module.rust.is_some()){return None;}
-        if method=="textDocument/definition" {
-            let index=self.indices.get(&id)?;
-            let position:lsp_types::Position=serde_json::from_value(params.get("position")?.clone()).ok()?;
-            if let Some((class,_))=index.ui_class_at(index.offset(position)?) {
-                let paths=tsrust_compiler::ui_project::utility_theme_paths(&class);
-                let mut locations=vec![];
-                for (source,module) in &self.graph.modules {
-                    let Some((theme,prefix))=tsrust_compiler::ui_project::theme_document(std::path::Path::new(&source.0),&module.source.text) else{continue;};
-                    if tsrust_compiler::ui_project::theme::Theme::parse(&theme.to_string()).is_err(){continue;}
-                    let Some(data)=&module.data else{continue;};let schema=data.schema();
-                    for path in &paths {
-                        let mut annotation=&schema.root;let mut span=None;
-                        for key in prefix.iter().chain(path) {
-                            let tsrust_compiler::type_syntax::ValueAnnotationKind::Named(name)=&annotation.kind else{span=None;break;};
-                            let Some(field)=schema.records.iter().find(|record|record.name==name.text).and_then(|record|record.fields.iter().find(|field|field.name==*key)) else{span=None;break;};
-                            span=Some(field.span);annotation=&field.annotation;
-                        }
-                        if let Some(span)=span {let range=crate::LineIndex::new(&module.source.text).range(&module.source.text,span).ok()?;locations.push(serde_json::json!({"uri":file_uri(source).ok()?,"range":range}));}
-                    }
-                }
-                return Some(Ok(serde_json::json!(locations)));
-            }
-        }
         if method == "textDocument/references" {
             let index = self.indices.get(&id)?;
             let canonical_uri = file_uri(&id).ok()?;
@@ -252,15 +239,13 @@ impl ProjectIndex {
             );
         }
         let index = self.indices.get(&id)?;
-        let answer = index.request(method, params, uri);
         if method == "textDocument/completion"
             && !index.checked()
-            && answer.as_ref().is_ok_and(|items| items.as_array().is_some_and(Vec::is_empty))
             && let Some(items) = self.repaired_member_completion(&id, index, params)
         {
             return Some(Ok(items));
         }
-        Some(answer.map(|mut answer| { self.rust_locations(&mut answer); answer }))
+        Some(index.request(method, params, uri).map(|mut answer| { self.rust_locations(&mut answer); answer }))
     }
 
     fn rust_locations(&self, value: &mut Value) {
@@ -289,6 +274,7 @@ impl ProjectIndex {
         let source = &self.graph.modules.get(id)?.source.text;
         let prefix = source.get(prefix_start..offset)?;
         let replace = index.source_range(prefix_start, offset);
+        let access = index.member_access_range(separator, offset);
         let receiver = index.receiver_text(separator);
         index.declaration_prefix_repairs(offset).into_iter().chain(index.member_repairs(offset)).find_map(|repair| {
             let mut graph = self.graph.clone();
@@ -296,7 +282,45 @@ impl ProjectIndex {
             module.declaration_source = format!("{}{}", module.declaration_source.get(..repair.start)?, &repair.text[repair.start..]);
             module.source.text = repair.text;
             let analysis = tsrust_compiler::project::check_graph(graph).ok()?;
-            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, &receiver, index.optional_separator(separator))
+            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, access, &receiver, index.optional_separator(separator))
         })
+    }
+}
+
+#[cfg(test)]
+mod generic_prefix_recovery_tests {
+    use super::*;
+    #[test]
+    fn completed_generic_call_hover_survives_a_broken_sibling_without_accepting_invalid_prefixes() {
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-generic-prefix-recovery");
+        let id=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let uri=file_uri(&id).unwrap().to_string();
+        let valid="import {deepStrictEqual} from 'std:testing';function main(){deepStrictEqual([[1]],[[1]]);}";
+        let mut workspace=crate::workspace::Workspace::default();
+        workspace.open(id.clone(),1,valid.into());
+        let analysis=workspace.snapshot().check_with_diagnostics(&id).unwrap();
+        let checked=ProjectIndex::checked(&analysis);
+        let params=serde_json::json!({"position":{"line":0,"character":valid.rfind("deepStrictEqual").unwrap()+2}});
+        let expected=checked.request("textDocument/hover",&params,&uri).unwrap().unwrap();
+        assert!(expected.to_string().contains("ReadOnly<int[][]>"));
+        let broken=format!("{valid}function broken(){{const = ;}}");
+        assert!(workspace.change(&id,2,broken));
+        let snapshot=workspace.snapshot();
+        let errors=snapshot.check_with_diagnostics(&id).err().expect("original syntax error");
+        assert!(errors.iter().any(|error|error.code=="syntax"));
+        let graph=tsrust_compiler::project::load_project_headers(&snapshot,&id.0).unwrap();
+        let recovered=ProjectIndex::with_diagnostics(&graph,&errors);
+        assert_eq!(recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap(),expected);
+        assert!(snapshot.check_with_diagnostics(&id).is_err(),"index recovery never repairs the document");
+
+        let invalid="import {deepStrictEqual,trackedResource} from 'std:testing';function main(){deepStrictEqual([trackedResource()],[trackedResource()]);}function broken(){const = ;}";
+        assert!(workspace.change(&id,3,invalid.into()));
+        let snapshot=workspace.snapshot();
+        let errors=snapshot.check_with_diagnostics(&id).err().expect("invalid prefix and sibling");
+        let graph=tsrust_compiler::project::load_project_headers(&snapshot,&id.0).unwrap();
+        let recovered=ProjectIndex::with_diagnostics(&graph,&errors);
+        let params=serde_json::json!({"position":{"line":0,"character":invalid.rfind("deepStrictEqual").unwrap()+2}});
+        let hover=recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap();
+        assert!(hover.to_string().contains("deepStrictEqual<T>"),"invalid prefixes cannot supply checked specialization: {hover}");
     }
 }

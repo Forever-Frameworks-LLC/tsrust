@@ -9,6 +9,39 @@ impl Emitter<'_>{
   let state=args.first().map(|value|self.expr(fun,value,Mode::Consume)).unwrap_or_else(||"TsrNull".into());
   Some(Self::access_wrapped(expr,mode,format!("tsrust_native_http::Router::with_state({state})")))
  }
+ fn http_client_options(&self,ty:Type)->String{
+  let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional client options")};
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
+   let Type::Union(id)=item.ty.unwrap()else{unreachable!()};
+   let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{
+    let value=if *ty==Type::Undefined{"None"}else if *ty==Type::String{"Some(value.as_ref())"}else{"Some(*value)"};
+    format!("Union{}::V{tag}(value)=>{value}",id.index())
+   }).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")
+  }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::Client::with_transport_options({fields})")
+ }
+ pub(super) fn http_owned_optional_text(&self,ty:Type,value:&str)->String{
+  let Type::Union(id)=ty else{unreachable!("checked optional multipart metadata")};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else{"Some(value.into_owned())"})).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")
+ }
+ fn http_sse_event(&self,ty:Type)->String{
+  let Type::Record(record)=ty else{unreachable!("checked SSE event")};let fields=&self.program.records[record].fields;
+  // Axum encodes fields immediately; borrow the owned event instead of copying static strings first.
+  let text=|index:usize|{let Type::Union(id)=fields[index].ty.unwrap()else{unreachable!("optional SSE text")};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else{"Some(value.as_ref())"})).collect::<Vec<_>>().join(",");format!("match &event.field{index}{{{arms}}}")};
+  let event=text(1);let id=text(2);
+  let Type::Union(retry)=fields[3].ty.unwrap()else{unreachable!()};let arms=self.program.unions[retry.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",retry.index(),if *ty==Type::Undefined{"None"}else{"Some(value)"})).collect::<Vec<_>>().join(",");
+  format!("|event|tsrust_native_http::sse_event(event.field0.as_ref(),{event},{id},match event.field3{{{arms}}})")
+ }
+ fn http_sse_options(&self,ty:Type)->String{
+  let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional SSE options")};
+  let names=["keep_alive_ms","keep_alive_text"];
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{let Type::Union(id)=item.ty.unwrap()else{unreachable!()};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|format!("Union{}::V{tag}(value)=>{}",id.index(),if *ty==Type::Undefined{"None"}else if *ty==Type::String{"Some(value.as_ref().to_owned())"}else{"Some(*value)"})).collect::<Vec<_>>().join(",");format!("{}:match &options.field{field}{{{arms}}}",names[field])}).collect::<Vec<_>>().join(",");format!("tsrust_native_http::SseOptions{{{fields}}}")
+ }
+ fn http_owned_multipart_parts(&self,ty:Type,value:&str)->String{
+  let Type::Array(ArrayElement::Record(record,0))=ty else{unreachable!("checked multipart part array")};let fields=&self.program.records[record].fields;let file=self.http_owned_optional_text(fields[1].ty.unwrap(),"part.field1");let mime=self.http_owned_optional_text(fields[2].ty.unwrap(),"part.field2");format!("({value}).tsr_owned_items().map(|part|tsrust_native_http::MultipartPart{{name:part.field0.into_owned(),file_name:{file},content_type:{mime},data:part.field3.bytes}})")
+ }
+ fn http_cors_options(&self,ty:Type)->String{
+  let record=match ty{Type::Record(id)=>id,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(id)=ty{Some(*id)}else{None})).expect("checked optional CORS options")};
+  let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{let Type::Union(id)=item.ty.unwrap()else{unreachable!()};let arms=self.program.unions[id.index()].members.iter().enumerate().map(|(tag,ty)|{let value=if *ty==Type::Undefined{"None"}else if field<4{"Some(value.iter().map(|item|item.as_ref()))"}else{"Some(*value)"};format!("Union{}::V{tag}(value)=>{value}",id.index())}).collect::<Vec<_>>().join(",");format!("match &options.field{field}{{{arms}}}")}).collect::<Vec<_>>().join(",");format!("tsrust_native_http::NativeMiddleware::cors({fields})")
+ }
  fn http_cookie_options(&self,ty:Type)->String{
   let record=match ty{Type::Record(record)=>record,_=>ty.union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).expect("checked optional cookie options")};let names=["path","domain","max_age","secure","http_only","same_site","partitioned"];
   let fields=self.program.records[record].fields.iter().enumerate().map(|(field,item)|{
@@ -19,7 +52,7 @@ impl Emitter<'_>{
    }).collect::<Vec<_>>().join(",");format!("{}:match &options.field{field}{{{arms}}}",names[field])
   }).collect::<Vec<_>>().join(",");format!("tsrust_native_http::CookieOptions{{{fields}}}")
  }
- fn http_value(&self,ty:Type,value:&str)->String{
+ pub(super) fn http_value(&self,ty:Type,value:&str)->String{
   if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Bytes){return format!("Record{}{{bytes:{value}}}",self.native_record_declaration(id));}
   if let Type::Array(ArrayElement::Record(id,0))=ty && matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpFormField|NativeTypeId::HttpMultipartPart)) {
    let item=self.http_value(Type::Record(id),"item");let values=format!("({value}).into_iter().map(|item|{item}).collect::<Vec<_>>()");
@@ -31,7 +64,9 @@ impl Emitter<'_>{
   }
   if ty==Type::Array(ArrayElement::String(0)){return format!("Array::Heap(({value}).into_iter().map(String::Owned).collect())");}
   if ty==Type::String{return format!("String::Owned({value})");}
+  if let Some(value)=self.websocket_received_value(ty,value){return value;}
   if let Type::Union(id)=ty {let members=&self.program.unions[id.index()].members;let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let present=1-absent;let payload=self.http_value(members[present],"value");return format!("match {value}{{Some(value)=>Union{}::V{present}({payload}),None=>Union{}::V{absent}(TsrUndefined)}}",id.index(),id.index());}
+  if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::HttpWebSocketHalves){return format!("{{let halves={value};Record{}{{field0:halves.read,field1:halves.write,{}}}}}",self.native_record_declaration(id),self.schema_record_order(id).trim_start_matches(','));}
   value.into()
  }
  pub(super) fn http_result(&self,ty:Type,call:&str)->String{
@@ -46,20 +81,56 @@ impl Emitter<'_>{
  }
  pub(super) fn http_native(&self,fun:&CheckedFunction,expr:&Expr,id:usize,args:&[Expr])->Option<String>{
   let binding=&crate::native_bindings::BINDINGS[id];if !matches!(binding.module,"std:http"|"std:signals"){return None;}self.native_bindings.borrow_mut().insert(id);
-  let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=self.expr(fun,arg,param.access);if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value}}).collect::<Vec<_>>();
+  // Emission can reserve temporary owners. Keep both text adaptations from the
+  // same emitted operand, so selecting raw text never abandons a preparation.
+  let raw_values=args.iter().enumerate().map(|(index,arg)|self.expr(fun,arg,binding.parameters[index.min(binding.parameters.len()-1)].access)).collect::<Vec<_>>();
+  let values=args.iter().enumerate().map(|(index,arg)|{let param=&binding.parameters[index.min(binding.parameters.len()-1)];let value=&raw_values[index];if arg.ty==Some(Type::String){if param.access==Mode::Consume{format!("({value}).as_ref().to_owned()")}else{format!("({value}).as_ref()")}}else{value.clone()}}).collect::<Vec<_>>();
   let receiver=values.first().cloned().unwrap_or_default();
-  let raw=|index:usize|self.expr(fun,&args[index],binding.parameters[index].access);
+  let raw=|index:usize|raw_values[index].clone();
   let optional=|index:usize|args.get(index).map(|arg|self.native_optional_argument(&binding.parameters[index],values[index].clone(),arg.ty.unwrap())).unwrap_or("None".into());
   let call=match binding.name{
+   "accessLog"=>format!("tsrust_native_http::NativeMiddleware::access_log({receiver})"),
    "listen" if binding.module=="std:signals"=>"tsrust_native_signals::listen()".into(),
    "__receive" if binding.module=="std:signals"=>format!("({receiver}).receive().await"),
    "__router"=>"tsrust_native_http::Router::new()".into(),
-   "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty() || args[0].ty==Some(Type::Undefined){format!("{{let _={};tsrust_native_http::Client::new()}}",values.first().map(String::as_str).unwrap_or("()"))}else{format!("match {}{{Some(options)=>tsrust_native_http::Client::with_ca(options.field0.as_ref()),None=>tsrust_native_http::Client::new()}}",optional(0))},
+   "__app"=>"tsrust_native_http::App::new()".into(),"__client"=>if args.is_empty() || args[0].ty==Some(Type::Undefined){format!("{{let _={};tsrust_native_http::Client::new()}}",values.first().map(String::as_str).unwrap_or("()"))}else{format!("match {}{{Some(options)=>{},None=>tsrust_native_http::Client::new()}}",optional(0),self.http_client_options(args[0].ty.unwrap()))},
    "__configure"|"__routerConfigure"=>format!("{{let app={receiver};let options={};app.configure([options.field0,options.field1,options.field2,options.field3,options.field4,options.field5,options.field6])}}",values[1]),
    "__routerStatic"=>{let fallback=args.get(3).map(|arg|self.native_optional_argument(&binding.parameters[3],"fallback_value".into(),arg.ty.unwrap())).unwrap_or("None".into());format!("{{let app={receiver};let prefix={};let directory={};let fallback_value={};let fallback:Option<&str>={fallback};app.serve_static(prefix.as_ref(),directory.as_ref(),fallback.unwrap_or(\"\"))}}",raw(1),raw(2),args.get(3).map(|_|raw(3)).unwrap_or("()".into()))},
    "__request"=>format!("tsrust_native_http::Request::new({})",values.join(",")),
+   "__cors"=>if args.is_empty()||args[0].ty==Some(Type::Undefined){format!("{{let _={};Ok::<_,tsrust_native_http::Error>(tsrust_native_http::NativeMiddleware::cors_default())}}",values.first().map(String::as_str).unwrap_or("()"))}else{format!("match {}{{Some(options)=>{},None=>Ok(tsrust_native_http::NativeMiddleware::cors_default())}}",optional(0),self.http_cors_options(args[0].ty.unwrap()))},
+   "secureHeaders"=>"tsrust_native_http::NativeMiddleware::secure_headers()".into(),
+   "compress"=>"tsrust_native_http::NativeMiddleware::compress()".into(),
+   "__requestForm"=>format!("tsrust_native_http::Request::from_form({}, {}, ({}).iter().map(|field|(field.field0.as_ref(),field.field1.as_ref())))",values[0],values[1],values[2]),
+   "__requestMultipart"=>format!("tsrust_native_http::Request::from_multipart({}, {}, {})",values[0],values[1],self.http_owned_multipart_parts(args[2].ty.unwrap(),&values[2])),
+   "__requestBytes"=>format!("tsrust_native_http::Request::from_bytes({}, {}, ({}).bytes)",values[0],values[1],values[2]),
+   "__requestStream"=>format!("tsrust_native_http::Request::from_stream({}, {}, {})",values[0],values[1],values[2]),
+   "__requestChannel"=>format!("tsrust_native_http::Request::from_channel({}, {}, {}, |chunk|chunk.bytes)",values[0],values[1],values[2]),
    "__text"=>format!("tsrust_native_http::Response::text({})",values.join(",")),
    "__html"|"__json"=>format!("tsrust_native_http::Response::content({}, {}, {:?})",values[0],values[1],if binding.name=="__html"{"text/html; charset=utf-8"}else{"application/json"}),
+   "__connectWebSocket"=>self.websocket_connect(&values[0],args.get(1).filter(|argument|argument.ty!=Some(Type::Undefined)).map(|argument|(argument.ty.unwrap(),optional(1)))),
+   "__webSocketReceive"|"__webSocketReadReceive"=>format!("({receiver}).receive().await"),
+   "__webSocketSend"|"__webSocketWriteSend"=>format!("({receiver}).send({}).await",self.websocket_send_message(args[1].ty.unwrap(),&values[1])),
+   "__webSocketSplit"=>format!("({receiver}).split()"),
+   "__webSocketClose"|"__webSocketWriteClose"=>{
+    let frame=if args.get(1).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::WebSocketMessage::Close{code:None,reason:None}".into()}else{
+     let record=match args[1].ty.unwrap(){Type::Record(record)=>record,_=>args[1].ty.unwrap().union().and_then(|id|self.program.unions[id.index()].members.iter().find_map(|ty|if let Type::Record(record)=ty{Some(*record)}else{None})).unwrap()};
+     format!("match {}{{Some(frame)=>{},None=>tsrust_native_http::WebSocketMessage::Close{{code:None,reason:None}}}}",optional(1),self.websocket_send_message(Type::Record(record),"frame"))
+    };
+    format!("{{let frame={frame};let tsrust_native_http::WebSocketMessage::Close{{code,reason}}=frame else{{unreachable!(\"checked close frame\")}};({receiver}).close(code,reason).await}}")
+   },
+   "__routerWebSocket"=>{
+    let Type::Closure(origin)=args[2].ty.unwrap()else{unreachable!("checked WebSocket handler")};let closure=&self.program.closures[origin];let result=closure.function.result;
+    let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
+    let unwrap=if self.result_closures.borrow().contains_key(&origin){"let task=match task{Ok(task)=>task,Err(_)=>return};"}else{""};
+    let options=if args.get(3).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::WebSocketOptions::default()".into()}else{format!("match {}{{Some(options)=>{},None=>tsrust_native_http::WebSocketOptions::default()}}",optional(3),self.websocket_options(args[3].ty.unwrap(),"options"))};
+    format!("{{let app={receiver};let path={};let options={options};let callback=std::sync::Arc::new({});app.websocket(path,options,move|socket|{{let callback=callback.clone();async move{{let task=callback.call(socket);{unwrap}drop({poll});}}}})}}",values[1],values[2])
+   },
+   "__sse"|"__sseWithProducer"=>{
+    let Type::Record(channel)=args[0].ty.unwrap()else{unreachable!("checked SSE channel")};let event=self.program.records[channel].application.as_ref().unwrap().resolved_arguments[0];let encode=self.http_sse_event(event);
+    let index=if binding.name=="__sse"{1}else{2};
+    let options=if args.get(index).is_none_or(|argument|argument.ty==Some(Type::Undefined)){"tsrust_native_http::SseOptions::default()".into()}else{format!("match {}{{Some(options)=>{},None=>tsrust_native_http::SseOptions::default()}}",optional(index),self.http_sse_options(args[index].ty.unwrap()))};
+    if binding.name=="__sse"{format!("tsrust_native_http::Response::sse({}, {options}, {encode})",values[0])}else{format!("tsrust_native_http::Response::sse_with_producer({}, {}, {options}, {encode})",values[0],values[1])}
+   },
    "__streamChannel"=>format!("tsrust_native_http::Response::stream_channel({}, {}, |chunk|chunk.bytes)",values[0],values[1]),
    "__stream"=>format!("tsrust_native_http::Response::stream({})",values.join(",")),
    "__routerRoute"|"__routerUse"|"__routerUsePath"=>{
@@ -67,7 +138,7 @@ impl Emitter<'_>{
     let start=match binding.name{"__routerRoute"=>3,"__routerUsePath"=>2,_=>1};
     let route_args=match binding.name{"__routerRoute"=>format!("let method={};let path={};",values[1],values[2]),"__routerUsePath"=>format!("let path={};",values[1]),_=>"let path=\"*\";".into()};
     let mut callbacks=String::new();let mut names=Vec::new();
-    for index in start..args.len(){let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
+    for index in start..args.len(){if matches!(args[index].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware)){callbacks.push_str(&format!("let handler{index}:tsrust_native_http::ContextMiddleware<{state}>=({}).into_context();",values[index]));names.push(format!("handler{index}"));continue;}let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let inputs=match closure.parameters.len(){0=>"",1=>"context",_=>"context,next"};
     let is_task=matches!(result,Type::Closure(id) if self.program.task_origins.contains(&id));
     let body=if is_task{
@@ -88,6 +159,7 @@ impl Emitter<'_>{
     let registration=if binding.name=="__routerRoute"{format!("app.route_many(method,path,vec![{handlers}])")}else if binding.name=="__routerUsePath"{format!("app.use_many(path,vec![{handlers}])")}else{format!("app.use_many(path,vec![{handlers}]).expect(\"the global pattern is valid\")")};
     format!("{{let app={receiver};{route_args}{callbacks}{registration}}}")
    },
+   "__use" if matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(NativeTypeId::HttpMiddleware))=>format!("({receiver}).use_native({})",values[1]),
    "__route"|"__use"|"__fallback"=>{
     let index=args.len()-1;let Type::Closure(origin)=args[index].ty.unwrap()else{unreachable!()};let closure=&self.program.closures[origin];let result=closure.function.result;
     let error=self.future_error_type(result,expr.span);let poll=self.future_poll(result,"task",error,expr.span);
@@ -102,8 +174,8 @@ impl Emitter<'_>{
    "__listen"|"__routerListen"=>if args.len()==2{format!("({receiver}).listen({}).await",values[1])}else if args[2].ty==Some(Type::Undefined){format!("{{let app={receiver};let address={};let _={};app.listen(address.as_ref()).await}}",raw(1),values[2])}else{format!("{{let app={receiver};let address={};match {}{{Some(tls)=>app.listen_tls(address.as_ref(),tls.field0.as_ref(),tls.field1.as_ref()).await,None=>app.listen(address.as_ref()).await}}}}",raw(1),optional(2))},
    "__wait"=>format!("{{({receiver}).wait().await;Ok::<_,tsrust_native_http::Error>(())}}"),
    "__shutdown"=>format!("{{({receiver}).shutdown().await;Ok::<_,tsrust_native_http::Error>(())}}"),
-   "__contextRequestForm"=>format!("({receiver}).request_form().await"),
-   "__contextRequestMultipart"=>format!("({receiver}).request_multipart().await"),
+   "__contextRequestForm"=>format!("({receiver}).request_form({}).await",optional(1)),
+   "__contextRequestMultipart"=>format!("({receiver}).request_multipart({}).await",optional(1)),
    "__contextRequestBody"=>format!("({receiver}).request_body()"),
    "__contextRequestText"=>format!("({receiver}).request_text().await"),
    "__contextNext"=>format!("{{({}).run({receiver}).await;Ok::<_,tsrust_native_http::Error>(())}}",values[1]),
@@ -115,7 +187,7 @@ impl Emitter<'_>{
     let call=if index==3{"context.set_cookie(name.as_ref(),value.as_ref(),cookie_options)"}else{"context.delete_cookie(name.as_ref(),cookie_options)"};
     format!("{{let context={receiver};let name={};{value}{options}{call}}}",raw(1))
    },
-   "__contextSet"=>format!("({receiver}).set({}, {})",values[1],self.expr(fun,&args[2],Mode::Consume)),
+   "__contextSet"=>format!("({receiver}).set({}, {})",values[1],raw(2)),
    "__contextGet"=>{
     let Type::Record(record)=args[0].ty.unwrap()else{unreachable!()};let Type::Record(variables)=self.program.records[record].application.as_ref().unwrap().resolved_arguments[1]else{unreachable!()};
     let ExprKind::String(key)=&args[1].kind else{unreachable!()};let value=self.program.records[variables].fields.iter().find(|field|field.name.text==*key).unwrap().ty.unwrap();
@@ -126,7 +198,7 @@ impl Emitter<'_>{
    "__contextText"|"__contextHtml"|"__contextJson"=>format!("({receiver}).content({}, {}, {:?})",values[1],optional(2),match binding.name{"__contextHtml"=>"text/html; charset=utf-8","__contextJson"=>"application/json",_=>"text/plain; charset=utf-8"}),
    "__next"=>format!("Ok::<_,tsrust_native_http::Error>(({receiver}).run({}).await)",values[1]),
    "__send"=>format!("({receiver}).send({}).await",values[1]),
-   "__form"|"__multipart"=>format!("({receiver}).{}().await",binding.name.trim_start_matches('_')),
+   "__form"|"__multipart"=>format!("({receiver}).{}({}).await",binding.name.trim_start_matches('_'),optional(1)),
    "__bodyNext"=>format!("({receiver}).next().await"),
    "__bodyText"|"__requestText"=>format!("({receiver}).text().await"),
    "__responseText"=>format!("({receiver}).text_body().await"),
@@ -140,8 +212,31 @@ impl Emitter<'_>{
   let result=expr.ty.unwrap();Some(if matches!(binding.result,crate::native_bindings::NativeType::Structured(crate::native_signatures::Signature::Result(..))){self.http_result(result,&call)}else{self.http_value(result,&call)})
  }
  pub(super) fn http_record(&self,output:&mut String,id:usize)->bool{
-  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
+  let name=match self.program.records[id].native_type{Some(NativeTypeId::HttpWebSocket)=>"WebSocket",Some(NativeTypeId::HttpWebSocketRead)=>"WebSocketRead",Some(NativeTypeId::HttpWebSocketWrite)=>"WebSocketWrite",Some(NativeTypeId::HttpRouter)=>"Router",Some(NativeTypeId::HttpContext)=>"Context",Some(NativeTypeId::HttpContextNext)=>"ContextNext",Some(NativeTypeId::HttpApp)=>"App",Some(NativeTypeId::HttpClient)=>"Client",Some(NativeTypeId::HttpRequest)=>"Request",Some(NativeTypeId::HttpResponse)=>"Response",Some(NativeTypeId::HttpServer)=>"Server",Some(NativeTypeId::HttpBody)=>"Stream",Some(NativeTypeId::HttpMiddleware)=>"NativeMiddleware",Some(NativeTypeId::HttpNext)=>"Next",_=>return false};
   let arguments=if matches!(self.program.records[id].native_type,Some(NativeTypeId::HttpRouter|NativeTypeId::HttpContext)){format!("<{}>",self.native_type(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]))}else{String::new()};
   writeln!(output,"type Record{id}=tsrust_native_http::{name}{arguments};").unwrap();true
  }
+}
+
+#[cfg(test)]
+mod argument_emission_tests {
+    #[test]
+    fn raw_http_text_arguments_keep_only_live_temporary_preparations() {
+        use crate::project::{FileSourceProvider,load_project,check_graph};
+        // This is the unchanged registered HTTP catalog program: both explicit
+        // and omitted static fallbacks remain part of the public runtime suite.
+        let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/http/runtime-cases/catalog-045.tsr");
+        let source=std::fs::read_to_string(&path).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap();
+        let generated=checked.emit_rust();
+        assert_eq!(generated.matches(".serve_static(").count(),2);
+        assert_eq!(generated.matches("String::Borrowed(\"index.html\")").count(),1,"argument renders once");
+        let declarations=generated.split("let mut conditional_temporary_").skip(1).collect::<Vec<_>>();
+        assert_eq!(declarations.len(),1,"one actual fallback owner, no abandoned preparation: {generated}");
+        for declaration in declarations {
+            let id=declaration.chars().take_while(|value|value.is_ascii_digit()).collect::<String>();assert!(!id.is_empty());
+            assert_eq!(generated.matches(&format!("conditional_temporary_{id} = ")).count(),1,"temporary is initialized once");
+        }
+        syn::parse_file(&generated).unwrap();
+    }
 }

@@ -1,3 +1,4 @@
+mod support;
 use lsp_types::Position;
 use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
@@ -724,16 +725,10 @@ fn nested_call_commas_and_utf16_positions() {
 
 #[test]
 fn backend_catalog_entries_have_current_compiler_witnesses() {
-    every_catalog_entry_has_a_current_compiler_witness(false);
+    every_catalog_entry_has_a_current_compiler_witness();
 }
 
-#[test]
-#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
-fn retained_ui_catalog_entries_have_current_compiler_witnesses() {
-    every_catalog_entry_has_a_current_compiler_witness(true);
-}
-
-fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
+fn every_catalog_entry_has_a_current_compiler_witness() {
     for (ty, literal, method, result) in [
         ("string", "\"x\"", "valueOf", "string"),
         ("string", "\"x\"", "toString", "string"),
@@ -831,9 +826,6 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
     }
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     for (family, entries) in catalog.as_object().unwrap() {
-        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
-            continue;
-        }
         for entry in entries.as_array().unwrap() {
             let method = entry["name"].as_str().unwrap();
             if family.starts_with("std:") {
@@ -845,14 +837,17 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
                         entry["parameters"].as_array().unwrap().len()
                     );
                 }
-                for example in entry["examples"].as_array().unwrap() {
+                // std:ui examples are window programs documented in tsrx fences;
+                // its optional console examples are checked like other modules.
+                let examples: &[Value] = match entry["examples"].as_array() {Some(list) => list, None => {assert!(family == "std:ui", "{family}.{method} lacks examples"); &[]}};
+                for example in examples {
                     checked_std_example(example["source"].as_str().unwrap());
                 }
                 continue;
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender") {
+            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender" | "Url" | "SearchParams" | "Regex" | "Interval" | "CancellationToken" | "Collator" | "Segmenter" | "NumberFormat" | "Child" | "TcpListener" | "TcpStream" | "UdpSocket" | "CompressionReader" | "CompressionWriter" | "Iterator" | "IteratorConstructor" | "Hasher" | "Logger" | "LoggerOptions" | "LogError") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -943,6 +938,12 @@ fn every_catalog_entry_has_a_current_compiler_witness(retained_ui: bool) {
                 continue;
             }
 
+            if family == "string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare") {
+                let examples=entry["examples"].as_array().unwrap();
+                assert!(!examples.is_empty(),"{family}.{method} needs a witness example");
+                for example in examples { checked_std_example(example["source"].as_str().unwrap()); }
+                continue;
+            }
             if family == "StringConstructor" && method == "raw" {
                 // The template record type must be declared outside main.
                 let source = "type Template = { raw: string[]; };function main() { const template: Template = { raw: [\"a\"] }; const result: string = String.raw(template); }";
@@ -1157,12 +1158,8 @@ fn callback_parameter_signatures_and_folding_survive_incomplete_bodies() {
     let source = "/** Calls an operation. */\nfunction apply(callback: (n: int) => int, value: int): int {\n return callback(value);\n}\nfunction main() {\n const increment = (n: int): int => { return n + 1; };\n apply(increment, 2);\n}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "callback(value)", 0);
-    assert!(
-        hover["contents"]["value"]
-            .as_str()
-            .unwrap()
-            .contains("callback: Function<int, [n: int]>")
-    );
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let callback: (n: int) => int;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "value);", 0);
     assert_eq!(help["signatures"][0]["parameters"][0]["label"], "n: int");
     let help = ask(source, "textDocument/signatureHelp", "2);", 0);
@@ -1730,16 +1727,10 @@ impl CatalogExampleSource {
 
 #[test]
 fn backend_catalog_examples_match_native_output() {
-    documented_builtin_examples_match_native_output(false);
+    documented_builtin_examples_match_native_output();
 }
 
-#[test]
-#[ignore = "frozen UI catalog (backend-only reset): UiComputed/UiSignal lack witnesses and in-text examples; run with --ignored if the UI is revived"]
-fn retained_ui_catalog_examples_match_native_output() {
-    documented_builtin_examples_match_native_output(true);
-}
-
-fn documented_builtin_examples_match_native_output(retained_ui: bool) {
+fn documented_builtin_examples_match_native_output() {
     // File examples document a four-byte input; keep it outside the owner workspace.
     struct ExampleDirectory(std::path::PathBuf);
     impl Drop for ExampleDirectory {
@@ -1759,17 +1750,16 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
     let mut expected = String::new();
     let mut expected_stderr = String::new();
     for (family, entries) in catalog.as_object().unwrap() {
-        if (family == "std:ui" || family.starts_with("Ui")) != retained_ui {
-            continue;
-        }
         for entry in entries.as_array().unwrap() {
             let docs = entry["documentation"].as_str().unwrap();
+            let ui = family == "std:ui";
             assert!(
-                docs.contains("```tsrust"),
+                docs.contains("```tsrust") || ui && docs.contains("```tsrx"),
                 "{family}.{} lacks an example",
                 entry["name"]
             );
-            for example in entry["examples"].as_array().unwrap() {
+            let examples: &[Value] = match entry["examples"].as_array() {Some(list) => list, None => {assert!(ui, "{family}.{} lacks examples", entry["name"]); &[]}};
+            for example in examples {
                 let snippet = example["source"].as_str().unwrap();
                 // Standard-library and matcher examples are complete programs,
                 // as is any example that declares its own main function.
@@ -1782,7 +1772,7 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
                     // Earlier standalone programs passed before an interrupted run;
                     // fragments still accumulate below because their batch runs last.
                     if resume.as_ref().is_some_and(|start|family<start) {continue;}
-                    if !executed.insert((snippet,example["output"].as_str().unwrap())) {continue;}
+                    if !executed.insert((snippet,example["output"].as_str().unwrap(),example["stderr"].as_str().unwrap_or(""))) {continue;}
                     let analysis = checked_std_example(snippet);
                     let dir = &directory.0;
                     let prefix = if family.starts_with("std:") { "std".to_owned() } else { family.to_lowercase() };
@@ -1819,7 +1809,7 @@ fn documented_builtin_examples_match_native_output(retained_ui: bool) {
                         String::from_utf8(output.stdout).unwrap(),
                         example["output"].as_str().unwrap()
                     );
-                    assert!(output.stderr.is_empty());
+                    assert_eq!(String::from_utf8(output.stderr).unwrap(),example["stderr"].as_str().unwrap_or(""),"{family}.{} stderr",entry["name"]);
                     continue;
                 }
                 let witness = source.push(snippet);
@@ -3362,6 +3352,12 @@ fn top_level_main_explains_automatic_entry_without_overwriting_user_docs() {
 fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
     let positives = [
         (
+            "function main(){const value:int[]|null=[1];if(Array.isArray(value)){const text=value.join();console.log(text);}}",
+            "join",
+            "join(separator?: string): string",
+            "int[]",
+        ),
+        (
             "function main(){const value:string|null=clone(\" x \" );if(value!==null){const text=value.trim();console.log(text);}}",
             "trim",
             "trim(): string",
@@ -3399,6 +3395,9 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
         ),
     ];
     for (source, method, signature, ty) in positives {
+        let formatted = tsrust_compiler::format(source).unwrap();
+        assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+        let source = formatted.as_str();
         tsrust_compiler::check(source).unwrap();
         let index = SourceIndex::new(source);
         if source.contains("const value:") {
@@ -3480,7 +3479,7 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
                 .any(|item| item["label"] == method),
             "{source}: {completion}"
         );
-        if source.contains("const text=") {
+        if source.contains("const text=") || source.contains("const text =") {
             let text = request("textDocument/hover", "text);");
             assert!(
                 text["contents"]["value"]
@@ -3540,7 +3539,6 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
     }
     for source in [
         "type Holder={value:int[]|null;};function clear(holder:Holder):boolean{holder.value=null;return true;}function main(){const holder:Holder={value:[1]};if(holder.value!==null){clear(holder);holder.value.jo",
-        "function main(){const value:int[]|null=[1];if(Array.isArray(value)){value.jo",
         "function main(){const value:int[]|null|undefined=[1];if(value!==null){value.jo",
         "function main(){let value:int[]|null=[1];if(value!==null){value=null;value.jo",
         "function main(){const value:int[]|null=[1];if(value!==null){const moved=value;value.jo",
@@ -3615,7 +3613,7 @@ fn nullable_narrowing_editor_views_follow_checked_places_and_effects() {
         array_is_array["documentation"]
             .as_str()
             .unwrap()
-            .contains("by itself does not narrow")
+            .contains("narrows a static union")
     );
     let source = r#"type Box={text:string|null;values:int[]|undefined;};
 function label(value:string|null|undefined):string{if(value===null||value===undefined){return "missing";}return value.trim();}
@@ -5170,6 +5168,7 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
         );
     }
     for (callback, result) in [
+        ("(value:int):void=>{}", "void[]"),
         ("(value:int):number=>{return Number(value);}", "number[]"),
         ("(value:int):int[]=>{return [value,value];}", "int[]"),
         ("(value:int):int[][]=>{return [[value]];}", "int[][]"),
@@ -5292,7 +5291,6 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
     for arguments in [
         "",
         "undefined",
-        "(value:int):void=>{}",
         "(value:int,index:int,source:int[],extra:int):int=>{return value;}",
         "():int=>{return 1;},():int=>{return 2;}",
     ] {
@@ -5306,6 +5304,8 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
     }
     let source = "function main(){const values:int[]=[1,2];const depth:int=1;const copied=values.flat(depth);console.log(copied.join(),String(values.at(0)),values.toSorted().length);}";
     tsrust_compiler::check(source).unwrap();
+    examples.push("function main(){let calls=0;const units:void[]=[1,2].flatMap((value:int):void=>{calls+=value;});console.log(units.length,calls);}");
+    expected.push_str("2 3\n");
     let source = examples.finish();
     let analysis = tsrust_compiler::check(&source).unwrap();
     let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -6135,7 +6135,7 @@ fn nullish_assignment_checked_aliases_and_flow_views_match_language_examples() {
     for level in [0, 3] {
         let binary = directory.join(format!("examples-o{level}"));
         let build = std::process::Command::new("rustup")
-            .args(["run", "1.96.1", "rustc", "--edition=2024", "-C"])
+            .args(["run", "1.99.1", "rustc", "--edition=2024", "-C"])
             .arg(format!("opt-level={level}"))
             .arg(directory.join("examples.rs"))
             .arg("-o")
@@ -6416,7 +6416,7 @@ fn optional_chain_editor_views_and_language_examples_follow_checked_hops() {
     for level in [0, 3] {
         let binary = directory.join(format!("examples-o{level}"));
         let build = std::process::Command::new("rustup")
-            .args(["run", "1.96.1", "rustc", "--edition=2024", "-C"])
+            .args(["run", "1.99.1", "rustc", "--edition=2024", "-C"])
             .arg(format!("opt-level={level}"))
             .arg(directory.join("examples.rs"))
             .arg("-o")
@@ -6811,7 +6811,8 @@ fn explicit_mutate_callback_annotations_preserve_help_and_chained_results() {
     let source = "function apply(action:Mutable<Function<string, [text:ReadOnly<string>]>>):string{return action('Pat');}function main(){const action=(text:string):string=>{return text.trim();};console.log(apply(action).toLowerCase());}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "action('Pat')", 0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("Mutable<Function<string, [text: ReadOnly<string>]>>"), "{hover}");
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let action: Mutable<Function<string, [text: ReadOnly<string>]>>;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "'Pat')", 0);
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("text"), "{help}");
     assert!(!ask(source, "textDocument/hover", "toLowerCase()", 0).is_null());
@@ -6822,7 +6823,8 @@ fn explicit_read_callable_help_keeps_borrowing_and_argument_names() {
     let source = "function apply(action:ReadOnly<Function<int, [text:ReadOnly<string>]>>):int{return action('Pat');}function main(){const action=(text:string):int=>{return text.length;};console.log(apply(action));}";
     assert!(tsrust_compiler::check(source).is_ok());
     let hover = ask(source, "textDocument/hover", "action('Pat')", 0);
-    assert!(hover["contents"]["value"].as_str().unwrap().contains("ReadOnly<Function<int, [text: ReadOnly<string>]>>"), "{hover}");
+    let signature=hover["contents"]["value"].as_str().unwrap().split("```tsrust\n").nth(1).unwrap().split("```").next().unwrap();
+    assert!(support::contains_formatted_snippet(&format!("let {signature};"),"let action: ReadOnly<Function<int, [text: ReadOnly<string>]>>;"),"{hover}");
     let help = ask(source, "textDocument/signatureHelp", "'Pat')", 0);
     assert!(help["signatures"][0]["parameters"][0]["label"].as_str().unwrap().contains("text"), "{help}");
 }
@@ -10210,4 +10212,40 @@ fn nested_collection_constructors_publish_checked_collection_types(){
             assert!(hover["contents"]["value"].as_str().unwrap_or("").contains(ty),"{hover}");
         }
     }
+}
+
+#[test]
+fn owned_iterator_constructor_and_methods_keep_checked_editor_contracts(){
+ use tsrust_compiler::project::SourceId;
+ use tsrust_lsp::{workspace::Workspace,project_diagnostics::file_uri,project_intelligence::ProjectIndex};
+ let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function main(){const values=Iterator.from([1,2]);const mapped=values.map((value:int):int=>value+1);const step=mapped.next();console.log(step.done);}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("iterator-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ let query=|method:&str,needle:&str,n:usize|index.request(method,&json!({"position":at(&source,needle,n),"context":{"includeDeclaration":true}}),&uri).unwrap().unwrap();
+ let completion=query("textDocument/completion","next();",0);let labels=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<Vec<_>>();for name in ["next","map","filter","take","drop","flatMap","reduce","forEach","some","every","find","toArray"]{assert!(labels.contains(&name),"{completion}");}assert!(!labels.contains(&"from"));assert!(!labels.contains(&"_pull"));
+ let hover=query("textDocument/hover","next();",0);assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("IteratorResult"),"{hover}");let help=query("textDocument/signatureHelp","[1, 2]",0);assert!(!help["signatures"].as_array().unwrap().is_empty());
+ let constructor=query("textDocument/completion","from([1",0);assert!(constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="from"),"{constructor}");assert!(!constructor.as_array().unwrap().iter().any(|entry|entry["label"]=="_pull"),"{constructor}");
+ // The restriction follows native identity, not a ban on user field names.
+ let source=tsrust_compiler::format("type User={_pull:int;};function main(){const value:User={_pull:7};console.log(value._pull);}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("user-pull-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ let items=index.request("textDocument/completion",&json!({"position":at(&source,"_pull);",0)}),&uri).unwrap().unwrap();assert!(items.as_array().unwrap().iter().any(|entry|entry["label"]=="_pull"),"{items}");
+}
+
+#[test]
+fn array_is_array_static_union_guards_keep_checked_project_help(){
+ use tsrust_compiler::project::SourceId;
+ use tsrust_lsp::{workspace::Workspace,project_diagnostics::file_uri,project_intelligence::ProjectIndex};
+ let source=tsrust_compiler::format("import {Iterator} from 'std:iterator';function consume(value:Owned<int[]|Iterator<int>>):int{if(Array.isArray(value)){return value.length;}else{return value.toArray().length;}}function main(){console.log(consume([1]));}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("array-iterator-guard-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for (needle,member,absent) in [("value.length","join","toArray"),("value.toArray","toArray","join")]{
+  let mut position=at(&source,needle,0);position.character+="value.".len() as u32;
+  let items=index.request("textDocument/completion",&json!({"position":position}),&uri).unwrap().unwrap();let items=items.as_array().unwrap();
+  assert!(items.iter().any(|item|item["label"]==member),"{needle}: {items:?}");assert!(!items.iter().any(|item|item["label"]==absent),"{needle}: {items:?}");
+ }
+ let hover=index.request("textDocument/hover",&json!({"position":at(&source,"toArray",0)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("toArray"));
+ let mut position=at(&source,"isArray(",0);position.character+="isArray(".len() as u32;let help=index.request("textDocument/signatureHelp",&json!({"position":position}),&uri).unwrap().unwrap();assert!(help.to_string().contains("isArray"));
+ let source=tsrust_compiler::format("function main(){const value=JSON.parse('[1]');if(Array.isArray(value)){console.log(typeof value);}else{console.log(typeof value);}}").unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+ // A fresh project resolves JSON's standard wrapper instead of inheriting
+ // declarations from the imported Iterator project above.
+ let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("json-array-guard-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
+ for occurrence in [0,1]{let hover=index.request("textDocument/hover",&json!({"position":at(&source,"value);",occurrence)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("JsonValue"));}
 }

@@ -1,3 +1,4 @@
+#[path="../stdlib/iterator/emit.rs"] mod iterator;
 mod declaration_scope;
 mod receiver_moves;
 mod self_append;
@@ -13,12 +14,24 @@ use declaration_scope::Declarations;
 mod coalesce_work;
 mod expression_work;
 mod program_testing;
+mod testing_deep;
 mod threads;
 mod ui;
 mod futures;
 mod http;
+mod logging;
+mod http_realtime;
+#[path="../stdlib/url/emit.rs"] mod url;
+#[path="../stdlib/regex/emit.rs"] mod regex;
+#[path="../stdlib/net/emit.rs"] mod net;
+#[path="../stdlib/locale/emit.rs"] mod locale;
 mod sqlite;
 mod sql;
+mod io;
+mod process;
+mod compression;
+mod crypto_password;
+mod compression_streams;
 mod channels;
 #[path="../stdlib/cache/emit.rs"] mod cache;
 mod rust_bridge;
@@ -28,6 +41,7 @@ mod json_encoding;
 mod json_typed;
 mod json_literals;
 mod json_refinement;
+mod string_observations;
 mod nullable_link_emit;
 mod recursive_union_payload_emit;
 mod native_view_record_parameters;
@@ -75,6 +89,7 @@ mod record_join_emit;
 mod scoped_record_copy_emit;
 mod scoped_record_owned_places;
 mod record_carrier_emit;
+mod record_carrier_worklist;
 mod scoped_record_capture_views;
 mod scoped_record_console_emit;
 mod scoped_record_support_emit;
@@ -278,6 +293,12 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
                 .iter()
                 .copied()
         })
+        .chain(emitter.uses_url_runtime().then_some("url"))
+        .chain(emitter.uses_regex_runtime().then_some("regex"))
+        .chain(emitter.uses_locale_runtime().then_some("locale"))
+        .chain(rust.contains("mod tsrust_native_crypto {").then_some("crypto"))
+        .chain(rust.contains("mod tsrust_native_compression_streams {").then_some("compression-streams"))
+        .chain(rust.contains("mod tsrust_native_cancellation {").then_some("cancellation"))
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
@@ -335,7 +356,7 @@ struct Emitter<'a> {
     result_callbacks: RefCell<HashMap<usize,(String,crate::error_effects::FailureSet)>>,
     conditional_temporaries: RefCell<Vec<String>>,
     /// Receivers of builtin chain links rendered on the expression work stack.
-    rendered_receivers: RefCell<Vec<(usize, String)>>,
+    rendered_receivers: RefCell<Vec<(usize, Mode, String)>>,
     conditional_next: Cell<usize>,
     expression_depth: Cell<usize>,
     native_bindings: RefCell<std::collections::BTreeSet<usize>>,
@@ -491,7 +512,7 @@ impl Emitter<'_> {
         }
         if let Some(id) = value.union() {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty| !ty.is_copy()).collect::<Vec<_>>();
-            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && (payloads.len() == 1 || self.native_views.contains(value)) {
+            if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) {
                 let payload = payloads.iter().map(|&ty| {let native=self.native_type(ty);if matches!(value,Type::Union(_)){self.union_stored_type(id,ty,native)}else{native}}).collect::<Vec<_>>().join(", ");
                 return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
             }
@@ -551,11 +572,12 @@ impl Emitter<'_> {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty|!ty.is_copy()).map(|payload| format!("&{lifetime} mut {}",self.native_type(payload))).collect::<Vec<_>>().join(", ");
             return format!("Union{}<{payloads}>",id.index());
         }
-        if let Type::Union(id) = contract.ty
+        if let Type::Union(id) | Type::BorrowedUnion(id) = contract.ty
             && !id.copy
             && contract.mode == Mode::Read
         {
-            let parameters = if self.native_views.contains(contract.ty) {
+            let parameters = if self.native_views.contains(contract.ty)
+                || self.program.unions[id.index()].members.iter().any(|&ty|self.scoped_record_native_parameter(ty)) {
                 self.program.unions[id.index()].members.iter().filter(|ty| !ty.is_copy())
                     .map(|&ty| format!(", {}", self.native_type(ty))).collect::<String>()
             } else {
@@ -827,7 +849,7 @@ impl Emitter<'_> {
             if scoped_data && data_payloads.iter().any(|&member|self.boxed_union_member(id,member)) {
                 let mut lifetimes=Vec::new();
                 let logical=data_payloads.iter().enumerate().map(|(position,&payload)| {
-                    let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,payload);
+                    let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,payload,|record,position,field|self.scoped_record_native_field(record,position,field));
                     let names=(0..count).map(|slot|format!("'link{position}_{slot}")).collect::<Vec<_>>();
                     let native=self.named_record_environment_type(payload,&names);lifetimes.extend(names);native
                 }).collect::<Vec<_>>();
@@ -911,7 +933,7 @@ impl Emitter<'_> {
         };
         let view_signature=self.native_view_closure_signature(closure,Some(method),&checked.function,&checked.parameters);
         let receiver=view_signature.as_ref().and_then(|signature|signature.receiver).map_or_else(||receiver.to_owned(),|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
-        let parameters=view_signature.as_ref().map_or(parameters,|signature|format!(", {}",signature.params));
+        let parameters=view_signature.as_ref().map_or(parameters,|signature|if signature.params.is_empty(){String::new()}else{format!(", {}",signature.params)});
         let generics=view_signature.as_ref().map_or(generics,|signature|signature.generics.clone());
         let native_result=view_signature.as_ref().map_or(native_result,|signature|error_name.as_ref().map_or_else(||signature.result.clone(),|name|format!("Result<{},{}>",signature.result,name)));
         let view_where=view_signature.as_ref().map_or_else(String::new,|signature|signature.replacement_where.clone());
@@ -1007,7 +1029,7 @@ impl Emitter<'_> {
             self.program, closure, |ty| self.native_type(ty),
             |ty, lifetimes| Some(self.named_record_environment_type(ty, lifetimes)),
             |binding| self.native_captures.ty(&closure.function, binding),
-            |ty| self.native_captures.type_lifetimes(self.program, &self.borrowed_lifetime_alternatives, ty),
+            |ty| self.native_captures.type_lifetimes(self.program, &self.borrowed_lifetime_alternatives, ty, |record,position,field|self.scoped_record_native_field(record,position,field)),
         );
         for (capture,field) in closure.captures.iter().zip(&mut fields){
             if !matches!(closure.forward, Some(ClosureForward::RestAdapter { .. } | ClosureForward::Abstract(_)))
@@ -1028,7 +1050,11 @@ impl Emitter<'_> {
     }
 
     fn record_inspectable(&self, record: usize) -> bool {
-        let mut pending = vec![Type::Record(record)];
+        self.type_inspectable(Type::Record(record))
+    }
+
+    fn type_inspectable(&self, root: Type) -> bool {
+        let mut pending = vec![root];
         let mut seen = HashSet::new();
         while let Some(ty) = pending.pop() {
             if !seen.insert(ty) { continue; }
@@ -1054,6 +1080,21 @@ impl Emitter<'_> {
             }
         }
         true
+    }
+
+    // Implicit error reports must not expand opaque values that source console
+    // inspection deliberately rejects. Reporting only borrows the owned payload.
+    fn error_payload_text(&self, value: &str, ty: Type) -> String {
+        if !self.type_inspectable(ty) {
+            if let Type::Record(id)=ty && let Some(native)=self.program.records[id].native_type
+                && matches!(native,crate::native_signatures::NativeTypeId::CacheInsertError|crate::native_signatures::NativeTypeId::AsyncError|crate::native_signatures::NativeTypeId::SendError|crate::native_signatures::NativeTypeId::ThreadError) {
+                let name=crate::native_types::declaration(native).name;
+                return format!("std::format!(\"{name}: {{}}\",({value}).field0.as_ref())");
+            }
+            return "std::string::String::from(\"<value not expanded>\")".into();
+        }
+        let observed=self.console_value(value,ty,"0",false);
+        format!("tsr_console_format(&[{observed}])")
     }
 
     fn console_value(&self, value: &str, kind: Type, depth: &str, nested: bool) -> String {
@@ -1249,7 +1290,7 @@ impl Emitter<'_> {
             self.exception_regions.throw_value("assertion_error",Type::Record(record),&unions,span).expect("checked native assertion region")
         };
         let succeeded=if closure.is_some(){"Ok(())"}else{"()"};
-        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());{failed}}}}}",arguments[0],arguments[1]))
+        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;}}{failed}}}}}",arguments[0],arguments[1]))
     }
 
     #[inline(never)]
@@ -1297,8 +1338,7 @@ impl Emitter<'_> {
             let mut arms=String::new();
             for (tag,ty) in payloads.into_iter().enumerate() {
                 let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
-                    let value=self.console_value("payload",ty,"0",false);
-                    format!("tsr_console_format(&[{value}])")
+                    self.error_payload_text("payload",ty)
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
@@ -1328,8 +1368,7 @@ impl Emitter<'_> {
             let mut arms=String::new();
             for (tag,ty) in payloads.into_iter().enumerate() {
                 let text=if Some(ty)==runtime {"std::format!(\"{}: {}\",payload.field0.as_ref(),payload.field2.as_ref())".to_owned()}else{
-                    let value=self.console_value("payload",ty,"0",false);
-                    format!("tsr_console_format(&[{value}])")
+                    self.error_payload_text("payload",ty)
                 };
                 arms.push_str(&format!("{}::V{tag}(payload)=>{text},",exception_emit::constructor_path(&name)));
             }
@@ -1465,7 +1504,7 @@ impl Emitter<'_> {
     ) -> String {
         if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
             let actual = value.ty.expect("view injection");
-            let source = if infer_callable_carrier && !actual.is_copy() {
+            let source = if !actual.is_copy() {
                 self.conditional_arm(fun, value, Mode::Read)
             } else {
                 self.expr(fun, value, Mode::Read)
@@ -1867,7 +1906,12 @@ impl Emitter<'_> {
                 return;
             }
             let fresh_borrow = borrowed && !borrowed_default && !binding.ty.is_copy() && absent_body.is_none();
-            if fresh_borrow { let _ = writeln!(output,"let mut default_owner{id};"); }
+            if fresh_borrow {
+                // Preserve every initializer payload slot before borrowing it;
+                // an impossible callback arm cannot infer its physical type.
+                let annotation=value.ty.filter(|ty|ty.union().is_some()).map(|ty|format!(": {}",self.native_type(ty))).unwrap_or_default();
+                let _ = writeln!(output,"let mut default_owner{id}{annotation};");
+            }
             let default = if let Some((absent,body))=absent_body {
                     let to=self.program.unions[body.index()].members.iter().position(|ty|*ty==absent).expect("default absence belongs to body");
                     let tag=if borrowed && binding.mode==Mode::Read {"ViewUnion"}else{"Union"};
@@ -1879,15 +1923,31 @@ impl Emitter<'_> {
                     let reference = if binding.mode == Mode::Mutate { "&mut " } else { "&" };
                     let view = if let Some(body)=binding.ty.union() {
                         if binding.mode==Mode::Mutate {
-                            let arms=self.program.unions[body.index()].members.iter().enumerate().map(|(variant,member)|format!("Union{}::V{variant}(payload)=>Union{}::V{variant}({})",body.index(),body.index(),if member.is_copy(){"*payload"}else{"payload"})).collect::<Vec<_>>().join(",");
+                            // The owned default retains its checked physical enum,
+                            // which can differ from the parameter's logical enum.
+                            let from=value.ty.unwrap().union().expect("checked union default owner");
+                            let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(variant,member)|{
+                                if let Some(field)=self.absent_record_field(*member){return format!("Union{}::V{variant}(payload)=>match payload.field{field} {{}}",from.index());}
+                                let targets=&self.program.unions[body.index()].members;
+                                let to=if let Some(exact)=targets.iter().position(|target|target==member){exact}else{
+                                    let matches=targets.iter().enumerate().filter_map(|(tag,target)|matches!((*member,*target),(Type::Record(a),Type::Record(b)) if self.native_record_declaration(a)==self.native_record_declaration(b)).then_some(tag)).collect::<Vec<_>>();
+                                    let [target]=matches.as_slice()else{unreachable!("checked unique mutable default alternative")};*target
+                                };
+                                format!("Union{}::V{variant}(payload)=>Union{}::V{to}({})",from.index(),body.index(),if member.is_copy(){"*payload"}else{"payload"})
+                            }).collect::<Vec<_>>().join(",");
                             format!("match &mut default_owner{id} {{{arms}}}")
                         }else{format!("default_owner{id}.tsr_view()")}
                     } else {format!("{reference}default_owner{id}")};
                     let view = if callback {format!("TsrDefault::Default({view})")} else {view};
                     format!("{{ default_owner{id}={fallback}; {view} }}")
+                } else if !borrowed && matches!((value.ty,binding.ty),(Some(Type::Union(from)),Type::Union(to)) if from!=to) {
+                    // Supplied arms use the body carrier; the owned default must
+                    // enter the same carrier, preserving its checked source type.
+                    self.record_carrier_conversion(value.ty.unwrap(),binding.ty,&fallback)
                 } else {fallback};
             let arms = self.program.unions[input.index()].members.iter().enumerate().map(|(variant,member)| {
-                let result = if *member == Type::Undefined {default.clone()}
+                let result = if let Some(field)=self.absent_record_field(*member) {format!("match payload.field{field} {{}}")}
+                    else if *member == Type::Undefined {default.clone()}
                     else if callback {"TsrDefault::Supplied(payload)".into()}
                     else if let Type::StoredCallable(family)=binding.ty {
                         if let Type::Closure(origin)=member {
@@ -1895,7 +1955,7 @@ impl Emitter<'_> {
                         } else if *member==binding.ty {"payload".into()} else {"match payload {}".into()}
                     }
                     else if let Some(body) = binding.ty.union() {
-                        let to = self.program.unions[body.index()].members.iter().position(|ty|ty==member || matches!(ty,Type::StoredCallable(_)|Type::Callback(_))&&!matches!(member,Type::Null|Type::Undefined)).expect("accepted supplied member");
+                        let to = self.program.unions[body.index()].members.iter().position(|ty|ty==member || matches!(ty,Type::StoredCallable(_)|Type::Callback(_))&&!matches!(member,Type::Null|Type::Undefined)).unwrap_or_else(||panic!("accepted supplied member {member:?} missing from {:?}",self.program.unions[body.index()].members));
                         let payload=if let Type::StoredCallable(family)=self.program.unions[body.index()].members[to] {
                             if let Type::Closure(origin)=member {
                                 self.stored_callable_constructor(family, *origin, "payload")
@@ -1943,8 +2003,17 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn registered_callback_call(&self,call:String,id:usize,span:crate::Span)->String {
-        let call=if self.program.callback_contracts[id].kind==CallbackKind::Task {format!("({}).await",call.replace("OnceCallback::","TaskCallback::"))}else{call};
         let registered=self.result_callbacks.borrow().get(&id).cloned();
+        // Fix the physical callback Result before method resolution of map_err.
+        // A throw-only callable may implement the trait for every success type.
+        let call=if registered.is_some() && self.program.callback_contracts[id].kind!=CallbackKind::Task {
+            let result=self.callback_result_type(id,self.program.callback_contracts[id].result);
+            if let Some(method)=call.strip_prefix("ReadCallback::"){format!("ReadCallback::<_,{result}>::{method}")}
+            else if let Some(method)=call.strip_prefix("Callback::"){format!("Callback::<_,{result}>::{method}")}
+            else if let Some(method)=call.strip_prefix("OnceCallback::"){format!("OnceCallback::<_,{result}>::{method}")}
+            else{call}
+        }else{call};
+        let call=if self.program.callback_contracts[id].kind==CallbackKind::Task {format!("({}).await",call.replace("OnceCallback::","TaskCallback::"))}else{call};
         if let Some((name,contract))=registered {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.result_call(&call,&name,&contract,&unions,span).expect("checked registered callback Result call")
@@ -2133,7 +2202,7 @@ impl Emitter<'_> {
                 if !matches!(checked.kind, CallbackKind::Program | CallbackKind::ProgramReusable) { continue; }
                 let separator = if forwarded.is_empty() { "" } else { ", " };
                 let call=format!("self.call({forwarded}{separator}program,registry)");
-                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let call=if closure.program_async{"tsrust_testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
                 let body = convert(call);
                 let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where} {{ fn invoke_program(&mut self,args:{arguments},program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->{result}{{{body}}} }}");
                 continue;
@@ -2216,6 +2285,15 @@ impl Emitter<'_> {
         let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let result_layout=self.result_closures.borrow().get(&origin).cloned();
         if let Some(source_name)=result_layout {
+            // Concrete closure bindings can be invoked through a consuming trait
+            // adapter too. Fix its physical Result before map_err resolves R.
+            let call=if !self.program.task_origins.contains(&origin) {
+                let result=format!("Result<{},{}>",self.native_type(self.program.closures[origin].function.result),source_name);
+                if let Some(method)=call.strip_prefix("OnceCallback::"){format!("OnceCallback::<_,{result}>::{method}")}
+                else if let Some(method)=call.strip_prefix("ReadCallback::"){format!("ReadCallback::<_,{result}>::{method}")}
+                else if let Some(method)=call.strip_prefix("Callback::"){format!("Callback::<_,{result}>::{method}")}
+                else{call}
+            }else{call};
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             self.exception_regions.closure_result_call(&call,origin,&source_name,&self.program.error_effects,&unions,span).expect("checked registered closure Result call")
         } else {
@@ -2398,6 +2476,8 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
+    /// Programs that open a std:ui window keep the OS main thread.
+    fn ui_window(&self)->bool {self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime"&&crate::native_bindings::BINDINGS[id].name=="run")}
     fn result_entry_adapter(&self,index:usize,symbol:&str,error_name:&str)->String {
         let function=&self.program.functions[index];
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
@@ -2412,12 +2492,33 @@ impl Emitter<'_> {
                 // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
                 "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
             } else {
-                let value=self.console_value("payload",ty,"0",false);
-                format!("let text=tsr_console_format(&[{value}]);tsr_console_write(true,&std::format!(\"Uncaught {{text}}\\n\"));")
+                let text=self.error_payload_text("payload",ty);
+                format!("let text={text};tsr_console_write(true,&std::format!(\"Uncaught {{text}}\\n\"));")
             };
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
-        format!("fn main()->std::process::ExitCode{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)
+        let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
+        if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
+        // GPUI requires the process's own main thread for its event loop.
+        else if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
+        // Synchronous throwing entrypoints, including test runners, use the same
+        // 8 MiB main-thread stack as async ones: Windows gives the main thread 1 MiB.
+        else {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(tsrust_entry_main).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}\n")}
+    }
+
+    /// A synchronous wrapper whose body awaits drives one async runtime.
+    fn async_entry(fun:&CheckedFunction)->bool {
+        fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})))
+    }
+
+    fn uses_locale_runtime(&self)->bool{self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::Locale|crate::native_signatures::NativeTypeId::Collator|crate::native_signatures::NativeTypeId::Segmenter|crate::native_signatures::NativeTypeId::NumberFormat)))||self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:locale")}
+    fn uses_regex_runtime(&self) -> bool {
+        self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Regex))
+            || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:regex")
+    }
+    fn uses_url_runtime(&self) -> bool {
+        self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Url | crate::native_signatures::NativeTypeId::SearchParams)))
+            || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:url")
     }
 
     fn program(&self) -> String {
@@ -2458,8 +2559,10 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        let asynchronous_runtime = !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql")));
-        if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(crate::stdlib::futures::RUNTIME); }
+        let io_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IoReader | crate::native_signatures::NativeTypeId::IoWriter | crate::native_signatures::NativeTypeId::IoLineReader | crate::native_signatures::NativeTypeId::IoStdin | crate::native_signatures::NativeTypeId::CompressionReader | crate::native_signatures::NativeTypeId::CompressionWriter)));
+        let asynchronous_runtime = io_runtime || !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) || self.program.records.iter().any(|record|record.native_type.is_some_and(|id|matches!(crate::native_types::declaration(id).module,"std:http"|"std:sql") || matches!(id,crate::native_signatures::NativeTypeId::Interval|crate::native_signatures::NativeTypeId::AsyncChannel|crate::native_signatures::NativeTypeId::AsyncSender|crate::native_signatures::NativeTypeId::Job)));
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CancellationToken)){output.push_str(crate::stdlib::futures::CANCELLATION_RUNTIME);}
+        if asynchronous_runtime { output.push_str(include_str!("async_runtime.rs")); output.push_str(&crate::native_runtime::futures_module(false)); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -2473,14 +2576,19 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild)){output.push_str(crate::stdlib::process::RUNTIME);}
+        if io_runtime{output.push_str(&crate::stdlib::io::runtime());if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpBody)){output.push_str(crate::stdlib::io::HTTP_RUNTIME);}}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sql")){output.push_str(crate::stdlib::sql::RUNTIME);}
         if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:sqlite")){output.push_str(crate::stdlib::sqlite::RUNTIME);}
-        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(crate::stdlib::http::RUNTIME);}
+        if self.program.records.iter().any(|record|record.native_type.is_some_and(|id|crate::native_types::declaration(id).module=="std:http")){output.push_str(&crate::stdlib::http::runtime());if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::HttpWebSocket|crate::native_signatures::NativeTypeId::HttpWebSocketRead|crate::native_signatures::NativeTypeId::HttpWebSocketWrite))){output.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::HttpMiddleware)){output.push_str(crate::stdlib::http::MIDDLEWARE_MARKER);}}
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Logger)){output.push_str("use tracing as tsr_tracing;\n");output.push_str(crate::stdlib::logging::RUNTIME);}
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Logger){let _=writeln!(output,"type Record{index}=tsrust_native_logging::Logger;");continue;}
             if self.sql_record(&mut output,index) || self.http_record(&mut output,index) || self.sqlite_record(&mut output,index){continue;}
             if self.future_record(&mut output, index) { continue; }
             if self.cache_record(&mut output,index) {continue;}
+            if self.iterator_record(&mut output,index){continue;}
             if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
                 let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
@@ -2488,6 +2596,15 @@ impl Emitter<'_> {
             }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::Locale)=>Some("Locale"),Some(crate::native_signatures::NativeTypeId::Collator)=>Some("Collator"),Some(crate::native_signatures::NativeTypeId::Segmenter)=>Some("Segmenter"),Some(crate::native_signatures::NativeTypeId::NumberFormat)=>Some("NumberFormat"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_locale::{name};");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::TcpListener)=>Some("Listener"),Some(crate::native_signatures::NativeTypeId::TcpStream)=>Some("Stream"),Some(crate::native_signatures::NativeTypeId::UdpSocket)=>Some("Udp"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net_transport::{name};");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IpAddress)=>Some("IpAddress"),Some(crate::native_signatures::NativeTypeId::SocketAddress)=>Some("SocketAddress"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net::{name};");continue;}
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Regex) {
+                let _=writeln!(output,"type Record{index}=tsrust_native_regex::Regex;");continue;
+            }
+            if let Some(name)=match record.native_type {Some(crate::native_signatures::NativeTypeId::Url)=>Some("Url"),Some(crate::native_signatures::NativeTypeId::SearchParams)=>Some("SearchParams"),_=>None} {
+                let _=writeln!(output,"type Record{index}=tsrust_native_url::{name};");continue;
+            }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::ValidationContext) {
                 let _=writeln!(output,"struct Record{index} {{ issues: tsrust_schema_issues::Issues }}");continue;
             }
@@ -2537,6 +2654,10 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
                 continue;
             }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::ProcessChild){let _=writeln!(output,"type Record{index}=tsrust_native_process::Child;");continue;}
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher){let _=writeln!(output,"type Record{index}=tsrust_native_crypto::Hasher;");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::CompressionReader)=>Some("TransformReader"),Some(crate::native_signatures::NativeTypeId::CompressionWriter)=>Some("TransformWriter"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_compression_streams::{name};");continue;}
+            if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IoReader)=>Some("Reader"),Some(crate::native_signatures::NativeTypeId::IoWriter)=>Some("Writer"),Some(crate::native_signatures::NativeTypeId::IoLineReader)=>Some("LineReader"),Some(crate::native_signatures::NativeTypeId::IoStdin)=>Some("Stdin"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_io::{name};");continue;}
             if let Some(id @ (crate::native_signatures::NativeTypeId::BufferedReader | crate::native_signatures::NativeTypeId::BufferedWriter)) = record.native_type {
                 let backend=crate::native_types::declaration(id).name;
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_files::buffered_fs::{backend} }}");
@@ -2703,11 +2824,12 @@ impl Emitter<'_> {
             let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let receiver=signature.and_then(|signature|signature.receiver).map_or(receiver,|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
-            let mut parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
+            let mut parameters = signature.map_or(parameters, |signature| if signature.params.is_empty(){String::new()}else{format!(", {}",signature.params)});
             let program_factory=closure.program_scoped && self.program.task_type(closure.function.result);
             if closure.program_scoped {
-                parameters.push_str(if program_factory{", test_program: TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"}
-                    else{", test_program: &mut TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"});
+                let lifetime=signature.and_then(|signature|signature.program_lifetime.as_deref()).unwrap_or("'_");
+                let borrow=if program_factory{""}else{"&mut "};
+                parameters.push_str(&format!(", test_program: {borrow}TsrTestContext<{lifetime}>, test_registry: &mut TsrTestRegistry"));
             }
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
@@ -2794,7 +2916,11 @@ impl Emitter<'_> {
                     let parameter=binding.parameters.get(position).or_else(||binding.parameters.last().filter(|p|p.rest)).expect("checked native arity");
                     self.native_optional_argument(parameter,format!("value{id}"),closure.function.bindings[*id].ty)
                 }).collect::<Vec<_>>();
-                let call=if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
+                let call=if let Some(call)=self.locale_forward(&closure.function,&closure.parameters,closure.span,id){call}
+                else if let Some(call)=self.net_forward(&closure.function,&closure.parameters,closure.span,id){call}
+                else if let Some(call)=self.regex_forward(&closure.function,&closure.parameters,closure.span,id) {call}
+                else if let Some(call)=self.url_forward(&closure.function,&closure.parameters,closure.span,id) {call}
+                else if closure.parameters.last().is_some_and(|parameter|closure.function.bindings[*parameter].rest) && binding.parameters.last().is_some_and(|parameter|parameter.rest) {
                     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
                     format!("{symbol}(&value0.iter().map(|value|value.as_ref()).collect::<Vec<_>>())")
                 }else if binding.module=="std:testing-runtime" && binding.name=="checkAssertion" {
@@ -2868,7 +2994,11 @@ impl Emitter<'_> {
                     // the trait implementation as well as the direct method.
                     || self.native_view_empty_result(&closure.function));
             let mut argument_trait_bounds = String::new();
-            let (arguments, native_result) = if argument_views {
+            let (arguments, native_result) = if let Some(callback)=signature.and_then(|signature|signature.task_callback.as_ref()) {
+                lifetimes.extend(callback.lifetimes.iter().cloned());lifetimes.sort();lifetimes.dedup();
+                argument_trait_bounds=callback.replacement_where.clone();
+                (callback.arguments.clone(),callback_capture_emit::substitute_parameters(&native_result,&callback.substitutions))
+            } else if argument_views {
                 lifetimes.push("'native_arguments".into());
                 let mut result = native_result.replace("'_", "'native_arguments");
                 if let Some(signature) = &native_view_signature {
@@ -2925,7 +3055,7 @@ impl Emitter<'_> {
                     debug_assert!(params.is_empty());
                     let _=writeln!(output,"impl{impl_lifetimes} TsrTestAsyncCallback for Closure{index}{lifetime}{forwarded_trait_where} {{type Output={native_result};fn invoke_async<'a,'p:'a>(&'a mut self,program:&'a mut TsrTestContext<'p>,registry:&'a mut TsrTestRegistry)->std::pin::Pin<Box<dyn std::future::Future<Output=Self::Output>+'a>>{{Box::pin({call})}}}}");
                 }
-                let call=if closure.program_async{"tsrust_native_futures::testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
+                let call=if closure.program_async{"tsrust_testing_await(TsrTestAsyncCallback::invoke_async(self,program,registry))".into()}else{call};
                 let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments}, {native_result}> for Closure{index}{lifetime}{forwarded_trait_where} {{ fn invoke_program(&mut self, args:{arguments}, program:&mut TsrTestContext<'_>, registry:&mut TsrTestRegistry)->{native_result} {{{call}}} }}");
                 self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
                 continue;
@@ -3081,8 +3211,9 @@ impl Emitter<'_> {
                 let _ = writeln!(output,"// tsrust-fixed-array-result {{\"function\":{name:?},\"result\":{view_result:?},\"element\":{element:?},\"width\":{width},\"rank\":{rank}}}");
             }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
-            let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
-            let async_entry=fun.body.iter().any(|stmt|matches!(stmt.kind,StmtKind::Expr(Expr{kind:ExprKind::Unary{op:UnaryOp::Await,..},..})));
+            let async_entry=Self::async_entry(fun);
+            let threaded=name == "main" && async_entry;
+            let _ = writeln!(output,"fn {}{generics}({params}) -> {native_result}{replacement_where} {{",if threaded {"tsrust_entry_main"} else {&name});
             if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
             if name == "main" {
                 output.push_str(self.entry_setup);
@@ -3105,6 +3236,7 @@ impl Emitter<'_> {
             }
             if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
+            if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
         }
         self.active_plan.set(None);
         if let Some(index)=self.program.functions.iter().position(|function|function.name=="main") {
@@ -3112,8 +3244,12 @@ impl Emitter<'_> {
                 output.push_str(&self.result_entry_adapter(index,&symbol,&error_name));
             }
         }
-        if !self.program.functions.iter().any(|function| function.name == "main") {
+        if !self.program.functions.iter().any(|function| function.name == "main") && self.ui_window() {
             let _ = writeln!(output, "fn main() {{ {} }}", self.entry_setup);
+        } else if !self.program.functions.iter().any(|function| function.name == "main") {
+            // Test and statement-only programs run on the same 8 MiB main-thread
+            // stack as async entrypoints: Windows gives the main thread 1 MiB.
+            let _ = writeln!(output, "fn main() {{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
@@ -3224,9 +3360,21 @@ impl Emitter<'_> {
             output.push_str(crate::runtime::STRINGS);
         }
         if self.program.records.iter().any(|record|crate::stdlib::cache::is_cache(record.native_type)){output.push_str(&crate::stdlib::cache::runtime());}
-        if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
+        if self.uses_url_runtime() { output.push_str(crate::stdlib::url::RUNTIME); }
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::IpAddress|crate::native_signatures::NativeTypeId::SocketAddress))){output.push_str(crate::stdlib::net::RUNTIME);}
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::TcpListener|crate::native_signatures::NativeTypeId::TcpStream|crate::native_signatures::NativeTypeId::UdpSocket))){output.push_str(crate::stdlib::net::TRANSPORT_RUNTIME);output.push_str(crate::stdlib::net::IO_RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:dns"){output.push_str(crate::stdlib::net::DNS_RUNTIME);}
+        if self.uses_regex_runtime() { output.push_str(crate::stdlib::regex::RUNTIME); }
+        if self.uses_locale_runtime(){output.push_str(crate::stdlib::locale::RUNTIME);}
+        let crypto_password_runtime=self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:crypto" && crate::stdlib::crypto::password_operation(binding.name)});
+        let compression_streams_runtime=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::CompressionReader|crate::native_signatures::NativeTypeId::CompressionWriter)));
+        let compression_runtime=compression_streams_runtime || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:compression");
+        if compression_runtime{output.push_str(crate::stdlib::compression::RUNTIME);}
+        if compression_streams_runtime{output.push_str(crate::stdlib::compression::STREAM_RUNTIME);}
+        if compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
             || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
-            output.push_str(crate::stdlib::threads::RUNTIME);
+            let asynchronous=compression_runtime || crypto_password_runtime || self.native_bindings.borrow().iter().any(|&id|{let binding=&crate::native_bindings::BINDINGS[id];binding.module=="std:threads"&&binding.name=="__taskAsync"});
+            output.push_str(&crate::native_runtime::threads_module(asynchronous,false));
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id]
@@ -3260,6 +3408,7 @@ impl Emitter<'_> {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
             output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime/report.rs"));
             if asynchronous_runtime { output.push_str(include_str!("../stdlib/testing/runtime/async.rs")); }
             else { output.push_str("fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {body()}\n"); }
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerHook") {
@@ -3270,11 +3419,14 @@ impl Emitter<'_> {
             }
         }
         if self.program.records.iter().any(|r|r.native_type.and_then(crate::stdlib::date::runtime_type).is_some()){output.push_str(crate::stdlib::date::RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"hostname")){output.push_str(crate::stdlib::os::HOSTNAME_RUNTIME);}
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"os-observations")){output.push_str(&format!("mod tsrust_native_os {{ {} }}",include_str!("../stdlib/os/runtime.rs")));}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::SignalListener)){output.push_str(crate::stdlib::signals::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Uuid)){output.push_str(crate::stdlib::uuid::RUNTIME);}
         if self.program.records.iter().any(|r|r.native_type==Some(crate::native_signatures::NativeTypeId::Decimal)){output.push_str(crate::stdlib::decimal::RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
-        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::CryptoHasher)) || self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:crypto"){output.push_str(crate::stdlib::crypto::RUNTIME);}
+        if crypto_password_runtime{output.push_str(crate::stdlib::crypto::PASSWORD_RUNTIME);}
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:env"){output.push_str(&format!("mod tsrust_native_env {{ {} }}",include_str!("../stdlib/env/runtime.rs")));}
         if self.program.records.iter().any(|r|matches!(r.native_type,Some(crate::native_signatures::NativeTypeId::UiNode|crate::native_signatures::NativeTypeId::UiComputed|crate::native_signatures::NativeTypeId::UiSignal|crate::native_signatures::NativeTypeId::UiTextBinding))){output.push_str(&crate::stdlib::ui::runtime(self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:ui-runtime" && crate::native_bindings::BINDINGS[id].name=="run")));}
         for &id in self.native_bindings.borrow().iter() {
@@ -3287,10 +3439,11 @@ impl Emitter<'_> {
             }
             if binding.module == "std:ui-runtime" {
                 output.push_str(&crate::stdlib::ui::emit::bridge(self.program,binding)); }
-            if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered)); }
+            if binding.module == "std:path" {output.push_str(&crate::stdlib::path::emit::bridge(self.program,binding,&self.record_runtime.ordered));}
+            if binding.module == "std:env" {let inline_pairs=binding.name=="vars"&&self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::EnvVar)).is_some_and(|id|self.small_record(id));output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding,&self.record_runtime.ordered,inline_pairs));}
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {
-                output.push_str(&crate::stdlib::os::bridge(binding.name));
+                if matches!(binding.name,"hostname"|"availableParallelism"){output.push_str(&crate::stdlib::os::emit::observation(self.program,binding,&self.record_runtime.ordered));}else{output.push_str(&crate::stdlib::os::bridge(binding.name));}
             }
         }
         let issue_bridge = crate::stdlib::schema::emit::issue_bridge(self.program, &self.record_runtime.ordered);
@@ -3329,9 +3482,9 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding,&self.record_runtime.ordered));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        if (io_runtime && self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Bytes))) || !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile" | "appendFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings, &self.record_runtime.ordered)); }
         let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings));
+        output.push_str(&crate::stdlib::fs::emit::bridges(self.program, &file_bindings, &self.record_runtime.ordered));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
         let literal_support = output.contains("LiteralStringArray");
         let split_support = output.contains("tsr_string_split(");
@@ -3345,6 +3498,13 @@ impl Emitter<'_> {
         if owned_support {
             output.push_str(crate::runtime::ARRAYS);
         }
+        // Native bindings are complete here. Select complete runtime variants;
+        // dependency detection and extraction use these same exact factories.
+        let testing_runner=self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner"));
+        if testing_runner {
+            output=output.replace(&crate::native_runtime::futures_module(false),&crate::native_runtime::futures_module(true));
+            for asynchronous in [true,false] {output=output.replace(&crate::native_runtime::threads_module(asynchronous,false),&crate::native_runtime::threads_module(asynchronous,true));}
+        }
         if output.contains("tsr_console_test_")
             || output.contains("TsrConsoleValue")
             || output.contains("tsr_console_call(")
@@ -3352,14 +3512,16 @@ impl Emitter<'_> {
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
             || output.contains("tsr_console_number(")
+            || output.contains("tsr_console_output_")
         {
-            output.push_str(include_str!("../runtime/console.rs"));
+            output.push_str(&crate::native_runtime::console_module(asynchronous_runtime && testing_runner));
         }
         if numeric_support {
             output.push_str(crate::runtime::NUMERIC_ARRAYS);
         }
         self.data_spread_declarations(&mut output);
         let record_array_structs=runtime_support_ids::referenced(&output,"struct RecordArray","(",self.program.records.len());
+        self.iterator_runtime(&mut output,owned_support,numeric_support,&record_array_structs);
         if output.contains("TsrSpreadSlot") { output.push_str(spread_emit::SPREAD_SLOTS); }
         if output.contains(".tsr_spread_mut_items()") {
             output.push_str(crate::runtime::SPREAD_MUT_ITEMS_VEC);
@@ -3412,6 +3574,7 @@ impl Emitter<'_> {
             }
         }
         if output.contains("tsr_string_normalize(") { output.push_str(crate::runtime::STRING_NORMALIZATION); }
+        if output.contains("TsrTemplateText::append_template(") {self.template_text_support(&mut output);}
         if output.contains("tsr_math_") {
             output.push_str(crate::runtime::MATH_EXACT);
         }
@@ -3490,6 +3653,7 @@ impl Emitter<'_> {
                 output.push_str("}\n");
             }
             for index in 0..self.program.records.len() {
+                if !crate::analysis::native_capabilities::array_text_supported(Type::Record(index), &self.program.records, |id| self.program.unions[id.index()].members.clone()) { continue; }
                 if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
                 if record_array_structs.contains(&index) {
                     let _ = writeln!(
@@ -3977,11 +4141,8 @@ impl Emitter<'_> {
             if let StmtKind::While { condition, body } = &stmt.kind {
                 if let Some(code)=self.counted_builder(fun,builder_parent,stmt) { let _=writeln!(output,"{code}"); continue; }
                 pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Loop(stmt.span.start))));
-                let _ = writeln!(
-                    output,
-                    "'loop_{}: while {} {{",
-                    stmt.span.start, self.expr(fun, condition, Mode::Copy)
-                );
+                let condition=if matches!(condition.kind,ExprKind::Boolean(true)){"loop".to_owned()}else{format!("while {}",self.expr(fun,condition,Mode::Copy))};
+                let _ = writeln!(output,"'loop_{}: {condition} {{",stmt.span.start);
                 pending.push(Work::Post(stmt, depth));
                 pending.push(Work::Text(format!("}}\n")));
                 pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 1, None));
@@ -4074,9 +4235,12 @@ impl Emitter<'_> {
                     // Keep selected fresh owners in the alias binding's scope,
                     // rather than draining them into the initializer block.
                     let expression_depth = self.expression_depth.get();
-                    if scoped_alias {
-                        self.expression_depth.set(expression_depth + 1);
-                    }
+                    // An owned declaration remains visible after its initializer,
+                    // including inside a Match expression's statement body. Drain
+                    // its argument temporaries into the initializer, not a block
+                    // around the declaration. Borrowing aliases retain their owners
+                    // in the containing binding scope as before.
+                    self.expression_depth.set(if scoped_alias { expression_depth + 1 } else { 0 });
                     let initializer = self.binding_shape(index).as_ref().map_or_else(
                         || {
                             self.expr(
@@ -4120,6 +4284,7 @@ impl Emitter<'_> {
                         initializer
                     )
                 }
+                StmtKind::Assign {target,value,operator:None} if self.url_assignment_target(target).is_some()=>format!("{};",self.url_assignment(fun,target,value,false)),
                 StmtKind::Assign {
                     target,
                     value,
@@ -4228,7 +4393,7 @@ impl Emitter<'_> {
     fn temporary_storage(mut expr: &Expr) -> bool {
         loop {
             match &expr.kind {
-                ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>return true,
+                ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_)))=>return true,
                 ExprKind::Sequence(values)=>expr=values.last().expect("nonempty sequence"),
                 ExprKind::Index(base, _) | ExprKind::Field(base, _) => expr = base,
                 ExprKind::Project { value, .. }
@@ -4246,7 +4411,7 @@ impl Emitter<'_> {
     fn borrowed_place_expression(fun: &CheckedFunction, expr: &Expr) -> bool {
         if matches!(expr.ty,Some(Type::BorrowedUnion(_))) {return true;}
         match &expr.kind {
-            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>true,
+            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_)))=>true,
             ExprKind::Project{value,..}|ExprKind::Unary{op:UnaryOp::NonNull,value,..}=>Self::borrowed_place_expression(fun,value),
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|Self::borrowed_place_expression(fun,last)),
             ExprKind::TypeAssertion { value, .. } => Self::borrowed_place_expression(fun, value),
@@ -5405,7 +5570,7 @@ impl Emitter<'_> {
                 ArrayElement::Int(0) | ArrayElement::Boolean(0) | ArrayElement::String(0) => {
                     "|a, b| a.cmp(b)".to_owned()
                 }
-                ArrayElement::Null(0) | ArrayElement::Undefined(0) => {
+                ArrayElement::Null(0) | ArrayElement::Undefined(0) | ArrayElement::Void(0) => {
                     "|_, _| std::cmp::Ordering::Equal".to_owned()
                 }
                 _ => unreachable!("checked default sort"),
@@ -6498,7 +6663,7 @@ impl Emitter<'_> {
         {
             return self.string_concat_integers(fun, base, args, span);
         }
-        let receiver = self.expr(fun, base, Mode::Read);
+        let receiver = self.string_observation(fun,base);
         let mut output = format!("{{ let string_receiver: &String = {receiver}; ");
         for (index, argument) in args.iter().enumerate() {
             let integer = method == CallTarget::StringRepeat
@@ -6619,10 +6784,11 @@ impl Emitter<'_> {
         };
         let parameter_count = self.array_callback_supplied_count(callback_type, method, parameter_count, if method.is_some_and(|method| method.access == Mode::Mutate) { 2 } else { 3 });
         let receiver_type=base.ty.expect("checked for_each receiver");
-        let set_for_each=matches!(receiver_type,Type::Set(_));
+        let set_for_each=matches!(receiver_type,Type::Set(_)) || matches!(receiver_type,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet));
         let map_for_each=matches!(receiver_type,Type::Map(_));
         let (value_type,key_type)=match receiver_type{
             Type::Array(element)=>(element.ty(),Type::Int),
+            Type::Record(id) if set_for_each=>{let key=self.program.records[id].native_element().unwrap();(key,key)},
             Type::Set(id)=>{let key=self.program.records[id].set_definition.as_ref().unwrap().key;(key,key)},
             Type::Map(id)=>{let map=self.program.records[id].map_definition.as_ref().unwrap();(map.value,map.key)},
             _=>unreachable!(),
@@ -6686,6 +6852,8 @@ impl Emitter<'_> {
             "for_each_array.literal_iter()"
         } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
             "for_each_array.source_iter()"
+        } else if matches!(receiver_type,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet)) {
+            "for_each_array.values.key_iter()"
         } else if method.is_some_and(|method| method.access == Mode::Mutate) {
             "for_each_array.iter_mut()"
         } else {
@@ -7190,7 +7358,8 @@ impl Emitter<'_> {
             let _=write!(code,"for spread_index in spread_part{part}.key_order{{let output=match spread_index{{{arms}_=>continue}};if !spread_seen[output]{{spread_seen[output]=true;spread_order[spread_next]=output;spread_next+=1;}}}}");
         }
         let fields=self.program.records[result].fields.iter().enumerate().map(|(index,definition)|{let (part,field)=last[&definition.name.text];let Type::Record(source)=args[part].ty.expect("checked spread part") else{unreachable!()};let copied=format!("spread_part{part}.field{field}");let adapted=self.element_alternative(self.program.records[source].fields[field].ty.expect("checked source field"),definition.ty.expect("checked result field"),&copied);format!("field{index}:{adapted}")}).collect::<Vec<_>>().join(",");
-        let _=write!(code,"Record{result}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code
+        let declaration=self.native_record_declaration(result);
+        let _=write!(code,"Record{declaration}{{{fields}{}key_order:spread_order}}}}",if fields.is_empty(){""}else{","});code
     }
 
     fn clone_argument(&self, fun: &CheckedFunction, value: &Expr) -> String {
@@ -7460,7 +7629,7 @@ impl Emitter<'_> {
         );
         let failed = self.runtime_failure_exit("RangeError", "bounds", &failure, expr.span)
             .unwrap_or_else(|| format!("panic!({failure:?})"));
-        let text = self.expr(fun, base, Mode::Read);
+        let text = self.string_observation(fun,base);
         let position = self.expr(fun, index, Mode::Copy);
         Self::access_wrapped(expr, mode, format!(
             "(match ({text}, {position}) {{ (indexed_text, indexed_position) => {{ let indexed_text: &String = indexed_text; let indexed_text: &str = &**indexed_text; let indexed_position: i64 = indexed_position; match usize::try_from(indexed_position).ok().and_then(|position| indexed_text.chars().nth(position)) {{ Some(character) => tsr_char_text(character), None => {failed} }} }} }})"
@@ -7550,7 +7719,7 @@ impl Emitter<'_> {
         let code = if let Some(Type::Union(id)) = expr.ty
             && !id.copy
             && mode == Mode::Read
-            && !matches!(&expr.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_))))
+            && !matches!(&expr.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_))))
             && !matches!(
                 expr.kind,
                 ExprKind::Optional { .. }
@@ -7821,7 +7990,10 @@ impl Emitter<'_> {
         {
             let id = self.conditional_next.get();
             self.conditional_next.set(id + 1);
-            self.conditional_temporaries.borrow_mut().push(format!("let mut conditional_temporary_{id};"));
+            // A discriminant-only consumer cannot infer unselected payloads.
+            // Keep the complete checked owner type before taking its view.
+            let annotation=if let Some(ty)=arm.ty && matches!(ty,Type::Union(union)if !union.copy){format!(": {}",self.native_type(ty.owning()))}else{String::new()};
+            self.conditional_temporaries.borrow_mut().push(format!("let mut conditional_temporary_{id}{annotation};"));
             (Mode::Consume, Some(id))
         } else { (mode, None) }
     }
@@ -7830,7 +8002,12 @@ impl Emitter<'_> {
         let Some(id) = temporary else { return code; };
         let borrow = if mode == Mode::Mutate { "&mut " } else { "&" };
         let code = format!("{{ conditional_temporary_{id} = {code}; {borrow}conditional_temporary_{id} }}");
-        if matches!(arm.ty, Some(Type::Union(id)) if !id.copy) && mode == Mode::Read { format!("({code}).tsr_view()") } else { code }
+        if let Some(ty @ Type::Union(id))=arm.ty && !id.copy && mode==Mode::Read {
+            // Owning recursive unions carry RecordLink storage. Match ordinary
+            // readonly conversion: expose its logical payload, not the link.
+            let method=if self.callback_payload(ty).is_some(){"tsr_view"}else{"tsr_data_view"};
+            format!("({code}).{method}()")
+        } else { code }
     }
 
     fn concat_call(
@@ -7892,6 +8069,7 @@ impl Emitter<'_> {
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
         if let Some(code) = self.http_constructor_expression(fun,expr,mode) {return code;}
         if let Some(code) = self.cache_constructor_expression(fun,expr,mode) {return code;}
+        if let Some(code)=self.future_constructor(fun,expr,mode){return code;}
         if let Some(code) = self.channel_constructor_expression(fun, expr, mode) { return code; }
         if let Some(Type::Map(_))=expr.ty {
             let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
@@ -8113,7 +8291,13 @@ impl Emitter<'_> {
                 } else if let Some(from)=value.ty.unwrap().union() {
                     let source=self.expr(fun,value,Mode::Mutate);
                     let arms=self.program.unions[from.index()].members.iter().enumerate().map(|(i,member)|{
-                        let to=target.iter().position(|ty|ty==member).expect("mutable input subset");
+                        if let Some(field)=self.absent_record_field(*member){return format!("Union{}::V{i}(payload)=>match payload.field{field} {{}}",from.index());}
+                        let to=target.iter().position(|ty|ty==member).unwrap_or_else(||{
+                            let Type::Record(actual)=*member else{unreachable!("checked mutable input subset")};
+                            let mut matching=target.iter().enumerate().filter_map(|(tag,ty)|matches!(*ty,Type::Record(expected) if self.native_record_declaration(actual)==self.native_record_declaration(expected)).then_some(tag));
+                            let tag=matching.next().expect("checked mutable record alternative");
+                            assert!(matching.next().is_none(),"checked unique mutable record alternative");tag
+                        });
                         let payload=if member.is_copy(){"*payload"}else{"payload"};
                         format!("Union{}::V{i}(payload)=>Union{}::V{to}({payload})",from.index(),union.index())
                     }).collect::<Vec<_>>().join(",");
@@ -8206,6 +8390,7 @@ impl Emitter<'_> {
                 branch,
                 ..
             } => self.coalesce_assignment(fun, expr, target, value, *branch),
+            ExprKind::Assign {target,value,..} if self.url_assignment_target(target).is_some()=>self.url_assignment(fun,target,value,expr.ty!=Some(Type::Void)),
             ExprKind::Assign {target,value,..} if expr.ty==Some(Type::Void) && self.self_appends.assignment(fun,value) => self.self_append_with(fun,target,value,&mut |operand,mode,_|self.expr(fun,operand,mode)),
             ExprKind::Assign { target, value, .. } if expr.ty==Some(Type::Void) => {
                 if matches!(target.kind,ExprKind::Name(_)){
@@ -8224,7 +8409,7 @@ impl Emitter<'_> {
                 prefix,
                 operator,
             } => self.update_expression(fun, target, *increment, *prefix, *operator),
-            ExprKind::Index(base, index) if base.ty.map(Type::scalar_base) == Some(Type::String) => self.string_index(fun, expr, base, index, mode),
+            ExprKind::Index(base, index) if base.ty.is_some_and(|ty|self.is_string_observation(ty)) => self.string_index(fun, expr, base, index, mode),
             ExprKind::Index(base, index)
                 if self.expression_shape(base)
                     == Some(crate::fixed_storage::Shape::LiteralStrings) =>
@@ -8262,10 +8447,10 @@ impl Emitter<'_> {
                 let receiver = self.conditional_arm(fun, base, Mode::Read);
                 format!("{{ let _tuple = {receiver}; {}i64 }}",self.program.records[id].fields.len())
             }
-            ExprKind::Field(base, name) if base.ty.map(Type::scalar_base) == Some(Type::String) && name == "length" => {
+            ExprKind::Field(base, name) if base.ty.is_some_and(|ty|self.is_string_observation(ty)) && name == "length" => {
                 // Fresh receivers survive the complete consuming expression,
                 // including console argument staging, then dispose normally.
-                let value = self.conditional_arm(fun, base, Mode::Read);
+                let value = if base.ty.and_then(Type::union).is_some(){self.string_observation(fun,base)}else{self.conditional_arm(fun,base,Mode::Read)};
                 format!("tsr_length({value})")
             }
             ExprKind::Field(base, name)
@@ -8274,9 +8459,9 @@ impl Emitter<'_> {
                 let array = self.conditional_arm(fun, base, Mode::Read);
                 format!("i64::try_from(({array}).len()).expect(\"array length exceeds int range\")")
             }
-            ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_))) => {
-                let Type::Union(union)=base.ty.unwrap() else{unreachable!()};
-                let receiver=self.expr(fun,base,Mode::Read);
+            ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_) | Type::BorrowedUnion(_))) => {
+                let union=base.ty.unwrap().union().expect("checked common record union");
+                let receiver=self.conditional_arm(fun,base,Mode::Read);
                 let copied=expr.ty.unwrap().is_copy();
                 let reference=if mode==Mode::Read&&!copied{"&"}else{""};
                 let representation=if union.copy{"Union"}else{"ViewUnion"};
@@ -8544,21 +8729,51 @@ impl Emitter<'_> {
         }
     }
 
+    /// Template text for scalar unions (literal families included): owned
+    /// unions, their views and references all format their active member.
+    fn template_text_support(&self, output: &mut String) {
+        output.push_str("trait TsrTemplateText { fn append_template(&self, output: &mut std::string::String); }\n\
+impl<T: TsrTemplateText + ?Sized> TsrTemplateText for &T { fn append_template(&self, output: &mut std::string::String) { (**self).append_template(output) } }\n\
+impl TsrTemplateText for String { fn append_template(&self, output: &mut std::string::String) { output.push_str(self.as_ref()) } }\n\
+impl TsrTemplateText for i64 { fn append_template(&self, output: &mut std::string::String) { tsr_push_int(output, *self) } }\n\
+impl TsrTemplateText for f64 { fn append_template(&self, output: &mut std::string::String) { output.push_str(tsr_number_to_string(*self, 10, \"Template value\").as_ref()) } }\n\
+impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::string::String) { output.push_str(if *self { \"true\" } else { \"false\" }) } }\n");
+        for name in ["TsrNull", "TsrUndefined"] {
+            if output.contains(&format!("struct {name}")) {let _ = writeln!(output, "impl TsrTemplateText for {name} {{ fn append_template(&self, output: &mut std::string::String) {{ output.push_str({:?}) }} }}", if name == "TsrNull" {"null"} else {"undefined"});}
+        }
+        for (index, union) in self.program.unions.iter().enumerate() {
+            if !union.members.iter().all(|member| matches!(member, Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::Literal(..))) || self.nominal_union_alias(index).is_some() {continue;}
+            let payloads = union.members.iter().filter(|member| !member.is_copy()).count();
+            let parameters = (0..payloads).map(|position| if payloads == 1 {"P".to_owned()} else {format!("P{position}")}).collect::<Vec<_>>();
+            let bounds = parameters.iter().map(|name| format!("{name}: TsrTemplateText")).collect::<Vec<_>>().join(", ");
+            let (owned_generics, owned_arguments) = if payloads == 0 {(String::new(), String::new())} else {(format!("<{bounds}>"), format!("<{}>", parameters.join(", ")))};
+            let (view_generics, view_arguments) = if payloads == 0 {("<'a>".to_owned(), "<'a>".to_owned())} else {(format!("<'a, {bounds}>"), format!("<'a, {}>", parameters.join(", ")))};
+            let arms = |kind: &str| (0..union.members.len()).map(|variant| format!("{kind}{index}::V{variant}(payload)=>TsrTemplateText::append_template(payload, output),")).collect::<String>();
+            let emitted = |kind: &str| output.contains(&format!("enum {kind}{index}<")) || output.contains(&format!("enum {kind}{index} {{"));
+            let (owned, view) = (emitted("Union"), emitted("ViewUnion"));
+            if owned {let _ = writeln!(output, "impl{owned_generics} TsrTemplateText for Union{index}{owned_arguments} {{ fn append_template(&self, output: &mut std::string::String) {{ match self {{ {} }} }} }}", arms("Union"));}
+            if view {let _ = writeln!(output, "impl{view_generics} TsrTemplateText for ViewUnion{index}{view_arguments} {{ fn append_template(&self, output: &mut std::string::String) {{ match self {{ {} }} }} }}", arms("ViewUnion"));}
+        }
+    }
+
     fn finish_template_append(&self, part: &Expr, value: &str, declarations: &str) -> String {
         let mut code = String::new();
             code.push_str(&format!("{{ {declarations} "));
-            if part.ty == Some(Type::String) {
+            let literal = match part.ty {Some(Type::Literal(_, kind)) => Some(kind.base()), _ => None};
+            if matches!(part.ty, Some(Type::Union(_))) {
+                code.push_str(&format!("TsrTemplateText::append_template(&{value}, &mut template_output); "));
+            } else if part.ty == Some(Type::String) || literal == Some(Type::String) {
                 code.push_str(&format!(
                     "let template_value: &String = {value}; template_output.push_str(template_value.as_ref()); "
                 ));
-            } else if part.ty == Some(Type::Number) {
+            } else if part.ty == Some(Type::Number) || literal == Some(Type::Number) {
                 // Number text has its own spelling for infinities, zero,
                 // exponent ranges and tied digits.
                 // Scientific text keeps its existing allocation path.
                 code.push_str(&format!(
                     "let template_value: f64 = {value}; if !tsr_push_whole_number(&mut template_output, template_value) {{ if (1e-6..1e21).contains(&template_value.abs()) {{ TsrJoinText::append_join_text(&template_value, &mut template_output); }} else {{ template_output.push_str(tsr_number_to_string(template_value, 10, \"number text\").as_ref()); }} }} "
                 ));
-            } else if part.ty == Some(Type::Int) {
+            } else if part.ty == Some(Type::Int) || literal == Some(Type::Int) {
                 code.push_str(&format!("let template_value: i64 = {value}; tsr_push_int(&mut template_output, template_value); "));
             } else {
                 code.push_str(&format!(
@@ -8824,6 +9039,29 @@ impl Emitter<'_> {
         format!("match (&equality_left, &equality_right) {{ {arms}#[allow(unreachable_patterns)] _ => false }}")
     }
 
+    /// `value.tag === "text"` where every record alternative declares `tag` as
+    /// one string literal: the variant already identifies the tag, so select
+    /// variants directly instead of comparing text. Returns the base, which is
+    /// still evaluated once, and the selected variant arms in either operand order.
+    pub(super) fn literal_tag_selection<'e>(&self, left: &'e Expr, right: &'e Expr) -> Option<(&'e Expr, String)> {
+        let select = |field: &'e Expr, literal: &Expr| {
+            let (ExprKind::Field(base, name), ExprKind::String(text)) = (&field.kind, &literal.kind) else { return None };
+            let union = base.ty?.union()?;
+            let mut arms = String::new();
+            for (variant, member) in self.program.unions[union.index()].members.iter().enumerate() {
+                let Type::Record(record) = member else { return None };
+                let tag = self.program.records[*record].fields.iter().find(|field| field.name.text == *name)?;
+                let Some(Type::Literal(id, crate::literal_types::LiteralKind::String)) = tag.ty else { return None };
+                let Some(crate::literal_types::LiteralValue::String(value)) = &self.program.records[id].literal_definition else { return None };
+                if value == text {
+                    let _ = write!(arms, "{}{}::V{variant}(_) => true, ", if union.copy { "Union" } else { "ViewUnion" }, union.index());
+                }
+            }
+            Some((base.as_ref(), arms))
+        };
+        select(left, right).or_else(|| select(right, left))
+    }
+
     #[inline(never)]
     fn binary_expression_frame(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
         match self.binary_expression_code(fun, expr) {
@@ -8890,6 +9128,12 @@ impl Emitter<'_> {
                 render(right, Mode::Read),
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }
             ));
+        }
+        if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) {
+            if let Some((base, arms)) = self.literal_tag_selection(left, right) {
+                let test = format!("match &({}) {{ {arms}#[allow(unreachable_patterns)] _ => false }}", render(base, Mode::Read));
+                return Ok(if *op == BinaryOp::Equal { test } else { format!("!({test})") });
+            }
         }
         if let Some(operands) = Self::string_addition_chain(expr) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode) }).collect::<Vec<_>>();
@@ -9069,7 +9313,13 @@ impl Emitter<'_> {
                             if capture.restored {format!("Some({})",self.binding(fun,capture.outer,capture.storage))} else if capture.storage==Mode::Read && matches!(fun.bindings[capture.outer].ty,Type::Union(id)|Type::BorrowedUnion(id) if !id.copy) {
                                 let code=self.binding(fun,capture.outer,Mode::Read);
                                 if matches!(fun.bindings[capture.outer].ty,Type::BorrowedUnion(_)) || (fun.bindings[capture.outer].parameter && fun.bindings[capture.outer].mode==Mode::Read && !fun.bindings[capture.outer].capture_reference) {code} else {let method=if self.callback_payload(fun.bindings[capture.outer].ty).is_some(){"tsr_view"}else{"tsr_data_view"};format!("({code}).{method}()")}
-                            } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)} else {self.binding(fun, capture.outer, capture.storage)}
+                            } else if self.record_capture_is_view(capture,&self.program.closures[id]){self.record_capture_value(fun,capture.outer,capture.storage)}
+                            else if capture.storage==Mode::Consume && let Some(converted)=self.owned_nullable_record_capture(
+                                fun.bindings[capture.outer].ty,self.program.closures[id].function.bindings[capture.inner].ty,"owned_capture",
+                            ) {
+                                let value=self.binding(fun,capture.outer,Mode::Consume);
+                                format!("{{let owned_capture={value};{converted}}}")
+                            } else {self.binding(fun, capture.outer, capture.storage)}
                         )
                     })
                     .collect::<Vec<_>>()
@@ -9141,6 +9391,7 @@ impl Emitter<'_> {
             ExprKind::TypeAssertion { .. } => unreachable!("assertions use the transparent dispatch"),
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
+                CallTarget::IteratorCursor | CallTarget::IteratorNext => unreachable!("iterator leaves use their expression work frame"),
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
                 CallTarget::SchemaChoice(_) => unreachable!("schema choices use constructor expressions"),
                 CallTarget::SchemaDefault => format!("{{let mut schema={};schema.factory=Some(Box::new({}));schema}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume)),
@@ -9229,6 +9480,15 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call)=self.logging_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.locale_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.net_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.regex_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.url_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.process_native(fun,expr,id,args){return call;}
+                    if let Some(call)=self.crypto_password_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.compression_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
+                    if let Some(call)=self.io_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
@@ -9239,6 +9499,7 @@ impl Emitter<'_> {
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                         let binding = &crate::native_bindings::BINDINGS[id];
+                        if binding.name == "deepEqual" {return self.testing_deep(fun,args);}
                         if binding.name == "assertionDetails" {
                             let actual=self.expr(fun,&args[0],Mode::Read);
                             let expected=self.expr(fun,&args[1],Mode::Read);
@@ -9255,7 +9516,7 @@ impl Emitter<'_> {
                             };
                             let actual_text=render(args[0].ty.unwrap(),"assert_actual");
                             let expected_text=render(args[1].ty.unwrap(),"assert_expected");
-                            let rendered=format!("{{ let assert_actual={actual}; let assert_expected={expected}; let assert_message={message}; String::Owned(if std::env::var(\"TSRUST_TEST_REPORTER\").as_deref()==Ok(\"pretty\") {{std::format!(\"{{}}\\nExpected: {{}}\\nReceived: {{}}\",assert_message.as_ref(),{expected_text},{actual_text})}} else {{assert_message.as_ref().to_owned()}}) }}");
+                            let rendered=format!("{{ let assert_actual={actual}; let assert_expected={expected}; let assert_message={message}; String::Owned(if matches!(std::env::var(\"TSRUST_TEST_REPORTER\").as_deref(),Ok(\"pretty\"|\"json\")) {{std::format!(\"{{}}\\nExpected: {{}}\\nReceived: {{}}\",assert_message.as_ref(),{expected_text},{actual_text})}} else {{assert_message.as_ref().to_owned()}}) }}");
                             return if mode == Mode::Read {format!("&({rendered})")} else {rendered};
                         }
                         if binding.name == "containsValue" {
@@ -9399,7 +9660,7 @@ impl Emitter<'_> {
                     };
                     format!("{{ let object_keys_value = {value}; {keys} }}")
                 }
-                CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,callee,args,method),
+                CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,expr,callee,args,method),
                 CallTarget::HeapMethod(method) => self.heap_method_expression(fun,expr,callee,args,method),
                 CallTarget::DequeMethod(method) => self.deque_method_expression(fun,expr,callee,args,method),
                 CallTarget::MapMethod(method) => self.map_method_expression(fun,expr,callee,args,method),
@@ -9534,7 +9795,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = if self.is_string_observation(base.ty.unwrap()){self.string_observation(fun,base)}else{self.expr(fun,base,Mode::Read)};
                     let needle = self.expr(fun, &args[0], Mode::Read);
                     let position = args.get(1).map_or_else(
                         || "None".into(),
@@ -9548,7 +9809,7 @@ impl Emitter<'_> {
                         Some(CallTarget::StringLastIndexOf) => "tsr_string_last_index_of",
                         _ => unreachable!("checked string search"),
                     };
-                    let text=self.json_text_read(base.ty.unwrap(),"string_source");
+                    let text=if self.is_string_observation(base.ty.unwrap()){"string_source.as_ref()".into()}else{self.json_text_read(base.ty.unwrap(),"string_source")};
                     let needle_text=self.json_text_read(args[0].ty.unwrap(),"needle_source");
                     format!(
                         "{{ let string_source = {receiver}; let string_receiver: &str = {text}; let needle_source = {needle}; let string_needle: &str = {needle_text}; let string_position = {position}; {method}(string_receiver, string_needle, string_position) }}"
@@ -9678,7 +9939,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!()
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     // Valid UTF-8 storage guarantees the predicate, but receiver
                     // construction, effects, and ordinary temporary disposal remain.
                     format!(
@@ -9695,7 +9956,7 @@ impl Emitter<'_> {
                     };
                     match expr.target.expect("checked primitive identity") {
                         CallTarget::StringIdentity => {
-                            format!("tsr_string_identity({})", self.expr(fun, base, Mode::Read))
+                            format!("tsr_string_identity({})", self.string_observation(fun,base))
                         }
                         CallTarget::BooleanToString => {
                             format!("tsr_boolean_string({})", self.expr(fun, base, Mode::Copy))
@@ -9735,7 +9996,7 @@ impl Emitter<'_> {
                 }
                 CallTarget::StringNormalize => {
                     let ExprKind::Field(base, _) = &callee.kind else { unreachable!() };
-                    let receiver=self.expr(fun,base,Mode::Read);
+                    let receiver=self.string_observation(fun,base);
                     let (evaluate,form)=args.first().map_or_else(||(std::string::String::new(),"None".to_owned()), |argument| {
                         let temporary=matches!(argument.ty,Some(Type::Union(id)) if !id.copy) && Self::temporary_storage(argument);
                         let value=self.expr(fun,argument,if temporary { Mode::Consume } else { Mode::Read });
@@ -9935,7 +10196,7 @@ impl Emitter<'_> {
                         && let ExprKind::Call(receiver, _) = &base.kind
                         && let ExprKind::Field(input, _) = &receiver.kind
                     {
-                        format!("tsr_normalize({})", self.expr(fun, input, Mode::Read))
+                        format!("tsr_normalize({})", self.string_observation(fun,input))
                     } else {
                         let method = match expr.target {
                             Some(CallTarget::Trim) => "tsr_trim",
@@ -9945,14 +10206,14 @@ impl Emitter<'_> {
                             Some(CallTarget::Upper) => "tsr_upper",
                             _ => unreachable!("checked string transform"),
                         };
-                        format!("{method}({})", self.expr(fun, base, Mode::Read))
+                        format!("{method}({})", self.string_observation(fun,base))
                     }
                 }
                 CallTarget::StringCodePointSlot | CallTarget::StringCharCodeAt => {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!("string receiver")
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     let position = args
                         .first()
                         .map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
@@ -9972,7 +10233,7 @@ impl Emitter<'_> {
                     let ExprKind::Field(base, _) = &callee.kind else {
                         unreachable!("string receiver")
                     };
-                    let receiver = self.expr(fun, base, Mode::Read);
+                    let receiver = self.string_observation(fun,base);
                     let start = args
                         .first()
                         .map_or_else(|| "0i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
@@ -10911,4 +11172,52 @@ mod ordered_set_emit;
         let output=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(input).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
         let output=std::process::Command::new(binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert_eq!(output.stdout,b"text\n7\n");
     }
+}
+
+#[cfg(test)]
+#[test]
+fn mutable_record_union_defaults_match_the_checked_owner_enum(){
+ let source="type Reactive<T>={evaluate:Owned<Function<T>>;};type Value<T>=Reactive<T>|T;function snapshot(value:Mutable<Value<string|undefined>|undefined>):string{if(value===undefined){return '';}if(typeof value==='string'){return clone(value);}return value.evaluate()??'';}function invoke(value:Value<string|undefined>|undefined=''):string{return snapshot(value);}function main(){console.log(invoke());}";
+ let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);let checked=crate::check(&source).unwrap();
+ let function=checked.program.functions.iter().find(|function|function.name=="invoke").unwrap();let binding=&function.bindings[0];assert_eq!(binding.mode,Mode::Mutate);let from=binding.initializer.as_ref().unwrap().ty.unwrap().union().unwrap();
+ let physical=emitter_for(&checked.program,"").native_type(binding.initializer.as_ref().unwrap().ty.unwrap());
+ let emitted=checked.emit_rust();assert!(emitted.contains(&format!("let mut default_owner0: {physical};")),"Default owner must retain its initializer's complete physical payload types, rather than infer them from an impossible arm");
+ assert!(emitted.contains(&format!("match &mut default_owner0 {{Union{}::V0(payload)",from.index())),"Default owner must match its own physical enum");
+}
+
+#[cfg(test)]
+mod mixed_union_absent_record_tests {
+ use super::*;
+ #[test]
+ fn mutable_mixed_union_eliminates_only_required_empty_callback_record_arms(){
+  let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<boolean|undefined>|boolean|undefined;function read(value:Mutable<Value>):boolean|undefined{if(value===undefined||typeof value==='boolean'){return value;}return value.evaluate();}type Config={value:Value};function forward(config:Mutable<Config>):boolean|undefined{return read(config.value);}function main(){const live:Config={value:{evaluate:()=>true}};console.log(forward(live));const absent:Config={value:undefined};console.log(forward(absent));}";
+  let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+  let mut checked=crate::check(&source).unwrap();
+  let emitter=super::emitter_for(&checked.program,"");
+  let (record,field)=checked.program.records.iter().enumerate().find_map(|(record,_)|emitter.absent_record_field(Type::Record(record)).map(|field|(record,field))).expect("Required compiler-owned empty callback record");
+  let rust=checked.emit_rust();assert!(rust.contains(&format!("=>match payload.field{field} {{}}")),"Impossible mixed-union record arm must not forward a reference to a live callable layout");
+  assert!(rust.contains("StoredCallable0"));assert!(rust.contains("TsrAbsentCallable"));
+  // Optional empty fields do not make their enclosing record uninhabited.
+  checked.program.records[record].fields[field].optional=true;
+  let emitter=super::emitter_for(&checked.program,"");assert_eq!(emitter.absent_record_field(Type::Record(record)),None);
+ }
+}
+
+#[cfg(test)]
+#[test]
+fn owned_parameter_defaults_remap_the_checked_physical_union_into_the_body(){
+ let source="interface Reactive<T>{evaluate:Owned<Function<T>>;}type Value=Reactive<string>|string|undefined;function pass(value:Value=''):Value{return value;}function main(){console.log(typeof pass({evaluate:()=> 'live'}));console.log(typeof pass());}";
+ let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+ let checked=crate::check(&formatted).unwrap();let emitter=emitter_for(&checked.program,"");let mut expected=Vec::new();
+ for function in &checked.program.functions {
+  for binding in &function.bindings {
+   if !binding.parameter || !matches!(binding.mode,Mode::Consume){continue;}
+   let Some(value)=&binding.initializer else{continue;};
+   if let (Some(Type::Union(from)),Type::Union(to))=(value.ty,binding.ty) && from!=to {
+    expected.push(format!("let nullable_carrier: {} =",emitter.native_type(Type::Union(from))));
+   }
+  }
+ }
+ assert!(!expected.is_empty(),"Fixture must retain an actual distinct default carrier");
+ let rust=checked.emit_rust();for annotation in expected{assert!(rust.contains(&annotation),"Missing owned-default physical conversion: {annotation}");}
 }

@@ -1,0 +1,10 @@
+import { requestMultipart, MultipartPart } from 'std:http';
+import { fromArray } from 'std:bytes';
+
+export function main() {
+  const parts: MultipartPart[] = [{
+    name: "data", data: unwrap(fromArray([0, 255]))
+  }];
+  const input = requestMultipart("POST", "http://localhost/", parts);
+  console.log(input.method());
+}

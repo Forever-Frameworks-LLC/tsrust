@@ -62,6 +62,12 @@ impl Registry {
         records: &mut Vec<Record>,
     ) -> usize {
         let base = self.declaration(base);
+        // No substitution means no new physical layout or tagged result type.
+        // In particular, a concrete StoredCallable field keeps its exact family.
+        if records[base].fields.len()==types.len()
+            && records[base].fields.iter().zip(&types).all(|(field,ty)|field.ty==Some(*ty)) {
+            return base;
+        }
         let key = (base, types);
         if let Some(&id) = self.instances.get(&key) {
             return id;
@@ -95,7 +101,7 @@ mod recursive_tests {
         let mut records = vec![record(&[Type::StoredCallable(0), next])];
         let mut registry = Registry::default();
         let fields = vec![Type::StoredCallable(1), next];
-        let specialized = registry.materialize_recursive(0, fields.clone(), &mut records, &unions).unwrap();
+        let specialized = registry.materialize_recursive(0, fields.clone(), &mut records, &unions, &|_|false).unwrap();
         assert_ne!(specialized, 0);
         assert_eq!(registry.declaration(specialized), 0);
         assert_eq!(records[0].fields[0].ty, Some(Type::StoredCallable(0)));
@@ -104,9 +110,9 @@ mod recursive_tests {
         assert!(unions.members(next).contains(&Type::Record(specialized)));
         let links = crate::recursive_links::Index::new(&records, |id| unions.members(id));
         assert!(links.boxed(next, specialized));
-        assert_eq!(registry.materialize_recursive(0, fields, &mut records, &unions).unwrap(), specialized);
+        assert_eq!(registry.materialize_recursive(0, fields, &mut records, &unions, &|_|false).unwrap(), specialized);
         let concrete_fields = records[specialized].fields.iter().map(|field| field.ty.unwrap()).collect();
-        assert_eq!(registry.materialize_recursive(specialized, concrete_fields, &mut records, &unions).unwrap(), specialized);
+        assert_eq!(registry.materialize_recursive(specialized, concrete_fields, &mut records, &unions, &|_|false).unwrap(), specialized);
         assert_eq!(registry.recursive_parameter(Type::Record(0)), Type::Record(specialized));
         assert_eq!(records.len(), 2);
     }
@@ -123,7 +129,7 @@ mod recursive_tests {
         let mut registry = Registry::default();
         let specialized = registry.materialize_recursive(0,
             vec![Type::StoredCallable(1), Type::Array(ArrayElement::Record(1, 2)), Type::Record(2)],
-            &mut records, &unions).unwrap();
+            &mut records, &unions, &|_|false).unwrap();
         let Type::Array(ArrayElement::Record(child, 2)) = records[specialized].fields[1].ty.unwrap() else { panic!("preserved array rank") };
         assert_eq!(registry.declaration(child), 1);
         assert_eq!(registry.recursive_parameter(Type::Record(1)), Type::Record(child));
@@ -148,4 +154,17 @@ mod origin_remap_tests {
   assert_eq!(records[instance].fields[0].ty,Some(Type::Closure(3)));
   assert_eq!(registry.materialize(0,vec![Type::Closure(3)],&mut records),instance);
  }
+}
+
+#[cfg(test)]
+#[test]
+fn unchanged_callable_fields_preserve_nominal_record_and_union_identity(){
+ let mut records=vec![crate::cloneability::tests::record(&[Type::Boolean,Type::StoredCallable(0)])];
+ let mut registry=Registry::default();let unions=crate::unions::UnionArena::default();
+ let original=unions.intern([Type::Record(0),Type::Undefined],crate::Span::default()).unwrap();
+ let same=registry.materialize(0,vec![Type::Boolean,Type::StoredCallable(0)],&mut records);
+ assert_eq!(same,0);assert_eq!(records.len(),1);assert_eq!(unions.intern([Type::Record(same),Type::Undefined],crate::Span::default()).unwrap(),original);
+ let changed=registry.materialize(0,vec![Type::Boolean,Type::StoredCallable(1)],&mut records);assert_ne!(changed,0);assert_eq!(registry.declaration(changed),0);assert_eq!(records[changed].fields[1].ty,Some(Type::StoredCallable(1)));
+ assert_eq!(registry.materialize(changed,vec![Type::Boolean,Type::StoredCallable(0)],&mut records),0);
+ assert_eq!(registry.materialize(changed,vec![Type::Boolean,Type::StoredCallable(1)],&mut records),changed);
 }

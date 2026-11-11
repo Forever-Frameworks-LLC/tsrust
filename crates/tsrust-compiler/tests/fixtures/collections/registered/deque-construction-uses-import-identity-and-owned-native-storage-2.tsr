@@ -1,0 +1,10 @@
+import { Deque } from 'std:collections';
+
+function read(value: ReadOnly<Deque<int>>) {}
+
+function write(value: Mutable<Deque<int>>) {}
+
+export function main() {
+  read(new Deque<int>());
+  write(new Deque<int>());
+}

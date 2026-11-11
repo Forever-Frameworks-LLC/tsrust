@@ -30,7 +30,7 @@ fn each(annotation: &mut ValueAnnotation, visit: &mut impl FnMut(&mut ValueAnnot
 }
 fn push_children<'a>(current: &'a mut ValueAnnotation, pending: &mut Vec<&'a mut ValueAnnotation>) {
     match &mut current.kind {
-        Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+        Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
         Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
             pending.extend(arguments.iter_mut())
         }
@@ -49,7 +49,7 @@ fn size(value: &ValueAnnotation) -> usize {
     while let Some(value) = pending.pop() {
         count += 1;
         match &value.kind {
-            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 pending.extend(arguments)
             }

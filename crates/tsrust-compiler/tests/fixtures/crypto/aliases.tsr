@@ -1,0 +1,26 @@
+import { hashPassword, verifyPassword, verifyPasswordBounded } from 'std:crypto';
+import { ThreadPool } from 'std:threads';
+import { fromUtf8, view } from 'std:bytes';
+const hash = hashPassword;
+const verify = verifyPassword;
+const bounded = verifyPasswordBounded;
+const stored = {
+  hash, verify, bounded
+};
+
+export async function main(): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  try {
+    const bytes = unwrap(fromUtf8('module alias'));
+    const password = unwrap(view(bytes, 0, 12));
+    const encoded = unwrap(await stored.hash(pool, password));
+    console.log(unwrap(await stored.verify(pool, password, encoded)));
+    console.log(unwrap(await stored.bounded(pool, password, encoded, {
+      maxMemoryKiB: 19456, maxIterations: 2, maxParallelism: 1
+    })));
+  } finally {
+    pool.shutdown();
+  }
+}

@@ -63,7 +63,7 @@ Use these as coverage targets, not claims about measured market share. Each need
 6. Data service: migrations, prepared queries, transactions, pagination, row streaming, cache invalidation and connection failure.
 7. CPU-heavy processing: safe parallel mapping/batching with thread pools alongside responsive async I/O.
 8. Testing/operations: unit/integration tests, fixture lifecycle, deterministic clocks, metrics/tracing/logging and deployment packaging.
-9. Full-stack/SSR/serverless: survey Next-style server routes/rendering and deployment boundaries, but React/JSX/browser execution, bundling and platform SDKs remain separate product decisions.
+9. Full-stack/SSR/serverless: survey Next-style server routes/rendering and deployment boundaries, but React/TSRX/browser execution, bundling and platform SDKs remain separate product decisions.
 
 ## Ecosystem capability matrix
 
@@ -84,7 +84,7 @@ Rows specify behavior worth covering; backend selection stays subject to toolcha
 | CPU parallelism | worker_threads; Piscina discovery | [Rayon](https://docs.rs/rayon/latest/rayon/), Rust threads | S12 + H23: bounded pools and safe parallel iterators, cancellation limitations and scheduling isolation |
 | TLS/security | crypto/WebCrypto; jose/bcrypt/argon2/helmet discovery | [Rustls](https://docs.rs/rustls/latest/rustls/); RustCrypto/argon2 discovery | S16/H07/H17: reviewed algorithms, password hashing, token verification and security middleware; auth providers later |
 | Regex/text/time/IDs | RegExp; lodash/date-fns/dayjs/uuid discovery | [regex](https://docs.rs/regex/latest/regex/); time/chrono/uuid discovery | H12/H24: explicit regex differences, Unicode/timezone and identifier semantics; existing array methods before utility duplication |
-| Full-stack frameworks | [Next](https://nextjs.org/docs), Nest | SSR/template engines and framework candidates unselected | Separate framework product track; cover server primitives without promising JSX/React compatibility |
+| Full-stack frameworks | [Next](https://nextjs.org/docs), Nest | SSR/template engines and framework candidates unselected | Separate framework product track; cover server primitives without promising TSRX/React compatibility |
 
 ## Supplemental gates
 
@@ -158,3 +158,35 @@ Coverage tracks these APIs individually and keeps later S08–S21 work pending.
 ## S11 accepted scope (2026-10-13)
 
 S11 is accepted on macOS for inferred reusable validation schemas, owned/JSON input, fused text decoding, bounded typed issues, pipelines/collections/recursion and scoped Draft 2020-12 export. Complete compiler/LSP regressions, all 31 matched measurements and consumer refresh are recorded in the acceptance handoff. H18 extended dialect/import conformance remains pending. Native is slower in 28 of the 31 handwritten-reference workloads; preserve that measured limitation. Compiler nesting architecture is the first next-agent task before S12.
+
+## v0.2 namespace export reconciliation
+
+Source comparison against the commit immediately before the v0.2 plan (`8efaaee21bcc`); this is a planning baseline, not an assertion about a published v0.1 release. The current catalog contains 520 backend `std:` namespace entries, including 245 added identities below. Frozen UI and private testing-runtime namespaces are excluded. Receiver members are separate catalog groups and are not included in these counts.
+
+All 520 namespace entries have documentation text. Signatures, parameter help, examples and record-field documentation remain in `crates/tsrust-lsp/src/builtins.json`; do not duplicate those contracts here. Callable identity, parameter access/alternatives, return loans and selected features are defined in `crates/tsrust-compiler/src/native/bindings.rs` and family metadata under `src/stdlib/`. Native declarations/fields and alias export visibility are defined in `src/native/{types,signatures,exports}.rs`. Source-owned modules (`iterator`, `testing`, `log`) additionally use the bundled sources selected by `src/stdlib/mod.rs`.
+
+| Namespace | Added catalog export identities |
+| --- | --- |
+| `std:bytes` | `toHex`, `fromHex`, `toBase64`, `fromBase64`, `toBase64Url`, `fromBase64Url`, `toUtf8Lossy`, `fromUtf16`, `toUtf16`, `concat`, `copyInto`, `copyWithin`, `equals`, `compare`, `indexOf`, `readInt`, `writeInt`, `readUint`, `writeUint`, `readFloat32`, `writeFloat32`, `readFloat64`, `writeFloat64` |
+| `std:compression` | `CompressionOptions`, `DecompressionOptions`, `CompressionError`, `gzip`, `gunzip`, `deflate`, `inflate`, `deflateRaw`, `inflateRaw`, `CompressionFormat`, `CompressionReader`, `CompressionWriter`, `compressReader`, `decompressReader`, `compressWriter`, `decompressWriter` |
+| `std:crypto` | `sha384`, `sha512`, `createHasher`, `Hasher`, `hmacSha256`, `verifyHmacSha256`, `hkdfSha256`, `randomInt`, `hashPassword`, `verifyPassword`, `verifyPasswordBounded`, `PasswordHashOptions`, `PasswordVerifyOptions` |
+| `std:date` | `getDay`, `startOfYear`, `endOfYear`, `getHours`, `getMinutes`, `getSeconds`, `getNanoseconds` |
+| `std:dns` | `lookup` |
+| `std:env` | `EnvVar`, `vars`, `currentDir`, `currentExe`, `tempDir`, `homeDir` |
+| `std:fs` | `SeekOrigin`, `OpenOptions`, `FileTime`, `Metadata`, `DirEntry`, `openFile`, `stat`, `lstat`, `fileStat`, `readDir`, `mkdir`, `mkdirAll`, `rename`, `copyFile`, `removeFile`, `removeDir`, `removeDirAll`, `canonicalize`, `readLink`, `hardLink`, `appendFile`, `readTextFile`, `writeTextFile`, `truncate`, `syncAll`, `syncData`, `createTempDir`, `seek`, `position` |
+| `std:futures` | `all`, `Interval`, `MissedTickBehavior`, `CancellationToken`, `SendError`, `ChannelError` |
+| `std:http` | `requestBytes`, `requestStream`, `requestChannel`, `requestForm`, `requestMultipart`, `Middleware`, `CorsOptions`, `cors`, `secureHeaders`, `compress`, `accessLog`, `SseEvent`, `SseOptions`, `WebSocketOptions`, `WebSocketClientOptions`, `WebSocketHeader`, `WebSocketText`, `WebSocketBinary`, `WebSocketClose`, `WebSocketHalves`, `WebSocket`, `WebSocketRead`, `WebSocketWrite`, `WebSocketMessage`, `sse`, `sseWithProducer`, `connectWebSocket` |
+| `std:io` | `reader`, `writer`, `stdout`, `stderr`, `stdin`, `read`, `readInto`, `readExact`, `readAll`, `write`, `writeAll`, `flush`, `copy`, `lines`, `readLine`, `close`, `readStdin`, `readLineStdin`, `body`, `Reader`, `Writer`, `LineReader`, `Stdin`, `IoError` |
+| `std:iterator` | `Iterator`, `IteratorResult` |
+| `std:locale` | `Locale`, `Collator`, `Segmenter`, `NumberFormat`, `SegmentRange`, `LocaleError`, `CollatorOptions`, `NumberFormatOptions`, `parseLocale`, `formatLocale`, `createCollator`, `createSegmenter`, `createNumberFormat` |
+| `std:log` | `Logger`, `LoggerOptions`, `LogError`, `LogLevel`, `createLogger`, `debug`, `info`, `warn`, `error`, `child`, `flush`, `close` |
+| `std:net` | `IpAddress`, `SocketAddress`, `NetError`, `parseIp`, `parseAddress`, `formatIp`, `formatAddress`, `isIPv4`, `isIPv6`, `TcpListener`, `TcpStream`, `UdpSocket`, `Datagram`, `listenTcp`, `connectTcp`, `bindUdp` |
+| `std:numeric` | `parseNumber`, `checkedAdd`, `checkedSubtract`, `checkedMultiply`, `checkedDivide`, `checkedRemainder` |
+| `std:os` | `OsError`, `availableParallelism`, `hostname` |
+| `std:path` | `PathParts`, `PathFormatOptions`, `PathError`, `parse`, `format`, `resolve`, `separator`, `delimiter` |
+| `std:process` | `CommandOptions`, `Child`, `ExitStatus`, `Output`, `ProcessError`, `spawn`, `run` |
+| `std:regex` | `Regex`, `RegexMatch`, `RegexCaptures`, `RegexError`, `RegexOptions`, `compile`, `escape` |
+| `std:testing` | `deepStrictEqual`, `notDeepStrictEqual`, `rejects` |
+| `std:url` | `Url`, `SearchParams`, `UrlError`, `QueryEntry`, `StringView`, `parseUrl`, `resolveUrl`, `formatUrl`, `parseQuery`, `formatQuery`, `searchParams`, `setSearchParams`, `pathToFileUrl`, `fileUrlToPath`, `encodeURIComponent`, `decodeURIComponent` |
+
+This reconciles namespace catalog identity additions only. `public_api_inventory` joins catalog entries, native bindings and declarations; `tools/verify-api-audit.py` checks that each of its 1,583 rows has exactly one review. The host export ledger (`docs/plans/host-export-ledger.md`) reviews the 1,150 rows outside the original globals/imports audit by evidence class: bundle witnesses plus a natively executed catalog example, a retained v0.1 family plus an executed example or private non-importable lowering helpers. Linux and ARM macOS native coverage is accepted; Windows and Intel macOS native coverage remains open. Documentation presence alone never establishes native, platform, advisory or default-policy acceptance.

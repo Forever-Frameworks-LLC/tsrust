@@ -17,7 +17,7 @@ fn collections_catalog_examples_check_and_execute() {
     entries.extend(catalog["Heap"].as_array().unwrap());
     entries.extend(catalog["OrderedSet"].as_array().unwrap());
     entries.extend(catalog["OrderedMap"].as_array().unwrap());
-    assert_eq!(entries.len(), 33);
+    assert_eq!(entries.len(), 43);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();

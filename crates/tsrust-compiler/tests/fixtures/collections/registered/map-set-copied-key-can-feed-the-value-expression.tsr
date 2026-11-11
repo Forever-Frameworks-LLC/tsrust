@@ -1,0 +1,12 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+export function main() {
+  const key = 2;
+  const ordered = new OrderedMap<int, int>();
+  ordered.set(key, key * 3 + 1);
+  strictEqual(ordered.get(key), 7);
+  const ordinary = new Map<int, int>();
+  ordinary.set(key, key * 4 + 1);
+  strictEqual(ordinary.get(key), 9);
+}

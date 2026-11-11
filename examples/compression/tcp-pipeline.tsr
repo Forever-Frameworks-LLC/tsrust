@@ -1,0 +1,52 @@
+import { parseAddress, listenTcp, connectTcp, TcpListener } from 'std:net';
+import { compressWriter, decompressReader, gzip, gunzip } from 'std:compression';
+import { ThreadPool } from 'std:threads';
+import { reader, writer, copy, readAll, writeAll, close } from 'std:io';
+import { create, readFile, removeFile } from 'std:fs';
+import { fromUtf8, toUtf8 } from 'std:bytes';
+
+async function serve(listener: Owned<TcpListener>): Task<void> {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  const [incoming, remote] = unwrap(await listener.accept());
+  listener.close();
+  const encoded = unwrap(compressWriter(pool, writer(unwrap(create('tcp.gz'))), 'gzip'));
+  console.log(unwrap(await copy(incoming, encoded, 3)));
+  unwrap(await close(encoded));
+  const input = unwrap(decompressReader(pool, reader(unwrap(await gzip(pool, unwrap(fromUtf8('reply'))))), 'gzip'));
+  console.log(unwrap(await copy(input, incoming, 2)));
+  unwrap(await close(input));
+  unwrap(await incoming.shutdownWrite());
+  incoming.close();
+  unwrap(pool.shutdown());
+}
+
+async function main(): Task<void> {
+  const listener = unwrap(await listenTcp(unwrap(parseAddress('127.0.0.1:0'))));
+  const endpoint = unwrap(listener.localAddress());
+  const worker = serve(listener).start();
+  let response = '';
+  try {
+    const client = unwrap(await connectTcp(endpoint));
+    unwrap(await writeAll(client, unwrap(fromUtf8('request'))));
+    unwrap(await client.shutdownWrite());
+    response = unwrap(toUtf8(unwrap(await readAll(client))));
+    client.close();
+  } catch (failure) {
+    worker.cancel();
+    try {
+      await worker;
+    } catch (cleanupFailure) {}
+
+    throw failure;
+  }
+
+  await worker;
+  const pool = new ThreadPool({
+    workers: 1, capacity: 1
+  });
+  console.log(response, unwrap(toUtf8(unwrap(await gunzip(pool, unwrap(readFile('tcp.gz')))))));
+  unwrap(removeFile('tcp.gz'));
+  unwrap(pool.shutdown());
+}

@@ -7,7 +7,7 @@ This section does not complete the component-library inventory.
 ## Delivered contract
 
 `ReactiveValue<T>` accepts a scalar or an owned checked getter. Component authors
-adapt it with a direct `const value = useProp<T>(...)`; callers use ordinary JSX
+adapt it with a direct `const value = useProp<T>(...)`; callers use ordinary TSRX
 expressions. `computed<T>(...)` defines a derived getter. Both expose `get()` and
 reevaluate on each read, without memoization or component reruns. Their weak
 bindings preserve node identity and release evaluators with the owning tree.

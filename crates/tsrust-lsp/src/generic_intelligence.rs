@@ -52,7 +52,7 @@ pub(super) fn canonical(source: &str) -> Option<String> {
                 parts.join("|")
             }
             Kind::Tuple(positions) => format!("[{}]",positions.iter().map(render).collect::<Option<Vec<_>>>()?.join(",")),
-            Kind::Callable { .. } | Kind::Polymorphic { .. } => return None,
+            Kind::Callable { .. } | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => return None,
         })
     }
     render(&parse(source).ok()?)
@@ -80,7 +80,7 @@ fn applications(value: &ValueAnnotation, source: &str, output: &mut Vec<String>)
             }
             applications(result, source, output);
         }
-        Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+        Kind::Literal(_) | Kind::Named(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {}
     }
 }
 fn substitute(
@@ -89,7 +89,7 @@ fn substitute(
     edits: &mut Vec<(usize, usize, String)>,
 ) {
     match &value.kind {
-        Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+        Kind::Literal(_) | Kind::NativeCallable { .. } | Kind::Polymorphic { .. } => {},
         Kind::Named(name) => {
             if let Some(argument) = bindings.get(&name.text) {
                 let replacement =

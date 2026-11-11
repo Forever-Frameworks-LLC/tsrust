@@ -92,12 +92,7 @@ impl Analyzer {
             callback.traversal_method = None;
             return Ok(Received::Callback(Callback { active, hint: callback_hint, supplied: [element.ty(), element.ty()], copying, named, element, boundary: capture_boundary }));
         }
-        if element.depth() > 0
-            || matches!(
-                element,
-                ArrayElement::Record(_, _) | ArrayElement::StoredCallable(_, _)
-            )
-        {
+        if !native_capabilities::checked_array_capabilities(receiver, &self.program.records, |id| self.unions.members(id)).expect("checked array").default_sort {
             return Err(Diagnostic::new(
                 "type",
                 "Nested arrays, records and callable elements require an explicit sorting comparator.",

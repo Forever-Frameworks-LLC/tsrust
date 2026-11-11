@@ -1,0 +1,22 @@
+import { App, Client, request, text } from 'std:http';
+import { length } from 'std:bytes';
+
+export async function main(): Task<void> {
+  const body = text('abc').body();
+  body.next();
+  (body.next(), body.next());
+  const first = await body.next();
+  if (first === undefined) {
+    throw 'Missing chunk';
+  }
+
+  console.log(length(first));
+  const second = await body.next();
+  console.log(second === undefined);
+  console.log(await text('done').text());
+  const app = new App();
+  const server = await app.listen('127.0.0.1:0');
+  const client = new Client();
+  console.log((await client.send(request('GET', 'http://' + server.address() + '/', ''))).status());
+  await server.shutdown();
+}

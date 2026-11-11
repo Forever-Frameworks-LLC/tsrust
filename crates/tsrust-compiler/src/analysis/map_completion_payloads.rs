@@ -298,8 +298,15 @@ mod tests {
 
     #[test]
     fn returning_cleanup_loop_plans_storage_without_a_backedge() {
-        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}return 0;}function main():void{console.log(scenario());}").unwrap();
+        let source=crate::format("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});while(true){try{handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;return first[0];}finally{for(const [key,entry] of handlers){console.log(entry.run());}}}}function main():void{console.log(scenario());}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
+        // The unconditional returning loop already exits the function. Keep the
+        // old fallback as a negative witness rather than treating it as reachable.
+        let end=source.find("function main()").unwrap();
+        let closing=source[..end].rfind('}').unwrap();
+        let mut unreachable=source.clone();unreachable.insert_str(closing,"return 0;");
+        let unreachable=crate::format(&unreachable).unwrap();assert_eq!(crate::format(&unreachable).unwrap(),unreachable);
+        let error=crate::check(&unreachable).err().unwrap();assert_eq!(error.code,"unsupported");assert!(error.message.contains("unreachable"));
         let checked=crate::check(&source).unwrap();
         let function=checked.program.functions.iter().find(|function|function.name=="scenario").unwrap();
         let statement=function.body.iter().find(|statement|matches!(statement.kind,crate::syntax::StmtKind::While{..})).unwrap();

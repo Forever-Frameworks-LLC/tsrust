@@ -18,7 +18,8 @@ fn empty_style_classes_keep_independent_properties_and_theme_references(){
  assert_eq!(style::theme_paths("max-w-sm"),vec![vec!["typography","base"]]);assert_eq!(style::theme_paths("mb-2"),vec![vec!["spacing","sm"]]);assert_eq!(style::theme_paths("font-heading"),vec![vec!["typography","headingFamily"]]);
  for class in classes.split_whitespace(){assert!(!style::documentation(class).is_empty(),"{class}");}
  assert!(style::validate_inline("tracking-tight text-balance text-sm/relaxed").is_ok());assert!(style::validate_inline("mb-2").is_err());
- for class in ["tracking-arbitrary","leading-unknown","-mb-2","m-auto","max-w-made-up"]{assert!(style::validate(class).is_err(),"{class}");}
+ for class in ["tracking-arbitrary","leading-unknown","max-w-made-up","-m-auto","p-[-2px]"]{assert!(style::validate(class).is_err(),"{class}");}
+ for class in ["-mb-2","m-auto","mx-auto","p-[13px]","rounded-[3px]","shadow-lg","bg-linear-to-r","from-sky-500/50","animate-spin","cursor-pointer","truncate","line-clamp-2","opacity-35","text-[13px]","font-black","border-x-2"]{assert!(style::validate(class).is_ok(),"{class}");assert!(!style::documentation(class).is_empty(),"{class}");}
 }
 
 #[test]

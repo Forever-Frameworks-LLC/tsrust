@@ -1,0 +1,415 @@
+{
+  "status": "Dependency-only lock/archive/source/license/declared-MSRV/local-advisory gates passed; no Rust build/runtime/profile/public acceptance",
+  "base": "965de83f",
+  "toolchains": {
+    "node": "v24.11.1",
+    "rust": "1.96.1"
+  },
+  "sharedCargoTarget": "/Users/seancotter/Desktop/dev/learning/tsrust/target",
+  "candidate": {
+    "axum": "0.8.9",
+    "tokio": "1.53.3",
+    "tokio-tungstenite": "0.29.0",
+    "tungstenite": "0.29.0",
+    "node-ws": "8.18.3"
+  },
+  "primarySources": [
+    {
+      "url": "https://raw.githubusercontent.com/snapview/tokio-tungstenite/v0.29.0/Cargo.toml",
+      "facts": "MIT; MSRV1.63; default connect+handshake; TLS roots optional; normal tungstenite ^0.29.0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/snapview/tungstenite-rs/v0.29.0/Cargo.toml",
+      "facts": "MIT OR Apache-2.0; MSRV1.71; default handshake; bytes/http/Tokio versions reuse existing compatible graph where resolution allows"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/snapview/tungstenite-rs/v0.29.0/src/protocol/mod.rs",
+      "facts": "128KiB read/write target; unlimited max write buffer; 64MiB message; 16MiB frame; rejects unmasked client frames; auto pong/close need backend progress"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/snapview/tokio-tungstenite/v0.29.0/src/connect.rs",
+      "facts": "connect_async_with_config defaults configuration unchanged and TCP_NODELAY false; custom request headers and verified TLS connector supported"
+    },
+    {
+      "url": "https://docs.rs/crate/tokio-tungstenite/0.29.0",
+      "facts": "Published 2026-03-17; compatible0.29 is chosen for Axum0.8.9, not merely latest0.30"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/websockets/ws/8.18.3/package.json",
+      "facts": "MIT; Node>=10; optional native addons omitted and recorded for controlled Node24 comparison"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/websockets/ws/8.18.3/lib/websocket-server.js",
+      "facts": "Default server auto-pong; no permessage-deflate; maxPayload100MiB. This differs from Tungstenite default message limit; fixed small workloads fit both"
+    },
+    {
+      "url": "https://html.spec.whatwg.org/multipage/server-sent-events.html#parsing-an-event-stream",
+      "facts": "Independent UTF-8/line-field/event interpretation oracle; actual backend bytes checked separately"
+    },
+    {
+      "url": "https://rustsec.org/advisories/RUSTSEC-2023-0065.html",
+      "facts": "Known handshake DoS fixed>=0.20.1. This is not a complete closure audit"
+    },
+    {
+      "url": "https://github.com/websockets/ws/security/advisories/GHSA-3h5v-q93c-6h6q",
+      "facts": "Known many-header DoS fixed8.17.1. Complete npm/Rust closure advisory checks remain mandatory"
+    }
+  ],
+  "localPrimarySources": [
+    "axum-0.8.9/src/response/sse.rs",
+    "axum-0.8.9/src/extract/ws.rs"
+  ],
+  "featurePlan": {
+    "sse": "Axum http1/tokio only; no ws dependency activation",
+    "websocket": "Axum ws + tokio-tungstenite connect/handshake",
+    "websocket-rustls": "explicit verified webpki roots; reuse tokio-rustls0.26.6/aws-lc/tls12; no native-tls or certificate verifier bypass"
+  },
+  "cacheState": "Rust locked archives and eight actual metadata graphs materialized/verified. Node ws8.18.3 not materialized; no npm/build/runtime/profile executed.",
+  "pendingAdmission": [
+    "actual compiled normal/build feature closure and optimized artifacts; metadata/source gate is complete",
+    "Linux/macOS/Windows execution and relocated export closure",
+    "TLS trusted/private CA success and default/untrusted/wrong-host rejection",
+    "public B06 task-scope integration only after B10/milestone review"
+  ],
+  "sseDecisionsPending": [
+    "Axum empty data currently appears to omit a data field; byte observation versus dispatched empty event must be measured",
+    "CRLF currently appears to introduce a separate empty data line; source inference must be confirmed before choosing public behavior"
+  ],
+  "scope": "Source prototypes and tiny pure guards only; no public Tsrust/compiler/LSP changes, unsafe code, production protocol state machine, or backend acceptance",
+  "measurementProtocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "resourceBatches": 31,
+    "rssSampleMs": 50,
+    "serverWorkers": 1,
+    "latency": "WS send to full typed echo; SSE request to full six-event body, not individual dispatch. Each aggregate11904 request observations."
+  },
+  "limits": "Retain backend ordinary defaults; explicit small limits are correctness fixtures only. No facade queue or implicit clone. No hidden CPU pool.",
+  "lifetime": "SSE control awaits producer after body drop. WS upgrade guard retains explicit fixture permit through socket local destruction; shutdown waits active0. Future production integration must reuse B06 scopes and B10 listener lifetime, not detached Axum upgrades.",
+  "preparedCorrectnessGroups": {
+    "sse-framing": 10,
+    "sse-lifetime": 3,
+    "ws-backend-controls": 16
+  },
+  "sourceValidation": [
+    "Existing checks predate this repair; repaired sources syntax-only validation pending"
+  ],
+  "formatValidation": {
+    "wholeProjectPasses": 2,
+    "formattedFiles": [
+      0,
+      0
+    ],
+    "catalogSnippets": [
+      0,
+      0
+    ],
+    "formatFingerprints": [
+      0,
+      0
+    ],
+    "tokenPreservation": "No source token changes",
+    "idempotence": "PASS",
+    "compiler": "canonical verified target/debug/tsrust",
+    "nativeAcceptance": "NOT RUN"
+  },
+  "dependencyAdmission": {
+    "commonLockCommit": "d63925719ea44b378955e3f973a6017030f11dbd",
+    "lockSha256": "336bc6dd6addd0f77522857275e6c64f9cbd1e81d88afb17f2a0bfb3071925b7",
+    "rustsecDatabaseCommit": "26fd2d43f7280a1fb925a3743ec463017afe7119",
+    "rustsecVulnerabilities": 0,
+    "rustsecWarnings": 0,
+    "targetGraphs": 8,
+    "activeRegistryUnion": 90,
+    "activeRegistryCommonB10": 69,
+    "activeRegistryNewB10": [
+      [
+        "base64",
+        "0.22.1"
+      ],
+      [
+        "block-buffer",
+        "0.10.4"
+      ],
+      [
+        "cpufeatures",
+        "0.2.17"
+      ],
+      [
+        "crypto-common",
+        "0.1.7"
+      ],
+      [
+        "data-encoding",
+        "2.11.1"
+      ],
+      [
+        "digest",
+        "0.10.7"
+      ],
+      [
+        "errno",
+        "0.3.14"
+      ],
+      [
+        "generic-array",
+        "0.14.7"
+      ],
+      [
+        "getrandom",
+        "0.3.4"
+      ],
+      [
+        "ppv-lite86",
+        "0.2.21"
+      ],
+      [
+        "rand",
+        "0.9.5"
+      ],
+      [
+        "rand_chacha",
+        "0.9.0"
+      ],
+      [
+        "rand_core",
+        "0.9.5"
+      ],
+      [
+        "sha1",
+        "0.10.7"
+      ],
+      [
+        "signal-hook-registry",
+        "1.4.8"
+      ],
+      [
+        "tokio-tungstenite",
+        "0.29.0"
+      ],
+      [
+        "tungstenite",
+        "0.29.0"
+      ],
+      [
+        "typenum",
+        "1.20.1"
+      ],
+      [
+        "webpki-roots",
+        "0.26.11"
+      ],
+      [
+        "webpki-roots",
+        "1.0.11"
+      ],
+      [
+        "zerocopy",
+        "0.8.63"
+      ]
+    ],
+    "maximumDeclaredMsrv": "1.85",
+    "missingDeclaredMsrv": [
+      "block-buffer@0.10.4",
+      "cpufeatures@0.2.17",
+      "crypto-common@0.1.7",
+      "digest@0.10.7",
+      "dunce@1.0.5",
+      "fs_extra@1.3.0",
+      "generic-array@0.14.7",
+      "getrandom@0.2.17",
+      "httparse@1.10.1",
+      "matchit@0.8.4",
+      "mime@0.3.17",
+      "sha1@0.10.7",
+      "smallvec@1.16.3",
+      "subtle@2.6.1",
+      "sync_wrapper@1.0.2",
+      "tower-layer@0.3.3",
+      "tower-service@0.3.3",
+      "untrusted@0.9.0",
+      "version_check@0.9.5",
+      "webpki-roots@0.26.11"
+    ],
+    "tlsRootPackages": [
+      "webpki-roots@0.26.11",
+      "webpki-roots@1.0.11"
+    ],
+    "tlsPatchedWebpki": "rustls-webpki@0.103.16",
+    "scope": "Metadata and cached package bytes only. No platform build, TLS/network execution or performance evidence.",
+    "commonFeatureDeltaMacFullVersusB10": [
+      {
+        "name": "axum",
+        "version": "0.8.9",
+        "added": [
+          "ws"
+        ],
+        "removed": [
+          "http2",
+          "multipart"
+        ]
+      },
+      {
+        "name": "futures-sink",
+        "version": "0.3.34",
+        "added": [],
+        "removed": [
+          "alloc",
+          "default",
+          "std"
+        ]
+      },
+      {
+        "name": "futures-util",
+        "version": "0.3.34",
+        "added": [],
+        "removed": [
+          "async-await-macro",
+          "default",
+          "futures-io",
+          "futures-macro",
+          "io",
+          "memchr"
+        ]
+      },
+      {
+        "name": "getrandom",
+        "version": "0.2.17",
+        "added": [],
+        "removed": [
+          "js",
+          "js-sys",
+          "wasm-bindgen"
+        ]
+      },
+      {
+        "name": "hyper-util",
+        "version": "0.1.21",
+        "added": [],
+        "removed": [
+          "client",
+          "client-legacy",
+          "client-proxy",
+          "http2",
+          "server-auto"
+        ]
+      },
+      {
+        "name": "hyper",
+        "version": "1.12.0",
+        "added": [],
+        "removed": [
+          "client",
+          "http2"
+        ]
+      },
+      {
+        "name": "libc",
+        "version": "0.2.190",
+        "added": [],
+        "removed": [
+          "extra_traits"
+        ]
+      },
+      {
+        "name": "once_cell",
+        "version": "1.21.4",
+        "added": [],
+        "removed": [
+          "default"
+        ]
+      },
+      {
+        "name": "ring",
+        "version": "0.17.14",
+        "added": [],
+        "removed": [
+          "default",
+          "dev_urandom_fallback",
+          "wasm32_unknown_unknown_js"
+        ]
+      },
+      {
+        "name": "rustls-pki-types",
+        "version": "1.15.1",
+        "added": [],
+        "removed": [
+          "web",
+          "web-time"
+        ]
+      },
+      {
+        "name": "serde",
+        "version": "1.0.229",
+        "added": [
+          "default",
+          "derive",
+          "serde_derive"
+        ],
+        "removed": []
+      },
+      {
+        "name": "slab",
+        "version": "0.4.12",
+        "added": [],
+        "removed": [
+          "default"
+        ]
+      },
+      {
+        "name": "syn",
+        "version": "3.0.6",
+        "added": [],
+        "removed": [
+          "extra-traits",
+          "fold",
+          "visit",
+          "visit-mut"
+        ]
+      },
+      {
+        "name": "sync_wrapper",
+        "version": "1.0.2",
+        "added": [],
+        "removed": [
+          "futures",
+          "futures-core"
+        ]
+      },
+      {
+        "name": "tokio-rustls",
+        "version": "0.26.6",
+        "added": [],
+        "removed": [
+          "aws-lc-rs"
+        ]
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.3",
+        "added": [
+          "signal",
+          "signal-hook-registry"
+        ],
+        "removed": [
+          "fs"
+        ]
+      },
+      {
+        "name": "tower",
+        "version": "0.5.3",
+        "added": [],
+        "removed": [
+          "retry",
+          "timeout"
+        ]
+      }
+    ]
+  }
+}

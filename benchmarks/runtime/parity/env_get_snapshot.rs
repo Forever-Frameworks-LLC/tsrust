@@ -1,0 +1,1 @@
+fn function0(value0: i64, value1: i64) -> i64 {let mut checksum=value1;for _ in 0..value0 {for name in ["TSRUST_B03_TEXT","TSRUST_B03_EMPTY","TSRUST_B03_MISSING"]{checksum+=match std::env::var(name){Ok(value)=>i64::try_from(value.len()).unwrap(),Err(std::env::VarError::NotPresent)=>1,Err(error)=>panic!("{error}")};}}checksum}fn main(){}

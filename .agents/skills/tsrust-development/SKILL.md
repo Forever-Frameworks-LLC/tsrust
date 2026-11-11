@@ -1,6 +1,6 @@
 ---
 name: tsrust-development
-description: Resume tsrust compiler, LSP, native UI and documentation work from existing acceptance evidence, with local checkpoints and deliberate remote validation.
+description: Resume tsrust compiler, LSP, GPUI UI and documentation work from existing acceptance evidence, with local checkpoints and deliberate remote validation.
 ---
 
 # Tsrust development
@@ -11,7 +11,8 @@ plans and acceptance records rather than treating chronological notes as a queue
 Use `.agents/skills/ponytail/SKILL.md` for implementation and
 `.agents/skills/caveman/SKILL.md` for chat. Keep persisted prose complete.
 Use other installed skills only when their actual workflow fits the section;
-do not introduce React or a replacement frontend framework into std:ui work.
+UI work wraps GPUI and GPUI Kit behind `.tsrx`
+(docs/plans/gpui-application-platform.md); do not add another renderer or web framework.
 
 ## Resume and scope
 
@@ -24,12 +25,12 @@ Do not mark unavailable macOS/Linux/native-desktop checks as passed on Windows.
 docs/agent-progress.md is the single handoff note; keep it current and do not
 create separate handoff files. When the
 owner invokes the continuation goal, investigate memory with bounded resources
-before resuming Table acceptance or broad editor/preview work. Record evidence
+before resuming broad editor work. Record evidence
 and stop conditions before launching a reproducer. Inspect retention/invalidation
 and queued analysis; do not hide growth with arbitrary caps or weaker coverage.
 
 Derive a finite completion checklist from current plans, especially
-docs/plans/documentation-and-component-library.md, UI_VISION.md,
+docs/plans/gpui-application-platform.md, docs/plans/stdlib-0.2.0.md,
 docs/plans/compiler-completion-plan.md and docs/roadmap.md. Separate required
 scope from proposals, explicit deferrals and design decisions. Do not silently
 expand scope to arbitrary TypeScript compatibility or all future vision items.
@@ -59,7 +60,13 @@ checks unavailable or pending.
 ## GitHub validation and release
 
 Local commits are the normal durable checkpoints; elapsed time never justifies a
-push. Do not alter CI triggers to hide failures or use skip-ci as a substitute
+push.
+
+Owner rule, 2026-11-08: a push or PR exists to merge finished code toward a
+release. It is never a way to run checks on other operating systems because
+that is possible, and never a test-iteration loop. Finish and validate a change
+set locally, then push once to merge. If hosted CI fails, diagnose locally and
+fix the cause before the next push; do not dispatch repeated hour-long runs. Do not alter CI triggers to hide failures or use skip-ci as a substitute
 for validation. Never force-push, merge or publish a release merely to checkpoint.
 
 Before a remote validation, record the exact commit, locally completed checks,

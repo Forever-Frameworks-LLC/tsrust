@@ -1,0 +1,5 @@
+/// <reference types="node" />
+import {mkdtempSync,openSync,writeSync,closeSync,readFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';import {join} from 'node:path';
+function workload(n:number,seed:number):number{const directory=mkdtempSync(join(tmpdir(),'tsrust-log-'));try{const path=join(directory,'events.ndjson');const fd=openSync(path,'a');try{for(let i=0;i<n;i++){const row={timestamp:new Date().toISOString(),level:'INFO',target:'structured_logging',fields:{message:'é "quoted"\nline',index:i+seed,ok:true}};writeSync(fd,JSON.stringify(row)+'\n');}}finally{closeSync(fd);}const lines=readFileSync(path,'utf8').split('\n');if(lines.length!==n+1)throw Error('line count');let sum=0;for(let i=0;i<n;i++){const row=JSON.parse(lines[i]);if(row.level!=='INFO'||row.fields.message!=='é "quoted"\nline'||row.fields.index!==i+seed||!row.fields.ok||!row.timestamp||!row.target)throw Error('event fields');sum=(sum*131+row.fields.index)%1000000007;}return sum;}finally{rmSync(directory,{recursive:true});}}
+function main(){}

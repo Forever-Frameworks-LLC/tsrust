@@ -71,10 +71,15 @@ fn recoverable(code:&str)->bool {
     matches!(code,"type"|"unknown"|"name"|"transferred"|"partial-transfer"|"conflicting-access"|"borrowed-view"|"borrowed-place"|"borrowed-element")
 }
 
-pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
+pub(crate) fn collect(mut program:Program, first:Diagnostic, bundled:&[Span])->Vec<Diagnostic> {
     if !recoverable(first.code) && !matches!(first.code,"loop-control"|"error-effect") {return vec![first];}
     let (statements,names,closures)=index(&program);
-    let mut roots=program.functions.iter().map(|function|function.name.span).collect::<Vec<_>>();
+    let completed=std::sync::Arc::new(std::sync::Mutex::new(HashSet::new()));
+    program.diagnostic_completed=Some(completed.clone());
+    // Bundled facades still check through real calls; starting replay in each
+    // trusted wrapper repeats the same user error without finding another site.
+    let mut roots=program.functions.iter().map(|function|function.name.span)
+        .filter(|span|!bundled.iter().any(|range|contains(*range,*span))).collect::<Vec<_>>();
     // Later declarations are the useful next candidates after an earlier failure.
     roots.sort_by_key(|span|(span.start<first.span.start,span.start));
     let mut roots=roots.into_iter();
@@ -116,13 +121,16 @@ pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
         if !skipped {
             // Keep failed terminal operations intact. Change only which function
             // is checked first; calls still follow their real bodies and contracts.
-            let Some(root)=roots.next() else {break;};
+            // A successful body in the last failed pass has already been checked;
+            // restarting there only rediscovers the same failure in another root.
+            let Some(root)=roots.find(|root|!completed.lock().expect("diagnostic progress lock").contains(root)) else {break;};
             program.diagnostic_first=Some(root);
         }
         // Replay from pristine state: valid earlier moves and loans survive, while
         // partial mutations made by the failing statement cannot leak forward.
+        completed.lock().expect("diagnostic progress lock").clear();
         let result=match crate::analysis::analyze(program.clone()) {
-            Err(error) if error.code=="recursion-inference"=>crate::analysis::analyze_recursive(program.clone()),
+            Err(error) if error.code=="recursion-inference"=>{completed.lock().expect("diagnostic progress lock").clear();crate::analysis::analyze_recursive(program.clone())},
             result=>result,
         };
         match result {Ok(_)=>break,Err(error)=>next=error}

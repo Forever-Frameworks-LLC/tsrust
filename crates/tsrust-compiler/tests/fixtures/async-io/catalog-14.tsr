@@ -1,0 +1,9 @@
+import { reader, body } from 'std:io';
+import { File } from 'std:fs';
+import { Body } from 'std:http';
+
+function fileBody(input: File): Body {
+  return body(reader(input));
+}
+
+export function main() {}

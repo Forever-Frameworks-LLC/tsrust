@@ -1,0 +1,77 @@
+{
+  "scope": "B09 private streaming bridge engineering admission; no public API/performance acceptance",
+  "base": "b9a9853f",
+  "status": "source-only; no bridge build or execution yet",
+  "backend": {
+    "crate": "flate2=1.1.10",
+    "features": [
+      "zlib-rs",
+      "runtime_detection",
+      "any_zlib"
+    ],
+    "implementation": "zlib-rs=0.6.8",
+    "safeApis": [
+      "Compress::new_gzip(Compression,15)",
+      "Decompress::new_gzip(15)",
+      "Compress::new(level,zlib_header)",
+      "Decompress::new(zlib_header)",
+      "Compress::compress(...,None/Sync/Finish)",
+      "Decompress::decompress(...,None/Sync)",
+      "total_in/total_out/Status::StreamEnd"
+    ],
+    "framing": "Entirely backend-owned; gzip members restart native Decompress only after StreamEnd. No handwritten header/checksum/parser.",
+    "gzipMetadata": "Native pinned zlib-rs default: mtime0, no optional fields, OS19 macOS/10 Windows/3 other, XFL dependent on level; assert default header and repeat identical operations byte-for-byte. No public header options. Replaces the unexecuted bufread 10-byte workaround.",
+    "whyAlternative": "miniz bufread API has no Sync flush; write wrappers finalize on Drop. Safe low-level gzip constructors require any_zlib, admitted zlib-rs exposes them without custom framing, unsafe code, leaked state, hidden executor or altered pool lifetime."
+  },
+  "ownership": {
+    "pool": "Explicit existing weak PoolSubmission only; owned bounded work steps, one active codec and reusable input/output owners; no async I/O on CPU worker.",
+    "cancellation": "Recovery restores owned codec/buffers on queued cancellation or dropped successful completion. Existing scope cleanup joins actual CPU settlement and releases capacity before publication. Destination borrowed slices never enter CPU jobs.",
+    "sinkCancellation": "A cancelled async sink operation can have unreported effects; poison writer rather than replay possibly written output.",
+    "drop": "Plain Compress/Decompress destruction releases allocations without stream finish; unfinished output remains unfinished. Owner and buffer-drop/strong-count witnesses after explicit pool shutdown; no implicit compression or admission.",
+    "finish": "Signal actual input EOF, drain backend StreamEnd and validate trailers/checksums/truncation before returning underlying B05 owner. Decoder accepts concatenated gzip; raw/zlib reject trailing data.",
+    "flush": "Native Sync, bounded drain and B05 flush; no EOF. Verify prefix decodes immediately, remains non-StreamEnd, second write continues same stream.",
+    "policy": "Optional maxOutput counts incrementally with one-byte over-limit probe; ordinary decoding has no total cap. Working buffer8192 reused from B05, not output limit."
+  },
+  "gates": [
+    "formats",
+    "errors",
+    "backpressure",
+    "cancellation",
+    "queued",
+    "files",
+    "flush",
+    "disposal"
+  ],
+  "execution": {
+    "required": "Exclusive root lease; no execution authorized in current source-only task",
+    "optimizationLevels": [
+      0,
+      3
+    ],
+    "groupPersistence": "Each complete optimization/group record persisted; failed scope and last command logs retained. Whole-group selectors only.",
+    "timing": "Correctness only; no new timing protocol or ingestion",
+    "watchdog": "/tmp/tsrust-watch.py, 5GB / 30min; expected comfortably below limit but first compilation/runtime unmeasured"
+  },
+  "historicalTradeoff": {
+    "source": "/tmp/tsrust-compression-profile-attempt2.json; earlier reader/writer controls, NOT this bridge",
+    "gzipDefaultCompressible16384": {
+      "minizNs": 18792,
+      "minizBytes": 101,
+      "zlibRsNs": 9917,
+      "zlibRsBytes": 163
+    },
+    "gzipDefaultRandom16384": {
+      "minizNs": 193250,
+      "minizBytes": 16407,
+      "zlibRsNs": 145708,
+      "zlibRsBytes": 16409
+    },
+    "gzipDefaultAllocationPeakBytes": {
+      "miniz": 352290,
+      "zlibRs": 413056,
+      "extraZlibRs": 60766
+    },
+    "decision": "Backend provisional pending bridge correctness gates; no public backend selector."
+  },
+  "pending": "Public compiler/type/ownership/error/LSP/docs/examples/matched Node workload integration after bridge admission; bridge allocation and timing not measured."
+}

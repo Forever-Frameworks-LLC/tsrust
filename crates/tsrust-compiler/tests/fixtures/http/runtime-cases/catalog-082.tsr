@@ -1,0 +1,7 @@
+import { Body } from 'std:http';
+
+function inspect(value: Body): void {}
+
+export function main() {
+  console.log('ok');
+}

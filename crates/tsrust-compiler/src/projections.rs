@@ -77,6 +77,8 @@ pub struct GenericParameterInfo {
 /// Checked editor facts collected in one iterative walk, without reanalysis.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CheckedTypeFacts {
+    /// Receiver capabilities derived from concrete checked types, never display names.
+    pub array_capabilities: Vec<(Span, crate::ArrayCapabilities)>,
     /// Nominal enum display names and their checked scalar representation.
     pub enum_scalars: Vec<(String, String)>,
     pub json_string_receivers: Vec<Span>,
@@ -217,6 +219,7 @@ impl Analysis {
                 }
             }
         }
+        let mut array_capabilities = BTreeMap::<(usize, usize), crate::ArrayCapabilities>::new();
         let mut views = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut methods = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut adapter_spans = std::collections::HashSet::<(usize, usize)>::new();
@@ -300,6 +303,9 @@ impl Analysis {
                     StmtKind::Return(None) | StmtKind::Break | StmtKind::Continue => {}
                 },
                 Node::Expression(expression) | Node::Successful(expression, _) => {
+                    if let Some(capability) = expression.ty.and_then(|ty| crate::analysis::native_capabilities::checked_array_capabilities(ty, &program.records, |id| program.unions[id.index()].members.clone())) {
+                        array_capabilities.entry((expression.span.start, expression.span.end)).and_modify(|previous| *previous = previous.intersection(capability)).or_insert(capability);
+                    }
                     if expression.json_string_view {json_string_receivers.push(expression.span);}
                     let successful_span = match node {
                         Node::Successful(_, span) => Some(span),
@@ -625,6 +631,15 @@ impl Analysis {
                 .map(|(&span, types)| (span, types.iter().copied().map(Some).collect()))
                 .collect(),
         };
+        for group in [&identities.parameter_types, &identities.projections, &identities.optional_receivers, &identities.method_results] {
+            for (&span, types) in group {
+                let Some(capabilities) = types.iter().map(|ty| crate::analysis::native_capabilities::checked_array_capabilities((*ty)?, &program.records, |id| program.unions[id.index()].members.clone())).collect::<Option<Vec<_>>>() else { continue; };
+                if let Some(capability) = capabilities.into_iter().reduce(|left, right| left.intersection(right)) {
+                    array_capabilities.entry(span).and_modify(|previous| *previous = previous.intersection(capability)).or_insert(capability);
+                }
+            }
+        }
+        let array_capabilities = array_capabilities.into_iter().map(|((start, end), capability)| (Span::new(start, end), capability)).collect();
         let mut names = HashMap::new();
         let mut output = Vec::new();
         for ((start, end), types) in views {
@@ -701,6 +716,7 @@ impl Analysis {
         }
         let enum_scalars=program.records.iter().enumerate().filter_map(|(id,record)|{let definition=record.enum_definition.as_ref()?;let name=type_name(program,Type::Enum(id,definition.kind),&mut names)?;Some((name,if definition.kind==crate::syntax::EnumKind::String{"string"}else{"number"}.to_owned()))}).collect();
         CheckedTypeFacts {
+            array_capabilities,
             enum_scalars,
             json_string_receivers,
             generic_values,

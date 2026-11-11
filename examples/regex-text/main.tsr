@@ -1,0 +1,66 @@
+import { RegexOptions, compile, escape } from 'std:regex';
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const options: RegexOptions = {
+    dfaSizeLimit: 0
+  };
+  const expression = unwrap(compile('(é)(🦀)?', options));
+  const text = 'xé🦀 é';
+  strictEqual(expression.isMatch(text), true);
+  const first = expression.find(text);
+  if (first === undefined) {
+    throw 'missing first match';
+  }
+
+  strictEqual(first.start, 1);
+  strictEqual(first.end, 7);
+  const all = expression.findAll(text);
+  strictEqual(all.length, 2);
+  strictEqual(all[1].start, 8);
+  strictEqual(all[1].end, 10);
+  const captured = expression.captures(text);
+  if (captured === undefined) {
+    throw 'missing captures';
+  }
+
+  strictEqual(captured.match.start, 1);
+  strictEqual(captured.groups.length, 2);
+  const second = captured.groups[1];
+  if (second === undefined) {
+    throw 'missing crab capture';
+  }
+
+  strictEqual(second.start, 3);
+  strictEqual(second.end, 7);
+  const snapshots = expression.capturesAll(text);
+  strictEqual(snapshots[1].groups[1] === undefined, true);
+  strictEqual(expression.replace(text, '${2}/${1}'), 'x🦀/é é');
+  strictEqual(expression.replaceAll(text, '${2}/${1}'), 'x🦀/é /é');
+  const segments = expression.split(text);
+  strictEqual(segments.length, 3);
+  strictEqual(segments[0].start, 0);
+  strictEqual(segments[0].end, 1);
+  strictEqual(segments[1].start, 7);
+  strictEqual(segments[1].end, 8);
+  const stringMatch = text.match(expression);
+  if (stringMatch === undefined) {
+    throw 'missing String.match';
+  }
+
+  strictEqual(stringMatch.match.end, 7);
+  strictEqual(text.matchAll(expression).length, 2);
+  strictEqual(text.search(expression), 1);
+  strictEqual('missing'.search(expression), -1);
+  strictEqual(escape('a+b'), 'a\\+b');
+  match (compile('(?=x)')) {
+    Ok(value) => {
+      throw 'lookaround must reject';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'Syntax');
+    }
+  }
+
+  console.log('Regex text checks passed');
+}

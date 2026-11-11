@@ -1,0 +1,29 @@
+type Family = 'any' | 'ipv4' | 'ipv6' | undefined;
+async function size(family: ReadOnly<Family>, label: ReadOnly<string>): Task<int> {
+  if (family === undefined) {
+    return label.length;
+  }
+
+  return family.length + label.length;
+}
+
+function relay(family: ReadOnly<Family>, label: ReadOnly<string>): Task<int> {
+  return size(family, label);
+}
+
+function invoke<F>(factory: Owned<F>, family: ReadOnly<Family>, label: ReadOnly<string>): Task<int> {
+  return factory(family, label);
+}
+
+async function drive(family: Family, label: string): Task<void> {
+  console.log(await size(family, label));
+  const operation = size;
+  console.log(await operation(family, label));
+  const forwarding = relay;
+  console.log(await forwarding(family, label));
+  console.log(await invoke(operation, family, label));
+}
+
+export async function run(): Task<void> {
+  await drive('ipv4', 'x');
+}

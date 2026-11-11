@@ -1,0 +1,10 @@
+import { App, ServerOptions } from 'std:http';
+
+export function main() {
+  const options: ServerOptions = {
+    bodyLimit: 65536, maxConnections: 64, maxRequests: 32, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 100
+  };
+  const app = new App();
+  app.configure(options);
+  console.log(options.bodyLimit); // 65536
+}

@@ -1,0 +1,20 @@
+import { Deque } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+type Reader = {
+  read: ReadOnly<Function<int>>;
+};
+
+export function main() {
+  const text = 'borrowed';
+  const values = new Deque<Reader>();
+  values.pushBack({
+    read: () => text.length
+  });
+  for (const item of values) {
+    strictEqual(item.read(), 8);
+  }
+
+  const item = values.popFront()!;
+  strictEqual(item.read(), 8);
+}

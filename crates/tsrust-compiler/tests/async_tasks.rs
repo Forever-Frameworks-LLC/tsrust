@@ -45,6 +45,21 @@ fn unused_task_warnings_follow_reachable_paths_and_transfers() {
 }
 
 #[test]
+fn async_entrypoints_run_on_an_explicit_main_thread_stack() {
+    for (source, header) in [
+        ("async function value():Task<int>{return 4;}async function main():Task<void>{console.log(await value());}", "fn tsrust_entry_main() -> () {"),
+        ("async function value():Task<int>{return 4;}async function main():Task<void>{console.log(await value());throw 'boom';}", "fn tsrust_entry_main()->std::process::ExitCode{"),
+    ] {
+        let rust = check(&support::format_round_trip(source)).unwrap().emit_rust();
+        assert!(rust.contains(header), "{rust}");
+        assert_eq!(rust.matches("tsrust_main_thread(tsrust_entry_main) }").count(), 1, "{rust}");
+        assert!(rust.contains("stack_size(8 << 20)"));
+    }
+    let rust = check("function main(){console.log(1);}").unwrap().emit_rust();
+    assert!(rust.contains("fn main() -> () {") && !rust.contains("tsrust_entry_main"));
+}
+
+#[test]
 fn generated_future_retains_allocation_and_drops_once_across_real_suspension() {
     let source=support::format_round_trip("async function hold(text:string):Task<string>{return text;}function main(){}");
     let mut rust=check(&source).unwrap().emit_rust();
@@ -219,4 +234,43 @@ fn awaited_values_infer_generic_arguments_and_keep_record_and_native_view_loans(
 #[test]
 fn tasks_returning_multiple_input_borrows_name_their_lifetimes() {
     support::execute("async function size(left:ReadOnly<string>,right:ReadOnly<string>):Task<int>{return left.length+right.length;}async function change(left:Mutable<int[]>,right:ReadOnly<int[]>):Task<void>{left.push(right.length);}async function main():Task<void>{let left='one';let right='two';size(left,right);console.log(await size(left,right));left='x';right='y';console.log(await size(left,right));const values=[1];const input=[2,3];await change(values,input);console.log(values.length);}","6\n2\n2\n",None);
+}
+
+#[test]
+fn stored_task_factories_retain_input_loans_through_returned_tasks(){
+ let prefix="async function append(values:Mutable<int[]>):Task<void>{values.push(1);}function relay(work:Task<void>):Task<void>{return work;}";
+ for invocation in ["action(values)","(true? action:action)(values)","pass(action(values))","pass((true? action:action)(values))"]{
+  let setup=format!("{prefix}async function main():Task<void>{{const values:int[]=[];const action=append;const pass=relay;const pending={invocation};");
+  let invalid=support::format_round_trip(&format!("{setup}values.push(2);await pending;}}"));
+  assert_eq!(check(&invalid).err().expect("factory argument remains borrowed").code,"capture-conflict","lost factory argument loan: {invocation}");
+  let valid=format!("{setup}await pending;values.push(2);console.log(values[0],values[1]);}}");
+  support::execute(&valid,"1 2\n",None);
+ }
+}
+
+#[test]
+fn consumed_task_relays_preserve_independent_input_lifetimes_at_o0_and_o3(){
+ let source="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}function again<T>(work:Task<T>):Task<T>{const pass=relay;return (true?pass:pass)(work);}async function main():Task<void>{let left='four';const right=[1,2];const pending=again(relay(size(left,right)));console.log(await pending);right.push(3);left='x';console.log(await again(size(left,right)));}";
+ let formatted=support::format_round_trip(source);let checked=check(&formatted).unwrap();assert!(checked.warnings().is_empty());
+ for statement in["left='changed';","right.push(9);"]{let invalid=formatted.replace("console.log(await pending);",&format!("{statement}console.log(await pending);"));assert_eq!(check(&invalid).err().expect("relay keeps caller loans").code,"capture-conflict");}
+ let started="async function size(left:ReadOnly<string>,right:ReadOnly<int[]>):Task<int>{return left.length+right.length;}function relay<T>(work:Task<T>):Task<T>{return work;}async function main():Task<void>{const left='four';const right=[1,2];const pending=relay(size(left,right)).start();await pending;}";assert_eq!(check(&support::format_round_trip(&started)).err().expect("borrowed task cannot transfer").code,"task-transfer");
+ let directory=support::TempDirectory::new();let path=directory.source(&formatted);for release in[false,true]{let binary=directory.0.join(format!("task-relay-{release}{}",std::env::consts::EXE_SUFFIX));let mut build=support::cli();build.arg("build").arg(&path).arg("-o").arg(&binary);if release{build.arg("--release");}support::success(&support::run(&mut build,180));let output=support::run(&mut std::process::Command::new(binary),30);support::success(&output);assert_eq!(output.stdout,b"6\n4\n");assert!(!String::from_utf8_lossy(&output.stderr).contains("unused-task"));}
+}
+
+#[test]
+fn owned_async_scalar_mutation_keeps_the_callers_private_copy(){
+    support::execute("async function main():Task<void>{let value=1;const factory=async()=>{value=7;return value;};console.log(value);console.log(await factory());console.log(value);}","1\n7\n1\n",None);
+}
+
+#[test]
+fn stored_generic_task_factories_infer_nested_unit_and_nonunit_callback_results(){
+ let source="async function apply<T>(action:Once<Function<Task<T>>>):Task<T>{return await action();}async function main():Task<void>{const integer:Function<Task<int>,[action:Once<Function<Task<int>>>]>=apply;const unit:Function<Task<void>,[action:Once<Function<Task<void>>>]>=apply;console.log(await integer(async()=>{return 7;}));await unit(async()=>{console.log('unit');});}";
+ support::execute(source,"7\nunit\n",None);
+ let wrong=source.replace("return 7;","return 'wrong';");
+ assert!(check(&wrong).is_err(),"stored nested callbacks retain their concrete result contract");
+}
+
+#[test]
+fn stored_generic_async_defaults_recheck_after_return_origin_discovery(){
+ support::execute("async function echo<T>(value:T,message:string='fallback'):Task<T>{console.log(message);return value;}async function main():Task<void>{const stored:Function<Task<int>,[value:int,message?:Owned<string>]>=echo;const message='provided'.repeat(2);console.log(await stored(7,message));console.log(await stored(8));}","providedprovided\n7\nfallback\n8\n",None);
 }

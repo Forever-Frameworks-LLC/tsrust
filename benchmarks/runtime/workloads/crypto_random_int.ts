@@ -1,0 +1,1 @@
+import {randomInt} from 'node:crypto';export function workload(n:number,seed:number):number{let sum=0;for(let i=0;i<n;i++){const value=randomInt(-1000000+seed,1000000+seed);if(value< -1000000+seed||value>=1000000+seed)throw Error('range');sum=(sum*131+1)%1000000007;}return sum;}

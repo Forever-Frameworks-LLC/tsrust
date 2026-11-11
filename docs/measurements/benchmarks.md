@@ -178,7 +178,7 @@ POST /validate should:
 4. Perform collection transformations.
 5. Serialize a typed response.
 GET /html should:
-1. Render nested JSX-style components.
+1. Render nested TSRX-style components.
 2. Escape dynamic strings.
 3. Loop through typed data.
 4. Produce HTML.

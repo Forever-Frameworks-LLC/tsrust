@@ -1,5 +1,5 @@
-//! Owned, bounded file buffers. The underlying File has exactly one owner.
-use super::{fs::{FileHandle,FsFailure,MAX_READ_BYTES,validate_write_length},resource::{Backend,Resource}};
+//! Owned file buffers. The underlying File has exactly one owner.
+use super::{fs::{FileHandle,FsFailure,validate_read_length,validate_write_length},resource::{Backend,Resource}};
 use std::io::{BufRead,Read,Write};
 pub const DEFAULT_CAPACITY:i64=8192;
 pub struct BufferedReaderBackend {file:FileHandle,buffer:Vec<u8>,start:usize,end:usize}
@@ -64,8 +64,7 @@ impl Read for BufferedReader {
     fn read(&mut self,output:&mut [u8])->std::io::Result<usize> {self.get_mut().read(output)}
 }
 pub fn buffered_read(reader:&mut BufferedReader,length:i64)->Result<Vec<u8>,FsFailure> {
-    let length=usize::try_from(length).ok().filter(|length|*length<=MAX_READ_BYTES)
-        .ok_or_else(||FsFailure::read_error("length-range","Read length must be between 0 and 67108864 bytes."))?;
+    let length=validate_read_length(length,"read")?;
     if length==0 {return Ok(Vec::new());}
     let reader=reader.get_mut();
     // Reserve the result before performing I/O or consuming buffered bytes.
@@ -181,6 +180,24 @@ mod tests {
         let writer=create_buffered_writer(name,1048577).unwrap();writer.close().unwrap();
         assert!(std::fs::read(&path).unwrap().is_empty());std::fs::remove_file(path).unwrap();
     }
+    #[test]
+    fn failed_buffer_construction_and_writer_close_release_on_every_platform() {
+        let _guard=LOCK.lock().unwrap();let path=path("portable-failure");
+        std::fs::write(&path,[1,2]).unwrap();let name=path.to_str().unwrap();
+        for capacity in [0,-1] {
+            assert!(buffer_reader(super::super::fs::open(name).unwrap(),capacity).is_err());
+            let moved=path.with_extension("moved");
+            std::fs::rename(&path,&moved).unwrap();std::fs::rename(moved,&path).unwrap();
+        }
+        let mut reader=buffer_reader(super::super::fs::open(name).unwrap(),4).unwrap();
+        assert_eq!(buffered_read(&mut reader,64*1024*1024+1).unwrap(),[1,2]);reader.close().unwrap();
+        let mut writer=buffer_writer(super::super::fs::open(name).unwrap(),8).unwrap();
+        buffered_write_all(&mut writer,&[3]).unwrap();
+        assert!(writer.close().is_err());
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[cfg(unix)]
     #[test]
     fn invalid_capacity_and_failed_close_release_the_consumed_descriptor() {
         use std::os::fd::AsRawFd;

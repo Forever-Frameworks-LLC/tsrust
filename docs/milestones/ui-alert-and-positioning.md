@@ -50,7 +50,7 @@ independent scoped palette. There are 161 destinations, 19 checked examples and
   equations. Measured example text contrast minima are 5.60:1 light and 5.42:1 dark.
 - Two compiler integration witnesses pass: formatted native composition, invalid
   metadata/layout rejection, actual offline installation, bad variant diagnostics,
-  exact JSX field names and preservation of local edits. The affected compatibility
+  exact TSRX field names and preservation of local edits. The affected compatibility
   witness rejects an unsupported compiler contract without rewriting its lock.
 - Installed-LSP witnesses pass for positioning help, local Alert exports/props and
   semantic consistency. The two affected completion rows pass settled, immediate,

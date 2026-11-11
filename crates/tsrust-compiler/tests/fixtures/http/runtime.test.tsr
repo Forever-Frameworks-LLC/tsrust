@@ -1,0 +1,443 @@
+import { describe, test } from 'std:testing';
+import { main as case0 } from './runtime-cases/catalog-001.tsr';
+import { main as case1 } from './runtime-cases/catalog-002.tsr';
+import { main as case2 } from './runtime-cases/catalog-003.tsr';
+import { main as case3 } from './runtime-cases/catalog-004.tsr';
+import { main as case4 } from './runtime-cases/catalog-005.tsr';
+import { main as case5 } from './runtime-cases/catalog-006.tsr';
+import { main as case6 } from './runtime-cases/catalog-007.tsr';
+import { main as case7 } from './runtime-cases/catalog-008.tsr';
+import { main as case8 } from './runtime-cases/catalog-009.tsr';
+import { main as case9 } from './runtime-cases/catalog-010.tsr';
+import { main as case10 } from './runtime-cases/catalog-011.tsr';
+import { main as case11 } from './runtime-cases/catalog-012.tsr';
+import { main as case12 } from './runtime-cases/catalog-013.tsr';
+import { main as case13 } from './runtime-cases/catalog-014.tsr';
+import { main as case14 } from './runtime-cases/catalog-015.tsr';
+import { main as case15 } from './runtime-cases/catalog-016.tsr';
+import { main as case16 } from './runtime-cases/catalog-017.tsr';
+import { main as case17 } from './runtime-cases/catalog-018.tsr';
+import { main as case18 } from './runtime-cases/catalog-019.tsr';
+import { main as case19 } from './runtime-cases/catalog-020.tsr';
+import { main as case20 } from './runtime-cases/catalog-021.tsr';
+import { main as case21 } from './runtime-cases/catalog-022.tsr';
+import { main as case22 } from './runtime-cases/catalog-023.tsr';
+import { main as case23 } from './runtime-cases/catalog-024.tsr';
+import { main as case24 } from './runtime-cases/catalog-025.tsr';
+import { main as case25 } from './runtime-cases/catalog-026.tsr';
+import { main as case26 } from './runtime-cases/catalog-027.tsr';
+import { main as case27 } from './runtime-cases/catalog-028.tsr';
+import { main as case28 } from './runtime-cases/catalog-029.tsr';
+import { main as case29 } from './runtime-cases/catalog-030.tsr';
+import { main as case30 } from './runtime-cases/catalog-031.tsr';
+import { main as case31 } from './runtime-cases/catalog-032.tsr';
+import { main as case32 } from './runtime-cases/catalog-033.tsr';
+import { main as case33 } from './runtime-cases/catalog-034.tsr';
+import { main as case34 } from './runtime-cases/catalog-035.tsr';
+import { main as case35 } from './runtime-cases/catalog-036.tsr';
+import { main as case36 } from './runtime-cases/catalog-037.tsr';
+import { main as case37 } from './runtime-cases/catalog-038.tsr';
+import { main as case38 } from './runtime-cases/catalog-039.tsr';
+import { main as case39 } from './runtime-cases/catalog-040.tsr';
+import { main as case40 } from './runtime-cases/catalog-041.tsr';
+import { main as case41 } from './runtime-cases/catalog-042.tsr';
+import { main as case42 } from './runtime-cases/catalog-043.tsr';
+import { main as case43 } from './runtime-cases/catalog-044.tsr';
+import { main as case44 } from './runtime-cases/catalog-045.tsr';
+import { main as case45 } from './runtime-cases/catalog-046.tsr';
+import { main as case46 } from './runtime-cases/catalog-047.tsr';
+import { main as case47 } from './runtime-cases/catalog-048.tsr';
+import { main as case48 } from './runtime-cases/catalog-049.tsr';
+import { main as case49 } from './runtime-cases/catalog-050.tsr';
+import { main as case50 } from './runtime-cases/catalog-051.tsr';
+import { main as case51 } from './runtime-cases/catalog-052.tsr';
+import { main as case52 } from './runtime-cases/catalog-053.tsr';
+import { main as case53 } from './runtime-cases/catalog-054.tsr';
+import { main as case54 } from './runtime-cases/catalog-055.tsr';
+import { main as case55 } from './runtime-cases/catalog-056.tsr';
+import { main as case56 } from './runtime-cases/catalog-057.tsr';
+import { main as case57 } from './runtime-cases/catalog-058.tsr';
+import { main as case58 } from './runtime-cases/catalog-059.tsr';
+import { main as case59 } from './runtime-cases/catalog-060.tsr';
+import { main as case60 } from './runtime-cases/catalog-061.tsr';
+import { main as case61 } from './runtime-cases/catalog-062.tsr';
+import { main as case62 } from './runtime-cases/catalog-063.tsr';
+import { main as case63 } from './runtime-cases/catalog-064.tsr';
+import { main as case64 } from './runtime-cases/catalog-065.tsr';
+import { main as case65 } from './runtime-cases/catalog-066.tsr';
+import { main as case66 } from './runtime-cases/catalog-067.tsr';
+import { main as case67 } from './runtime-cases/catalog-068.tsr';
+import { main as case68 } from './runtime-cases/catalog-069.tsr';
+import { main as case69 } from './runtime-cases/catalog-070.tsr';
+import { main as case70 } from './runtime-cases/catalog-071.tsr';
+import { main as case71 } from './runtime-cases/catalog-072.tsr';
+import { main as case72 } from './runtime-cases/catalog-073.tsr';
+import { main as case73 } from './runtime-cases/catalog-074.tsr';
+import { main as case74 } from './runtime-cases/catalog-075.tsr';
+import { main as case75 } from './runtime-cases/catalog-076.tsr';
+import { main as case76 } from './runtime-cases/catalog-077.tsr';
+import { main as case77 } from './runtime-cases/catalog-078.tsr';
+import { main as case78 } from './runtime-cases/catalog-079.tsr';
+import { main as case79 } from './runtime-cases/catalog-080.tsr';
+import { main as case80 } from './runtime-cases/catalog-081.tsr';
+import { main as case81 } from './runtime-cases/catalog-082.tsr';
+import { main as case82 } from './runtime-cases/catalog-083.tsr';
+import { main as case83 } from './runtime-cases/catalog-084.tsr';
+import { main as case84 } from './runtime-cases/catalog-085.tsr';
+import { main as case85 } from './runtime-cases/catalog-086.tsr';
+import { main as case86 } from './runtime-cases/catalog-087.tsr';
+import { main as case87 } from './runtime-cases/catalog-088.tsr';
+import { main as case88 } from './runtime-cases/catalog-089.tsr';
+import { main as case89 } from './runtime-cases/catalog-090.tsr';
+import { main as case90 } from './runtime-cases/catalog-091.tsr';
+import { main as case91 } from './runtime-cases/catalog-092.tsr';
+import { main as case92 } from './runtime-cases/catalog-093.tsr';
+import { main as case93 } from './runtime-cases/catalog-094.tsr';
+import { main as case94 } from './runtime-cases/catalog-095.tsr';
+import { main as case95 } from './runtime-cases/catalog-096.tsr';
+import { main as case96 } from './runtime-cases/catalog-097.tsr';
+import { main as case97 } from './runtime-cases/catalog-098.tsr';
+import { main as case98 } from './runtime-cases/catalog-099.tsr';
+import { main as case99 } from './runtime-cases/catalog-100.tsr';
+import { main as case100 } from './runtime-cases/catalog-101.tsr';
+import { main as case101 } from './runtime-cases/catalog-102.tsr';
+import { main as case102 } from './runtime-cases/catalog-103.tsr';
+import { main as case103 } from './runtime-cases/loopback.tsr';
+import { main as case104 } from './runtime-cases/validated-body.tsr';
+import { main as case105 } from './runtime-cases/consecutive-chunks.tsr';
+import { main as case106 } from './runtime-cases/tls-errors.tsr';
+import { main as case107 } from './runtime-cases/producer-stream.tsr';
+import { main as case108 } from './runtime-cases/query-values.tsr';
+import { main as case109 } from './runtime-cases/query-router.tsr';
+describe('HTTP runtime', () => {
+  test('catalog-001', async () => {
+    await case0();
+  });
+  test('catalog-002', async () => {
+    await case1();
+  });
+  test('catalog-003', async () => {
+    await case2();
+  });
+  test('catalog-004', async () => {
+    await case3();
+  });
+  test('catalog-005', async () => {
+    await case4();
+  });
+  test('catalog-006', async () => {
+    await case5();
+  });
+  test('catalog-007', async () => {
+    await case6();
+  });
+  test('catalog-008', async () => {
+    await case7();
+  });
+  test('catalog-009', async () => {
+    await case8();
+  });
+  test('catalog-010', async () => {
+    await case9();
+  });
+  test('catalog-011', async () => {
+    await case10();
+  });
+  test('catalog-012', () => {
+    case11();
+  });
+  test('catalog-013', async () => {
+    await case12();
+  });
+  test('catalog-014', async () => {
+    await case13();
+  });
+  test('catalog-015', async () => {
+    await case14();
+  });
+  test('catalog-016', () => {
+    case15();
+  });
+  test('catalog-017', () => {
+    case16();
+  });
+  test('catalog-018', () => {
+    case17();
+  });
+  test('catalog-019', () => {
+    case18();
+  });
+  test('catalog-020', () => {
+    case19();
+  });
+  test('catalog-021', () => {
+    case20();
+  });
+  test('catalog-022', () => {
+    case21();
+  });
+  test('catalog-023', () => {
+    case22();
+  });
+  test('catalog-024', () => {
+    case23();
+  });
+  test('catalog-025', async () => {
+    await case24();
+  });
+  test('catalog-026', () => {
+    case25();
+  });
+  test('catalog-027', async () => {
+    await case26();
+  });
+  test('catalog-028', async () => {
+    await case27();
+  });
+  test('catalog-029', async () => {
+    await case28();
+  });
+  test('catalog-030', async () => {
+    await case29();
+  });
+  test('catalog-031', async () => {
+    await case30();
+  });
+  test('catalog-032', async () => {
+    await case31();
+  });
+  test('catalog-033', async () => {
+    await case32();
+  });
+  test('catalog-034', async () => {
+    await case33();
+  });
+  test('catalog-035', async () => {
+    await case34();
+  });
+  test('catalog-036', async () => {
+    await case35();
+  });
+  test('catalog-037', async () => {
+    await case36();
+  });
+  test('catalog-038', () => {
+    case37();
+  });
+  test('catalog-039', () => {
+    case38();
+  });
+  test('catalog-040', async () => {
+    await case39();
+  });
+  test('catalog-041', async () => {
+    await case40();
+  });
+  test('catalog-042', async () => {
+    await case41();
+  });
+  test('catalog-043', async () => {
+    await case42();
+  });
+  test('catalog-044', async () => {
+    await case43();
+  });
+  test('catalog-045', () => {
+    case44();
+  });
+  test('catalog-046', async () => {
+    await case45();
+  });
+  test('catalog-047', async () => {
+    await case46();
+  });
+  test('catalog-048', async () => {
+    await case47();
+  });
+  test('catalog-049', () => {
+    case48();
+  });
+  test('catalog-050', () => {
+    case49();
+  });
+  test('catalog-051', () => {
+    case50();
+  });
+  test('catalog-052', () => {
+    case51();
+  });
+  test('catalog-053', () => {
+    case52();
+  });
+  test('catalog-054', () => {
+    case53();
+  });
+  test('catalog-055', () => {
+    case54();
+  });
+  test('catalog-056', () => {
+    case55();
+  });
+  test('catalog-057', () => {
+    case56();
+  });
+  test('catalog-058', () => {
+    case57();
+  });
+  test('catalog-059', () => {
+    case58();
+  });
+  test('catalog-060', () => {
+    case59();
+  });
+  test('catalog-061', () => {
+    case60();
+  });
+  test('catalog-062', () => {
+    case61();
+  });
+  test('catalog-063', () => {
+    case62();
+  });
+  test('catalog-064', () => {
+    case63();
+  });
+  test('catalog-065', () => {
+    case64();
+  });
+  test('catalog-066', () => {
+    case65();
+  });
+  test('catalog-067', () => {
+    case66();
+  });
+  test('catalog-068', () => {
+    case67();
+  });
+  test('catalog-069', () => {
+    case68();
+  });
+  test('catalog-070', () => {
+    case69();
+  });
+  test('catalog-071', () => {
+    case70();
+  });
+  test('catalog-072', () => {
+    case71();
+  });
+  test('catalog-073', async () => {
+    await case72();
+  });
+  test('catalog-074', async () => {
+    await case73();
+  });
+  test('catalog-075', async () => {
+    await case74();
+  });
+  test('catalog-076', async () => {
+    await case75();
+  });
+  test('catalog-077', async () => {
+    await case76();
+  });
+  test('catalog-078', async () => {
+    await case77();
+  });
+  test('catalog-079', async () => {
+    await case78();
+  });
+  test('catalog-080', () => {
+    case79();
+  });
+  test('catalog-081', () => {
+    case80();
+  });
+  test('catalog-082', () => {
+    case81();
+  });
+  test('catalog-083', () => {
+    case82();
+  });
+  test('catalog-084', () => {
+    case83();
+  });
+  test('catalog-085', () => {
+    case84();
+  });
+  test('catalog-086', () => {
+    case85();
+  });
+  test('catalog-087', () => {
+    case86();
+  });
+  test('catalog-088', () => {
+    case87();
+  });
+  test('catalog-089', async () => {
+    await case88();
+  });
+  test('catalog-090', async () => {
+    await case89();
+  });
+  test('catalog-091', async () => {
+    await case90();
+  });
+  test('catalog-092', () => {
+    case91();
+  });
+  test('catalog-093', () => {
+    case92();
+  });
+  test('catalog-094', () => {
+    case93();
+  });
+  test('catalog-095', () => {
+    case94();
+  });
+  test('catalog-096', () => {
+    case95();
+  });
+  test('catalog-097', () => {
+    case96();
+  });
+  test('catalog-098', () => {
+    case97();
+  });
+  test('catalog-099', () => {
+    case98();
+  });
+  test('catalog-100', () => {
+    case99();
+  });
+  test('catalog-101', () => {
+    case100();
+  });
+  test('catalog-102', () => {
+    case101();
+  });
+  test('catalog-103', async () => {
+    await case102();
+  });
+  test('loopback', async () => {
+    await case103();
+  });
+  test('validated-body', async () => {
+    await case104();
+  });
+  test('consecutive-chunks', async () => {
+    await case105();
+  });
+  test('tls-errors', async () => {
+    await case106();
+  });
+  test('producer-stream', async () => {
+    await case107();
+  });
+  test('query-values', async () => {
+    await case108();
+  });
+  test('query-router', async () => {
+    await case109();
+  });
+});

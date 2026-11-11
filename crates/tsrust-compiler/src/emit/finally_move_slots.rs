@@ -23,7 +23,21 @@ impl Index {
                         has_exception_region=true;
                         let guarded=region.finally.as_ref().map(|_|statement.span.end).or(cleanup);
                         pending.extend(region.body.iter().map(|statement|(statement,guarded)));
-                        if let Some(handler)=&region.catch {pending.extend(handler.body.iter().map(|statement|(statement,guarded)));}
+                        if let Some(handler)=&region.catch {
+                            // Completion carriers hide a handler's guaranteed abrupt
+                            // exit from Rust. Reuse initialized owner slots when the
+                            // normal continuation reads a root moved by the handler.
+                            if let (Some(first),Some(last))=(handler.body.first(),handler.body.last()) {
+                                for (root,binding) in function.bindings.iter().enumerate() {
+                                    if binding.ty.is_copy() || binding.capture_reference || binding.borrowed_place.is_some() || binding.mutable_place {continue;}
+                                    let Some(moved)=function.storage_exits.transfer_at_exit(&handler.body,root,&[]) else{continue;};
+                                    if moved.start<first.span.start || moved.end>last.span.end {continue;}
+                                    boundaries.entry(root).and_modify(|end|*end=(*end).min(statement.span.end)).or_insert(statement.span.end);
+                                    slots.insert(root);
+                                }
+                            }
+                            pending.extend(handler.body.iter().map(|statement|(statement,guarded)));
+                        }
                         if let Some(body)=&region.finally {pending.extend(body.iter().map(|statement|(statement,cleanup)));}
                     }
                     StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body.iter().map(|statement|(statement,cleanup))),
@@ -70,6 +84,14 @@ impl Index {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn handler_transfer_uses_an_initialized_owner_slot_on_normal_continuation() {
+        let source="function consume(value:Owned<string>):void{console.log(value.length);}function inspect(fail:boolean):void{const owner:string='value';try{if(fail){throw 1;}}catch(error){consume(owner);throw error;}consume(owner);}function main(){inspect(false);}";
+        let checked=crate::analysis::analyze(crate::syntax::parse(source).unwrap()).unwrap();
+        let function=checked.functions.iter().find(|function|function.name=="inspect").unwrap();
+        let owner=function.bindings.iter().position(|binding|binding.name=="owner").unwrap();
+        assert!(super::Index::new(&checked).contains(function,owner));
+    }
     #[test]
     fn try_locals_drop_before_finally_on_both_return_and_normal_paths() {
         assert_try_local_drops_before_cleanup(LocalCleanup::WholeReturn);

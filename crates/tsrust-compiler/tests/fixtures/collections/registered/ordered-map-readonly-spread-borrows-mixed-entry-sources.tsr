@@ -1,0 +1,21 @@
+import { OrderedMap } from 'std:collections';
+import { strictEqual } from 'std:testing';
+
+function read(first: ReadOnly<[string, string]>, second: ReadOnly<[string, string]>): string {
+  return first[0] + first[1] + second[0] + second[1];
+}
+
+export function main() {
+  const values = new OrderedMap<string, string>();
+  values.set('b', '2');
+  values.set('a', '1');
+  strictEqual(read(...values), 'a1b2');
+  strictEqual(values.size, 2);
+  const one = new OrderedMap<string, string>();
+  one.set('c', '3');
+  const pair: [string, string] = ['d', '4'];
+  strictEqual(read(...one, pair), 'c3d4');
+  strictEqual(read(pair, ...one), 'd4c3');
+  strictEqual(one.size, 1);
+  strictEqual(pair[0], 'd');
+}

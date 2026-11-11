@@ -1,0 +1,37 @@
+import { Deque } from 'std:collections';
+import { Bytes, ByteView, fromUtf8, view, length, set } from 'std:bytes';
+import { strictEqual } from 'std:testing';
+
+function bytes(): Bytes {
+  match (fromUtf8('ab')) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function transfer(input: ByteView): ByteView {
+  const values = new Deque<ByteView>();
+  values.pushBack(input);
+  return values.popFront()!;
+}
+
+export function main() {
+  const owner = bytes();
+  const result = transfer(window(owner));
+  strictEqual(length(result), 2);
+}

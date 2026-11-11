@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "semanticEpoch": "source-http-middleware-v1",
+  "measured": false,
+  "protocol": {
+    "processes": 3,
+    "warmups": 8,
+    "samples": 31,
+    "requestsPerBatch": 128,
+    "concurrency": [
+      1,
+      16
+    ],
+    "keepAlive": true,
+    "serverWorkers": 1,
+    "resourceBatches": 31,
+    "rssSampleMs": 50
+  },
+  "workloads": [
+    {
+      "scenario": "middleware_baseline",
+      "name": "Source baseline response policy",
+      "method": "GET",
+      "path": "/baseline",
+      "id": "http_middleware_baseline_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "middleware_baseline",
+      "name": "Source baseline response policy",
+      "method": "GET",
+      "path": "/baseline",
+      "id": "http_middleware_baseline_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "middleware_cors",
+      "name": "Source cors response policy",
+      "method": "GET",
+      "path": "/cors",
+      "id": "http_middleware_cors_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "middleware_cors",
+      "name": "Source cors response policy",
+      "method": "GET",
+      "path": "/cors",
+      "id": "http_middleware_cors_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "middleware_secure",
+      "name": "Source secure response policy",
+      "method": "GET",
+      "path": "/secure",
+      "id": "http_middleware_secure_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "middleware_secure",
+      "name": "Source secure response policy",
+      "method": "GET",
+      "path": "/secure",
+      "id": "http_middleware_secure_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "middleware_gzip",
+      "name": "Source gzip response policy",
+      "method": "GET",
+      "path": "/gzip",
+      "id": "http_middleware_gzip_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "middleware_gzip",
+      "name": "Source gzip response policy",
+      "method": "GET",
+      "path": "/gzip",
+      "id": "http_middleware_gzip_c16",
+      "concurrency": 16
+    },
+    {
+      "scenario": "middleware_deflate",
+      "name": "Source deflate response policy",
+      "method": "GET",
+      "path": "/deflate",
+      "id": "http_middleware_deflate_c1",
+      "concurrency": 1
+    },
+    {
+      "scenario": "middleware_deflate",
+      "name": "Source deflate response policy",
+      "method": "GET",
+      "path": "/deflate",
+      "id": "http_middleware_deflate_c16",
+      "concurrency": 16
+    }
+  ],
+  "sources": {
+    "native": "904ed4fdf2f9639e8f58890b9c6097b1df560dd9d14793fbecfd23e8245ce8fe",
+    "rust-hand": "d8fefea568f53ed6cd807fcf28093c67902de60ba7ae7045455d70c76ad12ab1",
+    "node-tsc": "b12ac754edc652900a42e75041fb70ca87cde04b5df8e5d659d83db9f2be043a"
+  }
+}

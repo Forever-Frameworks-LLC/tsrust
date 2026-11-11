@@ -1,0 +1,6 @@
+import { separator } from 'std:path';
+
+export function run() {
+  const value = separator();
+  console.log(value === '/' || value === '\\');
+}

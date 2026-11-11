@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {CryptoError} from 'std:crypto';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,TlsOptions,ClientOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Logger,LoggerOptions,LogError} from 'std:log';\nimport {Iterator} from 'std:iterator';\nimport {Deque,Heap,OrderedSet,OrderedMap} from 'std:collections';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError,Hasher,PasswordHashOptions,PasswordVerifyOptions} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,SseEvent,SseOptions,WebSocket,WebSocketRead,WebSocketWrite,WebSocketHalves,WebSocketOptions,WebSocketClientOptions,WebSocketHeader,WebSocketText,WebSocketBinary,WebSocketClose,TlsOptions,ClientOptions,CorsOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -34,36 +34,86 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
-Receiver {ty:"ThemeTypography",parameter:"x: ReadOnly<ThemeTypography>"},
-Receiver {ty:"LazyChildrenProps",parameter:"x: ReadOnly<LazyChildrenProps>"},
-Receiver {ty:"SvgProps",parameter:"x: ReadOnly<SvgProps>"},
-Receiver {ty:"PathProps",parameter:"x: ReadOnly<PathProps>"},
-Receiver {ty:"Computed<int>",parameter:"x: ReadOnly<Computed<int>>"},
-Receiver {ty:"Computed<string>",parameter:"x: ReadOnly<Computed<string>>"},
-Receiver {ty:"Reactive<string>",parameter:"x: Reactive<string>"},
-Receiver {ty:"ViewRenderProps",parameter:"x: ReadOnly<ViewRenderProps>"},
-Receiver {ty:"ButtonRenderProps",parameter:"x: ReadOnly<ButtonRenderProps>"},
-Receiver {ty:"InputTarget",parameter:"x: ReadOnly<InputTarget>"},
-Receiver {ty:"InputChangeEvent",parameter:"x: ReadOnly<InputChangeEvent>"},
-Receiver {ty:"TextFieldProps",parameter:"x: ReadOnly<TextFieldProps>"},
-Receiver {ty:"InputProps",parameter:"x: ReadOnly<InputProps>"},
-Receiver {ty:"TextareaProps",parameter:"x: ReadOnly<TextareaProps>"},
-Receiver {ty:"ReactiveInputValue",parameter:"x: ReactiveInputValue"},
+Receiver {ty:"SseEvent",parameter:"x: ReadOnly<SseEvent>"},
+Receiver {ty:"SseOptions",parameter:"x: ReadOnly<SseOptions>"},
+Receiver {ty:"WebSocket",parameter:"x: WebSocket"},
+Receiver {ty:"WebSocketRead",parameter:"x: WebSocketRead"},
+Receiver {ty:"WebSocketWrite",parameter:"x: WebSocketWrite"},
+Receiver {ty:"WebSocketHalves",parameter:"x: ReadOnly<WebSocketHalves>"},
+Receiver {ty:"WebSocketOptions",parameter:"x: ReadOnly<WebSocketOptions>"},
+Receiver {ty:"WebSocketClientOptions",parameter:"x: ReadOnly<WebSocketClientOptions>"},
+Receiver {ty:"WebSocketHeader",parameter:"x: ReadOnly<WebSocketHeader>"},
+Receiver {ty:"WebSocketText",parameter:"x: ReadOnly<WebSocketText>"},
+Receiver {ty:"WebSocketBinary",parameter:"x: ReadOnly<WebSocketBinary>"},
+Receiver {ty:"WebSocketClose",parameter:"x: ReadOnly<WebSocketClose>"},
+Receiver {ty:"Iterator<int>",parameter:"x: Iterator<int>"},
+Receiver {ty:"ProcessChild",parameter:"x: ProcessChild"},
+Receiver {ty:"CommandOptions",parameter:"x: ReadOnly<CommandOptions>"},
+Receiver {ty:"ExitStatus",parameter:"x: ReadOnly<ExitStatus>"},
+Receiver {ty:"Output",parameter:"x: ReadOnly<Output>"},
+Receiver {ty:"ProcessError",parameter:"x: ReadOnly<ProcessError>"},
+Receiver {ty:"IpAddress",parameter:"x: ReadOnly<IpAddress>"},
+Receiver {ty:"SocketAddress",parameter:"x: ReadOnly<SocketAddress>"},
+Receiver {ty:"NetError",parameter:"x: ReadOnly<NetError>"},
+Receiver {ty:"TcpListener",parameter:"x: TcpListener"},
+Receiver {ty:"TcpStream",parameter:"x: TcpStream"},
+Receiver {ty:"UdpSocket",parameter:"x: UdpSocket"},
+Receiver {ty:"Datagram",parameter:"x: ReadOnly<Datagram>"},
+Receiver {ty:"CompressionOptions",parameter:"x: ReadOnly<CompressionOptions>"},
+Receiver {ty:"DecompressionOptions",parameter:"x: ReadOnly<DecompressionOptions>"},
+Receiver {ty:"CompressionError",parameter:"x: ReadOnly<CompressionError>"},
+Receiver {ty:"CompressionReader",parameter:"x: CompressionReader"},
+Receiver {ty:"CompressionWriter",parameter:"x: CompressionWriter"},
+Receiver {ty:"CompressionFormat",parameter:"x: ReadOnly<CompressionFormat>"},
+Receiver {ty:"Reader",parameter:"x: ReadOnly<Reader>"},
+Receiver {ty:"Writer",parameter:"x: ReadOnly<Writer>"},
+Receiver {ty:"LineReader",parameter:"x: ReadOnly<LineReader>"},
+Receiver {ty:"Stdin",parameter:"x: ReadOnly<Stdin>"},
+Receiver {ty:"IoError",parameter:"x: ReadOnly<IoError>"},
+
+Receiver {ty:"Locale",parameter:"x: ReadOnly<Locale>"},
+Receiver {ty:"Collator",parameter:"x: ReadOnly<Collator>"},
+Receiver {ty:"Segmenter",parameter:"x: ReadOnly<Segmenter>"},
+Receiver {ty:"NumberFormat",parameter:"x: ReadOnly<NumberFormat>"},
+Receiver {ty:"SegmentRange",parameter:"x: ReadOnly<SegmentRange>"},
+Receiver {ty:"LocaleError",parameter:"x: ReadOnly<LocaleError>"},
+Receiver {ty:"CollatorOptions",parameter:"x: ReadOnly<CollatorOptions>"},
+Receiver {ty:"NumberFormatOptions",parameter:"x: ReadOnly<NumberFormatOptions>"},
+Receiver {ty:"Deque<int[]>",parameter:"x: ReadOnly<Deque<int[]>>"},
+Receiver {ty:"Heap<number>",parameter:"x: ReadOnly<Heap<number>>"},
+Receiver {ty:"OrderedSet<string>",parameter:"x: ReadOnly<OrderedSet<string>>"},
+Receiver {ty:"OrderedMap<string, int>",parameter:"x: ReadOnly<OrderedMap<string, int>>"},
+
+Receiver {ty:"Regex",parameter:"x: ReadOnly<Regex>"},
+Receiver {ty:"RegexMatch",parameter:"x: ReadOnly<RegexMatch>"},
+Receiver {ty:"RegexCaptures",parameter:"x: ReadOnly<RegexCaptures>"},
+Receiver {ty:"RegexOptions",parameter:"x: ReadOnly<RegexOptions>"},
+Receiver {ty:"RegexError",parameter:"x: ReadOnly<RegexError>"},
+
+Receiver {ty:"PathParts",parameter:"x: ReadOnly<PathParts>"},
+Receiver {ty:"PathFormatOptions",parameter:"x: ReadOnly<PathFormatOptions>"},
+Receiver {ty:"PathError",parameter:"x: ReadOnly<PathError>"},
+Receiver {ty:"EnvVar",parameter:"x: ReadOnly<EnvVar>"},
+Receiver {ty:"OsError",parameter:"x: ReadOnly<OsError>"},
+Receiver {ty:"SeekOrigin",parameter:"x: SeekOrigin"},
+Receiver {ty:"ReadOnly<SeekOrigin>",parameter:"x: ReadOnly<SeekOrigin>"},
+Receiver {ty:"LiteralOrigin",parameter:"x: ReadOnly<LiteralOrigin>"},
+Receiver {ty:"OpenOptions",parameter:"x: ReadOnly<OpenOptions>"},
+Receiver {ty:"FileTime",parameter:"x: ReadOnly<FileTime>"},
+Receiver {ty:"Metadata",parameter:"x: ReadOnly<Metadata>"},
+Receiver {ty:"DirEntry",parameter:"x: ReadOnly<DirEntry>"},
+Receiver {ty:"FsError",parameter:"x: ReadOnly<FsError>"},
+
+Receiver {ty:"Url",parameter:"x: ReadOnly<Url>"},
+Receiver {ty:"SearchParams",parameter:"x: SearchParams"},
+Receiver {ty:"UrlError",parameter:"x: ReadOnly<UrlError>"},
+Receiver {ty:"QueryEntry",parameter:"x: ReadOnly<QueryEntry>"},
 Receiver {ty:"AliasItem",parameter:"x: ReadOnly<AliasItem>"},
-Receiver {ty:"ThemeRadius",parameter:"x: ReadOnly<ThemeRadius>"},
-Receiver {ty:"ElementProps",parameter:"x: ReadOnly<ElementProps>"},
-Receiver {ty:"SemanticProps",parameter:"x: ReadOnly<SemanticProps>"},
-Receiver {ty:"TextProps",parameter:"x: ReadOnly<TextProps>"},
-Receiver {ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},
-Receiver {ty:"ButtonProps",parameter:"x: ReadOnly<ButtonProps>"},
-Receiver {ty:"ThemeConfig",parameter:"x: ReadOnly<ThemeConfig>"},
-Receiver {ty:"ReactiveBoolean",parameter:"x: ReactiveBoolean"},
-Receiver {ty:"Signal",parameter:"x: ReadOnly<Signal>"},
-Receiver {ty:"Signal<string>",parameter:"x: ReadOnly<Signal<string>>"},
-Receiver {ty:"Signal<boolean>",parameter:"x: ReadOnly<Signal<boolean>>"},
-Receiver {ty:"Signal<number>",parameter:"x: ReadOnly<Signal<number>>"},
 Receiver {ty:"InheritedItem",parameter:"x: ReadOnly<InheritedItem>"},
 Receiver {ty:"CryptoError",parameter:"x: ReadOnly<CryptoError>"},
+Receiver {ty:"Hasher",parameter:"x: Owned<Hasher>"},
+Receiver {ty:"PasswordHashOptions",parameter:"x: ReadOnly<PasswordHashOptions>"},
+Receiver {ty:"PasswordVerifyOptions",parameter:"x: ReadOnly<PasswordVerifyOptions>"},
 Receiver {ty:"SignalError",parameter:"x: ReadOnly<SignalError>"},
 Receiver {ty:"SignalListener",parameter:"x: ReadOnly<SignalListener>"},
 Receiver {ty:"ServerOptions",parameter:"x: ReadOnly<ServerOptions>"},
@@ -100,6 +150,9 @@ Receiver {ty:"SqliteError",parameter:"x: SqliteError"},
     Receiver {ty:"Context",parameter:"x: Mutable<Context>"},
     Receiver {ty:"ContextNext",parameter:"x: ContextNext"},
     Receiver {ty:"App",parameter:"x: App"},
+    Receiver {ty:"Logger",parameter:"x: Logger"},
+    Receiver {ty:"LoggerOptions",parameter:"x: ReadOnly<LoggerOptions>"},
+    Receiver {ty:"LogError",parameter:"x: ReadOnly<LogError>"},
     Receiver {ty:"Client",parameter:"x: Client"},
     Receiver {ty:"Request",parameter:"x: Request"},
     Receiver {ty:"Response",parameter:"x: Response"},
@@ -108,12 +161,15 @@ Receiver {ty:"SqliteError",parameter:"x: SqliteError"},
     Receiver {ty:"Next",parameter:"x: Next"},
     Receiver {ty:"TlsOptions",parameter:"x: TlsOptions"},
     Receiver {ty:"ClientOptions",parameter:"x: ClientOptions"},
+    Receiver {ty:"CorsOptions",parameter:"x: ReadOnly<CorsOptions>"},
     Receiver {ty:"HttpError",parameter:"x: HttpError"},
 
+    Receiver {ty:"Interval",parameter:"x: Mutable<Interval>"},
+    Receiver {ty:"CancellationToken",parameter:"x: ReadOnly<CancellationToken>"},
     Receiver { ty: "Job<int, undefined>", parameter: "x: ReadOnly<Job<int, undefined>>" },
     Receiver { ty: "AsyncError<string>", parameter: "x: ReadOnly<AsyncError<string>>" },
-    Receiver { ty: "AsyncChannel<int>", parameter: "x: ReadOnly<AsyncChannel<int>>" },
-    Receiver { ty: "AsyncSender<int>", parameter: "x: ReadOnly<AsyncSender<int>>" },
+    Receiver { ty: "AsyncChannel<int>", parameter: "x: Mutable<AsyncChannel<int>>" },
+    Receiver { ty: "AsyncSender<int>", parameter: "x: Mutable<AsyncSender<int>>" },
     Receiver { ty: "Task<int>", parameter: "x: Task<int>" },
     Receiver { ty: "Channel<int>", parameter: "x: ReadOnly<Channel<int>>" },
     Receiver { ty: "Sender<int>", parameter: "x: Sender<int>" },
@@ -128,6 +184,9 @@ Receiver {ty:"SqliteError",parameter:"x: SqliteError"},
     Receiver { ty: "SpawnError", parameter: "x: ReadOnly<SpawnError>" },
     Receiver { ty: "ThreadError<string>", parameter: "x: ReadOnly<ThreadError<string>>" },
     Receiver { ty: "int[]", parameter: "x: ReadOnly<int[]>" },
+    Receiver { ty: "void[]", parameter: "x: ReadOnly<void[]>" },
+    Receiver { ty: "void[][]", parameter: "x: ReadOnly<void[][]>" },
+    Receiver { ty: "[void[]][]", parameter: "x: ReadOnly<[void[]][]>" },
     Receiver { ty: "string[][]", parameter: "x: ReadOnly<string[][]>" },
     Receiver { ty: "string", parameter: "x: ReadOnly<string>" },
     Receiver { ty: "int", parameter: "x: int" },
@@ -159,11 +218,10 @@ const EXCEPTIONS: &[Exception] = &[];
 const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
+    if parameter=="x: ReadOnly<LiteralOrigin>"{return "type LiteralOrigin=(\"start\"|\"current\"|\"end\");\n".into();}
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
-    let ui=PRELUDE.lines().next().unwrap();
-    if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
     // Keep every probe, but only load the module that declares its receiver.
     for import in PRELUDE.lines().filter(|line|line.starts_with("import ")) {
         let names=import.split_once('{').unwrap().1.split_once('}').unwrap().0;
@@ -209,7 +267,8 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
 /// The checker's type of field `name` of the receiver: the type it names
 /// when a member that cannot exist is read from that field.
 fn field_type(name: &str, parameter: &str) -> Option<String> {
-    let (_, message) = diagnostic(&format!("console.log(x[{}].{ABSENT});",serde_json::to_string(name).unwrap()), parameter)?;
+    let selected=if name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_'){format!("x.{name}")}else{format!("x[{}]",serde_json::to_string(name).unwrap())};
+    let (_, message) = diagnostic(&format!("console.log({selected}.{ABSENT});"), parameter)?;
     let rest = message.strip_prefix("Type \"")?;
     // Diagnostics spell a native type by its linked name; the editor shows
     // the declared name.
@@ -240,22 +299,74 @@ fn callable_field_agrees(receiver:&Receiver,name:&str,shown:&str)->bool {
 }
 
 fn alternatives(ty: &str) -> BTreeSet<String> {
+    let mut ty = ty.trim();
+    while ty.starts_with('(') && ty.ends_with(')') {
+        let mut depth = 0;
+        let mut quote = None;
+        let mut escaped = false;
+        let encloses_all = ty.char_indices().all(|(offset, ch)| {
+            if let Some(delimiter) = quote {
+                if escaped { escaped = false; }
+                else if ch == '\\' { escaped = true; }
+                else if ch == delimiter { quote = None; }
+            } else {
+                match ch {
+                    '\'' | '"' => quote = Some(ch),
+                    '(' => depth += 1,
+                    ')' => depth -= 1,
+                    _ => {}
+                }
+            }
+            depth != 0 || offset + ch.len_utf8() == ty.len()
+        });
+        if !encloses_all { break; }
+        ty = ty[1..ty.len() - 1].trim();
+    }
     let mut depth = 0i32;
-    let mut parts = BTreeSet::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut parts = Vec::new();
+    let mut normalized = String::new();
+    let mut function_return = false;
     let mut begin = 0;
     for (offset, ch) in ty.char_indices() {
+        if quote.is_some() || !ch.is_whitespace() {normalized.push(ch);}
+        if let Some(delimiter) = quote {
+            if escaped { escaped = false; }
+            else if ch == '\\' { escaped = true; }
+            else if ch == delimiter { quote = None; }
+            continue;
+        }
         match ch {
+            '\'' | '"' => quote = Some(ch),
             '(' | '[' | '<' | '{' => depth += 1,
-            ')' | ']' | '>' | '}' => depth -= 1,
-            '|' if depth == 0 => {
-                parts.insert(ty[begin..offset].split_whitespace().collect::<String>());
+            ')' | ']' | '}' => depth -= 1,
+            '>' if ty[..offset].ends_with('=') && depth==0 => function_return=true,
+            '>' if !ty[..offset].ends_with('=') => depth -= 1,
+            '|' if depth == 0 && !function_return => {
+                parts.push(&ty[begin..offset]);
                 begin = offset + 1;
             }
             _ => {}
         }
     }
-    parts.insert(ty[begin..].split_whitespace().collect::<String>());
-    parts
+    parts.push(&ty[begin..]);
+    if parts.len()==1 {return BTreeSet::from([normalized]);}
+    parts.into_iter().flat_map(alternatives).collect()
+}
+
+#[test]
+fn displayed_union_grouping_preserves_alternatives_and_nested_contracts() {
+    assert_eq!(alternatives(" ((StringView | undefined)) "), alternatives("StringView | undefined"));
+    assert_ne!(alternatives("(string | undefined)[]"), alternatives("string | undefined[]"));
+    assert_eq!(alternatives("(\"a)b\")"), BTreeSet::from(["\"a)b\"".into()]));
+    assert_eq!(alternatives("(string) | (undefined)"), alternatives("string | undefined"));
+    assert_eq!(alternatives("(\"primary\" | \"secondary\") | undefined"), alternatives("\"primary\" | \"secondary\" | undefined"));
+    assert_eq!(alternatives("\"a|b\" | undefined"), BTreeSet::from(["\"a|b\"".into(),"undefined".into()]));
+    assert_ne!(alternatives("(value: string | undefined) => string"),alternatives("((value: string) => string) | undefined"));
+    assert_ne!(alternatives("\"a b\""),alternatives("\"ab\""));
+    assert_eq!(alternatives("((value: string) => string) | undefined").len(),2);
+    assert_ne!(alternatives("() => string | undefined"),alternatives("(() => string) | undefined"));
 }
 
 fn candidates() -> BTreeSet<String> {
@@ -269,11 +380,14 @@ fn candidates() -> BTreeSet<String> {
             }
         }
     }
+    for name in ["clearEnv", "code", "cwd", "data", "deadlineMs", "env", "input", "level", "maxOutputBytes", "message", "operation", "osCode", "remote", "signal", "status", "stderr", "stdin", "stdout", "success"] { names.insert(name.to_owned()); }
     for name in ["cert", "key", "ca", "workers", "capacity", "queued", "running", "completed", "outstanding", "payload", "cause", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
         names.insert(name.to_owned());
     }
     names
 }
+
+
 
 #[test]
 fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
@@ -291,7 +405,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"SvgProps"|"PathProps"|"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"ViewRenderProps"|"ButtonRenderProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_')).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");
@@ -317,12 +431,33 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
                 }
             }
         }
+        if matches!(receiver.ty,"SeekOrigin"|"ReadOnly<SeekOrigin>"|"LiteralOrigin") {
+            for required in ["length","startsWith","includes","toUpperCase"] {
+                assert!(offered.contains(required)||methods.contains(required),"{}: required string member {required} missing; empty agreement is not acceptance",receiver.ty);
+            }
+        }
         let mut differences = fields.difference(&offered).map(|name| (name.clone(), "the checker accepts this field; completion does not offer it".to_owned())).collect::<Vec<_>>();
         differences.extend(offered.difference(&fields).map(|name| (name.clone(), "completion offers this field; the checker rejects it".to_owned())));
+        if let Some(required)=match receiver.ty{"Collator"=>Some("compare"),"Segmenter"=>Some("segment"),"NumberFormat"=>Some("format"),_=>None}{assert!(methods.contains(required),"{} method {required} missing",receiver.ty);}
+        if receiver.ty=="Hasher" {assert_eq!(methods,BTreeSet::from(["update".to_owned(),"finalize".to_owned()]),"Hasher methods");}
+        if receiver.ty=="ProcessChild" {for required in &["id", "takeStdin", "takeStdout", "takeStderr", "wait", "tryWait", "kill"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="CompressionReader" {for required in &["read", "readInto", "readExact", "readAll", "finish", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="CompressionWriter" {for required in &["write", "writeAll", "flush", "finish", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="TcpListener" {for required in &["accept", "localAddress", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="TcpStream" {for required in &["localAddress", "peerAddress", "setNoDelay", "shutdownWrite", "split", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="UdpSocket" {for required in &["sendTo", "receiveFrom", "localAddress", "close"] {assert!(methods.contains(*required),"{} method {required} missing",receiver.ty);}}
+        if receiver.ty=="Regex" {for required in ["isMatch","find","findAll","captures","capturesAll","replace","replaceAll","split"] {assert!(methods.contains(required),"Regex method {required} missing; empty agreement is not acceptance");}}
+        if matches!(receiver.ty, "void[]" | "void[][]" | "[void[]][]") {
+            for required in ["length", "slice", "map", "keys"] { assert!(offered.contains(required) || methods.contains(required), "{}: required array member {required} missing; empty agreement is not acceptance", receiver.ty); }
+        }
+        if receiver.ty == "void[]" {
+            for method in ["at", "pop", "shift", "find", "findLast", "entries", "join", "toString", "toLocaleString"] { assert!(!methods.contains(method), "{}.{method}: completion offers a compiler-rejected capability", receiver.ty); }
+        }
         for name in &methods {
             let answered = answer(call_form, name, receiver.parameter);
             let receiver_rejected = answered.as_ref().is_some_and(|(_, message)| message.ends_with(&format!(", found {}.", receiver.ty)));
-            if answered == absent_call || receiver_rejected {
+            let capability_rejected = answered.as_ref().is_some_and(|(code, _)| matches!(code.as_str(), "void-array-text" | "void-element-option" | "void-array-entry"));
+            if answered == absent_call || receiver_rejected || capability_rejected {
                 differences.push((name.clone(), format!("completion offers this method; the checker rejects it: {}", answered.map_or_else(String::new, |(_, message)| message))));
             }
         }
@@ -335,6 +470,9 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         for name in fields.intersection(&offered) {
             let Some(checked) = field_type(name, receiver.parameter) else { continue };
             let shown = details[name].split_once(": ").map_or("", |(_, ty)| ty);
+            // Computed URL details separately describe their checked write input.
+            // The comparison here concerns reads; the URL test below checks writes.
+            let shown=if receiver.ty=="Url"{shown.split_once("; assign ").map_or(shown,|(read,_)|read).trim_end_matches(" (read-only)")}else{shown};
             if checked.split('|').any(|member|member.trim()=="closure") {
                 if !callable_field_agrees(receiver,name,shown) {failures.push(format!("{}.{}: displayed callback type `{shown}` disagrees with its checked contract",receiver.ty,name));}
                 continue;
@@ -354,33 +492,69 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
 }
 
 #[test]
-fn generic_prop_callback_details_keep_public_nominal_names() {
-    use tsrust_lsp::project_intelligence::ProjectIndex;
-    let source=format!("{PRELUDE}function probe(x:ReadOnly<ViewProps>){{if(x.render===undefined){{}}}}function main(){{}}");
-    let uri=virtual_uri("tsrust-prop-details");
-    let uri=uri.as_str();
-    let entry=source_id(uri).unwrap();
-    let mut workspace=Workspace::default();
-    workspace.open(entry.clone(),1,source.clone());
-    let checked=workspace.snapshot().check_with_diagnostics(&entry).unwrap();
-    let incomplete=source.replace("if(x.render===undefined){}","x.");
-    workspace.change(&entry,2,incomplete.clone());
-    let headers=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&entry.0).unwrap();
-    for (phase,text,index) in [
-        ("headers",&source,ProjectIndex::new(&checked.graph)),
-        ("checked",&source,ProjectIndex::checked(&checked)),
-        ("incomplete",&incomplete,ProjectIndex::new(&headers)),
-    ] {
-        let at=text.find("x.").unwrap()+2;
-        let line_start=text[..at].rfind('\n').map_or(0,|n|n+1);
-        let params=serde_json::json!({"textDocument":{"uri":uri},"position":{
-            "line":text[..at].matches('\n').count(),"character":text[line_start..at].encode_utf16().count()
-        }});
-        let reply=index.request("textDocument/completion",&params,uri).unwrap().unwrap();
-        let items=if reply.is_array(){&reply}else{&reply["items"]};
-        let render=items.as_array().unwrap().iter().find(|item|item["label"]=="render").unwrap();
-        let detail=render["detail"].as_str().unwrap();
-        assert!(detail.contains("ViewRenderProps")&&!detail.contains("ViewProperties"),"{phase}: {detail}");
-        assert!(callable_field_agrees(&Receiver{ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},"render",detail.split_once(": ").unwrap().1),"{phase}: {detail}");
+fn url_computed_property_read_and_write_types_agree_with_the_checker() {
+    let properties=[
+        ("href","StringView",Some(("string","'https://other.example/'"))),
+        ("protocol","StringView",Some(("string","'https:'"))),
+        ("username","StringView",Some(("string","'user'"))),
+        ("password","StringView | undefined",Some(("string | undefined","'secret'"))),
+        ("hostname","StringView | undefined",Some(("string | undefined","'other.example'"))),
+        ("port","int | undefined",Some(("int | undefined","8443"))),
+        ("pathname","StringView",Some(("string","'/next'"))),
+        ("search","StringView | undefined",Some(("string | undefined","'?q=one'"))),
+        ("hash","StringView | undefined",Some(("string | undefined","'#part'"))),
+        ("origin","string",None),
+    ];
+    let before=format!("{}function probe(x:Mutable<Url>){{x.",prelude("x: Mutable<Url>"));
+    let text=format!("{before}href;}}function main(){{}}");
+    let mut session=Session::start(&[]);session.open("main.tsr",&text);session.settle();
+    let reply=session.completion_items("main.tsr",&text,before.len());
+    let items=if reply.is_array(){reply}else{reply["items"].clone()};
+    assert!(diagnostic("x.pathname=x.pathname;","x: Mutable<Url>").is_some(),"a borrowed view is not an owned string write input");
+    assert!(diagnostic("x.pathname=String(x.pathname);","x: Mutable<Url>").is_none(),"explicit owned conversion must permit a self read");
+    for (name,read,write) in properties {
+        let checked=diagnostic(&format!("const observed:{read}=x.{name};"),"x: ReadOnly<Url>");
+        assert!(checked.is_none(),"Url.{name} read type {read}: {checked:?}");
+        let item=items.as_array().unwrap().iter().find(|item|item["label"]==name).unwrap();
+        let detail=item["detail"].as_str().unwrap();
+        let shown=detail.split_once(": ").unwrap().1;
+        let shown=shown.split_once("; assign ").map_or(shown,|(read,_)|read).trim_end_matches(" (read-only)");
+        assert_eq!(alternatives(shown),alternatives(read),"Url.{name}: {detail}");
+        match write {
+            Some((input,value))=>{
+                let write=detail.split_once("; assign ").unwrap().1.split_once("; throws ").unwrap();
+                assert_eq!(alternatives(write.0),alternatives(input),"Url.{name}: {detail}");assert_eq!(write.1,"UrlError","{detail}");
+                assert!(diagnostic(&format!("x.{name}={value};"),"x: Mutable<Url>").is_none(),"Url.{name} must accept {input}");
+                if input.contains("undefined"){
+                    assert!(diagnostic(&format!("x.{name}=undefined;"),"x: Mutable<Url>").is_none(),"Url.{name} removal");
+                    assert!(diagnostic(&format!("x.{name}=null;"),"x: Mutable<Url>").is_some(),"Url.{name} accepted null instead of undefined");
+                }
+                assert!(diagnostic(&format!("x.{name}=false;"),"x: Mutable<Url>").is_some(),"Url.{name} accepted boolean");
+                assert!(diagnostic(&format!("x.{name}={value};"),"x: ReadOnly<Url>").is_some(),"Url.{name} accepted readonly mutation");
+            },
+            None=>{
+                assert!(detail.contains("read-only"),"{detail}");
+                assert!(diagnostic("x.origin='other';","x: Mutable<Url>").is_some(),"origin accepted a write");
+            },
+        }
     }
+}
+
+#[test]
+fn byte_callable_help_and_checker_agree_on_readers_writers_and_distinct_owners() {
+    let cases=[
+        ("readInt","x:ReadOnly<Bytes>","readInt(x,0,1,'little');",true,"ReadOnly<Bytes"),
+        ("writeInt","x:ReadOnly<Bytes>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteView>","writeInt(x,0,1,1,'little');",false,"Mutable<Bytes"),
+        ("writeInt","x:Mutable<ByteViewMut>","writeInt(x,0,1,1,'little');",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>,y:ReadOnly<ByteView>","copyInto(x,0,y);",true,"Mutable<Bytes"),
+        ("copyInto","x:Mutable<Bytes>","copyInto(x,0,x);",false,"Mutable<Bytes"),
+    ];
+    let mut session=Session::start(&[]);
+    for (index,(name,parameters,body,accepted,detail)) in cases.into_iter().enumerate(){
+        let text=format!("import {{Bytes,ByteView,ByteViewMut,{name}}} from 'std:bytes';function probe({parameters}){{{body}}}function main(){{}}");
+        let uri=virtual_uri("byte-callable-agreement");let id=source_id(&uri).unwrap();let mut workspace=Workspace::default();workspace.open(id.clone(),1,text.clone());assert_eq!(workspace.snapshot().check(&id).is_ok(),accepted,"{name}: {text}");
+        if index==0{session.open("main.tsr",&text);}else{session.change("main.tsr",&text);}session.settle();let offset=text.rfind(&format!("{name}(")).unwrap();let hover=session.hover("main.tsr",&text,offset+1).unwrap_or_default();assert!(hover.contains(detail)&&hover.contains("ByteError")&&hover.contains("Ownership:"),"{name}: {hover}");
+    }
+    let counters=session.request("tsrust/counters",serde_json::Value::Null);for key in ["staleAnswers","emptyKnownReceiver","nonMemberAfterSeparator"]{assert_eq!(counters[key],0,"{counters}");}
 }

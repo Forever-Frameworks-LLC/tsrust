@@ -1,4 +1,4 @@
-import { Router, Client, request } from 'std:http';
+import { Router, Client, request, setCookie } from 'std:http';
 import { test, strictEqual } from 'std:testing';
 
 test('request streaming preserves context metadata and response helpers', async () => {
@@ -20,6 +20,89 @@ test('request streaming preserves context metadata and response helpers', async 
     strictEqual(response.status(), 202);
     strictEqual(response.header('x-response'), 'preserved');
     strictEqual(await response.text(), 'héllo');
+  } finally {
+    await server.shutdown();
+  }
+});
+
+
+test('route registration preserves backend ranges and rejects invalid syntax', async () => {
+  const app = new Router();
+  const path = '/' + 'x'.repeat(4096);
+  strictEqual(path.length, 4097);
+  app.get(path, c => c.text('long route'));
+  for (const invalid of ['relative', '//bad', '/bad?query', '/bad#fragment', '/bad%2f', '/bad\\name']) {
+    let failed = false;
+    try {
+      app.get(invalid, c => c.text('invalid'));
+    } catch (error) {
+      failed = true;
+      strictEqual(error.code, 'route');
+    }
+
+    strictEqual(failed, true);
+  }
+
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client({
+      noProxy: true, timeoutMs: 5000
+    });
+    const response = await client.send(request('GET', 'http://' + server.address() + path, ''));
+    strictEqual(response.status(), 200);
+    strictEqual(await response.text(), 'long route');
+  } finally {
+    await server.shutdown();
+  }
+});
+
+test('cookie maxAge preserves integer wire values without a hidden lifetime ceiling', async () => {
+  const app = new Router();
+  app.get('/above', c => {
+    let failed = false;
+    try {
+      setCookie(c, 'negative', 'x', {
+        maxAge: -1
+      });
+    } catch (error) {
+      failed = true;
+      strictEqual(error.code, 'cookie');
+    }
+
+    strictEqual(failed, true);
+    setCookie(c, 'above', 'x', {
+      maxAge: 34560001
+    });
+    return c.text('above');
+  });
+  app.get('/maximum', c => {
+    let failed = false;
+    try {
+      setCookie(c, 'negative', 'x', {
+        maxAge: -9223372036854775808
+      });
+    } catch (error) {
+      failed = true;
+      strictEqual(error.code, 'cookie');
+    }
+
+    strictEqual(failed, true);
+    setCookie(c, 'maximum', 'x', {
+      maxAge: 9223372036854775807
+    });
+    return c.text('maximum');
+  });
+  const server = await app.listen('127.0.0.1:0');
+  try {
+    const client = new Client({
+      noProxy: true, timeoutMs: 5000
+    });
+    const above = await client.send(request('GET', 'http://' + server.address() + '/above', ''));
+    strictEqual(above.header('set-cookie'), 'above=x; Path=/; Max-Age=34560001');
+    strictEqual(await above.text(), 'above');
+    const maximum = await client.send(request('GET', 'http://' + server.address() + '/maximum', ''));
+    strictEqual(maximum.header('set-cookie'), 'maximum=x; Path=/; Max-Age=9223372036854775807');
+    strictEqual(await maximum.text(), 'maximum');
   } finally {
     await server.shutdown();
   }

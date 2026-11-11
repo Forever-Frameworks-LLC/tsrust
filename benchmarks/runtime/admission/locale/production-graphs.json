@@ -1,0 +1,245 @@
+{
+  "scope": "Actual build-aware locale/runtime backdrop closure; lock-closure.json retains all57 locked metadata identities, including3 inactive optional entries.",
+  "profileMatchesNative": true,
+  "graphs": [
+    {
+      "graph": "workspace",
+      "manifest": "Cargo.toml",
+      "manifestSha256": "c1ce5c0a1ea8abb9ea4eef0e646efec8544c52d9db2e448b0e6e6659ccff2acb",
+      "lockSha256": "93201af52aa5e2b25c7a68e8b14742e688678a7b8ed7321cc91ddb4b222b9ba5",
+      "selectedRoots": [
+        "icu_collator",
+        "icu_decimal",
+        "icu_locale",
+        "icu_segmenter",
+        "fixed_decimal",
+        "bigdecimal",
+        "serde",
+        "serde_json",
+        "color"
+      ],
+      "selectedIdentityCount": 56,
+      "missingFromProfile": [
+        [
+          "icu_properties_data",
+          "2.3.0"
+        ],
+        [
+          "syn",
+          "2.0.119"
+        ]
+      ],
+      "notSelectedInGraph": [],
+      "featureDifferences": [
+        {
+          "name": "icu_properties",
+          "version": "2.3.0",
+          "actualVariants": [
+            [
+              "compiled_data"
+            ]
+          ],
+          "profile": []
+        },
+        {
+          "name": "memchr",
+          "version": "2.8.3",
+          "actualVariants": [
+            [
+              "alloc",
+              "default",
+              "std"
+            ]
+          ],
+          "profile": [
+            "alloc",
+            "std"
+          ]
+        },
+        {
+          "name": "proc-macro2",
+          "version": "1.0.107",
+          "actualVariants": [
+            [
+              "default",
+              "proc-macro"
+            ],
+            [
+              "default",
+              "proc-macro",
+              "span-locations"
+            ]
+          ],
+          "profile": [
+            "default",
+            "proc-macro"
+          ]
+        },
+        {
+          "name": "quote",
+          "version": "1.0.47",
+          "actualVariants": [
+            [
+              "default",
+              "proc-macro"
+            ],
+            [
+              "proc-macro"
+            ]
+          ],
+          "profile": [
+            "default",
+            "proc-macro"
+          ]
+        },
+        {
+          "name": "serde_core",
+          "version": "1.0.229",
+          "actualVariants": [
+            [
+              "default",
+              "result",
+              "std"
+            ]
+          ],
+          "profile": [
+            "result",
+            "std"
+          ]
+        },
+        {
+          "name": "syn",
+          "version": "3.0.6",
+          "actualVariants": [
+            [
+              "clone-impls",
+              "default",
+              "derive",
+              "extra-traits",
+              "fold",
+              "full",
+              "parsing",
+              "printing",
+              "proc-macro",
+              "visit"
+            ],
+            [
+              "clone-impls",
+              "default",
+              "derive",
+              "full",
+              "parsing",
+              "printing",
+              "proc-macro",
+              "visit"
+            ]
+          ],
+          "profile": [
+            "clone-impls",
+            "default",
+            "derive",
+            "extra-traits",
+            "fold",
+            "parsing",
+            "printing",
+            "proc-macro",
+            "visit"
+          ]
+        }
+      ],
+      "selection": "cargo tree normal,build,dev for compiler validation (locale runtime crates are compiler dev-dependencies); host/target feature variants retained"
+    },
+    {
+      "graph": "backend",
+      "manifest": "crates/tsrust-compiler/backend-dependencies/Cargo.toml",
+      "manifestSha256": "7a80b6899a6301f94f92246e730b7022273f03008a2cff3a254d4fd6d6563a3c",
+      "lockSha256": "1e2f2c1f877634743c5242e7104dbb427180274572ef1dcb60762f88c165a9a5",
+      "selectedRoots": [
+        "icu_collator",
+        "icu_decimal",
+        "icu_locale",
+        "icu_segmenter",
+        "fixed_decimal",
+        "bigdecimal",
+        "serde",
+        "serde_json"
+      ],
+      "selectedIdentityCount": 53,
+      "missingFromProfile": [],
+      "notSelectedInGraph": [
+        [
+          "color",
+          "0.3.3"
+        ]
+      ],
+      "featureDifferences": [],
+      "selection": "cargo tree normal,build actual package/features; component/backdrop identity family; host/target feature variants retained"
+    },
+    {
+      "graph": "native",
+      "manifest": "crates/tsrust-compiler/native-dependencies/Cargo.toml",
+      "manifestSha256": "9f6262a840f472ab787f18fbf9d4978cc4700a6ce25a263468fafa0c68fe2808",
+      "lockSha256": "3c7b8a054cad9a9bcd64b1359aac56e166217bd7acd5bc93bdb831bcb8e09f52",
+      "selectedRoots": [
+        "icu_collator",
+        "icu_decimal",
+        "icu_locale",
+        "icu_segmenter",
+        "fixed_decimal",
+        "bigdecimal",
+        "serde",
+        "serde_json",
+        "color"
+      ],
+      "selectedIdentityCount": 54,
+      "missingFromProfile": [],
+      "notSelectedInGraph": [],
+      "featureDifferences": [],
+      "selection": "cargo tree normal,build actual package/features; component/backdrop identity family; host/target feature variants retained"
+    },
+    {
+      "graph": "parity",
+      "manifest": "crates/tsrust-compiler/backend-dependencies/Cargo.toml",
+      "manifestSha256": "7a80b6899a6301f94f92246e730b7022273f03008a2cff3a254d4fd6d6563a3c",
+      "lockSha256": "1e2f2c1f877634743c5242e7104dbb427180274572ef1dcb60762f88c165a9a5",
+      "selectedRoots": [
+        "icu_collator",
+        "icu_decimal",
+        "icu_locale",
+        "icu_segmenter",
+        "fixed_decimal",
+        "bigdecimal",
+        "serde",
+        "serde_json"
+      ],
+      "selectedIdentityCount": 53,
+      "missingFromProfile": [],
+      "notSelectedInGraph": [
+        [
+          "color",
+          "0.3.3"
+        ]
+      ],
+      "featureDifferences": [],
+      "selection": "Handwritten locale references reuse existing backend-dependencies with locale feature; broad parity project remains unchanged",
+      "referenceArtifactPreparation": "benchmarks/runtime/native-dependencies.mjs",
+      "referencePreparationSha256": "fa28c29bc841e1ce41e10dec0ec954802fd2ae98902d38fc985335b7d61bb2e0"
+    }
+  ],
+  "buildClosureVerification": {
+    "lockedRegistryIdentities": 57,
+    "actualRegistryIdentities": 54,
+    "metadataOnlyInactive": [
+      "icu_plurals",
+      "icu_plurals_data",
+      "icu_properties_data"
+    ],
+    "proof": "Selected54 actual native identities/features independently derived from cargo tree normal/build and exactly equal to successful70545 sync compiler-artifact JSON; kernel/runtime sources match witnessed91144 profile. Public generated acceptance remains pending."
+  },
+  "legacyParityPreserved": {
+    "benchmarks/runtime/parity-dependencies/Cargo.toml": "a5059c0ff49b8555cb21f9d0063f42bce8242b503b25e51912d296f1d00191db",
+    "benchmarks/runtime/parity-dependencies/Cargo.lock": "33bf4ce210358d59f66797a380489216910a44a2c10c84095a4842812eb32fe3"
+  },
+  "selectedProviderSync": true,
+  "selectedSyncBuildFeaturesVerified": true
+}

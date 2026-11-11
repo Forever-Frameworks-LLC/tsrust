@@ -2,9 +2,12 @@ mod support;
 use serde_json::{json,Value};
 use tsrust_lsp::{intelligence::SourceIndex, workspace::Workspace, project_diagnostics::source_id, project_intelligence::ProjectIndex};
 
+/// Unix virtual paths stay as written; Windows gains a drive so both are absolute.
+fn host_uri(path:&str)->String{format!("file://{}{path}",if cfg!(windows){"/C:"}else{""})}
+
 fn request(source:&str,needle:&str,method:&str)->Value {
     let offset=source.find(needle).unwrap()+needle.len()-usize::from(method=="textDocument/hover");
-    SourceIndex::new(source).request(method,&json!({"position":{"line":0,"character":offset}}),"file:///threads.tsr").unwrap()
+    SourceIndex::new(source).request(method,&json!({"position":{"line":0,"character":offset}}),&host_uri("/threads.tsr")).unwrap()
 }
 
 #[test]
@@ -21,7 +24,7 @@ fn imports_hover_and_parameter_help_describe_ownership_and_failures() {
 #[test]
 fn checked_worker_and_completion_types_reach_hover() {
     let source="import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(answer)=>{console.log(answer);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}";
-    let uri="file:///threads.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/threads.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();
     let index=ProjectIndex::checked(&checked);
@@ -100,15 +103,15 @@ fn declared_thread_error_fields_survive_unrelated_syntax_errors() {
     let source="import {ThreadError} from 'std:threads';function probe(error:ReadOnly<ThreadError<string>>){error.\n}function main(){}function broken(){const=;}";
     let index=SourceIndex::new(source);
     let offset=source.find("{error.").unwrap()+7;
-    let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),"file:///threads.tsr").unwrap();
-    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset-2}}),"file:///threads.tsr").unwrap();
+    let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),&host_uri("/threads.tsr")).unwrap();
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset-2}}),&host_uri("/threads.tsr")).unwrap();
     assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="error"),"{items}; {hover}");
 }
 
 #[test]
 fn scoped_workers_and_propagation_have_checked_hover_and_signatures() {
     let source="import {spawn,join} from 'std:threads';function main(){const first=unwrap(spawn(():int=>42));const value=unwrap(join(first));console.log(value);}";
-    let uri="file:///scoped-workers.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/scoped-workers.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     for (needle,expected) in [("join(first","Thread<int, undefined>"),("console.log(value","int")] {
@@ -125,7 +128,7 @@ fn scoped_workers_and_propagation_have_checked_hover_and_signatures() {
 #[test]
 fn pool_and_cancellation_have_documentation_and_checked_types() {
     let source="import {ThreadPool,join,cancel,cancellationRequested} from 'std:threads';function main(){const pool=new ThreadPool({workers: 2, capacity: 8});const worker=unwrap(pool.task(():int=>1));cancel(worker);unwrap(join(worker));const stats=pool.stats();console.log(stats.outstanding);unwrap(pool.shutdown());}";
-    let uri="file:///pool.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/pool.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     for name in ["task","cancel","stats","shutdown"] {
@@ -141,7 +144,7 @@ fn pool_and_cancellation_have_documentation_and_checked_types() {
 #[test]
 fn pool_statistics_completion_uses_checked_native_fields() {
     let source="import {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool();const stats=pool.stats();stats.outstanding;}";
-    let uri="file:///pool-fields.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/pool-fields.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     let offset=source.find("stats.outstanding").unwrap()+6;
@@ -153,7 +156,7 @@ fn pool_statistics_completion_uses_checked_native_fields() {
 #[test]
 fn scoped_pool_alias_methods_have_hover_parameters_and_result_fields() {
     let source="import {ThreadPool as Jobs,join} from 'std:threads';function main(){const jobs=new Jobs();const task=unwrap(jobs.task(():int=>42));console.log(unwrap(join(task)));const stats=jobs.stats();console.log(stats.outstanding);unwrap(jobs.shutdown());}";
-    let uri="file:///scoped-pool.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/scoped-pool.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     for (needle,expected) in [("new Jobs","capacity"),("jobs.task","callback"),("jobs.stats","ThreadPoolStats"),("jobs.shutdown","shutdown")] {
@@ -175,7 +178,7 @@ fn channel_constructor_help_and_worker_context_members() {
     let help=request(source,"new Inbox<int>(","textDocument/signatureHelp").to_string();
     assert!(help.contains("capacity: int") && help.contains("1000000"),"{help}");
     let source="import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{task.cancellationRequested();}));worker.cancel();unwrap(worker.join());}";
-    let uri="file:///threads.tsr"; let id=source_id(uri).unwrap();
+    let uri=&host_uri("/threads.tsr"); let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     for (needle,expected) in [("task.cancellationRequested", "cancellationRequested"),("worker.cancel", "cancel"),("worker.join", "join")] {
@@ -188,7 +191,7 @@ fn channel_constructor_help_and_worker_context_members() {
 #[test]
 fn generic_channel_methods_specialize_payloads_through_aliases() {
     let source="import {Channel as Inbox} from 'std:threads';function main(){const inbox=new Inbox<int>(1);const sender=inbox.sender();unwrap(sender.send(7));console.log(unwrap(inbox.receive()));}";
-    let uri="file:///channel.tsr";let id=source_id(uri).unwrap();
+    let uri=&host_uri("/channel.tsr");let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
     for (needle,expected) in [("sender.send", "value: int"),("inbox.receive", "Result<int, ChannelError>")] {

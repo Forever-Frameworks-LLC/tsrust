@@ -3,14 +3,11 @@ use super::*;
 
 impl Analyzer {
     pub(super) fn remember_native_environment(&self, context: &mut Context, origin: usize) {
-        if !self.native_borrow_types {
-            return;
-        }
         let captures = self.closures[origin]
             .captures
             .iter()
-            .filter(|capture| context.bindings[capture.outer].native_view_loans.is_some())
-            .map(|capture| (capture.inner, capture.outer))
+            .filter(|capture| matches!(capture.storage,Mode::Read|Mode::Mutate) || context.bindings[capture.outer].native_view_loans.is_some())
+            .map(|capture| (capture.inner, capture.outer, capture.storage))
             .collect::<Vec<_>>();
         if !captures.is_empty() {
             context

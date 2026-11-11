@@ -1,15 +1,20 @@
 //! Concrete native ABI bridges reuse checked Result alternatives, including void success.
 use crate::{analysis::CheckedProgram, native_bindings::{NativeBinding, NativeBackend, NativeType}, native_signatures::NativeTypeId, syntax::Type};
 
-pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> String {
+pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ordered: &std::collections::HashSet<usize>) -> String {
     let bytes = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::Bytes)).expect("checked Bytes identity");
     let mut output = String::new();
     if bindings.iter().any(|binding| binding.name != "length") {
         output.push_str(&crate::native_runtime::bytes_module(
             bindings.iter().any(|binding|binding.returned_borrow.is_some()),
             bindings.iter().any(|binding|matches!(binding.name,"fromUtf8"|"toUtf8")),
+            bindings.iter().any(|binding|matches!(binding.name,"toHex"|"fromHex"|"toUtf8Lossy"|"fromUtf16"|"toUtf16"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
+            bindings.iter().any(|binding|matches!(binding.name,"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url")),
+            bindings.iter().any(|binding|matches!(binding.name,"concat"|"copyInto"|"copyWithin"|"equals"|"compare")),
+            bindings.iter().any(|binding|matches!(binding.name,"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")),
+            bindings.iter().any(|binding|binding.name=="indexOf"),
         ));
-        output.push_str(&error_bridge(program));
+        if bindings.iter().any(|binding| matches!(binding.result, NativeType::Structured(crate::native_signatures::Signature::Result(_, _)))) {output.push_str(&error_bridge(program, ordered));}
     }
     // Observers and mutators accept every readable or writable byte storage that the
     // program names: the owner and its views share these access traits.
@@ -55,10 +60,61 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             "copy" => output.push_str(&result_bridge(program, binding, "bytes: &B, start: i64, end: i64", "tsrust_native_bytes::copy(bytes.readable_bytes(), start, end)", &format!("Record{bytes} {{ bytes: success }}"))),
             "fromUtf8" => output.push_str(&result_bridge(program, binding, "text: &String", "tsrust_native_bytes::from_utf8(text.as_ref())", &format!("Record{bytes} {{ bytes: success }}"))),
             "toUtf8" => output.push_str(&result_bridge(program, binding, "bytes: &B", "tsrust_native_bytes::to_utf8(bytes.readable_bytes())", "String::Owned(success)")),
+            "toHex" | "toUtf8Lossy" | "toBase64" | "toBase64Url" => {
+                let call = match binding.name { "toHex" => "tsrust_native_bytes::to_hex(bytes.readable_bytes())", "toUtf8Lossy" => "tsrust_native_bytes::to_utf8_lossy(bytes.readable_bytes())", "toBase64" => "tsrust_native_bytes::to_base64(bytes.readable_bytes(), false)", _ => "tsrust_native_bytes::to_base64(bytes.readable_bytes(), true)" };
+                output.push_str(&result_bridge(program, binding, "bytes: &B", call, "String::Owned(success)"));
+            }
+            "fromHex" | "fromBase64" | "fromBase64Url" => {
+                let call = match binding.name { "fromHex" => "tsrust_native_bytes::from_hex(text.as_ref())", "fromBase64" => "tsrust_native_bytes::from_base64(text.as_ref(), false)", _ => "tsrust_native_bytes::from_base64(text.as_ref(), true)" };
+                output.push_str(&result_bridge(program, binding, "text: &String", call, &format!("Record{bytes} {{ bytes: success }}")));
+            }
+            "concat" => output.push_str(&result_bridge(program, binding, "left: &A, right: &B", "tsrust_native_bytes::concat(left.readable_bytes(), right.readable_bytes())", &format!("Record{bytes} {{ bytes: success }}"))),
+            "copyInto" => output.push_str(&result_bridge(program, binding, "target: &mut D, target_offset: i64, source: &S", "tsrust_native_bytes::copy_into(target.writable_bytes(), target_offset, source.readable_bytes())", "success")),
+            "copyWithin" => output.push_str(&result_bridge(program, binding, "bytes: &mut B, target_offset: i64, start: i64, end: i64", "tsrust_native_bytes::copy_within(bytes.writable_bytes(), target_offset, start, end)", "success")),
+            "equals" | "compare" => {
+                let NativeBackend::Bundled {symbol}=binding.backend;
+                let (operation,result)=if binding.name=="equals" {("equals","bool")} else {("compare","i64")};
+                output.push_str(&format!("fn {symbol}<A: TsrReadableBytes, B: TsrReadableBytes>(left: &A, right: &B) -> {result} {{ tsrust_native_bytes::{operation}(left.readable_bytes(), right.readable_bytes()) }}\n"));
+            }
+            "indexOf" => output.push_str(&result_bridge(program, binding, "bytes: &A, needle: &B, from_index: i64", "tsrust_native_bytes::index_of(bytes.readable_bytes(), needle.readable_bytes(), from_index)", "success")),
+            "readInt" | "writeInt" | "readUint" | "writeUint" | "readFloat32" | "writeFloat32" | "readFloat64" | "writeFloat64" => {
+                let (order_type, order) = byte_order_bridge(program);
+                let write = binding.name.starts_with("write"); let integer = matches!(binding.name,"readInt"|"writeInt"|"readUint"|"writeUint");
+                let operation = match binding.name {"readInt"=>"read_int","writeInt"=>"write_int","readUint"=>"read_uint","writeUint"=>"write_uint","readFloat32"=>"read_float32","writeFloat32"=>"write_float32","readFloat64"=>"read_float64",_=>"write_float64"};
+                let storage = if write {"bytes: &mut B"} else {"bytes: &B"};
+                let value = if write {if integer {", value: i64"} else {", value: f64"}} else {""};
+                let width = if integer {", width: i64"} else {""};
+                let parameters = format!("{storage}, offset: i64{value}{width}, byte_order: {order_type}");
+                let storage = if write {"bytes.writable_bytes()"} else {"bytes.readable_bytes()"};
+                let value = if write {", value"} else {""}; let width = if integer {", width"} else {""};
+                output.push_str(&result_bridge(program,binding,&parameters,&format!("tsrust_native_bytes::{operation}({storage}, offset{value}{width}, {order})"),"success"));
+            }
+            "fromUtf16" | "toUtf16" => {
+                let (order_type, order) = byte_order_bridge(program);
+                let (parameters, call, success) = if binding.name == "fromUtf16" {
+                    (format!("text: &String, byte_order: {order_type}"), format!("tsrust_native_bytes::from_utf16(text.as_ref(), {order})"), format!("Record{bytes} {{ bytes: success }}"))
+                } else {
+                    (format!("bytes: &B, byte_order: {order_type}"), format!("tsrust_native_bytes::to_utf16(bytes.readable_bytes(), {order})"), "String::Owned(success)".into())
+                };
+                output.push_str(&result_bridge(program, binding, &parameters, &call, &success));
+            }
             _ => unreachable!("registered byte bridge"),
         }
     }
     output
+}
+
+fn byte_order_bridge(program: &CheckedProgram) -> (String, String) {
+    let Type::Union(id) = crate::native_binding_types::resolve(&program.records, &crate::stdlib::bytes::bindings::BYTE_ORDER).expect("checked byte order") else { unreachable!() };
+    let order_type = crate::emit::ty(Type::BorrowedUnion(id));
+    let constructor = order_type.split_once('<').map_or(order_type.as_str(), |(name, _)| name);
+    let arms = program.unions[id.index()].members.iter().enumerate().map(|(tag, member)| {
+        let Type::Literal(record, crate::literal_types::LiteralKind::String) = member else { unreachable!("byte order literals") };
+        let Some(crate::literal_types::LiteralValue::String(value)) = &program.records[*record].literal_definition else { unreachable!() };
+        assert!(matches!(value.as_str(), "little" | "big"));
+        format!("{constructor}::V{tag}(value) => value.as_ref()")
+    }).collect::<Vec<_>>().join(", ");
+    (order_type, format!("match byte_order {{ {arms} }}"))
 }
 
 fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: &str, call: &str, success: &str) -> String {
@@ -69,7 +125,7 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
     let fields = if program.records[ok].fields.is_empty() { String::new() } else { format!("field0: {success}") };
     let NativeBackend::Bundled { symbol } = binding.backend;
-    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrSharedViewSource<'a>>"}} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
+    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrSharedViewSource<'a>>"}} else if matches!(binding.name,"concat"|"indexOf") {"<A: TsrReadableBytes, B: TsrReadableBytes>"} else if binding.name=="copyInto" {"<D: TsrWritableBytes, S: TsrReadableBytes>"} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
     let result_type=if let Some(contract)=binding.returned_borrow {
         let view=program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked view payload");
         let arguments=members.iter().map(|member|if *member==Type::Record(ok) {format!("Record{ok}<Record{view}<'a>>")} else {format!("Record{err}")}).collect::<Vec<_>>();
@@ -78,7 +134,7 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     format!("fn {symbol}{lifetime}({parameters}) -> {result_type} {{ match {call} {{ Ok(success) => Union{}::V{}(Record{ok} {{ {fields} }}), Err(failure) => Union{}::V{}(Record{err} {{ field0: tsrust_std_bytes_error(failure) }}) }} }}\n", result.index(), tag(ok), result.index(), tag(err))
 }
 
-fn error_bridge(program: &CheckedProgram) -> String {
+fn error_bridge(program: &CheckedProgram, ordered: &std::collections::HashSet<usize>) -> String {
     let error = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::ByteError)).expect("checked ByteError identity");
     let mut initializers = Vec::new();
     for (index, field) in program.records[error].fields.iter().enumerate() {
@@ -96,7 +152,8 @@ fn error_bridge(program: &CheckedProgram) -> String {
         };
         initializers.push(format!("field{index}: {value}"));
     }
-    format!("fn tsrust_std_bytes_error(failure: tsrust_native_bytes::ByteFailure) -> Record{error} {{ Record{error} {{ {} }} }}\n", initializers.join(", "))
+    let order=crate::record_runtime::declaration_order_suffix(program,ordered,error);
+    format!("fn tsrust_std_bytes_error(failure: tsrust_native_bytes::ByteFailure) -> Record{error} {{ Record{error} {{ {}{order} }} }}\n", initializers.join(", "))
 }
 
 #[cfg(test)]

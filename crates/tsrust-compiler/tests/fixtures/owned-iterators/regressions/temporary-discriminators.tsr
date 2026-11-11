@@ -1,0 +1,15 @@
+import { strictEqual } from 'std:testing';
+import { Iterator } from 'std:iterator';
+
+export function run() {
+  const values = Iterator.from([4]);
+  {
+    const observed1_0 = values.next().done;
+    strictEqual(observed1_0, false);
+  }
+
+  {
+    const observed2_0 = values.next().done;
+    strictEqual(observed2_0, true);
+  }
+}

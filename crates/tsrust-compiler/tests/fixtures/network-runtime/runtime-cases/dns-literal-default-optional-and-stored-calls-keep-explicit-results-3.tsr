@@ -1,0 +1,9 @@
+import { lookup } from 'std:dns';
+import { formatIp } from 'std:net';
+
+export async function run(): Task<void> {
+  const addresses = unwrap(await lookup('127.0.0.1'));
+  console.log(addresses.length, formatIp(addresses[0]));
+  const absent = unwrap(await lookup('127.0.0.1', 'ipv6'));
+  console.log(absent.length);
+}

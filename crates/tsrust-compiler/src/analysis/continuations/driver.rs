@@ -130,7 +130,7 @@ enum ExpressionState {
     GenericCall,
     ContextualGenericCall,
     Adapter,
-    Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
+    Deferred { conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
     Reduction(Box<reduction::State>),
     Concat(Box<concat::State>),
@@ -260,7 +260,7 @@ enum Task<'a> { CollectionConstructor(Box<collection_constructor::CollectionCons
 enum Completion<'a> {
     Spread(Box<Expr>, Result<Type, Diagnostic>),
     Generic(Box<Expr>, Result<(), Diagnostic>),
-    Deferred(Box<Expr>, Result<(usize, Type), Diagnostic>),
+    Deferred(Box<Expr>, Result<(crate::polymorphic_invocation_plans::Pair, Type), Diagnostic>),
     Method(Result<(usize, Type), Diagnostic>),
     Parameters(Vec<Stmt>, Result<(), Diagnostic>),
     Function(Result<(), Diagnostic>),
@@ -559,7 +559,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
             Task::ObjectSpread(task) => object_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::ArraySpread(task) => array_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Spread(task) => spread::step(analyzer, contexts.get(task.context), task, completion.take()),
-            Task::Generic(task) => generic::step(analyzer, task, completion.take()),
+            Task::Generic(task) => generic::step(analyzer, &mut contexts, task, completion.take()),
             Task::Deferred(task) => deferred::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Adapter(task) => adapters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Method(task) => methods::step(analyzer, &mut contexts, task, completion.take()),
@@ -653,8 +653,10 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
                     };
                     *body = completed.into_child();
                     let breaks = analyzer.finish_scheduled_loop(context, body, stmt.span, frame, result)?;
-                    if !breaks && let StmtKind::While { condition, .. } = &stmt.kind
-                        && let Some((_, no)) = analyzer.pure_guard_outcomes(context, condition) { context.flow = no; }
+                    if !breaks && let StmtKind::While { condition, .. } = &stmt.kind {
+                        if matches!(condition.kind, ExprKind::Boolean(true)) { task.frame.as_mut().expect("loop scope").exited = true; }
+                        if let Some((_, no)) = analyzer.pure_guard_outcomes(context, condition) { context.flow = no; }
+                    }
                 }
                 (BlockPending::Declaration { index, mut frame, module_scope }, completion) => {
                     let (expression, result) = match completion {
@@ -976,13 +978,15 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             start_invocation(analyzer, context, task, true, false)
         }
 
-        ExpressionState::Deferred { origin, conditional } => {
+        ExpressionState::Deferred { conditional } => {
             let Completion::Deferred(value, result) = completion.expect("deferred invocation") else { unreachable!() };
             *task.expression.value() = *value;
             let context = contexts.get(task.context);
             let expr = task.expression.value();
-            let result = result.and_then(|(method, result)| {
-                if let Some((frame, publish_type)) = conditional {
+            let result = result.and_then(|(selected, result)| {
+                let crate::polymorphic_invocation_plans::Pair{origin,method}=selected;
+                if let Some((mut frame, publish_type)) = conditional {
+                    frame.hint=Type::Closure(origin);
                     complete_conditional_call(analyzer, context, expr, frame, (CallTarget::ClosureMethod(method), result), publish_type)
                 } else {
                     analyzer.remember_native_closure_returns(context, origin, Some(method), expr.span)?;
@@ -1569,9 +1573,18 @@ fn schedule_field<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: 
         }
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
         Ok(super::access::FieldDispatch::Receiver { mode: base_mode, frame }) => {
+            // A common field observes the proven present record alternatives.
+            // Give that readonly subset an explicit contract; an unconstrained
+            // read intentionally retains the original nullable enum instead.
+            let expected=if base_mode==Mode::Read {
+                analyzer.flow_view(context,base).and_then(|(_,_,narrowed)|match narrowed{
+                    Type::Union(union) if analyzer.record_union_field(union,name).is_some()=>Some(narrowed),
+                    _=>None,
+                })
+            }else{None};
             let span = base.span;
             let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
-            let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), None));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), expected));
             task.state = ExpressionState::Field { frame, mode, rewrite };
             Step::Push(Task::Expression(task), child)
         }
@@ -1579,7 +1592,7 @@ fn schedule_field<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: 
 }
 
 fn schedule_literal<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, mut frame: Box<super::literals::LiteralFrame>) -> Step<'a> {
-    match analyzer.advance_literal_work(context, task.expression.value(), &mut frame) {
+    match analyzer.advance_literal_work(context, task.expression.value(), &mut frame, &task.loans) {
         Ok(super::literals::Advance::Done(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
         Ok(super::literals::Advance::Child(child)) => {
@@ -1639,9 +1652,8 @@ fn schedule_deferred<'a>(mut task: ExpressionTask<'a>, request: crate::analysis:
     let expr = task.expression.value();
     let span = expr.span;
     let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
-    let origin = request.origin;
     let child = Task::Deferred(Box::new(deferred::DeferredTask::new(value, request, task.context, task.loans.clone())));
-    task.state = ExpressionState::Deferred { origin, conditional };
+    task.state = ExpressionState::Deferred { conditional };
     Step::Push(Task::Expression(task), child)
 }
 
@@ -1718,16 +1730,24 @@ fn schedule_argument<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
         }
         InvocationFinish::Conditional { frame, invocation, publish_type } => {
             match analyzer.finish_callable_invocation(context, args, expr.span, invocation) {
-                Ok(super::call::FinishedInvocation::Ready(target, result)) => complete_conditional_call(analyzer, context, expr, frame, (target, result), publish_type),
+                Ok(super::call::FinishedInvocation::Ready(target, result)) => {
+                    if !matches!(target,CallTarget::ForwardFunction(_))
+                        && let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params) {
+                        return finish_expression(analyzer,context,task,Err(error));
+                    }
+                    complete_conditional_call(analyzer, context, expr, frame, (target, result), publish_type)
+                },
                 Ok(super::call::FinishedInvocation::Method(origin, types)) => return schedule_method(task, origin, types, Some((frame, publish_type))),
                 Err(error) => Err(error),
             }
         }
         InvocationFinish::Bound { binding, result, target } => {
+            if let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params){return finish_expression(analyzer,context,task,Err(error));}
             analyzer.finish_bound_call(context, expr, binding, result, target)
                 .map(|ty| { analyzer.resolve_completed_capture_invocation(context, expr, ty); ty })
         }
         InvocationFinish::StoredField { family, result } => {
+            if let Err(error)=analyzer.adapt_fixed_record_spread_arguments(args,&call.arguments.params){return finish_expression(analyzer,context,task,Err(error));}
             analyzer.remember_native_family_returns(context, family, expr.span).map(|()| {
                 expr.target = Some(CallTarget::StoredCallableField(family));
                 expr.ty = Some(result);

@@ -1,0 +1,21 @@
+import { parseIp, parseAddress } from 'std:net';
+
+export function run() {
+  for (const text of ['localhost', '127.01.0.1', '::1%2', ' 127.0.0.1']) {
+    match (parseIp(text)) {
+      Ok(_) => {
+        throw 'invalid IP accepted';
+      },
+      Err(error) => console.log(error.code)
+    }
+  }
+
+  for (const text of ['localhost:80', '::1:80', '127.0.0.1:65536', '127.0.0.1']) {
+    match (parseAddress(text)) {
+      Ok(_) => {
+        throw 'invalid socket accepted';
+      },
+      Err(error) => console.log(error.code)
+    }
+  }
+}

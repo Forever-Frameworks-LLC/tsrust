@@ -1,0 +1,31 @@
+import { reader as adapt, readInto as fill, readAll, close, stdout, writeAll, IoError } from 'std:io';
+import { fromUtf8, alloc, viewMut, view, set, toUtf8 } from 'std:bytes';
+
+function relay(work: Task<Result<int, IoError>>): Task<Result<int, IoError>> {
+  return work;
+}
+
+export async function main(): Task<void> {
+  const make = adapt;
+  const read = fill;
+  const finish = close;
+  const input = make(unwrap(fromUtf8('abc')));
+  const bytes = unwrap(alloc(3));
+  {
+    const destination = unwrap(viewMut(bytes, 0, 2));
+    const task = read(input, destination);
+    console.log(unwrap(await task));
+  }
+
+  const rest = readAll;
+  console.log(unwrap(toUtf8(unwrap(await rest(input)))));
+  await finish(input);
+  const output = stdout();
+  const write = writeAll;
+  {
+    const range = unwrap(view(bytes, 0, 2));
+    unwrap(await write(output, range));
+  }
+
+  unwrap(await finish(output));
+}

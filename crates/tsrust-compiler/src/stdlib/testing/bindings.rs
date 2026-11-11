@@ -117,3 +117,7 @@ pub(crate) const INVOKE_SUITE: NativeBinding = NativeBinding {
     ],
     result: NativeType::Void, backend: NativeBackend::Bundled { symbol: "@compiler-invoke-suite" }, features: &["testing", "testing-runner"],
 };
+
+pub(crate) const DEEP_EQUAL:NativeBinding=NativeBinding{returned_borrow:None,module:"std:testing-runtime",name:"deepEqual",parameters:&[NativeParameter{name:"actual",ty:NativeType::ObservedValue,access:Mode::Read,optional:false,rest:false},NativeParameter{name:"expected",ty:NativeType::ObservedValue,access:Mode::Read,optional:false,rest:false}],result:NativeType::Boolean,backend:NativeBackend::Bundled{symbol:"@compiler-testing-deep"},features:&[]};
+pub(crate) const BEGIN_OUTPUT_CAPTURE: NativeBinding = NativeBinding { returned_borrow: None, module: "std:testing-runtime", name: "beginOutputCapture", parameters: &[], result: NativeType::Void, backend: NativeBackend::Bundled { symbol: "tsrust_testing_begin_output_capture" }, features: &["testing"] };
+pub(crate) const END_OUTPUT_CAPTURE: NativeBinding = NativeBinding { name: "endOutputCapture", result: NativeType::String, backend: NativeBackend::Bundled { symbol: "tsrust_testing_end_output_capture" }, ..BEGIN_OUTPUT_CAPTURE };

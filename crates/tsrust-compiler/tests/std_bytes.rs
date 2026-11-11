@@ -2,68 +2,52 @@ mod support;
 
 #[test]
 fn native_byte_type_imports_and_result_payloads_execute() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/values.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_type_imports_and_result_payloads_execute", &source);
 }
 
 #[test]
 fn native_byte_callable_and_generic_aggregate_storage_execute() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/storage.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_callable_and_generic_aggregate_storage_execute", &source);
 }
 
 #[test]
 fn exported_result_aliases_keep_builtin_identity_and_native_payloads() {
-    let directory = support::TempDirectory::new();
     let library = support::format_round_trip("import {Bytes,ByteError,fromArray} from 'std:bytes';export type Outcome=Result<Bytes,ByteError>;export function build():Outcome{return fromArray([1,2]);}export type Plain=Result<int,string>;");
-    std::fs::write(directory.0.join("types.tsr"), library).unwrap();
+    assert_eq!(support::format_round_trip(&library),support::format_round_trip(include_str!("fixtures/bytes/runtime-cases/types.tsr")));
     let main = support::format_round_trip("import {Outcome as Batch,Plain,build} from './types.tsr';import {length} from 'std:bytes';import {strictEqual} from 'std:testing';function inspect(result:ReadOnly<Batch>):int{match(result){Ok(bytes)=>{return length(bytes);},Err(error)=>{return -1;}}}function main(){const result:Batch=build();strictEqual(inspect(result),2);const plain:Plain=Ok(4);match(plain){Ok(value)=>{strictEqual(value,4);},Err(error)=>{throw error;}}}");
-    let path = directory.source(&main);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("exported_result_aliases_keep_builtin_identity_and_native_payloads", &main);
 }
 
 #[test]
 fn native_byte_access_and_mutation_validate_before_writing() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/access.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_access_and_mutation_validate_before_writing", &source);
 }
 
 #[test]
 fn native_byte_allocation_and_resize_preserve_defaults_and_atomic_errors() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/growth.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_allocation_and_resize_preserve_defaults_and_atomic_errors", &source);
 }
 
 #[test]
 fn native_byte_append_is_atomic_and_range_copies_are_independent() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/copy-append.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_append_is_atomic_and_range_copies_are_independent", &source);
 }
 
 #[test]
 fn native_byte_clone_storage_capture_and_evaluation_contracts_execute() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/ownership.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_clone_storage_capture_and_evaluation_contracts_execute", &source);
 }
 
 #[test]
 fn native_byte_utf8_round_trips_and_strict_error_offsets_execute() {
-    let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/native-owned-bytes/utf8.tsr"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+    assert_registered_source("native_byte_utf8_round_trips_and_strict_error_offsets_execute", &source);
 }
 
 #[test]
@@ -75,9 +59,7 @@ fn byte_views_read_and_write_through_public_imports() {
         include_str!("fixtures/native-byte-views/recursive-arrays.tsr"),
         include_str!("fixtures/native-byte-views/recursive-links.tsr"),
     ] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(fixture));
-        support::success(&support::run(support::cli().arg("run").arg(path), 120));
+        assert_registered_source("byte_views_read_and_write_through_public_imports", &fixture);
     }
 }
 
@@ -85,8 +67,7 @@ fn byte_views_read_and_write_through_public_imports() {
 fn capturing_callbacks_return_views_of_borrowed_owner_arguments() {
     let directory=support::TempDirectory::new();
     let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
-    let path=directory.source(&support::format_round_trip(fixture));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    assert_registered_source("capturing_callbacks_return_views_of_borrowed_owner_arguments", &fixture);
     let helpers=fixture.split("function main()").next().unwrap();
     let source=format!("{helpers}function leak(captured:ByteView):ByteView{{const owner=bytes(\"short\");const picker=saveRead(captured);return picker.pick(owner);}}function main(){{}}");
     let path=directory.source(&support::format_round_trip(&source));
@@ -167,9 +148,7 @@ fn temporary_callback_record_preserves_borrowed_owner_arguments() {
     let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
     let source=fixture.replace("const picker = saveRead(slice(first));\n    const selected = picker.pick(second);","const selected = saveRead(slice(first)).pick(second);");
     assert_ne!(source,fixture);
-    let directory=support::TempDirectory::new();
-    let path=directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    assert_registered_source("temporary_callback_record_preserves_borrowed_owner_arguments", &source);
 }
 
 #[test]
@@ -177,9 +156,7 @@ fn native_view_constructor_inside_stored_callback_keeps_argument_ownership() {
     let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
     let source=fixture.replace("return writable(other);","match(viewMut(other,1,3)){Ok(value)=>{return value;},Err(error)=>{throw error.message;},}");
     assert_ne!(source,fixture);
-    let directory=support::TempDirectory::new();
-    let path=directory.source(&support::format_round_trip(&source));
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    assert_registered_source("native_view_constructor_inside_stored_callback_keeps_argument_ownership", &source);
 }
 
 #[test]
@@ -208,9 +185,7 @@ fn recursive_records_store_view_capturing_once_callbacks() {
     let replaced = source.replace("  const result = holder.read();", "  const old=holder.read();strictEqual(length(old),2);const replacement=read(first);holder.read=()=>replacement;const result = holder.read();")
         .replace("strictEqual(value, 7);", "strictEqual(value, 3);");
     for source in [source.to_owned(), mutual, arrays, mutable, alternatives, replaced] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(&source));
-        support::success(&support::run(support::cli().arg("run").arg(path),120));
+        assert_registered_source("recursive_records_store_view_capturing_once_callbacks", &source);
     }
 }
 
@@ -241,14 +216,7 @@ fn nullable_recursive_records_execute_beside_and_with_owned_callbacks() {
         "import {strictEqual} from 'std:testing';type Link={value:int;next?:Link;};type Holder={read:Function<int>;};function main(){const link:Link={value:7,next:{value:11}};const holder:Holder={read:():int=>3};strictEqual(link.next!.value,11);strictEqual(holder.read(),3);}",
         "import {strictEqual} from 'std:testing';type Link={value:int;read:Function<int>;next?:Link;};function main(){const link:Link={value:7,read:():int=>3,next:{value:11,read:():int=>5}};strictEqual(link.read(),3);const child=link.next!;strictEqual(child.read(),5);}",
     ] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(source));
-        for optimized in [false, true] {
-            let mut command = support::cli();
-            command.arg("run").arg(&path);
-            if optimized { command.arg("--release"); }
-            support::success(&support::run(&mut command, 120));
-        }
+        assert_registered_source("nullable_recursive_records_execute_beside_and_with_owned_callbacks", &source);
     }
 }
 
@@ -258,8 +226,7 @@ fn recursive_callbacks_return_extracted_families_with_shared_owner_lifetimes() {
     let take = "function other(first:ByteView,second:ByteView):Holder{return {data:first,read:()=>second};}function take(first:ByteView,second:ByteView,flag:boolean){const holder=flag?build(first,second):other(first,second);return holder.read;}";
     let directory = support::TempDirectory::new();
     let source = support::format_round_trip(&format!("{helpers}{take}function main(){{const first=bytes(3);const second=bytes(7);const callback=take(read(first),read(second),true);const result=callback();strictEqual(length(result),2);const otherCallback=take(read(first),read(second),false);const otherResult=otherCallback();strictEqual(length(otherResult),2);}}"));
-    let path = directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    assert_registered_source("recursive_callbacks_return_extracted_families_with_shared_owner_lifetimes", &source);
     let source = support::format_round_trip(&format!("{helpers}{take}function leak(second:ByteView){{const first=bytes(3);return take(read(first),second,false);}}function main(){{const second=bytes(7);const callback=leak(read(second));const result=callback();console.log(length(result));}}"));
     let path = directory.source(&source);
     let output = support::run(support::cli().arg("check").arg(path),60);
@@ -286,14 +253,7 @@ fn recursive_callback_record_parameters_return_the_stored_family() {
         format!("{helpers}{declarations}{}", main.replace("const callback=take(holder);", "const child:Holder=build(read(first),read(second));holder.next=child;const callback=take(holder.next!);")),
     ];
     for source in sources {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(&source));
-        for optimized in [false, true] {
-            let mut command = support::cli();
-            command.arg("run").arg(&path);
-            if optimized { command.arg("--release"); }
-            support::success(&support::run(&mut command,120));
-        }
+        assert_registered_source("recursive_callback_record_parameters_return_the_stored_family", &source);
     }
 }
 
@@ -340,13 +300,7 @@ fn recursive_records_with_only_captured_views_execute() {
     let scalar = format!("{scalar}function main(){{const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));holder.next=build(read(second),read(first));const child=holder.next!;strictEqual(child.read(),2);strictEqual(holder.read(),2);}}");
     let unused = format!("{helpers}function keep(second:ByteView):Holder{{const unused=bytes(3);return build(read(unused),second);}}function main(){{const owner=bytes(7);const holder=keep(read(owner));const result=holder.read();strictEqual(length(result),2);}}");
     for source in [source.to_owned(),mutual,arrays,nullable,parameters,scalar,unused,mutable,replaced,captured] {
-        let directory = support::TempDirectory::new();
-        let path = directory.source(&support::format_round_trip(&source));
-        for optimized in [false,true] {
-            let mut command=support::cli();command.arg("run").arg(&path);
-            if optimized {command.arg("--release");}
-            support::success(&support::run(&mut command,120));
-        }
+        assert_registered_source("recursive_records_with_only_captured_views_execute", &source);
     }
     let source=format!("{helpers}function leak(first:ByteView):Holder{{const short=bytes(7);return build(first,read(short));}}function main(){{const owner=bytes(3);const holder=leak(read(owner));const result=holder.read();console.log(length(result));}}");
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
@@ -384,11 +338,7 @@ fn nullable_recursive_callbacks_join_factories() {
     let independent=format!("{empty_helpers}function vacant():Holder{{const short=bytes(9);return empty(read(short));}}function main(){{const owner=bytes(7);const holder=vacant();strictEqual(holder.read===undefined,true);const value=read(owner);holder.read=()=>value;const result=holder.read!();strictEqual(length(result),2);}}");
     let reverse=format!("{}{}", &empty_only[empty_helpers.len()..],empty_helpers);
     for source in [source,only.clone(),null,replacement,parameter,empty,empty_only,independent,reverse,include_str!("fixtures/native-byte-views/nullable-recursive-callbacks.tsr").to_owned()] {
-        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
-        for optimized in [false,true] {
-            let mut command=support::cli();command.arg("run").arg(&path);if optimized {command.arg("--release");}
-            support::success(&support::run(&mut command,120));
-        }
+        assert_registered_source("nullable_recursive_callbacks_join_factories", &source);
     }
     let helpers=only.split("function main()").next().unwrap();
     for body in ["return other(value,read(short));", "const holder:Holder={};const captured=read(short);holder.read=()=>captured;return holder;"] {
@@ -420,11 +370,7 @@ fn mutable_recursive_parameters_replace_captured_view_callbacks() {
     let returned_source=source.replace("function main()", "function installer(replacement:ByteView){return(target:Mutable<Holder>):void=>{target.read=()=>replacement;};}function main()")
         .replace("replace(holder,read(first));", "const action=installer(read(first));action(holder);");
     for source in [source,only,nullable,relay,branch,cleanup,borrowed,forwarded,closure,exclusive,captured_target,captured_source,returned_source,include_str!("fixtures/native-byte-views/recursive-mutation.tsr").to_owned()] {
-        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
-        for optimized in [false,true] {
-            let mut command=support::cli();command.arg("run").arg(&path);if optimized {command.arg("--release");}
-            support::success(&support::run(&mut command,120));
-        }
+        assert_registered_source("mutable_recursive_parameters_replace_captured_view_callbacks", &source);
     }
 }
 
@@ -449,5 +395,133 @@ fn mutable_recursive_parameter_stores_preserve_owner_obligations() {
         assert!(!output.status.success(),"{expected}: {source}");
         let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains(&format!("error[{expected}]")),"{stderr}");
         if body==local { assert!(stderr.contains("cannot outlive local owner storage"),"{stderr}"); }
+    }
+}
+
+#[test]
+fn native_byte_error_preserves_declared_property_order() {
+ let source="import {fromArray} from 'std:bytes';\nfunction main(){match(fromArray([256])){Ok(bytes)=>{throw 'unexpected success';},Err(error)=>{console.log(Object.keys(error).join(','));}}}";
+ assert_registered_source("native_byte_error_preserves_declared_property_order", &source);
+
+}
+
+const REGISTERED_BYTES:&[(&str,&str,&str)]=&[
+    ("recursive_empty_component","mutually-recursive-view-callbacks",include_str!("fixtures/bytes/runtime-cases/mutually-recursive-view-callbacks.tsr")),
+    ("native_byte_type_imports_and_result_payloads_execute","native-byte-type-imports-and-result-payloads-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-type-imports-and-result-payloads-execute.tsr")),
+    ("native_byte_callable_and_generic_aggregate_storage_execute","native-byte-callable-and-generic-aggregate-storage-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-callable-and-generic-aggregate-storage-execute.tsr")),
+    ("exported_result_aliases_keep_builtin_identity_and_native_payloads","exported-result-aliases-keep-builtin-identity-and-native-payloads",include_str!("fixtures/bytes/runtime-cases/exported-result-aliases-keep-builtin-identity-and-native-payloads.tsr")),
+    ("native_byte_access_and_mutation_validate_before_writing","native-byte-access-and-mutation-validate-before-writing",include_str!("fixtures/bytes/runtime-cases/native-byte-access-and-mutation-validate-before-writing.tsr")),
+    ("native_byte_allocation_and_resize_preserve_defaults_and_atomic_errors","native-byte-allocation-and-resize-preserve-defaults-and-atomic-errors",include_str!("fixtures/bytes/runtime-cases/native-byte-allocation-and-resize-preserve-defaults-and-atomic-errors.tsr")),
+    ("native_byte_append_is_atomic_and_range_copies_are_independent","native-byte-append-is-atomic-and-range-copies-are-independent",include_str!("fixtures/bytes/runtime-cases/native-byte-append-is-atomic-and-range-copies-are-independent.tsr")),
+    ("native_byte_clone_storage_capture_and_evaluation_contracts_execute","native-byte-clone-storage-capture-and-evaluation-contracts-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-clone-storage-capture-and-evaluation-contracts-execute.tsr")),
+    ("native_byte_utf8_round_trips_and_strict_error_offsets_execute","native-byte-utf8-round-trips-and-strict-error-offsets-execute",include_str!("fixtures/bytes/runtime-cases/native-byte-utf8-round-trips-and-strict-error-offsets-execute.tsr")),
+    ("byte_views_read_and_write_through_public_imports","byte-views-read-and-write-through-public-imports-1",include_str!("fixtures/bytes/runtime-cases/byte-views-read-and-write-through-public-imports-1.tsr")),
+    ("byte_views_read_and_write_through_public_imports","byte-views-read-and-write-through-public-imports-2",include_str!("fixtures/bytes/runtime-cases/byte-views-read-and-write-through-public-imports-2.tsr")),
+    ("byte_views_read_and_write_through_public_imports","byte-views-read-and-write-through-public-imports-3",include_str!("fixtures/bytes/runtime-cases/byte-views-read-and-write-through-public-imports-3.tsr")),
+    ("byte_views_read_and_write_through_public_imports","byte-views-read-and-write-through-public-imports-4",include_str!("fixtures/bytes/runtime-cases/byte-views-read-and-write-through-public-imports-4.tsr")),
+    ("byte_views_read_and_write_through_public_imports","byte-views-read-and-write-through-public-imports-5",include_str!("fixtures/bytes/runtime-cases/byte-views-read-and-write-through-public-imports-5.tsr")),
+    ("capturing_callbacks_return_views_of_borrowed_owner_arguments","capturing-callbacks-return-views-of-borrowed-owner-arguments",include_str!("fixtures/bytes/runtime-cases/capturing-callbacks-return-views-of-borrowed-owner-arguments.tsr")),
+    ("temporary_callback_record_preserves_borrowed_owner_arguments","temporary-callback-record-preserves-borrowed-owner-arguments",include_str!("fixtures/bytes/runtime-cases/temporary-callback-record-preserves-borrowed-owner-arguments.tsr")),
+    ("native_view_constructor_inside_stored_callback_keeps_argument_ownership","native-view-constructor-inside-stored-callback-keeps-argument-ownership",include_str!("fixtures/bytes/runtime-cases/native-view-constructor-inside-stored-callback-keeps-argument-ownership.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-1",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-1.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-2",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-2.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-3",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-3.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-4",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-4.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-5",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-5.tsr")),
+    ("recursive_records_store_view_capturing_once_callbacks","recursive-records-store-view-capturing-once-callbacks-6",include_str!("fixtures/bytes/runtime-cases/recursive-records-store-view-capturing-once-callbacks-6.tsr")),
+    ("nullable_recursive_records_execute_beside_and_with_owned_callbacks","nullable-recursive-records-execute-beside-and-with-owned-callbacks-1",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-records-execute-beside-and-with-owned-callbacks-1.tsr")),
+    ("nullable_recursive_records_execute_beside_and_with_owned_callbacks","nullable-recursive-records-execute-beside-and-with-owned-callbacks-2",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-records-execute-beside-and-with-owned-callbacks-2.tsr")),
+    ("recursive_callbacks_return_extracted_families_with_shared_owner_lifetimes","recursive-callbacks-return-extracted-families-with-shared-owner-lifetimes",include_str!("fixtures/bytes/runtime-cases/recursive-callbacks-return-extracted-families-with-shared-owner-lifetimes.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-1",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-1.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-2",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-2.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-3",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-3.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-4",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-4.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-5",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-5.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-6",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-6.tsr")),
+    ("recursive_callback_record_parameters_return_the_stored_family","recursive-callback-record-parameters-return-the-stored-family-7",include_str!("fixtures/bytes/runtime-cases/recursive-callback-record-parameters-return-the-stored-family-7.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-1",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-1.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-2",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-2.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-3",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-3.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-4",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-4.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-5",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-5.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-6",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-6.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-7",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-7.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-8",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-8.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-9",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-9.tsr")),
+    ("recursive_records_with_only_captured_views_execute","recursive-records-with-only-captured-views-execute-10",include_str!("fixtures/bytes/runtime-cases/recursive-records-with-only-captured-views-execute-10.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-1",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-1.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-2",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-2.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-3",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-3.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-4",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-4.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-5",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-5.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-6",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-6.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-7",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-7.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-8",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-8.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-9",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-9.tsr")),
+    ("nullable_recursive_callbacks_join_factories","nullable-recursive-callbacks-join-factories-10",include_str!("fixtures/bytes/runtime-cases/nullable-recursive-callbacks-join-factories-10.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-1",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-1.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-2",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-2.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-3",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-3.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-4",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-4.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-5",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-5.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-6",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-6.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-7",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-7.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-8",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-8.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-9",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-9.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-10",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-10.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-11",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-11.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-12",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-12.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-13",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-13.tsr")),
+    ("mutable_recursive_parameters_replace_captured_view_callbacks","mutable-recursive-parameters-replace-captured-view-callbacks-14",include_str!("fixtures/bytes/runtime-cases/mutable-recursive-parameters-replace-captured-view-callbacks-14.tsr")),
+    ("native_byte_error_preserves_declared_property_order","native-byte-error-preserves-declared-property-order",include_str!("fixtures/bytes/runtime-cases/native-byte-error-preserves-declared-property-order.tsr")),
+];
+fn assert_registered_source(family:&str,source:&str){
+ let expected=support::format_round_trip(source);
+ let candidates=REGISTERED_BYTES.iter().filter(|(owner,_,_)|*owner==family).collect::<Vec<_>>();assert!(!candidates.is_empty(),"missing original family {family}");
+ assert!(candidates.iter().any(|(_,_,registered)|{
+  assert_eq!(registered.matches("export function run(").count(),1);
+  let original=registered.replacen("export function run(","function main(",1);
+  support::format_round_trip(&original)==expected
+ }),"{family}: original source/variant changed or disappeared");
+}
+#[test]
+fn registered_byte_runtime_family_executes_at_both_required_profiles(){
+ let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");let suite=root.join("crates/tsrust-compiler/tests/fixtures/bytes/runtime.test.tsr");
+ let expected=REGISTERED_BYTES.iter().map(|(_,name,_)|format!("bytes runtime > {name}")).collect::<std::collections::BTreeSet<_>>();assert_eq!(expected.len(),68);
+ for optimized in [false,true]{
+  let mut command=support::cli();command.current_dir(&root).arg("test").arg(&suite).args(["--reporter=json","--profile","--timeout=5000"]);if optimized{command.arg("--release");}
+  let output=support::run(&mut command,900);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));let text=String::from_utf8(output.stdout).unwrap();print!("{text}");
+  let rows=text.lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();let cases=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(cases.len(),68);assert_eq!(cases.iter().map(|row|row["name"].as_str().unwrap().to_owned()).collect::<std::collections::BTreeSet<_>>(),expected);
+  for row in cases{assert_eq!(row["status"],"passed","{row}");}
+  let summary=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summary.len(),1);for(field,value)in[("passed",68),("failed",0),("hookFailures",0),("skipped",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summary[0][field],value);}
+  let order="bytes runtime > native-byte-error-preserves-declared-property-order";let output=rows.iter().filter(|row|row["event"]=="output"&&row["name"]==order).map(|row|{assert_eq!(row["stream"],"stdout");row["text"].as_str().unwrap()}).collect::<String>();assert_eq!(output,"code,message,offset\n");
+  let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{let ms=builds[0][field].as_f64().unwrap();assert!(ms.is_finite()&&ms>=0.0);}
+ }
+}
+
+#[test]
+fn workspace_byte_view_workloads_keep_checked_carriers() {
+    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for name in ["captured_only","stored_callbacks","nullable_callbacks","parameter_stores"] {
+        let path=root.join(format!("benchmarks/runtime/workloads/native_byte_views_{name}.tsr"));
+        let output=support::run(support::cli().arg("check").arg(path),60);
+        support::success(&output);
+    }
+}
+
+#[test]
+fn loop_stored_view_callbacks_reject_owner_mutation_and_short_lifetimes() {
+    let helpers=include_str!("fixtures/bytes/loop-provenance.test.tsr").split("function observe").next().unwrap();
+    for (body,code) in [
+        ("const owner=unwrap(fromArray([7,255]));let root=empty();let i=0;while(i<2){root=node(owner);i++;}const moved=owner;console.log(first(root.read!()));","native-view-conflict"),
+        ("let root=empty();let i=0;while(i<2){const owner=unwrap(fromArray([7,255]));root=node(owner);i++;}console.log(first(root.read!()));","native-view-escape"),
+    ] {
+        for body in [body.to_owned(),body.replace("i++;}","i++;continue;}")] {
+            let directory=support::TempDirectory::new();
+            let path=directory.source(&support::format_round_trip(&format!("{helpers}function main(){{{body}}}")));
+            let output=support::run(support::cli().arg("check").arg(path),60);
+            assert!(!output.status.success());
+            assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")),"{}",String::from_utf8_lossy(&output.stderr));
+        }
     }
 }
