@@ -84,9 +84,9 @@ fn resources_reject_started_task_transport_and_private_runtime_imports(){
 #[test]
 fn ui_component_state_capture_and_queue_release() {
  let directory=support::TempDirectory::new();
- let owner=support::format_round_trip(include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/owner.tsr"));
+ let owner=support::format_round_trip(include_str!("fixtures/owner-handles/owner.tsr"));
  std::fs::write(directory.0.join("owner.tsr"),owner).unwrap();
- let source=support::format_round_trip(include_str!("../../../experiments/ui-tsrust-owner-handles/witnesses/tracked-release.tsr"));
+ let source=support::format_round_trip(include_str!("fixtures/owner-handles/tracked-release.tsr"));
  let output=support::run(support::cli().arg("run").arg(directory.source(&source)),90);
  support::success(&output);assert_eq!(output.stdout,b"UI retained resources released\n");
 }

@@ -7,6 +7,7 @@ The extra exported `serverOnly` function is deliberately absent from the API.
 ```sh
 tsrust api generate --config tsrust.api.json
 tsrust api generate --config tsrust.api.json --check
+tsrust api generate --config tsrust.server.api.json
 tsrust run
 ```
 
@@ -18,8 +19,7 @@ directories and edited generated files are preserved.
 
 Named calls use `createClient(transport)` and validate plain inputs/results. The
 transport returns `{ok:true,value}` or `{ok:false,error:{code,message}}`. A generated
-HTTP adapter and optional TanStack wrapper are generated alongside the plain
-client. Desktop integration remains part of the prototype work.
+HTTP adapter is generated alongside the plain client.
 
 Operations currently accept no argument or one required plain-data argument.
 Integers use safe JavaScript numbers; finite numbers, strings, booleans, null,

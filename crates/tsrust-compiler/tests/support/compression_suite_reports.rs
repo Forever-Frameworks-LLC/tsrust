@@ -33,12 +33,7 @@ const REGRESSIONS:&[(&str,&str,&str,&str)]=&[
  ("tcp_and_compression_copy_preserve_typed_errors_and_execute","compression runtime > tcp-pipeline","7\n5\nreply request\n",include_str!("../fixtures/compression/tcp-pipeline.tsr")),
  ("stream_constructor_reads_format_descriptor_without_consuming_it","compression runtime > format-descriptor","descriptor\n",include_str!("../fixtures/compression/format-descriptor.tsr")),
 ];
-fn exported_main(source:&str)->String{
- let tokens=tsrust_compiler::documentation::highlight(source,"tsrust").unwrap().into_iter().filter(|token|!matches!(token.class.as_str(),"plain"|"comment")).collect::<Vec<_>>();
- let declarations=tokens.windows(3).enumerate().filter(|(_,tokens)|tokens[0].class=="keyword"&&tokens[0].text=="function"&&tokens[1].class=="name"&&tokens[1].text=="main"&&tokens[2].text=="(").map(|(index,_)|index).collect::<Vec<_>>();assert_eq!(declarations.len(),1);
- let mut index=declarations[0];if index>0&&tokens[index-1].text=="async"{index-=1;}assert!(index==0||tokens[index-1].text!="export");
- let mut module=source.to_owned();module.insert_str(tokens[index].source.start,"export ");module
-}
+fn exported_main(source:&str)->String{super::support::exported_main(source)}
 fn same(source:&str,fixture:&str){assert_eq!(super::support::format_round_trip(&exported_main(source)),super::support::format_round_trip(fixture));}
 fn catalog()->Value{serde_json::from_str(include_str!("../../../tsrust-lsp/src/builtins.json")).unwrap()}
 fn example<'a>(catalog:&'a Value,name:&str,field:&str,index:usize)->&'a Value{let entry=catalog["std:compression"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();if field.is_empty(){&entry["examples"][index]}else{&entry["fields"][field]["examples"][index]}}

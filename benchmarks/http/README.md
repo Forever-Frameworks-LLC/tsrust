@@ -66,7 +66,7 @@ server's maximum throughput. The SQLite test uses warm in-memory reads and one
 connection; Tsrust/Rust use SQLx asynchronously, Node uses built-in synchronous
 SQLite with a prepared statement. SQLite versions are recorded per engine.
 
-From the repository root, with Rust 1.96.1 and Node v24.11.1 prepared locally:
+From the repository root, with Rust 1.99.1 and Node v24.11.1 prepared locally:
 
 ```sh
 TSRUST="$PWD/target/debug/tsrust" CARGO_TARGET_DIR="$PWD/target" CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --verify
@@ -217,7 +217,7 @@ TSRUST=/absolute/shared-target/release/tsrust CARGO_TARGET_DIR=/absolute/shared-
 TSRUST=/absolute/shared-target/release/tsrust CARGO_TARGET_DIR=/absolute/shared-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 node benchmarks/http/requests-run.mjs --uploads --prepared
 ```
 
-Use pinnedNode24.11.1 andRust1.96.1. CPU/RSS sampling requires macOS; untimed
+Use pinnedNode24.11.1 andRust1.99.1. CPU/RSS sampling requires macOS; untimed
 correctness can run on other supported targets. No prototype/admission results
 are ingested as accepted public measurements.
 

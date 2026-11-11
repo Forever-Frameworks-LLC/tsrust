@@ -1,6 +1,8 @@
 # Tsrust for VS Code
 
 Editor support for `.tsr` and `.tsrx`, powered by the shared compiler analysis.
+The `tsrust`, `tsr` and `tsrx` Markdown fence names use the same syntax grammar,
+including examples in hover and completion documentation.
 Install the release VSIX through **Extensions → Install from VSIX**. The CLI and
 language server are installed separately; Marketplace publication is not configured.
 

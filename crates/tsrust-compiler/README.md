@@ -23,7 +23,7 @@ CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build --offline --locked \
 The workspace has external dependencies; offline builds require explicit source
 preparation first. The compiler and LSP can check source without an external Rust
 compiler. Native build/run commands require the exact backend release recorded by
-`RUST_BACKEND_VERSION`, currently Rust 1.96.1. See the
+`RUST_BACKEND_VERSION`, currently Rust 1.99.1. See the
 [toolchain policy](../../docs/guides/tooling/rust-toolchain-policy.md).
 
 Use the [development workflow](../../docs/development-workflow.md) to select affected

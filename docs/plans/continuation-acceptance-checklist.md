@@ -74,7 +74,7 @@ and evidence reconciliation; they do not automatically require new implementatio
 - [ ] Backend: reconcile `/hello`, typed JSON/validation, middleware, native wrapper
   boundaries, database slice, cancellation/shared-state/cleanup and the scoped
   service readiness measurements. Full Hono/Web-standard compatibility is excluded.
-- [ ] Server HTML: reconcile a separate Html contract, JSX composition, contextual
+- [ ] Server HTML: reconcile a separate Html contract, TSRX composition, contextual
   dynamic escaping, explicit trusted markup and native response writing with the
   original HTML workload. Streaming and async components require separately scoped
   increments; do not infer their completion from synchronous output.

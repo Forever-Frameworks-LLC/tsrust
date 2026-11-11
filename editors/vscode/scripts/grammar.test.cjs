@@ -5,6 +5,16 @@ const path = require('node:path');
 const { Registry, parseRawGrammar } = require('vscode-textmate');
 const { loadWASM, OnigScanner, OnigString } = require('vscode-oniguruma');
 
+test('hover example fence names resolve to the Tsrust grammar', () => {
+  const manifest = require('../package.json');
+  const language = manifest.contributes.languages.find(language => language.id === 'tsrust');
+  const names = new Set([language.id, ...language.aliases].map(name => name.toLowerCase()));
+  for (const fence of ['tsrust', 'tsr', 'tsrx']) {
+    assert.ok(names.has(fence), `${fence} hover examples need a registered language name`);
+  }
+  assert.ok(manifest.contributes.grammars.some(grammar => grammar.language === language.id && grammar.scopeName === 'source.tsrust'));
+});
+
 test('real TextMate tokenization covers lexer syntax and multiline state', async () => {
   const wasm = fs.readFileSync(require.resolve('vscode-oniguruma/release/onig.wasm'));
   await loadWASM(wasm.buffer.slice(wasm.byteOffset, wasm.byteOffset + wasm.byteLength));
@@ -14,6 +24,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
   });
   const grammar = await registry.loadGrammar('source.tsrust');
   const cases = [
+    ['<Route path="/docs" render={() => <Text>Documentation</Text>}/>', [['Route','entity.name.function'],['path','entity.other.attribute-name'],['"/docs"','string.quoted.double'],['render','entity.other.attribute-name']]],
     ['const node = <View className="p-4"><Text>{count}</Text></View>; const next = 1;', [['View','entity.name.function'],['className','entity.other.attribute-name'],['"p-4"','string.quoted.double'],['next','source.tsrust']]],
     ['const node = <View as="section" role="region" aria-label="Account" data-slot="card"><Text as="h2">Profile</Text></View>;', [['aria-label','entity.other.attribute-name'],['data-slot','entity.other.attribute-name']]],
     ['async function answer(): Task<int> { return await work(); }', [['async','keyword.control.async'],['function','storage.type'],['Task','support.type.builtin'],['await','keyword.control']]],

@@ -37,7 +37,7 @@ are retained in `tsrust-stdlib-selection-review-f1910400.json`.
 | Unused binding | 2.777 ms | 149.143 ms | 3.371 ms | 311.891 ms | 25.528 ms |
 
 Values are medians of eleven process samples on Apple M3, Node 24.11.1,
-TypeScript 5.9.3 and Rust 1.96.1. This establishes a baseline, not a regression
+TypeScript 5.9.3 and Rust 1.99.1. This establishes a baseline, not a regression
 comparison. Warm builds avoid native compilation/linking; backend identity checks
 still dominate their recorded phases. Cold build cost dominates these tiny projects.
 No optimizer change is justified from two small fixtures alone. Larger module

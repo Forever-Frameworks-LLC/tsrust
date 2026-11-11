@@ -7,7 +7,7 @@ the implementation. Focused paired acceptance passes; canonical evidence closure
 ## Behavior
 
 `LazyChildren` is `Owned<Function<Child[]>>`. A declared function component whose
-children field accepts an owned zero-argument array factory receives nested JSX
+children field accepts an owned zero-argument array factory receives nested TSRX
 as that factory. Inherited and concrete generic props work. Attributes evaluate
 before the parent call; descendants construct only when called, in source order.
 Each invocation constructs fresh content. Ignoring or dropping the factory does

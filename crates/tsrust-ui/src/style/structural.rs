@@ -1,9 +1,9 @@
 //! Checked metadata predicates, shared between native matching and browser selectors.
 use super::State;
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 use super::Utility;
 use super::super::theme::Theme;
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 use super::super::Node;
 
 pub(super) fn name(value:&str)->bool {!value.is_empty() && value.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-')}
@@ -27,7 +27,7 @@ impl<'a> Predicate<'a> {
   if let Some(value)=text.strip_prefix("group-data-[") {let (attr,group)=value.split_once("]/")?;let (k,v)=attribute(attr)?;return name(group).then_some(Self::GroupData(k,v,group));}
   text.strip_prefix("[.").and_then(|v|v.strip_suffix(']')).filter(|v|name(v)).map(Self::Class)
  }
- #[cfg(any(all(test, feature = "runtime"),feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
  fn matches(self,node:&Node,ancestors:&[&Node])->bool {
   fn data(node:&Node,key:&str,value:&str)->bool {match key {"state"=>node.semantics.state==value,"slot"=>node.semantics.slot==value,"size"=>node.semantics.size==value,"variant"=>node.semantics.variant==value,"orientation"=>node.semantics.role=="separator" && (if node.semantics.orientation.is_empty(){"horizontal"}else{&node.semantics.orientation})==value,_=>false}}
   fn has(node:&Node,key:&str,value:&str)->bool {node.children.iter().any(|child|data(child,key,value)||has(child,key,value))}
@@ -52,7 +52,7 @@ enum Descendant {Svg,DefaultSvg,DirectLink,Row,LastRow,DirectLastRow}
 impl Descendant {
 #[cfg(any(test,feature="runtime"))]
  fn css(self)->&'static str{match self{Self::Row=>" :where(tr)",Self::LastRow=>" :where(tr:last-child)",Self::DirectLastRow=>" > :where(tr:last-child)",Self::Svg=>" :where(svg)",Self::DefaultSvg=>" :where(svg:not([class*='size-']))",Self::DirectLink=>" > :where(a)"}}
- #[cfg(any(all(test, feature = "runtime"),feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
  fn matches(self,node:&Node,direct:bool,ancestors:&[&Node])->bool{let last=||ancestors.last().and_then(|parent|parent.visible_children().last()).is_some_and(|child|std::ptr::eq(child,node));match self{Self::Row=>node.tag()=="tr",Self::LastRow=>node.tag()=="tr"&&last(),Self::DirectLastRow=>direct&&node.tag()=="tr"&&last(),Self::Svg=>node.kind==super::super::Kind::Svg,Self::DefaultSvg=>node.kind==super::super::Kind::Svg&&!node.class_name.contains("size-"),Self::DirectLink=>direct&&node.tag()=="a"}}
 }
 #[cfg_attr(not(any(test,feature="runtime")),expect(dead_code,reason="Authoring validates the shared grammar; rendering consumes descendant/predicate metadata"))]
@@ -79,15 +79,27 @@ pub(super) fn parts(class:&str)->Result<Parts<'_>,String> {
  Ok(Parts{state,token,placeholder,descendant,predicates})
 }
 pub(super) fn marker(token:&str)->bool {token.strip_prefix("group/").is_some_and(name)}
+/// Internal Kit style surfaces have no authored node metadata or descendants.
+#[cfg(any(all(test, feature="runtime"),feature="gpui"))]
+pub(crate) fn surface_at_width(classes:&str,theme:&Theme,mode:&str,width:f32)->Vec<(State,Utility)> {
+ let mut variables=std::collections::BTreeMap::new();let mut filtered=Vec::new();
+ for class in classes.split_whitespace() {
+  let parsed=parts(class).expect("validated utility");
+  if parsed.descendant.is_some() || !parsed.predicates.iter().all(|predicate|match predicate {Predicate::Dark=>mode=="dark",Predicate::MinWidth(min)=>width>=*min as f32,_=>false}) {continue;}
+  if let Some((name,scale))=super::custom_spacing::declaration(parsed.token){variables.insert(name.into(),super::layout::spacing(scale,theme));}
+  filtered.push(class);
+ }
+ super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables)
+}
 #[cfg(all(test, feature = "runtime"))]
 pub(crate) fn resolved(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  scoped(node,ancestors,theme,mode,&std::collections::BTreeMap::new()).0
 }
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
  scoped_at_width(node,ancestors,theme,mode,inherited,0.)
 }
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>,width:f32)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
  let mut variables=inherited.clone();let mut output=Vec::new();
  let sources=ancestors.iter().enumerate().map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
@@ -103,7 +115,7 @@ pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&s
  }
  (output,variables)
 }
-#[cfg(any(all(test, feature = "runtime"),feature="native"))]
+#[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}
 #[cfg(any(test,feature="runtime"))]
 pub(super) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String {

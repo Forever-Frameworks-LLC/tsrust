@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate `tsrust test` suites from the editor catalog's verified examples.
 
-Each non-UI catalog group becomes one directory, which `tsrust test` compiles into
+Each verified catalog group becomes one directory, which `tsrust test` compiles into
 one native program. Every example becomes a test that asserts its recorded
 standard output through std:testing startOutputCapture/finishOutputCapture.
 
@@ -73,8 +73,6 @@ def main():
     counts = {"tests": 0, "host": 0, "groups": 0}
     seen = set()
     for group, entries in sorted(catalog.items()):
-        if group == "std:ui" or group.startswith(("Ui", "std:ui")):
-            continue  # frozen UI
         directory = output / re.sub(r"[^A-Za-z0-9]+", "-", group).strip("-").lower()
         written = 0
         for entry in entries:

@@ -1,5 +1,4 @@
 use serde_json::json;
-use tsrust_compiler::project::SourceId;
 use tsrust_lsp::{workspace::Workspace,project_intelligence::ProjectIndex};
 
 /// Unix virtual paths stay as written; Windows gains a drive so both are absolute.

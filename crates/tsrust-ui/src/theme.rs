@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 mod paint_color;
 pub use paint_color::ResolvedColor;
+pub(crate) use paint_color::{fixed as fixed_color, palette_names};
 
 pub const COLORS: &[&str] = &["background", "foreground", "card", "card-foreground", "primary", "primary-foreground", "secondary", "secondary-foreground", "muted", "muted-foreground", "accent", "accent-foreground", "destructive", "destructive-foreground", "border", "input", "ring", "syntax-keyword", "syntax-string", "syntax-number", "syntax-type"];
 pub fn key_name(key:&str)->String {

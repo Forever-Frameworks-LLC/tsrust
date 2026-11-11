@@ -389,7 +389,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         programs.insert(id.clone(), program);
     }
     let mut linked = Program {
-        diagnostic_first: None,
+        diagnostic_first: None, diagnostic_completed: None,
         diagnostic_skips: Default::default(), generated_continuations: Default::default(),
         diagnostic_contracts: Default::default(),
         unresolved_local_function: None,
@@ -614,7 +614,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         Ok(checked)=>checked,
         Err(error)=>{
             if let Some(errors)=diagnostics {
-                errors.extend(crate::semantic_diagnostics::collect(linked,error.clone()).into_iter().map(|error|diagnostic(&graph,&segments,error)));
+                let bundled=segments.iter().filter(|(id,_,_)|crate::project::bundled_source(id).is_some()).map(|(_,start,end)|Span::new(*start,*end)).collect::<Vec<_>>();
+                errors.extend(crate::semantic_diagnostics::collect(linked,error.clone(),&bundled).into_iter().map(|error|diagnostic(&graph,&segments,error)));
             }
             return Err(diagnostic(&graph,&segments,error));
         }

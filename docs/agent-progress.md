@@ -2,9 +2,1228 @@
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
-v0.2.0 merge/publication is not approved. v0.1.2 is released.
+Owner authorized PR preparation, new-version promotion to main/publication, deployment
+and local installation/update verification on2026-11-10. Candidate compiler0.2.0,
+LSP0.3.0, extension0.2.2; v0.1.2 remains public until promotion completes.
 
 ## Current continuation — 2026-11-08
+
+### Active release preparation — 2026-11-10
+
+Release-only managed worktree: /Users/seancotter/.codex/worktrees/toolchain-release/tsrust,
+branch codex/release-0.2.0 from11f63fd4; release checkpoint includes this record. Original checkout is actively implementing
+Studio in a separate chat; do not edit, stage, reset or switch it. No authorization
+was given to send that chat messages. Shared Cargo target remains the original
+checkout's target, incremental off/jobs1. First release push completed at7b256e4a6621794e0a0834f5cd286659fad42182.
+PR#18 targets stag: https://github.com/Forever-Frameworks-LLC/tsrust/pull/18.
+First Documentation42926496344 passed. First CI42926496496 passed docs-independent
+lint/library/extension and all3 packaged builds; runtime/host groups were still
+active when the proven publisher-recovery repair changed the input. Current
+candidate0984945028d8ba9539710a87ac20c65a5fed13c7 is pushed on PR#18. Final CI42928362164
+and Documentation42928362199 passed. CI42928362164 passed lint/tooling, compiler/LSP
+libraries, extension and all3 packaged builds. Windows runtime137 suites completed:
+136passed, only examples/gpui-starter/tests failed. GPUI shader build.rs appends
+forward slashes to verbatim OUT_DIR (`\\?\D:\.../quad_vs.h`), causing Windows
+InvalidFilename123. Runtime_artifacts canonicalizes the target for locking; that
+spelling was also passed to Cargo. Repair retains canonical locks/artifact checks
+but passes the existing display_path drive/UNC spelling to Cargo. Non-Unicode paths
+are retained without lossy conversion. Drive/UNC and non-Windows regression1/1
+passed (0.00s execution,9.14s build); actual Cargo graph/cache-lock regression1/1
+passed (1.45s execution,0.12s setup). Distribution/promotion26/26 passed again.
+Whole formatter0files; Windows shader compilation still requires hosted verification.
+Cancelled Linux runtime logs also contain a real failed suite: the cold GPUI
+starter exceeded the combined600s build/run timeout. Mac passed that same suite
+in496.4s; Linux completed93 suites and Mac106 before fail-fast cancellation.
+Runner repair gives only examples/gpui-starter/tests1800s combined cold-build/run
+budget; other suites retain600s, and the enclosing CI job remains45minutes.
+Existing public --profile/--reporter json now separates buildSeconds/testSeconds;
+failed JSON output is retained even when later passing tests follow. Python2/2
+regressions pass and are wired into CI tooling. Real public runner local samples:
+examples/testing and complete GPUI starter2directories/5files pass,27.4s wall,
+26.976s reported build and0.004s reported test execution. Intentional async-failure
+fixture remains rejected with exit1,1.833s build/0.010s tests, complete failure events.
+This does not count a timeout as passing; Linux cold completion still needs CI.
+Host boundaries on0984945: Linux21targets/170tests pass28m40 job wall; Mac21/170
+pass37m54 job wall (1663.20s harness wall includes child compilation, separate top
+builds2m54/3m08/2m51). Windows21targets/166tests pass45m32 job wall (2048.17s harness wall includes
+child compilation; separate top builds3m18/3m14/2m30). Aggregate old-head CI failed
+as expected for the Windows shader failure and Linux timeout; Mac/Linux runtime
+cancellation is incomplete acceptance. Both repairs are locally ready together.
+Next push is for required final merge acceptance; exact new source checkpoint and
+clean preflight identify its inputs. Previous equivalent input0984945 is fully
+accounted above. Windows shader completion and Linux cold GPUI build cannot be
+proved on this Mac and require the repaired hosted matrix. No duplicate manual
+workflow dispatch or speculative release publication is authorized/needed.
+Staging rules require squash/rebase and linear history, CI mandatory without bypass.
+The owner has an explicit PR-only review bypass. Main requires a normal merge and
+Release gate with no bypass. Use the configured owner review path only after green
+CI; do not bypass checks or alter rules. No merge/publication yet.
+Candidate checkpoint3fbfad83 passed clean
+v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
+not fetched before offline suites, and Linux speech builds lacked ALSA headers;
+added the exact GPUI manifest fetch and libasound2-dev before the first push;7b256e4a clean release preflight passed.
+
+Live remote: v0.1.2 latest, compiler0.1.2/LSP0.2.2/extension0.2.1. Promotion PR#17
+stag->main is open at9bcbfa1c; prior Release42654579465 passed Linux/Windows/editor,
+macOS was cancelled/abandoned, gate failed. CI42617834174 oncf7dfbae passed.
+Stag9bcbfa1c is a squash with EXACT tree5033211af1ffa04e7891a8cf29112367fb884b8b,
+identical to ancestorcf7dfbae. Ordinary merge causes false historical conflicts;
+aborted that merge, verified tree equality, then merge -s ours --no-commit origin/stag
+preserves all staging content plus accepted UI work. The release checkpoint records both parents after proving this exact equivalence.
+
+Release changes: extension0.2.2 in package and lock; release notes include GPUI,
+new versions/Rust1.99.1/three prebuilt targets and explicit UI limitations. Public
+reference generator had stale UiComputed/UiSignal exclusions and hid std:ui;
+repaired mapping and added UI reference, overview link and accurate status scope.
+Generator comments/test title now reflect current UI/three-host behavior.
+
+Passed local checks: release/distribution tooling24/24 (2.34s); extension discovery4
+and grammar2, compile and VSIX0.2.2 package; site79pages/129HTML outputs, Python3/3,
+rendered links/anchors/assets129pages. Both UI generators --check and diff pass.
+Whole formatter0files/snippets/fingerprints after installing unchanged dependencies.
+Initial worktree setup lacked benchmark TypeScript and cached yazl; dependencies
+now prepared. Native milestone passes: compiler library1541/1549 active registrations,8existing
+ignores,255.02s execution and6m09 build/setup. CLI48/49 initially passed; the one
+failure was a stale Settings wrapper export list. Updated its exact expected6
+exports and asserted both new formatted wrapper functions; focused rerun1/1 passed
+in0.01s (8.58s build), preserving the48 earlier passes. LSP library26/26,.17s and
+binary6/6,.02s pass. Exact CI correctness lint passes (2m14); existing style warnings
+remain and no warning suppression was added. New headless UI catalog suite8/8
+passes through public tsrust test,1.85ms execution,2m49 setup/build including queue. Preserve prior accepted full backend133
+suites/21host evidence and latest UI/byte-view regressions instead of rerunning them.
+
+Publisher recovery defect proven from live evidence: successful Release41942318885's
+promotion.json pins PR14/head7771cec6, while GitHub now reports PR17/head9bcbfa1c
+in run.pull_requests after stag reuse. This field is mutable, not durable provenance.
+The local repair fetches snapshot.pull directly, validates its repository/branch/
+number/head/base or merged state, and retains all exact run ID/event/head/source
+parents/tree/artifact checks. Added stale/missing-association and already-merged
+publication retry controls; distribution/policy26/26 pass (2.37s). This is a real
+publication-recovery repair, not a test-iteration push. PR#18 must include it before
+promotion; CI repeats for the changed trusted publisher input. Preserve first-run
+passed gates and check all final-head gates again.
+
+IMPORTANT publisher compatibility: main8efaaee2 still requires four archives,
+while accepted stag/candidate intentionally dropped Intel macOS and requires3.
+Do not weaken artifact validation or restore unsupported Intel builds. After the
+new PR->stag CI and promotion Release gate pass, normal main merge of the tested
+promotion can update the trusted publisher. Resume publication against that new
+trusted main using the existing successful Release artifacts (rerun only its gate
+if necessary to emit a new workflow_run event), checking exact tree/source/asset
+provenance. No tag/release before checks. Record any recovery result precisely.
+
+Raw active logs /tmp/tsrust-release-*.log are disposable. Local checks completed.
+Monitor remote CI before merging PR#18, then promotion PR#17. All prior local
+sessions completed. Compiler CLI repair18343 and lint94150
+completed successfully. Baseline managed installation completed via65802; first
+attempt only needed its missing parent directory created. The baseline install
+uses the existing0.1.2 CLI into new ~/.local/share/tsrust/toolchain, preserving
+~/.cargo/bin. Baseline commands report compiler0.1.2/LSP0.2.2 and public check
+returns managed=true/updateAvailable=false/latestStableVersion=0.1.2. After
+public0.2.0, exercise actual check/update, verify installed pair,
+VSIX and editor behavior, docs deployment and hashes. Do not call this complete
+until main/tag/assets/deployment/local installed update all pass.
+
+### Tsrust Studio planning — 2026-11-10
+
+Owner selected Studio inside this repo, an ordinary Tsrust project with all
+application/agent/evaluation/training orchestration in .tsr/.tsrx. Native engines
+must be Tsrust-managed dependencies exposed through bindings/stdlib, with no
+separate model-server or Python setup. Minimum complete offline target is verified
+Apple M3/8GiB; owner's future Windows reference is32GB RAM/RTX4090 (not inspected).
+Mac first, Windows next, Linux deferred. Full feature acceptance precedes signing/
+packaging; no reduced early MVP. Local specialization includes baseline research,
+fine-tuning and qualified model distribution. Cloud APIs and external agents are
+also required later. Agents always propose diffs; no competing live-workspace writes.
+
+Draft plan: [Tsrust Studio](plans/tsrust-studio.md), with requirements, native-only
+worker proposal, public Tsrust capability gaps, document/task coordination,
+full feature inventory, model/training/evaluation phases and minimum-memory proof.
+Candle and mistral.rs Rust SDK are research candidates, not selected/verified
+integrations. Differentiation primitives and quantized inference do not prove a
+usable adapter-training pipeline. Exact model/backend, quality/resource thresholds
+and training budget remain research gates. No model downloads, inference/training,
+application scaffolding, source/dependency changes or releases were performed.
+This plan is for owner review; it does not start an autonomous implementation goal
+or override unrelated v0.2.0 acceptance. Next action: review the draft, then begin
+its bounded capability audit/local-AI proof when implementation is requested.
+
+### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
+
+Owner reported the close button overlapping the command panel. Final change is a
+single p-4 View around the gallery search Command in src/search.tsrx, adding equal
+padding on all four sides while retaining Kit's original rounded border/background.
+The first local attempt used top-only padding and bordered=false; owner rejected
+the squared panel and unbalanced gap, so both were corrected before checkpoint.
+No renderer, public API, search ranking, generated files or new dependencies change.
+
+Final native gallery build passes. Whole formatter0files/snippets/fingerprints and
+diff check pass. Native CUA verifies equal inset on all four sides, rounded panel,
+and unobstructed Close in light/dark themes with the exact Custom input menu query.
+Close works and reopening retains the query. Prior intermediate Enter navigation
+also opened Input; handlers are unchanged. Independent app bundle atomically
+refreshed and one preview left open on dark search for inspection. Completion:
+Verified balanced rounded search spacing. No CUA phase open. No broad regression,
+web interaction, performance measurement, push or remote validation for this
+reversible gallery-only layout change.
+
+### Composed gallery examples — 2026-11-10 (accepted with this checkpoint)
+
+Owner requested readable shadcn-style example composition instead of giant title,
+description and escaped code props. `src/example.tsrx` now exports ExampleTitle,
+ExampleDescription, ExampleTabs, ExamplePreview and ExampleCode alongside Example.
+Example only lays out children. ExampleTabs reuses native Tabs/Tab/TabsContent
+selection and retained child nodes; no separate signal/context API. ExampleCode
+accepts string children, displays Markdown source and owns the Copy control inside
+the code panel. Guide live examples use the same tabs/preview/code composition;
+the duplicate LiveExample implementation is removed. The gallery generator emits
+readable text children and multiline template children, escaping backslashes,
+backticks and interpolation openers without changing displayed source. Regenerated
+all71 component pages/358 examples and guide live blocks; README explains sources.
+
+Completed: full gallery project check; both generators --check; whole formatter
+0files/snippets/fingerprints; diff check; bounded Table authoring regression1/1,
+18.75s execution,4m40 build/setup including shared-target queue. Existing composition
+cases8/8 passed,2.69ms entire initial run. New native composition witness initially
+asserted Markdown source was in document HTML, but Kit props are omitted by that
+serializer; a labeled rerun confirmed precisely this unsupported assertion. The
+source assertions were removed; headings, preview and Copy remain asserted. Final
+focused rerun1/1 passed,1.51ms execution; setup/build3m40 including queue. This
+preserves the existing8/8 evidence instead of rerunning unchanged cases. Independent
+Node VM evaluation of all373 generated template literals matches original spec/guide
+code byte for byte. Native gallery build passed; regular app-bundle executable was
+atomically replaced, old preview terminated, and one independent preview reopened.
+Desktop proof: Basic Accordion initially expands first item; second item remains
+expanded after Code -> Preview switching. Code panel shows highlighted source;
+Copy pastes the complete expected18-line BasicAccordion function into a disposable
+unsaved Code buffer, which was closed without saving. Gallery left on Accordion
+preview. CUA completion: Verified composed example tabs and copy. No CUA phase open.
+VS Code full rescan settled
+idle and CUA reports no workspace problems. No compiler/runtime/LSP source changes,
+new dependency, performance measurement, push or remote validation. Web interaction
+was not rerun for this example-only refactor; native/structural proof is above.
+Pruned four superseded failed-test cache entries; kept final native cache entries,
+shared runtime build support, shared Cargo dependencies and independent app bundle.
+
+### Native text, parser and packaging finish — 2026-11-10 (accepted with this checkpoint)
+
+Latest accepted checkpoints: fd803813 resolves all16 reported workspace diagnostics;
+2bdecffe preserves native behavior for utility-styled buttons. This final family:
+- Native Text uses GPUI StyledText/TextRun through a small RenderOnce adapter, reading
+  inherited window text style at layout. Nested weight/italic/family/colors/solid
+  background/underline/strike stay in one paragraph; explicit no-underline and sans
+  reset work. Root hover inheritance remains native. Text/UTF8/order preservation
+  is asserted against the existing content_text control. Rich Kit button labels use
+  the same runs while retaining an explicit accessible name; ordinary labels keep
+  the upstream label path. Unstyled href links reuse native Kit Button link behavior
+  with no padding/automatic height, replacing the mouse-only upstream Link Div.
+- Inline validation now admits italic/strike/solid background. The first desktop
+  attempt exited because the old shared whitelist rejected those paint effects;
+  corrected at that common boundary. A regression accepts the paint combination
+  and still rejects padding, positioning and flex layout inside text.
+- The new legitimate guide found raw TSRX punctuation after nested tags being read
+  as expression operators. Parser::is now excludes JsxText like String/template
+  tokens. Native punctuation suite proves exact café/punctuation/as/in/satisfies
+  output and normal postfix .length outside markup. Malformed Unicode/nested markup
+  returns valid diagnostics without panicking in the targeted project witness.
+- Styling guide/live examples and hover help now state actual GPUI limits instead
+  of claiming universal parity. Nested links inside Text still lack separate native
+  hit/focus targets; use a Link beside Text. One paragraph has one size/line height.
+  Tracking/balance/transforms/underline offsets/animations/pointer-selection helpers/
+  field-sizing/justify-self/auto-row-min/table CSS/nonuniform tracks/placeholder and
+  inline interaction-state mappings remain explicit limitations. No full CSS or
+  upstream Kit parity claim; prior catalog count1939/2147,20 incomplete is unchanged.
+- Added isolated KeyboardLinks guide example using createLocation. Native AX exposes
+  Open local docs as Link; Shift+Tab focus ring then Enter changes /links/home to
+  /links/docs, keeping the gallery on the same page and opening no other window.
+
+Acceptance (build/setup separate from test execution):
+- UI lib137/137,.04s; build2m37s including queue. Prior136 also passed before whitelist
+  repair. Compiler ui_authoring6/6,19.35s, including bounded Table replay and malformed
+  markup checks; LSP TSRX6/6,1.88s. Public punctuation suite2/2,.27ms execution,
+  compiled together once. Fixture initially had an unrelated optional-array join
+  inference error; required children fits every call and preserves exact oracles.
+- Both consumers rebuilt2m36s for the final runtime validation; parser build2m49s.
+  Native gallery build passes. Workspace/all-target1m49s and separate backend/all-
+  target3m18s pass for current Rust changes. Existing shared test-helper warnings
+  remain reviewed/unchanged; no warning suppression or new runtime timing/SQLite.
+- Desktop visual proof: bold café rose -> sky on signal update; italic monospace
+  code on amber; no-underline clears only its span; sans resets within mono; bold
+  rich button name is exposed. Stock Kit buttons intentionally avoid mouse focus:
+  after Shift+Tab gives keyboard focus, Space activates the rich button and changes
+  sky -> rose. Earlier styled Base Button click/Space/Enter/disabled proof remains.
+- Live editor final server25028 is idle (CPU0%,RSS2160KiB at33m15 after restart) and
+  CUA reports no problems. Old accessible panic message is historical: Tsrust log
+  has three project/link.rs:431 failures before the4:20:05PM restart, none after.
+  This replaces the earlier transient-cleared count. Last CUA completions: Verified
+  native inline text styling; Verified native link keyboard navigation; Verified
+  final editor diagnostics cleared. No CUA phase open.
+- Whole formatter after new fixture/code:0 files/snippets/fingerprints on final
+  pass; both generators and diff passed. This record is included in the local source checkpoint.
+
+Unsigned public packaging smoke passed: a real release build made ZIP, DMG and
+SHA256SUMS. Both hashes verified, archive plist/app.json confirm CLI name Override
+Smoke, config id dev.tsrust.smoke/version1.2.3/repo example/smoke; CLI cwd-relative
+artifacts overrides configured-artifacts (absent). No signing/notarization or
+publication. hdiutil only emitted a host deprecation notice. Temporary smoke tree
+and raw verification data/logs are disposable; do not retain as canonical records.
+
+Cleanup: removed unused target/debug/incremental4.1GB and secondary gpui-stable3.1GB
+only after verifying no active consumers. Keep original target/gpui-starter file.
+Current independent bundle /private/tmp/Tsrust Gallery.app is a regular copied
+executable, parent launchd; one preview process43849 at last inventory. Final prose-only guide rebuild97964 passed; bundle atomically replaced and
+reopened on Styling and Themes, inline example visible. CUA completion: Left the
+updated gallery open. Official native cache cleanup removed25 artifacts/8,574,772,414 bytes; temp cleanup completed
+before the local checkpoint; preserve this regular bundle and compiler/LSP bins.
+Do not restart unchanged heavy matrices or push. All latest logs are /tmp/tsrust-ui-*.log and are disposable after this record.
+
+### Workspace diagnostics repair — 2026-11-10 (accepted fd803813)
+
+Owner screenshot disproved the transient cleared Problems pane:16 diagnostics
+remained after the prior scan. All are now resolved without diagnostic exclusions.
+- Generated both private server SDKs with their checked API configs; resolved the
+  rust-owned-words binding lock offline. API-contract README includes its server
+  config. Ignored generated SDKs are local setup; the dependency lock is retained.
+- Updated dock/gallery/gallery2/gallery3 to current ListItem, string-valued Tabs,
+  InputGroup composition, InputChangeEvent.target.value, Combobox array events and
+  JSON DataTable rows. List retains initial Drafts selection and reports the row.
+  All four check. Realtime SSE handler is async, allowing its runtime-driven
+  producer start; it checks, along with both server witnesses and words/main.
+- Removed unreachable return after an unconditional returning loop from both
+  scoped composition counterparts; explicitly reviewed/updated source hashes.
+  Prior timing remains historical; this run makes no new performance claim.
+- Loop completion now retains newly stored native-view loans on fallthrough and
+  continue without propagating back-edge moves. Recursive view record stores use
+  their already-checked whole-body carrier rather than unrelated nullable join
+  restrictions. All four failing byte-view workloads check and execute correctly.
+- Extended exact-path/exact-byte bundled_entry mapping to split UI facade parts
+  and logging; observes all parts before trusting either UI fragment. LSP uses it
+  only for entries, never imports. Unsaved changes revoke the mapping. All three
+  compiler-owned files check. No private-binding access granted to user modules.
+
+Acceptance:
+- New public loop-provenance suite2/2 native tests,0.74ms execution. Whole formatter
+  proves stable formatted source. All30 std_bytes host tests pass (49.84s), including
+  owner-mutation/short-lifetime rejection on fallthrough and continue and existing
+  native runtime family at both required profiles. Host build3m49s incl queue.
+- Five affected workloads pass native and Node-after-tsc correctness-only checks,
+  five input cases each, matching independent oracles. All12 Node source/oracle
+  registration guards pass (57.21s). No timing or SQLite row added.
+- Full compiler lib1541 passed,0 failed,8 existing ignores,147.55s execution;
+  build7m43s incl queue. LSP lib26/26 (.16s); first run25/26 failed only because the
+  new fixture used a forbidden absolute import; corrected to a relative import.
+- LSP workspace6/6 (.01s) and workspace_scan8/8 (.02s) pass; build4m49s incl queue. Both workspace/all-target and backend/all-target
+  compile. Existing unused members in shared runtime/test controls still warn;
+  all warning sources outside the removed unused native_threads host_id helper
+  are unchanged. No blanket warning suppression. Affected native_threads check
+  rerun passes with no warnings (59.69s incl queue).
+- Both consumers rebuilt7m09s incl queue. Live VS Code restarted onto PID89997;
+  after the entire scan settled (CPU0%, RSS6048KiB at10m39s after restart), Problems
+  pane reports no problems. CUA completion: Verified a clean workspace scan.
+  This is settled verification, replacing the earlier transient cleared count.
+- Whole formatter0 files/snippets/fingerprints; both UI generators and diff pass.
+
+Styled Button WIP also has a successful native gallery build. Bundle atomically
+replaced and reopened, retaining launchd ownership. Desktop proof: click count1;
+click+Space+Enter count4; disabled click remains4 with50% opacity; re-enable,Tab,
+Enter reaches5 with native focus ring. Ordinary buttons now expose button roles
+rather than implicit toggles. CUA does not expose the final page controls in its
+AX dump; manual keyboard/visual proof plus upstream Base Button role contract,
+not a claim of a separate AX audit. Last native CUA completion: Verified native
+styled button behavior. Current preview remains open on that example, enabled,
+count5. Styled changes are validated for their separate source checkpoint. Remaining
+style work: audit unsupported native utility effects and inline text styling; do
+not claim browser CSS parity. No CUA phase open now.
+
+Remaining sessions: unsigned local macOS package smoke94211 (release GPUI build).
+Other checks completed; collect remaining sessions as needed. Logs in /tmp are
+disposable after this evidence. Package source/config in /tmp/tsrust-package-smoke;
+config defaults id dev.tsrust.smoke/version1.2.3/repo example/smoke, CLI overrides
+name to Override Smoke and output to cwd-relative artifacts. No signing/publishing.
+
+### Gallery LSP index repair — 2026-11-10 (accepted8a3c74a8)
+
+Latest accepted local source da2b668b contains Questionnaire/Settings/custom menus;
+84c64577 contains Speech. Current LSP changes validated as follows:
+- Real header gallery index/request: 1/1,8.33s total including90.43ms header setup.
+- Real checked gallery index/request: 1/1,58.29s harness including48.198s compiler
+  graph setup. Header build5.996s, facts77ms, application1.686s, references2.179s.
+  Both retain Route hover and its bundled source definition. Index deadline stays
+  30s after setup; compiler setup has a separate180s watchdog. No benchmark claim.
+- LSP lib25/25 (.19s), checker agreement5/5 (295.91s), typing matrix3/3 (226.18s),
+  editor consistency30/30 (84.17s), intelligence331 relevant tests passed, TSRX6/6
+  (.77s). 400 ordinary editor tests plus the two real gallery tests pass.
+- The native backend catalog also ran because the initial skip named its helper,
+  not its #[test] wrapper backend_catalog_examples_match_native_output. It failed
+  at HttpApp.listen under the known sandbox restriction (147.38s harness including
+  native builds). This runtime-only gate is unaffected by LSP changes. Every
+  catalog key outside std:ui is byte-equivalent as parsed JSON to 4e766220, whose
+  retained full native catalog passed (including resumed HttpApp onward1492.20s).
+  Reuse that completed evidence; do not rerun the unchanged heavy runtime catalog.
+- Both consumers rebuilt successfully (15.64s); whole formatter zero files/snippets/
+  fingerprints, generators and diff check pass. No new runtime measurements or CI.
+
+Root causes/fixes: importing each prop field rescanned duplicate record owners and
+remapped every record in its dependency. Unique record names are collected once,
+field identifiers once, and only referenced types are remapped/imported. Successful
+nominal declaration spellings cache per SourceIndex revision/source/span; generic
+arguments still resolve separately. Declaration/field/native docs borrow one raw
+catalog entry instead of cloning the module. Generic receiver substitution stays
+in builtins_for. Project source indices consume the project graph's checked facts
+and skip redundant standalone compiler checks; ordinary single-file construction
+is unchanged. Checked fields apply only in their owning module, with foreign
+shapes imported on demand; copying all std:ui fields into each importer cost~4.3s
+per module. Structural fields filter by their own source; named inherited fields
+follow the owner declaration. No artificial size caps or weaker type coverage.
+
+Evidence: old live server84953 stayed99% CPU >30min, footprint/peak809MB. Its sample
+was ProjectIndex.checked -> apply_project_checked_facts -> project_type_spelling.
+Separate samples localized duplicate standalone checks and per-page record imports.
+New tests/gallery_index.rs use the actual84-module gallery once per case, separate
+setup from a bounded index/request phase, and run no separate native programs.
+
+Live refresh: VS Code restarted onto the repaired binary (new PID20030, old84953
+exited). Input.onValidate shows current behavioral help and No Problems. Inspection
+keystrokes briefly typed into a selected attribute; all were undone, unsaved flag
+cleared, original onValidate restored and git diff confirms Input.tsrx unchanged.
+Last CUA completion: Verified refreshed TSRX editor help. A subsequent live sample
+of20030 showed workspace_scan.Cache.check_cancellable -> compiler analysis, not
+indexing. Whole-workspace compiler checking is still active; do not claim idle or
+use transient No Problems as proof it settled. Monitor later; no CUA phase open.
+
+Owner noticed two previews. Confirmed processes: original53885 ./target/gpui-starter
+(~7h old) and current1217 /private/tmp/Tsrust Gallery.app/Contents/MacOS/gpui-starter.
+Explained that the original was preserved and Tsrust Gallery has current changes.
+Do not close the original unless the owner asks. Current gallery remains open on
+Input, custom menu field='Hello from the menu', independently of Claude.
+
+Next: finish formatter/local checkpoint for this LSP section, then native classed
+Button keyboard/focus/a11y and native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. Existing full compiler/LSP
+milestones remain evidence. No push/release/agent work authorized or needed.
+Research: gpui-base-0.9.0/src/button.rs provides an unstyled native Button that owns
+keyboard/focus/a11y and implements Styled, InteractiveElement and
+StatefulInteractiveElement. Use it for the raw-Div classed core Button path, sharing
+utility rule application with styled_rules. Styled Kit Button installs its own
+hover and debug-asserts if a second one is supplied. Preserve href/labels/ids,
+disabled/tab settings, press handlers and rich children. kit_button also calls
+.toggled(false) even when toggled is absent: guard on presence to restore normal
+button accessibility semantics. No UI renderer source changes for this next slice
+yet. Microphone capture, other OS targets and signing remain unverified; full Kit
+coverage remains1939/2147,20 types incomplete, not complete parity.
+
+### Forms desktop acceptance — 2026-11-10
+
+Speech checkpoint 84c64577 is local. Current Questionnaire/Settings section adds
+QuestionInput freeform answers, initial selected choices, live disabled questions
+and choices, root sizes/shortcuts/default question and committed/full submit events.
+Legacy onSubmit remains a map to choice arrays; detailed events include confirmed
+freeform and status for enabled questions only. Schema rejects duplicates, multiple
+single-answer defaults and multiple freeform inputs. Definition changes are mount
+semantics, not a live schema editor.
+
+Settings adds sizing, sidebar width/range, initial page/group, group variants,
+sidebar/search-header and page-heading styles, page icons/default expansion,
+search keywords, vertical rows, dirty/onReset, title suffix and group footer slots.
+Reset reuses SettingField.on_reset, retaining weak root references. Arbitrary child
+controls keep their own size/disabled/value semantics. Input custom menus compose
+existing ContextMenu around contextMenu=false and reuse controlInput actions.
+225 wrappers, 71 pages/357 examples. Mapping 1939/2147 across 185 Kit types;
+20 types remain incomplete. This is substantial coverage, not full API parity.
+
+Acceptance: UI runtime 136/136, 0.04s (build/setup 4.33s); compiler/LSP binary
+build passed 3m06s; TSRX LSP 6/6, 3.26s. Public suites compiled together once:
+10/10, 2.65ms. The initial new fixture incorrectly created state inside its test
+callback; moved construction into a normal component per the state-owner contract,
+then reran the affected public suites. Native gallery build passed and its detached
+bundle was atomically replaced/reopened. Whole formatter: one public fixture first,
+then zero files/snippets/fingerprints on the final run; generators and diff clean.
+
+Desktop proof: Free default survives size/disabled updates; Team becomes enabled,
+selection advances to the input; blank required text blocks submit with an error;
+confirmed notes plus Team appear in detailed JSON. Settings startup keyword keeps
+its row visible; dirty Switch exposes Reset All, reset restores on; numeric 14 ->15
+then reset ->14. Icon, sidebar, footer/title slots and vertical layout render.
+Speech unsupported/disabled buttons expose disabled accessibility states, and size
+changes render without capture. Actual recording/OS permissions remain unverified.
+Input right-click shows custom actions; Replace with greeting updates the same field.
+Gallery currently open on Input, custom menu field='Hello from the menu'.
+
+New issue found while verifying the editor: existing server PID84953 remained busy
+for >22min. Bounded one-second sample /tmp/tsrust-ui-forms-lsp.sample shows
+ProjectIndex::checked -> apply_project_checked_facts -> project_type_spelling,
+not compiler diagnostics. Physical footprint 809MB, peak809MB; RSS15MB reflects
+compression, not real footprint. No memory-limit workaround applied. Inspect
+project_generic_intelligence.rs Named spelling (repeated LineIndex/symbol searches)
+and global fact application before refreshing server; transient No Problems did
+not prove settled analysis. Fix this narrow performance defect next, with a real
+gallery project witness and existing editor agreement tests. Preserve all form
+passes; no need to repeat native acceptance for an LSP-only repair. Still pending:
+classed-button accessibility/native text/style limits, unsigned packaging smoke,
+final all-target checks and obsolete output cleanup. No pushes/agents/measurements.
+
+### Forms continuation — 2026-11-10 (native acceptance pending)
+
+Local accepted input/replay checkpoint is f5673ab7. Current Speech section adds
+size/disabled/showWhenUnsupported, mount-time systemFallback/stopTimeout, waveform
+bars/liquid and started/cancelled callbacks. systemFallback=false takes precedence
+over an explicit locale, leaving no system recognizer. stopTimeout rejects invalid
+durations before mount and finishes with the transcript so far (onFinal), matching
+Kit; it does not emit Cancelled. New gallery availability preview never starts
+capture. Button/Waveform public builder coverage is complete; SpeechState input
+injection and cancellation remain unmapped. No full API parity claim.
+
+Compiler/LSP binary build passed 2m59s. UI runtime 134/134 passed, 0.04s; LSP TSRX
+6/6 passed, 2.98s. Public navigation+composition compiled together once: 9/9 passed,
+2.34ms execution. Whole formatter changed one public suite, zero snippets and
+fingerprints; generators/diff check pass. Native compilation and visual proof are
+pending and will be batched with Questionnaire/Settings form changes. Microphone
+capture, OS permissions and platform recognition remain unverified; do not start
+recording or accept permission prompts silently. Keep detached gallery open.
+
+Next implementation: Questionnaire freeform inputs, sizes, defaults/disabled,
+shortcut/navigation/events and practical Settings sizing/sidebar/layout/reset/slots;
+custom input menu via existing ContextMenu composition. Then rebuild both consumers,
+focused checks, one native gallery build and desktop proof before acceptance.
+
+### Latest accepted section — 2026-11-10
+
+This entry supersedes the older in-progress input/Table notes below. Local WIP
+945a0ae9 contains synchronous Input/Textarea/CodeEditor paste decisions, validation,
+NumberInput stepping and source grammar aliases. The follow-up avoids replaying
+successfully checked diagnostic roots; the real borrowed Table regression still
+reports ownership and independent return errors within its unchanged 20s bound.
+The shared replay observer uses Arc/Mutex to preserve Program's Send property.
+Unsized NumberInput now retains a usable 240px input width; constrained controls
+fill their allocated width.
+
+Acceptance: compiler/LSP binaries rebuilt (2m45s); compiler recovery groups 37/37
+passed (14 recovery, 6 suppression, 10 project, 2 terminal, 5 UI authoring), with
+execution 0.85/0.06/2.71/0.04/23.82s respectively and setup/build 2m44s. LSP TSRX
+6/6 passed in 3.00s. Public navigation+composition suites compiled together once:
+8/8 passed, 2.31ms execution. Runtime UI 133 active passes across retained runs.
+Final native gallery build passed, bundle replaced atomically and reopened.
+Whole formatter changed zero files/snippets/fingerprints; generators and diff check
+passed. Earlier full compiler/LSP milestone passes remain valid evidence; final
+all-target compilation after the shared Program change remains pending.
+
+Desktop proof: validation rejects the ninth character, permits clearing; paste
+reports text/path/image-count metadata; consume=true prevents insertion while
+updating callback state. Custom stepping gives .5 -> .6 -> .5 -> 0 (clamped).
+The final stepper width displays its value. Diff highlights .tsr keywords/strings.
+VS Code restarted onto the refreshed server and shows No Problems. The separately
+accepted hover fence alias fix remains installed and visually verified. Gallery
+is running independently of Claude. No pushes, remote checks or measurements.
+
+Next: finish practical Questionnaire/Settings/Speech options and custom input menu
+composition, native style/accessibility gaps, unsigned packaging archive smoke,
+final affected checks and output cleanup. Full upstream API parity remains open;
+1843/2147 methods mapped, 27 types incomplete. Do not describe this as complete.
+
+### Owner review continuation — 2026-11-10 (in progress)
+
+Active request: resolve all seven gallery/platform comments and finish missing Kit
+coverage, including the outstanding language defects. Starting source is local
+9df57e42 plus Claude's interrupted TSRX wording and Tailwind edits; preserve them.
+One writer, no push/release authorized. The latest owner test rule excludes build
+and setup from the under-one-hour execution budget, superseding older workflow prose.
+
+Checklist (acceptance pending unless explicitly recorded):
+- TSRX wording throughout documentation, diagnostics and editor help.
+- Tailwind utilities/arbitrary and reactive values; actual native rendering,
+  dark/responsive/data selectors, interaction states and documented native limits.
+- Route/path parameters/state, independent per-window state and shared opt-in state.
+- Packaging highlighting and checked config defaults with CLI precedence.
+- Status-bar edges, sidebar badge clipping, compact title-bar controls.
+- Missing Diff, Editor, Questionnaire, Settings, Speech, AppMenuBar and Plot tooltip;
+  input callbacks and honest full public-method coverage.
+- String-field ownership ergonomics, pathological Table checking, early invalid
+  control nesting diagnostics and lazy reactive-list captures.
+- Affected suites, whole-project format/token/idempotence proof, gallery interaction
+  verification, local accepted checkpoints and output cleanup.
+
+Starter reopened independently of Claude as /tmp/Tsrust Gallery.app. Its executable
+is a regular copy of examples/gpui-starter/target/gpui-starter; replace it atomically
+when rebuilding, then close/reopen this app through CUA. Do not stop the owner's
+pre-existing ./target/gpui-starter process (historically PID 53885). Desktop launch
+works; sandbox-only launch fails in NSPasteboard. Gallery remains open for inspection.
+
+Source checkpoints: 36149186 preserves Claude's interrupted edits and the first
+review batch; ccfae53b accepts navigation/window ownership and diagnostic recovery;
+e981bfbc preserves the compiled application-menu/editor section. All are local.
+Current uncommitted section is reactive Kit classes and native viewport/styles.
+
+Implemented since the WIP:
+- createLocation(initial) gives each window an independent navigation/history owner;
+  routeParam(path, pattern, name) and Route support named nonempty path segments.
+  Node captures navigation context; command queues and asynchronous replies retain
+  their originating window through weak owner identities. Closing a window discards
+  only its pending commands. Full builtin help and navigation guide examples added.
+- Signal writes advance a runtime revision; affected roots refresh bindings and
+  request other windows to redraw. Signal/Computed function parameters now enter
+  the existing reactive lowering scope without becoming additional state owners.
+  Manual testing found the missing parameter lowering; the rebuilt gallery now
+  passes shared-state redraw in both directions (child increments to 1; owner to 2).
+- Editor fallback imports documented bundled source functions without waiting for
+  project analysis, preserves their true source definition and parameter docs, and
+  respects lexical shadowing. No native identity is fabricated.
+- Known built-in controls/blocks inside TSRX Text/Button now reject before an
+  unvisited route runs, using linked component identity. Custom components retain
+  runtime validation; Button render replacements retain their own child contract.
+- Table checker slowdown reproduced with the real gallery page after removing
+  string clones: cloned source checked in 1.997s; borrowed version exceeded a 20s
+  stop and was killed. A one-second sample showed semantic diagnostic replay
+  repeatedly starting in bundled wrappers, not unbounded allocation (about 63 MB
+  RSS at 4s). Recovery now prioritizes user-source functions only, while bundled
+  bodies still check through real calls. The bounded CLI regression preserves both
+  the Table ownership error and an unrelated boolean return error.
+
+Completed acceptance (build/setup recorded separately from execution):
+- UI runtime 122/122, 0.04s execution; setup/build 47.62s including lock wait.
+- Packaging config defaults/CLI precedence/path/error unit test passed (<0.01s;
+  original build/setup 2m19s). Actual archive/signing flow not rerun.
+- Compiler diagnostic recovery 14/14, 0.58s; UI authoring 3/3, 15.27s including
+  real bounded CLI diagnostics. Build/setup 2m33s. These cover static nesting,
+  received Signal getters and the real Table replay regression.
+- Latest affected LSP run: lib 25/25, editor_consistency 30/30 (29.74s), TSRX
+  editor 5/5 (0.04s). Build/setup 4m05s including shared-target contention. The
+  focused routing transport test also passed independently (9.85s).
+- Public navigation suite 2/2 on formatted source: 1.284ms total execution,
+  individual cases 0.019/1.038ms. Build/setup 146802.7ms (including shared-target
+  contention), checking 749.2ms and native/link 145719.3ms. No performance claim.
+- Native gallery build passed with the navigation/window/revision renderer.
+  The further build including received Signal lowering also passed.
+- Earlier workspace/all-target and separate backend/all-target checks passed,
+  with existing test-helper/deprecation warnings. Fresh workspace/all-target
+  checking passed after the language repairs (1m38s). The separate backend-only
+  all-target check also passed (2m07s); only existing warnings observed.
+- Whole-project formatter: last run 0 files, 0 snippets, 0 fingerprints changed.
+  Gallery generation --check passes. Final diff check and checkpoint pending.
+
+Manual CUA proof: two independent counter windows started at zero/first route;
+first increment/navigation did not affect second. Notification and close targeted
+second only. Surviving first retained state, back worked, and closing it left the
+main route intact. Compact title controls and shell highlighting visually verified.
+Five component pages added (Diff, Editor, Questionnaire, Settings, Speech); currently
+69 component pages / 349 examples plus generated guide pages. These pages are not
+full API acceptance. Coverage remains 1686/2147; do not inflate covers metadata.
+
+Latest public navigation+composition suite: 3/3 across two files compiled once;
+1.448ms total execution, cases 0.058/0.927/0.126ms. Build/setup 232836.8ms
+(checking 1684.2ms, native/link 230575.0ms including target contention). The
+composition witness exercises a custom LazyChildren factory containing a reactive
+list inside DialogContent and passes native compilation and assertions. Current
+DialogContent is eager Child[]; the old lazy-part wording is stale. No remaining
+deferred-capture failure reproduced with this direct witness. Latest CUA confirms
+shared-window redraw in both directions and child close preserving owner state.
+Main gallery is raised on Navigation and Windows, shared count 2, no child windows.
+
+Next: checkpoint the accepted routing/editor/language-recovery section, then
+finish Tailwind native gaps (animation,
+text transform/tracking/balancing, nonuniform grid, interaction effect composition,
+viewport sizing), missing Kit APIs and remaining ownership ergonomics. Strings use
+Cow<'static,str>; retaining dynamically owned row text requires an owned copy, while
+literal Cow clones retain static borrows. Do not hide an allocation with a global
+string representation redesign. Original string clones remain an accepted interim
+workaround, not a claimed ergonomic fix. No benchmark measurements or remote runs.
+
+### Application menu and editor section — 2026-11-10 (implementation, acceptance pending)
+
+Accepted routing/editor-recovery checkpoint is ccfae53b (local, not pushed), after
+36149186 WIP. Working tree now implements the next section:
+- AppMenuBar/AppMenu typed wrappers and a new Application Menu gallery page.
+  macOS uses GPUI system menus; Windows/Linux use Kit AppMenuBar. Existing
+  MenuItem/Submenu entries dispatch named Shortcut commands in the active window;
+  checked/disabled changes reload menus. Popup-only custom rows/onSelect/href
+  reject explicitly. Hiding the owning bar clears installed menus. Native state
+  and renderer mappings are not compiled yet; no desktop acceptance claimed.
+- CodeEditor supports uncontrolled defaultValue without resetting edits on render,
+  controlled value, editing/display/folding/indent/search props, focus/blur/submit
+  events and shared controlInput/readInput routing by id. Snapshots add language.
+  Native shared input macros are reused; no second editor implementation.
+- Editor byte counts/tab sizes validate at the Kit prop/binding boundary, including
+  binding refresh. Added public composition test for invalid counts. Gallery adds
+  a local-buffer editor with focus/select/find/read actions and a line-number toggle.
+- Catalog/typed wrappers generated; currently 216 components and gallery 70 pages,
+  351 examples. Covers entries record real newly wired methods only; substantial
+  Editor low-level APIs and all remaining Diff/Settings/etc gaps stay open.
+- Before-project-analysis property completion needed real bundled parameter record
+  fields. The source-function fallback now shares one immutable source index per
+  bundled module, rather than synthesizing signatures without their records. Uses
+  existing import_declaration field/definition/help logic. Regression added for
+  CodeEditor alias completion, behavioral hover and source definition. Not yet run.
+
+Section validation so far:
+- UI runtime 122/122 passed (0.04s execution, build/setup 2.36s).
+- Public navigation+composition suite 4/4 passed, two files compiled once. Total
+  execution 1.369ms; cases 0.056/0.890/0.110/0.039ms. Build/setup 189567.5ms,
+  check 1974.1ms, native/link 186963.6ms including shared-target contention.
+- TSRX editor integration 6/6 passed (0.97s, cold immutable bundled index included;
+  build/setup 2m13s). Full affected LSP lib 25/25 (0.13s) and
+  editor_consistency 30/30 (29.35s) also passed; build/setup 1m04s.
+- Generator checks pass. Whole-project formatter changed 0 files/snippets/
+  fingerprints. API coverage implementation count is 1776/2147, not accepted yet.
+- Native gallery build initially failed at two bridges: private GlobalState module
+  access, and EditorMode does not implement inline-token insertion. Corrected the
+  import to the public GlobalState re-export and specialized the shared input
+  command macro's token operation; CodeEditor reports an explicit UI error for
+  insertToken, as now documented. Other shared input commands still use one macro.
+  Compiler rebuild passed (2m22s); the repaired native gallery retry passed.
+- Workspace/all-target check passed (1m30s); separate backend/all-target check
+  passed (2m53s). Both report the existing test/runtime-helper warning set.
+- Local WIP checkpoint e981bfbc preserves this section. Gallery restarted successfully
+  from its independent app bundle. macOS File > Save example updates the page;
+  View > Show guides toggles state; Disable Save reloads its menu definition.
+  Navigating to Editor removes the installed File/View menus.
+- Desktop Editor proof: replacing the local buffer with `fn edited() { println!("Kept"); }`
+  and toggling line numbers preserves the text. Read editor state reports language
+  rust and current selection/buffer. Find fn opens the search field with fn.
+  Disabled-menu click rejection/checkmark appearance still needs direct verification;
+  AX omits their disabled/checked attributes. Other desktop platforms remain pending.
+
+### Reactive Kit styles and native utility rendering — 2026-11-10 (in progress)
+
+Working tree adds ReactiveValue<string> className to all generated Kit wrappers,
+using existing nativeBindClass. Style refresh retains control identity, local state,
+handlers and weak ownership. Kit disabled props now participate in disabled utility
+styles. Guide/gallery and public composition witnesses cover the new behavior.
+Native viewport lengths use actual window viewport pixels; Kit internal raw class
+surfaces now filter dark/responsive predicates and custom spacing. New runtime
+witnesses cover viewport resolution and reactive Kit lifecycle (124/124 passed,
+0.04s; compiler rebuild passed 2m28s).
+
+Further renderer fixes: stable identities for styled surfaces and active styles;
+preserve axis overflow and scoped SVG color; compose hover/focus ring/shadow/gradient
+inputs over base styles (including clearing a ring without losing the base shadow).
+Shared interaction-merge regression passes. Text child bridge moves an owned Cow
+string with into_owned rather than copying it again; explicit borrowed-field clones
+still remain.
+
+Validation so far:
+- UI runtime 125/125, 0.04s execution; setup/build 1m52s including compiler lock.
+- Generated helper initially failed compound negative-guard narrowing. Replaced it
+  with separate undefined/string branches; compiler rebuild passed 2m31s.
+- Public navigation+composition suites 5/5, one runner for both files. Execution
+  1.64ms; setup/build 18474.9ms (check 2066.2ms, emit 334.7ms, backend 54.2ms,
+  native/link 15721.7ms). Reactive Kit className and disabled state pass.
+- LSP lib 25/25 (0.14s), editor_consistency 30/30 (29.93s), TSRX editor 6/6
+  (0.99s), setup/build 9.30s. Whole-project formatting changed zero files/snippets/
+  fingerprints; both generators --check and diff --check pass.
+- Native gallery build passed. Bundle replaced atomically and reopened. Desktop
+  proof: Tag padding/background/foreground change live; Switch disabled opacity
+  paints, and its local on value survives disabling/re-enabling and class changes.
+  The runner used its default example-local shared native Cargo target rather
+  than the repository target because CARGO_TARGET_DIR was omitted. Future native
+  and host invocations must explicitly set CARGO_TARGET_DIR to the repository
+  target. Prune redundant example-local native outputs after active builds end.
+  Example target is about 45GB, repository target about 156GB (logical du sizes).
+
+This section was checkpointed as caa69ba1. Continue text-transform/unsupported-native diagnostics, Plot
+tooltip, Diff and remaining Kit API families plus string-field ergonomics. Full Kit
+API coverage and ownership ergonomics remain open. No performance measurements,
+remote runs, pushes or releases. Gallery is open on Styling and Themes, live styles off and Switch locally on.
+
+### Table diagnostic repair follow-up — 2026-11-10 (active)
+
+Input callback native gallery build PASSED (/tmp/tsrust-ui-input-native.log); it
+has not yet been copied/reopened or manually verified. Final validation script
+12403 stopped at ui_authoring: 4/5 passed, only the existing bounded Table error
+case hit 20s. Preserve the four passes. LSP/public steps did not run. Compiler
+final rebuild passed 2m48s; added alias unit 1/1 passed (<0.01s), so runtime total
+133 active tests passes across retained runs. No source implementation changed
+after that build; only the public suite gained nonfinite NumberInput/negative step
+witnesses (suite step still unrun).
+
+A standalone exact Table-shaped retry (14406, CLI 69870) also exceeded 20s and
+was killed, so this is not merely parallel-test contention. One-second sample
+/tmp/tsrust-ui-table-check.sample shows semantic_diagnostics::collect ->
+analyze_recursive_with_proofs; RSS is bounded, but replay is real. Current
+semantic_diagnostics.rs still has the earlier bundled-root exclusion. Investigate
+which skipped diagnostic/root triggers recursive inference/repeated replay; do
+not raise the timeout or weaken ownership/independent-error coverage. Preserve the
+valid native callback build while repairing this compiler regression. A WIP
+checkpoint of callbacks is appropriate before changing diagnostic recovery; whole
+formatter currently session 22925, log /tmp/tsrust-ui-input-wip-format.log.
+Next: finish format/generator checks and local WIP checkpoint, add bounded/failure
+trace if needed, diagnose/fix replay, rerun only this failing test and affected
+compiler recovery tests, resume unrun LSP/public checks. Then manual Input/paste/
+step/Diff grammar checks and accepted checkpoint. No pushes/agents.
+
+### Synchronous input decisions — 2026-11-10 (implementation, checks running)
+
+Latest local source checkpoint 701a74dc accepts expanded Diff display/review slots.
+Current dirty section adds reusable synchronous predicates to Kit, Input.onValidate,
+Input/Textarea/CodeEditor.onPaste (borrowed JSON {text,paths,imageCount}, no image
+bytes), NumberInput.onValidate and stepBy(value, increment). Callbacks preserve
+errors; paste consumes when true and redraws after the decision. Pure validation
+keeps Kit's empty-string allowance. Numeric steps reject negative/nonfinite output.
+Weak captured command contexts target the originating window without retaining it;
+Node predicates enter their weak navigation context. NumberInput no longer resets
+custom stepping during sync and numeric options retain f64 precision. Boundary
+validation rejects nonfinite NumberInput options and negative fixed steps.
+
+Also fixes source grammar aliases: tsr/tsrust -> typescript, tsrx -> tsx in editor
+and Diff. Diff selects the native highlighting feature even without an editor or
+Markdown. New parse_diff helper sets per-file grammar overrides without changing
+file names. Full API help, generated wrappers and LSP fields updated; gallery adds
+Input validation/paste and value-dependent NumberInput stepping (71 pages /354
+examples). Mapping 1843/2147, 27 types incomplete; no completeness claim.
+
+Completed: runtime 132/132 in 0.04s before the last source-alias unit was added;
+includes callback errors, released state, invalid steps and weak window-context
+routing. Input and NumberInput actual gallery pages check with zero diagnostics.
+Initial compiler rebuild passed 2m49s. Current final coherent validation script
+session 12403, set -e, explicit CARGO_INCREMENTAL=0/CARGO_BUILD_JOBS=1/repo target:
+1. compiler CLI rebuild /tmp/tsrust-ui-input-build-final.log;
+2. added alias unit /tmp/tsrust-ui-input-alias.log;
+3. ui_authoring 5 tests /tmp/tsrust-ui-input-authoring.log;
+4. LSP TSRX 6 tests /tmp/tsrust-ui-input-lsp.log;
+5. public navigation+composition suites compiled once (8 tests expected),
+   /tmp/tsrust-ui-input-public.log.
+At last observation step 1 was still compiling. Preserve terminal passes; on a
+failure repair/rerun affected checks and resume unrun steps. Native GPUI gallery
+compile + desktop proof still required for the new macros/closures, then formatter,
+generator checks, checkpoint. Do not modify source mid-build absent a real repair.
+
+Original broad catalog retry 62502 FINISHED PASS: 1/1, 1492.20s harness including
+many native setup/builds. Earlier 477 LSP tests and remaining 61 targets passed;
+full LSP milestone is now complete. Compiler library milestone remains 1541 active
+pass, 8 unchanged ignored; workspace/backend checks passed. No need to restart
+these full passes for wrapper-only edits. Current callback bridge needs its focused
+checks and native proof. Retain owner test execution <1h, setup/build separately.
+
+Gallery /tmp/Tsrust Gallery.app currently runs 701a74dc, on Diff split/details off;
+code in the working tree is newer and not desktop-accepted yet. VS Code hover fix
+00a44a19 remains installed/loaded. Do not close the owner's other starter process.
+Next after acceptance: custom input menus/practical Questionnaire, Settings, Speech
+options; native style/accessibility limits; packaging archive smoke and cleanup.
+Research already localized: native menu builder is gpui_base input/base/native.rs,
+NativeMenu.menu/menu_with_disabled/separator; existing TsrustCommand + Shortcut can
+reuse application commands. Questionnaire base supports optional InputState answers,
+disabled/default-selected choices, sizes and change/completed events; existing
+wrapper only choices. Settings builder options and Speech size/disabled/fallback/
+timeout/waveform are still mostly absent. Read pinned sources before implementing.
+
+### Diff display and review surface — 2026-11-10 (accepted: 701a74dc)
+
+Hover fence fix checkpoint is 00a44a19, local/not pushed. The installed local
+VS Code extension is 0.2.1 with tsr/tsrx aliases, visually verified and loaded.
+Current dirty section expands Diff with line numbers, syntax toggle, file headers,
+hover/highlight/marker/wrapping choices, context/expansion/inline comparison limits,
+line click/hover and add-annotation JSON callbacks, plus DiffAnnotation,
+DiffDecoration, DiffGutterMarker and DiffHeader child slots. Counts and positions
+validate at the runtime boundary. Malformed patches now report parse errors instead
+of silently becoming empty. Retained state setters skip unchanged values. Header
+slots repeat read-only content per file; per-file interactive headers require
+separate Diff nodes. State command/query APIs remain incomplete. No full Kit claim.
+
+222 wrappers, 71 component pages / 352 examples, mapping 1837/2147, 27 incomplete
+types. Native compile passed and the detached gallery binary was atomically
+updated/reopened. UI count boundary test 1/1 passes (<0.01s; setup/build 1m16s),
+LSP TSRX 6/6 passes (2.31s execution). Compiler rebuild passed (2m50s final); native
+gallery build passed. One-second sample during the build showed Command::output
+waiting on native Cargo, not semantic replay; remove disposable sample later.
+Whole-project formatter 0 files/snippets/fingerprints; both generators --check and
+diff --check pass. Original broad catalog retry remains active (62502) and has
+progressed into UI example native compilation; retain earlier passes below.
+
+Desktop proof: annotation text, custom header suffix and translucent range render;
+marker click reports Comment opened. Switching split/unified preserves annotation
+and state. Line numbers/change backgrounds turn off while explicit range coloring
+remains. Clicking modified source line 2 reports {path:greeting.tsr,side:modified,
+line:2}; annotation button reports inclusive modified 2..2. Gallery left on Diff,
+split on, details off. Pinned Kit does not infer .tsr syntax highlighting in Diff;
+source grammar alias registration should be fixed in the next native/editor slice.
+
+Next: input synchronous callbacks and remaining practical Questionnaire/Settings/
+Speech options, native style/accessibility gaps and packaging smoke; then final
+acceptance/cleanup. Borrowed row string clone is still the accepted interim
+workaround; dynamically retained strings need an owned copy with current Cow
+storage. No new performance claims or remote validation.
+
+### Hover example highlighting — 2026-11-10 (accepted)
+
+Plot/live-array/menu section checkpoint is 4e766220 (local, not pushed).
+Owner reported plain white TSRX hover examples. Builtin docs already carry fenced
+Markdown; VS Code only registered the tsrust language name. Added tsr/tsrx aliases
+to that same grammar; no documentation rewrite or alternate syntax engine.
+Extension compile, executable tests 4/4 and real TextMate tests 2/2 pass (0.29s
+combined test execution). Packaged local 0.2.1 VSIX, installed over local 0.2.0,
+reloaded the owner's VS Code window, and visually verified Route hover: keywords,
+component tags, attributes and strings are colored. Source and open documents
+unchanged. Gallery remains open independently. The broad catalog retry below is
+still running and making progress through stdlib native example compilation.
+
+### Plot tooltip and live array props — 2026-11-10 (final checks running)
+
+Latest accepted checkpoint is caa69ba1 (reactive Kit classes/native viewport styles),
+local and not pushed. Current working section is uncommitted. /tmp/Tsrust Gallery.app
+now runs this working section’s successfully compiled binary, copied atomically
+and reopened through CUA. It is on Plot, offset 1, glide off. One writer; no pushes,
+releases or performance measurements.
+
+Implementation:
+- PlotTooltip/PlotTooltipRow use GPUI Kit’s Plot hover state and overlay: title,
+  automatic colored series rows, explicit plain/colored/value-colored rows,
+  crosshairs, dots, glide/fade, progress, gap and appearance. Marks add label.
+  Missing trailing series values are omitted; no hover work without a tooltip.
+- Plot labels use internal JSON to preserve empty/newline labels. Mark values
+  reject NaN/infinity; stroke/gap reject invalid geometry. Painting and hover
+  share normalization for finite extreme ranges and grouped-bar coordinates.
+- All generated Kit array props accept ReactiveValue<array>, retain evaluated
+  getters for state expressions, and keep the constant path for plain arrays.
+  Live props admit scalar arrays/nested arrays; Computed/useProp stay scalar-only;
+  record/resource arrays still reject. Ordinary array bindings remain invariant.
+- Array literal/Array.of/spread contexts retain a sole array alternative through
+  union injection, without selecting an ambiguous array or tuple alternative.
+- Native empty callback captures use their concrete uninhabited type, without
+  unused generic bounds. Empty/live callback calls share the existing receiver
+  logic, preserving captured mutable reborrows. Public regressions exercise both.
+- Fixed disabled native application menus: GPUI macOS validation follows action
+  availability. Disabled entries/labels now use NoAction, matching the pinned
+  upstream set_menus example; parent disabled state propagates to children.
+- Complete generated help and a new Plot gallery page. 218 wrappers; 71 component
+  pages / 352 examples. Mapping count 1787/2147, 28 types incomplete. Tooltip’s two
+  upstream type names share one inventory row; no full Kit coverage claim.
+
+Completed validation (setup/build separate from observed execution):
+- UI runtime 128/128, 0.05s; setup/build 41.18s including lock wait.
+- Public navigation+composition, one shared runner: 7/7 in 1.80ms. Individual
+  cases ~0.09/0.91/0.15/0.06/0.04/0.05/0.01ms. Build/setup 77226.2ms
+  (check 2478.8ms, emit 422.5ms, backend 66.2ms, native/link 73896.7ms).
+- Full compiler library: 1541 active tests passed; 8 unchanged opt-ins ignored.
+  Initial sandbox run: 1511 pass, 30 permissions failures, 256.22s harness time;
+  only those 30 rerun with local listener/filesystem permissions, all pass 0.57s.
+  Cargo setup/build 6m13s. No code failure in the library run.
+- CLI 49/49: 48 passed in the initial 3.22s run; the one outdated Plot wrapper
+  export expectation was extended for the two new item wrappers and passes 0.01s.
+- ui_authoring 4/4, 21.96s (setup/build 18.79s), including the new array contexts,
+  invariant existing arrays, record/computed rejection and original bounded Table
+  diagnostic recovery. Earlier accepted routing/nesting/shared-signal witnesses retained.
+- Whole-project formatter last changed one public-suite file; zero documentation
+  snippets/fingerprints. Both generators --check and diff --check passed.
+- Native gallery build passed using the explicit repository Cargo target.
+- Desktop CUA: disabled Save is marked disabled, stays inert and preserves its
+  original message; re-enabling restores Save. Navigating away clears File/View.
+  Plot Mon shows Requests 2/Completed 1/Updates 0; Wed shows Requests 4 only plus
+  Updates 0. Update data changes Tue to Requests 8/Completed 7/Updates 1 and Mon
+  Requests 3. Disabling glide preserves values. Crosshairs, colored hover dots,
+  plain row/value color and tooltip edge flipping visibly work.
+
+Running / pending:
+- Full LSP initial run: 477 tests passed before the intelligence target’s catalog
+  example test hit sandbox-blocked HttpApp.listen. Other 331 intelligence tests
+  passed. Preserve these passes. Setup/build 49.31s. Resume only that catalog
+  test with TSRUST_CATALOG_RESUME_FROM=HttpApp and local permissions: session
+  62502, /tmp/tsrust-ui-lsp-catalog-retry.log.
+- Remaining 61 LSP targets after intelligence: all passed (exit 0), including
+  the expanded TSRX completion/hover/definition regression.
+  /tmp/tsrust-ui-lsp-remaining.log. Initial tail run accidentally lacked resource
+  variables; stopped its own Cargo/children before any tests ran and restarted
+  with explicit limits. Prune the aborted target/debug/incremental outputs later.
+- Workspace/all-target and separate backend/all-target checks both passed;
+  /tmp/tsrust-ui-workspace-check.log and /tmp/tsrust-ui-backend-check.log.
+- Whole-project format rerun: 0 files/snippets/fingerprints; both generators
+  --check and git diff --check passed. Catalog retry still running at checkpoint.
+  Do not rerun already passed groups unless changed inputs justify it.
+
+Resource hygiene: official cache clean removed 2092 root artifacts (105371441251
+bytes) and 99 example artifacts (49078328212 bytes), preserving running private
+copies and the repository Cargo target. Every future command explicitly sets
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target,
+CARGO_INCREMENTAL=0 and CARGO_BUILD_JOBS=1. Raw /tmp logs are disposable: summarize
+terminal results here, then delete them before handoff; no imported raw receipts.
+
+Next: collect the three running sessions, repair only affected failures and
+checkpoint this section. Continue Diff, remaining input/editor callbacks,
+Questionnaire/Settings/Speech APIs, borrowed string-field ergonomics, and feasible
+native typography/interaction styling. Native style gaps remain: text case,
+tracking/balance, animations, nonuniform grids and flattened nested text; do not
+claim full Tailwind rendering. Core classed-button focus/keyboard behavior also
+needs review: raw classed Div buttons may lack a focus handle. No changes for
+those gaps have been implemented yet. Other desktop platforms/web and signing/
+archive packaging are unverified. Keep the gallery available for owner inspection.
+
+### Gallery as Kit docs mirror; API coverage tracking — 2026-11-09
+
+Owner: the starter must mirror GPUI Kit's component docs (left nav, every Kit
+example live with copyable .tsrx) and every component must cover GPUI Kit's
+full public API, not just the docs. `tools/kit-coverage.py` inventories public
+methods from the locked gpui-component/gpui-base sources (184 types, 1765
+methods; gpui-component types shadow same-named gpui-base primitives) against
+kit.json `covers`; `--check` gates completeness. Done so far: Button (all but
+tooltip_with_action, which needs a std:ui actions/keybinding model shared with
+menus), ButtonGroup (Button children), Toggle, ToggleGroup. Gallery: generated
+from examples/gpui-starter/pages.spec by tools/generate-ui-gallery.py; custom
+title bar (renderer now honors titlebar: 'custom'), tabbed Preview/Code cards,
+Gruvbox theme set via new registerThemes/useTheme; std:ui utility colors now
+follow the active Kit theme. Icons: all 1830 Kit catalog names (IconName is a
+string; a literal union stalled rustc); programs naming non-default icons
+register AllAssets. Display batch: Badge, Tag, Label, Kbd (command prop reads
+Shortcut bindings), Separator, Skeleton, Spinner, Progress/ProgressCircle,
+Avatar/AvatarGroup, Alert, Icon (svg, rotate), ShimmerText, Empty/EmptyMedia,
+GroupBox/GroupBoxFooter, Clipboard and Link (disabled) are complete, with 15
+gallery pages. Forms batch: Checkbox, Switch, Radio (also standalone),
+RadioGroup and Rating are complete with 4 pages (coverage 374/1765). Styled Kit components in STYLED_KIT take
+className as their own style refinement instead of a wrapper. Fixed: every
+ScrollArea shared one scroll offset (Kit keys Scrollable state by call site
+without an explicit id); gallery routes now each own a scroll area; sidebar
+groups merge across the spec; utilities gained rounded-md and rounded-full.
+Owner review fixes (examples must work when exercised and read like shadcn):
+Kit text content comes from children (`<Label>Name <Text variant="secondary">
+(optional)</Text></Label>`, `<Checkbox>Accept</Checkbox>`, `<MenuItem>Copy
+</MenuItem>`); kit.json `textChildren` mirrors kit.rs `text_children_prop`
+(generate-ui-kit.py checks agreement). Text gained `variant`. Alert takes
+AlertTitle/AlertDescription; Empty takes EmptyHeader/EmptyTitle/
+EmptyDescription/EmptyContent and EmptyMedia variant="icon". Form controls are
+uncontrolled when `checked`/`value`/`selected` is unset (defaultChecked,
+defaultValue, defaultSelected set the start). DropdownMenu is a plain button
+that opens the menu; onClick or split makes a split button. Remote image src
+loads through a reqwest HTTP client (gpui-http feature, selected for Avatar and
+Image). Empty Avatar names no longer hide the placeholder icon. Colors: utilities
+and Kit color props accept the Tailwind 4.1 palette (gamut-mapped to sRGB hex)
+and arbitrary [#hex]/[oklch(...)] values. Every gallery page was exercised
+(menus, split button, context menu, checkboxes, switches, toggles, ratings,
+alerts). Inputs batch: Input and Textarea map GPUI Kit's Input/Textarea and
+InputState/TextareaState (masking, masks, number formatting, regex pattern,
+search and replace, rows/auto-grow, wrapping, tabs, focus/blur/submit events,
+inline tokens); imperative calls go through controlInput(id, action) and
+readInput(id, onRead) over the command queue. InputGroup is now shadcn-style
+composition (Input/Textarea child plus InputGroupAddon > InputGroupText /
+InputGroupButton, which opens a menu from MenuItem children); NumberInput gained
+min/max/step (default 1), affix icons, sizes and defaultValue. Four new pages,
+all exercised. tools/kit-coverage.py now matches braces lexically (its
+test-module stripper had swallowed real impls) and maps InputBaseState aliases,
+so the honest total is 701/2147. Still open on inputs: validate/step_by and
+on_paste need synchronous TS callbacks; custom context menus and custom token
+rendering. Select and Combobox are complete with pages: options are SelectItem
+children (value + text label, disabled) optionally in SelectGroup with a
+SelectLabel, or the items prop; SelectEmpty supplies empty-list text (Kit renders
+it from &App, so text only); Combobox adds multiple, query, checkIcon and
+ComboboxTrigger / ComboboxFooter slots. Language limits found: reactive props
+must be scalars (array props are static; Combobox value is newline-separated)
+and owned callbacks are callable only as parameters (kitOnList adapts
+string[] events). Tabs (Tab/TabsContent by value,
+prefix/suffix/empty-space slots, folder variant, menu), Tooltip (keys, command,
+TooltipContent), Popover (open/defaultOpen/onOpenChange, anchor, offset, arrow,
+right-click, overlayClosable) and Accordion (value/defaultValue,
+AccordionTrigger/AccordionContent, styles) are complete with pages; the
+Example card now uses value-based Tabs. Coverage 856/2147 (Tooltip's open
+methods belong to the Plot chart tooltip). Owner direction 2026-11-09: finish a
+page for every component, then add semantic search to the gallery, rebuild
+Getting Started from the real docs as the single source of truth, and add an
+animated showcase page (use the design-taste-frontend skill). Since then: Dialog and Sheet
+(Trigger/Content/Header/Title/Description/Footer/Close parts), AlertDialog,
+notify options and events, HoverCard, Collapsible, Breadcrumb, Pagination,
+Stepper, DescriptionList, Slider, OTP, TimeField, Calendar, DatePicker,
+ColorPicker, and a layout batch (Sidebar with nested items and item menus,
+SidebarToggleButton, Resizable, Toolbar groups, Form/Field, StatusBar,
+TitleBar close, WindowBorder) — each with exercised pages. Utilities gained
+justify-end/around/evenly and items-end/baseline. Coverage 1300/2147. Remaining
+types: Table/DataTable/List/Tree states, Command, Carousel, Diff, Editor,
+Attachment, Bubble/Message/MessageScroller, Marker, Questionnaire, Settings,
+Speech, AppMenuBar, the Plot tooltip, and input sync callbacks (validate,
+onPaste, step_by) plus custom input context menus and token rendering. Then
+semantic search, Getting Started from real docs, and the showcase page.
+Next batch (2026-11-10): Command palette (groups, separators, shortcuts,
+header/footer/empty, controlled query, loading, highlight vs select events),
+Carousel (CarouselContent/CarouselItem/Previous/Next/Pagination, loop,
+vertical, controlled `selected`), composable Table (header/body/footer/caption,
+per-part className, align, colSpan, size) and List over a custom ListDelegate
+(ListItem rows render their own children, ListItemSuffix, ListSeparator,
+ListGroup sections, ListEmpty, search, confirmed/check icon, controlled
+selection/query, hasMore/onLoadMore) and Tree (TreeItem text children,
+icons, defaultExpanded, disabled, controlled `selected` that reveals hidden
+items, onExpand/onCollapse, TreeMenu right-click menu with onContextMenu). TSRX
+children accept spread arrays (`{...rows.map((row) => <Row />)}`); a spread
+that reads component state lowers to a reactive list slot (runtime
+`Node::each`: transparent like branches, rebuilt on refresh, rows whose shape
+is unchanged keep their identity and state; `visible_children` flattens
+slots). Spec sections may define interfaces before the example function, and
+generate-ui-gallery.py rejects unknown icon names (a typo rendered nothing).
+Fixed while exercising: List section headers overlapped rows (Kit measures
+header height from section 0), disabled List rows still reported, confirmed
+rows drew no check (Kit needs an explicit check icon), Tree `selected` could not
+reveal collapsed items, Carousel parts ignored className, Sidebar header/footer
+`collapsed` needed Kit's Collapsible trait in scope. Open defect: in the gallery Table page, consuming a
+read-only callback parameter's string field twice (`name={person.name}` and
+`{person.name}` inside nested cells) made `tsrust check` run for minutes in
+analyze_recursive_with_proofs instead of reporting callback-access; small
+repros report the error in under a second, so the pages use clone() for now.
+Reading a string field in a consuming position should copy rather than
+require clone().
+Second batch (2026-11-10): DataTable is composable (DataTableColumn children
+with key/width/min/max/sortable/defaultSort/align/fixed/resizable/movable/
+selectable/padding; rows as JSON; row, column or cell selection; sort, column
+move/resize, right-click and DataTableMenu, empty/loading/load-more events;
+controlled selectedRow). Chat family: Message parts (MessageAvatar/Header/
+Content/Footer, MessageGroup, a Bubble inside follows the message side),
+Bubble variants/BubbleContent/BubbleReactions/BubbleGroup, Marker parts,
+loading style and shimmer, Attachment parts (AttachmentMedia src or icon,
+AttachmentContent/Title/Description, AttachmentActions, tooltip, vertical,
+size), AttachmentGroup edge fade, MessageScroller styling props. New Ticker
+component (GPUI timer, onTick(frame), interval, running) drives animation.
+Command gained CommandItem `value` and a Command-level onSelect(value).
+Gallery: Getting Started pages are generated from docs/guides/ui/*.md and
+docs/guides/tooling/desktop-apps.md (single source; ```tsx live Name``` blocks
+compile into the gallery as live examples); title-bar search (⌘K) ranks
+pages and examples over a generated index with concept synonyms ("modal"
+finds Dialog); an animated Showcase page (60 Hz plot, 160-cell wave field,
+spectrum, orbits, auto carousel). Fixes: `tsrust new --ui` template did not
+compile against the current API (now checked by a scaffold test); runtime UI
+errors exited silently with status 0 because GPUI exits inside its run loop
+(now printed as Uncaught and exit 1); Plot colors ignored palette names;
+arbitrary pixel offsets (left-[150px]) are supported. Coverage 1686/2147.
+Remaining Kit types: Diff, Editor, Questionnaire, Settings, Speech,
+AppMenuBar, Plot tooltip, SearchableListItemElement, input sync callbacks.
+Known limits found: Kbd/controls inside Text or Button are rejected only at
+runtime; lazy part children (DialogContent) cannot own a reactive list's
+captures, so build rows in a helper function.
+
+### Plot and Speech — 2026-11-09
+
+Owner: wrap the whole GPUI surface (low-level included) and trust GPUI behavior;
+verify our wrapper. Plot/PlotLine/PlotArea/PlotBars paint through GPUI Kit's plot
+primitives (shared band x and linear y scale, axis labels, dashed grid).
+SpeechButton (locale, waveform; onPartial/onFinal/onError) uses SpeechState with
+SystemRecognizer; `gpui-speech` (Kit `speech`: cpal and platform audio, 36 locked
+additions) is selected only when a program uses it, alongside `gpui-highlight`.
+`tsrust package` writes NSMicrophoneUsageDescription and
+NSSpeechRecognitionUsageDescription. `ui add` follows multi-item children lists.
+Plot rendering checked; dictation itself not exercised. 112 components.
+
+### GPUI highlighting, charts and setup — 2026-11-09
+
+`gpui-highlight` feature (GPUI Kit syntect: +syntect, two-face, fancy-regex,
+bincode, bit-set 0.8, bit-vec 0.8; existing pins unchanged) is selected only when
+the emitted program uses CodeEditor (runtime marker); CodeEditor and Markdown code
+blocks highlight. Chart gains radar, candlestick (open/high/low/close) and sankey
+(links). Fixed: `setup --dependencies` fetched only the backend set, so fresh
+machines could not build std:ui apps offline; it now fetches the GPUI set too, and
+the starter's dev.sh runs setup first. Windows/Linux GPUI
+runs remain unverified here. Tests: the test harness now defaults
+CARGO_TARGET_DIR (repository target) and TSRUST_SOURCE_PACK_DIR (Cargo home packs)
+like CI; four shared_sources tests had failed on every local run without them.
+
+### GPUI CLI, Questionnaire, Svg and doc rewrite — 2026-11-09
+
+Owner: no signing or published release; users run the source. The starter has
+`tsrust.config.json` and `examples/gpui-starter/dev.sh` (builds this checkout's
+compiler, then `tsrust dev`: ~20 s rebuild and restart on save; cold first build
+~3 min). `tsrust new <name> --ui` copies the starter; `tsrust ui list|add` writes
+editable wrappers (component plus its item components) into `src/components/`;
+all 75 wrappers check and a generated project builds. Questionnaire/Question/
+QuestionChoice (submit emits JSON answers) verified by input. Fixed: Svg/Path drew
+nothing on GPUI; they now render as SVG images with resolved theme colors
+(`Node::svg_markup`). Route, Link, navigate, back and CopyButton verified on GPUI.
+The 27 std:ui IntelliSense entries and api.tsr comments no longer describe the
+removed browser/Vello renderer; every std:ui entry now has a tsrx example, and
+the LSP catalog tests accept tsrx fences and optional console examples for std:ui
+(they had failed since std:ui returned). The runtime_build dependency-reuse test
+only asserts a shared Cargo target when CARGO_TARGET_DIR is set (it failed on
+every local run without it). 107 components.
+
+### GPUI services, packaging, updates and starter — 2026-11-09
+
+Branch `codex/gpui-ui`. Since the catalog pass: application services (notify,
+window control, clipboard, file dialogs, extra windows, appearance, theme),
+Icon/Animate, font utilities, i18n (`t`/`tWith`/`translate`/`translateWith`,
+JSON catalogs, plurals, live locale switching, Kit strings follow), catalog
+batch 2 (Markdown … ButtonGroup) and batch 3 (InputGroup, Diff, Marker,
+Attachment/AttachmentGroup, DataTable, Settings pages/groups/items,
+MessageScroller) and Dock/DockPanel (drag, stack and split verified): 104 generated components. Kit 0.9.0 has no GridLayout (docs
+are ahead of the pinned crate). Not wrapped: Plot
+(closure drawing API; Chart covers data plots), Questionnaire, Speech (needs the
+`speech` feature and cpal), and code highlighting (syntect/tree-sitter features).
+`tsrust package` (cli/app_package_cli.rs) builds release, writes the `.app`
+(icon, Info.plist, app.json), optional codesign/notarytool/stapler, zip and DMG on
+macOS, zip on Windows, tar.gz and .deb on Linux, plus SHA256SUMS. The std:ui
+updater (tsrust-ui/src/update.rs; `appInfo`, `checkForUpdates`, `installUpdate`,
+`relaunch`) reads GitHub `releases/latest` through system curl, verifies the
+archive digest and macOS signing team, and swaps in place. Check verified against
+the live API; install path verified up to the missing asset; packaged `.app`
+launches. `examples/gpui-starter` is the demo (seven pages, en/fr, dark mode,
+About & updates), verified with real input. Guide: docs/guides/tooling/desktop-apps.md.
+Open: Developer ID identity and notarytool profile choice, a release repository
+for the demo (owner approval before publishing), end-to-end install from a real
+release, the remaining components above, CLI `new --ui`/`ui add`, and rewriting
+the restored std:ui docs.
+
+### GPUI Kit catalog pass — 2026-11-09
+
+Branch `codex/gpui-ui`. One spec (`stdlib/ui/kit.json`, 62 components including
+items and slots) drives `tools/generate-ui-kit.py`, which writes the typed `std:ui`
+wrappers (`kit.tsr`, formatted) and their IntelliSense entries; `--check` guards
+drift. The runtime has one generic Kit node (string props, live props through
+text bindings, typed events `kitOn{,Boolean,Int,Number,Void}`); `gpui_kit.rs`
+holds the renderer arms by pattern (display, controlled, Kit state entities,
+overlays through a weak root handle, item containers). Compiler fixes found on the
+way: literal and literal-union template interpolation (`TsrTemplateText`), and
+text bindings over literal-typed getters. Native cache readers now wait up to 2 s
+for short copies by other processes (dev reuse flake under parallel tests).
+`experiments/gpui-kit-admission/tsrust/gallery.tsrx` renders every component
+(screenshots checked). Lib 1541/47/25/6, tsrust-ui 108.
+Open: event and overlay interaction proof (headless GPUI test platform, since OS
+input injection is unavailable while the owner uses the machine); GPUI rendering
+for Svg/Path, Link navigation, CopyButton and visibility callbacks; rewrite 27
+restored std:ui docs that still describe the removed browser/Vello renderer; then
+CLI (`new --ui`, `ui add/list`) and the starter.
+
+### GPUI bridge: first slice — 2026-11-09
+
+Branch `codex/gpui-ui`. Owner chose to restore the checked reactive lowering
+(signals, computed, text bindings, branches, controlled inputs) rather than add
+generic typed native callbacks first. `std:ui` keeps its name; `crates/tsrust-ui`
+again holds the Node model, utility classes and theme without any renderer;
+`stdlib/ui/gpui.rs` renders Nodes through one GPUI root view (Kit Button/Input
+for unclassed controls, utility classes mapped to GPUI styles). `gpui-dependencies/`
+is the backend manifest plus GPUI Kit with its own lock (892 packages, backend pins
+unchanged). UI window programs keep the OS main thread. `check` hides bundled
+`std:` contracts. Slice in `experiments/gpui-kit-admission/tsrust` matches the
+Rust reference; startup 244 ms vs 253 ms median. Lib 1541/47/25/6, tsrust-ui 107.
+Next: Textarea, focus/active states, Kit theme sync, then CLI (`new --ui`,
+`ui add/list`), catalog and starter. Raise CI job timeouts to ~3 h with the next
+CI change (owner: only test execution has the one-hour limit).
+
+### Rust 1.99.1 pin — 2026-11-09
+
+Branch `codex/gpui-ui`. The backend and repository pin move from 1.96.1 to exactly
+1.99.1 (GPUI Kit needs post-1.96 APIs). Exact, not minimum: the rustdoc JSON reader
+is format-specific, now format 61 with a regenerated trimmed shlex 2.0.1 fixture.
+Active docs, scripts and tests moved; measurement records keep their recorded
+toolchain. Also moved the ownership witnesses used by tests out of the deleted UI
+experiments into `crates/tsrust-compiler/tests/fixtures/owner-handles`, and
+recorded the GPUI bridge design in the platform plan. Local acceptance on 1.99.1:
+clippy correctness; lib 1540/47/25/6; host targets acceptance, async_io,
+native_dependency_bundle, project_commands, rust_adapter_generation, rust_bridge,
+rust_data_boundaries, toolchain_installation, named_handler_specialization,
+tracked_resources; seven pinned LSP targets; 134 runtime suites (415 s, cold cache).
+
+### GPUI section: earlier UI removal — 2026-11-09
+
+Branch `codex/gpui-ui`. Both earlier UI attempts are removed: `crates/tsrust-ui`,
+`std:ui`/`std:ui-runtime`, UI analysis/emit, `ui_project`, the UI CLI, dev web
+and docs app (`docs/src`, `docs/content`), the UI catalog, UI examples, tests and
+benchmarks, and the React/Electron/Expo/shadcn traces. The `.tsrx` parser,
+formatter and TSRX syntax stay; TSRX lowers to plain component calls. The native
+dependency manifest dropped its UI crates (571 to 326 locked packages) and native
+support always builds from the shared backend set. `tsrust ui`/`new --ui` report
+GPUI Kit support in development. Fixed in passing: LSP snapshots record
+`tsrust.config.json` as a loaded source (previously implied by UI config reads);
+`testing_runtime` stubs the capture reset; four test helpers lex with the new
+`tsrust_compiler::source_tokens`.
+
+Local acceptance: compiler lib 1540, CLI 47, LSP lib 25 and bin 6; 134 runtime
+suites (370 s, 0 failed); affected host targets (acceptance, interactive_cli,
+native_cache, native_dependency_bundle, native_package_export, package_management,
+project_commands, router_contract, testing_runtime, toolchain_installation,
+url_features) and LSP targets (stdio, api_project, editor_consistency,
+completion_matrix, checker_agreement, project_intelligence) pass; API audit PASS
+at 1,583 identities (102 UI rows removed); clippy correctness, format check and
+tooling tests pass. Next: toolchain minimum-version policy, then the GPUI bridge.
+
+PR #16 CI fix `f324a669` (Windows `normalize` output, UTF-8 suite output, no `tsc`
+in host tests) is pushed; its CI run is pending.
 
 ### Outstanding-issue fixes and v0.2.0 preparation — 2026-11-09
 
@@ -802,10 +2021,10 @@ Full B00–B20 goal remains active. v0.2.0 publication/merge is not approved.
 - Documentation remains FAIL107E0308, all spread-boundary field mismatches; five
  positional call errors resolved. f858 physical-spread lookup did not fix actual
  failures and was removed, preserving canonical constructor repair. Tiny valid
- public JSX repro proves missing conversion at FIXED callback argument boundary.
+ public TSRX repro proves missing conversion at FIXED callback argument boundary.
  Reviewed replacement uses existing checked_carrier only after fixed invocation
  resolution; named/forwarded functions and methods retain physical specialization.
- Exact new uppercase JSX fixture frontend-check PASS before build.
+ Exact new uppercase TSRX fixture frontend-check PASS before build.
 - All1530 compiler/27LSP earlier library, rust_bridge8/nullish7/LSPbridge8 and5/6
  earlier docs passes retained. Actual generic fixture + new fixed-boundary guard
  and failed docs case next; complete libraries at this ownership-family milestone

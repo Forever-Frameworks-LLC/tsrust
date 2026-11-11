@@ -83,9 +83,9 @@ async fn check_named_calls() {
 "#).unwrap();
     let command = || { let mut command=Command::new("rustup"); command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo"]).current_dir(&directory.0).env("CARGO_INCREMENTAL","0").env("CARGO_BUILD_JOBS","1").env("CARGO_TARGET_DIR",std::env::var_os("CARGO_TARGET_DIR").unwrap_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target").into_os_string())); command };
     support::success(&support::run(command().args(["generate-lockfile","--offline"]), 60));
-    let output=support::run(command().args(["test","--offline","--locked","--no-default-features","--test","client"]),300);
+    let output=support::run(command().args(["test","--offline","--locked","--no-default-features","--test","client"]),120);
     support::success(&output);
-    support::success(&support::run(command().args(["check","--offline","--locked","--all-targets"]),300));
+    support::success(&support::run(command().args(["check","--offline","--locked","--all-targets"]),120));
 }
 
 #[test]

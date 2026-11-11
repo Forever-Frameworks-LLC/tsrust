@@ -166,57 +166,63 @@ impl SourceIndex {
                 arguments,
             } => {
                 let base = if let Some(declaration) = declaration {
-                    let module=&graph.modules[&declaration.source];
-                    let source=module.checked_source();
-                    let uri = crate::project_diagnostics::file_uri(&declaration.source).ok()?;
-                    let range = LineIndex::new(source)
-                        .range(source, declaration.span)
-                        .ok()?;
-                    let location = json!({"uri":uri,"range":range});
-                    let visible = self
-                        .symbols
-                        .iter()
-                        .enumerate()
-                        .find(|(id, symbol)| {
-                            matches!(symbol.kind, 10 | 23)
-                                && symbol.owner.is_none()
-                                && ((current == &declaration.source
-                                    && symbol.span == declaration.span)
-                                    || self.foreign_definitions.get(id) == Some(&location))
-                        })
-                        .map(|(_, symbol)| symbol.name.clone());
-                    if let Some(visible) = visible {
-                        visible
-                    } else if let Some((identity, _)) = self
-                        .nominal_definitions
-                        .iter()
-                        .find(|(_, origin)| **origin == location)
-                    {
-                        identity.clone()
-                    } else {
-                        let dependency = dependencies.get(&declaration.source)?;
-                        let original = dependency
+                    let key=(declaration.source.clone(),declaration.span.start,declaration.span.end);
+                    if let Some(base)=self.checked_nominal_spellings.get(&key) {base.clone()} else {
+                        // Declaration identities and visible aliases are fixed for this index revision.
+                        let module=&graph.modules[&declaration.source];
+                        let source=module.checked_source();
+                        let uri = crate::project_diagnostics::file_uri(&declaration.source).ok()?;
+                        let range = LineIndex::new(source)
+                            .range(source, declaration.span)
+                            .ok()?;
+                        let location = json!({"uri":uri,"range":range});
+                        let visible = self
                             .symbols
                             .iter()
-                            .find(|symbol| matches!(symbol.kind, 10 | 23) && symbol.span == declaration.span)?;
-                        let encoded = uri
-                            .as_str()
-                            .as_bytes()
+                            .enumerate()
+                            .find(|(id, symbol)| {
+                                matches!(symbol.kind, 10 | 23)
+                                    && symbol.owner.is_none()
+                                    && ((current == &declaration.source
+                                        && symbol.span == declaration.span)
+                                        || self.foreign_definitions.get(id) == Some(&location))
+                            })
+                            .map(|(_, symbol)| symbol.name.clone());
+                        let base=if let Some(visible) = visible {
+                            visible
+                        } else if let Some((identity, _)) = self
+                            .nominal_definitions
                             .iter()
-                            .map(|byte| format!("{byte:02x}"))
-                            .collect::<String>();
-                        let identity = format!("__tsrust_private_{encoded}_{}", original.name);
-                        self.generic_display_names
-                            .insert(identity.clone(), name.clone());
-                        self.import_record_fields(
-                            dependency,
-                            &original.name,
-                            &identity,
-                            Span::new(0, 0),
-                            uri.as_str(),
-                            &Default::default(),
-                        );
-                        identity
+                            .find(|(_, origin)| **origin == location)
+                        {
+                            identity.clone()
+                        } else {
+                            let dependency = dependencies.get(&declaration.source)?;
+                            let original = dependency
+                                .symbols
+                                .iter()
+                                .find(|symbol| matches!(symbol.kind, 10 | 23) && symbol.span == declaration.span)?;
+                            let encoded = uri
+                                .as_str()
+                                .as_bytes()
+                                .iter()
+                                .map(|byte| format!("{byte:02x}"))
+                                .collect::<String>();
+                            let identity = format!("__tsrust_private_{encoded}_{}", original.name);
+                            self.generic_display_names
+                                .insert(identity.clone(), name.clone());
+                            self.import_record_fields(
+                                dependency,
+                                &original.name,
+                                &identity,
+                                Span::new(0, 0),
+                                uri.as_str(),
+                                &Default::default(),
+                            );
+                            identity
+                        };
+                        self.checked_nominal_spellings.insert(key,base.clone());
+                        base
                     }
                 } else {
                     name.clone()
@@ -245,21 +251,12 @@ impl SourceIndex {
         facts: &ProjectCheckedTypeFacts,
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
-        // Other declarations are already checked in their owning dependency
-        // index. Their fields are imported on demand when a checked value names
-        // that type; copying every unrelated record into every module is quadratic
-        // for generated documentation loaders.
-        let mut visible_sources = std::collections::BTreeSet::from([current.clone()]);
-        visible_sources.extend(graph.modules[current].imports.iter().filter_map(|import|import.target.clone()));
-        visible_sources.extend(self.foreign_definitions.values().filter_map(|location|location["uri"].as_str())
-            .filter_map(|uri|crate::project_diagnostics::source_id(uri).ok()));
+        // Owning indices already check every specialization. Foreign fields are
+        // imported on demand; copying them into every importer multiplies the graph.
         for (owner,name,location,ty,optional) in &facts.record_fields {
-            // Imported data already has complete compiler-derived schema symbols,
-            // including expanded property help. Reapplying nominal facts would
-            // replace those shapes with private JsonData implementation names.
-            if graph.modules.get(&location.source).is_some_and(|module|module.data.is_some()) { continue; }
-            if let ProjectType::Named { declaration: Some(declaration), .. } = owner
-                && !visible_sources.contains(&declaration.source) { continue; }
+            if graph.modules.get(&location.source).is_some_and(|module|module.data.is_some()) {continue;}
+            let local=match owner {ProjectType::Named {declaration:Some(declaration),..}=>declaration.source==*current,_=>location.source==*current};
+            if !local {continue;}
             let Some(owner)=self.project_type_spelling(graph,current,owner,dependencies) else{continue;};
             let Some(ty)=self.project_type_spelling(graph,current,ty,dependencies) else{continue;};
             let signature=format!("{name}{}: {}",if *optional{"?"}else{""},self.display_type(&ty));

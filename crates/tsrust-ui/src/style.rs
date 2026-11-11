@@ -5,14 +5,26 @@ mod structural;
 mod custom_spacing;
 mod edges;
 mod text;
+mod tailwind;
 pub use text::WhiteSpace;
-#[cfg(feature="native")]
+#[cfg(feature="gpui")]
 pub(crate) use structural::scoped_at_width as resolved_scoped_node_at_width;
+#[cfg(any(all(test, feature="runtime"),feature="gpui"))]
+pub(crate) use structural::surface_at_width as resolved_surface_at_width;
 #[cfg(all(test, feature = "runtime"))]
 pub(crate) use structural::resolved as resolved_node;
 pub use layout::Length;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum State { Base, Hover, Focus, Active, Disabled }
+/// Resolve one interaction over its base styles; disabled controls ignore live states.
+#[cfg(any(all(test,feature="runtime"),feature="gpui"))]
+pub(crate) fn state_rules(rules:&[(State,Utility)],state:State,disabled:bool)->Vec<Utility> {
+ let mut merged=std::collections::BTreeMap::new();
+ for selected in [State::Base,if disabled {State::Disabled}else{state}] {
+  for (current,rule) in rules {if *current==selected {merged.insert(rule.category(),*rule);}}
+ }
+ merged.into_values().collect()
+}
 #[derive(Debug, Clone, Copy)]
 pub enum Utility {
  BasisZero, Tracking(f32), Balance(bool), BorderDashed(bool), Margin(u8,f32), WhiteSpace(WhiteSpace), Underline(bool), UnderlineOffset(Option<f32>),
@@ -21,14 +33,20 @@ pub enum Utility {
  Background(ResolvedColor), Foreground(ResolvedColor), Corner(u8,f32), EdgeBorder(u8,f32), Overflow(u8), BorderColor(ResolvedColor),
  Align(u8), Items(u8), Justify(u8), Ring(ResolvedColor), RingWidth(f32), RingShadowColor(ResolvedColor),
  Placeholder(ResolvedColor),Opacity(f32),OutlineNone,Cursor(u8),SelectNone,PointerEvents(bool),FieldSizingContent,AspectRatio(Option<f32>),Relative,Absolute,Inset(u8,Length),
+ Italic(bool),TextTransform(u8),LineThrough(bool),TextOverflow(u8),LineClamp(u8),Visible(bool),OverflowAxis(u8,u8),AlignContent(u8),Basis(Length),Shadow(u8),ShadowColor(ResolvedColor),GradientAngle(u16),GradientStop(u8,ResolvedColor),Animation(u8),MarginAuto(u8),
 }
 impl Utility {
- pub fn category(self)->u8 {match self {Self::TableDisplay(_)=>30,Self::CaptionBottom(_)=>81,Self::VerticalAlign(_)=>82,Self::BasisZero=>80,Self::Tracking(_)=>73,Self::Balance(_)=>74,Self::BorderDashed(_)=>75,Self::Margin(side,_)=>76+side,Self::WhiteSpace(_)=>70,Self::Underline(_)=>71,Self::UnderlineOffset(_)=>72,Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::Hidden|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side}}
+ #[cfg(any(all(test,feature="runtime"),feature="gpui"))]
+ pub(crate) fn in_viewport(self,width:f32,height:f32)->Self {
+  let length=|value|match value {Length::Viewport(0)=>Length::Pixels(width),Length::Viewport(_)=>Length::Pixels(height),value=>value};
+  match self {Self::Dimension(property,value)=>Self::Dimension(property,length(value)),Self::Basis(value)=>Self::Basis(length(value)),Self::Inset(side,value)=>Self::Inset(side,length(value)),value=>value}
+ }
+ pub fn category(self)->u8 {match self {Self::TableDisplay(_)=>30,Self::CaptionBottom(_)=>81,Self::VerticalAlign(_)=>82,Self::BasisZero=>80,Self::Tracking(_)=>73,Self::Balance(_)=>74,Self::BorderDashed(_)=>75,Self::Margin(side,_)=>76+side,Self::WhiteSpace(_)=>70,Self::Underline(_)=>71,Self::UnderlineOffset(_)=>72,Self::Row|Self::Column=>0,Self::GapAxis(axis,_)=>16+axis,Self::Padding(side,_)=>20+side,Self::Display(_)|Self::Hidden|Self::InlineFlex=>30,Self::Dimension(property,_)=>24+property,Self::SelfAlign(axis,_)=>31+axis,Self::Shrink(_)=>33,Self::Grow(_)=>34,Self::Wrap(_)=>35,Self::Tracks(axis,_)=>36+axis,Self::Placement(property,_)=>38+property,Self::AutoRowsMin=>42,Self::FontSize(_)=>4,Self::Weight(_)=>5,Self::DefaultLeading(_)=>45,Self::Leading(_)=>46,Self::FontFamily(_)=>47,Self::Background(_)=>6,Self::Foreground(_)=>7,Self::Corner(corner,_)=>48+corner,Self::EdgeBorder(side,_)=>52+side,Self::Overflow(_)=>56,Self::BorderColor(_)=>10,Self::Align(_)=>11,Self::Items(_)=>12,Self::Justify(_)=>13,Self::Ring(_)=>14,Self::RingWidth(_)=>43,Self::RingShadowColor(_)=>44,Self::Placeholder(_)=>57,Self::Opacity(_)=>58,Self::OutlineNone=>14,Self::Cursor(_)=>60,Self::SelectNone=>61,Self::PointerEvents(_)=>62,Self::FieldSizingContent=>63,Self::AspectRatio(_)=>64,Self::Relative|Self::Absolute=>65,Self::Inset(side,_)=>66+side,Self::Italic(_)=>83,Self::TextTransform(_)=>84,Self::LineThrough(_)=>85,Self::TextOverflow(_)=>86,Self::LineClamp(_)=>87,Self::Visible(_)=>88,Self::OverflowAxis(axis,_)=>89+axis,Self::AlignContent(_)=>91,Self::Basis(_)=>80,Self::Shadow(_)=>92,Self::ShadowColor(_)=>93,Self::GradientAngle(_)=>94,Self::GradientStop(stop,_)=>95+stop,Self::Animation(_)=>98,Self::MarginAuto(side)=>76+side}}
  pub(crate) fn css(self)->String {match self {
   Self::BasisZero=>"flex-basis:0%".into(),Self::Tracking(v)=>format!("letter-spacing:{v}em"),Self::Balance(v)=>format!("text-wrap-style:{}",if v{"balance"}else{"auto"}),Self::BorderDashed(v)=>format!("border-style:{}",if v{"dashed"}else{"solid"}),Self::Margin(side,v)=>format!("margin-{}:{v}px",["top","right","bottom","left"][side as usize]),
   Self::WhiteSpace(v)=>format!("white-space:{}",v.css()),Self::Underline(v)=>format!("text-decoration-line:{}",if v{"underline"}else{"none"}),Self::UnderlineOffset(v)=>format!("text-underline-offset:{}",v.map_or_else(||"auto".into(),|v|format!("{v}px"))),
   Self::AspectRatio(value)=>format!("aspect-ratio:{}",value.map_or_else(||"auto".into(),|value|value.to_string())),Self::Relative=>"position:relative".into(),Self::Absolute=>"position:absolute".into(),Self::Inset(side,value)=>format!("{}:{}",["top","right","bottom","left"][side as usize],value.css()),
-  Self::Placeholder(v)=>format!("color:{};opacity:1",v.css()),Self::Opacity(v)=>format!("opacity:{v}"),Self::OutlineNone=>"outline:none".into(),Self::Cursor(v)=>format!("cursor:{}",["auto","text","not-allowed"][v as usize]),Self::SelectNone=>"user-select:none".into(),Self::PointerEvents(v)=>format!("pointer-events:{}",if v{"auto"}else{"none"}),Self::FieldSizingContent=>"field-sizing:content;height:auto".into(),
+  Self::Placeholder(v)=>format!("color:{};opacity:1",v.css()),Self::Opacity(v)=>format!("opacity:{v}"),Self::OutlineNone=>"outline:none".into(),Self::Cursor(v)=>format!("cursor:{}",tailwind::CURSORS[v as usize]),Self::SelectNone=>"user-select:none".into(),Self::PointerEvents(v)=>format!("pointer-events:{}",if v{"auto"}else{"none"}),Self::FieldSizingContent=>"field-sizing:content;height:auto".into(),
   Self::Row=>"flex-direction:row".into(),Self::Column=>"flex-direction:column".into(),Self::GapAxis(axis,v)=>format!("{}-gap:{v}px",if axis==0 {"row"}else{"column"}),
   Self::TableDisplay(index)=>format!("display:{}{}",["table","table-header-group","table-row-group","table-footer-group","table-row","table-cell","table-caption"][index as usize],if index==0{";border-collapse:collapse;border-spacing:0"}else{""}),
   Self::CaptionBottom(bottom)=>format!("caption-side:{}",if bottom{"bottom"}else{"top"}),
@@ -46,21 +64,41 @@ impl Utility {
   Self::FontSize(v)=>format!("font-size:{v}px"),Self::Weight(v)=>format!("font-weight:{v}"),Self::DefaultLeading(v)=>format!("line-height:var(--ui-leading,{v}px)"),Self::Leading(v)=>format!("--ui-leading:{v};line-height:{v}"),Self::FontFamily(v)=>format!("font-family:{}",["system-ui,sans-serif","serif","monospace"][v as usize]),Self::Corner(c,v)=>format!("border-{}-radius:{v}px",["top-left","top-right","bottom-right","bottom-left"][c as usize]),Self::Overflow(v)=>format!("overflow:{}",["visible","hidden","auto"][v as usize]),
   Self::Background(v)=>format!("background:{}",v.css()),Self::Foreground(v)=>format!("color:{}",v.css()),
   Self::EdgeBorder(s,v)=>{let side=["top","right","bottom","left"][s as usize];format!("border-{side}-width:{v}px")},Self::BorderColor(v)=>format!("border-color:{}",v.css()),
-  Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between"][v as usize]),
+  Self::Align(v)=>format!("text-align:{}",["left","center","right"][v as usize]),Self::Items(v)=>format!("align-items:{}",["flex-start","center","stretch","flex-end","baseline"][v as usize]),Self::Justify(v)=>format!("justify-content:{}",["flex-start","center","space-between","flex-end","space-around","space-evenly"][v as usize]),
   Self::Ring(v)=>format!("outline:2px solid {};outline-offset:2px",v.css()),
   Self::RingWidth(v)=>format!("--ui-shadow-ring-width:{v}px;box-shadow:0 0 0 var(--ui-shadow-ring-width) var(--ui-shadow-ring-color,var(--ui-ring))"),
   Self::RingShadowColor(v)=>format!("--ui-shadow-ring-color:{}",v.css()),
+  Self::Italic(v)=>format!("font-style:{}",if v{"italic"}else{"normal"}),Self::TextTransform(v)=>format!("text-transform:{}",["none","uppercase","lowercase","capitalize"][v as usize]),
+  Self::LineThrough(v)=>format!("text-decoration-line:{}",if v{"line-through"}else{"none"}),Self::TextOverflow(v)=>format!("text-overflow:{}",if v==1{"ellipsis"}else{"clip"}),
+  Self::LineClamp(v)=>if v==0{"-webkit-line-clamp:unset".into()}else{format!("display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:{v};overflow:hidden")},
+  Self::Visible(v)=>format!("visibility:{}",if v{"visible"}else{"hidden"}),Self::OverflowAxis(axis,v)=>format!("overflow-{}:{}",if axis==0{"x"}else{"y"},["visible","hidden","auto"][v as usize]),
+  Self::AlignContent(v)=>format!("align-content:{}",["flex-start","center","flex-end","space-between","space-around","space-evenly","stretch"][v as usize]),
+  Self::Basis(v)=>format!("flex-basis:{}",v.css()),Self::Shadow(v)=>format!("box-shadow:{}",SHADOW_CSS[v as usize]),Self::ShadowColor(v)=>format!("--ui-shadow-color:{}",v.css()),
+  Self::GradientAngle(v)=>format!("--ui-gradient-angle:{v}deg;background-image:linear-gradient(var(--ui-gradient-angle),var(--ui-gradient-from,transparent),var(--ui-gradient-to,transparent))"),
+  Self::GradientStop(stop,v)=>format!("--ui-gradient-{}:{}",["from","via","to"][stop as usize],v.css()),
+  Self::Animation(v)=>format!("animation:{}",["none","spin 1s linear infinite","ping 1s cubic-bezier(0,0,0.2,1) infinite","pulse 2s cubic-bezier(0.4,0,0.6,1) infinite","bounce 1s infinite"][v as usize]),
+  Self::MarginAuto(side)=>format!("margin-{}:auto",["top","right","bottom","left"][side as usize]),
+ }}
+}
+/// Tailwind 4 shadow scale: index 0 is none, then 2xs, xs, sm, default, md, lg, xl, 2xl.
+const SHADOW_CSS:[&str;9]=["none","0 1px rgb(0 0 0/0.05)","0 1px 2px 0 rgb(0 0 0/0.05)","0 1px 3px 0 rgb(0 0 0/0.1),0 1px 2px -1px rgb(0 0 0/0.1)","0 1px 3px 0 rgb(0 0 0/0.1),0 1px 2px -1px rgb(0 0 0/0.1)","0 4px 6px -1px rgb(0 0 0/0.1),0 2px 4px -2px rgb(0 0 0/0.1)","0 10px 15px -3px rgb(0 0 0/0.1),0 4px 6px -4px rgb(0 0 0/0.1)","0 20px 25px -5px rgb(0 0 0/0.1),0 8px 10px -6px rgb(0 0 0/0.1)","0 25px 50px -12px rgb(0 0 0/0.25)"];
+impl Utility {
+ /// Shadow layers for an index of SHADOW_CSS: (y offset, blur, spread, alpha) in pixels.
+ pub fn shadow_layers(index:u8)->&'static [(f32,f32,f32,f32)] {match index {
+  1=>&[(1.,0.,0.,0.05)],2=>&[(1.,2.,0.,0.05)],3|4=>&[(1.,3.,0.,0.1),(1.,2.,-1.,0.1)],5=>&[(4.,6.,-1.,0.1),(2.,4.,-2.,0.1)],
+  6=>&[(10.,15.,-3.,0.1),(4.,6.,-4.,0.1)],7=>&[(20.,25.,-5.,0.1),(8.,10.,-6.,0.1)],8=>&[(25.,50.,-12.,0.25)],_=>&[],
  }}
 }
 fn build_tokens()->Vec<String> {
- let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","justify-start","justify-center","justify-between","text-base","text-xl","text-2xl","text-3xl","text-4xl","text-5xl","text-6xl","text-7xl","text-sm","text-xs","font-medium","font-semibold","leading-tight","leading-snug","leading-normal","leading-relaxed","text-sm/relaxed","font-heading","font-sans","font-serif","font-mono","rounded-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
+ let mut tokens=["flex-row","flex-col","font-bold","font-normal","rounded","rounded-none","rounded-sm","rounded-lg","border","border-0","text-left","text-center","text-right","items-start","items-center","items-stretch","items-end","items-baseline","justify-start","justify-center","justify-between","justify-end","justify-around","justify-evenly","text-base","text-xl","text-2xl","text-3xl","text-4xl","text-5xl","text-6xl","text-7xl","text-sm","text-xs","font-medium","font-semibold","leading-tight","leading-snug","leading-normal","leading-relaxed","text-sm/relaxed","font-heading","font-sans","font-serif","font-mono","rounded-xl","ring"].into_iter().map(str::to_owned).collect::<Vec<_>>();
  tokens.extend(["opacity-0","opacity-50","opacity-100","outline-none","cursor-auto","cursor-text","cursor-not-allowed","select-none","pointer-events-none","pointer-events-auto","field-sizing-content"].map(str::to_owned));
- tokens.extend(text::tokens());tokens.extend(layout::tokens());tokens.extend(edges::tokens());
+ tokens.extend(text::tokens());tokens.extend(layout::tokens());tokens.extend(edges::tokens());tokens.extend(tailwind::tokens());
  tokens.extend(["ring-0","ring-1","ring-2","ring-3"].map(str::to_owned));
- for color in COLORS.iter().copied().chain(["transparent"]) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
+ for color in COLORS.iter().copied().chain(["transparent"]).chain(crate::theme::palette_names()) {for prefix in ["bg","text","border","ring"] {tokens.push(format!("{prefix}-{color}"));}}
  tokens
 }
 fn split(token:&str)->Result<(State,&str),String> {let parts=structural::parts(token)?;Ok((parts.state,parts.token))}
+fn default_theme()->&'static Theme {static THEME:std::sync::OnceLock<Theme>=std::sync::OnceLock::new();THEME.get_or_init(Theme::default)}
 fn known_tokens()->&'static std::collections::BTreeSet<String> {
  static TOKENS:std::sync::OnceLock<std::collections::BTreeSet<String>>=std::sync::OnceLock::new();
  TOKENS.get_or_init(||build_tokens().into_iter().collect())
@@ -68,9 +106,9 @@ fn known_tokens()->&'static std::collections::BTreeSet<String> {
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
 pub fn validate(classes:&str)->Result<(),String> {
  if classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|token=="table-cell")) && classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|["w-full","w-1/2","w-1/3","w-2/3","w-1/4","w-3/4","min-w-full","max-w-full","min-w-1/2","min-w-1/3","min-w-2/3","min-w-1/4","min-w-3/4","max-w-1/2","max-w-1/3","max-w-2/3","max-w-1/4","max-w-3/4"].contains(&token))){return Err("Percentage table-cell widths are unsupported; use intrinsic or pixel widths".into());}
- let known=known_tokens(); for class in classes.split_whitespace() {let parsed=structural::parts(class)?;let (state,token)=(parsed.state,parsed.token);if parsed.placeholder && !token.strip_prefix("text-").is_some_and(|color|color=="transparent"||COLORS.contains(&color)||opacity_token(token).is_some()){return Err("Placeholder variants require a text color".into());}
+ let known=known_tokens(); for class in classes.split_whitespace() {let parsed=structural::parts(class)?;let (state,token)=(parsed.state,parsed.token);if parsed.placeholder && !(token.starts_with("text-") && (color_token(token)||opacity_token(token).is_some())){return Err("Placeholder variants require a text color".into());}
  if custom_spacing::declaration(token).is_some() && state!=State::Base{return Err("Spacing variable declarations cannot use interaction states".into());}
- if !known.contains(token) && opacity_token(token).is_none() && layout::aspect(token).is_none() && !layout::pixel_dimension(token) && !structural::marker(token) && custom_spacing::declaration(token).is_none() && custom_spacing::reference(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
+ if !known.contains(token) && !color_token(token) && opacity_token(token).is_none() && layout::aspect(token).is_none() && layout::dimension(token,default_theme()).is_none() && !layout::pixel_offset(token) && tailwind::resolve(token,default_theme(),"light").is_none() && !structural::marker(token) && custom_spacing::declaration(token).is_none() && custom_spacing::reference(token).is_none() {return Err(format!("Unsupported UI utility: {class}"));}}Ok(())
 }
 pub(crate) fn resolved(classes:&str,theme:&Theme,mode:&str)->Vec<(State,Utility)> {
  resolved_with_variables(classes,theme,mode,&std::collections::BTreeMap::new())
@@ -82,20 +120,25 @@ fn resolved_with_variables(classes:&str,theme:&Theme,mode:&str,variables:&std::c
   if structural::marker(token)||custom_spacing::declaration(token).is_some(){continue;}
   let (token,opacity)=opacity_token(token).unwrap_or((token,1.));
   let mut put=|value:Utility|{let value=if parsed.placeholder{if let Utility::Foreground(color)=value{Utility::Placeholder(color)}else{value}}else{value};rules.insert((state,value.category()),value);};
-  if let Some(values)=custom_spacing::resolve(token,theme,variables).or_else(||edges::resolve(token,theme)).or_else(||layout::resolve(token,theme)){for value in values {put(value);}continue;}
+  if let Some(values)=custom_spacing::resolve(token,theme,variables).or_else(||edges::resolve(token,theme)).or_else(||layout::resolve(token,theme)).or_else(||tailwind::resolve(token,theme,mode)){for value in values {put(value);}continue;}
   if token=="text-sm/relaxed"{put(Utility::FontSize(theme.typography.base as f32*0.875));put(Utility::Leading(1.625));continue;}
   if matches!(token,"text-sm"|"text-xs"){let (size,leading)=if token=="text-xs"{(0.75,1.)}else{(0.875,1.25)};put(Utility::FontSize(theme.typography.base as f32*size));put(Utility::DefaultLeading(theme.typography.base as f32*leading));continue;}
+  if let Some(width) = token.strip_prefix("ring-").and_then(|value|value.parse::<u8>().ok()).filter(|value|*value<=3) {
+   put(Utility::RingWidth(width as f32));
+   rules.entry((state,44)).or_insert_with(||Utility::RingShadowColor(theme.color(mode,"ring").expect("checked theme")));
+   continue;
+  }
   let value=if let Some(value)=text::resolve(token){value}else{match token {
    "opacity-0"=>Utility::Opacity(0.),"opacity-50"=>Utility::Opacity(0.5),"opacity-100"=>Utility::Opacity(1.),"outline-none"=>Utility::OutlineNone,"cursor-auto"=>Utility::Cursor(0),"cursor-text"=>Utility::Cursor(1),"cursor-not-allowed"=>Utility::Cursor(2),"select-none"=>Utility::SelectNone,"pointer-events-none"=>Utility::PointerEvents(false),"pointer-events-auto"=>Utility::PointerEvents(true),"field-sizing-content"=>Utility::FieldSizingContent,
    "flex-row"=>Utility::Row,"flex-col"=>Utility::Column,"font-bold"=>Utility::Weight(700.),"font-normal"=>Utility::Weight(400.),"font-medium"=>Utility::Weight(500.),"font-semibold"=>Utility::Weight(600.),"font-sans"=>Utility::FontFamily(0),"font-serif"=>Utility::FontFamily(1),"font-mono"=>Utility::FontFamily(2),"leading-tight"=>Utility::Leading(1.1),"leading-snug"=>Utility::Leading(1.375),"leading-normal"=>Utility::Leading(1.5),"leading-relaxed"=>Utility::Leading(1.625),"font-heading"=>Utility::FontFamily(theme.typography.heading_family.index()),
-   "text-2xl"=>Utility::FontSize(theme.typography.base as f32*1.875),"text-3xl"=>Utility::FontSize(theme.typography.base as f32*2.25),"text-4xl"=>Utility::FontSize(theme.typography.base as f32*3.),"text-5xl"=>Utility::FontSize(theme.typography.base as f32*3.75),"text-6xl"=>Utility::FontSize(theme.typography.base as f32*4.5),"text-7xl"=>Utility::FontSize(theme.typography.base as f32*6.),
+   "text-2xl"=>Utility::FontSize(theme.typography.base as f32*1.5),"text-3xl"=>Utility::FontSize(theme.typography.base as f32*1.875),"text-4xl"=>Utility::FontSize(theme.typography.base as f32*2.25),"text-5xl"=>Utility::FontSize(theme.typography.base as f32*3.),"text-6xl"=>Utility::FontSize(theme.typography.base as f32*3.75),"text-7xl"=>Utility::FontSize(theme.typography.base as f32*4.5),
    "text-base"=>Utility::FontSize(theme.typography.base as f32),"text-xl"=>Utility::FontSize(theme.typography.xl as f32),
    "ring"=>Utility::Ring(theme.color(mode,"ring").unwrap()),
    "ring-0"=>Utility::RingWidth(0.),"ring-1"=>Utility::RingWidth(1.),"ring-2"=>Utility::RingWidth(2.),"ring-3"=>Utility::RingWidth(3.),
    "text-left"=>Utility::Align(0),"text-center"=>Utility::Align(1),"text-right"=>Utility::Align(2),
-   "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),
-   "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),
-   _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
+   "items-start"=>Utility::Items(0),"items-center"=>Utility::Items(1),"items-stretch"=>Utility::Items(2),"items-end"=>Utility::Items(3),"items-baseline"=>Utility::Items(4),
+   "justify-start"=>Utility::Justify(0),"justify-center"=>Utility::Justify(1),"justify-between"=>Utility::Justify(2),"justify-end"=>Utility::Justify(3),"justify-around"=>Utility::Justify(4),"justify-evenly"=>Utility::Justify(5),
+   _=>{let (kind,color)=token.split_once('-').unwrap();let color=if color=="transparent"{ResolvedColor::transparent()}else if let Some(fixed)=crate::theme::fixed_color(color){fixed}else{theme.color(mode,color).expect("validated theme token")}.opacity(opacity);match kind {"bg"=>Utility::Background(color),"text"=>Utility::Foreground(color),"border"=>Utility::BorderColor(color),"ring"=>Utility::RingShadowColor(color),_=>unreachable!()}},
   }};put(value);
  }
  rules.into_iter().map(|((state,_),value)|(state,value)).collect()
@@ -115,6 +158,14 @@ pub(crate) fn css(classes:&str,theme:&Theme,mode:&str,id:u64,scope:&str)->String
   assert_eq!(values.iter().filter(|(s,v)|*s==State::Base && matches!(v,Utility::Background(_))).count(),1);
   assert!(validate("hover:unknown").is_err());assert!(validate("sm:p-2").is_ok());
  }
+ #[test] fn palette_and_arbitrary_colors_resolve() {
+  let theme=Theme::default();
+  for class in ["text-blue-500","bg-emerald-100/50","border-[#ff6600]","hover:bg-white","text-[oklch(60%_0.1_30)]","placeholder:text-zinc-400"] {assert!(validate(class).is_ok(),"{class}");}
+  for class in ["text-blue-550","bg-[nope]","text-[#ff66]"] {assert!(validate(class).is_err(),"{class}");}
+  let values=resolved("border-[#ff6600] bg-black/50",&theme,"light");
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::BorderColor(color) if color.css()=="#ff6600")));
+  assert!(values.iter().any(|(_,v)|matches!(v,Utility::Background(color) if (color.alpha()-0.5).abs()<1e-6)));
+ }
 }
 
 /// Theme references used by authoring navigation and both renderers.
@@ -125,7 +176,7 @@ pub fn theme_paths(class:&str)->Vec<Vec<String>> {
  if custom_spacing::reference(token).is_some(){return vec![];}
  let color=if token=="ring" {Some("ring")}else{token.strip_prefix("bg-").or_else(||token.strip_prefix("text-")).or_else(||token.strip_prefix("border-")).or_else(||token.strip_prefix("ring-"))};
  if let Some(color)=color.filter(|color|COLORS.contains(color)) {return ["light","dark"].into_iter().map(|mode|vec![mode.into(),crate::theme::key_name(color)]).collect();}
- if token.starts_with("rounded") {let key=if token.ends_with("-none"){return vec![];}else if token.ends_with("-sm"){"sm"}else if token.ends_with("-lg"){"lg"}else if ["-xl","-2xl","-3xl","-4xl"].iter().any(|suffix|token.ends_with(suffix)){"xl"}else{"md"};let mut paths=vec![vec!["radius".into(),key.into()]];if key=="xl"{paths.push(vec!["radius".into(),"lg".into()]);}return paths;}
+ if token.starts_with("rounded") {let key=if token.ends_with("-none")||token.ends_with("-full"){return vec![];}else if token.ends_with("-sm"){"sm"}else if token.ends_with("-lg"){"lg"}else if ["-xl","-2xl","-3xl","-4xl"].iter().any(|suffix|token.ends_with(suffix)){"xl"}else{"md"};let mut paths=vec![vec!["radius".into(),key.into()]];if key=="xl"{paths.push(vec!["radius".into(),"lg".into()]);}return paths;}
  let field=match token {"rounded"=>Some(("radius","md")),"rounded-sm"=>Some(("radius","sm")),"rounded-lg"=>Some(("radius","lg")),"rounded-xl"=>Some(("radius","xl")),"text-xs"|"text-sm"|"text-sm/relaxed"|"max-w-sm"|"text-base"|"text-2xl"|"text-3xl"|"text-4xl"|"text-5xl"|"text-6xl"|"text-7xl"=>Some(("typography","base")),"text-xl"=>Some(("typography","xl")),"font-heading"=>Some(("typography","headingFamily")),_=>None};
  if let Some((group,key))=field{return vec![vec![group.into(),key.into()]];}
  layout::theme_keys(token).into_iter().map(|key|vec!["spacing".into(),key.into()]).collect()
@@ -137,14 +188,16 @@ pub fn documentation(class:&str)->String {
  let (_,token)=split(class).unwrap();let default=Theme::default();
  let (purpose,example)=if matches!(token,"table"|"table-header-group"|"table-row-group"|"table-footer-group"|"table-row"|"table-cell"|"table-caption"|"caption-top"|"caption-bottom"|"align-top"|"align-middle"|"align-bottom") {
   ("Selects portable shared-column table layout, caption placement or cell vertical alignment. Semantic tags alone do not change layout. Portable rows require th/td table-cell children, and groups require tr table-row children; malformed structures throw before rendering. Table rows share intrinsic column widths across header/body/footer; colSpan covers 1â€“1000 columns. Tables can exceed a narrow overflow-auto wrapper. Caption-bottom moves captions visually without changing source/ownership/focus order. align-top/middle/bottom places cell content within its row. Percentage cell widths, rowSpan, nested tables, fixed table layout, separate spacing and border-conflict resolution are unsupported. Font metrics and surplus width distribution can differ by target. No arguments or ownership change.","<View as=\"table\" className=\"table caption-bottom\"><View as=\"tr\" className=\"table-row\"><View as=\"td\" className=\"table-cell align-middle\">Value</View></View></View> // one shared column".to_string())
+ }else if tailwind::resolve(token,&default,"light").is_some() && let Some(purpose)=tailwind::documentation(token) {
+  (purpose,format!("<View className=\"{token}\" />"))
  }else if layout::pixel_dimension(token) {
   ("Sets a nonnegative finite logical-pixel box dimension with w/h/min-w/min-h/max-w/max-h/size-[Npx] (or [N]). No theme scaling. Fractions, negatives, CSS expressions and nonfinite/native-overflow values reject. Example w-[100px] prefers 100 logical pixels; content and min/max constraints can require more space. No arguments, text mutation or ownership change.",format!("<View className=\"{class}\"/>"))
  }else if token=="hidden" {
   ("Removes the element and its subtree from layout, painting, pointer input, keyboard focus and accessibility. Responsive flex/grid utilities can show the same retained subtree at a wider viewport. Unlike conditional children, this preserves state and ownership and does not dispose handlers. No arguments. Example: hidden md:flex hides below 768 logical pixels and shows at or above 768.",format!("<View className=\"{class} md:flex\"/>"))
  }else if matches!(token,"text-balance"|"text-wrap-auto") {
-  ("Balances short wrapped text without changing its value or hard breaks. text-balance asks both renderers for balanced line lengths; text-wrap-auto restores ordinary wrapping. Native balancing preserves the ordinary line count for blocks of 2â€“6 lines using a bounded width search; longer blocks use ordinary wrapping. Browsers choose their own balancing algorithm and limits, so exact break positions can differ with fonts. Whitespace/nowrap rules still apply. Measurement, painting, selection and accessibility geometry share the native layout. Does not change width constraints or editable-control behavior. No arguments or ownership change.",format!("<Text className=\"w-64 text-center {class}\">Build a workspace for your next project</Text>"))
+  ("Requests balanced wrapped lines without changing the text value or hard breaks. The retained browser and legacy native renderers support balancing; GPUI currently keeps ordinary wrapping. text-wrap-auto restores ordinary wrapping on all renderers. Exact break positions depend on fonts and renderer. Whitespace/nowrap rules still apply. Does not change width constraints or editable-control behavior. No arguments or ownership change.",format!("<Text className=\"w-64 text-center {class}\">Build a workspace for your next project</Text>"))
  }else if matches!(token,"tracking-tight"|"tracking-normal") {
-  ("Sets inherited letter spacing relative to the current font size. tracking-tight uses -0.025em (-0.4 logical pixels at font-size 16); tracking-normal restores zero extra spacing. Native shaping, measurement, selection and painting use the same spacing. Stored text is unchanged; font shaping can differ across platforms. No arguments or ownership change.",format!("<Text className=\"{class}\">Project settings</Text>"))
+  ("Sets inherited letter spacing relative to the current font size. tracking-tight uses -0.025em (-0.4 logical pixels at font-size 16); tracking-normal restores zero extra spacing. The retained browser and legacy native renderers apply this spacing; GPUI currently keeps ordinary glyph spacing. Stored text is unchanged; font shaping can differ across platforms. No arguments or ownership change.",format!("<Text className=\"{class}\">Project settings</Text>"))
  }else if token=="font-heading" {
   ("Selects typography.headingFamily from the enclosing project/theme scope. Omission uses sans; serif and mono are also accepted generic families. Explicit font-sans/serif/mono classes can override it. Does not load fonts; named font assets remain unsupported and actual system fonts can differ across platforms. Inherited by child text. No arguments or ownership change.",format!("<Text className=\"{class}\">Projects</Text>"))
  }else if matches!(token,"border-dashed"|"border-solid") {
@@ -160,13 +213,13 @@ pub fn documentation(class:&str)->String {
  }else if layout::aspect(token).is_some() {
   ("Sets a preferred width/height ratio on a layout box; inline text runs have no separate ratio box. aspect-square uses 1, aspect-video uses 16/9, aspect-[W/H] and aspect-[R] accept finite positive numbers, and aspect-auto removes the preference. Invalid, zero, negative, nonfinite or native-overflow/underflow ratios reject. Both targets normalize the ratio to f32 logical layout precision. A definite width with automatic height derives height; two explicit dimensions win. Min/max dimensions constrain the result. Children can overflow unless clipping/scrolling is requested. No accessibility role or ownership change. Later matching aspect classes win.",format!("<View className=\"w-64 {class}\" />"))
  }else if matches!(token,"relative"|"absolute") || layout::offset(token,&default).is_some() {
-  ("Positions a layout box within its immediate UI parent. Every UI box establishes a containing block. relative keeps normal flow; absolute removes the box from flow. top/right/bottom/left and inset/inset-x/inset-y set sides independently; auto clears a side. Spacing uses project tokens, fractions/full use the parent's corresponding dimension, and a leading minus negates a numeric/fraction offset. Later matching classes win independently per side. A definite parent size is needed for predictable percentage placement. Inline text descendants reject box utilities. Paint order, clipping and keyboard order remain source order; z-index, fixed/sticky positioning and transforms are unsupported. No ownership change.","<View className=\"relative w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> // 8px from the parent's top/right at default spacing".to_string())
+  ("Positions a layout box within its immediate UI parent. Every UI box establishes a containing block. relative keeps normal flow; absolute removes the box from flow. top/right/bottom/left and inset/inset-x/inset-y set sides independently; auto clears a side. Spacing uses project tokens, [Npx] sets exact pixels (left-[150px]), fractions/full use the parent's corresponding dimension, and a leading minus negates a numeric, pixel or fraction offset. Later matching classes win independently per side. A definite parent size is needed for predictable percentage placement. Inline text descendants reject box utilities. Paint order, clipping and keyboard order remain source order; z-index, fixed/sticky positioning and transforms are unsupported. No ownership change.","<View className=\"relative w-64 h-32\"><View className=\"absolute top-2 right-2 w-8 h-8\" /></View> // 8px from the parent's top/right at default spacing".to_string())
  }else if matches!(token,"opacity-0"|"opacity-50"|"opacity-100"|"outline-none"|"cursor-auto"|"cursor-text"|"cursor-not-allowed"|"select-none"|"pointer-events-none"|"pointer-events-auto"|"field-sizing-content") {
   ("opacity-0/50/100 selects whole-subtree paint opacity 0/0.5/1 without changing layout, focus or accessibility. outline-none removes the fallback focus outline; supply a visible focus ring when using it. cursor-auto/text/not-allowed chooses the pointer cursor. pointer-events-none/auto removes/restores pointer targeting and is inherited; keyboard focus stays available. select-none prevents selection of static content, while editable fields keep editing selection. field-sizing-content makes Textarea height follow wrapped content/placeholder subject to min/max bounds; other nodes ignore it. No function arguments. Later matching classes override the same property.",format!("<Input className=\"{class}\" aria-label=\"Name\" />"))
  }else if edges::resolve(token,&default).is_some() {
-  ("Sets independent border sides, corner radii or overflow clipping. border and border-t/r/b/l use 1px, -0 removes it and -2 uses 2px; widths participate in layout. rounded and rounded-t/r/b/l/tl/tr/br/bl select md, with -none/sm/lg/xl selecting those slots. -2xl/3xl/4xl use 1.25/1.5/2 times radius.xl. radius.xl defaults to lg for older themes. Corner radii scale together to fit the box. Later source classes win independently per side/corner. overflow-auto creates a bounded two-axis scroll container; constrain its dimensions. Wheel/trackpad deltas bubble after an inner container reaches its limit. Focus reveals controls through nested containers. Use View tabIndex=0 and an accessible region name for keyboard scrolling. overflow-hidden clips to the rounded padding box and permits focus reveal but no wheel scrolling; overflow-visible restores overflow. Clipping preserves source/keyboard/accessibility order and does not make clipped controls disabled.",format!("<View className=\"{class}\" />"))
+  ("Sets independent border sides, corner radii or overflow clipping. border and border-t/r/b/l use 1px, -0 removes it and -2 uses 2px; widths participate in layout. rounded and rounded-t/r/b/l/tl/tr/br/bl select md, with -none/sm/md/lg/xl selecting those slots; -full makes pills and circles. -2xl/3xl/4xl use 1.25/1.5/2 times radius.xl. radius.xl defaults to lg for older themes. Corner radii scale together to fit the box. Later source classes win independently per side/corner. overflow-auto creates a bounded two-axis scroll container; constrain its dimensions. Wheel/trackpad deltas bubble after an inner container reaches its limit. Focus reveals controls through nested containers. Use View tabIndex=0 and an accessible region name for keyboard scrolling. overflow-hidden clips to the rounded padding box and permits focus reveal but no wheel scrolling; overflow-visible restores overflow. Clipping preserves source/keyboard/accessibility order and does not make clipped controls disabled.",format!("<View className=\"{class}\" />"))
  }else if matches!(token,"text-xs"|"text-sm"|"text-sm/relaxed"|"text-2xl"|"text-3xl"|"text-4xl"|"text-5xl"|"text-6xl"|"text-7xl") || token.starts_with("leading-") || matches!(token,"font-medium"|"font-semibold"|"font-sans"|"font-serif"|"font-mono") {
-  ("text-2xl/3xl/4xl/5xl/6xl/7xl use 1.875/2.25/3/3.75/4.5/6 times typography.base (30/36/48/60/72/96px at base=16). text-xs uses 3/4 of typography.base and one base unit for default line height (12px/16px at base=16). text-sm uses 7/8 of typography.base for size and 5/4 of base for default line height (14px/20px at base=16). leading-tight, leading-snug leading-normal and leading-relaxed select inherited font-size ratios 1.1, 1.375, 1.5 and 1.625; text-sm/relaxed combines the small font size with 1.625 leading; explicit leading wins over a text-sm default regardless of class order. font-medium/semibold select numeric weights 500/600. font-sans/serif/mono select system UI, serif or monospace generic families. Installed font selection and glyph rasterization vary by platform; arbitrary font assets and named families remain unsupported.",format!("<Text className=\"{class}\">Title</Text>"))
+  ("text-2xl/3xl/4xl/5xl/6xl/7xl use 1.5/1.875/2.25/3/3.75/4.5 times typography.base (24/30/36/48/60/72px at base=16). text-xs uses 3/4 of typography.base and one base unit for default line height (12px/16px at base=16). text-sm uses 7/8 of typography.base for size and 5/4 of base for default line height (14px/20px at base=16). leading-tight, leading-snug leading-normal and leading-relaxed select inherited font-size ratios 1.1, 1.375, 1.5 and 1.625; text-sm/relaxed combines the small font size with 1.625 leading; explicit leading wins over a text-sm default regardless of class order. font-medium/semibold select numeric weights 500/600. font-sans/serif/mono select system UI, serif or monospace generic families. Installed font selection and glyph rasterization vary by platform; arbitrary font assets and named families remain unsupported.",format!("<Text className=\"{class}\">Title</Text>"))
  }else if custom_spacing::declaration(token).is_some() || custom_spacing::reference(token).is_some() {
   ("Declares an inherited numeric spacing variable with [--NAME:--spacing(N)], or uses it with p/px/py/pt/pr/pb/pl/gap/gap-x/gap-y-(--NAME). N uses the checked project spacing scale; declarations resolve in their own theme scope and inherit as logical pixels. Later matching declarations win. A missing variable resolves to zero, replacing earlier padding/gap values. Metadata conditions are allowed; interaction-state declarations, arithmetic, aliases and cycles are unsupported. Variables affect spacing only, not accessibility.","<View className=\"[--panel-spacing:--spacing(4)] p-(--panel-spacing)\" />".to_string())
  }else if structural::marker(token) {
@@ -174,7 +227,7 @@ pub fn documentation(class:&str)->String {
  }else if matches!(token,"ring-0"|"ring-1"|"ring-2"|"ring-3") {
   ("Sets an outer surface ring width of 0â€“3 logical pixels without changing layout. ring-COLOR selects its color and defaults to the theme ring token. This surface ring is independent of the button's keyboard focus outline.",format!("<View className=\"{class} ring-foreground/10\" />"))
  }else if color_token(opacity_token(token).map_or(token,|(base,_)|base)) {
-  ("Sets a semantic theme color. Optional /N multiplies its alpha by an integer percentage 0â€“100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
+  ("Sets a semantic theme color, a Tailwind palette color such as blue-500, white or black, or an arbitrary [#rrggbb], [#rrggbbaa] or [oklch(L_C_H)] value (underscores for spaces). Optional /N multiplies its alpha by an integer percentage 0â€“100; fractional, negative and out-of-range percentages fail. placeholder:text-COLOR applies that color only to empty editable hints with full token opacity. transparent is zero-alpha black. Ring colors need a ring-0/1/2/3 width to paint a surface ring. Color changes do not hide semantic content from accessibility. Native output has an 8-bit sRGB paint boundary; theme strings remain unchanged.",format!("<View className=\"{class}\" />"))
  }else if token.starts_with("grid-cols-") || token.starts_with("grid-rows-") {
   ("Sets explicit grid tracks. Numeric counts 1â€“12 divide available space equally with zero minimum; none removes explicit tracks. The two written track lists preserve their auto/fraction sizing. Requires a grid container.",format!("<View className=\"grid {class}\" />"))
  }else if token.starts_with("col-") || token.starts_with("row-") {
@@ -195,7 +248,7 @@ pub fn documentation(class:&str)->String {
   ("Uses the enclosing theme for colors, radius or typography and applies the checked property in the selected interaction state. Later classes override earlier classes by property within each state.",format!("<View className=\"{class}\" />"))
  };
  let declarations=custom_spacing::css(token,&default).unwrap_or_else(||resolved(class,&default,"light").into_iter().map(|(_,value)|value.css()).collect::<Vec<_>>().join("; "));
- format!("`{class}`\n\nShared web/native utility. {purpose} Container display/track/wrap utilities require View or a composed Button; text leaves reject them. No function arguments. aria-current matches a local link whose destination is the current page, an ancestor path segment or the current fragment; it does not change navigation. Metadata variants accept data-[slot=VALUE], data-[size=VALUE], data-[orientation=VALUE], data-[state=VALUE], data-horizontal, data-vertical, has-data-[slot=VALUE], has-data-[size=VALUE], in-data-[slot=VALUE], group-data-[slot=VALUE]/NAME, group-data-[size=VALUE]/NAME [.CLASS] and [a]. [a] matches only the current Link, including replacement-rendered links. Orientation metadata belongs to separator semantics. has-data matches descendants, excluding self. in-data matches any ancestor, excluding self; group variants additionally require the named group marker. Values/names use ASCII letters, digits and hyphens. Multiple metadata predicates compose by conjunction; at most one interaction state is supported. Metadata predicates change styling, never accessibility or source order. Bounded descendant selectors [&_svg] and [&_svg:not([class*='size-'])] accept pointer events, shrink and numeric size utilities; direct [&>a] and [&>a:hover] selectors accept text colors and decoration. Descendant rules style matching children, not the declaring parent. Local child classes override matching defaults. Descendant numeric sizes follow the target's nearest theme. Table row selectors [&_tr], [&_tr:last-child] and [&>tr:last-child] support border widths only; last-child refers to the actual final element sibling, including display-hidden siblings. has-aria-expanded matches an expanded Button descendant. These rules preserve retained children and apply on both targets. Other descendant forms reject. Unknown utilities and unsupported state prefixes fail at check/construction time. Example: `{example}`. With the default light theme: `{declarations}`. The enclosing theme supplies custom values; layout uses logical pixels. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels; dark matches the enclosing theme mode. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. Ownership: changes layout/style without changing child ownership.")
+ format!("`{class}`\n\nUtility class. {purpose} Container display/track/wrap utilities require View or a composed Button; text leaves reject them. No function arguments. aria-current matches a local link whose destination is the current page, an ancestor path segment or the current fragment; it does not change navigation. Metadata variants accept data-[slot=VALUE], data-[size=VALUE], data-[orientation=VALUE], data-[state=VALUE], data-horizontal, data-vertical, has-data-[slot=VALUE], has-data-[size=VALUE], in-data-[slot=VALUE], group-data-[slot=VALUE]/NAME, group-data-[size=VALUE]/NAME [.CLASS] and [a]. [a] matches only the current Link, including replacement-rendered links. Orientation metadata belongs to separator semantics. has-data matches descendants, excluding self. in-data matches any ancestor, excluding self; group variants additionally require the named group marker. Values/names use ASCII letters, digits and hyphens. Multiple metadata predicates compose by conjunction; at most one interaction state is supported. Metadata predicates change styling, never accessibility or source order. Bounded descendant selectors [&_svg] and [&_svg:not([class*='size-'])] accept pointer events, shrink and numeric size utilities; direct [&>a] and [&>a:hover] selectors accept text colors and decoration. Descendant rules style matching children, not the declaring parent. Local child classes override matching defaults. Descendant numeric sizes follow the target's nearest theme. Table row selectors [&_tr], [&_tr:last-child] and [&>tr:last-child] support border widths only; last-child refers to the actual final element sibling, including display-hidden siblings. has-aria-expanded matches an expanded Button descendant. These rules preserve retained children and apply on both targets. Other descendant forms reject. Unknown utilities and unsupported state prefixes fail at check/construction time. Example: `{example}`. With the default light theme: `{declarations}`. The enclosing theme supplies custom values; layout uses logical pixels. Viewport sm/md/lg/xl/2xl variants use 640/768/1024/1280/1536 logical pixels; dark matches the enclosing theme mode. Arbitrary CSS, container queries, named grid lines and subgrid remain unsupported. GPUI does not currently map tracking, balanced wrapping, text transforms, underline offsets, animations, pointer-event/selection utilities, field-sizing-content, justify-self, auto-rows-min, placeholder colors, table CSS or nonuniform grid tracks; recognized names can therefore have no desktop effect. Ownership: changes layout/style without changing child ownership.")
 }
 
 #[cfg(test)] mod layout_tests {
@@ -258,7 +311,7 @@ pub fn requires_container(classes:&str)->bool {
 }
 
 fn color_token(token:&str)->bool {
- ["bg-","text-","border-","ring-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|name|name=="transparent" || COLORS.contains(&name)))
+ ["bg-","text-","border-","ring-"].iter().any(|prefix|token.strip_prefix(prefix).is_some_and(|name|name=="transparent" || COLORS.contains(&name) || crate::theme::fixed_color(name).is_some()))
 }
 fn opacity_token(token:&str)->Option<(&str,f32)> {
  let (base,percentage)=token.rsplit_once('/')?;
@@ -278,7 +331,7 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
  use super::*;
  #[test] fn alpha_modifiers_merge_colors_and_preserve_their_theme_references() {
   for token in ["bg-primary/0","bg-primary/23","hover:bg-primary/50","text-foreground/100","border-input/50","ring-foreground/10","bg-transparent"]{assert!(validate(token).is_ok(),"{token}");}
-  for token in ["bg-primary/-1","bg-primary/101","bg-primary/50.5","bg-primary/050","w-4/50","ring-1/50"]{assert!(validate(token).is_err(),"{token}");}
+  for token in ["bg-primary/-1","bg-primary/101","bg-primary/50.5","bg-primary/050","w-4/0","ring-1/50"]{assert!(validate(token).is_err(),"{token}");}
   let theme=Theme::default();let values=resolved("bg-primary/50 bg-accent ring-1 ring-foreground/10",&theme,"light");
   assert!(values.iter().any(|(_,v)|matches!(v,Utility::Background(v) if v.alpha()==1.)));
   assert!(values.iter().any(|(_,v)|matches!(v,Utility::RingWidth(1.))));
@@ -297,8 +350,8 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
 #[cfg(any(test,feature="runtime"))]
 pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
  validate(classes)?;
- if resolved(classes,&Theme::default(),"light").iter().any(|(_,value)|!matches!(value,Utility::Tracking(_)|Utility::Balance(_)|Utility::WhiteSpace(_)|Utility::Underline(_)|Utility::UnderlineOffset(_)|Utility::FontSize(_)|Utility::Weight(_)|Utility::DefaultLeading(_)|Utility::Leading(_)|Utility::FontFamily(_)|Utility::Foreground(_))) {
-  return Err("Inline Text and Link support typography and text colors; box/layout utilities require a surrounding View".into());
+ if resolved(classes,&Theme::default(),"light").iter().any(|(_,value)|!matches!(value,Utility::Tracking(_)|Utility::Balance(_)|Utility::WhiteSpace(_)|Utility::Underline(_)|Utility::UnderlineOffset(_)|Utility::FontSize(_)|Utility::Weight(_)|Utility::DefaultLeading(_)|Utility::Leading(_)|Utility::FontFamily(_)|Utility::Foreground(_)|Utility::Italic(_)|Utility::LineThrough(_)|Utility::Background(_))) {
+  return Err("Inline Text and Link support typography, text colors and backgrounds; layout utilities require a surrounding View".into());
  }
  Ok(())
 }
@@ -311,7 +364,8 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Relative)));
   for (side,expected) in [(0,Length::Auto),(1,Length::Pixels(10.)),(2,Length::Pixels(-1.)),(3,Length::Percent(0.5))]{assert!(rules.iter().any(|(_,value)|matches!(value,Utility::Inset(actual,offset)if *actual==side&&*offset==expected)),"{rules:?}");}
   for token in ["absolute","inset-0","inset-x-auto","top-1/2","-left-full","right-18","-inset-y-2.5"]{assert!(validate(token).is_ok(),"{token}");assert!(documentation(token).contains("parent"));}
-  for token in ["static","fixed","sticky","top-NaN","top-screen","top-[12px]","-top-auto","z-10"]{assert!(validate(token).is_err(),"{token}");}
+  for token in ["top-[12px]","-left-[3.5px]"]{assert!(validate(token).is_ok(),"{token}");}
+  for token in ["static","fixed","sticky","top-NaN","top-screen","top-[-12px]","-top-auto","z-10"]{assert!(validate(token).is_err(),"{token}");}
   assert!(validate_inline("absolute").is_err());assert!(validate_inline("left-2").is_err());
  }
  #[cfg(feature = "runtime")]
@@ -332,5 +386,48 @@ pub(crate) fn validate_inline(classes:&str)->Result<(),String> {
   assert_eq!(resolved("hidden flex",&Theme::default(),"light").last().unwrap().1.css(),"display:flex");
   assert!(documentation("hidden").contains("does not dispose handlers"));
   assert!(css("hidden lg:flex",&Theme::default(),"light",1,"").contains("display:none"));
+ }
+}
+
+#[cfg(all(test,feature="runtime"))]
+mod viewport_surface_tests {
+ use super::*;
+ #[test]
+ fn viewport_dimensions_and_internal_surfaces_follow_window_size_and_theme() {
+  let theme=Theme::default();
+  let classes="w-screen h-dvh min-h-screen max-w-screen p-2 md:p-4 bg-white dark:bg-black data-[state=open]:p-8 [&>a]:text-red-500";
+  validate(classes).unwrap();
+  let small=resolved_surface_at_width(classes,&theme,"light",640.);
+  let wide=resolved_surface_at_width(classes,&theme,"dark",1024.);
+  assert_eq!(small.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,8.))).count(),4);
+  assert_eq!(wide.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,16.))).count(),4);
+  assert!(!wide.iter().any(|(_,rule)|matches!(rule,Utility::Padding(_,32.)|Utility::Foreground(_))));
+  for (property,expected) in [(0,640.),(1,480.),(3,480.),(4,640.)] {
+   assert!(small.iter().map(|(_,rule)|rule.in_viewport(640.,480.)).any(|rule|matches!(rule,Utility::Dimension(key,Length::Pixels(value)) if key==property && value==expected)));
+  }
+  assert!(wide.iter().map(|(_,rule)|rule.in_viewport(1024.,768.)).any(|rule|matches!(rule,Utility::Dimension(0,Length::Pixels(1024.)))));
+  let scoped=resolved_surface_at_width("[--panel:--spacing(4)] p-(--panel)",&theme,"light",1024.);
+  assert_eq!(scoped.iter().filter(|(_,rule)|matches!(rule,Utility::Padding(_,16.))).count(),4);
+  assert_ne!(small.iter().find_map(|(_,rule)|if let Utility::Background(color)=rule{Some(color.components())}else{None}),wide.iter().find_map(|(_,rule)|if let Utility::Background(color)=rule{Some(color.components())}else{None}));
+ }
+}
+
+#[cfg(all(test,feature="runtime"))]
+mod interaction_merge_tests {
+ use super::*;
+ #[test]
+ fn states_keep_effect_inputs_and_disabled_overrides_without_leaking_other_states() {
+  let theme=Theme::default();
+  let rules=resolved("shadow-md shadow-black/50 ring-2 ring-red-500 hover:ring-0 hover:shadow-lg focus:ring-blue-500 disabled:opacity-50 bg-linear-to-r from-red-500 to-blue-500 hover:from-white",&theme,"light");
+  let hover=state_rules(&rules,State::Hover,false);
+  assert!(hover.iter().any(|v|matches!(v,Utility::RingWidth(0.))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::Shadow(6))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::ShadowColor(_))));
+  assert!(hover.iter().any(|v|matches!(v,Utility::GradientAngle(90))));
+  assert_eq!(hover.iter().filter(|v|matches!(v,Utility::GradientStop(_,_))).count(),2);
+  let disabled=state_rules(&rules,State::Hover,true);
+  assert!(disabled.iter().any(|v|matches!(v,Utility::RingWidth(2.))));
+  assert!(disabled.iter().any(|v|matches!(v,Utility::Opacity(0.5))));
+  assert!(disabled.iter().any(|v|matches!(v,Utility::Shadow(5))));
  }
 }

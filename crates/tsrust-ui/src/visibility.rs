@@ -1,7 +1,7 @@
 //! Rectangle visibility reports transitions without owning renderer resources.
 use crate::{Kind,Node};
 
-#[cfg_attr(not(any(test,feature="native",all(target_arch="wasm32",feature="ui-web"))),expect(dead_code,reason="Headless nodes retain callback ownership; platform renderers consume observation state"))]
+#[cfg_attr(not(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web"))),expect(dead_code,reason="Headless nodes retain callback ownership; platform renderers consume observation state"))]
 pub(crate) struct Observation {
     previous:Option<bool>,
     changed:Box<dyn FnMut(bool)->Result<(),String>>,
@@ -11,13 +11,13 @@ impl Node {
         if self.kind!=Kind::View{return Err("Visibility handlers require View".into());}
         self.visibility=Some(Observation{previous:None,changed:Box::new(changed)});Ok(self)
     }
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn observed_nodes(&self,visible_only:bool,ids:&mut Vec<u64>) {
         if visible_only && self.collapsed{return;}
         if self.visibility.is_some(){ids.push(self.identity.get());}
         for child in &self.children{child.observed_nodes(visible_only,ids);}
     }
-    #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+    #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn visibility_changed(&mut self,target:u64,visible:bool)->Result<bool,String> {
         if self.identity.get()==target {
             if let Some(observer)=&mut self.visibility {

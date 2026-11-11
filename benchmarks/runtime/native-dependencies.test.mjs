@@ -34,7 +34,7 @@ test('exported dependencies link instrumented JSON, files and hostname programs 
    assert.equal(result.status,0,result.stderr||String(result.error));return result.stdout;
   };
   const emitted=run(process.env.TSRUST,['emit',source]);
-  const options={compiler:process.env.TSRUST,source,emitted,build:root,rustVersion:'1.96.1',env:process.env};
+  const options={compiler:process.env.TSRUST,source,emitted,build:root,rustVersion:'1.99.1',env:process.env};
   const dependencies=prepareNativeDependencies(options);
   assert.equal(dependencies.evidence.libraries.length,2);
   assert.ok(dependencies.evidence.lockSha256);
@@ -47,7 +47,7 @@ test('exported dependencies link instrumented JSON, files and hostname programs 
   fs.rmSync(occupied,{recursive:true});
   const instrumented=path.join(root,'probe.rs'),binary=path.join(root,'probe');
   fs.writeFileSync(instrumented,emitted.replace('fn main()','fn source_main()')+'\nfn main(){source_main();println!("instrumented");}\n');
-  run('rustup',['run','1.96.1','rustc','--edition=2024','-A','warnings','-C','overflow-checks=on',...dependencies.args,instrumented,'-o',binary]);
+  run('rustup',['run','1.99.1','rustc','--edition=2024','-A','warnings','-C','overflow-checks=on',...dependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'null\ninstrumented\n');
   assert.throws(()=>prepareNativeDependencies({...options,emitted:emitted+'\n// changed'}),/differs/);
   fs.writeFileSync(source,`import {readFile} from 'std:fs';function main(){match(readFile('missing-dependency-test-file')){Ok(bytes)=>{throw 'unexpected file';},Err(error)=>{console.log(error.code);}}}`);
@@ -55,21 +55,21 @@ test('exported dependencies link instrumented JSON, files and hostname programs 
   const fileDependencies=prepareNativeDependencies({...options,emitted:fileEmitted});
   assert.deepEqual(fileDependencies.evidence.libraries.map(library=>library.name),['nix']);
   fs.writeFileSync(instrumented,fileEmitted);
-  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
+  run('rustup',['run','1.99.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...fileDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'not-found\n');
   fs.writeFileSync(source,`import {createTempDir,removeDirAll} from 'std:fs';function main(){const path=unwrap(createTempDir());unwrap(removeDirAll(path));console.log('temporary');}`);
   const temporaryEmitted=run(process.env.TSRUST,['emit',source]);
   const temporaryDependencies=prepareNativeDependencies({...options,emitted:temporaryEmitted});
   assert.deepEqual(temporaryDependencies.evidence.libraries.map(library=>library.name),['nix','tempfile']);
   fs.writeFileSync(instrumented,temporaryEmitted);
-  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...temporaryDependencies.args,instrumented,'-o',binary]);
+  run('rustup',['run','1.99.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...temporaryDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'temporary\n');
   fs.writeFileSync(source,`import {hostname} from 'std:os';function main(){match(hostname()){Ok(value)=>{console.log(value.length>=0);},Err(error)=>{console.log(error.code==='Io'||error.code==='NotUnicode');}}}`);
   const hostnameEmitted=run(process.env.TSRUST,['emit',source]);
   const hostnameDependencies=prepareNativeDependencies({...options,emitted:hostnameEmitted});
   assert.deepEqual(hostnameDependencies.evidence.libraries.map(library=>library.name),['hostname']);
   fs.writeFileSync(instrumented,hostnameEmitted);
-  run('rustup',['run','1.96.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...hostnameDependencies.args,instrumented,'-o',binary]);
+  run('rustup',['run','1.99.1','rustc','--edition=2024','-F','unsafe_code','-A','warnings',...hostnameDependencies.args,instrumented,'-o',binary]);
   assert.equal(run(binary,[]),'true\n');
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
@@ -101,8 +101,8 @@ test('reference dependency routing selects declared compression and existing fam
  const original=childProcess.spawnSync,sentinel=new Error('captured reference preparation');let observed;
  childProcess.spawnSync=(command,args,options)=>{observed={command,args,options};throw sentinel;};syncBuiltinESMExports();
  try{for(const [workload,url,feature]of expected){
-  observed=undefined;assert.throws(()=>prepareReferenceDependencies({workload,rustVersion:'1.96.1',targetDirectory:'/unused-reference-target'}),error=>error===sentinel);
-  assert.equal(observed.command,'rustup');assert.deepEqual(observed.args.slice(0,4),['run','1.96.1','cargo','build']);
+  observed=undefined;assert.throws(()=>prepareReferenceDependencies({workload,rustVersion:'1.99.1',targetDirectory:'/unused-reference-target'}),error=>error===sentinel);
+  assert.equal(observed.command,'rustup');assert.deepEqual(observed.args.slice(0,4),['run','1.99.1','cargo','build']);
   assert.equal(observed.args[observed.args.indexOf('--manifest-path')+1],fileURLToPath(url));
   assert.equal(path.resolve(observed.options.cwd),path.dirname(fileURLToPath(url)));
   const index=observed.args.indexOf('--features');assert.deepEqual(index<0?[]:observed.args.slice(index),feature?['--features',feature]:[]);

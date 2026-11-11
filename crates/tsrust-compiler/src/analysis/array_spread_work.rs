@@ -6,7 +6,7 @@ impl Analyzer {
     pub(super) fn start_array_spread_work(&mut self,context:&Context,expr:&Expr,expected:Option<Type>)->Result<Work,Diagnostic>{
         let (args,annotation)=match &expr.kind{ExprKind::ArrayOf(args,annotation)=>(args,annotation.as_ref()),ExprKind::Array(args)=>(args,None),_=>unreachable!()};
         let annotated=annotation.map(|annotation|self.resolve_value_annotation(annotation,false)).transpose()?;
-        let element=annotated.or_else(||if let Some(Type::Array(element))=expected{Some(element.ty())}else{None}).or_else(||{
+        let element=annotated.or_else(||self.array_literal_context(expected).map(ArrayElement::ty)).or_else(||{
             args.iter().filter_map(|arg|{
                 if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{
                     match self.expression_type_hint(context,value)?{Type::Array(element)=>Some(element.ty()),_=>None}

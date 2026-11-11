@@ -16,7 +16,7 @@ pub(super) fn lex_step(source: &str, i: &mut usize, tokens: &mut Vec<Token>, mod
         *i = end;
     };
     if opening {
-        if policy.reached(modes.len()) { return Err(Diagnostic::new("unsupported", "JSX nesting exceeds the prototype limit of 128.", Span::new(start,start+1))); }
+        if policy.reached(modes.len()) { return Err(Diagnostic::new("unsupported", "TSRX nesting exceeds the prototype limit of 128.", Span::new(start,start+1))); }
         modes.push(Mode::Tag { closing: false });
         push("<".into(), start+1, TokenKind::JsxOpen);
         return Ok(true);
@@ -30,7 +30,7 @@ pub(super) fn lex_step(source: &str, i: &mut usize, tokens: &mut Vec<Token>, mod
             push("{".into(),start+1,TokenKind::Symbol);
         } else {
             let length=rest.find(['<','{']).unwrap_or(rest.len());
-            if length==0 { return Err(Diagnostic::new("unsupported","JSX requires a named uppercase component; fragments and intrinsic HTML tags are unsupported.",Span::new(start,start+1))); }
+            if length==0 { return Err(Diagnostic::new("unsupported","TSRX requires a named uppercase component; fragments and intrinsic HTML tags are unsupported.",Span::new(start,start+1))); }
             push(rest[..length].into(),start+length,TokenKind::JsxText);
         }
         return Ok(true);
@@ -38,7 +38,7 @@ pub(super) fn lex_step(source: &str, i: &mut usize, tokens: &mut Vec<Token>, mod
     if let Some(Mode::Tag { closing }) = modes.last().copied() {
         if rest.starts_with('>') || rest.starts_with("/>") {
             let empty=rest.starts_with("/>");
-            if closing && empty { return Err(Diagnostic::new("syntax","Closing JSX tags cannot be self-closing.",Span::new(start,start+2))); }
+            if closing && empty { return Err(Diagnostic::new("syntax","Closing TSRX tags cannot be self-closing.",Span::new(start,start+2))); }
             modes.pop();
             if closing { modes.pop(); } else if !empty { modes.push(Mode::Children); }
             push(if empty {"/>"} else {">"}.into(),start+if empty {2}else{1},TokenKind::JsxEnd);
@@ -87,7 +87,7 @@ impl Parser<'_> {
                 else {
                     let mut name=self.name()?;name.kind=TokenKind::JsxOpen;
                     if frame.fields.iter().any(|(key,_)|key.text==name.text) {
-                        return Err(Diagnostic::new("syntax","JSX attributes must be unique.",name.span));
+                        return Err(Diagnostic::new("syntax","TSRX attributes must be unique.",name.span));
                     }
                     if self.accept("=") {
                         if self.accept("{") {
@@ -98,7 +98,7 @@ impl Parser<'_> {
                             if name.text=="className" {tsrust_ui::style::validate(&text).map_err(|message|Diagnostic::new("ui-class",message,value.span))?;}
                             frame.fields.push((name,Expr::new(ExprKind::String(text),value.span)));
                             machine.work.push(Work::JsxAttributes(frame));
-                        } else { return Err(Diagnostic::new("syntax","Expected a quoted JSX attribute or {expression}.",self.peek().span)); }
+                        } else { return Err(Diagnostic::new("syntax","Expected a quoted TSRX attribute or {expression}.",self.peek().span)); }
                     } else {
                         let span=name.span;
                         frame.fields.push((name,Expr::new(ExprKind::Boolean(true),span)));
@@ -114,7 +114,7 @@ impl Parser<'_> {
             Work::JsxChildren(mut frame) => {
                 if self.peek().kind==TokenKind::JsxClose {
                     self.take(); let close=self.name()?;
-                    if close.text!=frame.name.text { return Err(Diagnostic::new("syntax",format!("Expected closing JSX tag {}.",frame.name.text),close.span)); }
+                    if close.text!=frame.name.text { return Err(Diagnostic::new("syntax",format!("Expected closing TSRX tag {}.",frame.name.text),close.span)); }
                     self.expect(">")?; self.jsx_finish(frame,machine)?;
                 } else if self.peek().kind==TokenKind::JsxText {
                     let text=self.take();
@@ -122,16 +122,19 @@ impl Parser<'_> {
                     if !value.is_empty() { frame.children.push(Expr::new(ExprKind::String(value),text.span)); }
                     machine.work.push(Work::JsxChildren(frame));
                 } else if self.accept("{") {
-                    machine.request(Work::JsxChild(frame,true),Work::Parse(0));
+                    // {...items} spreads an array of children in place.
+                    let spread=self.accept("...").then(|| self.tokens[self.i-1].span);
+                    machine.request(Work::JsxChild(frame,true,spread),Work::Parse(0));
                 } else if self.peek().kind==TokenKind::JsxOpen {
-                    machine.request(Work::JsxChild(frame,false),Work::Parse(0));
-                } else { return Err(Diagnostic::new("syntax","Expected JSX child or closing tag.",self.peek().span)); }
+                    machine.request(Work::JsxChild(frame,false,None),Work::Parse(0));
+                } else { return Err(Diagnostic::new("syntax","Expected TSRX child or closing tag.",self.peek().span)); }
             }
-            Work::JsxChild(mut frame,braced) => {
-                let value=machine.value(); if braced { self.expect("}")?; }
+            Work::JsxChild(mut frame,braced,spread) => {
+                let mut value=machine.value(); if braced { self.expect("}")?; }
+                if let Some(operator)=spread { value=Self::spread_expression(operator,value); }
                 frame.children.push(value); machine.work.push(Work::JsxChildren(frame));
             }
-            _=>unreachable!("JSX work"),
+            _=>unreachable!("TSRX work"),
         }
         Ok(())
     }
@@ -139,7 +142,7 @@ impl Parser<'_> {
         let span=Span::new(frame.start,self.tokens[self.i-1].span.end);
         if !frame.children.is_empty() {
             if let Some((name,_))=frame.fields.iter().find(|(name,_)|name.text=="children"){
-                return Err(Diagnostic::new("syntax","Supply JSX children either as a children attribute or between the tags, not both.",name.span));
+                return Err(Diagnostic::new("syntax","Supply TSRX children either as a children attribute or between the tags, not both.",name.span));
             }
             let child_span=Span::new(frame.children[0].span.start,frame.children.last().unwrap().span.end);
             frame.fields.push((Token{text:"children".into(),span:child_span,kind:TokenKind::Name},Expr::new(ExprKind::Array(frame.children),child_span)));
@@ -170,12 +173,12 @@ fn entities(text: &str, span: Span,attribute:bool) -> Result<String,Diagnostic> 
         output.push_str(&remaining[..at]); remaining=&remaining[at+1..];
         let end=remaining.find(';');
         if attribute && !remaining.starts_with('#') && end.is_none_or(|end|!remaining[..end].bytes().all(|ch|ch.is_ascii_alphanumeric()||ch==b'#')) {output.push('&');continue;}
-        let Some(end)=end else {return Err(Diagnostic::new("syntax","Unterminated JSX entity; use {\"&\"} for a literal ampersand.",span));};
+        let Some(end)=end else {return Err(Diagnostic::new("syntax","Unterminated TSRX entity; use {\"&\"} for a literal ampersand.",span));};
         let entity=&remaining[..end];
         let value=match entity {
             "amp"=>Some('&'),"lt"=>Some('<'),"gt"=>Some('>'),"quot"=>Some('"'),"apos"=>Some('\''),
             _=>entity.strip_prefix("#x").filter(|digits|!digits.is_empty()&&digits.bytes().all(|ch|ch.is_ascii_hexdigit())).and_then(|digits|u32::from_str_radix(digits,16).ok()).or_else(||entity.strip_prefix('#').filter(|digits|!digits.is_empty()&&digits.bytes().all(|ch|ch.is_ascii_digit())).and_then(|digits|digits.parse::<u32>().ok())).and_then(char::from_u32),
-        }.ok_or_else(||Diagnostic::new("syntax","Unsupported or invalid JSX entity; use a braced string for exact text.",span))?;
+        }.ok_or_else(||Diagnostic::new("syntax","Unsupported or invalid TSRX entity; use a braced string for exact text.",span))?;
         output.push(value); remaining=&remaining[end+1..];
     }
     output.push_str(remaining); Ok(output)

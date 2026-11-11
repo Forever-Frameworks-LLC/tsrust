@@ -1,6 +1,21 @@
 //! Native import identity survives incomplete editing, before project checking finishes.
 use super::*;
 impl SourceIndex {
+    /// Bundled source functions have public contracts before project checking finishes.
+    pub(in crate::intelligence) fn import_bundled_function(&mut self,module:&str,exported:&str,local:&str,span:Span) {
+        let Some(source)=tsrust_compiler::project::bundled_source(&tsrust_compiler::project::SourceId(module.into())) else{return};
+        let prefix=format!("export function {exported}");
+        if !source.match_indices(&prefix).any(|(start,_)|matches!(source.as_bytes().get(start+prefix.len()),Some(b'('|b'<'))) {return;}
+        let Some(entry)=builtins_for(module).into_iter().find(|entry|entry["name"]==exported) else{return};
+        if !entry["signature"].as_str().is_some_and(|signature|signature.starts_with(&format!("{exported}("))||signature.starts_with(&format!("{exported}<"))) {return;}
+        // Bundled bytes are immutable for this server. Share their real declaration
+        // index so function parameters retain record fields without per-edit parsing.
+        static INDICES:std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeMap<String,std::sync::Arc<SourceIndex>>>>=std::sync::OnceLock::new();
+        let declaration=INDICES.get_or_init(Default::default).lock().expect("bundled declaration cache").entry(module.to_owned())
+            .or_insert_with(||std::sync::Arc::new(SourceIndex::with_entry_help(source,false))).clone();
+        let uri=format!("tsrust-stdlib:///{module}");
+        self.import_declaration(&declaration,exported,local,span,&uri,&Default::default());
+    }
     /// Repair only a standalone unfinished member for completion metadata.
     /// Keep the following source intact; diagnostics never use this probe.
     pub(in crate::intelligence) fn unfinished_member_probe(&self) -> Option<(String,usize,usize,usize)> {

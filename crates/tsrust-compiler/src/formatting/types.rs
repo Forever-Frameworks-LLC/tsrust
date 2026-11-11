@@ -119,7 +119,7 @@ pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagn
             }
             if depth==0 {end=index;break;}
         }
-        if end==at { return Err(crate::Diagnostic::new("syntax","Unterminated JSX element.",tokens[at].span)); }
+        if end==at { return Err(crate::Diagnostic::new("syntax","Unterminated TSRX element.",tokens[at].span)); }
         let span=Span::new(start,tokens[end].span.end);
         tokens.splice(at..=end,[Token{text:source[span.start..span.end].into(),span,kind:TokenKind::String}]);
         at+=1;

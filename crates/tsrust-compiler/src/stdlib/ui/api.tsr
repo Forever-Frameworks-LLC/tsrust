@@ -1,18 +1,20 @@
-import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
+import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance, appInfo as nativeAppInfo } from 'std:ui-runtime';
+import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, createLocation as nativeCreateLocation, routeParam as nativeRouteParam, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, each as nativeEach, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
 /** A renderer or node-construction failure with a readable message. */
 export type UiError = NativeUiError;
 
-/** An owned live scalar text expression produced automatically by JSX. It has no public constructor or receiver methods. */
+/** An owned live scalar text expression produced automatically by TSRX markup. It has no public constructor or receiver methods. */
 export type TextBinding = NativeTextBinding;
 /** Ordered strings/numeric snapshots and live bindings; null and undefined produce no text. */
 export type TextChild = string | int | number | TextBinding | Signal<int> | Signal<number> | Signal<boolean> | Signal<string> | null | undefined;
-/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported JSX scalar expressions reading local component state refresh; local-state JSX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
+/** Ordered text, direct Signal bindings or owned subtrees. Adjacent text shares one run; null, undefined and empty literals are omitted. Supported TSRX scalar expressions reading local component state refresh; local-state TSRX ternaries lazily mount selected subtrees. Other computed values remain construction-time snapshots. Ownership: transfers Nodes/strings once; state bindings are non-retaining. */
 export type Child = TextChild | Node;
 
-/** A deferred child array. Nested JSX becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
+/** A deferred child array. Nested TSRX markup becomes this owned zero-argument factory only when the component declares it. Each call constructs fresh content; dropping it does not construct content. */
 export type LazyChildren = Owned<Function<Child[]>>;
 
 /** Reserves a unique runtime-local UI identifier. Keep its owned string in component construction; every call allocates a different ID. No arguments or receiver. Throws if the counter is exhausted. */
@@ -112,7 +114,7 @@ function checkSvgPaint(strokeWidth: number | undefined, strokeMiterlimit: number
     throw 'SVG strokeMiterlimit must be finite and at least 1';
   }
 }
-/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. No browser JS or external resources are loaded. */
+/** Creates a checked vector viewport with owned Path children. Defaults to a decorative 24px image; provide aria-label for meaningful imagery. It draws as an SVG image with theme colors resolved; no external resources are loaded. */
 export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
   const width: number = props.width ?? 24;
@@ -155,6 +157,8 @@ interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'code' | 'kbd' | 'strong' | 'em' | 'del';
   /** Ordered text content. Pass between tags or with children={values}; combining both is rejected. */
   children?: Child[];
+  /** Text tone. default and inherit keep the inherited color; secondary and muted use muted-foreground. Inside a Kit component with text children, such as Label, secondary text fills its secondary slot. */
+  variant?: 'default' | 'inherit' | 'secondary' | 'muted';
   /** Checked shared utilities: grid/flex, sizing, spacing, colors and typography. Includes relative/absolute parent positioning and checked insets; inline descendants require typography only. Includes aspect-square/video/[W/H]/[R]/auto with finite positive f32 ratios. Explicit sizes and min/max bounds still apply. Later classes win per property/state. */
   className?: Classes;
 }
@@ -166,9 +170,9 @@ interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
   /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
   tabIndex?: int;
-  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. JSX state conditions refresh after handlers. Defaults to false. */
+  /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. TSRX state conditions refresh after handlers. Defaults to false. */
   hidden?: boolean | ReactiveBoolean;
-  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. Browser hosts keep control of their own window. */
+  /** Marks a native custom-header drag surface. Interactive descendants, including disabled controls and labels, exclude dragging. */
   windowDragRegion?: boolean;
   /** Semantic container tag; defaults to div. Landmarks, lists, blockquotes and table parts preserve their native accessibility roles. Layout remains explicit through className. kbd and code accept composed phrasing children. */
   as?: 'div' | 'section' | 'span' | 'label' | 'kbd' | 'code' | 'nav' | 'main' | 'header' | 'footer' | 'aside' | 'article' | 'blockquote' | 'ul' | 'ol' | 'li' | 'table' | 'thead' | 'tbody' | 'tfoot' | 'caption' | 'tr' | 'th' | 'td';
@@ -206,6 +210,56 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
+  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Applies to unclassed buttons. */
+  variant?: 'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text';
+  /** xsmall, small, medium (default) or large. */
+  size?: 'xsmall' | 'small' | 'medium' | 'large';
+  /** Leading icon; a button with only an icon becomes square. */
+  icon?: IconName;
+  /** Draws the variant as an outline. */
+  outline?: boolean;
+  /** Tighter horizontal padding. */
+  compact?: boolean;
+  /** Shows a spinner and blocks clicks while true. */
+  loading?: ReactiveValue<boolean>;
+  /** Marks the button as selected, as in a toggle group. */
+  selected?: ReactiveValue<boolean>;
+  /** Adds a dropdown caret after the label. */
+  caret?: boolean;
+  /** Tooltip shown on hover. */
+  tooltip?: string;
+  /** A Shortcut command whose keys the tooltip shows, such as save. */
+  tooltipCommand?: string;
+  /** Side the tooltip opens on. Defaults to top. */
+  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right';
+  /** Milliseconds before the tooltip appears. */
+  tooltipDelay?: int;
+  /** Corner rounding: none, small, medium (default) or large. */
+  rounded?: 'none' | 'small' | 'medium' | 'large';
+  /** Icon shown while loading, instead of the spinner. */
+  loadingIcon?: IconName;
+  /** Shows a spinner as the icon. */
+  spinner?: boolean;
+  /** Shows a progress circle (0–100) as the icon. */
+  progress?: ReactiveValue<number>;
+  /** Draws the button pressed in, as for a toggle. */
+  toggled?: ReactiveValue<boolean>;
+  /** Accessibility role: button (default), link, menuitem, tab, checkbox, switch or none. */
+  role?: 'button' | 'link' | 'menuitem' | 'tab' | 'checkbox' | 'switch' | 'none';
+  /** Keyboard tab order; -1 skips the button. */
+  tabIndex?: int;
+  /** False removes the button from the tab order. Defaults to true. */
+  tabStop?: boolean;
+  /** Custom variant fill: a theme color name (such as magenta) or #rrggbb. */
+  color?: string;
+  /** Custom variant text color. */
+  foreground?: string;
+  /** Custom variant hover fill. */
+  hoverColor?: string;
+  /** Custom variant pressed fill. */
+  activeColor?: string;
+  /** Called with true when the pointer enters and false when it leaves. */
+  onHover?: Owned<Function<void, [hovered: boolean]>>;
 }
 
 /** Button props supplied to a replacement factory, including children, disabled state and onPress. */
@@ -238,15 +292,15 @@ export interface InputChangeEvent {
 }
 
 interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
-  /** Controlled text/numeric value. Direct signals and state-reading JSX expressions refresh after handlers. Omission selects uncontrolled state. */
+  /** Controlled text/numeric value. Direct signals and state-reading TSRX expressions refresh after handlers. Omission selects uncontrolled state. */
   value?: InputValue;
   /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
   defaultValue?: string | int | number;
   /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
   placeholder?: string;
-  /** Disabled fields cannot edit or receive focus. State-reading JSX conditions refresh after handlers. */
+  /** Disabled fields cannot edit or receive focus. State-reading TSRX conditions refresh after handlers. */
   disabled?: boolean | ReactiveBoolean;
-  /** Read-only fields retain selection/focus but cannot change text. State-reading JSX conditions refresh after handlers. */
+  /** Read-only fields retain selection/focus but cannot change text. State-reading TSRX conditions refresh after handlers. */
   readOnly?: boolean | ReactiveBoolean;
   required?: boolean;
   name?: string;
@@ -254,26 +308,253 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   /** Receives a borrowed value snapshot; edit logic stays in application code. String state.set copies the new text. */
   onChange?: Owned<Function<void, [event: ReadOnly<InputChangeEvent>]>>;
+  /** xsmall, small, medium (default) or large. */
+  size?: 'xsmall' | 'small' | 'medium' | 'large';
+  /** false draws the bare text without the field's border and background, for custom containers. Defaults to true. */
+  appearance?: boolean;
+  /** false removes the border but keeps the background. Defaults to true. */
+  bordered?: boolean;
+  /** Keyboard focus order; positive values come first in ascending order. */
+  tabIndex?: int;
+  /** Accessibility role: searchbox, combobox, spinbutton, or none for presentational. Defaults to a text field. */
+  role?: 'searchbox' | 'combobox' | 'spinbutton' | 'none';
+  /** Fixed height in pixels; on Input, 'full' fills the parent's height. */
+  height?: int | 'full';
+  /** Input only: draws the value as bullets and keeps it out of copy and cut. type="password" masks too. */
+  masked?: ReactiveValue<boolean>;
+  /** Escape clears the field. */
+  cleanOnEscape?: boolean;
+  /** Whether Enter submits (onSubmit) instead of inserting a newline. Input submits by default; Textarea inserts newlines unless this is true. */
+  submitOnEnter?: boolean;
+  /** false turns off the right-click edit menu. Defaults to true. */
+  contextMenu?: boolean;
+  /** Input only: shows a spinner while true. */
+  loading?: ReactiveValue<boolean>;
+  /** Draws spaces and tabs as visible marks. */
+  showWhitespace?: boolean;
+  /** Horizontal text alignment of a single-line field. Defaults to left. */
+  textAlign?: 'left' | 'center' | 'right';
+  /** Extra rows the view can scroll past the last line. */
+  scrollBeyondLastLine?: int;
+  /** Lines kept visible around the cursor while scrolling. */
+  cursorSurroundingLines?: int;
+  /** Formats typing as it happens: 9 is an optional digit, # a digit, A a letter, others are literal, as in "(999)-999-9999". */
+  mask?: string;
+  /** Groups the integer part with this character, such as ",", turning on number formatting. */
+  thousandsSeparator?: string;
+  /** Number formatting with at most this many decimal places. */
+  fractionDigits?: int;
+  /** Input only: a regular expression the whole value must match; edits that would break it are rejected. */
+  pattern?: string;
+  /** The Enter key's label on touch keyboards. Read when the field mounts. */
+  enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+  /** Platform autocorrection. Read when the field mounts. */
+  autoCorrect?: boolean;
+  /** Platform automatic capitalization. Read when the field mounts. */
+  autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
+  /** Synchronously inspects JSON {text, paths, imageCount} before paste. text is string or null; paths contains file paths, imageCount counts images (no image bytes). Return true to consume it, false for normal text insertion. Errors stop the app. A web platform without synchronous clipboard access skips the handler. The snapshot is borrowed for this call. */
+  onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
+  /** Runs when the field gains keyboard focus. */
+  onFocus?: Owned<Function<void>>;
+  /** Runs when the field loses keyboard focus. */
+  onBlur?: Owned<Function<void>>;
+  /** Runs on Enter; secondary is true with the platform modifier (cmd on macOS, ctrl elsewhere). */
+  onSubmit?: Owned<Function<void, [secondary: boolean]>>;
+  /** Runs when an inline token (inserted with controlInput 'insertToken') is clicked, with its id. */
+  onTokenClick?: Owned<Function<void, [id: ReadOnly<string>]>>;
+  /** Runs when the pointer enters an inline token (its id) or leaves it (empty). */
+  onTokenHover?: Owned<Function<void, [id: ReadOnly<string>]>>;
 }
 
 export type TextFieldProps<Classes = string, Variant = string> = TextFieldProperties<Classes, Variant>;
 
 interface InputProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
-  /** This portable slice supports text. Password, file and other specialized input types fail explicitly. */
-  type?: 'text';
+  /** Pure synchronous predicate for nonempty candidate text. false rejects edits; the empty string is always allowed. Runs alongside mask/pattern checks. Reads captured signals live; do not mutate state or issue UI commands during validation. */
+  onValidate?: Owned<Function<boolean, [candidate: ReadOnly<string>]>>;
+  /** password masks the value with a reveal toggle; email, url, tel and search set the platform keyboard and autofill. Defaults to text. */
+  type?: 'text' | 'password' | 'email' | 'url' | 'tel' | 'search';
+  /** Shows a clear button while the field has a value. */
+  cleanable?: boolean;
+  /** Shows the eye button that reveals a masked value. Defaults to true for type="password". */
+  maskToggle?: boolean;
+  /** false keeps the normal border while focused. Defaults to true. */
+  focusBordered?: boolean;
+  /** Icon before the text. For buttons and text addons use InputGroup. */
+  prefix?: IconName;
+  /** Icon after the text. */
+  suffix?: IconName;
+  /** Draws the field as selected. */
+  selected?: boolean;
 }
 
 export type InputProps<Classes = string, Variant = string> = InputProperties<Classes, Variant>;
 
-export type TextareaProps<Classes = string, Variant = string> = TextFieldProps<Classes, Variant>;
+interface TextareaProperties<Classes, Variant> extends TextFieldProps<Classes, Variant> {
+  /** Visible rows. Defaults to 4. */
+  rows?: int;
+  /** With maxRows, grows with its content between these row counts. */
+  minRows?: int;
+  /** The most rows an auto-growing textarea shows before it scrolls. */
+  maxRows?: int;
+  /** false scrolls long lines horizontally instead of wrapping. Defaults to true. */
+  softWrap?: boolean;
+  /** Turns on find (cmd/ctrl-F) and the search actions of controlInput. */
+  searchable?: boolean;
+  /** false keeps find from offering replace. Read when the field mounts. */
+  replaceable?: boolean;
+  /** Elastic overscroll at the edges. */
+  scrollBounce?: boolean;
+  /** Wrapped lines start at the line's indent (same, the default) or at column zero (none). */
+  wrappingIndent?: 'same' | 'none';
+  /** Spaces per Tab. */
+  tabSize?: int;
+  /** Tab inserts a tab character instead of spaces. */
+  hardTabs?: boolean;
+}
+
+export type TextareaProps<Classes = string, Variant = string> = TextareaProperties<Classes, Variant>;
+
+function fieldOption(node: Node, name: string, value: string | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, value));
+}
+
+function fieldFlag(node: Node, name: string, value: boolean | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, value ? 'true' : 'false'));
+}
+
+function fieldNumber(node: Node, name: string, value: int | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return unwrapNode(nativeKitSet(node, name, `${value}`));
+}
+
+function fieldLive(node: Node, name: string, value: ReactiveValue<boolean> | undefined): Node {
+  if (value === undefined) {
+    return node;
+  }
+
+  return kitFlag(node, name, value);
+}
 
 /** Creates a single-line field. CR/LF are removed like HTML text inputs; values otherwise remain exact Unicode strings. */
 export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
-  return <TextField {...props} multiline={false}/>;
+  const validate = props.onValidate;
+  props.onValidate = undefined;
+  const kind = props.type !== undefined ? clone(props.type) : undefined;
+  const cleanable = props.cleanable;
+  const maskToggle = props.maskToggle;
+  const focusBordered = props.focusBordered;
+  const prefix = props.prefix !== undefined ? clone(props.prefix) : undefined;
+  const suffix = props.suffix !== undefined ? clone(props.suffix) : undefined;
+  const selected = props.selected;
+  let node = <TextField {...props} multiline={false}/>;
+  if (validate !== undefined) {
+    node = unwrapNode(nativeKitPredicate(node, 'validate', validate));
+  }
+
+  node = fieldOption(node, 'type', kind === undefined ? undefined : `${kind}`);
+  node = fieldFlag(node, 'cleanable', cleanable);
+  node = fieldFlag(node, 'maskToggle', maskToggle);
+  node = fieldFlag(node, 'focusBordered', focusBordered);
+  node = fieldOption(node, 'prefix', prefix);
+  node = fieldOption(node, 'suffix', suffix);
+  return fieldFlag(node, 'selected', selected);
 }
 /** Creates a multiline field. CRLF/CR values normalize to LF; no numeric conversion occurs. */
 export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
-  return <TextField {...props} multiline={true}/>;
+  const rows = props.rows;
+  const minRows = props.minRows;
+  const maxRows = props.maxRows;
+  const softWrap = props.softWrap;
+  const searchable = props.searchable;
+  const replaceable = props.replaceable;
+  const scrollBounce = props.scrollBounce;
+  const wrappingIndent = props.wrappingIndent !== undefined ? clone(props.wrappingIndent) : undefined;
+  const tabSize = props.tabSize;
+  const hardTabs = props.hardTabs;
+  let node = <TextField {...props} multiline={true}/>;
+  node = fieldNumber(node, 'rows', rows);
+  node = fieldNumber(node, 'minRows', minRows);
+  node = fieldNumber(node, 'maxRows', maxRows);
+  node = fieldFlag(node, 'softWrap', softWrap);
+  node = fieldFlag(node, 'searchable', searchable);
+  node = fieldFlag(node, 'replaceable', replaceable);
+  node = fieldFlag(node, 'scrollBounce', scrollBounce);
+  node = fieldOption(node, 'wrappingIndent', wrappingIndent === undefined ? undefined : `${wrappingIndent}`);
+  node = fieldNumber(node, 'tabSize', tabSize);
+  return fieldFlag(node, 'hardTabs', hardTabs);
+}
+
+/** A controlInput action. */
+export type InputAction = 'focus' | 'selectAll' | 'unselect' | 'clear' | 'insert' | 'replace' | 'setValue' | 'setCursor' | 'setSelection' | 'addSelection' | 'toggleMasked' | 'scrollTo' | 'insertToken' | 'openSearch' | 'openReplace' | 'search' | 'nextMatch' | 'previousMatch' | 'replaceMatch' | 'replaceAllMatches' | 'closeSearch';
+
+/** Arguments for controlInput actions that take them. */
+export interface InputActionOptions {
+  /** Text to insert, replace with or search for; for insertToken, the token id and text. */
+  value?: string;
+  /** For insertToken, the text shown in place of value. */
+  label?: string;
+  /** Byte offset for setCursor and the start of setSelection/addSelection; horizontal pixels for scrollTo. */
+  start?: int;
+  /** Byte offset of the selection end; vertical pixels for scrollTo. */
+  end?: int;
+}
+
+/** Runs an action on the Input, Textarea or CodeEditor whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. CodeEditor rejects insertToken; use Input or Textarea for inline tokens. */
+export function controlInput(id: string, action: InputAction, options?: InputActionOptions): void {
+  const extra = options ?? {};
+  unwrap(nativeCommand('input', JSON.stringify({
+    id: id, action: `${action}`, value: extra.value ?? '', label: extra.label ?? '', start: extra.start ?? 0, end: extra.end ?? 0
+  })));
+}
+
+/** A field's text, selection and scroll position, read by readInput. */
+export interface InputSnapshot {
+  /** False when no mounted field has the id; the other fields are then absent. */
+  found: boolean;
+  /** The current text. */
+  value?: string;
+  /** The text without mask literals, such as 5551234567 for (555)-123-4567. */
+  unmaskedValue?: string;
+  /** The selected text, or empty. */
+  selectedText?: string;
+  /** Selection start as a byte offset; equals selectionEnd when only the cursor is placed. */
+  selectionStart?: int;
+  /** Selection end as a byte offset. */
+  selectionEnd?: int;
+  /** True when the selection was made backwards. */
+  selectionReversed?: boolean;
+  /** Horizontal scroll offset in pixels. */
+  scrollX?: number;
+  /** Vertical scroll offset in pixels. */
+  scrollY?: number;
+  /** First visible row of a multiline field. */
+  firstVisibleRow?: int;
+  /** Row after the last visible row of a multiline field. */
+  lastVisibleRow?: int;
+  /** True while the field has keyboard focus. */
+  focused?: boolean;
+  /** CodeEditor highlighting language. Absent for Input and Textarea. */
+  language?: string;
+}
+
+/** Reads the Input, Textarea or CodeEditor whose id matches on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). CodeEditor also reports its language. */
+export function readInput(id: string, onRead: Owned<Function<void, [field: ReadOnly<InputSnapshot>]>>): void {
+  unwrap(nativeCommandReply('read-input', JSON.stringify({
+    id: id
+  }), (text: ReadOnly<string>): void => {
+    onRead(JSON.parse<InputSnapshot>(text));
+  }));
 }
 
 interface InputOptions {
@@ -321,11 +602,68 @@ function TextField(props: TextFieldOptions): Node {
   };
   const config = JSON.stringify(options);
   const handler = props.onChange;
-  if (handler !== undefined) {
-    return applyProperties(inputFlags(unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)), disabled, readOnly), metadata, className, variant);
+  const created = handler !== undefined ? unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)) : unwrapNode(nativeInput(props.value, props.defaultValue, config, classes));
+  let node = applyProperties(inputFlags(created, disabled, readOnly), metadata, className, variant);
+  const size = props.size;
+  const role = props.role;
+  const height = props.height;
+  const textAlign = props.textAlign;
+  const enterKeyHint = props.enterKeyHint;
+  const autoCapitalize = props.autoCapitalize;
+  node = fieldOption(node, 'size', size === undefined ? undefined : `${size}`);
+  node = fieldFlag(node, 'appearance', props.appearance);
+  node = fieldFlag(node, 'bordered', props.bordered);
+  node = fieldNumber(node, 'tabIndex', props.tabIndex);
+  node = fieldOption(node, 'role', role === undefined ? undefined : `${role}`);
+  node = fieldOption(node, 'height', height === undefined ? undefined : `${height}`);
+  node = fieldLive(node, 'masked', props.masked);
+  node = fieldFlag(node, 'cleanOnEscape', props.cleanOnEscape);
+  node = fieldFlag(node, 'submitOnEnter', props.submitOnEnter);
+  node = fieldFlag(node, 'contextMenu', props.contextMenu);
+  node = fieldLive(node, 'loading', props.loading);
+  node = fieldFlag(node, 'showWhitespace', props.showWhitespace);
+  node = fieldOption(node, 'textAlign', textAlign === undefined ? undefined : `${textAlign}`);
+  node = fieldNumber(node, 'scrollBeyondLastLine', props.scrollBeyondLastLine);
+  node = fieldNumber(node, 'cursorSurroundingLines', props.cursorSurroundingLines);
+  node = fieldOption(node, 'mask', props.mask);
+  node = fieldOption(node, 'thousandsSeparator', props.thousandsSeparator);
+  node = fieldNumber(node, 'fractionDigits', props.fractionDigits);
+  node = fieldOption(node, 'pattern', props.pattern);
+  node = fieldOption(node, 'enterKeyHint', enterKeyHint === undefined ? undefined : `${enterKeyHint}`);
+  node = fieldFlag(node, 'autoCorrect', props.autoCorrect);
+  node = fieldOption(node, 'autoCapitalize', autoCapitalize === undefined ? undefined : `${autoCapitalize}`);
+  node = options.autoComplete === '' ? node : fieldOption(node, 'autoComplete', clone(options.autoComplete));
+  const paste = props.onPaste;
+  if (paste !== undefined) {
+    node = unwrapNode(nativeKitPredicate(node, 'paste', paste));
   }
 
-  return applyProperties(inputFlags(unwrapNode(nativeInput(props.value, props.defaultValue, config, classes)), disabled, readOnly), metadata, className, variant);
+  const onFocus = props.onFocus;
+  if (onFocus !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));
+  }
+
+  const onBlur = props.onBlur;
+  if (onBlur !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'blur', onBlur));
+  }
+
+  const onSubmit = props.onSubmit;
+  if (onSubmit !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'submit', onSubmit));
+  }
+
+  const onTokenClick = props.onTokenClick;
+  if (onTokenClick !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'tokenClick', onTokenClick));
+  }
+
+  const onTokenHover = props.onTokenHover;
+  if (onTokenHover !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'tokenHover', onTokenHover));
+  }
+
+  return node;
 }
 
 /** A platform clipboard control. It reports completion only after the platform write settles. */
@@ -337,7 +675,7 @@ interface CopyButtonProperties<Classes, Variant> extends ElementProps<Variant> {
 }
 
 export type CopyButtonProps<Classes = string, Variant = string> = CopyButtonProperties<Classes, Variant>;
-/** Copies value on activation. Shows Copy, Copying…, Copied or Copy failed. Try again.; failures retain the application and expose the platform message as a description. Ownership: owns a text snapshot; browser completion never retains a removed subtree. */
+/** A copy icon button: activating it writes value to the system clipboard and briefly shows a check mark. Ownership: owns a text snapshot. */
 export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
@@ -350,12 +688,16 @@ export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, Reactiv
 export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
-  const classes = typeof className === 'string' ? clone(className) : '';
+  const tone = String(props.variant ?? 'default');
+  const muted = tone === 'secondary' || tone === 'muted';
+  const given: string = typeof className === 'string' ? clone(className) : '';
+  const classes = muted ? `text-muted-foreground ${given}` : given;
   const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
   const result = text(props.children ?? [], classes);
   match (result) {
     Ok(value) => {
-      return applyProperties(value, metadata, className, variant);
+      const toned = muted ? unwrapNode(nativeKitSet(value, 'variant', 'secondary')) : value;
+      return applyProperties(toned, metadata, className, variant);
     },
     Err(error) => {
       throw error.message;
@@ -412,58 +754,201 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
+  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
+  const extra: [string, string][] = [];
+  if (props.tooltipCommand !== undefined) {
+    extra.push(['tooltipCommand', clone(props.tooltipCommand)]);
+  }
+
+  if (props.tooltipPlacement !== undefined) {
+    extra.push(['tooltipPlacement', `${props.tooltipPlacement}`]);
+  }
+
+  if (props.tooltipDelay !== undefined) {
+    extra.push(['tooltipDelay', `${props.tooltipDelay}`]);
+  }
+
+  if (props.rounded !== undefined) {
+    extra.push(['rounded', `${props.rounded}`]);
+  }
+
+  if (props.loadingIcon !== undefined) {
+    extra.push(['loadingIcon', `${props.loadingIcon}`]);
+  }
+
+  if (props.spinner === true) {
+    extra.push(['spinner', 'true']);
+  }
+
+  if (props.role !== undefined) {
+    extra.push(['role', `${props.role}`]);
+  }
+
+  if (props.tabIndex !== undefined) {
+    extra.push(['tabIndex', `${props.tabIndex}`]);
+  }
+
+  if (props.tabStop === false) {
+    extra.push(['tabStop', 'false']);
+  }
+
+  if (props.color !== undefined) {
+    extra.push(['color', clone(props.color)]);
+  }
+
+  if (props.foreground !== undefined) {
+    extra.push(['foreground', clone(props.foreground)]);
+  }
+
+  if (props.hoverColor !== undefined) {
+    extra.push(['hoverColor', clone(props.hoverColor)]);
+  }
+
+  if (props.activeColor !== undefined) {
+    extra.push(['activeColor', clone(props.activeColor)]);
+  }
+
+  const progress = props.progress;
+  const toggled = props.toggled;
+  const onHover = props.onHover;
+  const loading = props.loading;
+  const selected = props.selected;
+  let node: Node;
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
-      return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
+      node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
+    } else {
+      node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
     }
-
-    return applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(nativeButton(children, classes, false, handler)), disabled.evaluate)), metadata, className, variant);
+  } else if (handler !== undefined) {
+    node = applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
+  } else {
+    node = applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
   }
 
-  if (handler !== undefined) {
-    return applyProperties(unwrapNode(nativeButton(children, classes, disabled ?? false, handler)), metadata, className, variant);
+  for (const [name, value] of options) {
+    node = unwrapNode(nativeKitSet(node, name, value));
   }
 
-  return applyProperties(unwrapNode(staticButton(children, classes, disabled ?? false)), metadata, className, variant);
+  if (loading !== undefined) {
+    node = kitFlag(node, 'loading', loading);
+  }
+
+  if (selected !== undefined) {
+    node = kitFlag(node, 'selected', selected);
+  }
+
+  for (const [name, value] of extra) {
+    node = unwrapNode(nativeKitSet(node, name, value));
+  }
+
+  if (progress !== undefined) {
+    node = kitNumber(node, 'progress', progress);
+  }
+
+  if (toggled !== undefined) {
+    node = kitFlag(node, 'toggled', toggled);
+  }
+
+  if (onHover !== undefined) {
+    node = unwrapNode(nativeKitOnBoolean(node, 'hover', onHover));
+  }
+
+  return node;
 }
 
-/** An application path or HTTPS link. External links open through the browser or native default browser. */
+/** Kit button options that are set, as name/value pairs. */
+function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean, tooltip: string): [string, string][] {
+  const options: [string, string][] = [];
+  if (variant !== undefined) {
+    options.push(['variant', variant]);
+  }
+
+  if (size !== undefined) {
+    options.push(['size', size]);
+  }
+
+  if (icon !== undefined) {
+    options.push(['icon', icon]);
+  }
+
+  if (outline) {
+    options.push(['outline', 'true']);
+  }
+
+  if (compact) {
+    options.push(['compact', 'true']);
+  }
+
+  if (caret) {
+    options.push(['caret', 'true']);
+  }
+
+  if (tooltip !== '') {
+    options.push(['tooltip', tooltip]);
+  }
+
+  return options;
+}
+
+/** An application path or HTTPS link. External links open in the default browser. */
 interface LinkProperties<Classes, Variant> extends ElementProps<Variant> {
   /** Absolute local path with optional heading fragment, or an HTTPS URL without credentials. Local queries, escapes and traversal are rejected. */
   href: string;
+  /** True dims the link and ignores clicks. Live when it reads state. */
+  disabled?: boolean | ReactiveBoolean;
   children?: Child[];
   className?: Classes;
 }
 
 export type LinkProps<Classes = string, Variant = string> = LinkProperties<Classes, Variant>;
-/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Browser anchors retain modified-click behavior; native launch failures throw. */
+/** Navigates locally or opens an HTTPS URL. The current page and ancestor path segments expose aria-current for styling and accessibility. External links leave application history unchanged. Launch failures throw. */
 export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
   const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
-  return applyProperties(unwrapNode(nativeLink(props.children ?? [], classes, props.href)), metadata, className, variant);
+  let node = unwrapNode(nativeLink(props.children ?? [], classes, props.href));
+  const disabled = props.disabled;
+  if (disabled !== undefined) {
+    if (typeof disabled === 'boolean') {
+      const fixed = disabled;
+      node = unwrapNode(nativeBindDisabled(node, () => fixed));
+    } else {
+      node = unwrapNode(nativeBindDisabled(node, disabled.evaluate));
+    }
+  }
+
+  return applyProperties(node, metadata, className, variant);
 }
-/** Creates the single application location owner, initially the browser path or / on native. Its get/set methods use checked absolute local paths. */
+/** Creates the default window location owner, initially /. Use createLocation for additional independent window roots. Its get/set methods use checked absolute local paths. */
 export function location(): Signal<string> {
   return unwrap(nativeLocation());
+}
+/** Creates an independent location owner for this window, initially / unless initial is supplied. Keep one per window root. Handlers and retained routes use their own window's location. */
+export function createLocation(initial: string = '/'): Signal<string> {
+  return unwrap(nativeCreateLocation(initial));
+}
+/** Reads a named :parameter from path when the complete pattern matches, or returns an empty string. For example routeParam('/users/42', '/users/:id', 'id') returns '42'. Pass location.get() inside a reactive expression to follow navigation. Invalid paths/patterns throw. */
+export function routeParam(path: string, pattern: string, name: string): string {
+  return unwrap(nativeRouteParam(path, pattern, name));
 }
 /** Pushes an application path. Navigating to the current path is a no-op. */
 export function navigate(path: string): void {
   unwrap(nativeNavigate(path));
 }
-/** Visits the preceding browser/native history entry. No prior entry is a no-op on native. */
+/** Visits the preceding application history entry. No prior entry is a no-op. */
 export function back(): void {
   unwrap(nativeTraverse(false));
 }
-/** Visits the following browser/native history entry. No following entry is a no-op on native. */
+/** Visits the following application history entry. No following entry is a no-op. */
 export function forward(): void {
   unwrap(nativeTraverse(true));
 }
 
-/** A retained lazy route. Create one location() owner in the application root first. */
+/** A retained lazy route. Create a location() or createLocation() owner in this window root first. */
 export interface RouteProps {
-  /** Absolute local path. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
+  /** Absolute local path or pattern with named segments such as /users/:id. Names must be unique identifiers. Trailing slashes normalize; queries, escapes, traversal and fragments reject. */
   path: string;
   /** True by default. False also matches descendant path segments; /docs does not match /docs-other. Hash changes do not reconstruct content. */
   exact?: boolean;
@@ -486,7 +971,7 @@ export function document(node: ReadOnly<Node>, title: string): string {
 
   return nativeDocument(node, title);
 }
-/** Checked native window creation options. Browser hosts retain control of their own window. */
+/** Checked native window creation options. */
 export interface WindowOptions {
   /** Initial content width, 240–16384 logical pixels; defaults to 640. */
   width?: number;
@@ -496,11 +981,15 @@ export interface WindowOptions {
   minWidth?: number;
   /** Minimum height, 160–initial height; defaults to 160. */
   minHeight?: number;
-  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. Browsers retain their host window. */
+  /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. */
   titlebar?: 'native' | 'custom';
+  /** Font files (.ttf or .otf) loaded before the window opens, so their families can be used. */
+  fonts?: string[];
+  /** Default font family for the whole window, such as a family loaded through fonts. */
+  font?: string;
 }
 
-/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Browsers mount within their host page. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
+/** Opens a GPU-rendered native window on the main thread and waits for closure. Checked options apply during creation. Returns Ok after cleanup or Err for invalid options, renderer or handler errors. Consumes the tree; title is borrowed. */
 export function run(node: Node, title: string, options?: WindowOptions): Result<void, UiError> {
   return nativeRun(node, title, JSON.stringify(options ?? {}));
 }
@@ -590,12 +1079,12 @@ export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Sig
   return unwrap(nativeThemeMode(node, config, mode));
 }
 
-/** A reusable scalar expression for a component prop. JSX creates this binding automatically for state-reading expressions. */
+/** A reusable scalar or scalar-array expression for a component prop. TSRX creates this binding automatically for state-reading expressions. Kit array props consume array getters directly; useProp remains scalar-only. */
 export interface Reactive<T> {
   /** Zero-argument checked getter. Owns its callback and does not retain component state owners. */
   evaluate: Owned<Function<T>>;
 }
-/** A constant or live scalar component prop. Reactivity requires a declared ReactiveValue prop and useProp() in the component that reads it. */
+/** A constant or live component prop. Scalars use useProp() in the receiving component. Kit array props also accept live expressions producing arrays of scalars; useProp() does not adapt arrays. */
 export type ReactiveValue<T> = Reactive<T> | T;
 /** A component-owned read-only expression. get() evaluates its latest scalar value; there is no setter. */
 export type Computed<T> = NativeComputed<T>;
@@ -617,6 +1106,16 @@ export interface ReactiveBoolean {
 export interface ReactiveInputValue {
   /** Zero-argument scalar getter. Errors propagate; expressions must not mutate state. Captured component state remains non-retaining. */
   evaluate: Owned<Function<string | int | number>>;
+}
+
+/** A reactive list slot: TSRX `{...rows.map(...)}` that reads component state lowers to this. */
+function bindEach(build: Owned<Function<Child>>): Node {
+  return unwrapNode(nativeEach(build));
+}
+
+/** The wrapper a reactive list slot builds; its children become the slot's rows. */
+function eachRows(children: Child[]): Child {
+  return unwrapNode(view(children, ''));
 }
 
 function bindBranch(predicate: Owned<Function<boolean>>, present: Owned<Function<Child>>, absent: Owned<Function<Child>>): Node {
@@ -751,4 +1250,266 @@ function applyProperties(node: Node, metadata: ReactiveValue<string>, classes: R
   const decorated = applySemantics(node, metadata);
   const styled = classes !== undefined && typeof classes !== 'string' ? unwrapNode(nativeBindClass(decorated, classes.evaluate)) : decorated;
   return variant !== undefined && typeof variant !== 'string' ? unwrapNode(nativeBindVariant(styled, variant.evaluate)) : styled;
+}
+
+/** Notification options. */
+export interface NotifyOptions {
+  /** Bold heading above the message. */
+  title?: string;
+  /** Color and icon. Defaults to info. */
+  variant?: 'info' | 'success' | 'warning' | 'error';
+  /** Where it appears: app (an in-window toast, the default), system (the OS notification center) or both. System delivery needs a bundled app and may be disabled by the user. */
+  delivery?: 'app' | 'system' | 'both';
+  /** Identifies the notification: another notify with the same id replaces it, and dismissNotification(id) removes it. */
+  id?: string;
+  /** A custom icon; the toast then uses neutral colors instead of the variant's. */
+  icon?: IconName;
+  /** The window corner toasts stack in, such as top-right (the default) or bottom-center. */
+  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+  /** false keeps it until closed. Defaults to true, or false when it has an action. */
+  autohide?: boolean;
+  /** Label of an action button in the toast. */
+  action?: string;
+  /** Runs once with the first of 'action' (the action button), 'click' (the toast) or 'close'. */
+  onEvent?: Owned<Function<void, [event: ReadOnly<string>]>>;
+}
+
+/** Shows a toast notification in the active window. It hides itself after a few seconds. Example: notify('Saved', { variant: 'success' }). */
+export function notify(message: string, options?: NotifyOptions): void {
+  notifyWith(message, options ?? {});
+}
+
+function notifyWith(message: string, options: NotifyOptions): void {
+  const handler = options.onEvent;
+  const autohide = options.autohide;
+  const body: NotifyPayload = {
+    message: message, title: options.title ?? '', variant: `${options.variant ?? 'info'}`, delivery: `${options.delivery ?? 'app'}`, id: options.id ?? '', icon: options.icon ?? '', placement: `${options.placement ?? ''}`, autohide: autohide === undefined ? '' : (autohide ? 'true' : 'false'), action: options.action ?? ''
+  };
+  const payload: string = JSON.stringify(body);
+  if (handler !== undefined) {
+    notifyWithEvents(payload, handler);
+    return;
+  }
+
+  unwrap(nativeCommand('notify', payload));
+}
+
+interface NotifyPayload {
+  message: string;
+  title: string;
+  variant: string;
+  delivery: string;
+  id: string;
+  icon: string;
+  placement: string;
+  autohide: string;
+  action: string;
+}
+
+function notifyWithEvents(payload: string, onEvent: Owned<Function<void, [event: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('notify-events', payload, (event: ReadOnly<string>): void => {
+    onEvent(event);
+  }));
+}
+
+/** Removes the notification shown with this id. */
+export function dismissNotification(id: string): void {
+  unwrap(nativeCommand('dismiss-notification', JSON.stringify({
+    id: id
+  })));
+}
+
+/** Removes every notification in the active window. */
+export function clearNotifications(): void {
+  unwrap(nativeCommand('clear-notifications', '{}'));
+}
+
+/** Sets the active window's title. */
+export function setWindowTitle(title: string): void {
+  unwrap(nativeCommand('set-title', JSON.stringify({
+    title: title
+  })));
+}
+
+/** Minimizes the active window. */
+export function minimizeWindow(): void {
+  unwrap(nativeCommand('minimize', '{}'));
+}
+
+/** Toggles the active window between its normal and zoomed (maximized) size. */
+export function zoomWindow(): void {
+  unwrap(nativeCommand('zoom', '{}'));
+}
+
+/** Toggles full-screen mode for the active window. */
+export function toggleFullscreen(): void {
+  unwrap(nativeCommand('fullscreen', '{}'));
+}
+
+/** Closes the active window. The application quits when its last window closes. */
+export function closeWindow(): void {
+  unwrap(nativeCommand('close', '{}'));
+}
+
+/** Quits the application; run returns Ok afterwards. */
+export function quit(): void {
+  unwrap(nativeCommand('quit', '{}'));
+}
+
+/** Opens a URL with the system's default handler, such as a browser for https links. */
+export function openUrl(url: string): void {
+  unwrap(nativeCommand('open-url', JSON.stringify({
+    url: url
+  })));
+}
+
+/** Copies text to the system clipboard. */
+export function writeClipboard(text: string): void {
+  unwrap(nativeCommand('write-clipboard', JSON.stringify({
+    text: text
+  })));
+}
+
+/** Reads text from the system clipboard and passes it to onRead; empty when the clipboard has no text. */
+export function readClipboard(onRead: Owned<Function<void, [text: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('read-clipboard', '{}', onRead));
+}
+
+/** File picker options. */
+export interface PickFilesOptions {
+  /** Allows choosing several files. Defaults to false. */
+  multiple?: boolean;
+  /** Chooses folders instead of files. Defaults to false. */
+  directories?: boolean;
+}
+
+/** Shows the system open dialog. onPicked receives the chosen paths, one per line, or an empty string when cancelled. */
+export function pickFiles(onPicked: Owned<Function<void, [paths: ReadOnly<string>]>>, options?: PickFilesOptions): void {
+  const multiple = options?.multiple ?? false;
+  const directories = options?.directories ?? false;
+  unwrap(nativeCommandReply('pick-files', JSON.stringify({
+    multiple: multiple, directories: directories
+  }), onPicked));
+}
+
+/** Shows the system save dialog with a suggested file name. onChosen receives the chosen path, or an empty string when cancelled. */
+export function saveFile(suggestedName: string, onChosen: Owned<Function<void, [path: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('save-file', JSON.stringify({
+    name: suggestedName
+  }), onChosen));
+}
+
+/** Opens another window showing node. Call it from a handler or before run. Signals created inside its component belong to that window; explicitly passed signals share their existing owner. Use createLocation for an independent route/history owner. */
+export function openWindow(node: Node, title: string, options?: WindowOptions): void {
+  unwrap(nativeOpenWindow(node, title, JSON.stringify(options ?? {})));
+}
+
+/** The system light or dark appearance, as seen by the most recent frame. */
+export function systemAppearance(): 'light' | 'dark' {
+  return nativeAppearance() === 'dark' ? 'dark' : 'light';
+}
+
+/** The packaged application's identity, from the app.json that tsrust package writes. Every field is empty when the program runs unpackaged, such as under tsrust run. */
+export interface AppInfo {
+  /** Display name, such as Notes. */
+  name: string;
+  /** Reverse-DNS identifier, such as com.example.notes. */
+  id: string;
+  /** Installed version, MAJOR.MINOR.PATCH. */
+  version: string;
+  /** GitHub repository (owner/name) whose releases provide updates. */
+  repo: string;
+}
+
+/** The packaged application's name, identifier, version and update repository. Example: appInfo().version is '1.2.0'. */
+export function appInfo(): AppInfo {
+  return JSON.parse<AppInfo>(nativeAppInfo());
+}
+
+/** The result of checkForUpdates. */
+export interface UpdateCheck {
+  /** The installed version. */
+  current: string;
+  /** The latest release's version, or empty when the check failed. */
+  latest: string;
+  /** True when the latest release is newer and ships an archive for this platform. */
+  available: boolean;
+  /** The release notes (Markdown). */
+  notes: string;
+  /** Why the check failed, such as no network or no --repo; empty on success. */
+  error: string;
+}
+
+/** Asks GitHub for the repository's latest release without blocking the window, then calls onChecked. Example: checkForUpdates((update) => { if (update.available) { notify(`Version ${update.latest} is ready`); } }). */
+export function checkForUpdates(onChecked: Owned<Function<void, [update: ReadOnly<UpdateCheck>]>>): void {
+  unwrap(nativeCommandReply('check-update', '{}', (text: ReadOnly<string>): void => {
+    onChecked(JSON.parse<UpdateCheck>(text));
+  }));
+}
+
+/** Downloads the latest release for this platform, verifies it against the release's SHA256SUMS (and its code signature on macOS), and replaces the installed app. onInstalled receives an empty string on success, else the error. The running app is unchanged until relaunch(). */
+export function installUpdate(onInstalled: Owned<Function<void, [error: ReadOnly<string>]>>): void {
+  unwrap(nativeCommandReply('install-update', '{}', onInstalled));
+}
+
+/** Starts the installed application again and quits this one, such as after installUpdate. */
+export function relaunch(): void {
+  unwrap(nativeCommand('relaunch', '{}'));
+}
+
+/** Registers one locale's messages: a JSON-compatible object such as an imported locales/fr.json. Nested objects make dotted keys (menu.save). Registering a locale again replaces it. */
+export function setTranslations<T>(locale: string, messages: T): void {
+  unwrap(nativeSetTranslations(locale, JSON.stringify(messages)));
+}
+
+/** Switches the current locale, such as 'fr' or 'pt-BR'. Text from t() and GPUI Kit's own component strings update on the next frame. */
+export function setLocale(locale: string): void {
+  nativeSetLocale(locale);
+}
+
+/** The current locale tag. It starts as the system locale, or en when that cannot be read. */
+export function locale(): string {
+  return nativeLocale();
+}
+
+/** Live translated text for a TSRX child or a component string prop; it follows setLocale. Missing keys fall back to the language, then en, then the key itself. Use tWith for placeholders. */
+export function t(key: string): TextBinding {
+  return nativeTranslation(key, '{}');
+}
+
+/** Live translated text with fixed values: {name} placeholders are filled from values, and a numeric count selects key_zero, key_one or key_other. It follows setLocale; values are read once, so for values that read state write translateWith inside TSRX markup instead. Example: tWith('greeting', { name: 'Ada' }). */
+export function tWith<T>(key: string, values: T): TextBinding {
+  return nativeTranslation(key, JSON.stringify(values));
+}
+
+/** The translated text right now, as a plain string, for code outside TSRX markup such as notify(translate('saved')). */
+export function translate(key: string): string {
+  return nativeTranslate(key, '{}');
+}
+
+/** The translated text right now with values filled in, as a plain string. Inside TSRX, an expression such as {translateWith('items', { count: count.get() })} refreshes with both the state it reads and the locale. */
+export function translateWith<T>(key: string, values: T): string {
+  return nativeTranslate(key, JSON.stringify(values));
+}
+
+/** Registers a GPUI Kit theme set: a JSON-compatible object such as an imported themes/gruvbox.json, in GPUI Kit's theme format (a name and a themes array of named light or dark color sets). Use one with useTheme. An invalid set shows an error notification. */
+export function registerThemes<T>(themes: T): void {
+  const json: string = JSON.stringify(themes);
+  unwrap(nativeCommand('register-themes', JSON.stringify({
+    json: json
+  })));
+}
+
+/** Applies a registered GPUI Kit theme by name, such as 'Gruvbox Dark Medium', to every window. Utility colors such as text-muted-foreground follow it. An unknown name shows an error notification. */
+export function useTheme(name: string): void {
+  unwrap(nativeCommand('use-theme', JSON.stringify({
+    name: name
+  })));
+}
+
+/** Switches GPUI Kit's light or dark theme for every window, or follows the system appearance with 'system'. */
+export function setTheme(mode: 'light' | 'dark' | 'system'): void {
+  unwrap(nativeCommand('theme', JSON.stringify({
+    mode: `${mode}`
+  })));
 }

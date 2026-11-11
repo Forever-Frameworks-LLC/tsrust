@@ -24,7 +24,7 @@ fn virtual_uri(directory: &str) -> String {
     )).unwrap().to_string()
 }
 
-const PRELUDE: &str = "import {Logger,LoggerOptions,LogError} from 'std:log';\nimport {Iterator} from 'std:iterator';\nimport {Deque,Heap,OrderedSet,OrderedMap} from 'std:collections';\nimport {ReactiveValue,LazyChildren,Child,TextBinding,SvgProps,PathProps,Node,Computed,Reactive,ViewRenderProps,ButtonRenderProps,InputTarget,InputChangeEvent,TextFieldProps,InputProps,TextareaProps,ReactiveInputValue,Signal,ThemeConfig,ThemeTypography,ThemeRadius,ReactiveBoolean,ElementProps,SemanticProps,TextProps,ViewProps,ButtonProps} from 'std:ui';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError,Hasher,PasswordHashOptions,PasswordVerifyOptions} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,SseEvent,SseOptions,WebSocket,WebSocketRead,WebSocketWrite,WebSocketHalves,WebSocketOptions,WebSocketClientOptions,WebSocketHeader,WebSocketText,WebSocketBinary,WebSocketClose,TlsOptions,ClientOptions,CorsOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {Logger,LoggerOptions,LogError} from 'std:log';\nimport {Iterator} from 'std:iterator';\nimport {Deque,Heap,OrderedSet,OrderedMap} from 'std:collections';\nimport {Child as ProcessChild,CommandOptions,ExitStatus,Output,ProcessError} from 'std:process';\nimport {IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram} from 'std:net';\nimport {CompressionOptions,DecompressionOptions,CompressionError,CompressionReader,CompressionWriter,CompressionFormat} from 'std:compression';\nimport {Reader,Writer,LineReader,Stdin,IoError} from 'std:io';\nimport {OpenOptions,FileTime,Metadata,DirEntry,FsError,SeekOrigin} from 'std:fs';\nimport {PathParts,PathFormatOptions,PathError} from 'std:path';\nimport {EnvVar} from 'std:env';\nimport {OsError} from 'std:os';\nimport {CryptoError,Hasher,PasswordHashOptions,PasswordVerifyOptions} from 'std:crypto';\nimport {Url,UrlError,SearchParams,QueryEntry,StringView} from 'std:url';\nimport {Regex,RegexMatch,RegexCaptures,RegexOptions,RegexError} from 'std:regex';\nimport {Locale,Collator,Segmenter,NumberFormat,SegmentRange,LocaleError,CollatorOptions,NumberFormatOptions} from 'std:locale';\nimport {SignalListener,SignalError} from 'std:signals';\nimport {Pool as SqlPool,Transaction as SqlTransaction,Cursor as SqlCursor,Row as SqlRow,SqlError} from 'std:sql';\nimport {Connection,Statement,Transaction,Row,SqliteError} from 'std:sqlite';\nimport {Router,Context,ContextNext,App,Client,Request,Response,Body,Server,Next,HttpError,SseEvent,SseOptions,WebSocket,WebSocketRead,WebSocketWrite,WebSocketHalves,WebSocketOptions,WebSocketClientOptions,WebSocketHeader,WebSocketText,WebSocketBinary,WebSocketClose,TlsOptions,ClientOptions,CorsOptions,ServerOptions,FormField,MultipartPart} from 'std:http';\nimport {Interval,CancellationToken,Job, AsyncError, Channel as AsyncChannel, Sender as AsyncSender} from 'std:futures';\nimport {Channel, Sender, TaskContext, ChannelError, SendError, Thread, ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\ntype AliasItem<T=Item> = T;\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -108,34 +108,7 @@ Receiver {ty:"Url",parameter:"x: ReadOnly<Url>"},
 Receiver {ty:"SearchParams",parameter:"x: SearchParams"},
 Receiver {ty:"UrlError",parameter:"x: ReadOnly<UrlError>"},
 Receiver {ty:"QueryEntry",parameter:"x: ReadOnly<QueryEntry>"},
-Receiver {ty:"ThemeTypography",parameter:"x: ReadOnly<ThemeTypography>"},
-Receiver {ty:"LazyChildrenProps",parameter:"x: ReadOnly<LazyChildrenProps>"},
-Receiver {ty:"SvgProps",parameter:"x: ReadOnly<SvgProps>"},
-Receiver {ty:"PathProps",parameter:"x: ReadOnly<PathProps>"},
-Receiver {ty:"Computed<int>",parameter:"x: ReadOnly<Computed<int>>"},
-Receiver {ty:"Computed<string>",parameter:"x: ReadOnly<Computed<string>>"},
-Receiver {ty:"Reactive<string>",parameter:"x: Reactive<string>"},
-Receiver {ty:"ViewRenderProps",parameter:"x: ReadOnly<ViewRenderProps>"},
-Receiver {ty:"ButtonRenderProps",parameter:"x: ReadOnly<ButtonRenderProps>"},
-Receiver {ty:"InputTarget",parameter:"x: ReadOnly<InputTarget>"},
-Receiver {ty:"InputChangeEvent",parameter:"x: ReadOnly<InputChangeEvent>"},
-Receiver {ty:"TextFieldProps",parameter:"x: ReadOnly<TextFieldProps>"},
-Receiver {ty:"InputProps",parameter:"x: ReadOnly<InputProps>"},
-Receiver {ty:"TextareaProps",parameter:"x: ReadOnly<TextareaProps>"},
-Receiver {ty:"ReactiveInputValue",parameter:"x: ReactiveInputValue"},
 Receiver {ty:"AliasItem",parameter:"x: ReadOnly<AliasItem>"},
-Receiver {ty:"ThemeRadius",parameter:"x: ReadOnly<ThemeRadius>"},
-Receiver {ty:"ElementProps",parameter:"x: ReadOnly<ElementProps>"},
-Receiver {ty:"SemanticProps",parameter:"x: ReadOnly<SemanticProps>"},
-Receiver {ty:"TextProps",parameter:"x: ReadOnly<TextProps>"},
-Receiver {ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},
-Receiver {ty:"ButtonProps",parameter:"x: ReadOnly<ButtonProps>"},
-Receiver {ty:"ThemeConfig",parameter:"x: ReadOnly<ThemeConfig>"},
-Receiver {ty:"ReactiveBoolean",parameter:"x: ReactiveBoolean"},
-Receiver {ty:"Signal",parameter:"x: ReadOnly<Signal>"},
-Receiver {ty:"Signal<string>",parameter:"x: ReadOnly<Signal<string>>"},
-Receiver {ty:"Signal<boolean>",parameter:"x: ReadOnly<Signal<boolean>>"},
-Receiver {ty:"Signal<number>",parameter:"x: ReadOnly<Signal<number>>"},
 Receiver {ty:"InheritedItem",parameter:"x: ReadOnly<InheritedItem>"},
 Receiver {ty:"CryptoError",parameter:"x: ReadOnly<CryptoError>"},
 Receiver {ty:"Hasher",parameter:"x: Owned<Hasher>"},
@@ -249,8 +222,6 @@ fn prelude(parameter: &str) -> String {
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
     let family=annotation.split('<').next().unwrap_or(annotation).trim_end_matches('>');
-    let ui=PRELUDE.lines().find(|line|line.contains("from 'std:ui'")).unwrap();
-    if family=="LazyChildrenProps" {return format!("{ui}\ninterface LazyChildrenProps{{children?:LazyChildren;}}\n");}
     // Keep every probe, but only load the module that declares its receiver.
     for import in PRELUDE.lines().filter(|line|line.starts_with("import ")) {
         let names=import.split_once('{').unwrap().1.split_once('}').unwrap().0;
@@ -416,6 +387,8 @@ fn candidates() -> BTreeSet<String> {
     names
 }
 
+
+
 #[test]
 fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
     let candidates = candidates();
@@ -432,7 +405,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_') || matches!(receiver.ty,"SvgProps"|"PathProps"|"ElementProps"|"SemanticProps"|"TextProps"|"ViewProps"|"ButtonProps"|"ViewRenderProps"|"ButtonRenderProps"|"TextFieldProps"|"InputProps"|"TextareaProps")).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_')).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");
@@ -516,38 +489,6 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         }
     }
     assert!(failures.is_empty(), "{} disagreements between the editor and the checker:\n{}", failures.len(), failures.join("\n"));
-}
-
-#[test]
-fn generic_prop_callback_details_keep_public_nominal_names() {
-    use tsrust_lsp::project_intelligence::ProjectIndex;
-    let source=format!("{PRELUDE}function probe(x:ReadOnly<ViewProps>){{if(x.render===undefined){{}}}}function main(){{}}");
-    let uri=virtual_uri("tsrust-prop-details");
-    let uri=uri.as_str();
-    let entry=source_id(uri).unwrap();
-    let mut workspace=Workspace::default();
-    workspace.open(entry.clone(),1,source.clone());
-    let checked=workspace.snapshot().check_with_diagnostics(&entry).unwrap();
-    let incomplete=source.replace("if(x.render===undefined){}","x.");
-    workspace.change(&entry,2,incomplete.clone());
-    let headers=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&entry.0).unwrap();
-    for (phase,text,index) in [
-        ("headers",&source,ProjectIndex::new(&checked.graph)),
-        ("checked",&source,ProjectIndex::checked(&checked)),
-        ("incomplete",&incomplete,ProjectIndex::new(&headers)),
-    ] {
-        let at=text.find("x.").unwrap()+2;
-        let line_start=text[..at].rfind('\n').map_or(0,|n|n+1);
-        let params=serde_json::json!({"textDocument":{"uri":uri},"position":{
-            "line":text[..at].matches('\n').count(),"character":text[line_start..at].encode_utf16().count()
-        }});
-        let reply=index.request("textDocument/completion",&params,uri).unwrap().unwrap();
-        let items=if reply.is_array(){&reply}else{&reply["items"]};
-        let render=items.as_array().unwrap().iter().find(|item|item["label"]=="render").unwrap();
-        let detail=render["detail"].as_str().unwrap();
-        assert!(detail.contains("ViewRenderProps")&&!detail.contains("ViewProperties"),"{phase}: {detail}");
-        assert!(callable_field_agrees(&Receiver{ty:"ViewProps",parameter:"x: ReadOnly<ViewProps>"},"render",detail.split_once(": ").unwrap().1),"{phase}: {detail}");
-    }
 }
 
 #[test]

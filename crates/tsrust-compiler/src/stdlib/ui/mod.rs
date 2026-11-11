@@ -2,7 +2,7 @@
 pub(crate) mod emit;
 mod components;
 pub(crate) use components::retain_state;
-pub(crate) const SOURCE: &str = include_str!("api.tsr");
+pub(crate) const SOURCE: &str = concat!(include_str!("api.tsr"), include_str!("kit.tsr"));
 use crate::{
     Mode,
     native_bindings::{NativeBackend, NativeBinding, NativeParameter, NativeType},
@@ -98,6 +98,8 @@ pub(crate) const RUN: NativeBinding = NativeBinding {
 
 pub(crate) const USE_ID:NativeBinding=NativeBinding{name:"useId",parameters:&[],result:NativeType::Structured(&Signature::Result(&Signature::String,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_use_id"},..TEXT};
 pub(crate) const LOCATION:NativeBinding=NativeBinding{name:"location",parameters:&[],result:NativeType::Structured(&Signature::Result(&SIGNAL_STRING,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_location"},..TEXT};
+pub(crate) const CREATE_LOCATION:NativeBinding=NativeBinding{name:"createLocation",parameters:&[parameter("initial",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_create_location"},..LOCATION};
+pub(crate) const ROUTE_PARAMETER:NativeBinding=NativeBinding{name:"routeParam",parameters:&[parameter("path",NativeType::String,Mode::Read),parameter("pattern",NativeType::String,Mode::Read),parameter("name",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::String,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_route_parameter"},..TEXT};
 pub(crate) const NAVIGATE:NativeBinding=NativeBinding{name:"navigate",parameters:&[parameter("path",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_navigate"},..TEXT};
 pub(crate) const TRAVERSE:NativeBinding=NativeBinding{name:"traverse",parameters:&[parameter("forward",NativeType::Boolean,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_traverse"},..NAVIGATE};
 pub(crate) const LINK:NativeBinding=NativeBinding{name:"link",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("href",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_link"},..TEXT};
@@ -113,63 +115,95 @@ pub(crate) const PRESS_BUTTON:NativeBinding=NativeBinding{name:"button",paramete
 
 pub(crate) const TEXT_BINDING:NativeBinding=NativeBinding{name:"bindText",parameters:&[parameter("evaluate",NativeType::ObservedValue,Mode::Consume)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_text_binding"},..TEXT};
 pub(crate) const ROUTE:NativeBinding=NativeBinding{name:"route",parameters:&[parameter("path",NativeType::String,Mode::Read),parameter("exact",NativeType::Boolean,Mode::Read),parameter("render",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_route"},..TEXT};
+pub(crate) const EACH:NativeBinding=NativeBinding{name:"each",parameters:&[parameter("build",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_each"},..TEXT};
 pub(crate) const BRANCH:NativeBinding=NativeBinding{name:"branch",parameters:&[parameter("predicate",NativeType::OwnedBooleanCallback,Mode::Consume),parameter("present",NativeType::ObservedValue,Mode::Consume),parameter("absent",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_branch"},..TEXT};
 
 pub(crate) const INPUT:NativeBinding=NativeBinding{name:"input",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input"},..TEXT};
 pub(crate) const INPUT_CHANGE:NativeBinding=NativeBinding{name:"inputChange",parameters:&[parameter("value",NativeType::ObservedValue,Mode::Consume),parameter("defaultValue",NativeType::Structured(&INPUT_DEFAULT),Mode::Consume),parameter("options",NativeType::String,Mode::Read),parameter("className",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_input_change"},..TEXT};
 
+// GPUI Kit components: one generic node with string props, live props and
+// events; generated std:ui wrappers (kit.tsr) give each component typed props.
+pub(crate) const KIT:NativeBinding=NativeBinding{name:"kit",parameters:&[parameter("children",NativeType::Structured(&CHILDREN),Mode::Consume),parameter("className",NativeType::String,Mode::Read),parameter("name",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit"},..TEXT};
+pub(crate) const KIT_SET:NativeBinding=NativeBinding{name:"kitSet",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_set"},..TEXT};
+pub(crate) const KIT_BIND:NativeBinding=NativeBinding{name:"kitBind",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("binding",NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_bind"},..TEXT};
+pub(crate) const KIT_ON:NativeBinding=NativeBinding{name:"kitOn",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on"},..TEXT};
+pub(crate) const KIT_PREDICATE:NativeBinding=NativeBinding{name:"kitPredicate",backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_predicate"},..KIT_ON};
+pub(crate) const KIT_STEP:NativeBinding=NativeBinding{name:"kitStep",backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_step"},..KIT_ON};
+pub(crate) const KIT_ON_BOOLEAN:NativeBinding=NativeBinding{name:"kitOnBoolean",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_boolean"},..TEXT};
+pub(crate) const KIT_ON_INT:NativeBinding=NativeBinding{name:"kitOnInt",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_int"},..TEXT};
+pub(crate) const KIT_ON_NUMBER:NativeBinding=NativeBinding{name:"kitOnNumber",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_number"},..TEXT};
+pub(crate) const KIT_ON_VOID:NativeBinding=NativeBinding{name:"kitOnVoid",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("event",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_on_void"},..TEXT};
+
+// Application services: queued commands (notifications, windows, clipboard,
+// dialogs, URLs, updates), commands with a later text reply, extra windows,
+// appearance and the packaged app manifest.
+pub(crate) const COMMAND:NativeBinding=NativeBinding{name:"command",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Result(&Signature::Void,&ERROR)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_command"},..TEXT};
+pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_command_reply"},..COMMAND};
+pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
+pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
+pub(crate) const APP_INFO:NativeBinding=NativeBinding{name:"appInfo",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_app_info"},..TEXT};
+
+// Translations: catalogs, the current locale, live and snapshot lookups, and one
+// value-typed Kit prop setter that accepts text, numbers and live bindings.
+pub(crate) const SET_TRANSLATIONS:NativeBinding=NativeBinding{name:"setTranslations",parameters:&[parameter("locale",NativeType::String,Mode::Read),parameter("messages",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_set_translations"},..COMMAND};
+pub(crate) const SET_LOCALE:NativeBinding=NativeBinding{name:"setLocale",parameters:&[parameter("locale",NativeType::String,Mode::Read)],result:NativeType::Void,backend:NativeBackend::Bundled{symbol:"tsrust_ui_set_locale"},..TEXT};
+pub(crate) const LOCALE:NativeBinding=NativeBinding{name:"locale",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_locale"},..TEXT};
+pub(crate) const TRANSLATE:NativeBinding=NativeBinding{name:"translate",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_translate"},..TEXT};
+pub(crate) const TRANSLATION:NativeBinding=NativeBinding{name:"translation",parameters:&[parameter("key",NativeType::String,Mode::Read),parameter("values",NativeType::String,Mode::Read)],result:NativeType::Structured(&Signature::Named(NativeTypeId::UiTextBinding)),backend:NativeBackend::Bundled{symbol:"tsrust_ui_translation"},..TEXT};
+pub(crate) const KIT_VALUE:NativeBinding=NativeBinding{name:"kitValue",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("name",NativeType::String,Mode::Read),parameter("value",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_kit_value"},..TEXT};
+
+/// Selects GPUI Kit code highlighting for programs that use CodeEditor, Diff or Markdown.
+pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
+/// Selects GPUI Kit speech recognition for programs that use SpeechButton.
+pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";
+/// Selects an HTTP client for remote image sources in programs that use Avatar or Image.
+pub(crate) const HTTP_MARKER:&str="// tsrust-ui-http-selected\n";
+
+/// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
+/// renderer as its `native` module; GPUI Kit comes from the separate locked
+/// GPUI dependency set, never from the backend graph.
 pub(crate) fn runtime(with_native: bool) -> String {
-    let native =
-        include_str!("../../../../tsrust-ui/src/native.rs").replace("use crate::{", "use super::{")
-        .replace("#[path = \"native_geometry.rs\"]\nmod geometry;",&format!("mod geometry {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_geometry.rs")))
-        .replace("#[path = \"native_viewport.rs\"]\nmod viewport;",&format!("mod viewport {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_viewport.rs")))
-        .replace("#[path = \"native_scrolling.rs\"]\nmod scrolling;",&format!("mod scrolling {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_scrolling.rs")))
-        .replace("#[path = \"native_vector.rs\"]\nmod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_vector.rs").replace("crate::", "super::super::")))
-        .replace("#[path = \"native_table.rs\"]\nmod table;",&format!("mod table {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_table.rs").replace("crate::", "super::super::")))
-        .replace("#[path = \"native_inline.rs\"]\nmod inline;",&format!("mod inline {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_inline.rs").replace("crate::theme::", "super::super::theme::").replace("crate::Semantics", "super::super::Semantics")))
-        .replace("#[path = \"native_editing.rs\"]\nmod editing;",&format!("mod editing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/native_editing.rs").replace("use crate::editable::normalize;", "use super::super::editable::normalize;")));
-    let style = include_str!("../../../../tsrust-ui/src/style.rs")
-        .replace("mod layout;",&format!("mod layout {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/layout.rs")))
-        .replace("mod structural;",&format!("mod structural {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/structural.rs")))
-        .replace("mod custom_spacing;",&format!("mod custom_spacing {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/custom_spacing.rs")))
-        .replace("mod text;",&format!("mod text {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/text.rs")))
-        .replace("mod edges;",&format!("mod edges {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/style/edges.rs")))
+    macro_rules! source {($name:literal) => {include_str!(concat!("../../../../tsrust-ui/src/", $name))};}
+    let style = source!("style.rs")
+        .replace("mod layout;",&format!("mod layout {{\n{}\n}}",source!("style/layout.rs")))
+        .replace("mod structural;",&format!("mod structural {{\n{}\n}}",source!("style/structural.rs")))
+        .replace("mod custom_spacing;",&format!("mod custom_spacing {{\n{}\n}}",source!("style/custom_spacing.rs")))
+        .replace("mod text;",&format!("mod text {{\n{}\n}}",source!("style/text.rs")))
+        .replace("mod tailwind;",&format!("mod tailwind {{\n{}\n}}",source!("style/tailwind.rs")))
+        .replace("mod edges;",&format!("mod edges {{\n{}\n}}",source!("style/edges.rs")))
         .replace("crate::theme", "super::theme");
-    let theme=include_str!("../../../../tsrust-ui/src/theme.rs")
-        .replace("mod paint_color;",&format!("mod paint_color {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/theme/paint_color.rs")))
-        .replace("include_str!(\"theme.json\")", &format!("{:?}",include_str!("../../../../tsrust-ui/src/theme.json")));
-    let web = include_str!("../../../../tsrust-ui/src/web.rs")
-        .replace("use crate::{", "use super::{")
-        .replace("crate::style::", "super::style::").replace("crate::theme::", "super::theme::");
-    let body=include_str!("../../../../tsrust-ui/src/lib.rs")
+    let theme=source!("theme.rs")
+        .replace("mod paint_color;",&format!("mod paint_color {{\n{}\n}}",source!("theme/paint_color.rs")))
+        .replace("include_str!(\"theme.json\")", &format!("{:?}",source!("theme.json")));
+    let web = source!("web.rs").replace("use crate::{", "use super::{").replace("crate::style::", "super::style::").replace("crate::theme::", "super::theme::");
+    let module = |name: &str, text: &str| format!("mod {name} {{\n{}\n}}", text.replace("use crate::{", "use super::{"));
+    let mut body=source!("lib.rs")
         .replace("#[cfg(feature = \"runtime\")]\n", "")
-        .replace("#[cfg(feature = \"native\")]\nmod native;",if with_native {"__UI_NATIVE__"} else {""})
-        .replace("__UI_NATIVE__",&format!("#[cfg(not(target_arch=\"wasm32\"))] mod native {{\n{native}\n}}"))
-        .replace("#[cfg(feature = \"native\")]\npub use native::run;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature = \"ui-acceptance\")))] pub use native::run;\n#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window as run;"}else{""})
-        .replace("#[cfg(feature = \"acceptance\")]\n#[doc(hidden)]\npub use native::verify_window;",if with_native {"#[cfg(feature = \"ui-acceptance\")] pub use native::verify_window;"}else{""})
-        .replace("pub mod browser;",&format!("pub mod browser {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/browser.rs").replace("use crate::{", "use super::{")))
-        .replace("mod visibility;",&format!("mod visibility {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/visibility.rs").replace("use crate::{", "use super::{")))
-        .replace("mod editable;",&format!("mod editable {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/editable.rs")))
-        .replace("pub mod clipboard;", &format!("pub mod clipboard {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/clipboard.rs").replace("crate::Node", "super::Node")))
-        .replace("pub mod navigation;", &format!("pub mod navigation {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/navigation.rs")))
-        .replace("mod vector;",&format!("mod vector {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/vector.rs").replace("use crate::{", "use super::{").replace("crate::theme::", "super::theme::")))
-        .replace("mod table;",&format!("mod table {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/table.rs")))
-        .replace("mod identity;",&format!("mod identity {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/identity.rs")))
-        .replace("mod computed;",&format!("mod computed {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/computed.rs")))
-        .replace("mod state;", &format!("mod state {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/state.rs")))
-        .replace("#[cfg(test)]\nmod application_tests;", "")
-        .replace("mod window;",&format!("mod window {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/window.rs")))
-        .replace("#[cfg(feature = \"native\")]\npub use native::run_configured;",if with_native {"#[cfg(all(not(target_arch=\"wasm32\"),not(feature=\"ui-acceptance\")))] pub use native::run_configured;\n#[cfg(feature=\"ui-acceptance\")] pub use native::verify_window_configured as run_configured;"}else{""})
-        .replace("mod branch;", &format!("mod branch {{\n{}\n}}",include_str!("../../../../tsrust-ui/src/branch.rs")))
+        .replace("#[cfg(test)]\nmod application_tests;", "").replace("#[cfg(test)]\nmod empty_style_tests;", "")
+        .replace("#[cfg(test)]\nmod table_semantics_tests;", "").replace("#[cfg(test)]\nmod reactive_semantics_tests;", "")
+        .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
+        .replace("mod kit;",&module("kit",source!("kit.rs")))
+        .replace("mod commands;",&module("commands",source!("commands.rs")))
+        .replace("mod i18n;",&module("i18n",source!("i18n.rs")))
+        .replace("mod update;",&module("update",source!("update.rs")))
+        .replace("mod editable;",&module("editable",source!("editable.rs")))
+        .replace("pub mod clipboard;", &format!("pub {}",module("clipboard",&source!("clipboard.rs").replace("crate::Node", "super::Node"))))
+        .replace("pub mod navigation;", &format!("pub {}",module("navigation",source!("navigation.rs"))))
+        .replace("mod vector;",&module("vector",&source!("vector.rs").replace("crate::theme::", "super::theme::")))
+        .replace("mod table;",&module("table",source!("table.rs")))
+        .replace("mod identity;",&module("identity",source!("identity.rs")))
+        .replace("mod computed;",&module("computed",source!("computed.rs")))
+        .replace("mod state;", &module("state",source!("state.rs")))
+        .replace("mod window;",&module("window",source!("window.rs")))
+        .replace("mod branch;", &module("branch",source!("branch.rs")))
         .replace("pub mod style;",&format!("pub mod style {{\n{style}\n}}"))
         .replace("pub mod theme;",&format!("pub mod theme {{\n{theme}\n}}"))
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
-
-        .replace("feature=\"native\"","not(target_arch=\"wasm32\")")
-        .replace("feature = \"runtime\"", "feature = \"ui\"")
-        .replace("feature=\"runtime\"", "feature = \"ui\"")
-        .replace("feature = \"acceptance\"","feature = \"ui-acceptance\"");
-    format!("mod tsrust_native_ui {{\n{body}\n#[cfg(all(target_arch=\"wasm32\",feature=\"ui-web\"))] pub use browser::{{run,run_configured}};\n}}\n")
+        .replace("feature = \"runtime\"", "feature = \"ui\"").replace("feature=\"runtime\"", "feature = \"ui\"");
+    if with_native {
+        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs")].concat()));
+    }
+    format!("mod tsrust_native_ui {{\n{body}\n}}\n")
 }
 
 /// Unused trusted UI facades must not pull a native event loop into an HTML build.

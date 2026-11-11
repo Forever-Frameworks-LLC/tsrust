@@ -117,3 +117,10 @@ fn source_client_generation_stays_inside_the_nearest_plain_project(){
  support::success(&support::run(support::cli().current_dir(&child).args(["api","generate","--out","client"]),40));
  let value:serde_json::Value=serde_json::from_slice(&fs::read(child.join("client/http-api.json")).unwrap()).unwrap();assert!(value.get("routes").is_some());assert!(value.get("history").is_none());
 }
+
+#[test]
+fn desktop_ui_template_checks_against_the_current_component_api() {
+    let directory = support::TempDirectory::new();
+    support::success(&support::run(support::cli().current_dir(&directory.0).args(["new", "desk", "--ui"]), 40));
+    support::success(&support::run(support::cli().current_dir(directory.0.join("desk")).arg("check"), 120));
+}

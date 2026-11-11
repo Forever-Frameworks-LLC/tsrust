@@ -44,7 +44,7 @@ fn url_features_follow_emitted_uses_instead_of_imports() {
 }
 
 #[test]
-fn url_dependency_features_are_precise_and_do_not_activate_legacy_ui() {
+fn url_dependency_features_are_precise() {
     for (name,manifest) in [
         ("backend",include_str!("../backend-dependencies/Cargo.toml")),
         ("native",include_str!("../native-dependencies/Cargo.toml")),

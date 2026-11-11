@@ -26,7 +26,7 @@ function request(port,method,url,body='',headers={}){
 }
 async function start(){
  output='';errors='';
- if(linux){run('docker',['run','--detach','--name',name,'--publish','127.0.0.1::8443','--volume',`${scratch}:/work`,'--volume',`${target}:/target:ro`,'--workdir','/work','--env-file',path.join(scratch,'service.env'),'rust:1.96.1-slim-bookworm','/target/aarch64-unknown-linux-gnu/debug/program']);container=true;
+ if(linux){run('docker',['run','--detach','--name',name,'--publish','127.0.0.1::8443','--volume',`${scratch}:/work`,'--volume',`${target}:/target:ro`,'--workdir','/work','--env-file',path.join(scratch,'service.env'),'rust:1.99.1-slim-bookworm','/target/aarch64-unknown-linux-gnu/debug/program']);container=true;
   await until(()=>{output=run('docker',['logs',name]);return output.includes('"kind":"ready"');});return Number(run('docker',['port',name,'8443/tcp']).trim().split(':').at(-1));
  }
  child=spawn(path.join(scratch,'service'),[],{cwd:root,env:environment,stdio:['ignore','pipe','pipe']});child.stdout.on('data',chunk=>{output+=chunk;});child.stderr.on('data',chunk=>{errors+=chunk;});
@@ -38,12 +38,12 @@ async function stop(signal){
 try{
  if(linux){
   const registry=path.join(process.env.CARGO_HOME||path.join(os.homedir(),'.cargo'),'registry');
-  const mounts=['--env','RUSTUP_TOOLCHAIN=1.96.1','--volume',`${root}:/source:ro`,'--volume',`${scratch}:/work`,'--volume',`${target}:/target`];
-  run('docker',['run','--rm','--network','none',...mounts,'--volume',`${registry}:/cargo/registry:ro`,'--workdir','/source','--env','CARGO_HOME=/cargo','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.96.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu','--bin','tsrust','--bin','tsrust-lsp']);
+  const mounts=['--env','RUSTUP_TOOLCHAIN=1.99.1','--volume',`${root}:/source:ro`,'--volume',`${scratch}:/work`,'--volume',`${target}:/target`];
+  run('docker',['run','--rm','--network','none',...mounts,'--volume',`${registry}:/cargo/registry:ro`,'--workdir','/source','--env','CARGO_HOME=/cargo','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.99.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu','--bin','tsrust','--bin','tsrust-lsp']);
   const linuxBin='/target/aarch64-unknown-linux-gnu/debug';
-  run('docker',['run','--rm','--network','none',...mounts,'--workdir','/source','--env','CARGO_HOME=/work/empty-compiler-home','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust`,'emit','examples/service/acceptance.tsr','--package','-o','/work/package']);
+  run('docker',['run','--rm','--network','none',...mounts,'--workdir','/source','--env','CARGO_HOME=/work/empty-compiler-home','rust:1.99.1-slim-bookworm',`${linuxBin}/tsrust`,'emit','examples/service/acceptance.tsr','--package','-o','/work/package']);
   const lspName=`${name}-lsp`;
-  try{await smokeLsp('docker',['run','--rm','--name',lspName,'--network','none','--interactive',...mounts,'--workdir','/source','rust:1.96.1-slim-bookworm',`${linuxBin}/tsrust-lsp`],{cwd:root,rootUri:'file:///source'});}
+  try{await smokeLsp('docker',['run','--rm','--name',lspName,'--network','none','--interactive',...mounts,'--workdir','/source','rust:1.99.1-slim-bookworm',`${linuxBin}/tsrust-lsp`],{cwd:root,rootUri:'file:///source'});}
   finally{spawnSync('docker',['rm','--force',lspName],{stdio:'ignore',timeout:10000});}
   run(process.execPath,['tools/package-toolchain.mjs',path.join(target,'aarch64-unknown-linux-gnu/debug/tsrust'),path.join(target,'aarch64-unknown-linux-gnu/debug/tsrust-lsp'),'aarch64-unknown-linux-gnu',path.join(scratch,'toolchain')]);
 
@@ -51,7 +51,7 @@ try{
   fs.copyFileSync(environment.SERVICE_CERT,path.join(scratch,'cert.pem'));fs.copyFileSync(environment.SERVICE_KEY,path.join(scratch,'key.pem'));
   fs.writeFileSync(path.join(scratch,'service.env'),Object.entries({...environment,SERVICE_ADDRESS:'0.0.0.0:8443',DATABASE_URL:'sqlite:/work/service.db?mode=rwc',SERVICE_CERT:'/work/cert.pem',SERVICE_KEY:'/work/key.pem'}).filter(([key])=>key.startsWith('SERVICE_')||key==='DATABASE_URL').map(([key,value])=>`${key}=${value}`).join('\n'),{mode:0o600});
   // Empty Cargo home plus network isolation proves the exported package is self-contained.
-  run('docker',['run','--rm','--network','none','--volume',`${scratch}:/work`,'--volume',`${target}:/target`,'--workdir','/work/package','--env','CARGO_HOME=/work/empty-cargo-home','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.96.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu']);
+  run('docker',['run','--rm','--network','none','--volume',`${scratch}:/work`,'--volume',`${target}:/target`,'--workdir','/work/package','--env','CARGO_HOME=/work/empty-cargo-home','--env','CARGO_TARGET_DIR=/target','--env','CARGO_INCREMENTAL=0','rust:1.99.1-slim-bookworm','cargo','build','--offline','--locked','--jobs','1','--target','aarch64-unknown-linux-gnu']);
  }else if(process.env.SERVICE_BINARY){fs.copyFileSync(process.env.SERVICE_BINARY,path.join(scratch,'service'));}else{run(compiler,['build','examples/service/acceptance.tsr','-o',path.join(scratch,'service')]);}
  let port=await start();
  assert.equal((await request(port,'GET','/health')).body,'ready');
@@ -75,7 +75,7 @@ try{
  port=await start();assert.equal(JSON.parse((await request(port,'GET','/notes','',headers)).body).body,'persisted é');
  assert.equal((await request(port,'DELETE','/session','',headers)).status,204);assert.equal((await request(port,'GET','/notes','',headers)).status,401);
  await stop('SIGINT');
- console.log(JSON.stringify({kind:'integrated-service',platform:linux?'linux-aarch64':process.platform,verified:true,checks:['TLS','authentication','session-revocation','persistence','forms','multipart','CORS','body-limit','static-allowlist','redaction','SIGTERM','SIGINT'],offlinePackage:linux,linuxToolchain:linux?JSON.parse(fs.readFileSync(path.join(scratch,'toolchain/manifest.json'),'utf8')):undefined,containerImage:linux?run('docker',['image','inspect','--format','{{.Id}}','rust:1.96.1-slim-bookworm']).trim():undefined,compilerSha256:crypto.createHash('sha256').update(fs.readFileSync(compiler)).digest('hex')}));
+ console.log(JSON.stringify({kind:'integrated-service',platform:linux?'linux-aarch64':process.platform,verified:true,checks:['TLS','authentication','session-revocation','persistence','forms','multipart','CORS','body-limit','static-allowlist','redaction','SIGTERM','SIGINT'],offlinePackage:linux,linuxToolchain:linux?JSON.parse(fs.readFileSync(path.join(scratch,'toolchain/manifest.json'),'utf8')):undefined,containerImage:linux?run('docker',['image','inspect','--format','{{.Id}}','rust:1.99.1-slim-bookworm']).trim():undefined,compilerSha256:crypto.createHash('sha256').update(fs.readFileSync(compiler)).digest('hex')}));
 }finally{
  if(container)try{run('docker',['rm','--force',name]);}catch{}
  if(child&&child.exitCode===null&&child.signalCode===null){child.kill('SIGKILL');await until(()=>child.exitCode!==null||child.signalCode!==null).catch(()=>{});}

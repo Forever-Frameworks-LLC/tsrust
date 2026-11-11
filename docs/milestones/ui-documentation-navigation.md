@@ -53,7 +53,7 @@ no unavailable named font is advertised.
   an existing matching layout case. The affected native semantic case passes again
   with the final native source. Link keyboard activation excludes Space; existing
   button keyboard behavior stays unchanged.
-- One scoped LSP UI witness passes diagnostics, JSX prop completion, parameter help and hover for location, href,
+- One scoped LSP UI witness passes diagnostics, TSRX prop completion, parameter help and hover for location, href,
   anchor behavior and display typography. Public signatures and parameter docs
   live in the canonical builtin catalog; normal completion uses checked props.
 - The real Chrome observer passes actual navigation, article/source content,

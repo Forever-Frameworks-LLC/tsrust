@@ -1,7 +1,10 @@
 # GPUI application platform after v0.2.0
 
-Owner direction recorded 2026-11-05. Status: researched implementation plan;
-no GPUI integration or platform acceptance is claimed here.
+Owner direction recorded 2026-11-05. Status (2026-11-09): desktop integration in
+progress on `codex/gpui-ui` — 102 GPUI Kit components through `std:ui`, services,
+i18n, `tsrust package` and the GitHub-release updater, with `examples/gpui-starter`
+as the demo; see the handoff note for open items. Web, CLI `ui add` and platform
+acceptance are not claimed.
 
 ## Priority and product intent
 
@@ -21,6 +24,27 @@ requirements. The earlier React/Electron/Expo direction is historical.
 
 This is not permission to publish v0.2.0 or a later version. No new version
 number or release promise is assigned to this plan.
+
+## Owner decisions, 2026-11-09
+
+- Remove both earlier UI attempts: the ground-up renderer (`crates/tsrust-ui`,
+  `std:ui`/`ui-runtime`, vello/winit/accesskit dependencies, the `legacy-ui`
+  feature, UI tests, examples and docs) and every Electron/React/Expo/Vite/shadcn
+  template or pin. Git history keeps them. Keep only the `.tsrx` parser, TSRX
+  syntax and signal semantics, retargeted to GPUI Kit.
+- Components are added shadcn-style: `tsrust ui add <component>` copies an
+  editable `.tsrx` wrapper into the project's `components/`, backed by a thin
+  compiler-owned binding to the GPUI Kit component.
+- A CLI-generated starter, `examples/gpui-starter`, imports every GPUI Kit
+  component with runnable examples in a shadcn-like gallery. It is tracked in
+  git and regenerated on major changes; it is the acceptance project for the
+  LSP, startup time and the `ui add` flow, opened in VS Code.
+- Desktop (macOS/Windows/Linux) first; WASM follows, because GPUI Kit's web path
+  is showcase-only and needs nightly.
+- Rust toolchain: GPUI Kit 0.9.0 fails on 1.96.1 (`Option::map_or_default`) and
+  builds on 1.99.1. Users get a minimum version, Rust 1.99 or newer from their
+  installed stable toolchain, checked by setup/doctor; native caches already key
+  on the exact `rustc` version. The repository pins 1.99.1 only for reproducible CI.
 
 ## Research and boundaries
 
@@ -55,7 +79,7 @@ illustrations are not all implemented APIs. In particular, accepted examples use
 `signal(...).get()`/`.set(...)`; an older `count.value` sketch does not override
 them.
 
-- Preserve function components, JSX children/props, typed callbacks, signals,
+- Preserve function components, TSRX children/props, typed callbacks, signals,
   derived values, live props and composition. Components construct once; signal
   updates do not rerun arbitrary component bodies as React renders.
 - Keep ordinary props' construction-time semantics distinct from live props.
@@ -187,22 +211,176 @@ whether generated source is committed per project, while making both policies
 reproducible. Keep locked/offline builds, portable vendored exports and shared
 Cargo caches. UI dependencies must remain absent from backend-only builds.
 
+### Workspace design (2026-11-09 proposal)
+
+A workspace is a root `tsrust.workspace.json` beside member projects that each
+keep their ordinary `tsrust.config.json` (the existing schema, including
+`build` and `api`). It works like a Cargo workspace or Turborepo: members stay
+independent, and a backend never gains UI dependencies.
+
+```json
+{
+  "schemaVersion": 1,
+  "projects": {"api": "backend", "app": "frontend"},
+  "clients": [
+    {"project": "app", "from": "api", "language": "tsrust", "output": "src/generated/api"}
+  ]
+}
+```
+
+- `projects` maps names to relative member directories. Paths must stay inside
+  the workspace; no member may contain another.
+- `clients` is the generation graph: `from` names a member whose `api`
+  configuration describes the contract, and `output` is relative to `project`.
+  Languages are `typescript`, `rust` and, with the client step below,
+  `tsrust`. Generated output is written atomically and checked for staleness by
+  the existing `tsrust api generate --check`.
+- At the root, `check`, `build`, `test` and `format` run every member in
+  dependency order (contract members first, then clients regenerated or checked,
+  then consumers); `--project NAME` selects one. Inside a member the CLI behaves
+  exactly as today.
+- `tsrust new NAME --workspace` scaffolds `backend/` (service) and `frontend/`
+  (UI app), plus one client edge. `tsrust workspace add PATH` adopts an existing
+  project without rewriting it.
+- External consumers keep using `tsrust api generate` directly; the workspace
+  only records edges and order.
+
+## Bridge design (2026-11-09)
+
+The bridge keeps today's TSRX lowering (`<Tag {...}/>` is a call `Tag({...})`) and
+adds one bundled module, `std:gpui`, backed by a small Rust runtime over GPUI Kit.
+
+- Components run once. A function component's body executes at construction and
+  returns a `Node`. Nothing re-runs the body; GPUI's repeated `render` only
+  re-evaluates the node tree's live parts.
+- `Node` is a retained description owned by its view: a Kit/intrinsic element
+  kind, static props, children and live slots. The view entity stores the root
+  node and builds GPUI elements from it in `Render::render`.
+- `signal<T>(initial)` returns a native `Signal<T>` handle (`get`/`set`/
+  `update`), `computed(() => ...)` a read-only `Computed<T>`. A signal records the
+  views that read it during render and `set` calls `cx.notify()` on them, the
+  GPUI-native invalidation path. Signals are shared handles (`Rc`), not cloned
+  values; ownership rules stay explicit in the type surface.
+- Live props: an attribute or child expression that reads a signal is checked as
+  an ordinary expression and lowered to a closure evaluated at render time; other
+  props stay construction-time values. The analysis marks the closure boundary,
+  so `{count.get()}` updates while `{label}` does not.
+- Events (`onClick`, `onChange`, ...) are typed Tsrust callbacks invoked through
+  GPUI listeners on the UI thread. Controlled inputs pair `value` with `onChange`
+  over Kit `InputState`, matching the admission slice.
+- Conditional children (`{cond ? <A/> : <B/>}`, `&&`) and keyed lists are live
+  slots with stable identity; removing a slot drops its subscriptions once.
+- Kit components are compiler-owned wrappers in `std:gpui` with typed props
+  records. `tsrust ui add` copies an editable `.tsrx` composition (variants,
+  layout and defaults) into the project, shadcn-style; the bundled wrapper stays
+  the stable boundary to GPUI Kit.
+- `run(App)` opens the window (`application().with_assets(...).run`) with the
+  Kit theme initialized; dependencies come from a separate locked GPUI
+  dependency set, never the backend set.
+
+First slice: counter, controlled input and conditional greeting, compared
+side by side with `experiments/gpui-kit-admission` for behavior, binary size,
+build time and startup time.
+
+Owner decision, 2026-11-09: restore the earlier checked reactive lowering
+(`signal`, `computed`, text bindings, branches, controlled inputs and their
+closure adapters) instead of adding generic typed callbacks to the native
+binding framework first. Its renderer is replaced, not revived:
+
+- `std:ui` stays the public module name (backend-neutral, so the later WASM
+  target keeps the same imports); GPUI is its desktop renderer.
+- `crates/tsrust-ui` again holds the retained Node model, utility classes and
+  theme, without vello/winit/accesskit or a browser renderer.
+- `crates/tsrust-compiler/src/stdlib/ui/gpui.rs` renders a Node tree with one
+  GPUI root view. Events update the tree, refresh its live bindings and call
+  `cx.notify()`. Unclassed buttons and text inputs use GPUI Kit `Button` and
+  `Input`; classed views and buttons resolve the utility classes into GPUI
+  styles.
+- `gpui-dependencies/` is the backend manifest plus GPUI Kit behind `ui`/`gpui`
+  features, with its own lock seeded from the backend lock (every backend pin
+  unchanged). Backend-only programs never resolve it.
+- Programs that call `run` keep the OS main thread (GPUI requires it) instead
+  of the 8 MiB worker thread other entrypoints use.
+
+First slice result (2026-11-09, macOS arm64, debug):
+`experiments/gpui-kit-admission/tsrust/main.tsrx` reproduces the Rust reference
+(counter to 2, controlled input "Ada", conditional "Hello, Ada!"), driven by
+synthesized clicks and keystrokes. Window-visible startup over 5 launches:
+244 ms median for Tsrust and 253 ms for the reference. Binary size: 34 MB and
+77 MB (the GPUI set builds dependencies without debug info). A cold first
+build compiles GPUI Kit in about 3 minutes with 4 jobs; an application rebuild
+reusing the cached GPUI support takes 12 s.
+
+## Application platform services (2026-11-09)
+
+Done, verified with real input on macOS: `Icon` (the 106 GPUI Kit Lucide icons,
+names generated from `kit.json`), `Animate` (fade, slide and pulse over GPUI
+`with_animation`; `key` replays), `notify` (in-app toast, system notification
+center or both), window control (`setWindowTitle`, `minimizeWindow`,
+`zoomWindow`, `toggleFullscreen`, `closeWindow`, `quit`), `openWindow` for extra
+windows (the app ends with its last window), `openUrl`, clipboard
+(`writeClipboard`, `readClipboard`), file dialogs (`pickFiles`, `saveFile`),
+`systemAppearance`, and fonts (`fonts` and `font` window options). Handlers queue
+commands; the renderer runs them on its next frame, and replies refresh the tree
+like handlers.
+
+Next, following GPUI Kit's guides (gpui-kit.com/docs):
+
+- Packaging: `tsrust package` producing a `.app` (zip/DMG, signing and
+  notarization hooks) on macOS, a portable ZIP plus an Inno Setup installer on
+  Windows, and a tarball plus `.deb` on Linux, with app identity and icons from
+  `tsrust.config.json`. Kit leaves package identity, signing and installers to
+  the application.
+- Updating: the updater matches the package owner. Portable single binaries can
+  self-update (reuse the CLI's verified self-update); `.app` bundles replace the
+  whole signed bundle; installers and package managers own their installs.
+- i18n (done): JSON catalogs per locale (`setTranslations`), `setLocale`/`locale`
+  (system locale by default), live `t`/`tWith` text bindings for TSRX children
+  and Kit string props, `translate`/`translateWith` strings (state-reading TSRX
+  expressions refresh with state and locale), dotted keys, `{name}` placeholders,
+  zero/one/other plurals and language/en fallback. Kit's own strings follow the
+  locale for the languages Kit ships (en, zh-CN, zh-HK, zh-TW, it). CLDR plural
+  categories beyond zero/one/other are not yet modelled.
+- Dev tools: Kit's `inspector` and `profiler` features in `tsrust dev` builds
+  with a toggle shortcut; never in release builds.
+- WebView (experimental, `gpui-webview` over Wry) and remaining Kit components
+  (List/Tree/VirtualList delegates, Command, Combobox, Calendar, TimeField,
+  Editor, Chart, Carousel, Dock).
+
 ## Execution checklist after v0.2.0
 
-- [ ] Reconcile retained UI/compiler/runtime behavior and freeze the first bridge
-  contracts; admit a pinned GPUI Kit graph and desktop/WASM toolchain requirements.
-- [ ] Prove a shared counter + controlled-input + conditional-child slice on
-  desktop and WASM, including disposal, accessibility and direct-GPUI comparison.
-- [ ] Add `.tsr` client generation with native/browser transport and the existing
-  contract/compatibility acceptance; complete CLI/editor/docs examples together.
-- [ ] Add shared-root setup/build/watch/codegen integration and migration tests;
-  prove stale-contract errors, atomic output and clean offline release builds.
-- [ ] Wrap the complete pinned component catalog and reproduce every inventoried
-  upstream story on desktop/web, preserving explicit unsupported-platform gaps.
-- [ ] Validate the basic applications and packaging on macOS/Windows/Linux and
-  web; review correctness, accessibility, resources and measured bridge overhead.
-- [ ] Review remaining experimental web limitations and the concrete release
-  candidate with the owner before any publication.
+Branch `codex/gpui-ui`. Push once, to merge, when the section is complete.
+
+- [x] Workspace: `tsrust.workspace.json` members and client edges; root
+  check/build/test/format with `--project`. Scaffolding (`new --workspace`,
+  `workspace add`) follows with the UI CLI.
+- [x] Admission: pinned `gpui-kit =0.9.0` direct-Rust reference slice (counter,
+  controlled input, conditional child) in `experiments/gpui-kit-admission`
+  builds with Rust 1.99.1 (1.96.1 lacks stable `Option::map_or_default`).
+- [x] Removal: delete the ground-up renderer (`crates/tsrust-ui`, `std:ui`,
+  `ui-runtime`, UI lowering in analysis/emit, `ui_project`, UI CLI, dev web/
+  frontend, `legacy-ui`, vello/winit/accesskit dependencies), UI tests, examples
+  and docs, and every Electron/React/Expo/Vite/shadcn template and pin. Keep the
+  `.tsrx` parser, formatter, TSRX syntax and editor parsing. Backend layers pass.
+  TSRX still lowers to plain component calls (`<Tag {...}/>` is `Tag({...})`);
+  native support now always builds from the shared backend dependency set, whose
+  UI-free native manifest dropped from 571 to 326 locked packages.
+- [ ] Bridge (first slice done; remaining: Textarea, focus/active states,
+  theme mode, Kit theme sync): `.tsrx` function components lower to GPUI views (signals become
+  entity state plus `cx.notify`; events use `cx.listener`; intrinsic elements map
+  to GPUI elements; Kit components bind through compiler-owned wrappers). Match
+  the admission slice and compare against it.
+- [ ] CLI: `tsrust new NAME --ui` (and `--workspace`), `tsrust ui add <component>`
+  and `tsrust ui list`, with editor completion/hover for wrapper props.
+- [ ] Catalog: every GPUI Kit 0.9.0 component wrapped, with an example each.
+  62 components (display, controls, Kit-state inputs, overlays, layout, table)
+  generated from `stdlib/ui/kit.json` and rendered in the gallery; remaining:
+  List/Tree/VirtualList (row delegates), Command, Combobox, Calendar, TimeField,
+  Editor, Chart, Notification, Carousel and Dock.
+- [ ] Starter: `examples/gpui-starter`, generated by the CLI, a shadcn-like gallery
+  of every component; verified in VS Code (LSP diagnostics, completion, hover),
+  with measured startup time; regenerated on major changes.
+- [ ] Desktop validation on macOS, Windows and Linux; then WASM.
 
 The first executable step is admission plus the smallest shared reactive slice,
 not installing every component before validating the bridge. The complete

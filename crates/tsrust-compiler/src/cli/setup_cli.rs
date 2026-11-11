@@ -108,17 +108,20 @@ pub(super) fn setup(args: impl Iterator<Item=String>) -> Result<u8, String> {
     super::verify_backend()?;
     if dependencies {
         let temporary=super::TempDirectory::new().map_err(|e|e.to_string())?;
-        let package=temporary.0.join("backend-sources");
-        super::backend_sources::materialize(&package)?;
         let root=super::backend_sources::build_root()?;
         fs::create_dir_all(&root).map_err(|e|e.to_string())?;
-        let mut command=super::backend_cargo_command();
-        command.current_dir(root).args(["fetch","--locked","--manifest-path"]).arg(package.join("Cargo.toml"))
-            .env("CARGO_HOME",super::backend_sources::cargo_home()?);
-        if offline{command.arg("--offline");}
-        let status=command.status().map_err(|e|e.to_string())?;
-        if !status.success(){return Err("Backend source preparation failed; existing shared Cargo sources were preserved. Rerun setup --dependencies --yes with network access, or provide a populated Cargo home for --offline.".into());}
-        println!("Locked backend sources are available in the shared Cargo cache. No project vendor directory was created.");
+        // Backend programs and std:ui (GPUI) programs build offline from separate locked sets.
+        for (name,manifest,lock) in [("backend-sources",super::backend_sources::MANIFEST,super::backend_sources::LOCK),("gpui-sources",super::backend_sources::GPUI_MANIFEST,super::backend_sources::GPUI_LOCK)] {
+            let package=temporary.0.join(name);
+            super::backend_sources::materialize_with(&package,manifest,lock)?;
+            let mut command=super::backend_cargo_command();
+            command.current_dir(&root).args(["fetch","--locked","--manifest-path"]).arg(package.join("Cargo.toml"))
+                .env("CARGO_HOME",super::backend_sources::cargo_home()?);
+            if offline{command.arg("--offline");}
+            let status=command.status().map_err(|e|e.to_string())?;
+            if !status.success(){return Err("Backend source preparation failed; existing shared Cargo sources were preserved. Rerun setup --dependencies --yes with network access, or provide a populated Cargo home for --offline.".into());}
+        }
+        println!("Locked backend and UI sources are available in the shared Cargo cache. No project vendor directory was created.");
     }
     if portable {
         let root=super::backend_sources::build_root()?;fs::create_dir_all(&root).map_err(|e|e.to_string())?;

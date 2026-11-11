@@ -117,4 +117,4 @@ The [integer acceptance evidence](./01-integer-subset.md#acceptance-evidence) co
 
 ## Deferred work
 
-Shared/weak ownership, graph cycles, field moves, borrowed returns, loops, branches, recursion, generics, interfaces, classes, arrays, arithmetic and broader numeric semantics, closures, async, modules, npm, HTTP, JSX, and desktop implementation remain outside the current witness experiment. Research on their constraints can continue without expanding this first implementation slice.
+Shared/weak ownership, graph cycles, field moves, borrowed returns, loops, branches, recursion, generics, interfaces, classes, arrays, arithmetic and broader numeric semantics, closures, async, modules, npm, HTTP, TSRX, and desktop implementation remain outside the current witness experiment. Research on their constraints can continue without expanding this first implementation slice.

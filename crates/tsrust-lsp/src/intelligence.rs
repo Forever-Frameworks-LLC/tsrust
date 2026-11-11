@@ -17,8 +17,6 @@ mod result_intelligence;
 mod outcome_intelligence;
 #[path = "native_type_intelligence.rs"]
 mod native_type_intelligence;
-#[path = "ui_intelligence.rs"]
-mod ui_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
 #[path = "cursor_repair.rs"]
@@ -72,6 +70,7 @@ pub struct SourceIndex {
     public_record_aliases:std::collections::BTreeMap<String,(String,usize)>,
     generic_display_names: std::collections::BTreeMap<String, String>,
     nominal_definitions: std::collections::BTreeMap<String, Value>,
+    checked_nominal_spellings: std::collections::BTreeMap<(tsrust_compiler::project::SourceId,usize,usize),String>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
     foreign_definitions: std::collections::BTreeMap<usize, Value>,
     native_parameter_docs: std::collections::BTreeMap<usize, Vec<String>>,
@@ -104,7 +103,6 @@ pub struct SourceIndex {
     declarator_separators: std::collections::HashMap<usize, &'static str>,
     /// The checker accepted exactly this text, so its facts describe it.
     checked: bool,
-    pub(crate) theme_document: bool,
     interface_bases:Vec<(String,Vec<String>)>,
     declared_record_fields:std::collections::BTreeSet<(String,String)>,
 }
@@ -131,18 +129,20 @@ impl SourceIndex {
     pub fn new(source: &str) -> Self {
         { let mut index = Self::with_entry_help(source, true); index.recover_native_imports(); index.finish_imports(); index }
     }
-    pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {
+    pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {Self::build(source,entry_help,true)}
+    pub(crate) fn for_project(source:&str,entry_help:bool)->Self {Self::build(source,entry_help,false)}
+    fn build(source:&str,entry_help:bool,local_check:bool)->Self {
         let mut index = Self {
             enum_scalar_types: Default::default(),
             generic_display_names: Default::default(),
             nominal_definitions: Default::default(),
+            checked_nominal_spellings: Default::default(),
             generic_parameters: Default::default(),
             foreign_definitions: Default::default(),
             native_parameter_docs: Default::default(),
             native_origins: Default::default(),
             native_type_aliases: Default::default(),
             entry_help,
-            theme_document: false,
             interface_bases:Vec::new(),
             declared_record_fields:Default::default(),
             source: source.into(),
@@ -352,7 +352,8 @@ impl SourceIndex {
         index.declarator_lists();
         index.declarations();
         index.materialize_generic_fields();
-        index.cache_checked_views();
+        // Project indices receive their checked views from the complete module graph.
+        if local_check {index.cache_checked_views();}
         index.refresh_result_match_bindings();
         index.refresh_destructured_names();
         index.refresh_checked_initializers();
@@ -2039,7 +2040,6 @@ impl SourceIndex {
         if receiver=="string" && matches!(method,"match"|"matchAll"|"search"|"localeCompare"){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::url_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sql_method(*id,method).is_some()){return true;}
-        if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::ui_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::sqlite_method(*id,method).is_some()){return true;}
         let receiver = observation_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
@@ -2769,7 +2769,7 @@ impl SourceIndex {
     }
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
         if let Ok(tsrust_compiler::native_exports::Export::Namespace(namespace)) = tsrust_compiler::native_exports::lookup(module, exported) {
-            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native namespace");
+            let catalog = builtin_entry(module,exported).expect("documented native namespace");
             self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
             self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
             self.symbols.push(Symbol {
@@ -2784,7 +2784,7 @@ impl SourceIndex {
         if let Ok(tsrust_compiler::native_exports::Export::Alias(alias)) = tsrust_compiler::native_exports::lookup(module, exported) {
             let ty = alias.signature.render(|_| None).expect("literal native alias").into_owned();
             self.type_aliases.insert(local.into(), ty.clone());
-            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native alias");
+            let catalog = builtin_entry(module,exported).expect("documented native alias");
             self.symbols.push(Symbol {
                 name: local.into(), kind: 26, span, extent: span, scope: 0,
                 signature: format!("type {local} = {ty}"), ty,
@@ -2798,6 +2798,7 @@ impl SourceIndex {
             return;
         }
         let Ok(binding) = tsrust_compiler::native_bindings::lookup(module, exported) else {
+            self.import_bundled_function(module,exported,local,span);
             return;
         };
         let Some(catalog) = builtins_for(module)
@@ -2901,7 +2902,7 @@ impl SourceIndex {
         }
         let mut symbol = declaration.clone();
         if let Some(module) = uri.strip_prefix("tsrust-stdlib:///")
-            && let Some(entry) = builtins_for(module).into_iter().find(|entry| entry["name"] == exported)
+            && let Some(entry) = builtin_entry(module,exported)
             && let Some(documentation) = entry["documentation"].as_str()
         {
             symbol.docs = documentation.to_owned();
@@ -2942,6 +2943,11 @@ impl SourceIndex {
                 .signature
                 .replacen(&format!(" {exported}"), &format!(" {local}"), 1);
         let id = self.symbols.len();
+        if symbol.kind==12 && let Some(module)=uri.strip_prefix("tsrust-stdlib:///")
+            && let Some(entry)=builtin_entry(module,exported)
+            && let Some(parameters)=entry["parameters"].as_array() {
+            self.native_parameter_docs.insert(id,parameters.iter().map(|parameter|parameter["documentation"].as_str().unwrap_or_default().to_owned()).collect());
+        }
         self.foreign_definitions.insert(
             id,
             json!({"uri":uri,"range":dependency.range(declaration.span)}),
@@ -2962,9 +2968,9 @@ impl SourceIndex {
     }
     fn imported_field_docs(dependency:&SourceIndex,record:&str,field:&Symbol,uri:&str)->String{
         let Some(module)=uri.strip_prefix("tsrust-stdlib:///") else{return field.docs.clone();};
-        builtins_for(record).into_iter().find(|entry|entry["name"]==field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
-            .or_else(||builtins_for(module).into_iter().find(|entry|entry["name"]==record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)))
-            .or_else(||dependency.public_record_alias(record).and_then(|alias|builtins_for(module).into_iter().find(|entry|entry["name"]==alias).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned))))
+        builtin_entry(record,&field.name).and_then(|entry|entry["documentation"].as_str().map(str::to_owned))
+            .or_else(||builtin_entry(module,record).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned)))
+            .or_else(||dependency.public_record_alias(record).and_then(|alias|builtin_entry(module,&alias).and_then(|entry|entry["fields"][&field.name]["documentation"].as_str().map(str::to_owned))))
             .unwrap_or_else(||field.docs.clone())
     }
     fn import_record_fields(
@@ -2976,6 +2982,9 @@ impl SourceIndex {
         uri: &str,
         types: &std::collections::BTreeMap<String, String>,
     ) {
+        // Only referenced type names need remapping; owners repeat once per field in symbols.
+        let records=dependency.symbols.iter().filter_map(|symbol|if matches!(symbol.kind,10|23) {Some(symbol.name.as_str())}else{symbol.owner.as_deref()})
+            .filter(|candidate|name(candidate) && !dependency.native_type_aliases.contains_key(*candidate)).collect::<std::collections::BTreeSet<_>>();
         let mut pending = vec![(exported.to_owned(), local.to_owned())];
         let mut visited = std::collections::BTreeSet::new();
         while let Some((record, owner)) = pending.pop() {
@@ -3014,24 +3023,16 @@ impl SourceIndex {
                     }
                     continue;
                 }
+                let references=field.ty.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').filter(|word|!word.is_empty()).collect::<std::collections::BTreeSet<_>>();
                 let ty = if generic.is_some()
                     || field.ty.contains(['\'','"'])
                     || owner.starts_with("__tsrust_private_")
                     || (callable_storage_type(&field.ty) || contains_callable_annotation(&field.ty))
-                    || dependency.native_type_aliases.keys().any(|native|field.ty.split(|ch:char|!ch.is_ascii_alphanumeric() && ch!='_').any(|word|word==native))
+                    || dependency.native_type_aliases.keys().any(|native|references.contains(native.as_str()))
                 {
                     let mut mappings = types.clone();
                     for (name,identity) in &dependency.native_type_aliases {mappings.insert(name.clone(),self.native_type_spelling(*identity));}
-                    for symbol in &dependency.symbols {
-                        let candidate = if matches!(symbol.kind, 10 | 23) {
-                            Some(symbol.name.as_str())
-                        } else {
-                            symbol.owner.as_deref()
-                        };
-                        let Some(candidate) = candidate.filter(|candidate| name(candidate)) else {
-                            continue;
-                        };
-                        if dependency.native_type_aliases.contains_key(candidate){continue;}
+                    for candidate in references.intersection(&records).copied() {
                         let identity = mappings
                             .entry(candidate.to_owned())
                             .or_insert_with(|| {
@@ -3055,13 +3056,7 @@ impl SourceIndex {
                                 .cloned()
                                 .unwrap_or_else(|| dependency.public_record_alias(candidate).unwrap_or_else(||candidate.to_owned())),
                         );
-                        if field
-                            .ty
-                            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
-                            .any(|token| token == candidate)
-                        {
-                            pending.push((candidate.to_owned(), identity));
-                        }
+                        pending.push((candidate.to_owned(), identity));
                     }
                     mappings.insert(record.clone(), owner.clone());
                     if let Some(parameters) = generic {
@@ -3270,11 +3265,6 @@ impl SourceIndex {
         let offset = self
             .offset(position)
             .ok_or("Position is outside the document or splits a surrogate pair")?;
-        if let Some(answer)=self.ui_theme_request(method,offset,uri) {return Ok(answer);}
-        if method=="textDocument/completion" && let Some(items)=self.ui_value_completion(offset) {return Ok(items);}
-        if method=="textDocument/hover" && let Some((class,span))=self.ui_class_at(offset) {
-            return Ok(json!({"contents":{"kind":"markdown","value":tsrust_compiler::ui_project::style::documentation(&class)},"range":self.range(span)}));
-        }
         if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some((field,ty,symbol,span))=self.record_literal_field(offset) {
             if method=="textDocument/definition" {
                 if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
@@ -4651,6 +4641,11 @@ fn builtin_catalog() -> &'static Value {
     })
 }
 
+// Declaration imports need one immutable entry, not a clone of the whole module catalog.
+fn builtin_entry(family:&str,name:&str)->Option<&'static Value> {
+    builtin_catalog()[family].as_array()?.iter().find(|entry|entry["name"]==name)
+}
+
 fn builtins_for(ty: &str) -> Vec<Value> {
     let ty = observation_scalar_family(ty).unwrap_or(ty);
     if let Some(result)=ty.strip_prefix("Task<").and_then(|text|text.strip_suffix('>')) {
@@ -4786,12 +4781,6 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     entries
 }
 
-#[cfg(test)]
-#[test]
-fn public_ui_record_aliases_hide_implementation_names(){
- let index=SourceIndex::with_entry_help(include_str!("../../tsrust-compiler/src/stdlib/ui/api.tsr"),false);
- for (private,public) in [("ViewProperties","ViewRenderProps"),("ButtonProperties","ButtonRenderProps"),("ViewComponentProps","ViewProps"),("ButtonComponentProps","ButtonProps")]{assert_eq!(index.public_record_alias(private).as_deref(),Some(public),"aliases={:?}; parameters={:?}",index.public_record_aliases,index.generic_parameters);}
-}
 
 #[cfg(test)]mod string_observation_family_tests{
  #[test]fn observation_family_preserves_schema_and_nullable_distinctions(){

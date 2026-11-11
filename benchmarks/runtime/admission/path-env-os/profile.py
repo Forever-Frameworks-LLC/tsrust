@@ -20,8 +20,8 @@ import time
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-RUST = ["rustup", "run", "1.96.1", "rustc"]
-CARGO = ["rustup", "run", "1.96.1", "cargo"]
+RUST = ["rustup", "run", "1.99.1", "rustc"]
+CARGO = ["rustup", "run", "1.99.1", "cargo"]
 
 
 def digest(path):
@@ -155,7 +155,7 @@ def main():
     rust_details = run(RUST + ["--version", "--verbose"], env)
     rust_version = next((line.split(": ", 1)[1] for line in rust_details.splitlines() if line.startswith("release: ")), None)
     rust_commit = next((line.split(": ", 1)[1] for line in rust_details.splitlines() if line.startswith("commit-hash: ")), None)
-    if rust_version != "1.96.1" or rust_commit is None:
+    if rust_version != "1.99.1" or rust_commit is None:
         raise RuntimeError("pinned Rust compiler identity differs")
     cached_node_sha256 = None
     if args.format_ab:

@@ -1354,82 +1354,21 @@ impl<'p> Emitter<'p> {
                         .zip(&self.program.callback_contracts[id].params)
                         .map(|(_arg, _contract)| rendered.next().expect("queued argument")),
                 );
-                let call = if self.program.absent_callback_payloads.contains(&id) {
-                    let kind = self.program.callback_contracts[id].kind;
-                    let (method, receiver) = if matches!(
-                        kind,
-                        crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead
-                    ) {
-                        ("ReadCallback::invoke_read", format!("&value{binding}"))
-                    } else if kind.is_once() {
-                        ("OnceCallback::invoke_once", format!("value{binding}"))
-                    } else {
-                        ("Callback::invoke", format!("&mut value{binding}"))
-                    };
-                    format!(
-                        "{{let absent_result: {} = {}; absent_result}}",
-                        self.callback_result_type(
-                            id,
-                            expr.ty.expect("checked absent callback result")
-                        ),
-                        self.counted_invocation(
-                            method,
-                            &receiver,
-                            &args,
-                            expr.supplied_count.unwrap_or(CallArgumentCount::Static(
-                                self.program.callback_contracts[id].params.len()
-                            ))
-                        )
-                    )
-                } else if matches!(
-                    self.program.callback_contracts[id].kind,
-                    crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead
-                ) {
-                    let receiver = if fun.bindings[binding].initializer.is_some()
-                        || (!fun.bindings[binding].parameter
-                            && !fun.bindings[binding].capture_reference)
-                        || matches!(fun.bindings[binding].mode, Mode::Consume | Mode::Copy)
-                    {
-                        format!("&value{binding}")
-                    } else {
-                        format!("value{binding}")
-                    };
-                    self.counted_invocation(
-                        "ReadCallback::invoke_read",
-                        &receiver,
-                        &args,
-                        expr.supplied_count.unwrap_or(CallArgumentCount::Static(
-                            self.program.callback_contracts[id].params.len(),
-                        )),
-                    )
-                } else if self.program.callback_contracts[id].kind.is_once() {
-                    self.counted_invocation(
-                        "OnceCallback::invoke_once",
-                        &format!("value{binding}"),
-                        &args,
-                        expr.supplied_count.unwrap_or(CallArgumentCount::Static(
-                            self.program.callback_contracts[id].params.len(),
-                        )),
-                    )
-                } else {
-                    let receiver = if fun.bindings[binding].initializer.is_some()
-                        || (!fun.bindings[binding].parameter
-                            && !fun.bindings[binding].capture_reference)
-                        || matches!(fun.bindings[binding].mode, Mode::Consume | Mode::Copy)
-                    {
-                        format!("&mut value{binding}")
-                    } else {
-                        format!("value{binding}")
-                    };
-                    self.counted_invocation(
-                        "Callback::invoke",
-                        &receiver,
-                        &args,
-                        expr.supplied_count.unwrap_or(CallArgumentCount::Static(
-                            self.program.callback_contracts[id].params.len(),
-                        )),
-                    )
+                let kind=self.program.callback_contracts[id].kind;
+                let owned_receiver=fun.bindings[binding].initializer.is_some()
+                    || (!fun.bindings[binding].parameter && !fun.bindings[binding].capture_reference)
+                    || matches!(fun.bindings[binding].mode,Mode::Consume|Mode::Copy);
+                let (method,receiver)=if matches!(kind,crate::syntax::CallbackKind::Read|crate::syntax::CallbackKind::SharedRead) {
+                    ("ReadCallback::invoke_read",if owned_receiver {format!("&value{binding}")}else{format!("value{binding}")})
+                }else if kind.is_once() {
+                    ("OnceCallback::invoke_once",format!("value{binding}"))
+                }else {
+                    ("Callback::invoke",if owned_receiver {format!("&mut value{binding}")}else{format!("value{binding}")})
                 };
+                let call=self.counted_invocation(method,&receiver,&args,expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())));
+                let call=if self.program.absent_callback_payloads.contains(&id) {
+                    format!("{{let absent_result: {} = {call}; absent_result}}",self.callback_result_type(id,expr.ty.expect("checked absent callback result")))
+                }else{call};
                 self.registered_callback_call(call, id, expr.span)
             }
             _ => unreachable!("scheduled callable target"),

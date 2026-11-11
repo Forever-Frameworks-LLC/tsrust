@@ -4,9 +4,9 @@ use super::Utility;
 pub enum WhiteSpace { Normal, NoWrap, Pre, #[default] PreWrap }
 impl WhiteSpace {
  pub(crate) fn css(self)->&'static str {match self{Self::Normal=>"normal",Self::NoWrap=>"nowrap",Self::Pre=>"pre",Self::PreWrap=>"pre-wrap"}}
- #[cfg(any(all(test, feature = "runtime"),feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
  pub(crate) fn collapses(self)->bool {matches!(self,Self::Normal|Self::NoWrap)}
- #[cfg(any(all(test, feature = "runtime"),feature="native"))]
+ #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
  pub(crate) fn wraps(self)->bool {matches!(self,Self::Normal|Self::PreWrap)}
 }
 pub(super) fn tokens()->Vec<String> {["text-balance","text-wrap-auto","tracking-tight","tracking-normal","whitespace-normal","whitespace-nowrap","whitespace-pre","whitespace-pre-wrap","underline","no-underline","underline-offset-auto","underline-offset-0","underline-offset-1","underline-offset-2","underline-offset-4","underline-offset-8"].map(str::to_owned).to_vec()}

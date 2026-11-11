@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicU64,Ordering};
 static NEXT_ID:AtomicU64=AtomicU64::new(1);
 
 fn allocate(counter:&AtomicU64)->Result<String,String>{
- let value=counter.fetch_update(Ordering::Relaxed,Ordering::Relaxed,|value|value.checked_add(1)).map_err(|_|String::from("UI instance IDs are exhausted"))?;
+ let value=counter.try_update(Ordering::Relaxed,Ordering::Relaxed,|value|value.checked_add(1)).map_err(|_|String::from("UI instance IDs are exhausted"))?;
  Ok(format!("tsrust-ui-{value}"))
 }
 

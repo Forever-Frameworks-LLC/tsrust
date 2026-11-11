@@ -1,5 +1,5 @@
 mod dev_cli;
-mod dev_web;
+mod workspace_cli;
 mod runtime_build;
 mod native_workspace;
 mod rust_bindings;
@@ -9,9 +9,9 @@ mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
 #[cfg(any(unix,windows))]
-mod dev_frontend;
-#[cfg(any(unix,windows))]
 mod dev_dependencies;
+mod dev_frontend;
+mod app_package_cli;
 #[cfg(any(unix,windows))]
 mod dev_watch;
 #[cfg(unix)]
@@ -24,21 +24,15 @@ mod dev_windows;
 mod project_config;
 mod new_cli;
 mod application_scaffold;
-#[cfg(feature = "legacy-ui")]
-mod ui_cli;
-#[cfg(not(feature = "legacy-ui"))]
-#[path = "ui_disabled.rs"]
 mod ui_cli;
 mod cache_cli;
 mod setup_cli;
 mod backend_sources;
-mod docs_cli;
 mod api_cli;
 mod http_client;
 mod toolchain_cli;
 mod toolchain_install;
 mod toolchain_release;
-mod docs_model;
 mod format_cli;
 mod check_cli;
 mod interactive_cli;
@@ -63,7 +57,9 @@ Usage:
   tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline] [--portable]
   tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
-  tsrust new [name-or-path] [--app [--target backend]]
+  tsrust new [name-or-path] [--ui | --app [--target backend]]
+  tsrust ui list | ui add [Component...] [--all] [--force]
+  tsrust package <entry.tsrx> [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
@@ -76,6 +72,7 @@ Usage:
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
+  tsrust check|build|test|format [--project name]   At a tsrust.workspace.json root: every member, clients first
 
 Commands:
   add      Add a Cargo crate; validate adapters, callers and tests before applying
@@ -90,12 +87,14 @@ Commands:
   docs     Compile checked documentation content and exact example/API data offline
   api      Generate checked TypeScript or async Rust clients from an API description
   dev      Rebuild and restart the configured program on source changes
-  new      Create a project with source, tests and configuration
+  new      Create a project with source, tests and configuration; --ui creates a desktop app
+  ui       List GPUI Kit components or copy editable wrappers into src/components
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
   emit     Emit Rust source or a standalone Cargo package
   build    Build a native executable using config output or -o
   run      Build and run a program
+  package  Package a std:ui application for this platform (.app/DMG, zip, tarball/.deb)
   test     Discover and run .test.tsr / .spec.tsr files
 
 Options:
@@ -138,19 +137,10 @@ fn color_enabled(terminal: bool) -> bool {
 fn styled(text: &str, code: &str, color: bool) -> String {
     if color { format!("\x1b[{code}m{text}\x1b[0m") } else { text.to_owned() }
 }
-#[cfg(feature = "legacy-ui")]
-const LEGACY_UI_USAGE: &str = "
-Legacy UI (frozen; built with the legacy-ui feature):
-  tsrust new [name-or-path] --ui [--target native|web]...
-  tsrust ui <list --bundled|init|add name...> [--cwd directory] [--path directory] [--target native|web]... [--dry-run]
-  tsrust ui attributions [--cwd directory] [--dry-run]
-  tsrust dev [--target native|web] [--port 4317]";
-#[cfg(not(feature = "legacy-ui"))]
-const LEGACY_UI_USAGE: &str = "";
 
 fn print_help() {
     let color = color_enabled(std::io::stdout().is_terminal());
-    for line in USAGE.lines().chain(LEGACY_UI_USAGE.lines()) {
+    for line in USAGE.lines() {
         if line.ends_with(':') || line.starts_with("tsrust —") { println!("{}", styled(line,"1;36",color)); }
         else { println!("{line}"); }
     }
@@ -203,7 +193,6 @@ fn run() -> Result<u8, String> {
     if matches!(command.as_str(),"add"|"update"|"features"|"remove"|"packages") {return package_cli::run(&command,args);}
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
-    if command=="docs" {return docs_cli::run(args);}
     if command=="api" {return api_cli::run(args);}
     if command=="cache" {return cache_cli::run(args);}
     if command=="doctor" {return setup_cli::doctor(args);}
@@ -211,7 +200,10 @@ fn run() -> Result<u8, String> {
     if command=="setup" {return setup_cli::setup(args);}
     if command=="ui" {return ui_cli::run(args);}
     if command=="new" {return new_cli::run(args);}
-    let (arguments,program_arguments)=split_program_arguments(&command,args.collect());
+    if command=="package" {return app_package_cli::run(args);}
+    let args=args.collect::<Vec<_>>();
+    if let Some(result)=workspace_cli::dispatch(&command,&args) {return result;}
+    let (arguments,program_arguments)=split_program_arguments(&command,args);
     let (arguments,project_root)=project_config::defaults(&command,arguments)?;
     let mut args=arguments.into_iter();
     if !["check", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
@@ -303,7 +295,6 @@ fn run() -> Result<u8, String> {
     {
         return Err("output must not overwrite the source".into());
     }
-    if matches!(command.as_str(),"build"|"run") {docs_cli::prepare_entry(&source_path)?;ui_cli::check_setup(&source_path)?;}
     let source = fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
 
     let check_started=std::time::Instant::now();
@@ -353,12 +344,7 @@ fn run() -> Result<u8, String> {
     if command == "emit" {
         if package {
             let output=output.as_ref().expect("package output");
-            let web_only=if native_features.contains(&"ui-native") {
-                let targets=tsrust_compiler::ui_project::configured_targets(&canonical_source,|path|match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?.ok_or("UI package export needs ui.target. Run tsrust ui add tokens@1.0.0 with --target native or --target web")?;
-                !targets.native && targets.web
-            }else{false};
-            let notices=if native_features.iter().any(|feature|feature.starts_with("ui")){ui_cli::attribution_files(&canonical_source)?}else{vec![]};
-            package_export::export(output,&rust,web_only,&notices).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
+            package_export::export(output,&rust).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
             println!("Emitted package {}",output.display());
             return Ok(0);
         }
@@ -369,7 +355,6 @@ fn run() -> Result<u8, String> {
         }
         return Ok(0);
     }
-    if native_features.contains(&"ui-native"){tsrust_compiler::ui_project::require_target(&canonical_source,"native",|path|match fs::read_to_string(path){Ok(text)=>Ok(Some(text)),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(e)=>Err(e.to_string())})?;}
     let backend_started=std::time::Instant::now();
     let backend_identity = verify_backend()?;
     let backend_elapsed=backend_started.elapsed();
@@ -404,7 +389,7 @@ fn run() -> Result<u8, String> {
         graph_identity.extend_from_slice(source.as_bytes());
     }
     let features = native_features.join(",");
-    let optimization = runtime_build::application_optimization(release,native_features.contains(&"ui-native"));
+    let optimization = runtime_build::application_optimization(release,false);
     let shared_inputs = backend_sources::application_identity(&rust, &cache_root)?;
     let mut cache_parts: Vec<&[u8]> = vec![
             b"native-cache-abi-4-ui-dev-profile",
@@ -422,6 +407,7 @@ fn run() -> Result<u8, String> {
         ];
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
     if let Some(identity)=runtime_build::application_cache_identity(&rust){cache_parts.push(identity);}
+    cache_parts.push(runtime_build::profile_identity(&rust).as_bytes());
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     let reused = cache.copy_to(&executable);

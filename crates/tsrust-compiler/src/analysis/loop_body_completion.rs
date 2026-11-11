@@ -19,11 +19,17 @@ impl Analyzer {
             context.flow = crate::flow::join(&context.flow, &breaks);
         }
         let break_seen = frame.break_seen;
-        for ((id, _), (condition_state, break_state)) in frame
+        for (position, ((id, _), (condition_state, break_state))) in frame
             .entry
             .into_iter()
-            .zip(baseline.into_iter().zip(frame.breaks))
+            .zip(baseline.into_iter().zip(frame.breaks)).enumerate()
         {
+            let mut condition_state=condition_state;
+            // Repeated paths retain newly stored views without transferring back-edge moves.
+            if !exits {condition_state.native_view_loans=native_view_loans::join(condition_state.native_view_loans,context.bindings[id].native_view_loans.clone());}
+            if let Some(continues)=&frame.continues {
+                condition_state.native_view_loans=native_view_loans::join(condition_state.native_view_loans,continues[position].native_view_loans.clone());
+            }
             condition_state
                 .join(break_state)
                 .restore(&mut context.bindings[id]);

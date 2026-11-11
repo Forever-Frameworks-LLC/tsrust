@@ -8,9 +8,13 @@ pub(crate) enum Titlebar { #[default] Native, Custom }
 pub(crate) struct Options {
     pub width:f64, pub height:f64, pub min_width:f64, pub min_height:f64,
     pub titlebar:Titlebar,
+    /// Font files (.ttf/.otf) loaded before the window opens.
+    pub fonts:Vec<String>,
+    /// Default UI font family; empty keeps the platform font.
+    pub font:String,
 }
 impl Default for Options {
-    fn default()->Self {Self{width:640.,height:480.,min_width:240.,min_height:160.,titlebar:Titlebar::Native}}
+    fn default()->Self {Self{width:640.,height:480.,min_width:240.,min_height:160.,titlebar:Titlebar::Native,fonts:Vec::new(),font:String::new()}}
 }
 impl Options {
     pub fn parse(json:&str)->Result<Self,String> {

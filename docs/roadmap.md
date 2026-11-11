@@ -408,7 +408,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 **Design gates:** Decide parameter access contracts, assignment behavior, mutation permission, numeric/string basics, and the minimum error model. Test escaping closures before claiming that inference supports application callbacks generally.
 
-**Deferred implementation:** Broad generics, macros, inheritance, automatic collection fusion, HTTP, JSX, and desktop controls unless a concrete core experiment requires them.
+**Deferred implementation:** Broad generics, macros, inheritance, automatic collection fusion, HTTP, TSRX, and desktop controls unless a concrete core experiment requires them.
 
 ## Backend proof: async, typed data, and HTTP
 
@@ -424,7 +424,7 @@ This is a proposed sequence for scoping work, not a commitment to implement ever
 
 ## Web proof: typed server HTML
 
-**Deliverables:** A separate `Html` type, JSX component composition, dynamic-value escaping, and a native response writer. Scope streaming and async components as later increments within this phase.
+**Deliverables:** A separate `Html` type, TSRX component composition, dynamic-value escaping, and a native response writer. Scope streaming and async components as later increments within this phase.
 
 **Workstreams:** [Server HTML](guides/language/server-html.md), [HTTP/Hono](guides/language/http-and-hono.md), [migration](guides/tooling/source-migration.md), and [benchmarks](measurements/benchmarks.md).
 

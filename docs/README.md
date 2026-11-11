@@ -18,29 +18,11 @@ these guides distinguish supported behavior from planned work.
 - [Work with Rust](../website/src/content/docs/tools/rust-packages.md)
 - [Set up VS Code](../editors/vscode/README.md)
 
-## Run the documentation app
+## UI applications
 
-This directory retains the original standalone UI project, with a shared web/native page.
-It is outside the active backend product scope. Its commands need a compiler built
-with the frozen `legacy-ui` feature
-(`cargo build -p tsrust-compiler --features legacy-ui`); release builds omit them.
-`tsrust.config.json` declares the targets and theme. `src/main.tsr` mounts
-`src/app/page.tsrx`; editable components live under `src/components/ui/`.
-
-```sh
-cd docs
-tsrust dev --target web --port 4317
-# On a supported graphical desktop:
-tsrust dev --target native
-```
-
-The landing page is at `/`; documentation starts at `/docs`. Install the
-[retained UI prerequisites](guides/tooling/retained-ui-setup.md) first. The current
-native custom titlebar requires macOS. The app and component library remain
-in development; a page destination does not imply a finished implementation.
-
-Retained UI references: [themes](content/ui/foundations/theming.md) and
-[components](content/ui/components/).
+The earlier Tsrust UI renderer and frontend templates were removed. Native UI
+returns as GPUI and GPUI Kit components written in `.tsrx`; see
+[the GPUI application platform plan](plans/gpui-application-platform.md).
 
 ## Contribute
 
@@ -51,11 +33,9 @@ describes CI, artifacts and publication.
 
 | Directory | Contents |
 | --- | --- |
-| [content/](content/) | Markdown displayed by the documentation app |
 | [guides/language/](guides/language/) | Language semantics, library behavior and coverage |
 | [guides/tooling/](guides/tooling/) | Editor, packages, deployment and toolchain guides |
 | [guides/](guides/) | Additional practical library and tooling guides |
-| [src/](src/) | Shared documentation UI and executable examples |
 | [plans/](plans/) | Design proposals and implementation plans |
 | [milestones/](milestones/) | Feature acceptance and evidence summaries |
 | [measurements/](measurements/) | Measurement methodology and analysis |
@@ -68,8 +48,7 @@ describes CI, artifacts and publication.
 - [Language vision](plans/product-vision.md) and [roadmap](roadmap.md)
 - [Current standard-library roadmap](plans/standard-library-roadmap.md)
 - [Feature coverage](guides/language/feature-coverage.md)
-- [UI vision](../UI_VISION.md)
-- [Documentation and component-library plan](plans/documentation-and-component-library.md)
+- [GPUI application platform plan](plans/gpui-application-platform.md)
 - [Compiler source layout](guides/compiler-source-layout.md)
 - [Rust toolchain policy](guides/tooling/rust-toolchain-policy.md)
 

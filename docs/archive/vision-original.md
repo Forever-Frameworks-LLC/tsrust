@@ -1651,7 +1651,7 @@ The immediate goals are:
 6. Clearly identify which ideas are established versus which aspects of this project should intentionally differ.
 7. Establish a benchmark methodology against neighboring languages without incorporating, vendoring, or installing their source code into this project.
 8. Investigate making a Hono-compatible HTTP framework/API a core built-in part of the language’s backend experience.
-9. Investigate JSX/TSX-style native server-side HTML generation as a first-class feature.
+9. Investigate TSRX/TSX-style native server-side HTML generation as a first-class feature.
 
 ⸻
 
@@ -1671,7 +1671,7 @@ Key goals include:
 * Interfaces/traits.
 * Discriminated unions.
 * Async/await.
-* JSX-style syntax where useful.
+* TSRX-style syntax where useful.
 * Strong control-flow narrowing.
 * Native executables.
 * No V8 dependency.
@@ -2131,7 +2131,7 @@ Hono is attractive because its developer API is:
 * standards-oriented
 * familiar
 * portable
-* JSX-capable
+* TSRX-capable
 The target experience might intentionally resemble:
 import { Hono } from "http";
 
@@ -2230,9 +2230,9 @@ could compile directly to the native HTTP server.
 
 ⸻
 
-19. JSX / TSX as a First-Class Backend Feature
+19. TSRX / TSX as a First-Class Backend Feature
 Hono provides an important second test:
-JSX-like server-rendered HTML.
+TSRX-like server-rendered HTML.
 Investigate supporting:
 function Layout(props: { children: Html }) {
     return (
@@ -2258,8 +2258,8 @@ rather than emulating React’s runtime.
 
 ⸻
 
-20. JSX Compilation Strategy
-Investigate compiling JSX directly into optimized response-generation code.
+20. TSRX Compilation Strategy
+Investigate compiling TSRX directly into optimized response-generation code.
 For example:
 <h1>Hello {user.name}</h1>
 could conceptually lower to:
@@ -2293,7 +2293,7 @@ This could provide stronger XSS guarantees than ordinary string-based templating
 
 ⸻
 
-22. JSX Components Without React Semantics
+22. TSRX Components Without React Semantics
 Do not automatically reproduce:
 * React state model
 * client reconciliation
@@ -2309,7 +2309,7 @@ function UserCard(user: User): Html {
         </article>
     );
 }
-This retains React/JSX familiarity without introducing a React runtime.
+This retains React/TSRX familiarity without introducing a React runtime.
 
 ⸻
 
@@ -2457,7 +2457,7 @@ Categories:
 * HTML
 * redirects
 * streaming
-* JSX
+* TSRX
 * nested routers
 Do not blindly copy Hono’s internal source tests.
 Write independent tests describing observable public behavior.
@@ -2480,7 +2480,7 @@ POST /validate should:
 4. Perform collection transformations.
 5. Serialize a typed response.
 GET /html should:
-1. Render nested JSX-style components.
+1. Render nested TSRX-style components.
 2. Escape dynamic strings.
 3. Loop through typed data.
 4. Produce HTML.
@@ -2529,7 +2529,7 @@ Backend-first design
 HTTP, JSON, validation, databases, HTML, async, and observability matter before browser compatibility.
 Hono-compatible native HTTP experience
 Make familiar backend code a language-level showcase.
-Native JSX server HTML
+Native TSRX server HTML
 React-like authoring ergonomics without React’s client runtime model.
 npm inspection and migration tooling
 Treat ecosystem migration as a compiler/tooling problem.
@@ -2578,7 +2578,7 @@ Determine:
 * API surface worth preserving
 * behavior worth preserving
 * behavior that should intentionally differ
-* JSX feasibility
+* TSRX feasibility
 * middleware model
 * native implementation architecture
 * legal/licensing considerations
@@ -2623,7 +2623,7 @@ They must work as developer infrastructure.
 
 37. Core Web Vision
 One potential long-term differentiator deserves explicit investigation:
-The language should feel like Hono, TypeScript, and server-side JSX were designed from the beginning for native compilation rather than layered on top of JavaScript.
+The language should feel like Hono, TypeScript, and server-side TSRX were designed from the beginning for native compilation rather than layered on top of JavaScript.
 A possible experience:
 import { App } from "http";
 import { z } from "validation";
@@ -2698,7 +2698,7 @@ Because the language already compiles to native binaries, investigate whether it
 * garbage collection
 The goal is not to reproduce React internally.
 The goal is:
-React/JSX-like authoring ergonomics with native rendering, deterministic lifetimes, fine-grained reactive updates, and no full-screen/component-tree rerender when a single value changes.
+React/TSRX-like authoring ergonomics with native rendering, deterministic lifetimes, fine-grained reactive updates, and no full-screen/component-tree rerender when a single value changes.
 
 ⸻
 
@@ -2933,8 +2933,8 @@ Because this is a major engineering commitment, research native-control-first de
 
 ⸻
 
-Shared JSX Syntax
-Investigate JSX as a common authoring syntax for both:
+Shared TSRX Syntax
+Investigate TSRX as a common authoring syntax for both:
 * server-rendered HTML
 * native desktop UI
 But maintain distinct output types.
@@ -2979,12 +2979,12 @@ Window -> View
 not:
 Window -> Html
 Similarly, browser-specific tags should not accidentally appear in native UI unless explicitly supported.
-This prevents JSX from becoming an untyped generic tree syntax.
+This prevents TSRX from becoming an untyped generic tree syntax.
 
 ⸻
 
-Compile JSX Directly
-Research whether JSX can compile directly into imperative creation/binding operations.
+Compile TSRX Directly
+Research whether TSRX can compile directly into imperative creation/binding operations.
 For example:
 function Counter(): View {
     const count = signal(0);
@@ -3432,7 +3432,7 @@ Different runtime targets.
 
 ⸻
 
-Server HTML and Desktop JSX Should Reinforce Each Other
+Server HTML and Desktop TSRX Should Reinforce Each Other
 Research whether a common component grammar can serve:
 HTML renderer
 Native UI renderer
@@ -3531,8 +3531,8 @@ Do not prematurely resolve:
 * What happens when reactive dependencies change dynamically?
 * How are conditional subtrees owned?
 * How should lists preserve identity?
-* Is JSX the correct syntax for native UI?
-* Should .tsx-style file distinction exist, or should .tsr parse JSX everywhere?
+* Is TSRX the correct syntax for native UI?
+* Should .tsx-style file distinction exist, or should .tsr parse TSRX everywhere?
 * How should styling work?
 * How closely should layout resemble CSS Flexbox/Grid?
 * How are accessibility properties represented?
@@ -3693,7 +3693,7 @@ Use this to validate the full-stack thesis.
 
 Core Native UI Thesis
 The project should investigate whether this combination is feasible and compelling:
-JSX-like component composition + fine-grained reactivity + native platform controls + deterministic ownership + native binary deployment.
+TSRX-like component composition + fine-grained reactivity + native platform controls + deterministic ownership + native binary deployment.
 The target developer experience should feel substantially closer to modern TypeScript UI development than traditional systems-language GUI development.
 But the runtime should behave fundamentally differently:
 No Chromium

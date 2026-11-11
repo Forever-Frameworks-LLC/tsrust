@@ -1,6 +1,0 @@
-import { run } from 'std:ui';
-import { Screen } from './screen';
-
-function main() {
-  unwrap(run(Screen(), 'Tsrust UI'));
-}

@@ -92,3 +92,27 @@ fn reactive_style_validation_rejects_bad_updates_without_replacing_the_previous_
     let child=text("inline").with_class_binding(||Ok("text-primary".into())).unwrap();
     let mut inline=Node::view(vec![Child::Node(child)],String::new()).unwrap().with_semantics(r#"{"tag":"span"}"#).unwrap();inline.refresh().unwrap();
 }
+
+#[test]
+fn kit_styles_preserve_local_control_state_handlers_identity_and_weak_ownership() {
+    let selected=Signal::new(false);let read_class=selected.handle();let read_disabled=selected.handle();let write=selected.handle();let observe=selected.handle();
+    let mut node=Node::kit("Switch",vec![Child::Node(text("Stateful"))],String::new()).unwrap()
+        .with_class_binding(move||Ok(if read_class.get()? {"p-4"}else{"p-2"}.into())).unwrap()
+        .with_kit_binding("disabled",TextBinding::computed(move||read_disabled.get().map(|value|value.to_string()))).unwrap()
+        .with_kit_event("change",move |_|write.set(true)).unwrap().own_state(selected).unwrap();
+    node.refresh().unwrap();let id=node.identity.get();assert!(!node.is_disabled());
+    assert!(node.kit_event(id,"change","true").unwrap());node.refresh().unwrap();
+    assert_eq!(node.class_name,"p-4");assert!(node.is_disabled());assert_eq!(node.identity.get(),id);assert_eq!(node.option("checked"),Some("true"));
+    observe.set(false).unwrap();node.refresh().unwrap();assert!(!node.is_disabled());assert_eq!(node.class_name,"p-2");assert_eq!(node.option("checked"),Some("true"));
+    drop(node);assert!(observe.get().is_err());
+}
+
+#[test]
+fn plot_array_bindings_retain_identity_and_reject_invalid_refresh_without_losing_old_values() {
+ let values=Signal::new("1\n2".to_owned());let read=values.handle();let observe=values.handle();
+ let mut node=Node::kit("PlotLine",vec![],String::new()).unwrap().with_kit_binding("values",TextBinding::computed(move||read.get())).unwrap().own_state(values).unwrap();
+ node.refresh().unwrap();let id=node.identity.get();
+ observe.set("3\n4".into()).unwrap();node.refresh().unwrap();assert_eq!(node.identity.get(),id);assert_eq!(node.option("values"),Some("3\n4"));
+ observe.set("NaN".into()).unwrap();assert!(node.refresh().is_err());assert_eq!(node.option("values"),Some("3\n4"));
+ drop(node);assert!(observe.get().is_err());
+}

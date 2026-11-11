@@ -120,7 +120,7 @@ impl Analyzer {
                 let annotated = annotation.as_ref().map(|value| self.resolve_value_annotation(value, false)).transpose()?;
                 let array = annotated.map(|ty| self.constructor_array_type(ty, expr.span)).transpose()?;
                 if let Some(array) = array { self.require(array, expected, expr.span)?; }
-                if values.is_empty() && !matches!(array.or(expected), Some(Type::Array(_))) {
+                if values.is_empty() && self.array_literal_context(array.or(expected)).is_none() {
                     return Err(Diagnostic::new("array-type", "An empty Array.of needs an explicit element type or array context.", expr.span));
                 }
                 let element = self.array_literal_element_hint(context, values, array.or(expected), expr.span)?;

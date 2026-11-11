@@ -2697,6 +2697,7 @@ impl Analyzer {
     }
 
     fn run(mut self) -> Result<CheckedProgram, Diagnostic> {
+        if let Some(completed)=&self.program.diagnostic_completed {completed.lock().expect("diagnostic progress lock").clear();}
         if let Some(&main) = self.function_names.get("main") {
             if !self.signatures[main].params.is_empty() || self.signatures[main].result != Type::Void {
                 return Err(Diagnostic::new(
@@ -2750,6 +2751,9 @@ impl Analyzer {
                     // its catch again; without new work, preserve the unresolved diagnostic.
                     || retrying && sequence == self.program.functions.len()
                 {
+                    if let Some(completed)=&self.program.diagnostic_completed {
+                        *completed.lock().expect("diagnostic progress lock")=self.checked.iter().enumerate().filter_map(|(index,function)|function.as_ref().filter(|function|!function.template).map(|_|self.program.functions[index].name.span)).collect();
+                    }
                     return Err(error);
                 }
                 for (unchecked, retained) in sources.iter().copied().enumerate() {
@@ -6002,15 +6006,17 @@ impl Analyzer {
 
     fn finish_template_part(&self, part: &Expr, actual: Type) -> Result<(), Diagnostic> {
             self.require_native_capability(actual, crate::native_types::Capability::StringConversion, part.span, true)?;
-            if !matches!(
-                actual,
-                Type::String
-                    | Type::Int
-                    | Type::Number
-                    | Type::Boolean
-                    | Type::Null
-                    | Type::Undefined
-            ) {
+            // Literal types and unions of interpolable scalars format like their base values.
+            let mut pending = vec![actual];
+            let mut scalar = true;
+            while let Some(ty) = pending.pop() {
+                match ty {
+                    Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::Literal(..) => {}
+                    Type::Union(id) => pending.extend(self.unions.members(id)),
+                    _ => scalar = false,
+                }
+            }
+            if !scalar {
                 return Err(Diagnostic::new(
                     "type",
                     "Template interpolation requires string, int, number, or boolean.",
@@ -6875,6 +6881,18 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    /// A literal can use the sole array alternative without coercing an existing array binding.
+    fn array_literal_context(&self,expected:Option<Type>)->Option<ArrayElement> {
+        let members=match expected? {Type::Union(id)=>self.unions.members(id),value=>vec![value]};
+        let mut found=None;
+        for member in members {match member {
+            Type::Array(element)=>{if found.is_some_and(|previous|previous!=element) {return None;}found=Some(element);},
+            Type::Record(id) if self.program.records[id].is_tuple()=>return None,
+            _=>{},
+        }}
+        found
+    }
+
     fn array_literal_element_hint(
         &mut self,
         context: &mut Context,
@@ -6887,8 +6905,8 @@ impl Analyzer {
         } else {
             None
         };
-        let mut element = match expected {
-            Some(Type::Array(element)) => Some(element),
+        let mut element = match self.array_literal_context(expected) {
+            Some(element) => Some(element),
             _ if mixed.is_some() => mixed,
             _ => values
                 .iter()

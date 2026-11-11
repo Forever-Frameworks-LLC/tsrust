@@ -158,78 +158,7 @@ fn run_forwards_program_options_after_separator_with_explicit_and_configured_inp
     assert!(String::from_utf8(output.stderr).unwrap().contains("Unknown or repeated option"));
 }
 
-#[cfg(feature = "legacy-ui")]
-#[test]
-fn new_ui_scaffolds_an_explicit_bootstrap_and_root_page() {
-    let dir=support::TempDirectory::new();
-    support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","counter","--ui","--target","native"]),20));
-    let root=dir.0.join("counter");
-    for name in ["src/main.tsr","src/app/page.tsrx","tests/page.test.tsr"] {
-        let source=fs::read_to_string(root.join(name)).unwrap();
-        assert_eq!(source,support::format_round_trip(&source));
-    }
-    assert!(!root.join("src/greeting.tsr").exists());
-    support::success(&support::run(support::cli().current_dir(&root).args(["check","--json"]),20));
-    support::success(&support::run(support::cli().current_dir(&root).args(["format","--check"]),20));
-    support::success(&support::run(support::cli().current_dir(&root).arg("test"),60));
-    let original=fs::read(root.join("src/app/page.tsrx")).unwrap();
-    assert!(!support::run(support::cli().current_dir(&dir.0).args(["new","counter","--ui","--target","native"]),20).status.success());
-    assert_eq!(fs::read(root.join("src/app/page.tsrx")).unwrap(),original);
-}
 
-#[cfg(feature = "legacy-ui")]
-#[test]
-fn ui_add_bootstraps_inline_config_and_source_layout_without_init() {
- let dir=support::TempDirectory::new();let root=dir.0.join("first-ui");fs::create_dir(&root).unwrap();
- let run=|args:&[&str]|support::run(support::cli().current_dir(&root).args(args),30);
- support::success(&run(&["ui","add","button@3.0.0","--target","native","--dry-run","--json"]));assert_eq!(fs::read_dir(&root).unwrap().count(),0);
- assert!(!run(&["ui","add","button@missing"]).status.success());assert_eq!(fs::read_dir(&root).unwrap().count(),0);
- let output=run(&["ui","add","button@3.0.0","--target","native","--offline"]);support::success(&output);assert!(String::from_utf8(output.stdout).unwrap().contains("withTheme"));
- let config:serde_json::Value=serde_json::from_slice(&fs::read(root.join("tsrust.config.json")).unwrap()).unwrap();assert!(config["ui"]["theme"].is_object());
- for path in ["src/app/page.tsrx","src/components/ui/button.tsrx","src/main.tsr","ui-components.lock.json"]{assert!(root.join(path).is_file(),"{path}");}
- assert!(!root.join("ui.theme.json").exists());assert!(!root.join("app").exists());
- support::success(&run(&["format"]));support::success(&run(&["format","--check"]));support::success(&run(&["check"]));
- let before=fs::read(root.join("tsrust.config.json")).unwrap();let lock=fs::read(root.join("ui-components.lock.json")).unwrap();
- fs::create_dir(root.join("nested")).unwrap();support::success(&support::run(support::cli().current_dir(root.join("nested")).args(["ui","add","button@3.0.0"]),30));
- assert_eq!(fs::read(root.join("tsrust.config.json")).unwrap(),before);assert_eq!(fs::read(root.join("ui-components.lock.json")).unwrap(),lock);
-}
 
-#[cfg(feature = "legacy-ui")]
-#[test]
-fn ui_imports_report_explicit_setup_without_writing() {
- let dir=support::TempDirectory::new();let root=dir.0.join("import-ui");fs::create_dir_all(root.join("src")).unwrap();
- let source=support::format_round_trip("import {Button} from './components/ui/button';import {document} from 'std:ui';function main(){console.log(document(<Button disabled>Imported</Button>,'UI'));}");
- fs::write(root.join("src/main.tsrx"),&source).unwrap();
- let check=support::run(support::cli().current_dir(&root).args(["check"]),15);assert!(!check.status.success());assert!(!root.join("tsrust.config.json").exists());
- let bad=support::run(support::cli().current_dir(&root).args(["run","--unknown"]),15);assert!(!bad.status.success());assert!(!root.join("tsrust.config.json").exists());
- let output=support::run(support::cli().current_dir(&root).args(["run"]),20);assert!(!output.status.success());assert!(String::from_utf8(output.stderr).unwrap().contains("tsrust ui add button@3.0.0"));assert!(!root.join("tsrust.config.json").exists());assert!(!root.join("src/components").exists());
- support::success(&support::run(support::cli().current_dir(&root).args(["ui","add","button@3.0.0","--target","native"]),30));
- assert_eq!(fs::read_to_string(root.join("src/main.tsrx")).unwrap(),source);
- support::success(&support::run(support::cli().current_dir(&root).args(["check"]),20));
-}
 
-#[cfg(feature = "legacy-ui")]
-#[test]
-fn ui_web_only_target_is_explicit_and_cannot_launch_native(){
- let dir=support::TempDirectory::new();let root=dir.0.join("web-ui");fs::create_dir(&root).unwrap();
- let no_target=support::run(support::cli().current_dir(&root).args(["ui","add","button@3.0.0","--yes"]),20);assert!(!no_target.status.success());assert_eq!(fs::read_dir(&root).unwrap().count(),0);
- let added=support::run(support::cli().current_dir(&root).args(["ui","add","button@3.0.0","--target","web"]),30);support::success(&added);assert!(!String::from_utf8(added.stdout).unwrap().contains("run tsrust dev"));
- let config:serde_json::Value=serde_json::from_slice(&fs::read(root.join("tsrust.config.json")).unwrap()).unwrap();assert_eq!(config["ui"]["target"],serde_json::json!({"native":false,"web":true,"embedded":false}));
- let output=support::run(support::cli().current_dir(&root).args(["build"]),20);assert!(!output.status.success());assert!(String::from_utf8(output.stderr).unwrap().contains("native target is disabled"));
- let package=root.join("export");support::success(&support::run(support::cli().current_dir(&root).args(["emit","--package","-o"]).arg(&package),30));let manifest=fs::read_to_string(package.join("Cargo.toml")).unwrap();let defaults=manifest.lines().find(|line|line.starts_with("default =")).unwrap();assert!(defaults.contains("ui-web") && !defaults.contains("ui-native"),"{defaults}");
-}
 
-#[cfg(feature = "legacy-ui")]
-#[test]
-fn ui_batch_upgrades_preserve_owned_files_and_check_versioned_imports() {
- let dir=support::TempDirectory::new();let root=&dir.0;let components=root.join("src/components/ui");fs::create_dir_all(&components).unwrap();
- for name in ["button","card"]{fs::write(components.join(format!("{name}.tsrx")),"// Owner component\nexport const owner = 1;\n").unwrap();}
- let source="import {Button} from './components/ui/button-v3';import {Card} from './components/ui/card-v3';import {document} from 'std:ui';function main(){console.log(document(<Card><Button>Current components</Button></Card>,'UI'));}";
- fs::write(root.join("src/main.tsrx"),source).unwrap();let original=fs::read(root.join("src/main.tsrx")).unwrap();
- let preview=support::run(support::cli().args(["ui","add","button","card","--target","native","--dry-run","--json"]).current_dir(root),20);support::success(&preview);let preview:serde_json::Value=serde_json::from_slice(&preview.stdout).unwrap();assert!(preview.to_string().contains("button-v3.tsrx")&&preview.to_string().contains("card-v3.tsrx"));assert!(!root.join("tsrust.config.json").exists());
- let obsolete=support::run(support::cli().args(["ui","add","card@2.0.0","--target","native"]).current_dir(root),20);assert!(!obsolete.status.success());assert!(String::from_utf8_lossy(&obsolete.stderr).contains("Only card@3.0.0"));assert!(!root.join("tsrust.config.json").exists());
- support::success(&support::run(support::cli().args(["ui","add","button","card","--target","native"]).current_dir(root),30));
- for name in ["button","card"]{assert_eq!(fs::read_to_string(components.join(format!("{name}.tsrx"))).unwrap(),"// Owner component\nexport const owner = 1;\n");}assert_eq!(fs::read(root.join("src/main.tsrx")).unwrap(),original);
- let lock=fs::read(root.join("ui-components.lock.json")).unwrap();support::success(&support::run(support::cli().args(["ui","add","card","button"]).current_dir(root),30));assert_eq!(fs::read(root.join("ui-components.lock.json")).unwrap(),lock);
- support::success(&support::run(support::cli().args(["check","src/main.tsrx"]).current_dir(root),30));
-}

@@ -498,3 +498,30 @@ fn registered_byte_runtime_family_executes_at_both_required_profiles(){
   let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);for field in ["durationMs","checkMs","emitMs","backendMs","cacheMs","nativeBuildMs"]{let ms=builds[0][field].as_f64().unwrap();assert!(ms.is_finite()&&ms>=0.0);}
  }
 }
+
+#[test]
+fn workspace_byte_view_workloads_keep_checked_carriers() {
+    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for name in ["captured_only","stored_callbacks","nullable_callbacks","parameter_stores"] {
+        let path=root.join(format!("benchmarks/runtime/workloads/native_byte_views_{name}.tsr"));
+        let output=support::run(support::cli().arg("check").arg(path),60);
+        support::success(&output);
+    }
+}
+
+#[test]
+fn loop_stored_view_callbacks_reject_owner_mutation_and_short_lifetimes() {
+    let helpers=include_str!("fixtures/bytes/loop-provenance.test.tsr").split("function observe").next().unwrap();
+    for (body,code) in [
+        ("const owner=unwrap(fromArray([7,255]));let root=empty();let i=0;while(i<2){root=node(owner);i++;}const moved=owner;console.log(first(root.read!()));","native-view-conflict"),
+        ("let root=empty();let i=0;while(i<2){const owner=unwrap(fromArray([7,255]));root=node(owner);i++;}console.log(first(root.read!()));","native-view-escape"),
+    ] {
+        for body in [body.to_owned(),body.replace("i++;}","i++;continue;}")] {
+            let directory=support::TempDirectory::new();
+            let path=directory.source(&support::format_round_trip(&format!("{helpers}function main(){{{body}}}")));
+            let output=support::run(support::cli().arg("check").arg(path),60);
+            assert!(!output.status.success());
+            assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")),"{}",String::from_utf8_lossy(&output.stderr));
+        }
+    }
+}

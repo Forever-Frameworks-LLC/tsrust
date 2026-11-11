@@ -69,11 +69,11 @@ impl Analyzer {
         let Work{mut fields,mut args,jsx,explicit,..}=work;
         let result=if let Some(Type::Record(id))=expected {
             if jsx {
-                for key in explicit {if !self.fields[id].contains_key(&key.text){return Err(Diagnostic::new("type",format!("Unknown JSX attribute: {}.",key.text),key.span));}}
+                for key in explicit {if !self.fields[id].contains_key(&key.text){return Err(Diagnostic::new("type",format!("Unknown TSRX attribute: {}.",key.text),key.span));}}
                 // JSX forwards only the declared component interface; excess spread fields are dropped with their source owner.
                 for field in self.program.records[id].fields.clone(){
                     if fields.iter().any(|actual|actual.name.text==field.name.text){continue;}
-                    if !field.optional{return Err(Diagnostic::new("type",format!("Missing required JSX attribute: {}.",field.name.text),expr.span));}
+                    if !field.optional{return Err(Diagnostic::new("type",format!("Missing required TSRX attribute: {}.",field.name.text),expr.span));}
                     let key=Token{text:field.name.text,span:expr.span,kind:TokenKind::Name};
                     let value=Expr::checked(ExprKind::Undefined,expr.span,Some(Type::Undefined));
                     let definition=RecordField{name:key.clone(),annotation:field.annotation,ty:Some(Type::Undefined),callable_declaration:None,optional:false};

@@ -36,13 +36,26 @@ pub trait SourceProvider {
 /// require this tool's canonical implementation path and exact bundled bytes.
 /// Call only for an entry; imported user files retain normal private-binding checks.
 pub fn bundled_entry(provider:&impl SourceProvider,id:&SourceId)->Option<SourceId> {
-    static UI:std::sync::LazyLock<PathBuf>=std::sync::LazyLock::new(||{
-        let path=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib/ui/api.tsr");
-        std::fs::canonicalize(&path).unwrap_or(path)
-    });
-    if Path::new(&id.0)!=UI.as_path(){return None;}
-    let logical=SourceId("std:ui".into());
-    (provider.read(id).ok()?.as_str()==bundled_source(&logical)?).then_some(logical)
+    const PARTS: &[(&str,&str,&str)] = &[
+        ("ui/api.tsr","std:ui",include_str!("../stdlib/ui/api.tsr")),
+        ("ui/kit.tsr","std:ui",include_str!("../stdlib/ui/kit.tsr")),
+        ("logging/source.tsr","std:log",include_str!("../stdlib/logging/source.tsr")),
+    ];
+    let root=Path::new(env!("CARGO_MANIFEST_DIR")).join("src/stdlib");
+    for &(relative,module,_) in PARTS {
+        let path=root.join(relative);
+        let canonical=std::fs::canonicalize(&path).unwrap_or(path);
+        if Path::new(&id.0)!=canonical {continue;}
+        // Split facades share one module; observe every part before granting its context.
+        for &(part,owner,expected) in PARTS {
+            if owner!=module {continue;}
+            let path=root.join(part);
+            let source=SourceId(std::fs::canonicalize(&path).unwrap_or(path).to_str()?.into());
+            if provider.read(&source).ok()?.as_str()!=expected {return None;}
+        }
+        return Some(SourceId(module.into()));
+    }
+    None
 }
 
 pub struct FileSourceProvider;

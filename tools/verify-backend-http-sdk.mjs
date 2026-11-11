@@ -141,8 +141,8 @@ async fn check_http_calls()->Result<(),Box<dyn std::error::Error>> {
  assert_eq!(left.await??,"Hello, left!");assert_eq!(right.await??,"Hello, right!");
  Ok(())
 }`);
-  await run('rustup',['run','1.96.1','cargo','generate-lockfile','--offline'],consumer);
-  const rustRun=await run('rustup',['run','1.96.1','cargo','test','--offline','--locked','--test','http'],consumer);
+  await run('rustup',['run','1.99.1','cargo','generate-lockfile','--offline'],consumer);
+  const rustRun=await run('rustup',['run','1.99.1','cargo','test','--offline','--locked','--test','http'],consumer);
   assert.match(rustRun.stdout,/test result: ok/);
   assert.equal(credentialCalls,4);
   assert.equal(parallelReplies.length,2);
@@ -153,7 +153,7 @@ async fn check_http_calls()->Result<(),Box<dyn std::error::Error>> {
     let _:i64=api.api().greet(String::new()).await.unwrap();
   }
   fn main(){} `);
-  await assert.rejects(run('rustup',['run','1.96.1','cargo','check','--offline','--locked','--bin','reject'],consumer), error => /E0308/.test(error.stderr));
+  await assert.rejects(run('rustup',['run','1.99.1','cargo','check','--offline','--locked','--bin','reject'],consumer), error => /E0308/.test(error.stderr));
 } finally {
   if (metadataServer) { metadataServer.closeAllConnections(); await new Promise(resolve => metadataServer.close(resolve)); }
   if (child.exitCode === null) child.kill();

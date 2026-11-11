@@ -40,7 +40,7 @@ an empty-event/CRLF facade accepted or replace the backend protocol implementati
 
 ## First exclusive admission lease — NOT run
 
-Work from this managed tree; use pinned Node24 and Rust1.96.1, `TSRUST_REALTIME_NODE=/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node`, one absolute
+Work from this managed tree; use pinned Node24 and Rust1.99.1, `TSRUST_REALTIME_NODE=/Users/seancotter/.nvm/versions/node/v24.11.1/bin/node`, one absolute
 `CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target`,
 `CARGO_INCREMENTAL=0`, `CARGO_BUILD_JOBS=1`. First inspect live processes.
 Rust package materialization/lock generation is complete under its dependency-only

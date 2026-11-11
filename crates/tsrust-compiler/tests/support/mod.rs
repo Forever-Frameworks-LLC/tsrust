@@ -50,8 +50,23 @@ pub fn fixture_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ownership")
 }
 
+/// The shared Cargo target: CI's CARGO_TARGET_DIR, else the repository target, so
+/// local runs share it with generated programs exactly as CI does.
+pub fn target_dir() -> std::ffi::OsString {
+    std::env::var_os("CARGO_TARGET_DIR").unwrap_or_else(|| concat!(env!("CARGO_MANIFEST_DIR"), "/../../target").into())
+}
+
 pub fn cli() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_tsrust"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_tsrust"));
+    command.env("CARGO_TARGET_DIR", target_dir());
+    // Like CI, pin the portable pack location so tests that empty CARGO_HOME
+    // still find the packs prepared by `tsrust setup --portable`.
+    if std::env::var_os("TSRUST_SOURCE_PACK_DIR").is_none() {
+        let home = std::env::var_os("CARGO_HOME").map(std::path::PathBuf::from)
+            .or_else(|| std::env::var_os(if cfg!(windows) {"USERPROFILE"} else {"HOME"}).map(|home| std::path::PathBuf::from(home).join(".cargo")));
+        if let Some(home) = home {command.env("TSRUST_SOURCE_PACK_DIR", home.join("tsrust/source-packs"));}
+    }
+    command
 }
 
 pub fn rustc() -> Command {
@@ -330,4 +345,18 @@ pub fn check_deep(source: &str) -> Result<String, Diagnostic> {
 /// Deeply nested source must check and emit.
 pub fn accept_deep(source: &str) -> String {
     check_deep(source).unwrap_or_else(|error| panic!("deep source must be accepted: {} ({})", error.message, error.code))
+}
+
+/// Export an authored example's single `main` at its lexer-proven declaration,
+/// never inside comments or strings.
+pub fn exported_main(source: &str) -> String {
+    let tokens = tsrust_compiler::source_tokens(source).expect("valid authored example");
+    let declarations = tokens.windows(3).enumerate().filter(|(_, tokens)| tokens[0].1 == "function" && tokens[1].1 == "main" && tokens[2].1 == "(").map(|(index, _)| index).collect::<Vec<_>>();
+    assert_eq!(declarations.len(), 1, "one authored main declaration");
+    let mut index = declarations[0];
+    if index > 0 && tokens[index - 1].1 == "async" { index -= 1; }
+    assert!(index == 0 || tokens[index - 1].1 != "export", "authored example is not already exported");
+    let mut module = source.to_owned();
+    module.insert_str(tokens[index].0.start, "export ");
+    module
 }

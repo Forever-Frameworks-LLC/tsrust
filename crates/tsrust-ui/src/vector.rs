@@ -1,6 +1,6 @@
 //! Checked vector data; source strings stay separate from renderer geometry.
 use crate::{Child,Kind,Node};
-#[cfg(any(test,feature="native"))]
+#[cfg(any(test,feature="gpui"))]
 use crate::theme::{Theme,ResolvedColor};
 use kurbo::{Affine,BezPath};
 const MAX_PATH_BYTES:usize=1_048_576;
@@ -26,7 +26,7 @@ impl Paint {
  }
 }
 fn paint(value:&str)->Result<(),String>{if matches!(value,"none"|"currentColor")||crate::theme::COLORS.contains(&value){Ok(())}else{crate::theme::literal_color(value).map(|_|())}}
-#[cfg(any(test,feature="native"))]
+#[cfg(any(test,feature="gpui"))]
 pub(crate) fn color(value:&str,current:ResolvedColor,theme:&Theme,mode:&str)->Result<Option<ResolvedColor>,String>{match value{"none"=>Ok(None),"currentColor"=>Ok(Some(current)),value if crate::theme::COLORS.contains(&value)=>theme.color(mode,value).map(Some),value=>crate::theme::literal_color(value).map(Some)}}
 #[derive(Clone,serde::Deserialize)]
 #[serde(default,deny_unknown_fields,rename_all="camelCase")]
@@ -89,7 +89,7 @@ impl Data {
   Self::Root(value)=>{let mut attrs=value.paint.attributes();attrs.extend([("viewBox",value.view_box.clone()),("width",value.width.to_string()),("height",value.height.to_string()),("preserveAspectRatio",value.preserve_aspect_ratio.clone()),("xmlns","http://www.w3.org/2000/svg".into())]);attrs},
   Self::Path(value)=>{let mut attrs=value.paint.attributes();attrs.push(("d",value.d.clone()));attrs},
  }}
- #[cfg(any(test,feature="native",all(target_arch="wasm32",feature="ui-web")))]
+ #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
  pub(crate) fn refresh(&mut self)->Result<usize,String>{if let Self::Path(value)=self{if let Some(binding)=&mut value.binding{let next=binding()?;if next!=value.d{let parsed=geometry(&next)?;value.geometry=parsed;value.d=next;return Ok(1);}}}Ok(0)}
 }
 impl Node {
@@ -141,5 +141,46 @@ impl Node {
  #[test]fn named_images_and_decorative_icons_have_explicit_semantics(){
   let root=Node::svg(vec![Child::Node(path("M2 12 L10 20 L22 4"))],"size-6".into(),"{}").unwrap();assert!(root.semantics.hidden);let html=crate::document(&root,"Icon");assert!(html.contains("xmlns=\"http://www.w3.org/2000/svg\""));assert!(html.contains("aria-hidden=\"true\""));assert!(html.contains("d=\"M2 12 L10 20 L22 4\""));
   let root=root.with_semantics(r#"{"role":"img","label":"Saved"}"#).unwrap();assert!(!root.semantics.hidden);assert_eq!(root.content_text(),"Saved");assert!(Node::svg(vec![],String::new(),"{}").unwrap().with_semantics(r#"{"role":"img"}"#).is_err());
+ }
+}
+
+impl Node {
+ /// A standalone SVG document for this Svg node, for renderers that draw SVG
+ /// images. Theme colors and currentColor become concrete rgba values.
+ #[cfg(any(test,feature="gpui"))]
+ pub fn svg_size(&self)->Option<(f64,f64)> {match self.vector.as_deref() {Some(Data::Root(root))=>Some((root.width,root.height)),_=>None}}
+ #[cfg(any(test,feature="gpui"))]
+ pub fn svg_markup(&self,current:ResolvedColor,theme:&Theme,mode:&str)->Option<String> {
+  fn css(color:ResolvedColor)->String {let [r,g,b,a]=color.components();format!("rgba({},{},{},{a})",(r*255.).round(),(g*255.).round(),(b*255.).round())}
+  fn escape(value:&str)->String {value.replace('&',"&amp;").replace('<',"&lt;").replace('>',"&gt;").replace('"',"&quot;")}
+  let attributes=|data:&Data,out:&mut String| for (key,value) in data.attributes() {
+   let value=match value.strip_prefix("var(--ui-").and_then(|rest|rest.strip_suffix(')')) {
+    Some(name)=>theme.color(mode,name).map(css).unwrap_or(value),
+    None if value=="currentColor"=>css(current),
+    None=>value,
+   };
+   out.push_str(&format!(" {key}=\"{}\"",escape(&value)));
+  };
+  let Some(root)=self.vector.as_deref().filter(|_|self.kind==Kind::Svg) else{return None};
+  let mut out=String::from("<svg");attributes(root,&mut out);out.push('>');
+  for path in self.visible_children() {if let Some(data)=path.vector.as_deref(){out.push_str("<path");attributes(data,&mut out);out.push_str("/>");}}
+  out.push_str("</svg>");Some(out)
+ }
+}
+
+#[cfg(test)]
+mod markup_tests {
+ use crate::{Child,Node,theme::Theme};
+ #[test]
+ fn svg_markup_resolves_current_and_theme_colors() {
+  let path=Node::svg_path("M0 0L10 10",String::new(),r#"{"stroke":"primary"}"#).unwrap();
+  let svg=Node::svg(vec![Child::Node(path)],String::new(),r#"{"viewBox":"0 0 10 10","width":20,"height":20}"#).unwrap();
+  let theme=Theme::default();
+  let current=theme.color("light","foreground").unwrap();
+  let markup=svg.svg_markup(current,&theme,"light").unwrap();
+  assert!(markup.starts_with("<svg") && markup.ends_with("</svg>"),"{markup}");
+  assert!(markup.contains(r#"viewBox="0 0 10 10""#) && markup.contains(r#"d="M0 0L10 10""#),"{markup}");
+  assert!(!markup.contains("currentColor") && !markup.contains("var(--ui-") && markup.contains("rgba("),"{markup}");
+  assert_eq!(svg.svg_size(),Some((20.,20.)));
  }
 }

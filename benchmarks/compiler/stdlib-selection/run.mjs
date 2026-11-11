@@ -42,7 +42,7 @@ try {
  const record={schemaVersion:1,status:'running',kind:checkOnly?'stdlib-selection-correctness':'stdlib-selection-timing',createdAt:new Date().toISOString(),
   gitHead:run('git',['rev-parse','HEAD']).stdout.trim(),platform:process.platform,architecture:process.arch,cpu:os.cpus()[0]?.model,node:process.version,
   compiler:{path:compiler,sha256:sha(compiler),version:run(compiler,['--version']).stdout.trim()},
-  backend:run('rustup',['run','1.96.1','rustc','-vV']).stdout,typescript:run(process.execPath,[tsc,'--version']).stdout.trim(),
+  backend:run('rustup',['run','1.99.1','rustc','-vV']).stdout,typescript:run(process.execPath,[tsc,'--version']).stdout.trim(),
   sources:Object.fromEntries(sourceFiles.map(file=>[path.relative(root,file),sha(file)])),
   protocol:{samples:checkOnly?0:samples,correctnessOnly:checkOnly,manifestSamples:manifest.samples,buildDiagnostics:'TSRUST_BUILD_TIMINGS=1; included in build wall time',cold:'fresh isolated cache each sample',warm:'one excluded priming build per workload',scope:'process wall time, not runtime throughput; native and TypeScript validation guarantees differ'},workloads:[],commands};
  activeRecord=record;

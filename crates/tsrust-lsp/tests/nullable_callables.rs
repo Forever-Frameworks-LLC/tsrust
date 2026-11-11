@@ -48,7 +48,7 @@ fn native(source: &str, expected: &str) {
     for level in [0, 3] {
         let binary = directory.join(format!("examples-o{level}"));
         let build = std::process::Command::new("rustup")
-            .args(["run", "1.96.1", "rustc", "--edition=2024", "-C"])
+            .args(["run", "1.99.1", "rustc", "--edition=2024", "-C"])
             .arg(format!("opt-level={level}"))
             .arg(directory.join("examples.rs"))
             .arg("-o")

@@ -116,7 +116,7 @@ mean the release is complete; v0.2.0 has not been published.
 Download the archive for your platform from
 [Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases), check it
 against `SHA256SUMS`, and put the two programs in `bin/` on your `PATH`. Compiling
-programs also needs [Rust](https://rustup.rs) 1.96.1 and a system linker:
+programs also needs [Rust](https://rustup.rs) 1.99.1 and a system linker:
 
 ```sh
 tsrust setup --toolchain --dependencies --yes

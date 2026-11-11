@@ -69,7 +69,7 @@ the galleries. Do not use screenshots, fake metrics or inert controls as accepta
 - [ ] Records, arrays, tuples, unions, narrowing, enums and collection ownership.
 - [ ] Ownership, moves, borrowing, resources, explicit copy/clone and deterministic release.
 - [ ] Tasks, cancellation, errors and concurrency; distinguish async syntax from runtime APIs.
-- [ ] JSX, components, state, conditional mount versus retained hide, lists and event order.
+- [ ] TSRX, components, state, conditional mount versus retained hide, lists and event order.
 - [ ] Rust bindings, ABI conversions and exact per-runtime capability diagnostics.
 - [ ] Explicit unsupported syntax/semantics and migration from JavaScript/TypeScript.
 

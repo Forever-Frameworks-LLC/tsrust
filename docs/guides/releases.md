@@ -145,7 +145,7 @@ Verify before extraction. Digests detect corruption; they do not authenticate an
 untrusted download source. The first release pipeline does not code-sign,
 notarize or generate build attestations. Do not claim those properties.
 
-Native application compilation still requires Rustup with Rust 1.96.1 and a
+Native application compilation still requires Rustup with Rust 1.99.1 and a
 system linker. Linux binaries are built on Ubuntu 24.04 with glibc; Alpine/musl,
 Linux ARM archives are not provided. Windows x64 packages require MSVC/Windows
 SDK build tools for native application compilation. macOS unsigned executable policy
