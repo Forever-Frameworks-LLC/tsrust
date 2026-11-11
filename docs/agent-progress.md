@@ -9,6 +9,19 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+Latest owner feedback: Save belongs in the native File menu (Save, Save As and
+related file commands), not the workspace title bar. Removed that standalone
+button from components/workbench/chrome.tsrx; existing Cmd/Ctrl+S still invokes
+saveActive through its unchanged Shortcut. Recorded placement direction in
+apps/studio/AGENTS.md. File menus/Save As remain pending, not newly implemented.
+Whole-project formatter0changes; diff check passed. Automatic dev rebuild passed
+in47.525s (runtime cache hit); native AX confirms only Settings remains in the
+right title-bar actions and the Save button is absent. Existing project-check/
+chrome editor panes and open tabs remain. Did not trigger saving owner files or
+rerun unchanged tests. CUA completion: Removed title bar Save button.
+
+
+
 Current continuation after search checkpoint0b6f35d5: search request is implemented
 and visible. Re-inspected app52643: three separated, padded result rows, file paths,
 line numbers and themed match backgrounds. No new app/source edits or restart for

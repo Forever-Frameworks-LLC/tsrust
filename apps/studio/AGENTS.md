@@ -105,6 +105,10 @@ navigation/editor typography, one terminal toggle, and real service integration 
 the implementation path. Owner will provide preference feedback through the live app.
 
 
+File commands belong in the native File menu, following established editors:
+Save, Save As and related commands. Do not put a standalone Save button in the
+title bar. Keep the existing save shortcut while menu integration is pending.
+
 ## AI action parity — owner, 2026-11-11
 
 Every editor feature must expose a direct action to the integrated AI, covering
