@@ -154,7 +154,7 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
   const workbench = <View id="workbench" className="size-full min-w-0 min-h-0">
     {navigationArea}
   </View>;
-  const rail = <View id="activity-bar" className={settings.get().activityBarSide === 'left' ? 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-r border-border bg-muted' : 'flex-col items-center w-12 h-full py-2 gap-2 shrink-0 border-l border-border bg-muted'}>
+  const rail = <View id="activity-bar" className="flex-col items-center w-12 h-full py-2 gap-2 shrink-0 bg-muted">
     <Button
       icon="files"
       variant="ghost"

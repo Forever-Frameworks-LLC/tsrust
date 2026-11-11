@@ -266,7 +266,7 @@ export function TerminalPanel(directory: string, font: Signal<int>, state: Signa
           </View>
         </ResizablePanel>
         <ResizablePanel size={180} minSize={96} maxSize={360}>
-          <View className="flex-col size-full min-h-0 border-l border-border bg-muted">
+          <View className="flex-col size-full min-h-0 bg-muted">
             <List
               selected={selected.get()}
               size="small"

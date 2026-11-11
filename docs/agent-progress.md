@@ -8,6 +8,33 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Single workbench dividers — accepted 2026-11-11, follows1c67f8c2.
+Native Resizable handles already paint the divider for their axis/display order.
+Removed extra Region left/right/top wrapper borders, activity-bar left/right
+borders and terminal session-rail left border. Native Dock split frames already
+have no extra borders. Three Studio style files only; no runtime/SDK/API changes,
+no action/AI semantics changed. Native divider remains the resizable hit target.
+
+Live placement MAT passed for single boundaries:
+A navigation/activity left, terminal bottom, chat right;
+B navigation/activity right, terminal left, chat bottom;
+C navigation left/activity right, terminal right, chat left.
+Editor splits and terminal session-rail divider also inspected. Restored persisted
+owner settings left/left/bottom/right and original terminal/chat hidden state;
+all10tabs clean,0errors/0warnings, recovery drafts[]. CUA ended "Verified single
+dividers across placements". Dense C layout exposed an existing nested minimum-
+width overflow/squeezed editor with every panel open; broad tiny-window layout
+acceptance is not claimed. Keep this as a layout follow-up, not a border regression.
+A shell startup pyenv rehash warning was visible; no owner environment changes.
+
+Auto dev build PASS107.769s:check45.834s,emit2.8572s,backend153.3ms,native/link23.0319s,
+runtimehit. Wall includes queued preparation; not a benchmark. CURRENT supervisor
+71128/PTY31480, app89605; one preview, no supervisor restart. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794439161195846000-0/Tsrust Studio.app.
+Whole formatter0files/0snippets/0fingerprints, diff check passed. No automated
+regression for this reversible styling-only change. NEXT real LSP/hover/completion/
+snippets and known DialogFooter slot follow-up; no push.
+
 Import formatting rules — accepted 2026-11-11, followsc0046c0c.
 Owner requested std: imports first, one blank line before other imports, path
 sorting, and wrapping >5 bindings. Shared compiler formatter organizes consecutive
