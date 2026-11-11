@@ -58,12 +58,12 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
         inputs.push(super::project_config::default_root()?);
     }
     let files = tsrust_compiler::source_discovery::discover(&inputs)?;
-    if progress { eprintln!("Formatting {} source files…", files.len()); }
     let color = color == "always"
         || (color == "auto"
             && std::io::stderr().is_terminal()
             && env::var_os("NO_COLOR").is_none()
             && env::var("TERM").as_deref() != Ok("dumb"));
+    if progress { eprintln!("{}", super::styled(&format!("Formatting {} source files…", files.len()), "1;36", color)); }
     let mut changed = 0;
     let mut written = 0;
     let mut failed = false;
@@ -110,16 +110,13 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
         }
     }
     if batch {
+        let stdout_color = super::color_enabled(std::io::stdout().is_terminal());
         if check && changed > 0 {
-            println!(
-                "{changed} {} need formatting.",
-                if changed == 1 { "file" } else { "files" }
-            );
+            let message = format!("{changed} {} need formatting.", if changed == 1 { "file" } else { "files" });
+            println!("{}", super::styled(&message, "1;33", stdout_color));
         } else if !check {
-            println!(
-                "Formatted {written} {}.",
-                if written == 1 { "file" } else { "files" }
-            );
+            let message = format!("Formatted {written} {}.", if written == 1 { "file" } else { "files" });
+            println!("{}", super::styled(&message, if failed { "1;31" } else { "1;32" }, stdout_color));
         }
     }
     Ok(u8::from(failed || check && changed > 0))

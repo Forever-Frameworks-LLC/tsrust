@@ -82,6 +82,12 @@ The focused temporary-file witness covers continuing past conflicts and stale
 revision rejection. Executable image/save tool adapters share these operations;
 full agent hosting and non-PNG/web viewport acceptance remain open.
 
+Terminal color correction, November 11: native ANSI rendering was already functional.
+The Codex dev launcher now clears its inherited NO_COLOR flag so new shells can
+auto-detect color. CLI project-check success and formatter progress/batch summaries
+now honor the existing color policy; JSON and raw source remain unstyled. A focused
+public CLI regression passed; exact live acceptance is in docs/agent-progress.md.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

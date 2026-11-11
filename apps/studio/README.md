@@ -7,8 +7,10 @@ Run `tsrust dev --verbose` in this directory. The current directory is the defau
 workspace; pass `tsrust dev -- /absolute/project/path` to select another directory.
 Dogfooding currently uses this Studio package, not the entire compiler checkout.
 When launching through Codex tools on macOS, use
-`env -u CODEX_TOOL_CALL_ID tsrust dev --verbose`: a fresh invocation ID otherwise
+`env -u CODEX_TOOL_CALL_ID -u NO_COLOR tsrust dev --verbose`: a fresh invocation ID otherwise
 changes Cargo's effective environment and correctly invalidates native caches.
+Clearing the launcher's `NO_COLOR` lets interactive shells detect their PTY's
+color support; terminal-specific user preferences still apply.
 Ordinary terminal launches can use the standard command above.
 
 Use Edit → Format Document (Option+Shift+F), Project → Check Project

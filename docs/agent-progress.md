@@ -8,6 +8,42 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Terminal color correction — accepted 2026-11-11, source checkpoint follows815d4989.
+Owner reported CLI colors missing. Live native terminal probe proved ANSI red/green
+rendering already worked; TERM=xterm-256color,COLORTERM=truecolor, but NO_COLOR=1
+was inherited from the Codex launch. No owner shell profile sets it. Fix automation
+launch with env -u CODEX_TOOL_CALL_ID -u NO_COLOR, not a global PTY override:
+deliberate user terminal preferences still apply. README documents this launch.
+
+CLI project-check success and formatter batch summaries/progress also ignored
+--color=always. Existing stream color policy now styles progress cyan, success
+green, needs-format yellow and partial-failure summaries red. JSON and raw source
+remain ANSI-free. Focused host CLI test1/1PASS1.18s execution,2m32s setup,
+/tmp/studio-cli-color-test.log; one existing TempDirectory fixture/public commands,
+no native programs per case. No full regression. Normal CLI/LSP build PASS14.23s,
+/tmp/studio-cli-color-sdk.log. Both atomically installed; SHA256 CLI
+8f05b6d062655faf5487f3607014d7b738717cb8bf5403d9718b033e125b78e8,
+LSP ad9b6cb09f1ec0cbf6b1456f2217d4896e0dd74ba5aac95d33752fc4373673bd.
+
+CURRENT supervisor58640/PTY9543, app60228. One preview, launched require_escalated
+with -u NO_COLOR. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-58640-1794435805963737000-0/Tsrust Studio.app.
+Dev build PASS122.269s:check46.9036s,emit2.8711s,backend149.5ms,native/link71.7837s,
+runtime cache miss/runtime build50.9825s; development observation, not benchmark.
+Live fresh shell showed NO_COLOR=unset, cyan automatic tsrust --help headings and
+cyan read-only format --check src/lib/workspace/zoom.tsr --progress output.
+CUA phase ended "Verified automatic CLI terminal colors". All10tabs clean,
+0errors/0warnings; recovery journal drafts[]. Keep this preview running. Old
+supervisor44454/PTY91897 stopped. No terminal parser/palette changes needed.
+Whole formatter/idempotence:0files/0snippets/0fingerprints; git diff check passed.
+
+NEXT: real LSP connection/diagnostics/hover/completion/snippets before Git/debugger/
+extensions, per owner. Shared DialogFooter slot placement remains a known bounded
+layout follow-up: custom footer is appended inside dialog.content instead of native
+Dialog.footer, allowing save-conflict action clipping in small windows. Owner's
+four obsolete drafts were explicitly reconciled; all files saved. Do not restore
+those old drafts. Keep one current dev preview; restart permission is standing.
+
 Latest accepted image/Save All section — 2026-11-11, 16:48.
 Source checkpoint followsc87c2019; current section ready for local commit, no push. Last UI-only
 localization correction translates the100% label (2catalogs/253keys). Its dev reload

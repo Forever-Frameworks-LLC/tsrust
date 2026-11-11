@@ -36,3 +36,26 @@ fn native_test_report_respects_explicit_color() {
         assert_eq!(output.stdout.contains(&27), mode == "always");
     }
 }
+
+
+#[test]
+fn project_check_and_format_respect_color_without_styling_machine_output() {
+    let directory = support::TempDirectory::new();
+    let source = directory.source("function main() {}\n");
+    for command in ["check", "format"] {
+        for mode in ["always", "never"] {
+            let output = support::run(support::cli().arg(command).arg(&directory.0).args(["--color", mode, "--progress"]).env("NO_COLOR", "1"), 10);
+            support::success(&output);
+            assert_eq!(output.stdout.contains(&27), mode == "always", "{command} stdout");
+            assert_eq!(output.stderr.contains(&27), mode == "always", "{command} progress");
+        }
+    }
+    let json = support::run(support::cli().arg("check").arg(&directory.0).args(["--json", "--color=always"]), 10);
+    support::success(&json);
+    assert!(!json.stdout.contains(&27));
+    assert_eq!(serde_json::from_slice::<serde_json::Value>(&json.stdout).unwrap()["ok"], true);
+    let text = support::run(support::cli().arg("format").arg(source).arg("--color=always"), 10);
+    support::success(&text);
+    assert!(!text.stdout.contains(&27));
+    assert!(String::from_utf8(text.stdout).unwrap().starts_with("function main()"));
+}

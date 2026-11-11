@@ -19,8 +19,8 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let single=inputs.len()==1 && inputs[0].is_file();
     if inputs.is_empty(){inputs.push(super::project_config::default_root()?);}
     let files=tsrust_compiler::source_discovery::discover(&inputs)?;
-    if progress {eprintln!("Checking {} source files…",files.len());}
     let color=color=="always" || (color=="auto" && std::io::stderr().is_terminal() && env::var_os("NO_COLOR").is_none() && env::var("TERM").as_deref()!=Ok("dumb"));
+    if progress {eprintln!("{}",super::styled(&format!("Checking {} source files…",files.len()),"1;36",color));}
     let mut failed=false;let mut diagnostics=BTreeMap::new();let mut single_result=None;let mut suppressions=BTreeMap::new();
     for path in files {
         let (source,errors)=match fs::read_to_string(&path) {
@@ -50,7 +50,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
         else {println!("{{\"ok\":{},\"diagnostics\":[{}]}}",!failed,diagnostics.values().map(|(encoded,_)|encoded.as_str()).collect::<Vec<_>>().join(","));}
     }else if has_diagnostics {for (_,rendered) in diagnostics.values(){eprint!("{rendered}");}}
     else if let Some(analysis)=single_result { print_analysis(&analysis); }
-    else { println!("Check passed."); }
+    else { println!("{}",super::styled("Check passed.","1;32",super::color_enabled(std::io::stdout().is_terminal()))); }
     Ok(u8::from(failed))
 }
 
