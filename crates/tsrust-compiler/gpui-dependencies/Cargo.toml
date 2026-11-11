@@ -72,6 +72,8 @@ compression-core = { version = "=0.4.34", optional = true }
 # GPUI desktop UI set. Separate from backend-dependencies so backend programs
 # never resolve GPUI; the shared entries above match the backend set exactly.
 gpui-kit = { version = "=0.9.0", optional = true }
+alacritty_terminal = { version = "=0.26.0", default-features = false, optional = true }
+async-channel = { version = "=2.5.0", optional = true }
 color = { version = "=0.3.3", optional = true }
 kurbo = { version = "=0.13.1", optional = true }
 svgtypes = { version = "=0.16.1", optional = true }
@@ -81,6 +83,9 @@ sys-locale = { version = "=0.3.2", optional = true }
 # std:gpui only: the Node model (crates/tsrust-ui) and the GPUI Kit renderer.
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color", "dep:sys-locale", "dep:sha2"]
 gpui = ["ui", "dep:gpui-kit", "dep:chrono", "dep:regex"]
+# Native terminal emulation and PTY lifecycle; unused UI/backend programs do not select it.
+terminal = ["dep:alacritty_terminal", "dep:async-channel", "dep:nix", "nix/signal", "nix/process", "nix/term"]
+gpui-terminal = ["gpui", "terminal"]
 # Code highlighting (syntect) for CodeEditor and Markdown code blocks; selected only
 # when a program uses CodeEditor.
 gpui-highlight = ["gpui", "gpui-kit/syntect"]

@@ -49,6 +49,22 @@ identities, proof contracts, current checks and unresolved prerequisites.
   actions. Use actual document tabs and working editor actions. Visual polish
   must serve editing rather than website branding.
 
+## Current terminal prerequisite — 2026-11-11
+
+After search checkpoint0b6f35d5, the managed GPUI graph admits exact
+alacritty_terminal0.26.0 (Apache2) and async-channel2.5.0 behind opt-in features.
+The native Session source provides real PTY/VT state, input, resize, bounded redraw
+notifications and Unix force-close/reaping. Two real-process boundary checks pass
+in0.03s execution/1.93s setup using the locked isolated dependency graph; whole
+formatter/diff checks pass. Backend dependencies remain unchanged.
+
+This is a prerequisite, not a usable Studio terminal or public API acceptance.
+Renderer, themed palette query replies, checked bindings/catalog/docs, shared
+guarded UI/AI commands, Studio panel and native MAT remain next. Await cleanup
+from GPUI application quit; verify IME, selection, alternate-screen interaction,
+foreground/detached jobs and Windows lifecycle before broad acceptance. Existing
+search preview remains running; exact evidence and next action are in agent-progress.
+
 ## Architecture proposal
 
 ### Tsrust application and managed workers

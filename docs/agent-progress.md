@@ -8,6 +8,63 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+
+Current continuation after search checkpoint0b6f35d5: search request is implemented
+and visible. Re-inspected app52643: three separated, padded result rows, file paths,
+line numbers and themed match backgrounds. No new app/source edits or restart for
+this inspection. One preview remains supervisor37767/PTY50581/app52643; owner tabs,
+splits, query and zoom preserved. CUA completion: Confirmed separated highlighted
+search results. Previous search3/3 and exact-match activation evidence below reused.
+
+Active next feature is the real terminal. Native prerequisite now in
+crates/tsrust-compiler/src/stdlib/ui/terminal.rs (SHA256
+0fea7700d63772dcbe8841726c079ec004b1f5edae689944ce2fde74ba048720).
+Alacritty terminal0.26.0 Apache2 provides the VT grid and native PTY/event loop;
+async-channel2.5.0 was already present transitively. Added direct optional managed
+GPUI dependencies and internal terminal/gpui-terminal features; backend manifests
+and lockfiles untouched. Eight new locked packages, no existing package upgrades;
+restored bindgen's existing valid itertools0.11 edge after Cargo selected0.13.
+Primary library source/API: https://docs.rs/alacritty_terminal/0.26.0/ and its
+exact downloaded registry source, inspected read-only. No Kit0.9 Terminal exists.
+
+Session owns PTY/VT state, coalesced one-slot redraw notifications, bounded latest
+title/status, input, dimensions and force-close/reaper lifecycle. Native parser owns
+Unicode, ANSI colors and alternate screen. OSC52 clipboard access is disabled;
+terminal output never opens URLs. No polling redraw loop. Resize releases its
+metadata lock before acquiring the terminal lock, avoiding parser size-query lock
+inversion. Unix force-close targets the controlling terminal foreground process
+group and owned shell group; it is not graceful command cancellation. Hiding must
+retain the mounted session. UI must distinguish hide from force-close and expose
+effects through trusted host grants, not allow agent writes to the live user shell.
+
+Focused real-process boundary tests live beside that source and are included by
+the isolated GPUI dependency package's cfg(test) module. Command: CARGO_INCREMENTAL=0
+CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target cargo test
+--locked --offline --manifest-path crates/tsrust-compiler/gpui-dependencies/Cargo.toml
+--features terminal --lib terminal::tests -- --test-threads=1.
+Final2/2PASS0.03s execution/1.93s setup: actual TTY detection, Unicode/red VT cells,
+100x30 resize via stty, input/exit7, coalesced wakes, exited-input/invalid-size errors,
+and force-close/reaping of a shell ignoring HUP. First run selected GPUI and debug
+symbols unnecessarily; stopped that build and narrowed to the internal PTY feature.
+First completed1/2 run exposed a fixture Rust NUL escape, corrected; then2/2PASS0.04s,
+followed by the final affected run after lock-order correction. No compiler/LSP/full
+regression run and no installed-binary rebuild needed for this unexposed prerequisite.
+Whole-project formatter0changes; diff check passed. Target79GiB, disk114GiB free.
+One idle observation: app40,464KiB/0.0% CPU, supervisor3,296KiB/0.1%; not leak proof.
+
+NOT terminal feature acceptance: renderer, checked Terminal catalog/API, public
+command/reply hooks, AI routes, Studio panel and native terminal MAT are pending.
+Color-query replies need the renderer's themed palette; shutdown completion must
+be awaited from GPUI on_app_quit before process exit. Windows cleanup, detached
+jobs, IME/selection/clipboard, keyboard/mouse modes and scrollback resource profiling
+remain unverified. Next: embed this module under gpui-terminal, add opt-in runtime
+selection, implement native grid/input renderer using real font metrics, checked
+control/read APIs plus catalog docs, then .tsrx panel/shared guarded UI/AI actions.
+Keep application orchestration in .tsr/.tsrx and retain the live preview during builds.
+Full Studio goal stays active; no push/release or completion claim.
+
+
 Full persistent Studio goal remains active, not an MVP or delivery claim. Owner
 approved real implementation and compiler prerequisites, one writer/no delegation,
 local checkpoints only. No pushes/model publication/signing/tags/releases. Full
