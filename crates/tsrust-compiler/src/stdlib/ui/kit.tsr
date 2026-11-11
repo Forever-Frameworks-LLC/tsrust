@@ -4503,6 +4503,8 @@ export interface DropdownMenuProps {
   checkSide?: ReactiveValue<'left' | 'right'>;
   /** Shows an external-link icon on link items. Defaults to true. */
   externalLinkIcon?: ReactiveValue<boolean>;
+  /** Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened. */
+  fontSize?: ReactiveValue<int>;
   /** Runs when the main part of a split button is clicked; makes the button split. */
   onClick?: Owned<Function<void>>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
@@ -4650,6 +4652,12 @@ export function DropdownMenu(props: DropdownMenuProps): Node {
     node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
   }
 
+  const prop_fontSize = props.fontSize;
+
+  if (prop_fontSize !== undefined) {
+    node = kitInt(node, 'fontSize', prop_fontSize);
+  }
+
   const event_onClick = props.onClick;
 
   if (event_onClick !== undefined) {
@@ -4745,6 +4753,8 @@ export interface ContextMenuProps {
   checkSide?: ReactiveValue<'left' | 'right'>;
   /** Shows an external-link icon on link items. Defaults to true. */
   externalLinkIcon?: ReactiveValue<boolean>;
+  /** Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened. */
+  fontSize?: ReactiveValue<int>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -4792,6 +4802,12 @@ export function ContextMenu(props: ContextMenuProps): Node {
 
   if (prop_externalLinkIcon !== undefined) {
     node = kitFlag(node, 'externalLinkIcon', prop_externalLinkIcon);
+  }
+
+  const prop_fontSize = props.fontSize;
+
+  if (prop_fontSize !== undefined) {
+    node = kitInt(node, 'fontSize', prop_fontSize);
   }
 
   return node;
@@ -8493,7 +8509,7 @@ export function InputGroupButton(props: InputGroupButtonProps): Node {
 }
 
 export interface DiffProps {
-  /** Unified diff text, as printed by git diff. */
+  /** Unified diff text, as printed by git diff. Omit when using originalText and modifiedText. */
   patch?: ReactiveValue<string> | TextBinding;
   /** One column, or old and new side by side. Defaults to unified. */
   mode?: ReactiveValue<'unified' | 'split'>;
@@ -8525,6 +8541,14 @@ export interface DiffProps {
   inlineMaxLineLength?: ReactiveValue<int>;
   /** Maximum source-line byte length for syntax coloring. Defaults to 1000; requires an integer >= 1. Longer lines remain plain text. */
   syntaxMaxLineLength?: ReactiveValue<int>;
+  /** Complete original snapshot, up to 16 MiB. Requires modifiedText; cannot be combined with patch. Comparison runs in the background. */
+  originalText?: ReactiveValue<string> | TextBinding;
+  /** Complete modified snapshot, up to 16 MiB. Requires originalText. Changing either snapshot replaces the comparison; outdated results are discarded. */
+  modifiedText?: ReactiveValue<string> | TextBinding;
+  /** File name/path used for the complete-text comparison header and highlighting language. Defaults to comparison.txt. No filesystem I/O is performed. */
+  filePath?: ReactiveValue<string> | TextBinding;
+  /** Code and line-number text size in logical pixels, 8–40. Omission uses the theme monospace size. Live changes preserve the diff state. */
+  fontSize?: ReactiveValue<int>;
   /** Receives a JSON position {path, side, line} when source code is clicked outside a selection drag. side is original or modified; line is one-based. The snapshot can be parsed with JSON.parse. */
   onLineClick?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Receives the same JSON position as onLineClick while hovering, or JSON null on leaving a line. */
@@ -8537,7 +8561,7 @@ export interface DiffProps {
   className?: ReactiveValue<string>;
 }
 
-/** A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode="split" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. */
+/** A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode="split" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. Alternatively supply originalText and modifiedText with filePath to compare full snapshots on a background worker, retaining all context for expansion and rejecting stale comparison results. Do not combine text snapshots with patch. */
 export function Diff(props: DiffProps): Node {
   let node = kitNode('Diff', props.children ?? [], props.className);
   const prop_patch = props.patch;
@@ -8654,6 +8678,30 @@ export function Diff(props: DiffProps): Node {
 
   if (prop_syntaxMaxLineLength !== undefined) {
     node = kitInt(node, 'syntaxMaxLineLength', prop_syntaxMaxLineLength);
+  }
+
+  const prop_originalText = props.originalText;
+
+  if (prop_originalText !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'originalText', prop_originalText));
+  }
+
+  const prop_modifiedText = props.modifiedText;
+
+  if (prop_modifiedText !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'modifiedText', prop_modifiedText));
+  }
+
+  const prop_filePath = props.filePath;
+
+  if (prop_filePath !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'filePath', prop_filePath));
+  }
+
+  const prop_fontSize = props.fontSize;
+
+  if (prop_fontSize !== undefined) {
+    node = kitInt(node, 'fontSize', prop_fontSize);
   }
 
   const event_onLineClick = props.onLineClick;

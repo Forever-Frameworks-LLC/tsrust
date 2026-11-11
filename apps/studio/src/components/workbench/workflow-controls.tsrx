@@ -5,16 +5,16 @@ import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { saveActive, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { EditorPolicy, projectEditorPolicy } from '../../lib/settings/formatting.tsr';
-import { FormattingTarget, FormattingAuthority, FormattingRequest, FormattingResult, prepareFormatting, applyFormatting, canFormat } from '../../lib/workspace/formatting-actions.tsr';
+import { QueuedFormatting, FormattingTarget, FormattingAuthority, FormattingRequest, FormattingResult, prepareFormatting, applyFormatting, canFormat } from '../../lib/workspace/formatting-actions.tsr';
 import { beginCheck } from '../tasks/check-panel.tsrx';
 import { message, accessibleName } from '../../lib/localization.tsr';
 import { Problem, operationProblem, replaceProblems } from '../../lib/workspace/problems.tsr';
 import { TerminalWorkspace } from '../../lib/workspace/terminals.tsr';
 import { runProjectTask } from '../../services/project-tasks.tsr';
 
-export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, requests: ReadOnly<Sender<FormattingRequest>>, checks: ReadOnly<Sender<string>>, busy: Signal<boolean>, checking: Signal<boolean>, output: Signal<string>, mode: string, path: string = ''): void {
+export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, requests: ReadOnly<Sender<FormattingRequest>>, checks: ReadOnly<Sender<string>>, busy: Signal<boolean>, checking: Signal<boolean>, output: Signal<string>, mode: string, queuedTarget: FormattingTarget | undefined = undefined): void {
   const next = workspace.get();
-  const targetPath = path === '' ? clone(next.active) : path;
+  const targetPath = queuedTarget === undefined ? clone(next.active) : clone(queuedTarget.path);
 
   if (busy.get()) {
     if (mode === 'focus') return;
@@ -50,7 +50,7 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
 
       if (index < 0) return;
       const target: FormattingTarget = {
-        path: clone(targetPath), session: clone(next.files[index].document.session), revision: next.files[index].document.revision
+        path: clone(targetPath), session: queuedTarget === undefined ? clone(next.files[index].document.session) : clone(queuedTarget.session), revision: queuedTarget === undefined ? next.files[index].document.revision : queuedTarget.revision
       };
       const authority: FormattingAuthority = {
         allowPropose: true, allowApply: true, allowSave: true
@@ -79,7 +79,7 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
   }
 }
 
-export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, panel: Signal<string>, requests: ReadOnly<Channel<FormattingRequest>>, results: Channel<FormattingResult>, checks: ReadOnly<Channel<string>>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, terminals: Signal<TerminalWorkspace>, terminalError: Signal<string>, program: string, busy: Signal<boolean>, focusQueue: Signal<string[]>): Node {
+export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, panel: Signal<string>, requests: ReadOnly<Channel<FormattingRequest>>, results: Channel<FormattingResult>, checks: ReadOnly<Channel<string>>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, terminals: Signal<TerminalWorkspace>, terminalError: Signal<string>, program: string, busy: Signal<boolean>, focusQueue: Signal<QueuedFormatting[]>): Node {
   const available = computed<boolean>(() => canFormat(workspace.get().active));
   const buttonRequests = requests.sender();
   const shortcutRequests = requests.sender();
@@ -95,7 +95,19 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
   return (
     <View className="flex-row items-center gap-1">
       <Button
+        icon="terminal"
+        variant="ghost"
+        size="xsmall"
+        className="size-5 p-0"
+        tooltip={message("Toggle terminal")}
+        aria-label={accessibleName("Toggle terminal")}
+        onPress={() => {
+          panel.set(panel.get() === 'terminal' ? '' : 'terminal');
+        }}
+      />
+      <Button
         icon="braces"
+        className="size-5 p-0"
         variant="ghost"
         size="xsmall"
         disabled={!available.get() || busy.get()}
@@ -109,6 +121,7 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
       />
       <Button
         icon="circle-check"
+        className="size-5 p-0"
         variant="ghost"
         size="xsmall"
         disabled={checking.get()}
@@ -144,7 +157,7 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         command="format-project"
         keys="secondary-alt-shift-f"
         onTrigger={() => {
-          runProjectTask(workspace, settings, terminals, panel, terminalError, clone(formatProgram), 'format');
+          runProjectTask(workspace, settings, terminals, panel, terminalError, clone(formatProgram), 'format', focusQueue);
         }}
       />
       <Ticker
@@ -155,10 +168,10 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
             const pending = focusQueue.get();
 
             if (pending.length > 0) {
-              const path = pending.shift();
+              const entry = pending.shift();
               focusQueue.set(pending);
 
-              if (path !== undefined) requestAction(workspace, recovery, settings, focusRequests, focusChecks, busy, checking, output, 'focus', clone(path));
+              if (entry !== undefined) requestAction(workspace, recovery, settings, focusRequests, focusChecks, busy, checking, output, clone(entry.mode), clone(entry.target));
             }
           }
 
@@ -184,7 +197,8 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
                   problems.set(replaceProblems(problems.get(), 'formatter', []));
                 },
                 Err(error) => {
-                  problems.set(replaceProblems(problems.get(), 'formatter', [operationProblem('formatter', clone(result.request.document.path), clone(error))]));
+                  const conflicted = next.files.some((file) => file.document.path === result.request.document.path && file.document.saveConflict !== undefined);
+                  problems.set(replaceProblems(problems.get(), 'formatter', conflicted ? [] : [operationProblem('formatter', clone(result.request.document.path), clone(error))]));
 
                   if (result.request.mode === 'format') panel.set('problems');
                 }

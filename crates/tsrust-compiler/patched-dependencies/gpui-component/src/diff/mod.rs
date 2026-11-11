@@ -223,6 +223,7 @@ struct Annotations {
 pub struct Diff {
     state: Entity<DiffState>,
     style: StyleRefinement,
+    font_size: Option<Pixels>,
     line_number: bool,
     syntax_highlight: bool,
     header_visible: bool,
@@ -255,6 +256,7 @@ impl Diff {
         Self {
             state: state.clone(),
             style: StyleRefinement::default(),
+            font_size: None,
             line_number: true,
             syntax_highlight: true,
             header_visible: true,
@@ -275,6 +277,9 @@ impl Diff {
         }
     }
     /// Shows the original and modified line-number lanes. Default is true.
+    /// Explicit code and gutter size; omission follows the theme's monospace size.
+    pub fn font_size(mut self, size: Pixels) -> Self {self.font_size = Some(size); self}
+
     pub fn line_number(mut self, value: bool) -> Self {
         self.line_number = value;
         self
@@ -506,10 +511,12 @@ fn render_diff(
     window: &mut Window,
     cx: &mut Context<DiffState>,
 ) -> AnyElement {
+    if state.comparison_pending() {return div().size_full().flex().items_center().justify_center().child(crate::spinner::Spinner::new()).into_any_element();}
+    if let Some(error) = state.comparison_error() {return div().text_color(cx.theme().danger).child(error.to_owned()).into_any_element();}
     state.set_window(window.window_handle().window_id());
     state.ensure_presentation(cx);
     let rem = window.rem_size();
-    let font_size = rem * (f32::from(cx.theme().mono_font_size) / 16.);
+    let font_size = props.font_size.unwrap_or_else(|| rem * (f32::from(cx.theme().mono_font_size) / 16.));
     let font_family = cx.theme().mono_font_family.clone();
     let row_height = font_size * 1.6;
     let digits = state
@@ -519,7 +526,7 @@ fn render_diff(
         .max()
         .unwrap_or(1);
     let gutter_width = if props.line_number {
-        font_size * 0.7 * digits as f32 + rem
+        font_size * 0.85 * 0.7 * digits as f32 + font_size
     } else {
         px(0.)
     };
@@ -1384,7 +1391,7 @@ fn render_gutter(
                     .flex()
                     .items_center()
                     .justify_end()
-                    .text_size(code.font_size)
+                    .text_size(code.font_size * 0.85)
                     .text_color(cx.theme().muted_foreground)
                     .hover(|this| this.text_color(cx.theme().foreground))
                     .role(gpui::accesskit::Role::Button)

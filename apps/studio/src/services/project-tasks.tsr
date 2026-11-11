@@ -1,7 +1,9 @@
 import { Signal, useId, controlTerminal } from 'std:ui';
-import { Workspace } from '../lib/workspace/workspace.tsr';
+import { canonicalize } from 'std:fs';
+import { separator } from 'std:path';
+import { Workspace, entries } from '../lib/workspace/workspace.tsr';
 import { StudioConfig } from '../lib/settings/settings.tsr';
-import { dirty } from '../lib/workspace/documents.tsr';
+import { QueuedFormatting, enqueueFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { TerminalWorkspace, addTerminal } from '../lib/workspace/terminals.tsr';
 import { FormattingOptions } from '../lib/settings/formatting.tsr';
 
@@ -10,6 +12,54 @@ export interface ProjectTask {
   title: string;
   program: string;
   args: string[];
+}
+
+// Open buffers are formatted through revisioned proposals, never by a disk task.
+function unopenedSources(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, visited: Mutable<string[]>): Result<string[], string> {
+  match (canonicalize(path)) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(real) => {
+      const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
+      if ((real !== workspace.root && !real.startsWith(prefix)) || visited.includes(real)) return Ok([]);
+      visited.push(clone(real));
+
+      match (entries(real)) {
+        Err(error) => {
+          return Err(clone(error));
+        },
+        Ok(children) => {
+          const paths: string[] = [];
+
+          for (const child of children) {
+            if (child.directory) {
+              match (unopenedSources(workspace, child.path, visited)) {
+                Ok(nested) => {
+                  for (const file of nested) paths.push(clone(file));
+                },
+                Err(error) => {
+                  return Err(clone(error));
+                }
+              }
+            } else if (canFormat(child.path) && !workspace.files.some((file) => file.document.path === child.path)) {
+              match (canonicalize(child.path)) {
+                Ok(file) => {
+                  if (file.startsWith(prefix) && !workspace.files.some((open) => open.document.path === file) && !paths.includes(file)) paths.push(clone(file));
+                },
+                Err(error) => {
+                  return Err(clone(error.message));
+                }
+              }
+            }
+          }
+
+          return Ok(paths);
+        }
+      }
+    }
+  }
 }
 
 export function prepareProjectTask(workspace: ReadOnly<Workspace>, program: string, kind: string, options: ReadOnly<FormattingOptions>, allowCheck: boolean, allowWrite: boolean): Result<ProjectTask, string> {
@@ -24,15 +74,26 @@ export function prepareProjectTask(workspace: ReadOnly<Workspace>, program: stri
 
   if (!allowWrite) return Err('Project formatting requires a workspace write grant.');
 
-  if (workspace.files.some((file) => dirty(file.document))) return Err('Save or discard unsaved changes before formatting the project. Format Document can format an unsaved buffer.');
-  return Ok({
-    kind, title: 'Format project', program, args: ['format', '.', '--options', JSON.stringify(options), '--color=always', '--progress']
-  });
+  const visited: string[] = [];
+
+  match (unopenedSources(workspace, workspace.root, visited)) {
+    Err(error) => {
+      return Err(clone(error));
+    },
+    Ok(paths) => {
+      const args: string[] = paths.length === 0 ? [] : ['format', '--write', '--options', JSON.stringify(options), '--color=always', '--progress'];
+
+      for (const path of paths) args.push(clone(path));
+      return Ok({
+        kind, title: 'Format project', program, args
+      });
+    }
+  }
 }
 
 // The UI grants this explicit command; model payloads never supply these grants.
-export function runProjectTask(workspace: Signal<Workspace>, settings: Signal<StudioConfig>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, error: Signal<string>, program: string, kind: string): void {
-  match (prepareProjectTask(workspace.get(), program, kind, settings.get().format, true, true)) {
+export function runProjectTask(workspace: Signal<Workspace>, settings: Signal<StudioConfig>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, error: Signal<string>, program: string, kind: string, queue: Signal<QueuedFormatting[]> | undefined = undefined): void {
+  match (prepareProjectTask(workspace.get(), program, clone(kind), settings.get().format, true, true)) {
     Err(message) => {
       const next = workspace.get();
       next.error = clone(message);
@@ -40,6 +101,15 @@ export function runProjectTask(workspace: Signal<Workspace>, settings: Signal<St
       panel.set('problems');
     },
     Ok(task) => {
+      if (kind === 'format' && queue !== undefined) {
+        const pending = queue.get();
+        const current = workspace.get();
+
+        for (const file of current.files) enqueueFormatting(pending, current, file.document.path, 'format');
+        queue.set(pending);
+      }
+
+      if (task.args.length === 0) return;
       const next = terminals.get();
       const id = useId();
 

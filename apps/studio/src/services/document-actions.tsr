@@ -1,0 +1,100 @@
+import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
+import { Signal } from 'std:ui';
+import { JsonLimits } from 'std:json';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { SaveConflict, dirty } from '../lib/workspace/documents.tsr';
+import { resolveSaveConflict } from '../lib/workspace/storage.tsr';
+import { Recovery } from '../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../lib/workspace/document-actions.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface DocumentActionContext {
+  workspace: Signal<Workspace>;
+  recovery: Signal<Recovery>;
+  allowDiscard: boolean;
+  allowOverwrite: boolean;
+}
+
+interface ConflictArguments {
+  path?: string;
+  target?: SaveConflict;
+  action?: string;
+}
+
+export function resolveDocumentConflict(context: ReadOnly<DocumentActionContext>, target: ReadOnly<SaveConflict>, action: ReadOnly<string>): Result<void, string> {
+  const next = context.workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === target.path && file.document.session === target.session);
+
+  if (index < 0) return Err('This conflict belongs to a closed or replaced document.');
+
+  if (action === 'keep-editing') {
+    next.files[index].document.saveConflict = undefined;
+  } else {
+    match (resolveSaveConflict(next.files[index].document, target, action, context.allowDiscard, context.allowOverwrite)) {
+      Err(error) => {
+        next.error = clone(error);
+        publishWorkspace(next, context.workspace, context.recovery);
+        return Err(clone(error));
+      },
+      Ok(_) => {}
+    }
+  }
+
+  next.error = '';
+  publishWorkspace(next, context.workspace, context.recovery);
+  return Ok();
+}
+
+export function documentTools(): EditorTool[] {
+  return [{
+    name: 'list_unsaved_files', description: 'List open unsaved documents with explicit path/session/revision identities. Reads the same dirty state used by tabs, tree and status bar.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'inspect_save_conflict', description: 'Read an open document and its saved baseline, current draft and captured disk snapshot for comparison. Does not change files.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}'
+  }, {
+    name: 'resolve_save_conflict', description: 'Resolve an explicit captured document/session/revision. keep-editing preserves the draft; reload requires a host discard grant; overwrite requires a host write grant. Disk changes after the comparison and stale drafts are rejected.', inputSchema: '{"type":"object","properties":{"target":{"type":"object"},"action":{"enum":["keep-editing","reload","overwrite"]}},"required":["target","action"]}'
+  }];
+}
+
+export function invokeDocumentTool(context: ReadOnly<DocumentActionContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!documentTools().some((tool) => tool.name === name)) return Err('Unknown document action.');
+  const limits: JsonLimits = {
+    maxBytes: 20 * 1024 * 1024, maxDepth: 8, maxEntries: 32, maxNodes: 64
+  };
+
+  try {
+    const args = JSON.parse<ConflictArguments>(payload, limits);
+
+    if (name === 'list_unsaved_files') {
+      const targets: FormattingTarget[] = [];
+      const state = context.workspace.get();
+
+      for (const file of state.files) if (dirty(file.document)) targets.push({
+        path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
+      });
+      return Ok(JSON.stringify(targets));
+    }
+
+    if (name === 'inspect_save_conflict') {
+      const state = context.workspace.get();
+      const file = state.files.find((file) => file.document.path === (args.path ?? ''));
+
+      if (file === undefined || file.document.saveConflict === undefined) return Err('No save conflict is available for this document.');
+      return Ok(JSON.stringify({
+        target: clone(file.document.saveConflict), baseline: clone(file.document.savedText), draft: clone(file.document.text)
+      }));
+    }
+
+    if (args.target === undefined) return Err('An explicit save conflict target is required.');
+
+    match (resolveDocumentConflict(context, args.target, args.action ?? '')) {
+      Ok(_) => {
+        return Ok('{"resolved":true}');
+      },
+      Err(error) => {
+        return Err(clone(error));
+      }
+    }
+  } catch (_) {
+    return Err('Invalid document action arguments.');
+  }
+}

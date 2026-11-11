@@ -1,9 +1,9 @@
 import { test, strictEqual } from 'std:testing';
-import { createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
+import { canonicalize, createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
 import { get } from 'std:env';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
-import { createDocument, ProposedEdit } from '../src/lib/workspace/documents.tsr';
-import { FormattingAuthority, FormattingTarget, FormattingResult, prepareFormatting, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
+import { createDocument, ProposedEdit, edit } from '../src/lib/workspace/documents.tsr';
+import { FormattingAuthority, FormattingTarget, FormattingResult, QueuedFormatting, enqueueFormatting, prepareFormatting, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
 import { EditorPolicy, defaultFormatting, projectEditorPolicy } from '../src/lib/settings/formatting.tsr';
 import { prepareProjectTask } from '../src/services/project-tasks.tsr';
 import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
@@ -190,7 +190,7 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
   strictEqual(unwrap(applyFormatting(state, result)), true);
   strictEqual(state.active, '/project/other.tsr');
   strictEqual(state.files[0].document.savedText, 'const value=1;');
-  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'format', options.format, true, true)), true);
+  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'format', options.format, true, false)), true);
   strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'check', options.format, false, false)), true);
   const task = unwrap(prepareProjectTask(state, '/bin/tsrust', 'check', options.format, true, false));
   strictEqual(task.program, '/bin/tsrust');
@@ -198,4 +198,30 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
   const selected = problemSelection('first\n日本 value', 2, 3);
   strictEqual(selected.start, 12);
   strictEqual(selected.end, 18);
+});
+
+test('project formatting preserves open drafts while selecting unopened disk sources', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-project-format-'));
+
+  try {
+    const actual = unwrap(canonicalize(root));
+    const state = workspace(clone(actual), 'disk version');
+    unwrap(writeTextFile(state.active, 'disk version'));
+    edit(state.files[0].document, 'unsaved draft');
+    const closed = actual + '/closed.tsr';
+    unwrap(writeTextFile(closed, 'const value=1;'));
+    const task = unwrap(prepareProjectTask(state, 'tsrust', 'format', defaultFormatting(), true, true));
+    strictEqual(task.args.includes(closed), true);
+    strictEqual(task.args.includes(state.active), false);
+    strictEqual(task.args.includes('--write'), true);
+    const pending: QueuedFormatting[] = [];
+    enqueueFormatting(pending, state, state.active, 'format');
+    strictEqual(pending.length, 1);
+    strictEqual(pending[0].target.session, state.files[0].document.session);
+    strictEqual(pending[0].target.revision, 1);
+    strictEqual(state.files[0].document.text, 'unsaved draft');
+    strictEqual(unwrap(readTextFile(state.active)), 'disk version');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
 });

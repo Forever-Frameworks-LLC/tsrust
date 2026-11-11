@@ -245,6 +245,10 @@ pub struct DiffState {
     presentation_generation: usize,
     preparing: Option<usize>,
     _presentation: Task<()>,
+    comparison_generation: usize,
+    comparison_pending: bool,
+    comparison_error: Option<SharedString>,
+    _comparison: Task<()>,
     _selection_subscription: Subscription,
 }
 
@@ -376,11 +380,41 @@ impl DiffState {
             presentation_generation: 0,
             preparing: None,
             _presentation: Task::ready(()),
+            comparison_generation: 0,
+            comparison_pending: false,
+            comparison_error: None,
+            _comparison: Task::ready(()),
             _selection_subscription,
         };
         state.rebuild(true);
         state
     }
+
+    /// Compare owned snapshots on a background executor; newer requests cancel stale results.
+    pub fn compare_texts(&mut self, path: String, original: String, modified: String, language: Option<String>, cx: &mut Context<Self>) {
+        self.cancel_comparison();
+        let generation = self.comparison_generation;
+        self.set_files(Vec::new(), cx);
+        self.comparison_pending = true;
+        self._comparison = cx.spawn(async move |this, cx| {
+            let files = cx.background_spawn(async move {DiffFile::compare_texts(&path, &original, &modified).map(|files| files.into_iter().map(|file| match &language {Some(language) => file.with_language(language.clone()), None => file}).collect::<Vec<_>>())}).await;
+            let _ = this.update(cx, |state, cx| {
+                if state.comparison_generation != generation {return;}
+                state.comparison_pending = false;
+                match files {Ok(files) => state.set_files(files, cx), Err(error) => {state.comparison_error = Some(error.to_string().into()); cx.notify();}}
+            });
+        });
+        cx.notify();
+    }
+
+    pub fn cancel_comparison(&mut self) {
+        self.comparison_generation += 1;
+        self.comparison_pending = false;
+        self.comparison_error = None;
+        self._comparison = Task::ready(());
+    }
+    pub fn comparison_pending(&self) -> bool {self.comparison_pending}
+    pub fn comparison_error(&self) -> Option<&str> {self.comparison_error.as_deref()}
 
     /// Sets the initial display mode. Default is [`DiffMode::Unified`].
     pub fn with_mode(mut self, mode: DiffMode) -> Self {

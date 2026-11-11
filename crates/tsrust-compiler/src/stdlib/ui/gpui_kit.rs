@@ -458,14 +458,15 @@ fn menu_entries(node: &Node) -> Vec<MenuEntry> {
 
 /// Menu-wide options from DropdownMenu or ContextMenu props.
 #[derive(Clone, Copy)]
-struct MenuOptions {min: Option<f32>, max: Option<f32>, height: Option<f32>, scrollable: bool, right: bool, link_icon: bool}
+struct MenuOptions {min: Option<f32>, max: Option<f32>, height: Option<f32>, scrollable: bool, right: bool, link_icon: bool, font_size: Option<f32>}
 
 impl MenuOptions {
     fn new(kit: &Kit) -> Self {
-        Self {min: kit.number("minWidth").map(|value| value as f32), max: kit.number("maxWidth").map(|value| value as f32), height: kit.number("maxHeight").map(|value| value as f32),
+        Self {font_size: kit.number("fontSize").map(|value|value as f32), min: kit.number("minWidth").map(|value| value as f32), max: kit.number("maxWidth").map(|value| value as f32), height: kit.number("maxHeight").map(|value| value as f32),
             scrollable: kit.flag("scrollable"), right: kit.prop("checkSide") == Some("right"), link_icon: kit.prop("externalLinkIcon") != Some("false")}
     }
     fn apply(self, mut menu: gpui_kit::component::menu::PopupMenu) -> gpui_kit::component::menu::PopupMenu {
+        if let Some(size) = self.font_size {menu = menu.font_size(px(size));}
         if let Some(width) = self.min {menu = menu.min_w(px(width));}
         if let Some(width) = self.max {menu = menu.max_w(px(width));}
         if let Some(height) = self.height {menu = menu.max_h(px(height));}
@@ -1104,6 +1105,25 @@ fn parse_diff(source:&str)->Result<Vec<DiffFile>,DiffParseError> {
         match language {Some(language)=>file.with_language(language),None=>file}
     }).collect())
 }
+fn diff_source_key(props: &std::collections::BTreeMap<String,String>) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    for name in ["patch", "originalText", "modifiedText", "filePath"] {props.get(name).hash(&mut hash);}
+    hash.finish().to_string()
+}
+fn install_diff_source(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) -> Result<(),String> {
+    match (props.get("originalText"), props.get("modifiedText")) {
+        (None,None) => {state.cancel_comparison(); state.set_files(parse_diff(props.get("patch").map_or("",String::as_str)).map_err(|error|error.to_string())?,cx);},
+        (Some(original),Some(modified)) => {
+            if props.contains_key("patch") {return Err("Diff accepts a patch or complete text snapshots, not both".into());}
+            let path=props.get("filePath").cloned().unwrap_or_else(||"comparison.txt".into());
+            let language=std::path::Path::new(&path).extension().and_then(|extension|extension.to_str()).map(super::kit::source_language).map(str::to_owned);
+            state.compare_texts(path,original.clone(),modified.clone(),language,cx);
+        },
+        _ => return Err("Diff requires both originalText and modifiedText".into()),
+    }
+    Ok(())
+}
 /// State setters preserve selection/scroll and skip unchanged values in Kit.
 fn configure_diff(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) {
     let text=|key:&str|props.get(key).map(String::as_str);
@@ -1676,11 +1696,11 @@ impl Root {
                             }
                         }
                     }
-                    KitState::Diff(state, patch) => {
-                        if *patch != text("patch") {
-                            let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
-                            state.update(cx, |state, cx| state.set_files(files, cx));
-                            if let Some(KitState::Diff(_, patch)) = self.states.get_mut(&id) {*patch = text("patch");}
+                    KitState::Diff(state, key) => {
+                        let current = diff_source_key(&props);
+                        if *key != current {
+                            state.update(cx, |state,cx|install_diff_source(state,&props,cx)).unwrap_or_else(|error|fail(&self.failure,format!("Diff: {error}")));
+                            if let Some(KitState::Diff(_, key)) = self.states.get_mut(&id) {*key=current;}
                         }
                         if let Some(KitState::Diff(state, _)) = self.states.get(&id) {state.update(cx, |state,cx|configure_diff(state,&props,cx));}
                     }
@@ -1942,9 +1962,8 @@ impl Root {
                     KitState::Editor(state,props.clone())
                 }
                 "Diff" => {
-                    let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
-                    let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); configure_diff(&mut state,&props,cx); state});
-                    KitState::Diff(state, text("patch"))
+                    let state = cx.new(|cx| {let mut state = DiffState::new(Vec::new(), cx); configure_diff(&mut state,&props,cx); install_diff_source(&mut state,&props,cx).unwrap_or_else(|error|fail(&self.failure,format!("Diff: {error}"))); state});
+                    KitState::Diff(state, diff_source_key(&props))
                 }
                 "DataTable" => {
                     let Some(node) = find(&self.node, id) else {continue};
@@ -3518,6 +3537,7 @@ impl Root {
                         .hover_highlight(match kit.prop("hoverHighlight") {Some("line")=>DiffHoverHighlight::Line,Some("line-number")=>DiffHoverHighlight::LineNumber,Some("both")=>DiffHoverHighlight::Both,_=>DiffHoverHighlight::None})
                         .hunk_separator(match kit.prop("hunkSeparator") {Some("line-info")=>DiffHunkSeparator::LineInfo,Some("simple")=>DiffHunkSeparator::Simple,_=>DiffHunkSeparator::Metadata})
                         .change_indicator(match kit.prop("changeIndicator") {Some("bars")=>DiffChangeIndicator::Bars,Some("none")=>DiffChangeIndicator::None,_=>DiffChangeIndicator::Signs});
+                    if let Some(size)=kit.number("fontSize") {diff=diff.font_size(px(size as f32));}
                     if kit.handles("lineClick") {let root=cx.entity().downgrade();diff=diff.on_line_click(move |position,_,_,cx| {let value=diff_position(position);let _=root.update(cx,|root,cx|root.emit(id,"lineClick",value,cx));});}
                     if kit.handles("lineHover") {let root=cx.entity().downgrade();diff=diff.on_line_hover(move |position,_,cx| {let value=position.map_or_else(||"null".into(),diff_position);let _=root.update(cx,|root,cx|root.emit(id,"lineHover",value,cx));});}
                     if kit.handles("addAnnotation") {let root=cx.entity().downgrade();diff=diff.on_add_annotation(move |range,_,cx| {let value=diff_range(range);let _=root.update(cx,|root,cx|root.emit(id,"addAnnotation",value,cx));});}

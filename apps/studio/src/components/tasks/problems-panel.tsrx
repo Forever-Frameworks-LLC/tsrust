@@ -1,23 +1,15 @@
-import { View, Text, Icon, Tooltip, List, ListItem, Node, Signal, computed, t } from 'std:ui';
+import { copyProblems, ProblemActionContext } from '../../services/problem-actions.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
+import { View, Text, Icon, Tooltip, List, ListItem, ListEmpty, Node, Signal, computed, t, Button } from 'std:ui';
 import { basename } from 'std:path';
 import { toInt } from 'std:numeric';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
 import { openProblem, ProblemLocation } from '../../lib/workspace/problem-actions.tsr';
-import { Problem, operationProblem } from '../../lib/workspace/problems.tsr';
+import { Problem, collectProblems } from '../../lib/workspace/problems.tsr';
 import { TerminalWorkspace, activateTerminal } from '../../lib/workspace/terminals.tsr';
 
-export function collectProblems(workspace: ReadOnly<Workspace>, problems: ReadOnly<Problem[]>, terminalError: ReadOnly<string>): Problem[] {
-  const result = clone(problems);
-  const error = clone(workspace.error);
-
-  if (error !== '' && !result.some((problem) => problem.message === error)) result.push(operationProblem('studio', '', error));
-  const terminal = clone(terminalError);
-
-  if (terminal !== '' && !result.some((problem) => problem.message === terminal)) result.push(operationProblem('terminal', '', terminal));
-  return result;
-}
 
 function revealProblem(workspace: Signal<Workspace>, recovery: Signal<Recovery>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, problems: Signal<Problem[]>, terminalError: Signal<string>, value: ReadOnly<string>): void {
   match (toInt(Number(value))) {
@@ -68,7 +60,7 @@ function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): 
   const location = problem.path === '' ? clone(problem.source) : basename(problem.path) + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '');
   const label = clone(location) + ' ' + clone(message);
   const details = problem.message.slice(0, 8192);
-  const metadata = location + ' [' + problem.source + '/' + problem.code + ']';
+  const metadata = problem.path === '' ? clone(problem.source) : location + ' [' + problem.source + (problem.code === problem.source ? '' : '/' + problem.code) + ']';
   const icon = problem.severity === 'warning' ? 'triangle-alert' : 'circle-x';
   const iconClass = problem.severity === 'warning' ? 'text-muted-foreground' : 'text-destructive';
   return (
@@ -105,7 +97,28 @@ export function ProblemsPanel(workspace: Signal<Workspace>, recovery: Signal<Rec
         }}
       >
         {...collectProblems(workspace.get(), problems.get(), terminalError.get()).map((problem: ReadOnly<Problem>, index: int) => ProblemRow(problem, index, font))}
+        <ListEmpty>
+          <View />
+        </ListEmpty>
       </List>
     </View>
+  );
+}
+
+export function CopyProblems(workspace: Signal<Workspace>, problems: Signal<Problem[]>, terminalError: Signal<string>): Node {
+  return (
+    <Button
+      icon="copy"
+      size="xsmall"
+      variant="ghost"
+      tooltip={message('Copy all problems')}
+      aria-label={accessibleName('Copy all problems')}
+      onPress={() => {
+        const context: ProblemActionContext = {
+          workspace, problems, terminalError, allowClipboard: true
+        };
+        copyProblems(context);
+      }}
+    />
   );
 }

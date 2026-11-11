@@ -1,3 +1,5 @@
+import { SaveConflicts } from './components/editor/save-conflict.tsrx';
+import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
 import { View, Text, Button, Resizable, ResizablePanel, Node, signal, computed, useId, run, setTheme, registerThemes, useTheme, setLocale, translate, t } from 'std:ui';
 import { currentDir, args, get } from 'std:env';
@@ -7,9 +9,9 @@ import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.ts
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
 import { CheckPanel } from './components/tasks/check-panel.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
-import { ProblemsPanel, collectProblems } from './components/tasks/problems-panel.tsrx';
-import { Problem } from './lib/workspace/problems.tsr';
-import { FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
+import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
+import { Problem, collectProblems } from './lib/workspace/problems.tsr';
+import { QueuedFormatting, FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
 import { formattingWorker } from './services/formatting.tsr';
 import { extname } from 'std:path';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
@@ -91,13 +93,15 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
   const terminals = signal(initialTerminals);
   const terminalError = signal('');
   const problems = signal<Problem[]>([]);
-  const problemCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).length);
-  const problemLabel = computed<string>(() => translate('Problems') + ': ' + problemCount.get().toString());
-  const panelView = Panels(panel, CheckPanel(requests.sender(), results, font, checking, checkOutput, problems, panel), TerminalPanel(workspace.get().root, font, terminals, terminalError, workspace, recovery), NewTerminal(terminals, terminalError), ProblemsPanel(workspace, recovery, terminals, panel, problems, terminalError, font), font);
+  const problemCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'error').length);
+  const warningCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'warning').length);
+  const problemLabel = computed<string>(() => translate('Errors') + ': ' + problemCount.get().toString());
+  const panelView = Panels(panel, CheckPanel(requests.sender(), results, font, checking, checkOutput, problems, panel), TerminalPanel(workspace.get().root, font, terminals, terminalError, workspace, recovery), NewTerminal(terminals, terminalError), ProblemsPanel(workspace, recovery, terminals, panel, problems, terminalError, font), CopyProblems(workspace, problems, terminalError), font);
   const formatBusy = signal(false);
-  const formatFocus = signal<string[]>([]);
+  const formatFocus = signal<QueuedFormatting[]>([]);
   const workflows = WorkflowControls(workspace, recovery, settings, panel, formattingRequests, formattingResults, requests, checking, checkOutput, problems, terminals, terminalError, program, formatBusy, formatFocus);
   const chatView = ChatPanel(chat);
+  const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');
   const status = computed<string>(() => {
     const state = workspace.get();
 
@@ -198,6 +202,7 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
   </View>;
   return (
     <View className="flex-col size-full bg-background text-foreground">
+      {SaveConflicts(workspace, recovery, font)}
       {chrome}
       <View className="grow min-h-0">
         <Resizable reverse={settings.get().activityBarSide === 'right'} className="size-full min-w-0 min-h-0">
@@ -209,38 +214,42 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
           </ResizablePanel>
         </Resizable>
       </View>
-      <View className="flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border">
-        <Button
-          icon="terminal"
-          variant="ghost"
-          size="xsmall"
-          tooltip={message("Toggle terminal")}
-          aria-label={accessibleName("Toggle terminal")}
-          onPress={() => {
-            panel.set(panel.get() === 'terminal' ? '' : 'terminal');
-          }}
-        />
+      <View className={statusClass.get()}>
         <Button
           icon="circle-alert"
           variant="ghost"
           size="xsmall"
           tooltip={problemLabel.get()}
           aria-label={problemLabel.get()}
-          className={problemCount.get() > 0 ? 'text-destructive' : ''}
+          className={'gap-1 text-[' + font.get().toString() + 'px]' + (problemCount.get() > 0 ? ' text-destructive' : '')}
           onPress={() => {
             panel.set('problems');
           }}
         >
           {problemCount.get().toString()}
         </Button>
-        <Text className="text-xs">
+        <Button
+          icon="triangle-alert"
+          variant="ghost"
+          size="xsmall"
+          tooltip={translate('Warnings') + ': ' + warningCount.get().toString()}
+          aria-label={translate('Warnings') + ': ' + warningCount.get().toString()}
+          className={'gap-1 text-[' + font.get().toString() + 'px]'}
+          onPress={() => {
+            panel.set('problems');
+          }}
+        >
+          {warningCount.get().toString()}
+        </Button>
+        <Text>
           {t("LSP: not connected")}
+        </Text>
+        {UnsavedFiles(workspace, recovery, font)}
+        <Text>
+          {status.get()}
         </Text>
         <View className="grow" />
         {workflows}
-        <Text className="text-xs">
-          {status.get()}
-        </Text>
       </View>
     </View>
   );

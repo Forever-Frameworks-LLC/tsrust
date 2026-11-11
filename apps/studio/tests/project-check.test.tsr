@@ -6,6 +6,10 @@ test('structured compiler reports retain file locations and failures', () => {
   strictEqual(clean.failed, false);
   strictEqual(clean.output, 'Check passed.\n');
   const failure = formatCheckReport('{"ok":false,"diagnostics":[{"file":"/project/界.tsr","code":"type","message":"Expected int","location":{"line":3,"column":7}}]}');
+  const warning = formatCheckReport('{"ok":true,"diagnostics":[{"file":"/project/main.tsr","severity":"warning","code":"unused-task","message":"Await the task"}]}');
+  strictEqual(warning.failed, false);
+  strictEqual(warning.problems[0].severity, 'warning');
+  strictEqual(failure.problems[0].severity, 'error');
   strictEqual(failure.failed, true);
   strictEqual(failure.problems.length, 1);
   strictEqual(failure.problems[0].source, 'check');

@@ -1,10 +1,11 @@
 import { toUtf8 } from 'std:bytes';
 import { run } from 'std:process';
+import { ProposedEdit } from '../lib/workspace/documents.tsr';
 import { prepareProjectTask } from './project-tasks.tsr';
 import { JsonLimits } from 'std:json';
 import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorPolicy } from '../lib/settings/formatting.tsr';
-import { FormattingTarget, FormattingAuthority, prepareFormatting } from '../lib/workspace/formatting-actions.tsr';
+import { FormattingTarget, FormattingAuthority, prepareFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { formatBuffer } from './formatting.tsr';
 import { checkSavedProject } from './project-check.tsr';
 import { EditorTool } from './editor-tools.tsr';
@@ -26,7 +27,7 @@ interface WorkflowArguments {
 
 export function workflowTools(): EditorTool[] {
   return [{
-    name: 'format_project', description: 'Run the public project formatter with the same rules as the Project menu. Writes saved workspace files only with an explicit host workspace-write grant, otherwise rejects. Refuses dirty open buffers. The agent host must supply an isolated workspace unless live writes are approved.', inputSchema: '{"type":"object","properties":{}}'
+    name: 'format_project', description: 'Run the public project formatter with the same rules as the Project menu. Writes saved workspace files only with an explicit host workspace-write grant, otherwise rejects. Open buffers return isolated revisioned proposals; the disk task formats only unopened files. The agent host must supply an isolated workspace unless live writes are approved.', inputSchema: '{"type":"object","properties":{}}'
   }, {
     name: 'format_document', description: 'Format an explicit open .tsr/.tsrx document revision and return an isolated ProposedEdit. Never applies or saves it. Requires a host proposal grant; project format rules override editor defaults.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer","minimum":0}},"required":["path","session","revision"]}'
   }, {
@@ -52,6 +53,24 @@ export async function invokeWorkflowTool(context: ReadOnly<WorkflowToolContext>,
           return Err(clone(error));
         },
         Ok(task) => {
+          const proposals: ProposedEdit[] = [];
+
+          for (const file of context.workspace.files) {
+            if (file.kind !== 'text' || !canFormat(file.document.path)) continue;
+            const target: FormattingTarget = {
+              path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
+            };
+            const request = unwrap(prepareFormatting(context.workspace, context.policy, context.formatAuthority, target, 'proposal'));
+            const formatted = unwrap(await formatBuffer(context.program, request));
+            const proposal = clone(request.document);
+            proposal.after = formatted;
+            proposals.push(proposal);
+          }
+
+          if (task.args.length === 0) return Ok(JSON.stringify({
+            success: true, stdout: '', stderr: '', proposals
+          }));
+
           match (await run(task.program, task.args, {
             cwd: clone(context.workspace.root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
           })) {
@@ -60,7 +79,7 @@ export async function invokeWorkflowTool(context: ReadOnly<WorkflowToolContext>,
             },
             Ok(output) => {
               return Ok(JSON.stringify({
-                success: output.status.success, stdout: unwrap(toUtf8(output.stdout)), stderr: unwrap(toUtf8(output.stderr))
+                success: output.status.success, stdout: unwrap(toUtf8(output.stdout)), stderr: unwrap(toUtf8(output.stderr)), proposals
               }));
             }
           }

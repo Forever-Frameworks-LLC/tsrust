@@ -1,3 +1,4 @@
+import { Workspace } from './workspace.tsr';
 import { fromUtf8, length } from 'std:bytes';
 
 export interface Problem {
@@ -30,4 +31,24 @@ export function problemOffset(text: ReadOnly<string>, line: int, column: int): i
   for (let index = 0; index < target; index += 1) offset += length(unwrap(fromUtf8(lines[index]))) + 1;
   const prefix = Array.from(lines[target]).slice(0, column > 0 ? column - 1 : 0).join('');
   return offset + length(unwrap(fromUtf8(prefix)));
+}
+
+export function formatProblems(problems: ReadOnly<Problem[]>): string {
+  return problems.map((problem) => (problem.path === '' ? clone(problem.source) : problem.path + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '')) + ' [' + problem.source + '/' + problem.code + '] ' + problem.message).join('\n');
+}
+
+export function collectProblems(workspace: ReadOnly<Workspace>, problems: ReadOnly<Problem[]>, terminalError: ReadOnly<string>): Problem[] {
+  const result = clone(problems);
+  const error = clone(workspace.error);
+
+  if (error !== '' && !result.some((problem) => problem.message === error)) result.push(operationProblem('studio', '', error));
+  const terminal = clone(terminalError);
+
+  if (terminal !== '' && !result.some((problem) => problem.message === terminal)) result.push(operationProblem('terminal', '', terminal));
+
+  for (const file of workspace.files) {
+    if (file.document.saveConflict !== undefined && !result.some((problem) => problem.path === file.document.path && problem.source === 'save')) result.push(operationProblem('save', clone(file.document.path), 'This file changed on disk. Compare the versions before saving.'));
+  }
+
+  return result;
 }

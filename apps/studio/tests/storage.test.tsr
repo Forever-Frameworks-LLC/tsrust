@@ -2,7 +2,7 @@ import { test, strictEqual } from 'std:testing';
 import { createTempDir, writeTextFile, readTextFile, removeFile, removeDirAll, stat, hardLink } from 'std:fs';
 import { platform } from 'std:os';
 import { createDocument, edit, dirty, markSaved } from '../src/lib/workspace/documents.tsr';
-import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { saveDocument, resolveSaveConflict } from '../src/lib/workspace/storage.tsr';
 
 test('saving writes exact draft bytes and advances only the disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-save-'));
@@ -137,6 +137,75 @@ test('retrying a committed nondurable write uses the new disk baseline', () => {
     strictEqual(document.revision, 1);
     strictEqual(dirty(document), false);
     strictEqual(unwrap(readTextFile(path)), 'committed');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('save conflict choices retain drafts and reject stale or unapproved overwrites', () => {
+  if (platform() === 'win32') return;
+  const root = unwrap(createTempDir(undefined, 'studio-resolve-'));
+
+  try {
+    const path = root + '/conflict.tsr';
+    unwrap(writeTextFile(path, 'base'));
+    const document = unwrap(createDocument(clone(path), 'base'));
+    edit(document, 'my draft');
+    unwrap(writeTextFile(path, 'external'));
+
+    match (saveDocument(document)) {
+      Ok(_) => {
+        throw 'unexpected save';
+      },
+      Err(_) => {}
+    }
+
+    const target = clone(document.saveConflict);
+
+    if (target === undefined) throw 'missing conflict comparison';
+    strictEqual(target.diskText, 'external');
+
+    match (resolveSaveConflict(document, target, 'overwrite', false, false)) {
+      Ok(_) => {
+        throw 'unapproved overwrite';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    unwrap(writeTextFile(path, 'changed again'));
+
+    match (resolveSaveConflict(document, target, 'overwrite', false, true)) {
+      Ok(_) => {
+        throw 'racing overwrite';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), 'changed again');
+    strictEqual(document.text, 'my draft');
+    const updated = clone(document.saveConflict);
+
+    if (updated === undefined) throw 'missing refreshed conflict';
+    unwrap(resolveSaveConflict(document, updated, 'overwrite', false, true));
+    strictEqual(unwrap(readTextFile(path)), 'my draft');
+    strictEqual(dirty(document), false);
+    edit(document, 'second draft');
+    unwrap(writeTextFile(path, 'new external'));
+
+    match (saveDocument(document)) {
+      Ok(_) => {
+        throw 'unexpected save';
+      },
+      Err(_) => {}
+    }
+
+    const reloaded = clone(document.saveConflict);
+
+    if (reloaded === undefined) throw 'missing reload snapshot';
+    unwrap(resolveSaveConflict(document, reloaded, 'reload', true, false));
+    strictEqual(document.text, 'new external');
+    strictEqual(dirty(document), false);
   } finally {
     unwrap(removeDirAll(root));
   }

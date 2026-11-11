@@ -399,6 +399,20 @@ pub struct DiffFile {
 }
 
 impl DiffFile {
+    /// Compare complete text snapshots. All unchanged lines are retained for folding.
+    pub fn compare_texts(path: &str, original: &str, modified: &str) -> Result<Vec<Self>, DiffParseError> {
+        fn quoted(prefix: &str, path: &str) -> String {
+            let mut output = format!("\"{prefix}/");
+            for c in path.chars() {match c {'\\' => output.push_str("\\\\"), '"' => output.push_str("\\\""), c if c.is_ascii_control() => output.push_str(&format!("\\{:03o}", c as u32)), c => output.push(c)}}
+            output.push('"'); output
+        }
+        let context = original.lines().count().max(modified.lines().count());
+        let patch = similar::TextDiff::configure().algorithm(similar::Algorithm::Patience)
+            .timeout(std::time::Duration::from_secs(1)).diff_lines(original, modified)
+            .unified_diff().context_radius(context).header(&quoted("a", path), &quoted("b", path)).to_string();
+        Self::parse(&patch)
+    }
+
     /// Parses every file in a unified or Git diff, in patch order, without
     /// computing differences. Syntax emphasis is prepared later by
     /// [`super::DiffState`] on a background thread.
@@ -1089,5 +1103,20 @@ mod tests {
         }
         let line = &source_lines(ordinary)[0];
         assert_eq!(line.display.as_ptr(), line.chunks[0].text.as_ptr());
+    }
+}
+
+#[cfg(test)]
+mod text_comparison_tests {
+    use super::*;
+    #[test]
+    fn complete_snapshots_keep_context_unicode_paths_and_newline_changes() {
+        let files = DiffFile::compare_texts("dir with space/日本.ts", "same\nold\nend\n", "same\nnew\nend\n").unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path().as_ref(), "dir with space/日本.ts");
+        assert_eq!(files[0].additions(), 1); assert_eq!(files[0].deletions(), 1);
+        assert!(DiffFile::compare_texts("same.ts", "same\n", "same\n").unwrap().is_empty());
+        assert_eq!(DiffFile::compare_texts("quote\"\n.ts", "", "日本").unwrap()[0].additions(), 1);
+        assert_eq!(DiffFile::compare_texts("end.ts", "same", "same\n").unwrap()[0].deletions(), 1);
     }
 }

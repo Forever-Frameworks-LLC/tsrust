@@ -1,0 +1,80 @@
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
+import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { DocumentActionContext, invokeDocumentTool } from '../src/services/document-actions.tsr';
+import { Problem, collectProblems, formatProblems, operationProblem } from '../src/lib/workspace/problems.tsr';
+import { ProblemActionContext, invokeProblemTool } from '../src/services/problem-actions.tsr';
+
+function failed(value: Result<string, string>): boolean {
+  match (value) {
+    Ok(_) => {
+      return false;
+    },
+    Err(_) => {
+      return true;
+    }
+  }
+}
+
+test('document actions expose unsaved files and conflicts without trusting model overwrite grants', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-document-tools-'));
+
+  try {
+    const path = unwrap(canonicalize(root)) + '/source.tsr';
+    unwrap(writeTextFile(path, 'base'));
+    const initial = unwrap(openWorkspace(clone(root)));
+    unwrap(openFile(initial, path));
+    edit(initial.files[0].document, 'draft');
+    unwrap(writeTextFile(path, 'external'));
+
+    match (saveDocument(initial.files[0].document)) {
+      Ok(_) => {
+        throw 'unexpected save';
+      },
+      Err(_) => {}
+    }
+
+    const target = clone(initial.files[0].document.saveConflict);
+
+    if (target === undefined) throw 'missing conflict';
+    const workspace = signal(initial);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const context: DocumentActionContext = {
+      workspace, recovery, allowDiscard: false, allowOverwrite: false
+    };
+    strictEqual(unwrap(invokeDocumentTool(context, 'list_unsaved_files', '{}')).includes('source.tsr'), true);
+    strictEqual(unwrap(invokeDocumentTool(context, 'inspect_save_conflict', JSON.stringify({
+      path: clone(path)
+    }))).includes('external'), true);
+    const forged = JSON.stringify({
+      target, action: 'overwrite', allowOverwrite: true
+    });
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    const problems = signal<Problem[]>([]);
+    const terminalError = signal('');
+    const problemWorkspace = signal(context.workspace.get());
+    const problemContext: ProblemActionContext = {
+      workspace: problemWorkspace, problems, terminalError, allowClipboard: false
+    };
+    strictEqual(failed(invokeProblemTool(problemContext, 'copy_all_problems')), true);
+    const listed = collectProblems(context.workspace.get(), problemContext.problems.get(), problemContext.terminalError.get());
+    strictEqual(listed.length >= 1, true);
+    strictEqual(formatProblems([operationProblem('save', clone(path), 'message')]), path + ' [save/save] message');
+    const changed = context.workspace.get();
+    edit(changed.files[0].document, 'newer draft');
+    context.workspace.set(changed);
+    context.allowOverwrite = true;
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    strictEqual(context.workspace.get().files[0].document.text, 'newer draft');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

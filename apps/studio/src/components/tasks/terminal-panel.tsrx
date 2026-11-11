@@ -168,7 +168,7 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
         {name.get()}
       </Text>
       <ListItemSuffix>
-        <DropdownMenu>
+        <DropdownMenu fontSize={font.get()}>
           <Button icon="ellipsis" variant="ghost" size="xsmall" tooltip={message("Terminal actions")} aria-label={accessibleName("Terminal actions")} />
           <MenuItem
             label={message("Interrupt terminal")}

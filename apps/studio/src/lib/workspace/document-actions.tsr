@@ -39,7 +39,7 @@ export function saveActive(workspace: Signal<Workspace>, recovery: Signal<Recove
   match (saveDocument(next.files[index].document)) {
     Ok(_) => {},
     Err(error) => {
-      next.error = 'Save failed: ' + error.message;
+      next.error = error.code === 'conflict' && next.files[index].document.saveConflict !== undefined ? '' : next.files[index].name + ': Save failed: ' + error.message;
     }
   }
 

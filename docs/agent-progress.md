@@ -8,6 +8,206 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest owner-feedback acceptance — 2026-11-11, 15:42.
+The apparent double titlebar was SaveConflicts' empty normal-flow View placed
+before Chrome. Its overlay host is now absolute/size-0; native creation options
+are unchanged. Live screenshot confirms a single36px custom row, sidebar/settings
+aligned with the traffic-light area. Terminal/Format/Check share one gap-1 row
+and equal size-5 frames. Errors, warnings and unsaved counts have explicit icon
+spacing; errors/warnings independently display truthful zeros. Warning counter
+clicks open the same Problems surface. Structured compiler warning preservation
+1/1PASS0.87ms execution, /tmp/studio-warning-report-test.log. No full regressions.
+Whole formatter PASS2files then idempotence0files/0snippets/0fingerprints;
+generator--check, locale2catalogs/235keys and diff-check pass. Live MAT retained
+all8open files/4dirty drafts/zoom-1. Supervisor23759/PTY74802 remains running;
+app30137, bundletsrust-23759-1794429655350340000-0/Tsrust Studio.app. Dev build
+123.261s (check45.7174s,emit2.8833s,backend226.7ms,native/link24.5143s,runtimehit),
+an observation under concurrent SDK work, not a comparable benchmark claim.
+CUA phase ended "Fixed title-bar row and spacing". No owner drafts discarded.
+An exploratory native titlebar-options edit was reverted after finding the actual
+layout cause. Final-source normal CLI/LSP pair build PASS2m42s,
+/tmp/studio-chrome-sdk-final.log. Both rebuilt binaries exactly match the installed
+verified01b1b68b4fcc436cd59bb96912c51030a39728d5f4d9b45dc8de0127db98c778 /
+f1f33fff1c4caa80744f8f599cb8040f84e749091f711597708bd72a309f18a8 pair; no
+installed refresh/restart or unchanged-suite replay needed. Source is ready for
+the local save/unsaved/diff/feedback checkpoint followingfa0d3634. LSP/hover/
+completion/snippets remains next implementation priority; no transport implemented
+yet. Keep the current single preview running; do not discard owner drafts.
+
+Latest live acceptance — 2026-11-11, 15:24. Current save-conflict/unsaved/diff/
+status section is implemented and native-MAT verified, still UNCOMMITTED after
+fa0d3634. No LSP transport implementation has begun yet; that remains the immediate
+next priority before Git/debugger/extensions, followed by built-in AI.
+
+SDK final normal pair PASS2m46s, /tmp/studio-comparison-sdk-final.log. Installed CLI
+01b1b68b4fcc436cd59bb96912c51030a39728d5f4d9b45dc8de0127db98c778,
+LSPf1f33fff1c4caa80744f8f599cb8040f84e749091f711597708bd72a309f18a8.
+Native app build PASS, /tmp/studio-comparison-native.log. Queued replacement BEFORE
+stopping17056. CURRENT supervisor23759 / PTY74802; last observed app23896. Live
+bundle (rediscover before any CUA after reload):
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-23759-1794428404528944000-0/Tsrust Studio.app.
+Dev build68.039s, check42.5274s, emit2.7493s, backend0.1493s,
+native/link21.9589s, runtime cache hit. This is an observation, not a comparable
+benchmark/speedup claim. Keep one current preview running. After MAT a tiny source
+change explicitly hides the native List's duplicate empty illustration in Problems
+(ListEmpty/View, same pattern already verified in Terminal). Dev may auto-reload;
+rediscover PID/path instead of using old CUA binding.
+
+Live MAT PASS:8open files/4dirty drafts/zoom-1 recovered. The owner enabled format
+on save, so Cmd+S first ran async formatter, then CAS correctly opened conflict
+comparison rather than overwriting changed disk. Shared split Diff visibly shows
+red/green line backgrounds and inline word emphasis, compact numbers, accessible
+Original/Modified line metadata, expandable unchanged context and syntax coloring.
+Clicked ONLY Keep editing, never overwrite/reload on owner files. Formatting may
+have adjusted whitespace in that draft; its semantic changes remain protected.
+Unsaved-file popup now has editor-sized text and appears on left with Problems,
+LSP and current-file state. Terminal/format/check controls on right. Copy All
+Problems verified adjacent to Close in panel header. Clipboard byte-copy itself
+not read back in MAT; executable action/denied-host-grant model check passed below.
+CUA phase ended "Verified diff highlighting and status layout"; no active CUA phase.
+
+Focused native snapshot comparison1/1PASS0.00s execution,3m20s setup,
+/tmp/studio-text-comparison-test.log; no full GPUI/compiler/LSP matrix. Test checks
+real changed-line counts/retained context, Unicode and quoted/control-character
+paths, equal snapshots, empty files and missing-newline changes. Compact final
+Diff gutter arithmetic and doc-comment cleanup followed this pass; native app
+compilation and live visual MAT cover that style-only delta. The tracked component
+Cargo.lock's2temporary local-patch substitutions were restored to HEAD after test;
+no dependency addition/network, no lockfile change to checkpoint. Prior wording
+calling this lock ignored was wrong. Runtime6formatting,4storage,1document-action
+passes retained below; no rerun of unchanged executables.
+
+Latest whole formatter PASS0files/0doc snippets/0fingerprints, generator--check,
+2catalog/233locale keys and diff-check PASS before the tiny ListEmpty source edit.
+Run the mandatory formatter + source idempotence after that edit, update final
+handoff/checkpoint identity, then local commit. No push/release. Reuse passed tests.
+Review/prune exact obsolete native outputs while retaining current runtime/apps;
+prior scoped cleanup reclaimed15GiB. Do not blindly clear shared Cargo target.
+
+Latest continuation — 2026-11-11, 15:05. Uncommitted section expanded by owner
+live feedback: unsaved-file menu should be left with diagnostics; actions including
+terminal toggle on right. Popup text must follow font/zoom. Comparison must actually
+highlight changes; previous two read-only CodeEditors had no diff highlighting.
+Line numbers/gutter looked too large throughout app.
+
+Prior direct feedback source checks PASSED; native dev reloads now confirmed.
+Supervisor8979 eventually finished its pending build before restart (check44.4088s,
+emit2.7423s, native/link23.9146s,total116.662s). One-second sample caught checker
+work, but this is NOT proof of a stuck/infinite cache or root-cause diagnosis.
+Fresh supervisor17056/PTY11398 built in45.554s, check41.9279s, emit2.7321s,
+cachehit137.8ms/no native link. App17091, bundle historical reference:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-17056-1794426374251758000-0/Tsrust Studio.app.
+Keep it running, but new SDK must replace supervisor to support new Diff/Menu props.
+
+Live MAT PASS on this app:8open/4drafts retained; filled-circle dirty marker in
+Tree and tabs; Unsaved files4 status popup lists4relative paths. Real File menu
+now separate from macOS app menu. Cmd+S on protected owner editor.tsrx draft opened
+plain-English conflict Dialog showing disk/draft and Keep editing / Discard draft
+and reload / Overwrite with my draft. Clicked ONLY Keep editing: no owner draft or
+disk discarded/overwritten. CUA phase ended "Verified conflict choices preserve
+drafts". User then requested true diff emphasis, compact gutters, smaller popup
+text, left diagnostics/right actions. Do not reuse CUA handles after replacement.
+
+Current source implements that feedback: shared GPUI DiffFile::compare_texts uses
+existing similar2.7 Patience/1s deadline/full context, quoted paths and parser;
+DiffState compares on background executor with generation guard/cancellation,
+loading spinner/errors. New std:ui Diff originalText/modifiedText/filePath/fontSize
+props (patch is alternative, cross-field guards in native install); native renderer
+tracks input identity and uses shared comparison. Diff code/gutter font can follow
+Studio zoom instead of fixed theme size. Conflict Dialog now uses actual split
+Diff with word-level/background emphasis and expandable unchanged context.
+DropdownMenu/ContextMenu fontSize8..40 new capability; PopupMenu respects size and
+scales row height. Source status diagnostics/dirty menu/file state left, actions/
+terminal right; unsaved menu passes font.get(). Editor line numbers use85% of code
+size and reserve2rather than3digits for small files; folding hitbox retained.
+
+Normal SDK pair after these new capabilities PASS2m45s,
+/tmp/studio-comparison-sdk.log (PTY1621complete). NOT YET installed or loaded.
+Current installed pair still8c54844d.../75286aaa... from older section below.
+Focused shared Diff unit test is RUNNING PTY16063,
+/tmp/studio-text-comparison-test.log. It compiles the component's existing focused
+workspace offline, shares root target and disables incremental/debug symbols.
+Command: cargo test --offline --manifest-path
+crates/tsrust-compiler/patched-dependencies/gpui-component/Cargo.toml
+--config 'patch.crates-io.gpui-base.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/gpui-base"'
+--config 'patch.crates-io.url.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/url"'
+--config 'profile.dev.package.gpui-pre.opt-level=3'
+--config 'profile.dev.package.gpui-component.opt-level=3'
+--lib text_comparison_tests -- --test-threads=1.
+Only2local patched packages were temporarily substituted in the tracked focused-test lockfile; restored afterward. no network or
+new dependency. Earlier attempts root-manifest -pcomponent failed because optional
+package not selected, then --locked correctly refused local-patch lock refresh.
+Do not repeat those invocations. Test verifies changed-line counts, context/path
+Unicode/control quoting, equal text and missing-newline changes. Runtime/native
+Root bridge must still compile and real split-diff/zoom MAT is still required.
+
+Next: inspect focused test output, repair narrow compile/errors if any; final
+whole formatter/catalog/locales/diff checks; installed pair refresh; queue new dev
+supervisor BEFORE Ctrl+C17056/PTY11398. Source-only current-app build may fail on
+unknown fontSize until supervisor embeds new SDK; don't mistake that for sourcebug.
+Use existing runtime cache/shared target. Then verify actual colored diff, compact
+gutter, popup font/left-right status alignment, Copy All Problems. Preserve4drafts.
+After acceptance local checkpoint, resume real LSP/hover/completion/snippets and
+integrated AI priority. Full goal active; no pushes/releases/full matrix.
+
+Latest owner steering and active correction — 2026-11-11, 14:44.
+Checkpoint fa0d3634 committed the prior formatter/CLI-task/Problems section,
+including mandatory whole-project formatting (1679files). New UNCOMMITTED section
+fixes confusing save conflicts, project formatting requiring saves, Copy All
+Problems, and more visible unsaved markers/status menu. Owner clarified ordinary
+edits should save: CAS compares current disk to originally loaded disk baseline,
+not to draft. Another process (including our self-hosted source changes) changed
+these files, so explicit conflict choices are needed; never silently overwrite.
+
+Implemented source: Document.saveConflict captures path/session/revision/diskText;
+storage.resolveSaveConflict rejects stale drafts/unapproved actions/second external
+disk edits; CAS overwrite and explicit reload preserve safety. Existing normal
+save semantics retained. Kit Dialog comparison shows disk and draft side by side,
+plain English explanation, Keep editing / Discard draft and reload / Overwrite
+with my draft. services/document-actions registered executable list_unsaved_files,
+inspect_save_conflict, resolve_save_conflict shares UI resolver and host grants.
+services/problem-actions list/copy uses same live collector and guarded clipboard
+operation; Copy All icon next to Problems Close. Collector moved into lib/problems.
+Filled-circle markers in tabs AND Tree, status dirty-file count/relative-path menu.
+New Application menu with Settings retains a separate File menu on macOS (previous
+first File menu was renamed by the OS). Real UI/MAT for this new section pending.
+
+Project Format no longer refuses dirty buffers. Shared QueuedFormatting captures
+explicit session/revision targets for all open Tsrust buffers; on-focus uses same
+queue with mode focus. Disk task receives explicit unopened source paths only,
+with --write; canonical root/path checks prevent symlink escape and aliases to
+open files. Open buffers remain unsaved proposals; none are disk-formatted.
+AI format_project returns corresponding open-buffer proposals plus approved
+unopened-file task output. No shell interpolation, no new CLI option/SDK rebuild.
+
+Acceptance retained: storage4/4PASS53.32ms (including explicit overwrite/reload,
+denied host grant and second external disk change), log
+/tmp/studio-save-conflicts-tests.log. Last batch formatting+document-actions7/7
+PASS34.50ms, /tmp/studio-conflict-actions-tests.log. Follow-up formatting6/6
+PASS25.02ms after corrected fixture explicitly edits its open buffer and canonical
+path exclusion hardening, /tmp/studio-project-format-drafts-tests.log. Public
+project format initially hit dynamic push spread arity error; implementation now
+uses ordinary loops. Regression witness passes; compiler push-spread defect itself
+not repaired. Earlier temporary-path fixture mistakes were fixed to use canonical
+workspace identities. These are execution times, setup not measured separately.
+Locale2catalogs233keys pass; final whole formatter currently running
+/tmp/studio-save-conflicts-format.log. Final root idempotence/diff check pending.
+
+Dev worker SLOWDOWN diagnosis: supervisor8979/PTY46813 with old app9078 still
+alive, but 100%CPU/~310MiB frontend kept analyzing an older snapshot for minutes.
+One-second stack sample /tmp/studio-save-conflicts-sample.txt is in checker
+continuation/effects/recursive-view-shape analysis, not Rust native compilation.
+FRESH current-source read-only check PASS41.89s,
+/tmp/studio-save-conflicts-fresh-check.log. Do not launch duplicate broad tests.
+Restart queued supervisor before stopping8979 to load current source. Standing
+restart permission applies. Need investigate persistent ProjectSession stale/cancel
+behavior later; fresh check passing is not proof that slowdown is fixed. Current
+SDK installed pair remains 8c54844d.../75286aaa... below (no SDK changes this section).
+
+Owner priority still: after this direct feedback correction, real configurable
+LSP + Problems, hover/completion/snippets, then built-in AI before Git/debugger/
+extension management. No LSP connection or agent transport implemented yet.
+
 Latest live acceptance, 14:19 — corrected JSON argument encoding is loaded.
 SDK normal pair PASS2m39s; installed CLI
 8c54844d081591fc355105664b08f57522299d1972d771817b154567be731454,

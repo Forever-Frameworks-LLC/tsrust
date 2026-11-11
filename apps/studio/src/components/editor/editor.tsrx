@@ -1,3 +1,4 @@
+import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Button, CodeEditor, Markdown, Image, DockPanel, Node, Signal, computed, signal, tWith } from 'std:ui';
 import { extname } from 'std:path';
@@ -6,7 +7,7 @@ import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 
-export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, focusQueue: Signal<string[]>): Node {
+export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, focusQueue: Signal<QueuedFormatting[]>): Node {
   const path = clone(file.document.path);
   const editPath = clone(path);
   const focusPath = clone(path);
@@ -15,7 +16,7 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
   const name = clone(file.name);
   const label = computed<string>(() => {
     const current = workspace.get().files.find((entry) => entry.document.path === labelPath);
-    return name + (current !== undefined && dirty(current.document) ? ' •' : '');
+    return name + (current !== undefined && dirty(current.document) ? ' ●' : '');
   });
   const closePath = clone(path);
   const closable = computed<boolean>(() => {
@@ -91,10 +92,8 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
             onBlur={() => {
               const pending = focusQueue.get();
 
-              if (!pending.includes(blurPath)) {
-                pending.push(clone(blurPath));
-                focusQueue.set(pending);
-              }
+              enqueueFormatting(pending, workspace.get(), blurPath, 'focus');
+              focusQueue.set(pending);
             }}
             appearance={false}
             bordered={false}

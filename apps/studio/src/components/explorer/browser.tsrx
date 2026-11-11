@@ -1,3 +1,4 @@
+import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { localizeError } from '../../lib/localization.tsr';
@@ -7,8 +8,10 @@ import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
 import { Workspace, entries, openFile } from '../../lib/workspace/workspace.tsr';
 
-function FileTreeItem(path: string, name: string, directory: boolean, children: Node[], settings: Signal<StudioConfig>): Node {
+function FileTreeItem(path: string, name: string, directory: boolean, children: Node[], workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Node {
   const decoration = fileDecoration(name, directory);
+  const labelPath = clone(path);
+  const label = computed<string>(() => name + (workspace.get().files.some((file) => file.document.path === labelPath && dirty(file.document)) ? ' ●' : ''));
   const glyph = clone(decoration.svg);
   const tint = clone(decoration.color);
   const named = clone(decoration.icon);
@@ -16,13 +19,13 @@ function FileTreeItem(path: string, name: string, directory: boolean, children: 
   const color = computed<string>(() => settings.get().fileIcons ? clone(tint) : '');
   const icon = computed<string>(() => settings.get().fileIcons ? clone(named) : '');
   return (
-    <TreeItem id={path} label={name} iconSvg={svg.get()} iconColor={color.get()} icon={icon.get()}>
+    <TreeItem id={path} label={label.get()} iconSvg={svg.get()} iconColor={color.get()} icon={icon.get()}>
       {...children}
     </TreeItem>
   );
 }
 
-function directoryItems(path: string, settings: Signal<StudioConfig>): Result<Node[], string> {
+function directoryItems(path: string, workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Result<Node[], string> {
   match (entries(path)) {
     Err(message) => {
       return Err(clone(message));
@@ -34,7 +37,7 @@ function directoryItems(path: string, settings: Signal<StudioConfig>): Result<No
         let nested: Node[] = [];
 
         if (entry.directory) {
-          match (directoryItems(entry.path, settings)) {
+          match (directoryItems(entry.path, workspace, settings)) {
             Ok(items) => {
               nested = items;
             },
@@ -44,7 +47,7 @@ function directoryItems(path: string, settings: Signal<StudioConfig>): Result<No
           }
         }
 
-        nodes.push(FileTreeItem(clone(entry.path), clone(entry.name), entry.directory, nested, settings));
+        nodes.push(FileTreeItem(clone(entry.path), clone(entry.name), entry.directory, nested, workspace, settings));
       }
 
       return Ok(nodes);
@@ -55,7 +58,7 @@ function directoryItems(path: string, settings: Signal<StudioConfig>): Result<No
 export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
   const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
 
-  match (directoryItems(path, settings)) {
+  match (directoryItems(path, workspace, settings)) {
     Err(message) => {
       const errorText = computed<string>(() => localizeError(message));
       return (

@@ -129,6 +129,9 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
         if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if matches!(self.name.as_str(),"Diff"|"DropdownMenu"|"ContextMenu") && name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err(format!("{} fontSize requires an integer from 8 through 40",self.name));}
+        if self.name=="Diff" && matches!(name,"originalText"|"modifiedText") && value.len()>16*1024*1024 {return Err("Diff text snapshots exceed 16 MiB".into());}
+        if self.name=="Diff" && name=="filePath" && (value.contains('\0') || value.len()>8192) {return Err("Invalid Diff filePath".into());}
         if self.name=="Settings" {
             if matches!(name,"defaultPage"|"defaultGroup") && value.parse::<usize>().is_err() {return Err(format!("Settings {name} requires a nonnegative integer"));}
             if matches!(name,"sidebarWidth"|"sidebarMinWidth"|"sidebarMaxWidth") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && value>=0. && value<=f32::MAX as f64) {return Err(format!("Settings {name} requires finite nonnegative native pixels"));}

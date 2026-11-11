@@ -1,7 +1,7 @@
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { View, Text, Button, Tabs, Tab, TabsPrefix, TabsSuffix, Node, Signal, computed, t } from 'std:ui';
 
-export function Panels(panel: Signal<string>, output: Node, terminal: Node, terminalActions: Node, problems: Node, font: Signal<int>): Node {
+export function Panels(panel: Signal<string>, output: Node, terminal: Node, terminalActions: Node, problems: Node, problemsActions: Node, font: Signal<int>): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
   const tabsClass = computed<string>(() => 'w-full min-w-0 text-[' + font.get().toString() + 'px]');
   return (
@@ -29,6 +29,9 @@ export function Panels(panel: Signal<string>, output: Node, terminal: Node, term
             <View className="flex-row items-center">
               <View hidden={panel.get() !== 'terminal'}>
                 {terminalActions}
+              </View>
+              <View hidden={panel.get() !== 'problems'}>
+                {problemsActions}
               </View>
               <Button
                 icon="x"

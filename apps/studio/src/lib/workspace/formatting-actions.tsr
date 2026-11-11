@@ -10,6 +10,24 @@ export interface FormattingTarget {
   revision: int;
 }
 
+export interface QueuedFormatting {
+  target: FormattingTarget;
+  mode: string;
+}
+
+export function enqueueFormatting(queue: Mutable<QueuedFormatting[]>, workspace: ReadOnly<Workspace>, path: ReadOnly<string>, mode: string): void {
+  const file = workspace.files.find((file) => file.document.path === path);
+
+  if (file === undefined || file.kind !== 'text' || !canFormat(path)) return;
+
+  if (queue.some((entry) => entry.target.path === path && entry.mode === mode)) return;
+  queue.push({
+    target: {
+      path: clone(path), session: clone(file.document.session), revision: file.document.revision
+    }, mode
+  });
+}
+
 export interface FormattingAuthority {
   allowPropose: boolean;
   allowApply: boolean;
@@ -71,7 +89,7 @@ export function applyFormatting(workspace: Mutable<Workspace>, result: ReadOnly<
     match (saveDocument(workspace.files[index].document)) {
       Ok(_) => {},
       Err(error) => {
-        return Err('Save failed: ' + error.message);
+        return Err(error.code === 'conflict' ? 'This file changed on disk. Compare the versions before saving.' : 'Save failed: ' + error.message);
       }
     }
   }

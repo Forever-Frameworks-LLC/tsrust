@@ -58,6 +58,21 @@ All8open files/4drafts/zoom-1 survived the final reload. Actual51-file manual CL
 check completion and broader live focus/settings acceptance are still pending.
 Exact identities/checks and current supervisor are in docs/agent-progress.md.
 
+Save/unsaved feedback acceptance, November 11: protected save conflicts now offer
+plain-language Keep editing / reload / explicit CAS overwrite and actual shared
+split-diff comparison. Open buffers format without requiring a save; unopened
+sources format through explicit CLI task paths. Tree/tab dirty markers and a
+status-bar dirty-file menu expose clipped tabs. Problems has Copy All beside Close;
+diagnostics/file state sit left and actions including Terminal sit right. Shared
+Diff compares text snapshots off the UI thread with stale-result rejection, real
+line/word emphasis, retained/folded context and configured font sizing. Native
+popup text and editor/diff gutters follow compact configured sizing. Focused model
+checks, native text comparison and live macOS acceptance are recorded in the sole
+handoff; actual LSP/agent integration and full resource/platform scope remain open. Status controls now use equal action spacing and independent error/warning
+counters with explicit icon-count gaps. The conflict overlay host reserves no
+workspace height, preserving a single custom titlebar row; live macOS MAT passed.
+
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

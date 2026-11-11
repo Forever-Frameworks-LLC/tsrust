@@ -3077,6 +3077,11 @@
           "name": "externalLinkIcon",
           "type": "boolean",
           "doc": "Shows an external-link icon on link items. Defaults to true."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened."
         }
       ],
       "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>",
@@ -3171,6 +3176,11 @@
           "name": "externalLinkIcon",
           "type": "boolean",
           "doc": "Shows an external-link icon on link items. Defaults to true."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened."
         }
       ],
       "example": "<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>"
@@ -5596,12 +5606,12 @@
     },
     {
       "name": "Diff",
-      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners.",
+      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. Alternatively supply originalText and modifiedText with filePath to compare full snapshots on a background worker, retaining all context for expansion and rejecting stale comparison results. Do not combine text snapshots with patch.",
       "props": [
         {
           "name": "patch",
           "type": "string",
-          "doc": "Unified diff text, as printed by git diff."
+          "doc": "Unified diff text, as printed by git diff. Omit when using originalText and modifiedText."
         },
         {
           "name": "mode",
@@ -5697,6 +5707,26 @@
           "name": "syntaxMaxLineLength",
           "type": "int",
           "doc": "Maximum source-line byte length for syntax coloring. Defaults to 1000; requires an integer >= 1. Longer lines remain plain text."
+        },
+        {
+          "name": "originalText",
+          "type": "string",
+          "doc": "Complete original snapshot, up to 16 MiB. Requires modifiedText; cannot be combined with patch. Comparison runs in the background."
+        },
+        {
+          "name": "modifiedText",
+          "type": "string",
+          "doc": "Complete modified snapshot, up to 16 MiB. Requires originalText. Changing either snapshot replaces the comparison; outdated results are discarded."
+        },
+        {
+          "name": "filePath",
+          "type": "string",
+          "doc": "File name/path used for the complete-text comparison header and highlighting language. Defaults to comparison.txt. No filesystem I/O is performed."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Code and line-number text size in logical pixels, 8–40. Omission uses the theme monospace size. Live changes preserve the diff state."
         }
       ],
       "example": "<Diff patch={patch} mode=\"split\" className=\"h-96\"/>",

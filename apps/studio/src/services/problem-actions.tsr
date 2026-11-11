@@ -1,0 +1,40 @@
+import { Signal, writeClipboard } from 'std:ui';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { Problem, collectProblems, formatProblems } from '../lib/workspace/problems.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface ProblemActionContext {
+  workspace: Signal<Workspace>;
+  problems: Signal<Problem[]>;
+  terminalError: Signal<string>;
+  allowClipboard: boolean;
+}
+
+export function copyProblems(context: ReadOnly<ProblemActionContext>): Result<void, string> {
+  if (!context.allowClipboard) return Err('Copying problems is not permitted by the host.');
+  writeClipboard(formatProblems(collectProblems(context.workspace.get(), context.problems.get(), context.terminalError.get())));
+  return Ok();
+}
+
+export function problemTools(): EditorTool[] {
+  return [{
+    name: 'list_problems', description: 'Read all current source-labeled workspace diagnostics and operation errors. Does not change focus or files.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'copy_all_problems', description: 'Copy all current problems to the system clipboard. Requires an explicit host clipboard-write grant.', inputSchema: '{"type":"object","properties":{}}'
+  }];
+}
+
+export function invokeProblemTool(context: ReadOnly<ProblemActionContext>, name: ReadOnly<string>): Result<string, string> {
+  if (name === 'list_problems') return Ok(JSON.stringify(collectProblems(context.workspace.get(), context.problems.get(), context.terminalError.get())));
+
+  if (name !== 'copy_all_problems') return Err('Unknown problems action.');
+
+  match (copyProblems(context)) {
+    Ok(_) => {
+      return Ok('{"copied":true}');
+    },
+    Err(error) => {
+      return Err(clone(error));
+    }
+  }
+}

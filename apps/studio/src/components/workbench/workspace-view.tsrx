@@ -1,3 +1,4 @@
+import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { View, Button, Dock, Node, Signal, computed, signal, t } from 'std:ui';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -5,7 +6,7 @@ import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
 
-export function EditorWorkspace(workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, mode: Signal<string>, sidebar: Signal<boolean>, focusQueue: Signal<string[]>): Node {
+export function EditorWorkspace(workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, mode: Signal<string>, sidebar: Signal<boolean>, focusQueue: Signal<QueuedFormatting[]>): Node {
   const layoutFailed = signal(false);
   const dockClass = computed<string>(() => 'size-full text-[' + font.get().toString() + 'px]');
   const initialLayout = clone(workspace.get().dockLayout);

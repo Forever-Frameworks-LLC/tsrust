@@ -26,6 +26,9 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
   return (
     <View className="relative shrink-0 h-9 bg-muted border-b border-border" windowDragRegion={true}>
       <AppMenuBar>
+        <AppMenu label={message("Application")}>
+          <MenuItem command="open-settings" label={message("Settings")} />
+        </AppMenu>
         <AppMenu label={message("File")}>
           <MenuItem command="save-file" label={message("Save")} disabled={workspace.get().active === ''} />
           <MenuItem command="close-tab" label={message("Close Editor")} />

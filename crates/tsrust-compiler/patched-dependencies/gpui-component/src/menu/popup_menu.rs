@@ -300,6 +300,7 @@ pub struct PopupMenu {
     max_height: Option<Pixels>,
     bounds: Bounds<Pixels>,
     size: Size,
+    font_size: Option<Pixels>,
     check_side: Side,
     /// Indexes of the items added as options that can be checked, so an
     /// unchecked one reports its state rather than reading as a command.
@@ -354,11 +355,15 @@ impl PopupMenu {
             scroll_handle: ScrollHandle::default(),
             external_link_icon: true,
             size: Size::default(),
+            font_size: None,
             submenu_anchor: (Anchor::TopLeft, Pixels::ZERO),
             priority: gpui_base::POPUP_PRIORITY,
             _subscriptions: vec![],
         }
     }
+
+    /// Override native menu defaults with the owner's configured text size.
+    pub fn font_size(mut self, size: Pixels) -> Self {self.font_size = Some(size); self}
 
     pub fn build(
         window: &mut Window,
@@ -1283,9 +1288,12 @@ impl PopupMenu {
             _ => (px(26.), options.radius),
         };
 
+        let item_height = self.font_size.map_or(item_height, |font| (font * 1.4 + px(6.)).max(px(20.)));
+
         let this = MenuItemElement::new(ix)
             .relative()
             .text_sm()
+            .when_some(self.font_size, |item, size| item.text_size(size))
             .py_0()
             .px(INNER_PADDING)
             .rounded(radius)

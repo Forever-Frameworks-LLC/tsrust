@@ -59,7 +59,8 @@ const GUTTER_DECORATION_GAP: Pixels = px(4.);
 const GUTTER_BOUNDARY_MARK_HEIGHT: Pixels = px(8.);
 const MIN_OVERVIEW_RULER_MARK_HEIGHT: Pixels = px(6.);
 const MAX_HIGHLIGHT_LINE_LENGTH: usize = 10_000;
-const MIN_LINE_NUMBER_DIGITS: usize = 3;
+const MIN_LINE_NUMBER_DIGITS: usize = 2;
+const LINE_NUMBER_FONT_SCALE: f32 = 0.85;
 const MAX_LINE_NUMBER_DIGITS: usize = 7;
 const MAX_DISPLAYED_LINE_NUMBER: usize = 9_999_999;
 
@@ -1404,14 +1405,14 @@ impl<M: InputModeKind> TextElement<M> {
         window: &mut Window,
     ) -> (Pixels, usize) {
         let total_lines = text.lines_len();
-        // Reserve three digits for small documents, then follow the actual
+        // Reserve two digits for small documents, then follow the actual
         // line count up to seven digits.
         let line_number_len = line_number_len(total_lines);
 
         let mut line_number_width = if state.mode.line_number() {
             let empty_line_number = window.text_system().shape_line(
                 "+".repeat(line_number_len).into(),
-                font_size,
+                font_size * LINE_NUMBER_FONT_SCALE,
                 &[TextRun {
                     len: line_number_len,
                     font: style.font(),
@@ -3458,7 +3459,7 @@ impl<M: InputModeKind> Element for TextElement<M> {
                 sub_lines.push(
                     window
                         .text_system()
-                        .shape_line(line_no, text_size, &runs, None),
+                        .shape_line(line_no, text_size * LINE_NUMBER_FONT_SCALE, &runs, None),
                 );
                 for _ in 0..line.wrapped_lines.len().saturating_sub(1) {
                     sub_lines.push(ShapedLine::default());
@@ -4153,10 +4154,10 @@ mod tests {
     };
 
     #[test]
-    fn line_number_column_stays_at_three_digits_then_grows_up_to_seven() {
-        assert_eq!(line_number_len(1), 3);
-        assert_eq!(line_number_len(9), 3);
-        assert_eq!(line_number_len(10), 3);
+    fn line_number_column_stays_compact_then_grows_up_to_seven() {
+        assert_eq!(line_number_len(1), 2);
+        assert_eq!(line_number_len(9), 2);
+        assert_eq!(line_number_len(10), 2);
         assert_eq!(line_number_len(999), 3);
         assert_eq!(line_number_len(1_000), 4);
         assert_eq!(line_number_len(999_999), 6);

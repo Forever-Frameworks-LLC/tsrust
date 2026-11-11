@@ -128,8 +128,9 @@ Source layout:
 - `tests`: stable runtime suites importing the same application models.
 
 Project → Check Project (`Cmd+Shift+B`) starts a named task terminal running the
-actual public CLI. Project → Format Project runs the formatter in a separate task
-terminal, refusing unsaved open buffers. Task rows show running/success/failure;
+actual public CLI. Project → Format Project formats open buffers through revisioned
+proposals without saving, and runs the public formatter over unopened source files
+in a separate task terminal. Unsaved buffers do not block formatting. Task rows show running/success/failure;
 output remains available after exit. Cmd-click a `path:line:column` location
 (Ctrl-click outside macOS) to open its workspace file and highlight the rest of
 the destination line. External URLs and files outside the workspace are rejected.
@@ -153,3 +154,14 @@ are partial overrides. The `TSRUST` environment variable selects the compiler;
 otherwise Studio resolves `tsrust` through PATH. Automated checks are bounded to
 five minutes and 4 MiB output. Manual task terminals use native scrollback and can
 be interrupted or removed through their session actions.
+
+Unsaved files have a filled-circle marker in document tabs and the tree. The
+status bar shows their count and a menu of relative paths, including tabs clipped
+out of view. Problems has Copy All beside Close, copying complete source/location/
+message text. Saving compares disk against the originally loaded disk baseline,
+not against the draft: ordinary edits save normally. If another process changed
+the saved file, a plain-language comparison popup offers Keep editing, Discard
+draft and reload, or Overwrite with my draft. Explicit overwrite still verifies
+that the disk snapshot and draft revision have not changed since comparison.
+The same guarded resolution and clipboard actions have executable AI tool routes;
+the actual integrated agent transport remains pending.
