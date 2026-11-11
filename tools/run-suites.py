@@ -23,6 +23,24 @@ EXPECTED_FAILURES = {"crates/tsrust-compiler/tests/fixtures/testing-async/failur
 
 
 
+def suite_timeout(directory):
+    # The starter compiles the complete native GPUI closure on a cold runner.
+    return 1800 if Path(directory) == Path("examples/gpui-starter/tests") else 600
+
+
+def profile_times(stdout):
+    result = {}
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("event") in ("build", "summary"):
+            key = "buildSeconds" if event["event"] == "build" else "testSeconds"
+            result[key] = round(event["durationMs"] / 1000, 3)
+    return result
+
+
 def suites(catalog):
     groups = defaultdict(list)
     tracked = subprocess.run(["git", "ls-files", "*.test.tsr"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout.split()
@@ -51,20 +69,25 @@ def main():
         # Rust-package adapters resolve their locked crate closure first.
         for bindings in sorted((ROOT / directory).glob("*.bindings.json")):
             subprocess.run([compiler, "bindings", "resolve", str(bindings)], cwd=ROOT, env=env, stdin=subprocess.DEVNULL, check=True)
+        timeout = suite_timeout(directory)
         try:
             with tempfile.TemporaryDirectory(prefix="tsrust-suite-") as working:
-                process = subprocess.run([compiler, "test", *[str((ROOT / file).resolve()) for file in files], "--color", "never"],
-                                         cwd=working, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600)
+                process = subprocess.run([compiler, "test", *[str((ROOT / file).resolve()) for file in files], "--color", "never", "--profile", "--reporter", "json"],
+                                         cwd=working, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
         except subprocess.TimeoutExpired as error:
-            process = subprocess.CompletedProcess(error.cmd, 124, error.stdout or "", f"suite exceeded 600s\n{error.stderr or ''}")
+            process = subprocess.CompletedProcess(error.cmd, 124, error.stdout or "", f"suite exceeded {timeout}s including compilation\n{error.stderr or ''}")
         seconds = round(time.monotonic() - started, 1)
         ok = process.returncode == 0
         failed += not ok
-        results.append({"suite": directory, "files": len(files), "seconds": seconds, "ok": ok})
-        print(f"{'PASS' if ok else 'FAIL'} {directory} ({len(files)} files, {seconds}s)", flush=True)
+        times = profile_times(process.stdout) if isinstance(process.stdout, str) else {}
+        results.append({"suite": directory, "files": len(files), "seconds": seconds, "ok": ok, **times})
+        print(f"{'PASS' if ok else 'FAIL'} {directory} ({len(files)} files, {seconds}s, {times})", flush=True)
         if not ok:
-            print(str(process.stdout)[-4000:] + str(process.stderr)[-4000:], flush=True)
-    print(json.dumps({"suites": len(results), "failed": failed, "seconds": round(sum(row["seconds"] for row in results), 1)}))
+            # A JSON failure event may precede many later passing tests.
+            print(str(process.stdout) + str(process.stderr)[-4000:], flush=True)
+    print(json.dumps({"suites": len(results), "failed": failed, "seconds": round(sum(row["seconds"] for row in results), 1),
+                      "buildSeconds": round(sum(row.get("buildSeconds", 0) for row in results), 3),
+                      "testSeconds": round(sum(row.get("testSeconds", 0) for row in results), 3)}))
     sys.exit(1 if failed else 0)
 
 

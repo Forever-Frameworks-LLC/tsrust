@@ -31,9 +31,33 @@ are retained without lossy conversion. Drive/UNC and non-Windows regression1/1
 passed (0.00s execution,9.14s build); actual Cargo graph/cache-lock regression1/1
 passed (1.45s execution,0.12s setup). Distribution/promotion26/26 passed again.
 Whole formatter0files; Windows shader compilation still requires hosted verification.
-Fail-fast cancelled Mac/Linux runtime groups; all3 host-boundary groups remain in
-progress. Preserve their outcome before pushing the diagnosed repair. No merge/
-publication yet.
+Cancelled Linux runtime logs also contain a real failed suite: the cold GPUI
+starter exceeded the combined600s build/run timeout. Mac passed that same suite
+in496.4s; Linux completed93 suites and Mac106 before fail-fast cancellation.
+Runner repair gives only examples/gpui-starter/tests1800s combined cold-build/run
+budget; other suites retain600s, and the enclosing CI job remains45minutes.
+Existing public --profile/--reporter json now separates buildSeconds/testSeconds;
+failed JSON output is retained even when later passing tests follow. Python2/2
+regressions pass and are wired into CI tooling. Real public runner local samples:
+examples/testing and complete GPUI starter2directories/5files pass,27.4s wall,
+26.976s reported build and0.004s reported test execution. Intentional async-failure
+fixture remains rejected with exit1,1.833s build/0.010s tests, complete failure events.
+This does not count a timeout as passing; Linux cold completion still needs CI.
+Host boundaries on0984945: Linux21targets/170tests pass28m40 job wall; Mac21/170
+pass37m54 job wall (1663.20s harness wall includes child compilation, separate top
+builds2m54/3m08/2m51). Windows21targets/166tests pass45m32 job wall (2048.17s harness wall includes
+child compilation; separate top builds3m18/3m14/2m30). Aggregate old-head CI failed
+as expected for the Windows shader failure and Linux timeout; Mac/Linux runtime
+cancellation is incomplete acceptance. Both repairs are locally ready together.
+Next push is for required final merge acceptance; exact new source checkpoint and
+clean preflight identify its inputs. Previous equivalent input0984945 is fully
+accounted above. Windows shader completion and Linux cold GPUI build cannot be
+proved on this Mac and require the repaired hosted matrix. No duplicate manual
+workflow dispatch or speculative release publication is authorized/needed.
+Staging rules require squash/rebase and linear history, CI mandatory without bypass.
+The owner has an explicit PR-only review bypass. Main requires a normal merge and
+Release gate with no bypass. Use the configured owner review path only after green
+CI; do not bypass checks or alter rules. No merge/publication yet.
 Candidate checkpoint3fbfad83 passed clean
 v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
 not fetched before offline suites, and Linux speech builds lacked ALSA headers;
