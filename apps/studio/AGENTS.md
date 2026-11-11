@@ -103,3 +103,35 @@ Settings must use categorized Settings pages with GUI controls first, custom win
 chrome, and optional formatted full-height JSON. Keep file-type icons, consistent
 navigation/editor typography, one terminal toggle, and real service integration on
 the implementation path. Owner will provide preference feedback through the live app.
+
+
+## AI action parity — owner, 2026-11-11
+
+Every editor feature must expose a direct action to the integrated AI, covering
+all semantic actions available to the user. Route toolbar/menu/shortcut actions
+and AI tool calls through the same typed command implementation. Keep behavior,
+validation, document transactions, errors and cancellation consistent. A separately
+implemented AI approximation, simulated clicks, an exported helper alone or tool
+metadata without an executable hookup does not satisfy this requirement.
+
+Command definitions must describe arguments/results, availability, target scope,
+preconditions and effects. The trusted host supplies actor identity, capabilities
+and approval state; model arguments cannot grant privileges or claim user origin.
+Agents must target explicit workspace/document identities and revisions rather
+than relying on whichever tab happens to be active. Background work must not
+silently change the user's selection, focus or active document.
+
+Bounded reads, search and explicitly requested navigation/view operations may run
+within granted scope. Agent edits, filesystem mutations and persistent settings
+changes use isolated proposals and the existing review/conflict boundary. Commands
+that can write files or execute code run in isolation unless an applicable grant
+explicitly permits their effects. Consequential/destructive operations require the
+appropriate approval; an agent cannot approve its own proposal, expand its scope
+or bypass safeguards through another command, process or agent.
+
+Feature acceptance requires a working UI route and a real registered AI action
+route, including relevant guardrail/error/cancellation evidence. Record existing
+UI acceptance separately from missing AI parity. Native editor actions such as
+selection, undo/redo, tab movement and pane layout require checked programmatic
+APIs where those hooks are absent. Clearly labeled planned features remain
+unavailable actions with an explanation, not pretend successful tool calls.

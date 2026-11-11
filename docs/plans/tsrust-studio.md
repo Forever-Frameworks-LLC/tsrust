@@ -108,6 +108,57 @@ On acceptance, compare current revisions and apply transactionally. Conflicts
 require renewed review. Rejection leaves user content untouched. No agent can
 approve its own proposal or use another agent to bypass review.
 
+### Required UI and AI action parity — owner, 2026-11-11
+
+Every semantic editor/user action must have a direct integrated-AI action route.
+This is an implementation requirement, not an optional automation layer after
+editor completion. UI controls, menus, shortcuts and AI tools invoke the same typed
+commands and services. Keep a single command definition for its arguments, result,
+availability, target scope, preconditions and effects; derive discovery/tool
+contracts from it rather than maintaining a second behavior table.
+
+Actor identity and grants come from the trusted host, never model-supplied flags.
+Tool requests target explicit workspace/document/session identities and expected
+revisions. Read/search operations return current unsaved-buffer snapshots where
+appropriate. Background agent work must not steal focus or change the user's
+active tab unless that UI action was requested. Progress, cancellation and failure
+are observable through the same underlying job used by the UI.
+
+Parity does not authorize unrestricted execution. Preserve the existing isolated
+proposal/revision boundary for agent edits and filesystem/settings writes. Run
+commands with file/code-execution effects in isolated task workspaces unless an
+applicable host grant explicitly permits them. Scope external disclosure and
+consequential/destructive actions to the appropriate approval. Agents cannot
+approve their own proposals, change grants or bypass review through another tool,
+terminal, process or agent. Safe inspection/navigation/view commands can execute
+within granted scope without inventing an approval for every action.
+
+A feature is complete only when its UI and registered AI action routes work through
+the same implementation, with relevant stale-target, denied-action, error and
+cancellation behavior demonstrated. Retain already passed UI evidence separately;
+metadata, exported model functions and placeholders are not proof of AI integration.
+Model quality qualification remains a separate acceptance condition.
+
+Current source audit (November 11; AI action integration remains pending):
+
+| Existing feature family | Reusable implementation | Missing AI hookup |
+| --- | --- | --- |
+| Files and content search | workspace entries/projectFiles and searchContents, including draft search/regex/case | Shared command registration, scoped tool invocation and structured results |
+| Open/select/close documents | workspace openFile/selectFile/closeFile and recovery publication | Explicit-target command path; retain dirty-close/recovery guards |
+| Edits, saves and proposals | document edit/propose/apply, saveDocument and stale byte/session/revision checks | Registered proposal/review transaction commands; no direct AI write bypass |
+| Selection and editor operations | std:ui readInput/controlInput expose snapshots and some actions | Domain-target adapters; checked undo/redo and remaining native operation hooks |
+| Tabs and split panes | Native Dock interaction and saved layouts | Checked programmatic reorder/split/resize commands; snapshots alone cannot execute actions |
+| Settings, themes, locale and zoom | Validated settings/actions and zoomWorkspace | Shared invocation with guarded persistent writes and explicit view-state targeting |
+| Project checking | .tsr worker with real CLI JSON, result/cancellation channels and bounds | Host-owned job commands and AI transport; current controls are UI-owned |
+| Markdown/images and view toggles | Native viewers and component signals | Shared preview/navigation/panel commands, preserving focus and user state |
+| Terminal, language services, Git, debug, extensions and AI review | Some native/library primitives; product services incomplete | Implement real services and register both UI and AI actions together |
+
+Next implementation section: connect a shared typed dispatcher and executable AI
+adapter to existing search/navigation/project-check services, then extend guarded
+mutations and missing native command hooks. A model is not required to exercise
+that adapter, but invoking a helper directly is not a substitute for testing the
+registered route. Do not label the current app AI-wired before that work lands.
+
 ### Reusable AI capabilities
 
 Investigate a public inference capability (working name `std:ai`) backed by a

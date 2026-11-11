@@ -155,6 +155,19 @@ existing/pinned standard language glyphs, with resource provenance. After that,
 real terminal/task/LSP integration remains required. Keep one preview and preserve
 owner feedback; no full suite unless meaningful family milestone requires it.
 
+Owner update — every feature must have a direct integrated-AI action hookup.
+Recorded in apps/studio/AGENTS.md and the Studio plan's required action-parity
+section. UI/AI must share typed command implementations, trusted host identity,
+capability checks, explicit document targets, revision guards and job lifecycle.
+Preserve isolated agent proposals/review; no self-approval or terminal/tool bypass.
+Existing UI acceptance is retained, but current exported helpers are not AI wiring.
+The plan inventories current search/documents/editor/Dock/settings/check/viewer
+hooks and missing routes. Next feature section is the shared dispatcher/executable
+AI adapter for existing services, with native undo/redo/Dock hooks and guarded
+mutation routes following. No agent transport or new runtime behavior is claimed
+by this requirement checkpoint. Dev37767/PTY50581/app39551 remains current; no
+restart needed for documentation. Full Studio goal remains active.
+
 Latest accepted fix — content-search InputGroup and typography, November 11.
 The screenshot request is implemented with existing InputGroup/Addon/Button:
 inline case-sensitive, regex and search icons, tooltips and accessible names.
