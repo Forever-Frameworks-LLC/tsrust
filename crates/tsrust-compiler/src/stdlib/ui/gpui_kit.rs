@@ -2931,9 +2931,13 @@ impl Root {
                 button.on_click(cx.listener(move |this, _, _, cx| this.emit(id, "click", String::new(), cx))).into_any_element()
             }
             "Resizable" => {
-                let mut group = if kit.flag("vertical") {v_resizable(element_id)} else {h_resizable(element_id)};
+                // Divider sizes are indexed by displayed slot; do not apply another ordering's sizes.
+                let layout_id=ElementId::Name(format!("resize-{id}-{}-{}",kit.flag("vertical"),kit.flag("reverse")).into());
+                let mut group = if kit.flag("vertical") {v_resizable(layout_id)} else {h_resizable(layout_id)};
                 if let Some(size) = kit.number("size") {group = group.size(px(size as f32));}
-                for (child, panel) in items(node, "ResizablePanel") {
+                let mut panels=items(node,"ResizablePanel").collect::<Vec<_>>();
+                if kit.flag("reverse"){panels.reverse();}
+                for (child, panel) in panels {
                     let mut entry = resizable_panel().child(div().size_full().children(self.content(child, cx))).visible(panel.prop("visible") != Some("false"));
                     if let Some(size) = panel.number("size") {entry = entry.size(px(size as f32));}
                     if panel.number("minSize").is_some() || panel.number("maxSize").is_some() {entry = entry.size_range(px(panel.number("minSize").unwrap_or(0.) as f32)..px(panel.number("maxSize").unwrap_or(100_000.) as f32));}

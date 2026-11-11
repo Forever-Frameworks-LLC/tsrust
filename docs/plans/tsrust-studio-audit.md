@@ -826,3 +826,54 @@ panes, recovery drafts0. No text edited during this witness. Startup65,916ms
 includes runtime miss40,529.8ms; app RSS67,312KiB/CPU0.0%, supervisor5,600KiB/0.0%
 are single observations, not benchmarks or leak acceptance. Removed1,934,800,837
 bytes obsolete8020 caches; current dev/public/test consumers retained.
+
+
+### Persistent live region placement — 2026-11-11, afteraff7501e
+
+Studio config now validates navigationSide/activityBarSide (left/right), and
+panelPosition/chatPosition (left/right/bottom). Optional stored fields migrate
+existing schemaVersion1 theme/font files to defaults without rewriting until Save.
+Settings applies the complete resolved model to the existing workspace. AI Chat
+has an independent close/toggle region, allowing it and task/terminal panels to
+coexist. layout.tsrx composes native Resizable panels, with appropriate seam borders
+and full-height navigation/activity surfaces. No handwritten Studio Rust.
+
+Shared Resizable.reverse is a live boolean; it reverses native rendering order
+without moving owned source Nodes. Divider state uses the group's axis/order key
+because Kit sizes belong to displayed indices. The attempted reactive keyed-list
+approach required illegal Node cloning and was removed; no ownership rule was
+weakened and branch.rs is unchanged. Helper numeric/capture/constructor diagnostics
+were corrected before final acceptance. API/LSP docs and exports are generated
+from kit.json. SDK SHA2566ed27646458b2deac70d92cc6eefd392e75a60282cc5b1181bde80c002746725.
+
+Acceptance:
+- std:testing settings suite2/2PASS454.62ms execution; setup not separately timed.
+  Existing38theme round-trips plus old-file defaults,36placement combinations and
+  invalid-placement writes preserving the prior file. An initial borrowed-loop
+  fixture rejection was fixed by deliberately copying owned config strings.
+- New ui_authoring reverse contract1/1PASS1.20s execution,2m30s setup. Live boolean
+  input checks after format round-trip; integer input rejects. Main checkPASS.
+- Final compiler/LSP buildPASS2m44s setup; public native Studio buildPASS; latest
+  dev compiles/links/starts all changes. Generator parityPASS and repeated whole
+  formatter0files/0snippets/0fingerprints. Unchanged Studio/storage/Dock evidence
+  is preserved; intermediate old-API checks and cancelled builds are not passes.
+- Actual app55250: default left/left/bottom/right; right/right/left/bottom; and
+  left/right/right/left placements observed through Settings Save/close/reopen.
+  These exercise every supported region position;36combinations are model tests,
+  not36native checks. Terminal/chat coexist and close independently. The unsaved
+  Unicode draft survives all moves. Two split editors and both AX fields survive
+  restoration of defaults; Undo then restores clean original bytes.
+
+Original settings restored byte-for-byte through its Settings editor:
+SHA2560c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb.
+.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483,
+config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
+unchanged. Recovery drafts0; no test draft saved. Two clean panes remain open.
+PTY45614/supervisor54542/app55250 remain live. Installed/target CLI
+ce804822cd883ed595af20bddabc718107c80ffd5230d0c851a1756371ef6444 and LSP
+dd5bb636a475ea7f87c7027d68c73a9671adecf1f03bbfe97b837e35604c64b7 independently
+match. Startup68,348ms includes runtime miss41,471.2ms. App RSS76,000KiB/CPU3.2%,
+supervisor5,536KiB/0.0% are single observations, not leak/benchmark acceptance.
+Removed1,934,753,405bytes obsoleteaff native caches; current dev/public/settings/
+previous full-suite consumers retained. Locale/i18n, geometry/view persistence,
+manual gestures and actual terminal/AI services remain incomplete.

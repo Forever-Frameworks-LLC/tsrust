@@ -1,7 +1,7 @@
 import { View, Text, Button, CodeEditor, Select, Node, Signal, signal, computed, openWindow, useTheme } from 'std:ui';
-import { configPath, loadConfig, saveConfig, parseConfig, defaultConfig, themes } from './settings.tsr';
+import { configPath, loadConfig, saveConfig, parseConfig, defaultConfig, themes, StudioConfig } from './settings.tsr';
 
-function SettingsEditor(path: string, font: Signal<int>): Node {
+function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>): Node {
   let initial = defaultConfig();
   const message = signal('');
   match (loadConfig(path)) {
@@ -31,7 +31,7 @@ function SettingsEditor(path: string, font: Signal<int>): Node {
       <Text className="grow truncate">{path}</Text>
       <Button icon="save" size="small" onPress={() => {
         match (saveConfig(savePath, text.get())) {
-          Ok(config) => { font.set(config.fontSize); useTheme(config.theme); message.set('Settings saved.'); },
+          Ok(config) => { font.set(config.fontSize); useTheme(clone(config.theme)); settings.set(config); message.set('Settings saved.'); },
           Err(error) => { message.set(error); }
         }
       }}>Save</Button>
@@ -53,10 +53,10 @@ function SettingsEditor(path: string, font: Signal<int>): Node {
   </View>;
 }
 
-export function showSettings(font: Signal<int>): void {
+export function showSettings(font: Signal<int>, settings: Signal<StudioConfig>): void {
   match (configPath()) {
     Ok(path) => {
-      openWindow(SettingsEditor(path, font), 'Tsrust Studio Settings', {
+      openWindow(SettingsEditor(path, font, settings), 'Tsrust Studio Settings', {
         width: 820, height: 640, minWidth: 600, minHeight: 400
       });
     },

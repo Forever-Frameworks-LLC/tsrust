@@ -4640,6 +4640,8 @@ export interface ResizableProps {
   vertical?: ReactiveValue<boolean>;
   /** The group's size in pixels along its axis. */
   size?: ReactiveValue<number>;
+  /** Displays panels in reverse order without moving or recreating their owned child subtrees. Defaults to false. onResize reports sizes in displayed order. */
+  reverse?: ReactiveValue<boolean>;
   /** Runs with each panel's size in pixels after a drag. */
   onResize?: Owned<Function<void, [sizes: ReadOnly<string[]>]>>;
   /** ResizablePanel elements. */
@@ -4659,6 +4661,11 @@ export function Resizable(props: ResizableProps): Node {
   const prop_size = props.size;
   if (prop_size !== undefined) {
     node = kitNumber(node, 'size', prop_size);
+  }
+
+  const prop_reverse = props.reverse;
+  if (prop_reverse !== undefined) {
+    node = kitFlag(node, 'reverse', prop_reverse);
   }
 
   const event_onResize = props.onResize;

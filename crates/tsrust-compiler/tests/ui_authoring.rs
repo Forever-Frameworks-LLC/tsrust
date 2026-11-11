@@ -119,3 +119,15 @@ fn dock_selection_and_close_callbacks_keep_borrowed_string_contracts() {
         assert!(check(&source).is_err(),"{property} accepted an integer callback instead of borrowed text");
     }
 }
+
+
+#[test]
+fn resizable_reverse_accepts_live_boolean_ordering_only() {
+    let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+    for (value,valid) in [("reverse.get()",true),("123",false)] {
+        let source=format!("import {{Resizable,ResizablePanel,Text,signal}} from 'std:ui';function main(){{const reverse=signal(false);const view=<Resizable reverse={{{value}}}><ResizablePanel><Text>Main</Text></ResizablePanel><ResizablePanel><Text>Tools</Text></ResizablePanel></Resizable>;}}");
+        std::fs::write(&path,support::format_round_trip(&source)).unwrap();
+        let checked=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap());
+        assert_eq!(checked.is_ok(),valid,"{value}: {:?}",checked.err());
+    }
+}

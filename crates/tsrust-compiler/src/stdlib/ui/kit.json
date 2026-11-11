@@ -3364,6 +3364,11 @@
           "name": "size",
           "type": "number",
           "doc": "The group's size in pixels along its axis."
+        },
+        {
+          "name": "reverse",
+          "type": "boolean",
+          "doc": "Displays panels in reverse order without moving or recreating their owned child subtrees. Defaults to false. onResize reports sizes in displayed order."
         }
       ],
       "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>",

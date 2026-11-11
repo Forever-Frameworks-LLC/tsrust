@@ -41,3 +41,51 @@ test('settings validate before persistence and round trip their named theme and 
     unwrap(removeDirAll(root));
   }
 });
+
+
+test('layout defaults migrate existing settings and every supported placement round trips', () => {
+  const legacy = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}'));
+  strictEqual(legacy.navigationSide, 'left');
+  strictEqual(legacy.activityBarSide, 'left');
+  strictEqual(legacy.panelPosition, 'bottom');
+  strictEqual(legacy.chatPosition, 'right');
+  const root = unwrap(createTempDir(undefined, 'studio-layout-'));
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    for (const navigation of ['left', 'right']) {
+      for (const activity of ['left', 'right']) {
+        for (const panel of ['left', 'right', 'bottom']) {
+          for (const chat of ['left', 'right', 'bottom']) {
+            const config = defaultConfig();
+            config.navigationSide = clone(navigation);
+            config.activityBarSide = clone(activity);
+            config.panelPosition = clone(panel);
+            config.chatPosition = clone(chat);
+            const text = JSON.stringify(config);
+            unwrap(saveConfig(path, text));
+            const loaded = unwrap(loadConfig(path));
+            strictEqual(loaded.navigationSide, navigation);
+            strictEqual(loaded.activityBarSide, activity);
+            strictEqual(loaded.panelPosition, panel);
+            strictEqual(loaded.chatPosition, chat);
+          }
+        }
+      }
+    }
+
+    const baseline = unwrap(readTextFile(path));
+    for (const field of ['navigationSide', 'activityBarSide', 'panelPosition', 'chatPosition']) {
+      const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"' + field + '":"top"}';
+      match (saveConfig(path, invalid)) {
+        Ok(_) => {
+          throw 'invalid placement saved';
+        },
+        Err(_) => {}
+      }
+
+      strictEqual(unwrap(readTextFile(path)), baseline);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

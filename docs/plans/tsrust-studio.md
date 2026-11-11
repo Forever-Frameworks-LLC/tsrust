@@ -370,7 +370,7 @@ Each item requires observed behavior; source changes alone do not close it.
 
 | # | Requirement | Current acceptance |
 |---|---|---|
-| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persistent file and JSON-to-picker synchronization observed |
+| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own window, live Save/Reload, persistent file, legacy theme/font migration and live region-placement Save/reopen observed |
 | 2 | Matching navigation/editor text sizing | Shared zoom observed; monospace tree/editor screenshot appears matched; full layout acceptance pending |
 | 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; Enter/worker/cancellation pending |
 | 4 | Image and appropriate non-text viewers | Actual package PNG decoded in app; other image formats and failures pending |
@@ -383,7 +383,13 @@ Each item requires observed behavior; source changes alone do not close it.
 | 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; Catppuccin Latte native preview/Save/Reload observed; full catalog contrast/rendering pending |
 | 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual scrolling remains unverified |
 | 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |
-| 14 | Terminal toggle; planned-feature surfaces and controls | Real terminal-panel toggle and labeled planned tabs observed; PTY/debug/Git/AI/extension functionality remains pending |
+| 14 | Terminal toggle; planned-feature surfaces and controls | Independent terminal/task and AI-chat toggles/close controls plus configurable left/right/bottom regions observed; PTY/debug/Git/AI/extension functionality remains pending |
+
+Layout configuration now has model acceptance for all36combinations of navigation
+and activity sides plus task/chat placement. Three native arrangements verify all
+supported positions, independent visibility, saved-setting reload, Unicode draft,
+split-pane and Undo preservation. Locale/i18n and pane/view persistence across
+restart remain required.
 
 Owner permits supervisor restarts whenever needed without another permission
 question. Keep one current dev session running. Planned-feature placeholders are

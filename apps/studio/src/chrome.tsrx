@@ -1,6 +1,7 @@
 import { View, Button, Shortcut, Signal, Node } from 'std:ui';
 import { Workspace, closeFile } from './workspace.tsr';
 import { showSettings } from './settings-window.tsrx';
+import { StudioConfig } from './settings.tsr';
 import { Recovery } from './recovery.tsr';
 import { saveActive } from './document-actions.tsr';
 
@@ -16,7 +17,7 @@ export function closeTab(workspace: Signal<Workspace>, path: string): void {
   workspace.set(next);
 }
 
-export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, mode: Signal<string>, font: Signal<int>, panel: Signal<string>, recovery: Signal<Recovery>): Node {
+export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, mode: Signal<string>, font: Signal<int>, panel: Signal<string>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
   return <View className="relative shrink-0 h-9 bg-muted border-b border-border" windowDragRegion={true}>
     <View className="absolute left-20 top-0 bottom-0 flex-row items-center">
@@ -25,7 +26,7 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
       <Button icon="save" variant="ghost" size="small" aria-label="Save file" tooltip="Save file" tooltipCommand="save-file" onPress={() => { saveActive(workspace, recovery); }} />
       <Button icon="terminal" variant="ghost" size="small" aria-label="Toggle terminal" tooltip="Toggle terminal" onPress={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-      <Button icon="settings" variant="ghost" size="small" aria-label="Settings" tooltip="Settings" onPress={() => { showSettings(font); }} />
+      <Button icon="settings" variant="ghost" size="small" aria-label="Settings" tooltip="Settings" onPress={() => { showSettings(font, settings); }} />
     </View>
     <Shortcut command="toggle-sidebar" keys="secondary-b" onTrigger={() => { sidebar.set(!sidebar.get()); }} />
     <Shortcut command="save-file" keys="secondary-s" onTrigger={() => { saveActive(workspace, recovery); }} />
@@ -35,7 +36,7 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
     <Shortcut command="zoom-out" keys="secondary--" onTrigger={() => { if (font.get() > 8) font.set(font.get() - 1); }} />
     <Shortcut command="zoom-reset" keys="secondary-0" onTrigger={() => { font.set(14); }} />
     <Shortcut command="toggle-terminal" keys="secondary-j" onTrigger={() => { panel.set(panel.get() === 'terminal' ? '' : 'terminal'); }} />
-    <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font); }} />
+    <Shortcut command="open-settings" keys="secondary-," onTrigger={() => { showSettings(font, settings); }} />
     <Shortcut command="search-workspace" keys="secondary-shift-f" onTrigger={() => { mode.set('search'); sidebar.set(true); }} />
     <Shortcut command="close-tab" keys="secondary-w" onTrigger={() => { closeTab(workspace, workspace.get().active); }} />
   </View>;

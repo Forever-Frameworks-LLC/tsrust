@@ -21,55 +21,64 @@ terminal toggle and clearly labeled planned panels. Standing authorization:
 **restart the dev supervisor whenever needed without asking again**, then leave
 one preview running. Editable drafts must survive those restarts.
 
-Current section follows checkpoint8020b8e3. Native Dock retains Kit's base
-layout/drop/resize machinery, Tab/TabBar components, live Tsrust pane children,
-editor entities, close guards and pane actions. The outer AnyView cache is gone;
-all visible editors and named tabs/close actions passed native AX checks. The
-new labeled **Open tabs** Kit popup replaces the unnamed TabBar overflow button.
-It lists every visible panel in that group, checks the active file, and selects
-existing panels. No installed dependency or public API changed.
+Current section follows checkpointaff7501e. Studio now applies persistent,
+validated navigationSide/activityBarSide (left/right), panelPosition/chatPosition
+(left/right/bottom). Old version-one theme/font files resolve unchanged defaults.
+Settings Save updates the live workspace; chat is an independent region that can
+stay open beside terminal/tasks. Source is composable .tsrx in layout/main/panels;
+no Studio-owned Rust. Shared Resizable.reverse controls visual native order while
+keeping owned child Nodes mounted. Divider-size state is scoped by axis/order.
+An attempted keyed-list/Node-clone approach was removed after ownership errors;
+branch.rs is unchanged. Do not reintroduce duplicated editor subtrees.
 
-**KEEP DEV RUNNING: current tool PTY24959, supervisor30710, app31387.** Previous
-PTY94264 stopped normally after confirming zero recovery drafts. Current installed
-and target CLI SHA25600ef7f70abe8dbfc1997fec921b489ba6252fe69934958257503d7e41cbc7bb9;
-LSP33ef7da029e516410b5427144160833df1dafea724868b98982a1fcdb81902f3.
-Both consumers were atomically refreshed and independently verified. Compiler/LSP
-buildPASS2m42s setup; public native Studio buildPASS; current dev runtime/app
-buildPASS. Dev startup65,916ms:check11318.9ms,emit920.0ms,backend176.5ms,
-native+link52957.2ms including runtime miss40529.8ms. Setup observations only.
+**KEEP DEV RUNNING: current tool PTY45614, supervisor54542, app55250.** Previous
+24959/30710/31387 stopped normally, zero drafts. Installed and repository CLI
+SHA256ce804822cd883ed595af20bddabc718107c80ffd5230d0c851a1756371ef6444;
+LSPdd5bb636a475ea7f87c7027d68c73a9671adecf1f03bbfe97b837e35604c64b7.
+Both atomically refreshed and independently verified. CLI/LSP buildPASS2m44s;
+focused compiler authoring regression1/1PASS1.20s execution,2m30s setup; main
+checkPASS; public native Studio buildPASS. Dev native build/startPASS68,348ms:
+check11918.9ms,emit960.4ms,backend149.9ms,native+link54771.9ms including
+runtime miss41471.2ms. Setup observations only, not benchmark comparisons.
 
-Actual app31387: two editor panes, four left-group files (.gitignore and three
-Studio sources), config right. Newly opened last tab remains fully visible in
-an overflowing group. Named Open tabs exposes all four file names and marks the
-active one; choosing the clipped first file reveals its complete tab and existing
-buffer, then choosing the clipped final file reveals that complete tab/buffer.
-Full AX assertion verifies the active final tab. An initial menu-index regex did
-not account for AX diff markers; the observed current item index was used and
-full-tree assertion passes. CUA completion: Verified named tab overflow.
-Manual horizontal CUA wheel scrolling still shows no movement; no manual-scroll
-preservation pass claimed. Pointer divider/edge dragging also remains unresolved.
+Selected std:testing settings suite2/2PASS454.62ms execution, setup not separately
+timed: all38 themes, legacy layout defaults, all36placement combinations, invalid
+placements preserve prior config bytes. Generator parity and formatter stable.
+Preserve unchanged Studio18/18, storage, branch and earlier native Dock evidence;
+no broad replay. Initial integer helper/owned-node/capture diagnostics were fixed
+before final checks; intermediate checks against an old embedded API are failures,
+not acceptance. One compiler build was cancelled to include divider-state scoping.
 
-Previous native acceptance remains preserved at8020b8e3 andb0504b89: three visible
-editors with named active tabs after nested splits, Unicode draft and Undo across
-tab reordering, dirty close guards, labeled close, maximize/restore, focused save
-and unchanged file hashes. Exact proof/failures are in the linked audit. No
-unchanged compiler/Studio/storage suite was replayed for this renderer-only menu
-change. Whole-project formatter and diff checks precede the local checkpoint.
+Actual native app55250 verifies three arrangements through Settings Save/reopen:
+left navigation/activity + bottom terminal/right chat; right navigation/activity
++ left terminal/bottom chat; left navigation/right activity + right terminal/left
+chat. Both regions coexist, close independently and retain their visibility across
+preference changes. Saved choices reappear when Settings reopens. The unsaved
+Unicode .gitignore draft survives all moves. After opening/splitting config beside
+it, restoring original settings retains both editor panes and their AX fields;
+Undo restores clean original .gitignore. CUA completion: Verified configurable
+workspace regions. These are three native layouts, not all36native combinations.
+Terminal/AI are still explicitly labeled planned integrations, not working services.
 
-Recovery drafts0; no document text was edited in this overflow witness. Five
-clean files remain open across two panes. App RSS67312KiB/CPU0.0%, supervisor
-5600KiB/0.0%, single observations, not leak acceptance. Pruned1,934,800,837bytes
-of obsolete8020 runtime/app caches. Keep current dev runtimeae2f6864dca52716,
-app6c2c4bbd8c770260, current public-build caches and unchanged test consumers.
+Original home settings bytes restored exactly:
+{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}
+SHA2560c806c00cece149957766b2f47196beb82fceb1917e0d1f732997fcfae7fdddb.
+.gitignoread8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483;
+config6facc291d6b15db7aac40cb3ad3230d45aba8bfc0c12d0e6c1bc817ce7bc8439
+unchanged. Recovery drafts0. Two clean panes remain open; terminal/chat closed.
+App RSS76000KiB/CPU3.2%, supervisor5536KiB/0.0%, single observations, not leak
+acceptance. Pruned1,934,753,405bytes obsoleteaff7501e caches. Current dev runtime
+06a4042518a953f4/app44c8b7135c8323e2, current public build and test consumers kept.
 
-Remaining: manual scroll/resize/edge gestures, full keyboard/focus, pane/view
-persistence, duplicate views, opening into the focused group, tree file moves,
-JSON key colors, configuration/docking/i18n and full editor/agent workflows. Do
-not claim complete Dock/editor acceptance. Next coherent product section is one
-validated settings model wired through navigation/activity sides, panel placement
-and live locale, preserving old theme/font config files. Current config only has
-schemaVersion/theme/fontSize. App source changes use the running supervisor;
-shared embedded native SDK changes require compiler rebuild and supervisor restart.
+Preserve prior8020b8e3/aff7501e native proofs: named tabs/close/overflow, all visible
+editor AX nodes, direct nested splits, Unicode draft/undo across native tab reorder,
+pane maximize/restore, focused save and clipped first/final tab reveal. Pointer
+divider/edge gestures and deliberate manual scrolling remain unverified; no new
+gesture claim. Full keyboard/focus, layout/view persistence across restart,
+duplicate views, opening into focused group, tree moves, JSON key colors and the
+full editor/agent workflows remain required. Next coherent section: locale/i18n
+through existing std:ui translations and persisted settings; then real task/
+terminal/LSP services. No full editor or Studio goal completion is claimed.
 
 Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
 content regex/case search, image routing, Markdown source/preview, status/panel
