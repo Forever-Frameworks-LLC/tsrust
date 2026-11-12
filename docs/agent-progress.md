@@ -8,6 +8,17 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Panel-header inset — 2026-11-11: shared Panels TabsSuffix action group now
+uses pr-3 (12px), matching terminal ListItem px-3. Applies to Close in every
+panel and keeps New Terminal/Copy Problems together; no semantic/action changes.
+Required whole-project formatter0files/0snippets/0fingerprints; diff check passed.
+No new automated test for this spacing-only change. Live screenshot confirms
+Close moved12logical pixels inward, matching the terminal trash action column;
+Close hides panel and terminal toggle restores it. CUA ended "Verified inset panel
+close control". Automatic dev rebuild99981ms, app35512 under supervisor30396/
+PTY88187; current bundle tsrust-30396-1794450270616835000-0/Tsrust Studio.app
+under the same temporary parent. Keep running; LSP connected,0errors/0warnings.
+
 Argument wrapping and asset imports — accepted, follows 4e7cfa23.
 Shared CLI/LSP format.argumentWrapThreshold defaults to5 (0 disables,0–100).
 Wraps function/callback parameters and call arguments above the direct-item limit;
