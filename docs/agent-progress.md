@@ -8,7 +8,26 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
-Latest accepted native interaction — 2026-11-12 (checkpoint pending final format).
+Latest accepted native interaction — 2026-11-12, source checkpoint10777c1f.
+Final checkpoint/cleanup:10777c1f contains the complete native help/snippet section
+and focused evidence. Worktree was clean after that commit. Final MAT verified
+single-line ellipsized completion details, syntax-colored editor-sized documentation,
+correct snippet body/closing indentation, placeholder replacement/Tab navigation and
+preserved src/services expansion through dirty/clean transitions. Only the owner's
+original project-check draft remains; no probe was saved. Source identity is10777c1f;
+this handoff update records the following cleanup, not another implementation gate.
+Pruned20obsolete Studio native cache entries/build-workspace payloads under namespace
+and per-workspace locks, preserving three latest runtime/program artifacts, two latest
+build payloads and all build lock/identity files. Studio cache12.3GiB ->4.5GiB; shared
+root Cargo target and model qualification artifacts untouched. Removed the closed
+manual preview bundle and temporary numeric-snippet test executable. Future build
+pruning must filter for actual native-support/artifacts/target payloads before sorting;
+empty lock/identity shells deliberately remain and their directory mtimes changed.
+Current dev supervisor81803/PTY55205, app82069/LSP82075 confirmed alive at~6min;
+LSP idle0%CPU,RSS259024KiB (RSS is NOT the footprint/peak). Latest CUA phase completed;
+no permission needed for legitimate dev restart. Continue with bounded retained
+location/reference-memory investigation rather than another broad regression run.
+
 The preceding goal turn made progress: native build/MAT completed; three observed UI
 bugs repaired, built and verified without broader regressions. Native popup docs now
 use editor-sized syntax-highlighted examples with no inner border or language badge.
@@ -21,7 +40,7 @@ real dirty/clean transitions kept src/services expanded and selection intact. No
 public Tree API or application-host Rust introduced.
 
 CURRENT ONLY PREVIEW supersedes process details below: supervisor81803 / PTY55205,
-app82069, bundle
+app82069, LSP82075, bundle
 /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-81803-1794460353665739000-0/Tsrust Studio.app.
 Old78662 / PTY36743 stopped after replacement GUI was confirmed. New supervisor has
 explicit shared CARGO_TARGET_DIR, jobs1/incremental0, TSRUST=~/.cargo/bin/tsrust,
