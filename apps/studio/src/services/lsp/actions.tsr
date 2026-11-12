@@ -5,12 +5,13 @@ import { Problem } from '../../lib/workspace/problems.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DiagnosticPosition } from '../../lib/language/diagnostics.tsr';
-import { LanguageState, queueLanguageRead } from './controller.tsr';
+import { LanguageState, queueLanguageRead, cancelLanguageRead, connectionFor } from './controller.tsr';
 import { LanguageMessage } from './session.tsr';
+import { languageSettingsTools, invokeLanguageSettingsTool } from './settings-tools.tsr';
 
-export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage>>, generation: int): Result<void, string> {
+export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage>>, generation: int, server: string = 'tsrust'): Result<void, string> {
   match (requests.trySend({
-    kind: 'restart', generation
+    server: clone(server), kind: generation === 0 && server !== 'tsrust' ? 'start' : 'restart', generation
   })) {
     Ok(_) => {
       return Ok();
@@ -21,7 +22,31 @@ export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage
   }
 }
 
+export function requestLanguageRestart(state: Mutable<LanguageState>, requests: ReadOnly<Sender<LanguageMessage>>, server: string, generation: int): Result<void, string> {
+  const index = state.connections.findIndex((entry) => entry.server === server);
+
+  if (index < 0) return Err('No matching language server is registered.');
+
+  if (state.connections[index].generation !== generation) return Err('Language-service connection changed.');
+
+  match (restartLanguageService(requests, generation, server)) {
+    Err(error) => {
+      return Err(clone(error));
+    },
+    Ok(_) => {}
+  }
+
+  state.connections[index].ready = false;
+  state.connections[index].requested = true;
+  state.connections[index].status = 'LSP: restarting';
+  return Ok();
+}
+
 export interface LanguageToolContext {
+  settingsPath?: string;
+  allowSettingsRead?: boolean;
+  allowSettingsProposal?: boolean;
+  server?: string;
   root: string;
   generation: int;
   status: string;
@@ -31,6 +56,7 @@ export interface LanguageToolContext {
 }
 
 interface LanguageArguments {
+  server?: string;
   root: string;
   generation?: int;
 }
@@ -39,8 +65,8 @@ export function languageTools(): EditorTool[] {
   return [{
     name: 'language_service_status', description: 'Read the current workspace language-service status and source-labelled LSP diagnostics without changing focus or files. The trusted host must grant read access.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
   }, {
-    name: 'restart_language_service', description: 'Restart the existing workspace language server through the same action as the status menu. Requires a trusted host process-control grant and matching connection generation; cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","generation"]}'
-  }, ...languageReadTools()];
+    name: 'restart_language_service', description: 'Restart the existing workspace language server through the same action as the status menu. Requires a trusted host process-control grant and matching connection generation; cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"server":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","generation"]}'
+  }, ...languageReadTools(), ...languageSettingsTools()];
 }
 
 export function invokeLanguageTool(
@@ -51,6 +77,13 @@ export function invokeLanguageTool(
   workspace: Signal<Workspace> | undefined = undefined,
   state: Signal<LanguageState> | undefined = undefined
 ): Result<string, string> {
+  if (languageSettingsTools().some((tool) => tool.name === name)) {
+    if (workspace !== undefined && workspace.get().root !== context.root) return Err('Language-service workspace changed.');
+    return invokeLanguageSettingsTool({
+      root: clone(context.root), settingsPath: clone(context.settingsPath), allowSettingsRead: context.allowSettingsRead, allowSettingsProposal: context.allowSettingsProposal
+    }, name, payload);
+  }
+
   if (languageReadTools().some((tool) => tool.name === name)) {
     if (workspace === undefined || state === undefined) return Err('Document language reads are unavailable in this host context.');
     return invokeLanguageRead(
@@ -76,17 +109,39 @@ export function invokeLanguageTool(
 
     if (args.root !== context.root) return Err('Language-service workspace changed.');
 
+    if (workspace !== undefined && workspace.get().root !== args.root) return Err('Language-service workspace changed.');
+
+    const server = clone(args.server) ?? clone(context.server) ?? 'tsrust';
+
     if (name === 'language_service_status') {
       if (!context.allowRead) return Err('Language-service read access is not permitted by the host.');
+
+      if (state !== undefined) return Ok(JSON.stringify({
+        connections: state.get().connections, problems: context.problems.filter((problem) => problem.source.startsWith('lsp:'))
+      }));
       return Ok(JSON.stringify({
-        generation: context.generation, status: clone(context.status), problems: context.problems.filter((problem) => problem.source === 'lsp:tsrust')
+        server: clone(server), generation: context.generation, status: clone(context.status), problems: context.problems.filter((problem) => problem.source === 'lsp:' + server)
       }));
     }
 
     if (!context.allowRestart) return Err('Language-service restart is not permitted by the host.');
 
-    if (args.generation !== context.generation) return Err('Language-service connection changed.');
-    unwrap(restartLanguageService(requests, context.generation));
+    let generation = context.generation;
+
+    if (state !== undefined) {
+      const connection = connectionFor(state.get(), server);
+
+      if (connection === undefined) return Err('No matching language server is registered.');
+      generation = connection.generation;
+    } else if (server !== (context.server ?? 'tsrust')) return Err('No matching language server is registered.');
+
+    if (args.generation !== generation) return Err('Language-service connection changed.');
+
+    if (state !== undefined) {
+      const next = state.get();
+      unwrap(requestLanguageRestart(next, requests, server, generation));
+      state.set(next);
+    } else unwrap(restartLanguageService(requests, generation, server));
     return Ok('{"queued":true}');
   } catch (error) {
     return Err(JSON.stringify(error));
@@ -168,11 +223,7 @@ export function invokeLanguageRead(
     if (pendingIndex < 0 && resultIndex < 0) return Err('No matching language read.');
 
     if (name === 'language_cancel_read') {
-      unwrap(requests.trySend({
-        kind: 'cancel', generation: next.generation, queryId: clone(id)
-      }));
-      next.queries = next.queries.filter((query) => query.id !== id);
-      next.readResults = next.readResults.filter((entry) => entry.query.id !== id);
+      unwrap(cancelLanguageRead(next, requests, id));
       state.set(next);
       return Ok('{"cancelled":true}');
     }

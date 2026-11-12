@@ -1945,7 +1945,7 @@ impl SourceIndex {
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if let Some(payload)=self.ui_state_element(&receiver) && let Some(binding)=tsrust_compiler::native_bindings::ui_method(tsrust_compiler::native_signatures::NativeTypeId::UiSignal,method) {
-            return if binding.name=="get"{payload.into()}else{"void".into()};
+            return if binding.name=="get"{payload.into()}else if binding.name=="handle"{receiver}else{"void".into()};
         }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
         if receiver=="string"&&method=="localeCompare"{return "int".into();}

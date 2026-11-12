@@ -23,6 +23,9 @@ fn data_signal_help_keeps_snapshot_types_and_ownership_across_server_phases() {
             assert!(item["detail"].as_str().unwrap().contains("Buffer[]"),"{mode}: {item}");
             assert!(item["documentation"].to_string().contains("independent snapshot")&&item["documentation"].to_string().contains("Ownership:"),"{mode}: {item}");
         }
+        let handle=items.as_array().unwrap().iter().find(|item|item["label"]=="handle").unwrap_or_else(||panic!("{mode}: {items}"));
+        assert!(handle["detail"].as_str().unwrap().contains("Signal<Buffer[]>"),"{mode}: {handle}");
+        assert!(handle["documentation"].to_string().contains("weak handle") && handle["documentation"].to_string().contains("Ownership:"),"{mode}: {handle}");
         let at=before.len();let hover=session.hover("main.tsrx",&source,at+1).unwrap_or_default();
         assert!(hover.contains("Buffer[]")&&hover.contains("Ownership:"),"{mode}: {hover}");
         let help=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsrx")},"position":{"line":0,"character":at+4}}));

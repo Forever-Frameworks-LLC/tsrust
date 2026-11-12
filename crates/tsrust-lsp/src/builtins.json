@@ -16,6 +16,18 @@
         }
       ],
       "documentation": "Replaces the complete state value with an independent snapshot and refreshes live bindings after the handler. value must match the signal payload type; resources, borrowed views and callbacks are rejected even inside data. Returns void. Later edits to value do not change state. Throws UiError after the component owner is disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst next = names.get();\nnext[0] = \"Grace\";\nnames.set(next);\nconsole.log(names.get()[0]); // Grace\n```\n\nOwnership: borrows the replacement and copies its nested data; bindings do not retain the component owner."
+    },
+    {
+      "name": "handle",
+      "signature": "handle(): Signal<T>",
+      "parameters": [],
+      "documentation": "Returns a new weak handle to the same component state. Takes no arguments and leaves the value unchanged. get() reads independent snapshots; set(next) through either handle updates the same state. The returned handle has the same payload type and does not keep the component owner alive. Calling handle() does not check whether the owner still exists; get() and set() throw UiError after that owner is disposed. Use a separate handle when storing shared state in a reusable row or callback context.\n\n```tsrust\nimport { signal } from 'std:ui';\n\nconst owner = signal(1);\nconst view = owner.handle();\nview.set(2);\nconsole.log(owner.get()); // 2\n```\n\nOwnership: borrows the receiver and returns an independently owned weak handle. It cannot be cloned or sent to another thread; it does not copy or transfer the state owner.",
+      "examples": [
+        {
+          "source": "import {signal} from 'std:ui';function main(){const owner=signal(1);const view=owner.handle();view.set(2);console.log(owner.get());}",
+          "output": "2\n"
+        }
+      ]
     }
   ],
   "std:iterator": [

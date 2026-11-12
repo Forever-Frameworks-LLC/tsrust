@@ -1,0 +1,112 @@
+import { createTempDir, readTextFile, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { join } from 'std:path';
+import { strictEqual, test } from 'std:testing';
+
+import { defaultConfig, formatConfig, parseConfig, saveConfig } from '../src/lib/settings/settings.tsr';
+import { LanguageToolContext, invokeLanguageTool, languageTools } from '../src/services/lsp/actions.tsr';
+import { LanguageMessage } from '../src/services/lsp/session.tsr';
+
+interface SettingsProposal {
+  path: string;
+  present: boolean;
+  before: string;
+  after: string;
+}
+
+function rejected(result: Result<string, string>): boolean {
+  match (result) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+test('AI language settings require separate host grants and return isolated validated proposals', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-language-settings-'));
+  const path = join(root, 'tsrust_studio.config.json');
+  const before = formatConfig(defaultConfig());
+  unwrap(writeTextFile(path, before));
+  const messages = new Channel<LanguageMessage>(4);
+  const requests = messages.sender();
+  const context: LanguageToolContext = {
+    root: '/workspace', generation: 1, status: '', problems: [], allowRead: true, allowRestart: true, settingsPath: clone(path)
+  };
+  const payload = '{"root":"/workspace","allowSettingsRead":true,"allowSettingsProposal":true,"path":"/outside","servers":[{"id":"go","name":"Go","program":"/never-run/gopls","arguments":["serve"],"languages":["go"],"files":[{"extension":"go","language":"go"}]}]}';
+
+  try {
+    strictEqual(languageTools().some((tool) => tool.name === 'propose_language_servers'), true);
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_language_servers', payload)), true);
+    context.allowSettingsRead = true;
+    const read = unwrap(invokeLanguageTool(context, requests, 'language_server_configuration', '{"root":"/workspace"}'));
+    strictEqual(read.includes('"servers":[]'), true);
+    strictEqual(read.includes('"id":"go"'), true);
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_language_servers', payload)), true);
+    context.allowSettingsProposal = true;
+    const proposal = JSON.parse<SettingsProposal>(unwrap(invokeLanguageTool(context, requests, 'propose_language_servers', payload)));
+    strictEqual(proposal.path, path);
+    strictEqual(proposal.present, true);
+    strictEqual(proposal.before, before);
+    strictEqual(unwrap(parseConfig(proposal.after)).languageServers[0].program, '/never-run/gopls');
+    strictEqual(unwrap(readTextFile(path, 1024 * 1024)), before);
+    let untouched = false;
+
+    match (messages.tryReceive()) {
+      Err(_) => {
+        untouched = true;
+      },
+      Ok(_) => {}
+    }
+
+    strictEqual(untouched, true);
+    const changed = before + '\n';
+    unwrap(writeTextFile(path, changed));
+    let stale = false;
+
+    match (saveConfig(path, proposal.after, proposal.before)) {
+      Err(_) => {
+        stale = true;
+      },
+      Ok(_) => {}
+    }
+
+    strictEqual(stale, true);
+    strictEqual(unwrap(readTextFile(path, 1024 * 1024)), changed);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('AI language settings bind the workspace and support absent settings without creating or launching anything', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-language-settings-'));
+  const path = join(root, 'missing.config.json');
+  const messages = new Channel<LanguageMessage>(1);
+  const requests = messages.sender();
+  const context: LanguageToolContext = {
+    root: '/workspace', generation: 1, status: '', problems: [], allowRead: true, allowRestart: false, settingsPath: clone(path), allowSettingsRead: true, allowSettingsProposal: true
+  };
+
+  try {
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_language_servers', '{"root":"/other","servers":[]}')), true);
+    const proposal = JSON.parse<SettingsProposal>(unwrap(invokeLanguageTool(context, requests, 'propose_language_servers', '{"root":"/workspace","servers":[]}')));
+    strictEqual(proposal.present, false);
+    strictEqual(proposal.before, '');
+    strictEqual(unwrap(parseConfig(proposal.after)).languageServers.length, 0);
+    let absent = false;
+
+    match (readTextFile(path, 1024 * 1024)) {
+      Err(error) => {
+        absent = error.code === 'not-found';
+      },
+      Ok(_) => {}
+    }
+
+    strictEqual(absent, true);
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_language_servers', '{"root":"/workspace","servers":[{"id":"other","name":"Other","program":"unused","arguments":[],"languages":["go"],"files":[{"extension":"tsr","language":"go"}]}]}')), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

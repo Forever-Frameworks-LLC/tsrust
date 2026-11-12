@@ -172,3 +172,53 @@ test('GUI settings formatting and stale writes preserve configuration data', () 
     unwrap(removeDirAll(root));
   }
 });
+
+test('language servers persist explicit file associations and reject conflicting or invalid launch definitions', () => {
+  const config = defaultConfig();
+  strictEqual(unwrap(parseConfig(formatConfig(config))).languageServers.length, 0);
+  config.languageServers = [{
+    id: 'go', name: 'Go', program: '/tools/gopls', arguments: ['serve'], languages: ['go'], files: [{
+      extension: 'go', language: 'go'
+    }]
+  }];
+  const restored = unwrap(parseConfig(formatConfig(config)));
+  strictEqual(restored.languageServers[0].program, '/tools/gopls');
+  strictEqual(restored.languageServers[0].files?.length, 1);
+  config.languageServers[0].files = [{
+    extension: 'tsr', language: 'go'
+  }];
+  let conflict = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      conflict = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(conflict, true);
+  config.languageServers[0].files = [{
+    extension: 'go', language: 'rust'
+  }];
+  let language = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      language = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(language, true);
+  config.languageServers[0].files = [];
+  let empty = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      empty = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(empty, true);
+});

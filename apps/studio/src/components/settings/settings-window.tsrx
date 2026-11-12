@@ -31,6 +31,7 @@ import {
   themes,
   StudioConfig
 } from '../../lib/settings/settings.tsr';
+import { LanguageSettings } from './language-settings.tsrx';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
@@ -74,6 +75,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const present = signal(found);
   const ready = signal(readable);
   const controlsSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
+  const languageSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
   const saveSession: SettingsSession = {
@@ -462,6 +466,7 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
               </SettingItem>
             </SettingsGroup>
           </SettingsPage>
+          {LanguageSettings(languageSession, font, draft)}
           <SettingsPage title={message("Workbench")} icon="panels-top-left" resettable={false}>
             <SettingsGroup title={message("Navigation")}>
               <SettingItem title={message("File explorer position")} description={message("Place the file tree on either side of the editor.")}>

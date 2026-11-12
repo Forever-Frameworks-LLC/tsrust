@@ -230,6 +230,9 @@ async function sendFrames(writer: Writer, writes: Channel<string>, events: Sende
 }
 
 function documentLanguage(document: ReadOnly<LanguageDocument>, server: ReadOnly<LanguageServer>): string {
+  const target = document.server;
+
+  if (target !== undefined && target !== server.id) throw 'Language document targets another server.';
   return clone(document.languageId) ?? clone(server.languages[0]);
 }
 

@@ -1,11 +1,10 @@
 import { Channel, Sender, all } from 'std:futures';
-import { dirname, join } from 'std:path';
 
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
 import { formattingWorker } from './formatting.tsr';
 import { LanguageMessage, LanguageUpdate } from './lsp/session.tsr';
 import { languageServices } from './lsp/registry.tsr';
-import { tsrustServer } from '../lib/language/servers.tsr';
+import { LanguageServer, studioServers } from '../lib/language/servers.tsr';
 import { CheckResult, projectCheckWorker } from './project-check.tsr';
 
 // One owner cancels and settles every service when the application closes.
@@ -17,12 +16,12 @@ export async function studioWorkers(
   formattingRequests: Channel<FormattingRequest>,
   formattingReplies: Sender<FormattingResult>,
   languageMessages: Channel<LanguageMessage>,
-  languageReplies: Sender<LanguageUpdate>
+  languageReplies: Sender<LanguageUpdate>,
+  servers: LanguageServer[] = []
 ): Task<void> {
-  const server = program.includes('/') ? join(dirname(program), 'tsrust-lsp') : 'tsrust-lsp';
   const languageRoot = clone(root);
   const checkProgram = clone(program);
-  const language = languageServices(languageRoot, [tsrustServer(server)], languageMessages, languageReplies).start();
+  const language = languageServices(languageRoot, studioServers(program, servers), languageMessages, languageReplies).start();
   const checker = projectCheckWorker(root, checkProgram, requests, replies).start();
   const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
   await all([language, checker, formatter]);

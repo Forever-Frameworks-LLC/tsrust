@@ -2,6 +2,7 @@ import { homeDir } from 'std:env';
 import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
 import { join } from 'std:path';
 
+import { LanguageServer, studioServers, validateLanguageServers } from '../language/servers.tsr';
 import { FormattingOptions, FormattingOverrides, defaultFormatting, resolveFormatting } from './formatting.tsr';
 
 import localeNames from '../../assets/locales/names.json';
@@ -28,6 +29,7 @@ export interface StudioConfig {
   formatOnFocusChange: boolean;
   checkOnFocusChange: boolean;
   format: FormattingOptions;
+  languageServers: LanguageServer[];
 }
 
 // Existing version-one files may omit layout fields; resolve them before use.
@@ -48,11 +50,12 @@ interface StoredConfig {
   formatOnFocusChange?: boolean;
   checkOnFocusChange?: boolean;
   format?: FormattingOverrides;
+  languageServers?: LanguageServer[];
 }
 
 export function defaultConfig(): StudioConfig {
   return {
-    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en', fileIcons: true, searchIncludeIgnored: false, treeIncludeIgnored: true, formatOnSave: false, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, format: defaultFormatting()
+    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en', fileIcons: true, searchIncludeIgnored: false, treeIncludeIgnored: true, formatOnSave: false, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, languageServers: [], format: defaultFormatting()
   };
 }
 
@@ -66,8 +69,19 @@ export function parseConfig(text: ReadOnly<string>): Result<StudioConfig, string
 
     if (!themeNames.includes(config.theme)) return Err('Choose a theme from the installed Studio catalog.');
     const resolved: StudioConfig = {
-      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en', fileIcons: config.fileIcons ?? true, searchIncludeIgnored: config.searchIncludeIgnored ?? false, treeIncludeIgnored: config.treeIncludeIgnored ?? true, formatOnSave: config.formatOnSave ?? false, checkOnSave: config.checkOnSave ?? false, formatOnFocusChange: config.formatOnFocusChange ?? false, checkOnFocusChange: config.checkOnFocusChange ?? false, format: defaultFormatting()
+      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en', fileIcons: config.fileIcons ?? true, searchIncludeIgnored: config.searchIncludeIgnored ?? false, treeIncludeIgnored: config.treeIncludeIgnored ?? true, formatOnSave: config.formatOnSave ?? false, checkOnSave: config.checkOnSave ?? false, formatOnFocusChange: config.formatOnFocusChange ?? false, checkOnFocusChange: config.checkOnFocusChange ?? false, languageServers: clone(config.languageServers) ?? [], format: defaultFormatting()
     };
+
+    match (validateLanguageServers(studioServers('tsrust', resolved.languageServers))) {
+      Err(error) => {
+        return Err(clone(error));
+      },
+      Ok(_) => {}
+    }
+
+    for (const server of resolved.languageServers) {
+      if ((server.files ?? []).length === 0) return Err('Language servers need at least one file association.');
+    }
 
     if (config.format !== undefined) {
       match (resolveFormatting(resolved.format, config.format)) {
@@ -148,5 +162,5 @@ export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>, expec
 
 
 export function formatConfig(config: ReadOnly<StudioConfig>): string {
-  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "searchIncludeIgnored": ' + JSON.stringify(config.searchIncludeIgnored), '  "treeIncludeIgnored": ' + JSON.stringify(config.treeIncludeIgnored), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + ',\n    "argumentWrapThreshold": ' + config.format.argumentWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
+  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "searchIncludeIgnored": ' + JSON.stringify(config.searchIncludeIgnored), '  "treeIncludeIgnored": ' + JSON.stringify(config.treeIncludeIgnored), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "languageServers": ' + JSON.stringify(config.languageServers), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + ',\n    "argumentWrapThreshold": ' + config.format.argumentWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
 }

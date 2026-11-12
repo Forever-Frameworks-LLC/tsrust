@@ -9,6 +9,193 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+Checkpoint preparation: current source formatter passed1file,0snippets,
+0fingerprints after the .tsrx regression witness; diff-check passed. Cache cleanup
+under nonblocking namespace/entry locks removed27obsolete program/runtime/build
+payloads, retaining3latest-used program entries,3runtime entries and2complete build
+payloads. Studio native cache5.4GiB ->1.5GiB. Shared Cargo target/model qualification
+artifacts untouched; no rebuild merely to repopulate them. Open native Go fixture
+and owner-added tabs are deliberately preserved during owner MAT and excluded from
+Git; cleanup is still pending. This source checkpoint qualifies configured routing,
+Settings/Problems and the weak state API, not unrun native completion/snippet paths.
+
+Owner hover feedback update, November12 — supersedes earlier cleanup targets.
+Owner is actively using the app. CUA user-change guards were legitimate activity;
+do not automate editing/focus changes while the owner is testing. Owner opened
+src/services/image-actions.tsr; recovery now has11tabs (original9 plus Go fixture
+and owner-opened image-actions), active image-actions. Preserve the new owner tab;
+DO NOT restore the old9tab count blindly. Sole protected project-check draft still
+has original SHA256. Native Go probe remains unmodified on disk and open; root
+apps/studio/go.mod and tests/editor-language-mat.go are owned exclusive fixtures,
+NOT committed source. Do not delete the open probe while the owner is using it.
+
+Native app62165 successfully loaded configured Go lazily on first .go open:
+no gopls before the file, then gopls63750/telemetry63751. Actual Go type error reached
+Problems with path/line and lsp:go/IncompatibleAssign; language status switched to
+Go connected. Owner explicitly reports Go hover popups. Native completion/Tab/
+snippet/signature MAT remains unrun; attempted selection failed because the editor
+has no settable AX selected-text range, and subsequent writes were blocked by owner
+activity. NO source editing actions took place. CUA phase completed: Observed Go
+diagnostics in Studio. File quick-open uses a startup snapshot and misses new
+files; Project menu Refresh Explorer updated the tree and opened the fixture.
+Cmd+Option+R did not refresh while quick-open had focus; keep these separate issues.
+
+Owner reports missing Tsrust hover. Confirmed a regression introduced by this
+slice: tsrustServer mapped .tsrx to wire languageId tsrx, but main.rs accepts tsrust.
+An actual Studio service regression extended the existing test with a catalog-
+routed .tsrx document; FAILED with null hover in470.83ms (setup34664.3ms), log
+/tmp/studio-tsrx-hover-regression.log. Fixed the shared descriptor: one canonical
+language ID tsrust for both .tsr and .tsrx, preserving extension-based editor syntax
+and status. Same affected real service case then PASSED1/1 in471.58ms, setup20507.7ms;
+log /tmp/studio-tsrx-hover-fixed.log. Earlier19distinct accepted cases retained.
+No LSP/core/SDK rebuild required for this data correction.
+
+Dev automatically replaced preview with app64202, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794482108901447000-0/Tsrust Studio.app.
+Supervisor57441 / PTY38630 stays running. Latest build138434ms: check103682.8,
+emit3940.1, runtime-prepare8606.1, native/link30049.7; runtime hit. Intermediate
+113563ms rebuild reported unchanged application and preserved its state.
+CUA readonly binding hoverFixPreview confirmed new app connected on owner-active
+image-actions.tsr,11tabs,1draft. Phase completed: Confirmed reloaded Studio workspace.
+No native Tsrust popup is claimed observed after the fix. Async question is pending
+whether owner's missing hovers were .tsrx, .tsr or both; do not mistake the mapping
+fix for proof that any additional .tsr issue is resolved.
+
+The prior w-56/External servers/aria adjustment DID pass native default-width
+inspection in app62165: Apply is visible/clickable at900px Settings width, Go on
+and executable path persisted. Settings is closed in latest app. Last CUA bindings
+refer to64202; after replacement rebind exact bundle; after compaction rewrite docs.
+
+Configured editor language services — IN PROGRESS, November12, based onb665a589.
+Previous goal turn was progress: independent lazy registry checkpointf454659d.
+This turn has substantial UNCOMMITTED source plus accepted focused checks and a
+running native preview. Full goal stays active. DO NOT repeat completed checks.
+
+Implemented: declarative extension/language/server routes (no extension if-chain),
+validated conflicts/IDs/argv, backward-compatible persisted languageServers in global
+StudioConfig, one startup config snapshot shared by UI and workers. Per-server
+connection/generation/readiness/status replaces the single global lifecycle; reads,
+queries, diagnostics, closes, cancellation and restarts are scoped. Starting Tsrust
+cannot clear Go state. Future/wrong-server replies reject. Foreign processes start
+only after a matching open file or explicit action. Native status follows active
+file and lists registered services. UI and AI share requestLanguageRestart; AI has
+explicit generation/host-process grants. Initial launch config changes currently
+require Studio restart; GUI says so. Live registry reconfiguration remains open.
+
+New Language services Settings page uses Kit Settings/SettingsGroup/SettingItem,
+preset Go/Rust/TypeScript-JavaScript toggles and executable InputGroup with explicit
+Apply. Presets are typed lib/language/presets.tsr (not imported JSON type adapters).
+Custom definitions/files/argv remain available through validated JSON. Server
+programs must be installed; no installs performed. Rust/TS are NOT qualified here.
+Canonical primary references checked: go.dev/gopls/command-line,
+https://github.com/typescript-language-server/typescript-language-server (--stdio),
+https://rust-analyzer.github.io/book/other_editors.html (rust-analyzer).
+
+Reusable Settings rows exposed a real missing public weak-signal capability.
+Signal.handle() now exposes existing native Signal.handle, without a new runtime,
+new clone allowance or strong owner retention. Compiler/native method dispatch,
+receiver type hints, LSP result typing, catalog signature/docs/example and API
+comment are updated. Internal handle returns Signal directly, so method lowering
+must skip the get/set Result unwrap. Only Signal gains this method, not Computed.
+settingsSessionHandles creates independent weak context records. Native tests
+prove updates through stored records, reusable map calls, documented output2 and
+owner disposal; creating another handle after disposal remains nonthrowing while
+get throws. Nested Signal payload/thread/clone restrictions remain intact.
+
+Registered AI configuration read/proposal tools reuse the same preset catalog and
+parseConfig/formatConfig as Settings. Separate trusted settings-read/proposal grants
+and bound global path are required; model grants/paths/programs cannot grant access
+or run anything. Proposals return exact before/after plus file presence; absent
+settings return defaults without creating a file. Tests prove unchanged files/no
+process messages and existing saveConfig CAS rejection after external change.
+There is NO model apply/approve tool. Actual integrated host/review application,
+including atomic absence checks for first creation, remains open. This is an
+executable proposal adapter, not full model-host parity acceptance.
+
+Accepted on current logic:
+- Studio language-service/settings/weak-signal combined17/17 passed1440.98ms
+  execution, setup83514.9ms (check9675.9,emit1026.6,native/link72447.4ms; includes
+  shared-target/contention costs). Log /tmp/studio-handle-routing-test.log.
+  Earlier15/15 routing/settings passed952.56ms before the weak API and last shared
+  restart/cancel extension; final17 supersedes it. Final native weak cases0.35/0.02ms.
+- New language-settings-tools2/2 passed1.86ms, setup25716.9ms; log
+  /tmp/studio-language-settings-tools-test.log.19distinct accepted Studio cases.
+- LSP completion_matrix selected UI data signal methods, handle chaining and
+  snapshot fields:1harness passed22.22s, all4standard phases (settled, immediate,
+  80ms typing, syntax error elsewhere). Log /tmp/studio-handle-matrix.log.
+- checker_agreement Signal<string[]> receiver passed1/1 in434.89s. Existing
+  exhaustive candidate checks unchanged; log /tmp/studio-handle-agreement.log.
+- editor_consistency data_signal_help_keeps_snapshot_types_and_ownership_across_server_phases
+  passed1/1 in7.55s, including new handle payload/docs. Log
+  /tmp/studio-handle-consistency.log. No full other-language/compiler matrix.
+  LSP no-run setup2m32s; artifacts from /tmp/studio-handle-lsp-build.json.
+- New settings/status leaf UI source checks passed with the new compiler. Full
+  native build then found two real caller ownership errors: reused controlsSession
+  (now dedicated languageSession) and program consumed before state setup (move
+  languageState creation before WorkflowControls). No cloning to hide transfers.
+
+SDK build2m44s; final refresh13.19s after dependency tests, both atomically installed
+and independently hash-verified. CLI
+cfd6df234ef9f0b9cbd6cde2a42b2ac196fe8ebac9ae253a678bd29f927cd8d2;
+LSP c9868aa968e63a4aa2eb0dcb86f33ff359c451fbf908d9e905ceab6205982754.
+Old supervisor42993/PTY86030 stopped with authorized Ctrl+C; child draft retained.
+Current live supervisor57441 / PTY38630, app60558 (server PID discover via ps), bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794480719831206000-0/Tsrust Studio.app.
+Log /tmp/studio-language-dev.log. Native successful build119622ms: check89025.5,
+emit3734.2,runtime-prepare8100.8,native/link26050.8; runtime HIT/program miss.
+Do not restart again solely for observation timeouts. Source minor UI fix below
+is now rebuilding automatically; discover its replacement app before rebinding CUA.
+
+Native Settings MAT passed page navigation, Go enable/disable/re-enable, executable
+row removal/recreation, editing and saving the path, closing/reopening Settings,
+persisted Go on/path and unchanged other preferences. CUA completed phase:
+Verified persistent Go server settings. Current binding studioLanguageApp targets
+app60558; reset/getApp exact replacement bundle after dev reload. Settings is closed,
+active owner project-check restored. No Go editor fixture yet, no Go native editor
+or native registry restart acceptance claimed.
+Actual UI caught w-80 executable group clipping Apply at default900px window;
+zooming Settings exposed it and allowed save. Source now uses w-56 and label
+External servers (previous Installed servers falsely implied templates installed),
+plus localized executable aria suffix. These STATIC changes await native default-
+width verification on the next dev reload; no extra automated tests needed.
+
+Global ~/.tsrust/studio/tsrust_studio.config.json now intentionally has Go enabled,
+program=/Users/seancotter/go/bin/gopls, argv=['serve'], Go association. Saved through
+native Settings, independently read from disk. Rust/TS remain off; font11/Alduin/
+localeen and all other owner prefs preserved. Current app60558 started BEFORE this
+Go setting was enabled; next automatic replacement will read it and register Go.
+No gopls editor process yet. Keep Go configured for actual installed service unless
+owner changes direction; do not overwrite unrelated prefs or restore whole config.
+
+Protected draft: original active src/services/project-check.tsr,9tabs, sole draft
+SHA256 bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+independently rechecked after supervisor restart. Do NOT save it; Cmd+S saves ALL.
+Recovery journal
+/Users/seancotter/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+No probe files/drafts made yet. Planned native Go MAT may exclusively create
+apps/studio/go.mod and tests/editor-language-mat.go ONLY if absent; close clean probe
+tab and delete owned fixtures afterward. Never open entire tsrust workspace.
+
+Whole-project formatter has passed after each coherent fix; most recent0files/
+0snippets/0fingerprints before minor w-56/label/aria change, whose formatter is
+PTY80256 (check its completion/log /tmp/studio-language-final-format.log). Existing
+accepted tests retain token preservation. Git diff-check clean so far. No new
+source checkpoint yet; commit entire accepted coherent slice with evidence once
+native Go workflows and cleanup pass. No push/release/new benchmark claim.
+
+NEXT: wait on confirmed live dev PTY38630 for replacement, inspect new process/bundle,
+verify Apply visible at default Settings width and Go persistence. Then actual Go
+file open/lazy startup, diagnostics -> Problems, completion/Tab/snippet and signature
+hints/Unicode, native per-server restart while Tsrust remains usable. Restore owner
+active tab/9tabs/sole draft. Go-only fixtures must be exclusive and removed. Native
+hover lacks a documented CUA move action; inspect existing GPUI input bindings for
+an actual keyboard route or use observed pointer events, do not invent a shortcut.
+Then qualify idle process/resources, prune obsolete native caches under existing
+namespace/entry locks (never in-use outputs), update plan status and checkpoint.
+Full integrated AI host, other external servers and complete8GiB qualification remain
+open, so the goal cannot be marked complete.
+
+
 Lazy multi-server registry prerequisite — 2026-11-12, based oncce05eda.
 Previous goal turn was progress: generic transport/source checkpointd7fb0494 and
 real gopls acceptance. This turn adds actual process/inbox routing, not merely a

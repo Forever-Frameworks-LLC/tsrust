@@ -27,7 +27,7 @@ impl Analyzer {
    let identity=self.expression_type_hint(context,base).and_then(|ty|if let Type::Record(id)=ty{self.program.records[id].native_type}else{None});
    let Some(binding)=identity.and_then(|id|crate::native_bindings::ui_method(id,member)) else{return Ok(None)};
    args.insert(0,(**base).clone());callee.kind=ExprKind::Name(format!("@native:std:ui-runtime#{}",binding.name));
-   *expression=crate::stdlib::futures::unwrap(expression.clone());
+   if binding.name!="handle" { *expression=crate::stdlib::futures::unwrap(expression.clone()); }
    return self.expression(context,expression,Mode::Consume,loans,expected).map(Some);
   }
   let ExprKind::Name(name)=&callee.kind else{return Ok(None)};

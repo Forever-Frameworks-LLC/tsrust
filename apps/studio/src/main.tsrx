@@ -36,7 +36,7 @@ import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
 import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
 import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
-import { configPath, loadConfig, defaultConfig } from './lib/settings/settings.tsr';
+import { StudioConfig, configPath, loadConfig, defaultConfig } from './lib/settings/settings.tsr';
 import { dirty } from './lib/workspace/documents.tsr';
 import { QueuedFormatting, FormattingRequest, FormattingResult } from './lib/workspace/formatting-actions.tsr';
 import { Problem, collectProblems } from './lib/workspace/problems.tsr';
@@ -48,7 +48,8 @@ import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
-import { LanguageState } from './services/lsp/controller.tsr';
+import { studioServers } from './lib/language/servers.tsr';
+import { createLanguageState } from './services/lsp/controller.tsr';
 
 import communityThemes from './assets/themes/community.json';
 import studioThemes from './assets/themes/studio.json';
@@ -61,7 +62,9 @@ function App(
   formattingResults: Channel<FormattingResult>,
   program: string,
   languageMessages: ReadOnly<Channel<LanguageMessage>>,
-  languageUpdates: Channel<LanguageUpdate>
+  languageUpdates: Channel<LanguageUpdate>,
+  initialConfig: StudioConfig,
+  settingsError: string
 ): Node {
   const initial = unwrap(openWorkspace(path));
   let journal: Recovery = {
@@ -93,29 +96,15 @@ function App(
   const checking = signal(false);
   const checkOutput = signal('');
   const chat = signal(false);
-  const settings = signal(defaultConfig());
+  setLocale(initialConfig.locale);
+  font.set(zoomFontSize(initialConfig.fontSize, workspace.get().zoomLevel));
+  useTheme(clone(initialConfig.theme));
+  const settings = signal(initialConfig);
 
-  match (configPath()) {
-    Ok(path) => {
-      match (loadConfig(path)) {
-        Ok(config) => {
-          setLocale(config.locale);
-          font.set(zoomFontSize(config.fontSize, workspace.get().zoomLevel));
-          useTheme(clone(config.theme));
-          settings.set(config);
-        },
-        Err(message) => {
-          const next = workspace.get();
-          next.error = clone(message);
-          workspace.set(next);
-        }
-      }
-    },
-    Err(message) => {
-      const next = workspace.get();
-      next.error = clone(message);
-      workspace.set(next);
-    }
+  if (settingsError !== '') {
+    const next = workspace.get();
+    next.error = settingsError;
+    workspace.set(next);
   }
 
   const explorerRevision = signal(0);
@@ -171,6 +160,7 @@ function App(
   );
   const formatBusy = signal(false);
   const formatFocus = signal<QueuedFormatting[]>([]);
+  const languageState = signal(createLanguageState(studioServers(program, settings.get().languageServers)));
   const workflows = WorkflowControls(
     workspace,
     recovery,
@@ -208,9 +198,6 @@ function App(
     recovery,
     settings
   );
-  const languageState = signal<LanguageState>({
-    generation: 0, ready: false, status: 'LSP: starting', detail: '', documents: [], version: 0, queries: [], readResults: []
-  });
   const editor = EditorWorkspace(
     workspace,
     font,
@@ -408,6 +395,25 @@ async function main(): Task<void> {
   const formattingReplies = formattingResults.sender();
   const configured = unwrap(get('TSRUST'));
   const program: string = configured ?? 'tsrust';
+  let startupConfig = defaultConfig();
+  let startupError = '';
+
+  match (configPath()) {
+    Err(error) => {
+      startupError = clone(error);
+    },
+    Ok(path) => {
+      match (loadConfig(path)) {
+        Err(error) => {
+          startupError = clone(error);
+        },
+        Ok(config) => {
+          startupConfig = config;
+        }
+      }
+    }
+  }
+
   const languageMessages = new Channel<LanguageMessage>(8);
   const languageUpdates = new Channel<LanguageUpdate>(8);
   const languageReplies = languageUpdates.sender();
@@ -419,7 +425,9 @@ async function main(): Task<void> {
     formattingResults,
     clone(program),
     languageMessages,
-    languageUpdates
+    languageUpdates,
+    clone(startupConfig),
+    startupError
   );
   const workers = studioWorkers(
     clone(path),
@@ -429,7 +437,8 @@ async function main(): Task<void> {
     formattingRequests,
     formattingReplies,
     languageMessages,
-    languageReplies
+    languageReplies,
+    startupConfig.languageServers
   ).start();
 
   try {

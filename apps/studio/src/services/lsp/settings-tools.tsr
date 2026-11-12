@@ -1,0 +1,73 @@
+import { readTextFile } from 'std:fs';
+
+import { languagePresets } from '../../lib/language/presets.tsr';
+import { LanguageServer } from '../../lib/language/servers.tsr';
+import { parseConfig, formatConfig, defaultConfig } from '../../lib/settings/settings.tsr';
+import { EditorTool } from '../editor-tools.tsr';
+
+export interface LanguageSettingsAuthority {
+  root: string;
+  settingsPath?: string;
+  allowSettingsRead?: boolean;
+  allowSettingsProposal?: boolean;
+}
+
+interface ConfigurationArguments {
+  root: string;
+  servers?: LanguageServer[];
+}
+
+export function languageSettingsTools(): EditorTool[] {
+  return [{
+    name: 'language_server_configuration', description: 'Read registered external language servers and the Settings templates from the trusted global settings file and shared catalog. Requires a separate host settings-read grant and explicit workspace root. Does not read arbitrary paths or launch servers.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'propose_language_servers', description: 'Return a validated before/after global settings proposal for external language servers. Requires host settings-read and proposal grants. Uses the same configuration validation as Settings, including executable argv, file associations and conflicts. Never writes, approves, restarts or launches a process. The host must review executable changes and apply only against the unchanged before text and file presence.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"servers":{"type":"array","items":{"type":"object","required":["id","name","program","arguments","languages","files"]}}},"required":["root","servers"]}'
+  }];
+}
+
+export function invokeLanguageSettingsTool(authority: ReadOnly<LanguageSettingsAuthority>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!authority.allowSettingsRead) return Err('Global language settings access is not permitted by the host.');
+  const path = authority.settingsPath;
+
+  if (path === undefined || path === '') return Err('The host has not bound a global settings file.');
+
+  if (!languageSettingsTools().some((tool) => tool.name === name)) return Err('Unknown language settings action.');
+
+  try {
+    const args = JSON.parse<ConfigurationArguments>(payload, {
+      maxBytes: 1024 * 1024, maxDepth: 16, maxEntries: 10000, maxNodes: 100000
+    });
+
+    if (args.root !== authority.root) return Err('Language-service workspace changed.');
+    let before = '';
+    let present = true;
+
+    match (readTextFile(path, 1024 * 1024)) {
+      Ok(text) => {
+        before = text;
+      },
+      Err(error) => {
+        if (error.code !== 'not-found') return Err(clone(error.message));
+        present = false;
+      }
+    }
+
+    const config = present ? unwrap(parseConfig(before)) : defaultConfig();
+
+    if (name === 'language_server_configuration') return Ok(JSON.stringify({
+      servers: config.languageServers, presets: languagePresets()
+    }));
+
+    if (!authority.allowSettingsProposal) return Err('Language settings proposals are not permitted by the host.');
+    const servers = args.servers;
+
+    if (servers === undefined) return Err('Explicit language server definitions are required.');
+    config.languageServers = clone(servers);
+    const after = formatConfig(unwrap(parseConfig(formatConfig(config))));
+    return Ok(JSON.stringify({
+      path: clone(path), present, before, after
+    }));
+  } catch (error) {
+    return Err(JSON.stringify(error));
+  }
+}

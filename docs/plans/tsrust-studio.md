@@ -210,8 +210,31 @@ A lazy session registry now routes independently scoped server inboxes and keeps
 unused foreign executables unlaunched. A real simultaneous Tsrust/Go witness passed
 Go restart followed by a Tsrust read at its unchanged generation, unknown-target
 rejection and parent cancellation. Existing Studio service entrypoint passed
-through the registry. Trusted global settings, per-server document/controller
-states, native/AI routing and foreign-language UI acceptance remain next. This is not full extension support.
+through the registry.
+
+Configured editor routing, November12: global languageServers settings now persist
+validated executable/argv/file associations; startup reads one configuration for
+UI and workers. Settings has categorized Go/Rust/TypeScript-JavaScript controls and
+executable editing. Per-server generations, document routes, diagnostics and
+query/cancel/restart actions are isolated; the native status follows the current
+file. Settings changes currently require restarting Studio. Signal.handle exposes
+the runtime's existing weak state views for reusable settings rows; native lifetime,
+compiler/editor agreement and documentation checks passed.19focused Studio cases
+plus the three affected Signal editor witnesses passed; exact scope/timings are in
+the handoff, not a full regression or resource qualification claim.
+
+Native Settings persistence, executable editing at default window width, lazy Go
+launch, source-labelled Go diagnostics in Problems and owner-observed Go hover are
+verified. Native Go completion/Tab/snippets/signatures, other installed servers,
+live configuration replacement and full8GiB qualification remain open. An introduced
+.tsrx language-ID mismatch (extension .tsrx, protocol tsrust) was caught by owner
+hover feedback and a failing real-service witness; corrected shared routing passed
+and the preview reloaded. The file extension, syntax and status stay .tsrx.
+
+AI configuration read/proposal adapters share validation/catalog with Settings and
+require separate trusted global-settings grants. They return isolated exact-text/
+presence proposals and cannot write, approve or launch. Integrated model-host/review
+application remains unqualified. This is not full extension or AI-host acceptance.
 
 ## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
 

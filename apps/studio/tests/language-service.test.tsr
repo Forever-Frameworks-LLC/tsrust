@@ -16,12 +16,13 @@ import {
   diagnosticColumn,
   languageIdentity
 } from '../src/lib/language/diagnostics.tsr';
+import { languageRoute, tsrustServer } from '../src/lib/language/servers.tsr';
 import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool } from '../src/services/lsp/actions.tsr';
-import { LanguageState, LanguageRead, pollLanguage, queueLanguageRead } from '../src/services/lsp/controller.tsr';
+import { LanguageState, LanguageRead, createLanguageState, pollLanguage, queueLanguageRead } from '../src/services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
 import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
 import { CheckResult } from '../src/services/project-check.tsr';
@@ -187,6 +188,26 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     strictEqual(signature.query?.id, 'signature-one');
     strictEqual((signature.result ?? '').includes('count: int'), true);
     strictEqual((signature.result ?? '').includes('"activeParameter":1'), true);
+    const panelPath = join(root, 'panel.tsrx');
+    const panelText = 'function panel(value: int): int { return value; }\nfunction main(){panel(1); }\n';
+    unwrap(writeTextFile(panelPath, panelText));
+    const route = languageRoute([tsrustServer('tsrust-lsp')], panelPath);
+
+    if (route === undefined) throw 'Missing Tsrx language route.';
+    const panelDocument: LanguageDocument = {
+      path: panelPath, languageId: clone(route.language), session: 'panel-one', revision: 1, version: 1, text: panelText
+    };
+    await requests.send({
+      kind: 'query', generation: ready.generation, document: clone(panelDocument), query: {
+        id: 'hover-tsrx', method: 'textDocument/hover', document: languageIdentity(panelDocument), position: {
+          line: 1, character: 17
+        }
+      }
+    });
+    const panelHover = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(panelHover.query?.id, 'hover-tsrx');
+    strictEqual((panelHover.result ?? '').includes('panel'), true, 'Registered .tsrx documents must receive Tsrust hover: ' + (panelHover.result ?? 'missing'));
+    strictEqual((panelHover.result ?? '').includes('int'), true);
     await requests.send({
       kind: 'restart', generation: ready.generation
     });
@@ -258,9 +279,7 @@ test('language controller rejects stale reports, clears edits and closes documen
   };
   const workspace = signal(initial);
   const problems = signal<Problem[]>([]);
-  const state = signal<LanguageState>({
-    generation: 0, ready: false, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
-  });
+  const state = signal(createLanguageState());
   const requests = new Channel<LanguageMessage>(8);
   const messages = requests.sender();
   const updates = new Channel<LanguageUpdate>(8);
@@ -310,9 +329,9 @@ test('language reads synchronize before queries, reuse matching versions and rej
       document: clone(document), name: 'main.tsr', kind: 'text'
     }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
   };
-  const state: LanguageState = {
-    generation: 1, ready: true, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
-  };
+  const state = createLanguageState();
+  state.connections[0].generation = 1;
+  state.connections[0].ready = true;
   const channel = new Channel<LanguageMessage>(8);
   const sender = channel.sender();
   const request: LanguageRead = {
@@ -369,9 +388,10 @@ test('AI language reads share the live request route without focus changes or mo
       document: clone(document), name: 'main.tsr', kind: 'text'
     }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
   });
-  const state = signal<LanguageState>({
-    generation: 1, ready: true, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
-  });
+  const initialState = createLanguageState();
+  initialState.connections[0].generation = 1;
+  initialState.connections[0].ready = true;
+  const state = signal(initialState);
   const channel = new Channel<LanguageMessage>(8);
   const sender = channel.sender();
   const context: LanguageToolContext = {
@@ -503,4 +523,169 @@ test('temporary future resources borrow correctly and the sender example prints 
   strictEqual(tokenCancelled(token.share()), true);
   strictEqual(tokenCancelled(token.child()), true);
   queue.close();
+});
+
+test('multiple language controllers isolate generations diagnostics and guarded AI reads', () => {
+  const native = unwrap(createDocument('/project/main.tsr', 'function main() {}'));
+  const foreign = unwrap(createDocument('/project/main.go', 'package main\nfunc main() {}\n'));
+  const initial: Workspace = {
+    root: '/project', files: [{
+      document: clone(native), name: 'main.tsr', kind: 'text'
+    }, {
+      document: clone(foreign), name: 'main.go', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  };
+  const setup = createLanguageState();
+  setup.servers.push({
+    id: 'go', name: 'Go', program: 'gopls', arguments: ['serve'], languages: ['go'], files: [{
+      extension: 'go', language: 'go'
+    }]
+  });
+  const configured = createLanguageState(clone(setup.servers));
+  const workspace = signal(initial);
+  const state = signal(configured);
+  const problems = signal<Problem[]>([]);
+  const channel = new Channel<LanguageMessage>(16);
+  const messages = channel.sender();
+  const updates = new Channel<LanguageUpdate>(16);
+  const output = updates.sender();
+  pollLanguage(workspace, problems, state, messages, updates);
+  const start = unwrap(channel.tryReceive());
+  strictEqual(start.server, 'go');
+  strictEqual(start.kind, 'start');
+  pollLanguage(workspace, problems, state, messages, updates);
+  let idle = false;
+
+  match (channel.tryReceive()) {
+    Err(_) => {
+      idle = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(idle, true);
+
+  for (const server of ['tsrust', 'go']) {
+    unwrap(output.trySend({
+      server: clone(server), kind: 'starting', generation: 1, message: 'starting'
+    }));
+    unwrap(output.trySend({
+      server: clone(server), kind: 'ready', generation: 1, message: 'ready'
+    }));
+  }
+
+  pollLanguage(workspace, problems, state, messages, updates);
+  const first = unwrap(channel.tryReceive());
+  const second = unwrap(channel.tryReceive());
+  strictEqual(first.server, 'tsrust');
+  strictEqual(second.server, 'go');
+  strictEqual(second.document?.languageId, 'go');
+  const identity: LanguageIdentity = {
+    server: 'go', path: clone(foreign.path), session: clone(foreign.session), revision: 0, version: second.document?.version ?? 0
+  };
+  const context: LanguageToolContext = {
+    root: '/project', generation: 1, status: '', problems: [], allowRead: true, allowRestart: false
+  };
+  const payload = JSON.stringify({
+    root: '/project', id: 'foreign', path: clone(foreign.path), session: clone(foreign.session), revision: 0, position: {
+      line: 1, character: 6
+    }
+  });
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'language_hover',
+    payload,
+    workspace,
+    state
+  ));
+  const query = unwrap(channel.tryReceive());
+  strictEqual(query.server, 'go');
+  strictEqual(query.generation, 1);
+  unwrap(output.trySend({
+    server: 'tsrust', kind: 'starting', generation: 2, message: 'restarting'
+  }));
+  unwrap(output.trySend({
+    server: 'go', kind: 'query', generation: 2, message: '', query: clone(query.query), result: '"future"'
+  }));
+  unwrap(output.trySend({
+    server: 'tsrust', kind: 'query', generation: 2, message: '', query: clone(query.query), result: '"wrong-server"'
+  }));
+  unwrap(output.trySend({
+    server: 'go', kind: 'diagnostics', generation: 1, message: '', document: clone(identity), problems: [{
+      source: 'lsp:go', path: clone(foreign.path), line: 2, column: 1, severity: 'warning', code: 'go', message: 'example'
+    }]
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(state.get().queries.length, 1);
+  strictEqual(state.get().readResults.length, 0);
+  strictEqual(problems.get().length, 1);
+  unwrap(output.trySend({
+    server: 'go', kind: 'query', generation: 1, message: '', query: clone(query.query), result: '"correct"'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'language_read_result',
+    payload,
+    workspace,
+    state
+  )).includes('correct'), true);
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'language_hover',
+    payload,
+    workspace,
+    state
+  ));
+  strictEqual(unwrap(channel.tryReceive()).server ?? '', 'go');
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'language_cancel_read',
+    payload,
+    workspace,
+    state
+  ));
+  const cancel = unwrap(channel.tryReceive());
+  strictEqual(cancel.server, 'go');
+  strictEqual(cancel.generation, 1);
+  strictEqual(cancel.kind, 'cancel');
+  strictEqual(state.get().queries.length, 0);
+  const restart = '{"root":"/project","server":"go","generation":1,"program":"malicious"}';
+  let denied = false;
+
+  match (invokeLanguageTool(
+    context,
+    messages,
+    'restart_language_service',
+    restart,
+    workspace,
+    state
+  )) {
+    Err(_) => {
+      denied = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(denied, true);
+  context.allowRestart = true;
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'restart_language_service',
+    restart,
+    workspace,
+    state
+  ));
+  const restarted = unwrap(channel.tryReceive());
+  strictEqual(restarted.server, 'go');
+  strictEqual(restarted.generation, 1);
+  strictEqual(restarted.kind, 'restart');
+  strictEqual(state.get().connections[1].ready, false);
+  strictEqual(state.get().connections[0].generation, 2);
+  strictEqual(workspace.get().active, '/project/main.tsr');
 });

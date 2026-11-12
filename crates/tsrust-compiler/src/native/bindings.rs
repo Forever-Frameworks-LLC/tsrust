@@ -808,7 +808,7 @@ pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(nam
 /// State method signatures shared by checking and editor inference.
 pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
     if identity==crate::native_signatures::NativeTypeId::UiComputed{return (member=="get").then(||lookup("std:ui-runtime","computedGet").ok()).flatten();}
-    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
+    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set"|"handle") {return None;}
     lookup("std:ui-runtime",member).ok()
 }
 

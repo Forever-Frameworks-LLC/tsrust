@@ -28,6 +28,12 @@ export interface SettingsSession {
   workspace: Signal<Workspace>;
 }
 
+export function settingsSessionHandles(session: ReadOnly<SettingsSession>): SettingsSession {
+  return {
+    path: clone(session.path), draft: session.draft.handle(), text: session.text.handle(), baseline: session.baseline.handle(), present: session.present.handle(), ready: session.ready.handle(), notice: session.notice.handle(), raw: session.raw.handle(), font: session.font.handle(), settings: session.settings.handle(), workspace: session.workspace.handle()
+  };
+}
+
 export function commitSettings(session: ReadOnly<SettingsSession>, config: StudioConfig): void {
   if (!session.ready.get()) {
     session.notice.set('Reload the settings file before saving.');

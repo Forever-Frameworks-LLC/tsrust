@@ -5,6 +5,7 @@ import { fileUrlToPath, parseUrl, pathToFileUrl } from 'std:url';
 import { Problem } from '../workspace/problems.tsr';
 
 export interface LanguageIdentity {
+  server?: string;
   path: string;
   session: string;
   revision: int;
@@ -12,6 +13,7 @@ export interface LanguageIdentity {
 }
 
 export interface LanguageDocument {
+  server?: string;
   languageId?: string;
   path: string;
   session: string;
@@ -131,6 +133,6 @@ export function documentProblems(document: ReadOnly<LanguageDocument>, published
 
 export function languageIdentity(document: ReadOnly<LanguageDocument>): LanguageIdentity {
   return {
-    path: clone(document.path), session: clone(document.session), revision: document.revision, version: document.version
+    server: clone(document.server), path: clone(document.path), session: clone(document.session), revision: document.revision, version: document.version
   };
 }
