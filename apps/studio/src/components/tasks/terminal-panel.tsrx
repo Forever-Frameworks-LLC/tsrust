@@ -187,7 +187,7 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
   }));
   const textClass = computed<string>(() => 'grow min-w-0 truncate text-[' + font.get().toString() + 'px]');
   return (
-    <ListItem value={clone(id)} accessibilityLabel={name.get()} className="py-0 border-b border-border rounded-none">
+    <ListItem value={clone(id)} accessibilityLabel={name.get()} className="py-0 pr-1.5 border-b border-border rounded-none">
       <View hidden={session.task === undefined || session.exited}>
         <Spinner size="small" />
       </View>

@@ -126,6 +126,14 @@ identity; the viewport retains decoded pixels across layout updates and separate
 loading from actual errors. Focused native/lifecycle checks and PNG resize MAT
 passed; exact evidence and remaining resource/platform limits are in the handoff.
 
+Language-service preparation, November 11: current declaration headers now reach
+the protocol loop before body diagnostics; provisional completion lists are marked
+incomplete. Invalid project indices/actions release on invalidation, with a focused
+20-edit lifetime witness preserving unrelated current projects. The native editor
+provider bridge and actual hover/completion/snippet UI remain unaccepted. Memory
+observations and exact focused evidence are in docs/agent-progress.md; no overall
+memory reduction or leak qualification is claimed.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use tsrust_compiler::project::{ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
+    declarations_only: bool,
     indices: BTreeMap<SourceId, SourceIndex>,
     entry_aliases: BTreeMap<SourceId,SourceId>,
     references: BTreeMap<String, Vec<(Value, bool)>>,
@@ -103,6 +104,13 @@ impl ProjectIndex {
         if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
+    /// Declared symbols from headers only; never repair a body by running the checker.
+    pub fn declarations(graph: &ProjectGraph) -> Self {
+        let mut index = Self::build(graph);
+        index.declarations_only = true;
+        index.refresh_references();
+        index
+    }
     pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
     pub fn with_diagnostics(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic]) -> Self {
         let mut index = Self::build(graph);
@@ -192,6 +200,7 @@ impl ProjectIndex {
             if trace && started.elapsed().as_millis() >= 500 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
         Self {
+            declarations_only: false,
             indices,
             entry_aliases: BTreeMap::new(),
             references: BTreeMap::new(),
@@ -254,12 +263,18 @@ impl ProjectIndex {
         }
         let index = self.indices.get(&id)?;
         if method == "textDocument/completion"
+            && !self.declarations_only
             && !index.checked()
             && let Some(items) = self.repaired_member_completion(&id, index, params)
         {
             return Some(Ok(items));
         }
-        Some(index.request(method, params, uri).map(|mut answer| { self.rust_locations(&mut answer); answer }))
+        Some(index.request(method, params, uri).map(|mut answer| {
+            self.rust_locations(&mut answer);
+            if self.declarations_only && method == "textDocument/completion" && answer.is_array() {
+                serde_json::json!({"isIncomplete":true,"items":answer})
+            } else { answer }
+        }))
     }
 
     fn rust_locations(&self, value: &mut Value) {
@@ -336,5 +351,32 @@ mod generic_prefix_recovery_tests {
         let params=serde_json::json!({"position":{"line":0,"character":invalid.rfind("deepStrictEqual").unwrap()+2}});
         let hover=recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap();
         assert!(hover.to_string().contains("deepStrictEqual<T>"),"invalid prefixes cannot supply checked specialization: {hover}");
+    }
+}
+
+#[cfg(test)]
+mod declaration_only_tests {
+    use super::*;
+    #[test]
+    fn preliminary_help_uses_declared_imports_and_marks_completions_incomplete() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-declaration-help");
+        let id = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dep = SourceId(root.join("dep.tsr").to_string_lossy().into_owned());
+        let uri = file_uri(&id).unwrap().to_string();
+        let source = "import {Row,render} from './dep.tsr';function main(row:Row){render(row);row.;}";
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(dep, 1, "export interface Row{value:string;}/** Render a row. */export function render(row:Row):string{return 4;}".into());
+        workspace.open(id.clone(), 1, source.into());
+        let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &id.0).unwrap();
+        let index = ProjectIndex::declarations(&graph);
+        let ask = |method: &str, offset| index.request(method, &serde_json::json!({"position":{"line":0,"character":offset}}), &uri).unwrap().unwrap();
+        let hover = ask("textDocument/hover", source.rfind("render(").unwrap()+1);
+        assert!(hover.to_string().contains("Render a row"), "{hover}");
+        let signatures = ask("textDocument/signatureHelp", source.rfind("render(").unwrap()+7);
+        assert!(signatures.to_string().contains("Row"), "{signatures}");
+        let completion = ask("textDocument/completion", source.rfind("row.").unwrap()+4);
+        assert_eq!(completion["isIncomplete"], true);
+        assert!(completion["items"].as_array().unwrap().iter().any(|item|item["label"]=="value"), "{completion}");
+        assert!(index.indices.values().all(|index| !index.checked()));
     }
 }

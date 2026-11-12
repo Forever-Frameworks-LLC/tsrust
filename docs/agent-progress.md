@@ -8,6 +8,56 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Early declaration help and stale-result release — 2026-11-11, follows9d7fc272.
+Previous goal turn made progress: verified panel inset and local checkpoint.
+Owner now requests6px instead of12px on both Close and terminal trash. Applied
+pr-1.5 to shared panel action group and terminal SessionItem, preserving left
+row padding. Live screenshot confirms same action column; no extra borders.
+
+LSP analysis worker now publishes ProjectIndex::declarations from current module
+headers before full body checking. This path skips compiler-based recovery;
+preliminary completions use CompletionList isIncomplete:true. Checked and existing
+recovery constructors remain unchanged and still replace the preliminary index.
+Intermediate declaration messages retain busy/in_flight ownership; current document
+and full workspace snapshot guard publication. Protocol witness proves imported
+hover arrives BEFORE body diagnostics, including when body checking fails. This is
+not a universal low-latency guarantee: queued work/cold scans, local fallback
+SourceIndex::new and later compiler-based member repair remain concerns. Native
+Studio hover/completion provider bridge is STILL MISSING; no UI intelligence
+acceptance claimed. Next executable section is that bridge plus correlated,
+cancellable Tsrust-authored read requests and guarded AI read actions.
+
+ProjectSession now releases invalid indices/actions on edits, open/close, watched
+changes and result insertion; dependency registrations and diagnostic contributions
+remain for rescheduling/publication. No arbitrary cache cap or reduced checks.
+Repeated20dependency edits prove old observation Arc destruction and preserve an
+unrelated current project; watched invalidation/close covered. First witness failed
+because its own unrelated local input retained all open buffers; dropped that input,
+then witness PASS0.02s. Declarations hover/signature/incomplete completion witness
+PASS0.04s despite broken bodies. Public stdio ordering witness1/1PASS0.45s,
+/tmp/studio-lsp-declarations-protocol.log. Existing session4/4PASS0.02s and server
+lifecycle6/6PASS0.02s, /tmp/studio-lsp-declarations-lifecycle.log. No full matrices.
+
+LSP-only build17.27s, /tmp/studio-lsp-declarations-build.log; atomically installed
+and independently hash-matched853f67ff17b1cc1ef30aa8fa2527e8d80d99bfe71467d3304424cdae55b81942.
+Compiler unchanged; no paired compiler rebuild needed. Real status-menu restart
+replaced child37371 with42232; same app37370/supervisor30396/PTY88187 remained.
+LSP connected,0errors/0warnings. Owner selected project-check.tsr and expanded
+services tree; preserve that newer selection. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-30396-1794450506353980000-0/Tsrust Studio.app.
+Native spacing rebuild97608ms (check67994.1ms,emit3244.6ms,backend175.3ms,
+native/link25668.5ms,runtimehit). CUA ended "Verified margins and LSP reload".
+Required formatter0files/0snippets/0fingerprints and diff check PASS.
+
+Bounded live memory observation before installing this LSP: old37371 active100%CPU,
+footprint811041896bytes (773.5MiB),635224064compressed/swapped; Malloc Small
+770703360bytes,Large33112064,Metadata3670016. /tmp/studio-lsp-footprint-before.txt.
+No heap ownership trace or repeat-use growth qualification yet. The stale-cache
+witness proves a specific release, NOT that it accounts for this footprint or that
+the overall memory issue is fixed. Fresh child numbers are not comparable savings.
+Keep profiling alongside actual hover/completion use; avoid broad compiler speed
+experiments or delaying native intelligence behind full-check optimization.
+
 Panel-header inset — 2026-11-11: shared Panels TabsSuffix action group now
 uses pr-3 (12px), matching terminal ListItem px-3. Applies to Close in every
 panel and keeps New Terminal/Copy Problems together; no semantic/action changes.

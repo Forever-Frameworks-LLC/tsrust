@@ -31,7 +31,13 @@ enum Job {
     Document(DocumentJob),
     Workspace(tsrust_lsp::workspace_scan::Job),
 }
+struct DocumentDeclarations {
+    snapshot: Snapshot,
+    workspace: tsrust_lsp::workspace::WorkspaceSnapshot,
+    index: tsrust_lsp::project_intelligence::ProjectIndex,
+}
 enum Checked {
+    Declarations(DocumentDeclarations),
     Document(DocumentChecked),
     Workspace(tsrust_lsp::workspace_scan::Checked),
     WorkspaceInterrupted,
@@ -124,6 +130,16 @@ fn run(
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
                     let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+                    let started = Instant::now();
+                    // Publish declared import help before checking bodies. Requests must not
+                    // wait for a complete compiler pass to see current signatures and docs.
+                    if let Ok(graph) = tsrust_compiler::project::load_project_headers(workspace, &entry.0) {
+                        let index = tsrust_lsp::project_intelligence::ProjectIndex::declarations(&graph);
+                        completed.send(Checked::Declarations(DocumentDeclarations {
+                            snapshot: snapshot.clone(), workspace: workspace.clone(), index,
+                        })).map_err(|_| "protocol loop stopped")?;
+                    }
+                    if trace { eprintln!("[analysis] declarations={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
                     let result = workspace.check_with_diagnostics(&entry);
                     if trace { eprintln!("[analysis] check={}ms", started.elapsed().as_millis()); }
@@ -380,9 +396,18 @@ fn run(
                 }
             }
             recv(results) -> result => {
+                let result = match result.map_err(|_| "analysis worker stopped")? {
+                    Checked::Declarations(declarations) => {
+                        if !shutdown && documents.current(&declarations.snapshot) && projects.workspace.current(&declarations.workspace) {
+                            projects.cache_index(&declarations.snapshot.uri, &declarations.workspace, Some(declarations.index));
+                        }
+                        continue;
+                    }
+                    result => result,
+                };
                 busy = false;
                 in_flight = None;
-                let checked = match result.map_err(|_| "analysis worker stopped")? {
+                let checked = match result {
                     Checked::WorkspaceInterrupted=>{
                         if !shutdown{scanner.dirty(Instant::now(),debounce);}
                         continue;
@@ -399,6 +424,7 @@ fn run(
                         }
                         continue;
                     }
+                    Checked::Declarations(_) => unreachable!("handled before marking the worker idle"),
                     Checked::Document(checked)=>checked,
                 };
                 if !shutdown && documents.current(&checked.snapshot) && checked.workspace.as_ref().is_none_or(|snapshot| projects.workspace.current(snapshot)) {

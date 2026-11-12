@@ -43,7 +43,7 @@ export function Panels(
           <Tab value="git" label={message("Source Control")} />
           <Tab value="extensions" label={message("Extensions")} />
           <TabsSuffix>
-            <View className="flex-row items-center pr-3">
+            <View className="flex-row items-center pr-1.5">
               <View hidden={panel.get() !== 'terminal'}>
                 {terminalActions}
               </View>

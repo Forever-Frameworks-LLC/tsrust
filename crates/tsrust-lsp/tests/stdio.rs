@@ -449,3 +449,30 @@ fn formatting_import_rules_returns_grouped_wrapped_idempotent_edit() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.finish(0);
 }
+
+#[test]
+fn declared_import_help_arrives_before_body_diagnostics() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{},"initializationOptions":{"debounceMs":2000}}));
+    assert!(matches!(server.receive(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-declared-hover.tsr");
+    let uri = tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(root.to_string_lossy().into_owned())).unwrap().to_string();
+    let source = "import {join} from 'std:path';function main(){join('a','b');const n:int='bad';}";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/hover", json!({"textDocument":{"uri":uri},"position":{"line":0,"character":source.rfind("join(").unwrap()+1}}));
+    // No full-check publication may precede this current declaration response.
+    let response = server.receive();
+    assert!(matches!(&response, Message::Response(r) if r.id == RequestId::from(2) && r.error.is_none() && r.result.as_ref().is_some_and(|value|value.to_string().contains("join"))), "{response:?}");
+    loop {
+        if let Message::Notification(notification) = server.receive() {
+            if notification.method == "textDocument/publishDiagnostics" && notification.params["version"] == 1 {
+                assert!(!notification.params["diagnostics"].as_array().unwrap().is_empty());
+                break;
+            }
+        }
+    }
+    server.request(3, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+}
