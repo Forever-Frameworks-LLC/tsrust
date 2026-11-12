@@ -1,7 +1,6 @@
 import { Sender } from 'std:futures';
 import {
   View,
-  controlInput,
   Button,
   Dock,
   Node,
@@ -11,6 +10,7 @@ import {
   t
 } from 'std:ui';
 
+import { FileSearchState, SearchActionContext, showFileSearch } from '../../lib/explorer/search-actions.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
@@ -31,7 +31,8 @@ export function EditorWorkspace(
   language: Signal<LanguageState>,
   messages: Sender<LanguageMessage>,
   references: Signal<LanguageReferences>,
-  panel: Signal<string>
+  panel: Signal<string>,
+  fileSearch: Signal<FileSearchState>
 ): Node {
   const renderFile = (file: ReadOnly<OpenFile>): Node => FilePanel(
     file,
@@ -68,10 +69,18 @@ export function EditorWorkspace(
           icon="file-search"
           variant="ghost"
           onPress={() => {
-            mode.set('filesearch');
-            sidebar.set(true);
-            controlInput('file-search', 'focus');
-            controlInput('file-search', 'selectAll');
+            const context: SearchActionContext = {
+              workspace, recovery, fileSearch, navigationMode: mode, sidebarVisible: sidebar, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
+            };
+
+            match (showFileSearch(context, workspace.get().root)) {
+              Ok(_) => {},
+              Err(error) => {
+                const next = workspace.get();
+                next.error = error;
+                workspace.set(next);
+              }
+            }
           }}
         >
           {t("Open a file")}

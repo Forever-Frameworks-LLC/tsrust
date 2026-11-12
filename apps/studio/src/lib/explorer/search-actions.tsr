@@ -4,7 +4,7 @@ import { Signal, controlInput } from 'std:ui';
 import { LanguageReferences } from '../language/references.tsr';
 import { publishWorkspace } from '../workspace/document-actions.tsr';
 import { Recovery } from '../workspace/recovery.tsr';
-import { Workspace, openFile } from '../workspace/workspace.tsr';
+import { Workspace, Entry, projectFiles, openFile } from '../workspace/workspace.tsr';
 import { SearchHit, SearchResults, searchContents } from './search.tsr';
 
 // Created by the host, never decoded from a tool's arguments.
@@ -18,6 +18,88 @@ export interface SearchActionContext {
   allowedRoot?: string;
   explorerRevision?: Signal<int>;
   focusEditor: boolean;
+  fileSearch?: Signal<FileSearchState>;
+  navigationMode?: Signal<string>;
+  sidebarVisible?: Signal<boolean>;
+}
+
+export interface FileSearchState {
+  root: string;
+  query: string;
+  files: Entry[];
+}
+
+export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query: ReadOnly<string>): Result<Entry[], string> {
+  if (context.allowRead !== true || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('Workspace search is not permitted for this task.');
+
+  if (query.length > 4096) return Err('File search query is too long.');
+
+  // shortcut: scans run on invocation; use the explorer worker before opening large workspaces.
+  match (projectFiles(clone(root))) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(files) => {
+      const normalized = query.toLowerCase();
+      return Ok(files.filter((file) => file.path.slice(root.length + 1).toLowerCase().includes(normalized)));
+    }
+  }
+}
+
+export function showFileSearch(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query?: string): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+  const search = context.fileSearch;
+  const mode = context.navigationMode;
+  const sidebar = context.sidebarVisible;
+
+  if (search === undefined || mode === undefined || sidebar === undefined) return Err('File search is unavailable in this host.');
+  const requested = query ?? clone(search.get().query);
+
+  if (requested.length > 4096) return Err('File search query is too long.');
+
+  match (findFiles(context, root, '')) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(files) => {
+      search.set({
+        root: clone(root), query: requested, files
+      });
+    }
+  }
+
+  mode.set('filesearch');
+  sidebar.set(true);
+
+  if (context.focusEditor) {
+    controlInput('file-search', 'focus');
+    controlInput('file-search', 'selectAll');
+  }
+
+  return Ok();
+}
+
+export function openFileSearchResult(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, path: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+  const search = context.fileSearch;
+
+  if (search === undefined || search.get().root !== root || !search.get().files.some((file) => file.path === path)) return Err('This file search result is no longer available.');
+  const next = context.workspace.get();
+
+  match (openFile(next, path)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(_) => {}
+  }
+
+  publishWorkspace(next, context.workspace, context.recovery);
+  const mode = context.navigationMode;
+
+  if (mode !== undefined) mode.set('files');
+
+  if (context.focusEditor) controlInput(clone(path), 'focus');
+  return Ok();
 }
 
 export function runContentSearch(context: ReadOnly<SearchActionContext>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {

@@ -4669,6 +4669,11 @@
       "doc": "A search field over a filtered list of commands, in groups with separators, header, footer and an empty state.",
       "props": [
         {
+          "name": "inputId",
+          "type": "string",
+          "doc": "Stable id for controlInput/readInput on the search field. Repeated focus/selectAll preserves the palette and its items."
+        },
+        {
           "name": "placeholder",
           "type": "string",
           "doc": "Hint in the search field."

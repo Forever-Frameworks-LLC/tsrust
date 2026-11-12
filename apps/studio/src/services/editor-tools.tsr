@@ -1,6 +1,13 @@
 import { JsonLimits } from 'std:json';
 
-import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
+import {
+  SearchActionContext,
+  findFiles,
+  showFileSearch,
+  openFileSearchResult,
+  runContentSearch,
+  openSearchResult
+} from '../lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
 import { LanguageReferences } from '../lib/language/references.tsr';
 import { presentLanguageReferences, clearLanguageReferences } from './lsp/references.tsr';
@@ -18,6 +25,12 @@ interface RefreshArguments {
   root: string;
 }
 
+interface FileSearchArguments {
+  root: string;
+  query?: string;
+  path?: string;
+}
+
 interface SearchArguments {
   query: string;
   regex?: boolean;
@@ -29,6 +42,12 @@ interface SearchArguments {
 // shortcut: schemas mirror typed arguments; generate from compiler types before expanding this catalog.
 export function editorTools(): EditorTool[] {
   return [{
+    name: 'search_files', description: 'Find workspace files by case-insensitive relative name or path. Reads the current ignore-aware directory snapshot without changing focus or views. Requires an explicit root and matching host read grant.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'show_file_search', description: 'Present filename search in the sidebar for an explicit root. Requires host read/navigation grants and bound file-search/view state. An omitted query preserves the previous query. Refreshes the file list; keyboard focus changes only when the host permits focus.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'open_file_search_result', description: 'Open an explicit path from the currently presented file search under the granted root. Requires host navigation permission. Rejects missing results and outside-root/symlink targets. Does not edit or save; keyboard focus changes only when the host permits focus.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"path":{"type":"string"}},"required":["root","path"]}'
+  }, {
     name: 'refresh_explorer', description: 'Request a fresh explorer snapshot for an explicit workspace root. Requires a matching host read grant and bound explorer revision. Does not change focus, selection, files or settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
   }, {
     name: 'clear_language_references', description: 'Clear the explicit workspace reference query and results without changing files, focus or panel visibility. Invalidates pending native presentation, so late replies cannot refill the cleared pane. Requires a host navigation grant and bound reference state.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
@@ -56,6 +75,45 @@ export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: s
   if (!tools.some((tool) => tool.name === name)) return Err('Unknown editor tool.');
 
   try {
+    if (name === 'search_files' || name === 'show_file_search' || name === 'open_file_search_result') {
+      const args = JSON.parse<FileSearchArguments>(payload, limits);
+
+      if (name === 'search_files') {
+        match (findFiles(context, args.root, args.query ?? '')) {
+          Ok(files) => {
+            return Ok(JSON.stringify(files));
+          },
+          Err(error) => {
+            return Err(error);
+          }
+        }
+      }
+
+      if (name === 'show_file_search') {
+        match (showFileSearch(context, args.root, clone(args.query))) {
+          Ok(_) => {
+            return Ok('{"shown":true}');
+          },
+          Err(error) => {
+            return Err(error);
+          }
+        }
+      }
+
+      const path = args.path;
+
+      if (path === undefined) return Err('Choose an explicit file search result.');
+
+      match (openFileSearchResult(context, args.root, path)) {
+        Ok(_) => {
+          return Ok('{"opened":true}');
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
     if (name === 'refresh_explorer') {
       const args = JSON.parse<RefreshArguments>(payload, limits);
       const revision = context.explorerRevision;

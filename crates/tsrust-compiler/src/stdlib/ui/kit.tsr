@@ -7128,6 +7128,8 @@ export function ComboboxFooter(props: ComboboxFooterProps): Node {
 }
 
 export interface CommandProps {
+  /** Stable id for controlInput/readInput on the search field. Repeated focus/selectAll preserves the palette and its items. */
+  inputId?: ReactiveValue<string> | TextBinding;
   /** Hint in the search field. */
   placeholder?: ReactiveValue<string> | TextBinding;
   /** false hides the search field. Defaults to true. */
@@ -7161,6 +7163,12 @@ export interface CommandProps {
 /** A search field over a filtered list of commands, in groups with separators, header, footer and an empty state. */
 export function Command(props: CommandProps): Node {
   let node = kitNode('Command', props.children ?? [], props.className);
+  const prop_inputId = props.inputId;
+
+  if (prop_inputId !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'inputId', prop_inputId));
+  }
+
   const prop_placeholder = props.placeholder;
 
   if (prop_placeholder !== undefined) {

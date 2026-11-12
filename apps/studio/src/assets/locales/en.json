@@ -292,5 +292,11 @@
   "File imports": "File imports",
   "Find File References (Imports)": "Find File References (Imports)",
   "Direct Tsrust imports • {count} files scanned": "Direct Tsrust imports • {count} files scanned",
-  "Some imports could not be resolved. Results may be incomplete.": "Some imports could not be resolved. Results may be incomplete."
+  "Some imports could not be resolved. Results may be incomplete.": "Some imports could not be resolved. Results may be incomplete.",
+  "No files found.": "No files found.",
+  "File search navigation is not permitted for this task.": "File search navigation is not permitted for this task.",
+  "File search query is too long.": "File search query is too long.",
+  "File search is unavailable in this host.": "File search is unavailable in this host.",
+  "This file search result is no longer available.": "This file search result is no longer available.",
+  "Choose an explicit file search result.": "Choose an explicit file search result."
 }

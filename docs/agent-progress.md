@@ -8,6 +8,77 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Filename Command palette and shared actions — accepted section, November12,
+based on340c2213. Previous goal turn was progress (completion transaction and
+filename focus checkpoints); this section adds native keyboard navigation and
+executable AI adapters, with visual acceptance. Full goal remains active.
+
+Current supervisor71062/PTY85407 runs app71348 from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71062-1794506066973853000-0/Tsrust Studio.app.
+Log/tmp/studio-file-search-font-dev.log. Final build352387ms: check102219.6ms,
+emit4228.5ms,runtime miss/build+publish219637.1ms,native/link245016.4ms.
+Only this supervisor/window remains;62409/68754 and52077/55965 were gracefully
+retired after replacements visibly recovered owner state. Do not call their old
+CUA bindings, which can relaunch stale apps. sizedFilenameApp targets71348.
+
+Studio uses Kit Command for filename filtering, arrows, Enter, first-Escape clear
+and second-Escape return to Files/editor. Cmd+P and native File > Find project file
+share showFileSearch; confirmed rows use openFileSearchResult. Each UI handler
+constructs its trusted context from direct Signal parameters; signals/resource
+contexts cannot be clone()d. Borrowed row data is copied into owned labels/paths
+before JSX. Discovery refreshes when explicitly opening search, including newly
+created files. Registered search_files (read), show_file_search and
+open_file_search_result share discovery/navigation and validate explicit workspace
+roots and host read/navigation grants. Presentation/opening require bound state;
+headless reads do not change view/focus; host controls focus. Opening retains
+existing drafts and returns specific missing/stale/scope errors without saving.
+shortcut: discovery remains synchronous for the deliberately small Studio package;
+reuse the explorer worker before expanding to large workspaces. Default ignored-file
+policy is retained; broader filename policy/configuration remains a follow-up.
+
+Kit Command inputId addresses its existing search field through controlInput and
+readInput. Generated props/IntelliSense, initial controlled query and native routing
+are complete. Command now forwards class styles directly; explicit text size
+reaches its query Input, rows and headings. Native defaults remain when omitted.
+Existing text-style invalidation refreshes measured row sizes after zoom changes.
+
+Focused action test1/1 passed15.03ms (total15.79ms), setup15458.5ms:
+check7908.5ms,emit757.6ms,native/link6488.2ms. Command:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=<root>/target tsrust test
+ tests/explorer.test.tsr --filter 'filename search shares' --profile --color=never
+from apps/studio. Includes Unicode/ignore matching, explicit grants/root forgery,
+preserved query/draft, rejected deleted result and specific errors. Earlier
+versions passed21.24ms/18.81ms; count one distinct case, not repeated coverage.
+An added removeFile import was repaired after an initial compile failure. Generator
+check226components and matching locale catalogs300keys passed. No full regression.
+Initial native checks repaired optional capture, callback annotation/ownership,
+TextBinding and resource-context cloning. Native functional candidate68754 built
+in475776ms (runtime miss); final style-only changes reused its passed keyboard
+acceptance rather than rerunning unchanged tests.
+
+Native MAT68754 passed immediate/repeated Cmd+P, Down/Up highlight, Enter into
+existing recovery/check-panel tabs, no-match Enter safety, both Escape stages and
+native File menu routing. It exposed oversized native-default palette text.
+Final71348 visually passed matching query/result/editor sizes at configured base11,
+zoom-1 (effective10), shared Cmd+= enlargement to11 and Cmd+- restoration to10.
+Both functional and visual CUA phases completed exactly once. Last summary:
+Verified palette sizing and shared zoom. Restored Files/src expanded/main selected,
+services/tests collapsed, panel closed,12tabs/main.tsrx active and original zoom-1.
+Only protected project-check draft remains, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+No file edits or saves occurred during MAT; never save/reset that draft.
+
+Final installed consumers were atomically replaced and independently hash-verified:
+CLI029e55ecf51ff4eeb296453032030373ba8ea30c048a5167dbf8c93b45bc0050;
+LSP9a04e85e34eb3a7c0ad3c9ba53a29ad7b21480cbf052c149b734d6e60efa3427.
+Final SDK build2m55s; earlier style-only candidate3m03s was superseded before
+installation. No benchmark speed claim or long-run memory qualification. Actual
+built-in agent-host integration remains open; executable adapters are accepted
+separately. Whole formatter0/0/0 and diff-check passed. Pruned obsolete native variants under
+nonblocking locks, retaining three linked variants and two completed runtime
+payloads. Next: local checkpoint, then accessible keyboard hover and scalar-hover visual confirmation before Git/debugger/extensions.
+Keep one current dev preview and the full goal active.
+
 Quick filename focus — native UI verified, November 12, based on ac7415b7.
 Cmd+P and the empty-editor Open a file control address the existing filename input
 by stable ID, then use existing deferred controlInput focus/selectAll commands.

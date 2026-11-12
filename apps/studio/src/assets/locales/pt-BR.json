@@ -292,5 +292,11 @@
   "File imports": "Importações do arquivo",
   "Find File References (Imports)": "Encontrar referências ao arquivo (importações)",
   "Direct Tsrust imports • {count} files scanned": "Importações diretas do Tsrust • {count} arquivos examinados",
-  "Some imports could not be resolved. Results may be incomplete.": "Não foi possível resolver algumas importações. Os resultados podem estar incompletos."
+  "Some imports could not be resolved. Results may be incomplete.": "Não foi possível resolver algumas importações. Os resultados podem estar incompletos.",
+  "No files found.": "Nenhum arquivo encontrado.",
+  "File search navigation is not permitted for this task.": "A navegação pela pesquisa de arquivos não é permitida nesta tarefa.",
+  "File search query is too long.": "A consulta de arquivos é longa demais.",
+  "File search is unavailable in this host.": "A pesquisa de arquivos não está disponível neste ambiente.",
+  "This file search result is no longer available.": "Este resultado de pesquisa de arquivos não está mais disponível.",
+  "Choose an explicit file search result.": "Escolha um resultado de pesquisa de arquivos específico."
 }

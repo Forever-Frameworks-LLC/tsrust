@@ -1,6 +1,5 @@
 import {
   View,
-  controlInput,
   Button,
   Shortcut,
   AppMenuBar,
@@ -10,6 +9,7 @@ import {
   Node
 } from 'std:ui';
 
+import { FileSearchState, SearchActionContext, showFileSearch } from '../../lib/explorer/search-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
@@ -40,7 +40,8 @@ export function Chrome(
   font: Signal<int>,
   panel: Signal<string>,
   recovery: Signal<Recovery>,
-  settings: Signal<StudioConfig>
+  settings: Signal<StudioConfig>,
+  fileSearch: Signal<FileSearchState>
 ): Node {
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
   return (
@@ -50,6 +51,7 @@ export function Chrome(
           <MenuItem command="open-settings" label={message("Settings")} />
         </AppMenu>
         <AppMenu label={message("File")}>
+          <MenuItem command="find-file" label={message("Find project file")} />
           <MenuItem command="save-all" label={message("Save All")} disabled={unsavedTargets(workspace.get()).length === 0} />
           <MenuItem command="close-tab" label={message("Close Editor")} />
         </AppMenu>
@@ -99,10 +101,18 @@ export function Chrome(
         command="find-file"
         keys="secondary-p"
         onTrigger={() => {
-          mode.set('filesearch');
-          sidebar.set(true);
-          controlInput('file-search', 'focus');
-          controlInput('file-search', 'selectAll');
+          const context: SearchActionContext = {
+            workspace, recovery, fileSearch, navigationMode: mode, sidebarVisible: sidebar, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
+          };
+
+          match (showFileSearch(context, workspace.get().root)) {
+            Ok(_) => {},
+            Err(error) => {
+              const next = workspace.get();
+              next.error = error;
+              workspace.set(next);
+            }
+          }
         }}
       />
       <Shortcut

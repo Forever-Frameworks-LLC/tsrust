@@ -24,6 +24,7 @@ import {
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
+import { FileSearchState } from './lib/explorer/search-actions.tsr';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
 import { ReferencesPanel, ReferenceControls } from './components/tasks/references-panel.tsrx';
 import { LanguageReferences } from './lib/language/references.tsr';
@@ -93,6 +94,9 @@ function App(
   const workspace = signal(initial);
   const sidebar = signal(true);
   const mode = signal('files');
+  const filenameSearch = signal<FileSearchState>({
+    root: clone(workspace.get().root), query: '', files: []
+  });
   const font = signal(14);
   const panel = signal('');
   const references = signal<LanguageReferences>({
@@ -121,7 +125,14 @@ function App(
     settings,
     explorerRevision
   );
-  const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
+  const fileSearch = FileSearch(
+    workspace,
+    recovery,
+    filenameSearch,
+    mode,
+    sidebar,
+    font
+  );
   const contentSearch = ContentSearch(workspace, recovery, font, settings, explorerRevision);
   const initialTerminals = emptyTerminals();
   unwrap(addTerminal(initialTerminals, useId()));
@@ -202,7 +213,8 @@ function App(
     font,
     panel,
     recovery,
-    settings
+    settings,
+    filenameSearch
   );
   const editor = EditorWorkspace(
     workspace,
@@ -214,7 +226,8 @@ function App(
     languageState,
     languageMessages.sender(),
     references,
-    panel
+    panel,
+    filenameSearch
   );
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');

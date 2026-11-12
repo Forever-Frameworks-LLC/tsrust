@@ -400,7 +400,7 @@ impl Root {
     fn input_by_id(&self, target: &str) -> Option<u64> {
         fn find_id(node: &Node, target: &str) -> Option<u64> {
             let node = node.visible_root()?;
-            if node.editable.is_some() && node.semantics.id == target || node.kit.as_deref().is_some_and(|kit|kit.name=="CodeEditor" && kit.prop("id")==Some(target)) {return Some(node.identity.get());}
+            if node.editable.is_some() && node.semantics.id == target || node.kit.as_deref().is_some_and(|kit|(kit.name=="CodeEditor" && kit.prop("id")==Some(target) || kit.name=="Command" && kit.prop("inputId")==Some(target))) {return Some(node.identity.get());}
             node.children.iter().find_map(|child| find_id(child, target))
         }
         find_id(&self.node, target)
@@ -416,7 +416,10 @@ impl Root {
         match self.inputs.get(&id) {
             Some((Field::Line(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
             Some((Field::Text(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
-            None => if let Some(KitState::Editor(state,_))=self.states.get(&id) {
+            None => if let Some(KitState::Command(state))=self.states.get(&id) {
+                let input=state.read(cx).input();
+                input.update(cx, |state,cx|control_input!(state,action,value,text("label"),start,end,window,cx));
+            } else if let Some(KitState::Editor(state,_))=self.states.get(&id) {
                 let failure=self.failure.clone();
                 state.update(cx, |state,cx|control_input!(state,action,value,text("label"),start,end,window,cx,fail(&failure,"CodeEditor does not support inline tokens; use Input or Textarea".into())));
             }
@@ -435,6 +438,10 @@ impl Root {
             Some((Field::Line(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
             Some((Field::Text(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
             None => match target.and_then(|id|self.states.get(&id)) {
+                Some(KitState::Command(state)) => {
+                    let input=state.read(cx).input();let state=input.read(cx);
+                    snapshot(state.value().to_string(),state.unmask_value().to_string(),state.selected_text().to_string(),state.selected_range(),state.is_selection_reversed(),state.scroll_offset(),state.visible_row_range(),state.focus_handle(cx).contains_focused(window,cx))
+                }
                 Some(KitState::Editor(state,_)) => {
                     let state=state.read(cx);
                     let mut result=snapshot(state.value().to_string(),state.unmask_value().to_string(),state.selected_text().to_string(),state.selected_range(),state.is_selection_reversed(),state.scroll_offset(),state.visible_row_range(),state.focus_handle(cx).contains_focused(window,cx));

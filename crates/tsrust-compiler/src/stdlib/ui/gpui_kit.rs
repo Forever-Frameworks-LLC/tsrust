@@ -591,7 +591,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["Terminal", "CodeEditor", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -1996,6 +1996,7 @@ impl Root {
                 }
                 "Command" => {
                     let state = cx.new(|cx| CommandState::new(window, cx));
+                    if let Some(query)=props.get("query") {let query=query.clone();state.update(cx,|state,cx|state.set_query(query,window,cx));}
                     if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
                     KitState::Command(state)
                 }
@@ -3456,7 +3457,7 @@ impl Root {
                 Some(KitState::Command(state)) => {
                     // Ungrouped CommandItems are section 0 (when present); each CommandGroup is the next section.
                     let mut palette = CommandPalette::new(state).searchable(kit.prop("searchable") != Some("false")).filterable(kit.prop("filterable") != Some("false"))
-                        .bordered(kit.prop("bordered") != Some("false"));
+                        .bordered(kit.prop("bordered") != Some("false")).refine_style(&style);
                     if !kit.text("placeholder").is_empty() {palette = palette.placeholder(text("placeholder"));}
                     if let Some(height) = kit.number("maxHeight") {palette = palette.max_h(px(height as f32));}
                     if let Some(bounce) = kit.prop("scrollBounce") {palette = palette.scroll_bounce(bounce == "true");}

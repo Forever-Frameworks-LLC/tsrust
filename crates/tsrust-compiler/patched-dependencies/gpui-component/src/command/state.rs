@@ -222,6 +222,11 @@ impl CommandState {
         }
     }
 
+    /// The palette's search field, for programmatic input control.
+    pub fn input(&self) -> Entity<InputState> {
+        self.query_input.clone()
+    }
+
     /// The current search query.
     pub fn query(&self, cx: &App) -> SharedString {
         self.query_input.read(cx).value()
@@ -731,6 +736,7 @@ impl CommandState {
             .px_2()
             .py_1p5()
             .text_sm()
+            .when_some(self.options.style.text.font_size, |this, size| this.text_size(size))
             .rounded(self.item_radius(window, cx))
             .when(selected, |this| {
                 this.bg(cx.theme().accent)
@@ -744,6 +750,7 @@ impl CommandState {
             .px_2()
             .py_1p5()
             .text_xs()
+            .when_some(self.options.style.text.font_size, |this, size| this.text_size(size))
             .font_medium()
             .text_color(cx.theme().muted_foreground)
             .child(heading)
@@ -959,6 +966,7 @@ impl Render for CommandState {
                                         .text_color(cx.theme().muted_foreground),
                                 )
                                 .appearance(false)
+                                .when_some(self.options.style.text.font_size, |input, size| input.text_size(size))
                                 .p_0(),
                         ),
                 )

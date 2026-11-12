@@ -1,98 +1,74 @@
 import {
-  View,
   Text,
-  Input,
-  Button,
+  Command,
+  CommandItem,
+  CommandEmpty,
   Node,
   Signal,
-  signal,
-  computed
+  computed,
+  t,
+  controlInput
 } from 'std:ui';
 
-import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { FileSearchState, SearchActionContext, openFileSearchResult } from '../../lib/explorer/search-actions.tsr';
+import { Workspace, Entry } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { Workspace, Entry, projectFiles, openFile } from '../../lib/workspace/workspace.tsr';
+import { message, localizeError } from '../../lib/localization.tsr';
 
-
-function SearchResult(
-  file: ReadOnly<Entry>,
-  root: string,
-  workspace: Signal<Workspace>,
-  query: Signal<string>,
-  font: Signal<int>,
-  recovery: Signal<Recovery>
-): Node {
+function FileSearchItem(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
   const path = clone(file.path);
   const label = file.path.slice(root.length + 1);
-  const searchText = label.toLowerCase();
-  const resultClass = computed<string>(() => 'w-full flex-row items-center justify-start px-2 py-1 rounded-sm hover:bg-accent text-[' + font.get().toString() + 'px]');
   return (
-    <View hidden={!searchText.includes(query.get().toLowerCase())} className="flex-col">
-      <Button
-        className={resultClass.get()}
-        onPress={() => {
-          const next = workspace.get();
-
-          match (openFile(next, path)) {
-            Ok(_) => {},
-            Err(message) => {
-              next.error = clone(message);
-            }
-          }
-
-          publishWorkspace(next, workspace, recovery);
-        }}
-      >
-        <Text className="truncate">
-          {label}
-        </Text>
-      </Button>
-    </View>
+    <CommandItem value={path} label={label} icon="file" />
   );
 }
 
-export function FileSearch(root: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>): Node {
-  const query = signal('');
-  const inputClass = computed<string>(() => 'w-full min-w-0 text-[' + font.get().toString() + 'px]');
+export function FileSearch(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  search: Signal<FileSearchState>,
+  mode: Signal<string>,
+  sidebar: Signal<boolean>,
+  font: Signal<int>
+): Node {
+  const textClass = computed<string>(() => 'size-full min-h-0 text-[' + font.get().toString() + 'px]');
+  return (
+    <Command
+      inputId="file-search"
+      className={textClass.get()}
+      bordered={false}
+      query={search.get().query}
+      placeholder={message("Find a file by name or path")}
+      onQuery={(query) => {
+        const next = search.get();
+        next.query = clone(query);
+        search.set(next);
+      }}
+      onSelect={(path) => {
+        const context: SearchActionContext = {
+          workspace, recovery, fileSearch: search, navigationMode: mode, sidebarVisible: sidebar, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
+        };
 
-  match (projectFiles(root)) {
-    Err(message) => {
-      const errorText = computed<string>(() => localizeError(message));
-      return (
+        match (openFileSearchResult(context, search.get().root, path)) {
+          Ok(_) => {},
+          Err(error) => {
+            const next = workspace.get();
+            next.error = localizeError(error);
+            workspace.set(next);
+          }
+        }
+      }}
+      onCancel={() => {
+        mode.set('files');
+        controlInput(clone(workspace.get().active), 'focus');
+      }}
+    >
+      {...search.get().files.map((file: ReadOnly<Entry>) => FileSearchItem(file, search.get().root))}
+      <CommandEmpty>
         <Text>
-          {errorText.get()}
+          {t('No files found.')}
         </Text>
-      );
-    },
-    Ok(files) => {
-      const results: Node[] = [];
-
-      for (const file of files) results.push(SearchResult(
-        file,
-        clone(root),
-        workspace,
-        query,
-        font,
-        recovery
-      ));
-      return (
-        <View className="flex-col size-full p-3 gap-2">
-          <Input
-            id="file-search"
-            className={inputClass.get()}
-            value={query.get()}
-            placeholder={message("Find a file by name or path")}
-            aria-label={accessibleName("Find project file")}
-            onChange={(event) => {
-              query.set(clone(event.target.value));
-            }}
-          />
-          <View className="flex-col grow min-h-0 overflow-y-auto">
-            {...results}
-          </View>
-        </View>
-      );
-    }
-  }
+      </CommandEmpty>
+    </Command>
+  );
 }
