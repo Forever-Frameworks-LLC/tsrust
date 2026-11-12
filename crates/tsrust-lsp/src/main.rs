@@ -207,8 +207,13 @@ fn run(
             let result = catch_unwind(AssertUnwindSafe(|| {
                 let workspace = workspace?;
                 let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri).ok()?;
+                let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+                let started = Instant::now();
                 let graph = tsrust_compiler::project::load_project_headers(&workspace, &entry.0).ok()?;
+                if trace { eprintln!("[declarations] load={}ms", started.elapsed().as_millis()); }
+                let started = Instant::now();
                 let index = tsrust_lsp::project_intelligence::ProjectIndex::declarations(&graph);
+                if trace { eprintln!("[declarations] index={}ms", started.elapsed().as_millis()); }
                 Some(DocumentDeclarations {snapshot, workspace, index})
             })).unwrap_or(None);
             if header_completed.send(result).is_err() { break; }

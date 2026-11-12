@@ -25,6 +25,13 @@ passed. All24real-source responses matched; hover after subsequent private edits
 observed~600–617ms versus~1210–1230ms before, while cold startup remained~1.3s.
 These short protocol observations do not qualify native typing latency or a leak fix.
 
+Reference indexing follow-up, November12: reference tables now initialize per
+immutable project snapshot on the first References query. Hover/completion no longer
+pay that eager work after each edit; exact aliases, shadows, Unicode locations and
+snapshot behavior pass focused checks. All24probe responses matched, with hover
+after subsequent edits observed~301–316ms. First reference lookup pays table-build
+cost; native latency and long-running resource qualification remain open.
+
 Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
 connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
 Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,

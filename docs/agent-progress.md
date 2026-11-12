@@ -8,6 +8,50 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+On-demand reference indexing — November12, based on2c220bd3.
+Previous turn made progress with finite bundled parse reuse and native service
+reload. Added opt-in TSRUST_LSP_TRACE_TIMINGS spans for foreground header loading
+and declaration build, and lowered verbose per-module trace threshold to50ms.
+Real-source trace identified35–40ms loading,250–254ms declaration build (std:ui
+~195–199ms) and294–299ms eager reference-table construction on every edit.
+Live previous LSP78772 at2m06s was100%CPU/353MB footprint during analysis; not an
+idle/matched observation or evidence of a leak. Disposable footprint trace under
+/tmp/studio-bundled-index-live-footprint.txt.
+
+Replaced the eagerly populated ProjectIndex reference map with an immutable-snapshot
+OnceLock. Hover/definition/completion no longer build it. First actual References
+lookup builds the same typed Location map; subsequent lookups reuse it. Checked
+and preliminary indexes both use this path. No references omitted, filters weakened,
+or compiler diagnostics deferred by this change. First reference lookup now pays
+the build cost; broader asynchronous reference-request scheduling remains open.
+
+Extended compact-location regression verifies lazy initialization after hover and
+definition, exact Unicode/alias references, declaration inclusion filtering and old
+snapshot identity:1/1 passed0.01s (final setup17.78s). Existing checked alias/shadow
+case1/1 passed0.01s (setup21.53s). Logs /tmp/studio-lazy-references-{final,checked}-test.log.
+No full regression rerun. Whole formatter0files/0snippets/0fingerprints; diff-check
+passed. Phase-probe build19.54s; optimized LSP build18.01s.
+
+All24real-source response hashes matched. Hover first request for revisions1–4:
+before1251.04/588.42/595.84/594.20ms; after982.23/301.19/300.58/316.37ms. Warm requests
+remain a few milliseconds. Opt-in trace after:load35–40ms, build258–273ms with
+std:ui native/import linking198–210ms. Peak201.1MiB over4.53s in the short probe is
+not a leak test or controlled benchmark; no SQLite speed claims. Logs
+/tmp/studio-declaration-phase-probe.log and /tmp/studio-lazy-references-after.log.
+Current disposable structured observation target/lsp-studio-probe.json.
+
+Probed/built/installed LSP hash independently matches
+6e155a35be34b2acd7809cb8219a79c6d711c5ef7008ef6828161848d28a09be.
+Native menu restarted only Tsrust78772->80798 and showed connected; Go75300,
+app75287 and supervisor69762 / PTY64634 unchanged. Same bundle as preceding section.
+11tabs, owner-active image-actions and sole protected project-check draft hash
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17 preserved.
+CUA completionPreview remains bound; phase completed: Loaded deferred reference indexing.
+No editor typing/saves. Native typing/snippet MAT and long-running editor-plus-AI
+memory qualification remain open. Next target: measured~200ms repeated std:ui native
+import linking; reuse fully linked compiler-only bundles only when every import is
+native, never cache project-dependent alias links. Then native intelligence MAT.
+
 Bundled declaration parse reuse — November12, based on75d4e493.
 Previous goal turn made concrete progress by removing protocol-thread compiler
 repair from preliminary completion and fixing native service-menu generation state.

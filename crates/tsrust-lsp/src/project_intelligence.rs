@@ -5,6 +5,7 @@ use crate::{
 };
 use serde_json::Value;
 use std::collections::{BTreeMap,HashMap};
+use std::sync::OnceLock;
 use lsp_types::Location;
 use tsrust_compiler::project::{ProjectGraph, SourceId};
 
@@ -12,7 +13,7 @@ pub struct ProjectIndex {
     declarations_only: bool,
     indices: BTreeMap<SourceId, SourceIndex>,
     entry_aliases: BTreeMap<SourceId,SourceId>,
-    references: HashMap<Location, Vec<(Location, bool)>>,
+    references: OnceLock<HashMap<Location, Vec<(Location, bool)>>>,
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
 }
@@ -126,16 +127,15 @@ impl ProjectIndex {
             if trace && module_started.elapsed().as_millis() >= 500 { eprintln!("[index] apply-module={}ms source={}", module_started.elapsed().as_millis(), id.0); }
         }
         if trace { eprintln!("[index] apply={}ms", started.elapsed().as_millis()); }
-        let started = std::time::Instant::now();
-        index.refresh_references();
-        if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
         index
     }
     /// Declared symbols from headers only; never repair a body by running the checker.
     pub fn declarations(graph: &ProjectGraph) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+        let started = std::time::Instant::now();
         let mut index = Self::build(graph);
+        if trace { eprintln!("[index] declarations-build={}ms", started.elapsed().as_millis()); }
         index.declarations_only = true;
-        index.refresh_references();
         index
     }
     pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
@@ -159,7 +159,6 @@ impl ProjectIndex {
             index.indices.insert(id.clone(),source);
         }
         if cancelled() { return None; }
-        index.refresh_references();
         Some(index)
     }
     fn build(graph: &ProjectGraph) -> Self {
@@ -235,13 +234,13 @@ impl ProjectIndex {
             declarations.insert(id.clone(), declaration);
             index.finish_imports();
             indices.insert(id.clone(), index);
-            if trace && started.elapsed().as_millis() >= 500 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
+            if trace && started.elapsed().as_millis() >= 50 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
         Self {
             declarations_only: false,
             indices,
             entry_aliases: BTreeMap::new(),
-            references: HashMap::new(),
+            references: OnceLock::new(),
             graph: graph.clone(),
         }
     }
@@ -253,18 +252,20 @@ impl ProjectIndex {
             self.entry_aliases.insert(physical,logical);
         }
     }
-    fn refresh_references(&mut self) {
-        self.references.clear();
-        for (id, index) in &self.indices {
-            if let Ok(uri) = file_uri(id) {
-                for (definition, location, declaration) in index.reference_locations(&uri) {
-                    self.references
-                        .entry(definition)
-                        .or_default()
-                        .push((location, declaration));
+    fn references(&self) -> &HashMap<Location, Vec<(Location, bool)>> {
+        self.references.get_or_init(|| {
+            let started = std::time::Instant::now();
+            let mut references: HashMap<Location, Vec<(Location, bool)>> = HashMap::new();
+            for (id, index) in &self.indices {
+                if let Ok(uri) = file_uri(id) {
+                    for (definition, location, declaration) in index.reference_locations(&uri) {
+                        references.entry(definition).or_default().push((location, declaration));
+                    }
                 }
             }
-        }
+            if std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some() { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
+            references
+        })
     }
     pub fn request(
         &self,
@@ -288,7 +289,7 @@ impl ProjectIndex {
                             .unwrap_or(true);
                         let definition=serde_json::from_value::<Location>(definition).ok();
                         let mut locations=serde_json::json!(
-                            definition.as_ref().and_then(|definition|self.references.get(definition))
+                            definition.as_ref().and_then(|definition|self.references().get(definition))
                                 .into_iter()
                                 .flatten()
                                 .filter(|(_, declaration)| include || !declaration)
@@ -485,14 +486,18 @@ mod compact_location_tests {
         workspace.open(dependency.clone(),1,source.into());
         workspace.open(auxiliary,1,"import {source as original} from './lib é.tsr';export function forward():int{return original();}".into());
         let index=ProjectIndex::declarations(&load_project_headers(&workspace.snapshot(),&entry.0).unwrap());
+        assert!(index.references.get().is_none(), "reference tables must not delay preliminary help");
         let uri=file_uri(&entry).unwrap();
         let at=main.find("renamed()").unwrap();
         let params=serde_json::json!({"position":{"line":0,"character":main[..at].encode_utf16().count()},"context":{"includeDeclaration":true}});
         let declaration=source.find("source()").unwrap();
         let expected=serde_json::json!({"uri":file_uri(&dependency).unwrap(),"range":LineIndex::new(source).range(source,Span::new(declaration,declaration+6)).unwrap()});
         assert!(expected["uri"].as_str().unwrap().contains("%20"));
+        assert!(index.request("textDocument/hover",&params,uri.as_str()).unwrap().unwrap().to_string().contains("int"));
         assert_eq!(index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap(),expected);
+        assert!(index.references.get().is_none(), "hover and definition do not need a reference table");
         let all=index.request("textDocument/references",&params,uri.as_str()).unwrap().unwrap();
+        assert!(index.references.get().is_some(), "references initialize on demand");
         assert!(all.as_array().unwrap().contains(&expected));
         assert!(all.as_array().unwrap().len()>4);
         let mut without=params.clone();without["context"]["includeDeclaration"]=false.into();
