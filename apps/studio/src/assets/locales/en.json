@@ -264,5 +264,8 @@
   "Sort imports by path: std: imports, code imports, then assets, with blank lines between groups.": "Sort imports by path: std: imports, code imports, then assets, with blank lines between groups.",
   "Wrap arguments above": "Wrap arguments above",
   "Wrap function parameters and call arguments onto separate lines above this count. Set 0 to disable (0–100).": "Wrap function parameters and call arguments onto separate lines above this count. Set 0 to disable (0–100).",
-  "format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping)."
+  "format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).",
+  "Search": "Search",
+  "Include ignored files": "Include ignored files",
+  "Search files excluded by workspace .ignore and .gitignore rules. Generated directories remain excluded.": "Search files excluded by workspace .ignore and .gitignore rules. Generated directories remain excluded."
 }

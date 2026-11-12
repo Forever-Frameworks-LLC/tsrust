@@ -11,3 +11,5 @@ pub(crate) fn raw_fd(file: &fs::FileHandle) -> std::os::fd::RawFd {
     use std::os::fd::AsRawFd;
     file.get().0.as_raw_fd()
 }
+
+pub(crate) mod discovery;

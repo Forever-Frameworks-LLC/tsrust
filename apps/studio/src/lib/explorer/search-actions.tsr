@@ -11,11 +11,16 @@ export interface SearchActionContext {
   workspace: Signal<Workspace>;
   recovery: Signal<Recovery>;
   allowNavigation: boolean;
+  allowRead?: boolean;
+  allowedRoot?: string;
   focusEditor: boolean;
 }
 
-export function runContentSearch(context: ReadOnly<SearchActionContext>, query: string, regex: boolean, caseSensitive: boolean): Result<SearchResults, string> {
-  return searchContents(context.workspace.get(), query, regex, caseSensitive);
+export function runContentSearch(context: ReadOnly<SearchActionContext>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {
+  const workspace = context.workspace.get();
+
+  if (context.allowRead !== true || context.allowedRoot !== workspace.root) return Err('Workspace search is not permitted for this task.');
+  return searchContents(workspace, query, regex, caseSensitive, includeIgnored);
 }
 
 function validateSearchHit(workspace: ReadOnly<Workspace>, hit: ReadOnly<SearchHit>): Result<void, string> {

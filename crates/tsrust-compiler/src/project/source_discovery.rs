@@ -1,5 +1,7 @@
 //! Shared deterministic project-file discovery for CLI and editor clients.
 use std::{fs, path::PathBuf};
+#[path = "../stdlib/fs/runtime/discovery_walk.rs"]
+mod walker;
 
 pub fn discover(inputs: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
     Ok(discover_inner(inputs, false, true, &mut || false)?.expect("uninterrupted discovery"))
@@ -39,20 +41,7 @@ fn discover_inner(
             continue;
         }
         if !metadata.is_dir() { continue; }
-        let mut builder = ignore::WalkBuilder::new(path);
-        builder.standard_filters(false)
-            .ignore(!include_ignored).git_ignore(!include_ignored)
-            .require_git(false).follow_links(false)
-            .filter_entry(|entry| entry.depth() == 0 || !entry.file_type().is_some_and(|kind|
-                kind.is_dir() && matches!(entry.file_name().to_str(), Some(".git" | "node_modules" | "target"))));
-        let mut walker = builder.build();
-        loop {
-            if interrupted() { return Ok(None); }
-            let Some(entry) = walker.next() else { break; };
-            let entry = entry.map_err(|error| format!("{}: {error}", path.display()))?;
-            if let Some(error) = entry.error() {
-                return Err(format!("{}: {error}", entry.path().display()));
-            }
+        if !walker::walk(path, include_ignored, interrupted, |entry| {
             if entry.file_type().is_some_and(|kind| kind.is_file())
                 && entry.path().extension().is_some_and(|extension|
                     extension == "tsr" || extension == "tsrx"
@@ -60,7 +49,8 @@ fn discover_inner(
             {
                 files.push(entry.into_path());
             }
-        }
+            Ok(())
+        })? { return Ok(None); }
     }
     let mut canonical = Vec::with_capacity(files.len());
     for path in files {

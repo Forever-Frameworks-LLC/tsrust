@@ -28828,6 +28828,34 @@
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
       "sourceSha256": "ff6330436260a823e615acc7fa9ac961d002c08329b6bc543d9f91c114994876",
       "counterpartSha256": "c379c89effbd8efc1b3cccb577726e23688847d9ea4ed03d89644a82df20cbe8"
+    },
+    {
+      "id": "native_directory_walk",
+      "family": "native-files",
+      "source": "workloads/native_directory_walk.tsr",
+      "counterpart": "workloads/native_directory_walk.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 64,
+      "operationsPerIteration": 1,
+      "operationUnit": "One recursive sorted directory snapshot",
+      "inputText": "native-directory-walk-v1",
+      "fixtureSha256": "129fb5e43a679653dc4d086a82e0b013aa6e961695ed3d837df2a229ee296ea2",
+      "category": "resources",
+      "measurementStatus": "implemented-pending-validation",
+      "sourceAccepted": false,
+      "nativeSourceAccepted": false,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Shared walkDir snapshot versus Node serial traversal with matching generated-directory exclusions, symlink omission and final path sort. Correctness and measurements pending.",
+      "specification": "Traverse 8 nested branches and 64 files plus three root files; prune target. includeIgnored=true preserves branch files despite the fixture Git ignore rule. Observe 75 entries, 67 files, 8 directories and hidden/Unicode names; no metadata syscalls beyond traversal kind checks.",
+      "sourceSha256": "07b176e2f61b57fd7bc5a3add12eae31aa70c8441d29c37390159d668eba5d03",
+      "counterpartSha256": "5dac45f44c491fff58b27bf1a9ee3f2d53425f8f661410f0ad037d904cf02833"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

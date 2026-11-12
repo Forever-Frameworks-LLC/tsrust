@@ -33,6 +33,12 @@ test('content search supports literal, case and regex matching with UTF-8 line o
       Err(_) => {}
     }
 
+    unwrap(writeTextFile(root + '/.gitignore', 'ignored.txt\n'));
+    unwrap(writeTextFile(root + '/ignored.txt', 'excluded-token'));
+    strictEqual(unwrap(searchContents(workspace, 'excluded-token', false, true)).hits.length, 0);
+    strictEqual(unwrap(searchContents(workspace, 'excluded-token', false, true, true)).hits.length, 1);
+    unwrap(writeTextFile(root + '/.gitignore', ''));
+    strictEqual(unwrap(searchContents(workspace, 'excluded-token', false, true)).hits.length, 1);
     unwrap(openFile(workspace, root + '/source.tsr'));
     edit(workspace.files[0].document, 'unsaved needle');
     strictEqual(unwrap(searchContents(workspace, 'needle', false, true)).hits.length, 1);
@@ -80,10 +86,31 @@ test('registered AI search tools share results and enforce host navigation and s
     const recovery = signal<Recovery>({
       path: root + '/journal.json', baseline: '', ready: true
     });
+    const allowedRoot = clone(workspace.get().root);
     const context: SearchActionContext = {
-      workspace, recovery, allowNavigation: false, focusEditor: false
+      workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot
     };
-    strictEqual(editorTools().length, 2);
+    strictEqual(editorTools().length, 3);
+    context.allowRead = false;
+
+    match (invokeEditorTool(context, 'search_content', '{"query":"needle","allowRead":true}')) {
+      Ok(_) => {
+        throw 'tool arguments escalated read permission';
+      },
+      Err(_) => {}
+    }
+
+    context.allowRead = true;
+    context.allowedRoot = root + '/outside';
+
+    match (invokeEditorTool(context, 'search_content', '{"query":"needle","includeIgnored":true}')) {
+      Ok(_) => {
+        throw 'search escaped its workspace grant';
+      },
+      Err(_) => {}
+    }
+
+    context.allowedRoot = clone(context.workspace.get().root);
     const response = unwrap(invokeEditorTool(context, 'search_content', '{"query":"needle","caseSensitive":true}'));
     const result = JSON.parse<SearchResults>(response);
     strictEqual(result.hits[0].matches[0].start, 5);

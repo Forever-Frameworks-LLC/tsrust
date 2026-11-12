@@ -8842,6 +8842,31 @@
       ]
     },
     {
+      "name": "walkDir",
+      "signature": "walkDir(path: string, includeIgnored: boolean, maxEntries?: int): Result<DirEntry[], FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Directory root, resolved relative to the working directory and canonicalized. A symlink root or non-directory fails; traversal never follows symlinks."
+        },
+        {
+          "label": "includeIgnored: boolean",
+          "documentation": "false applies .ignore and .gitignore files within this root, including nested negation rules. true includes ignored entries. Hidden entries remain visible in both modes. Parent/global Git ignore files are not read."
+        },
+        {
+          "label": "maxEntries?: int",
+          "documentation": "Optional nonnegative maximum count of returned files and directories. The first excess entry returns length-range with no partial array. Omitted means no application entry cap."
+        }
+      ],
+      "documentation": "Recursively snapshots regular files and directories below a root, sorted by canonical absolute path. The root itself and symbolic links are omitted. Directory traversal always prunes .git, node_modules and target. includeIgnored selects whether workspace-local .ignore/.gitignore rules filter discovery; these rules never alter explicitly opened files or compiler imports. Hidden files and configuration files are visible unless an explicit ignore rule matches. Nested ignore files are read on each call, so later calls observe rule changes. Invalid rules or traversal errors return discovery; filesystem/root errors retain their FsError code. Invalid bounds return length-range, and non-Unicode names/paths return not-unicode. Returns an owned array or an error, never a partial successful array. No file is modified. Concurrent filesystem changes can affect the snapshot. Ownership: borrows the root string; returned records and strings are independent.\n\n```tsrust\nimport { mkdir, walkDir, removeDir } from 'std:fs';\n\nfunction main() {\n  unwrap(mkdir('catalog-walk-empty'));\n  console.log(unwrap(walkDir('catalog-walk-empty', false, 0)).length);\n  unwrap(removeDir('catalog-walk-empty'));\n}\n```\n\nExpected output: 0.",
+      "examples": [
+        {
+          "source": "import {mkdir,walkDir,removeDir} from 'std:fs';function main(){unwrap(mkdir('catalog-walk-empty'));console.log(unwrap(walkDir('catalog-walk-empty',false,0)).length);unwrap(removeDir('catalog-walk-empty'));}",
+          "output": "0\n"
+        }
+      ]
+    },
+    {
       "name": "mkdir",
       "signature": "mkdir(path: string): Result<void, FsError>",
       "parameters": [

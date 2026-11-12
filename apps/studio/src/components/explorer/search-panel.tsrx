@@ -18,6 +18,7 @@ import { SearchHit, searchPreview } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
@@ -64,11 +65,12 @@ function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Wor
   );
 }
 
-export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
+export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>): Node {
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
+  const allowedRoot = clone(workspace.get().root);
   const context: SearchActionContext = {
-    workspace, recovery, allowNavigation: false, focusEditor: false
+    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot
   };
   const query = signal('');
   const regex = signal(false);
@@ -117,7 +119,7 @@ export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Rec
             tooltip={message("Run content search")}
             accessibilityLabel={message("Run content search")}
             onClick={() => {
-              match (runContentSearch(context, query.get(), regex.get(), sensitive.get())) {
+              match (runContentSearch(context, query.get(), regex.get(), sensitive.get(), settings.get().searchIncludeIgnored)) {
                 Ok(result) => {
                   hits.set(result.hits);
                   skipped.set(result.skipped);

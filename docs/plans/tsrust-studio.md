@@ -228,8 +228,18 @@ explicit-file preservation and cancellation; the LSP scanner now cancels during
 traversal rather than waiting for all directories. Focused traversal witness1/1 and
 workspace-scan cases8/8 passed; native Studio reconnected to the installed new LSP
 without replacing its window or losing its owner's draft. This proves the source
-walker/cancellation portion, not the full section. Studio tree/search settings, checked Tsrust/guarded AI integration, watcher policy
-and comparative traversal measurements remain required before this section passes.
+walker/cancellation portion. The checked std:fs.walkDir snapshot now embeds the
+same traversal source and selects ignore only for programs using discovery.
+Studio content search uses it, with a persisted categorized Settings preference
+for ignored files; the registered AI search action shares the implementation and
+requires an exact host root/read grant. Public runtime1/1, Studio search/settings
+7/7, full Studio check and native MAT passed. MAT verified rule changes without
+restart and persisted enable/disable across Settings reopening. This is not full
+integrated-agent acceptance. Tree visibility settings, watcher/index refresh, cancellable background Studio
+scans and comparable traversal measurements remain required. Matched native/TypeScript
+benchmark support and independent oracle exist; Node control/source checks passed,
+while native benchmark verification awaits portable source-pack setup for the new
+lockfile. No speedup or measured acceptance is claimed.
 References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
 
 ## Current native terminal integration — 2026-11-11

@@ -7,6 +7,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
     if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::IoReader | NativeTypeId::IoWriter | NativeTypeId::IoLineReader | NativeTypeId::IoStdin | NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter | NativeTypeId::JsonlReader | NativeTypeId::JsonlReaderView | NativeTypeId::JsonlWriter | NativeTypeId::JsonlWriterView))) && bindings.is_empty() { return String::new(); }
     let file = file.map(|id|format!("Record{id}")).unwrap_or_default();
     let mut output = crate::native_runtime::files_module();
+    if bindings.iter().any(|binding|binding.name=="walkDir") {output.push_str(&crate::native_runtime::discovery_module());}
     if bindings.iter().any(|binding|binding.name=="createTempDir") {output.push_str(&crate::native_runtime::tempfiles_module());}
     if bindings.iter().any(|binding|binding.name=="writeTextFileAtomic") {output.push_str(&crate::native_runtime::atomic_files_module());}
     output.push_str("trait TsrFileRead { fn read_bytes(&mut self,length:i64)->Result<Vec<u8>,tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileWrite { fn write_bytes(&mut self,bytes:&[u8])->Result<i64,tsrust_native_files::fs::FsFailure>; fn write_all_bytes(&mut self,bytes:&[u8])->Result<(),tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileClose { fn close_file(self)->Result<(),tsrust_native_files::fs::FsFailure>; }\n");
@@ -76,6 +77,10 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
             }
             "stat" | "lstat" => ("path:&String".into(),format!("tsrust_native_files::fs::{}(path.as_ref())",binding.name),"tsrust_std_fs_metadata(success)".into()),
             "fileStat" => (format!("file:&{file}"),"tsrust_native_files::fs::file_stat(&file.handle)".into(),"tsrust_std_fs_metadata(success)".into()),
+            "walkDir" => {
+                let entry = program.records.iter().position(|record|record.native_type==Some(NativeTypeId::FsDirEntry)).expect("walkDir entry");
+                ("path:&String,include_ignored:bool,limit:Option<i64>".into(),"tsrust_native_discovery::walk_dir(path.as_ref(),include_ignored,limit)".into(),format!("RecordArray{entry}::from(success.into_iter().map(tsrust_std_fs_entry).collect::<Vec<_>>())"))
+            }
             "readDir" => {
                 let entry=record_id(NativeTypeId::FsDirEntry).expect("directory entry");
                 ("path:&String,limit:Option<i64>".into(),"tsrust_native_files::fs::read_dir(path.as_ref(),limit)".into(),format!("RecordArray{entry}::from(success.into_iter().map(tsrust_std_fs_entry).collect::<Vec<_>>())"))

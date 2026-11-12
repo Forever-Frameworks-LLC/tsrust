@@ -741,7 +741,7 @@ dependencies = [
  "bitflags 2.13.2",
  "cexpr",
  "clang-sys",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -3679,9 +3679,9 @@ dependencies = [
 
 [[package]]
 name = "ignore"
-version = "0.4.34"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "484be5657551d7868d67587df967fb4fcbe9d266a761cc855aaa148fda0b3cc7"
+checksum = "2adf14691c72bcfc1058740436a35bdd3ae9c07d1a941ef00b749e9ea16aefa7"
 dependencies = [
  "crossbeam-deque",
  "globset",
@@ -7988,6 +7988,7 @@ dependencies = [
  "icu_locale",
  "icu_provider",
  "icu_segmenter",
+ "ignore",
  "kurbo 0.13.1",
  "matchit",
  "memchr",

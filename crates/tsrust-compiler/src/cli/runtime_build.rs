@@ -128,6 +128,7 @@ impl Prepared {
   if tsrust_compiler::native_runtime::requires_byte_search(runtime){command.args(["--features","byte-search"]);}
   if tsrust_compiler::native_runtime::requires_hostname(runtime){command.args(["--features","hostname"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
+  if native_runtime::requires_discovery(runtime){command.args(["--features","file-discovery"]);}
   if tsrust_compiler::native_runtime::requires_temporary_files(runtime){command.args(["--features","temporary-files"]);}
   if runtime.contains("pub mod tsrust_native_process {"){command.args(["--features","process"]);}
   if runtime.contains("pub mod tsrust_native_io {"){command.args(["--features","io"]);}

@@ -42,6 +42,7 @@ pub(crate) fn export(root:&Path,rust:&str)->io::Result<()> {
   if tsrust_compiler::native_runtime::requires_hostname(rust){manifest=manifest.replace("default = [", "default = [\"hostname\", ");}
   if tsrust_compiler::native_runtime::requires_temporary_files(rust){manifest=manifest.replace("default = [", "default = [\"temporary-files\", ");}
   if rust.contains("mod tsrust_native_files {"){manifest=manifest.replace("default = [", "default = [\"files\", ");}
+  if tsrust_compiler::native_runtime::requires_discovery(rust){manifest=manifest.replace("default = [", "default = [\"file-discovery\", ");}
   if rust.contains("mod tsrust_native_date {"){manifest=manifest.replace("default = [", "default = [\"calendar\", ");}
   if rust.contains("mod tsrust_native_crypto {"){manifest=manifest.replace("default = [", "default = [\"crypto\", ");}
   if rust.contains("mod tsrust_native_crypto_password {"){manifest=manifest.replace("default = [", "default = [\"crypto-password\", ");}

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 export function createNativeFileFixture(row) {
-  if(['native_directory_metadata','native_file_copy_rename_remove','native_file_options_text'].includes(row.id))return createUtilityFixture(row);
+  if(['native_directory_walk','native_directory_metadata','native_file_copy_rename_remove','native_file_options_text'].includes(row.id))return createUtilityFixture(row);
   const writer=['native_jsonl_writer','native_jsonl_borrowed_writer'].includes(row.id)&&row.family==='native-json'&&row.inputText==='native-jsonl-writer-v1';
   const jsonl=['native_jsonl_typed','native_jsonl_borrowed'].includes(row.id)&&row.family==='native-json'&&row.inputText==='native-jsonl-typed-v1';
   if(!writer&&!jsonl&&(row.family!=='native-files'||row.inputText!=='native-file-fixture-v1')) throw Error('Native file fixture contract');
@@ -31,13 +31,14 @@ export function nativeFileInput(row) {
 }
 
 function utilityContents(id) {
+  if(id==='native_directory_walk')return [...Array.from({length:8},(_,i)=>[`branch-${i}`,null]),...Array.from({length:64},(_,i)=>[`branch-${i%8}/entry-${String(i).padStart(2,'0')}.bin`,Buffer.alloc(i%31+1,i)]),['.hidden',Buffer.alloc(0)],['é-🦀.txt',Buffer.from([0,255,7])],['.gitignore',Buffer.from('branch-*/*\n')],['target',null],['target/compiled',Buffer.from('excluded')]];
   if(id==='native_directory_metadata')return [...Array.from({length:64},(_,i)=>[`entry-${String(i).padStart(2,'0')}.bin`,Buffer.alloc(i%31+1,i)]),['.hidden',Buffer.alloc(0)],['é-🦀.txt',Buffer.from([0,255,7])],['nested',null]];
   if(id==='native_file_copy_rename_remove')return [['source.bin',Buffer.from(Array.from({length:1048576},(_,i)=>(i*17+3)%256))]];
   if(id==='native_file_options_text')return [['input.bin',Buffer.alloc(0)]];
   throw Error('Native utility fixture');
 }
 function createUtilityFixture(row) {
-  const markers={native_directory_metadata:'native-directory-metadata-v1',native_file_copy_rename_remove:'native-copy-file-v1',native_file_options_text:'native-options-text-v1'};
+  const markers={native_directory_walk:'native-directory-walk-v1',native_directory_metadata:'native-directory-metadata-v1',native_file_copy_rename_remove:'native-copy-file-v1',native_file_options_text:'native-options-text-v1'};
   if(row.family!=='native-files'||row.inputText!==markers[row.id])throw Error('Native utility fixture contract');
   const contents=utilityContents(row.id);
   const bytes=JSON.stringify(contents.map(([name,bytes])=>[name,bytes===null?null:bytes.toString('hex')]));

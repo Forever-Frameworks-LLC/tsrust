@@ -94,6 +94,19 @@ remain relative. Non-Unicode names/paths return `not-unicode`; no lossy replacem
 occurs. No iterator handle escapes. Directory contents can change during and
 after enumeration.
 
+`walkDir(path, includeIgnored, maxEntries?)` recursively returns regular files and
+directories sorted by canonical absolute path, excluding the root and symlinks.
+It always prunes `.git`, `node_modules` and `target`. With `includeIgnored: false`,
+workspace-local `.ignore` and `.gitignore` files filter discovery, including nested
+negation rules; parent/global Git rules are not read. Hidden entries remain visible
+unless an explicit rule excludes them. `true` includes ignored entries without
+changing compiler inputs or explicitly opened files. The optional nonnegative
+entry bound counts files and directories and returns `length-range`, never a
+partial successful array, on overflow. Invalid rules/traversal return `discovery`;
+root I/O, non-directory and Unicode failures return `FsError`. Each call rereads
+rules. This eager snapshot does not watch for changes or grant filesystem access.
+
+
 Omitted or undefined `maxEntries` adds no application cap. An explicit nonnegative
 limit that fits native storage fails with `length-range` on the first excess
 entry, returning no partial array. Zero accepts an empty directory. Invalid limits

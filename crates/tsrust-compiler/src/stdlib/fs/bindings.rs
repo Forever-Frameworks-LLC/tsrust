@@ -119,6 +119,14 @@ pub const READ_DIR: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_read_dir" }, features: &["fs"],
 };
 
+pub const WALK_DIR: NativeBinding = NativeBinding {
+    name: "walkDir", parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "includeIgnored", ty: NativeType::Boolean, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "maxEntries", ty: NativeType::Int, access: Mode::Copy, optional: true, rest: false },
+    ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_walk_dir" }, ..READ_DIR
+};
+
 pub const MKDIR: NativeBinding = NativeBinding {
     module: "std:fs", name: "mkdir", returned_borrow: None,
     parameters: &[

@@ -647,6 +647,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::LSTAT,
     crate::stdlib::fs::bindings::FILE_STAT,
     crate::stdlib::fs::bindings::READ_DIR,
+    crate::stdlib::fs::bindings::WALK_DIR,
     crate::stdlib::fs::bindings::MKDIR,
     crate::stdlib::fs::bindings::MKDIR_ALL,
     crate::stdlib::fs::bindings::REMOVE_FILE,

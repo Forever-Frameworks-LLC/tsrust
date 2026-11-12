@@ -94,6 +94,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const iconsSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
+  const searchSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
   const localeSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
@@ -245,6 +248,19 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                     const config = draft.get();
                     config.fileIcons = enabled;
                     commitSettings(iconsSession, config);
+                  }}
+                />
+              </SettingItem>
+            </SettingsGroup>
+            <SettingsGroup title={message("Search")}>
+              <SettingItem title={message("Include ignored files")} description={message("Search files excluded by workspace .ignore and .gitignore rules. Generated directories remain excluded.")}>
+                <Switch
+                  checked={draft.get().searchIncludeIgnored}
+                  accessibilityLabel={message("Include ignored files")}
+                  onChange={(enabled) => {
+                    const config = draft.get();
+                    config.searchIncludeIgnored = enabled;
+                    commitSettings(searchSession, config);
                   }}
                 />
               </SettingItem>

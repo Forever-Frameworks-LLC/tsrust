@@ -8,6 +8,89 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Accepted checked discovery/content-search slice — 2026-11-12, source checkpoint
+contains this entry, based on9f8fbf3f.
+Compiler and generated std:fs.walkDir now embed one shared serial traversal source.
+walkDir returns sorted owned regular-file/directory snapshots with canonical paths,
+workspace-local ignore policy, hidden entries, no symlinks, generated-directory
+pruning, explicit optional entry bounds and no partial success. Source/compiler
+selection remains unchanged. The dependency is selected only by the file-discovery
+runtime feature, with backend/native/GPUI manifests and locks updated. Complete
+signature/parameter/help/example documentation is in builtins.json and files.md.
+Initial public run exposed a missing FsError effect registration; fixed centrally,
+including read-only leaf classification, instead of weakening catches/callbacks.
+
+Studio projectFiles now uses the checked snapshot; content search persists
+searchIncludeIgnored (defaultfalse, older configs migrate) through the categorized
+Settings GUI and formatted settings JSON. English/Portuguese labels supplied.
+UI and registered search_content action call the same implementation. Host context
+must grant read access to the exact current canonical root; payloads cannot grant
+read/navigation or widen the root by requesting ignored files. Full model hosting
+and action parity remain pending. Tree currently keeps its existing visibility
+policy; tree-setting/watcher integration is not accepted by this slice.
+
+Passed: public std:testing discovery suite1/1, execution5.43ms (case4.93ms),
+setup/build5579.8ms; Studio search/settings7/7, execution500.85ms,
+setup/build22497.1ms (check2081.7ms,emit383.6ms,native/link19761.4ms).
+Coverage includes nested rules/negation, Unicode/hidden entries, rule edits without
+restart, ignored inclusion, sorted snapshots, exact/invalid bounds, non-directory
+root, persisted preference, host read/root/navigation guards and stale search hits.
+A preexisting stale editorTools count expected2 although the catalog already had3;
+updated the assertion to3. Ownership checker also caught record-construction/test
+uses of a moved workspace signal; compute allowedRoot before transfer, then use
+context.workspace. No signal aliases or blanket clones were introduced.
+
+Matched benchmark support native_directory_walk now includes Tsrust/TypeScript
+sources, deterministic nested fixture, independent75entry/67file/8directory oracle,
+source guards/fingerprints, driver registration and report category. Focused Node
+control/source-contract check1/1 passed (347.88ms); the new TypeScript source also
+passes the benchmark's strict compiler options. Native --verify with native,node-tsc stopped
+at the new lockfile's unprepared portable source pack. No native benchmark acceptance,
+new timing, SQLite record or speedup claim. Prepare portable cached sources before
+that verification; this is setup, not missing workload implementation.
+
+Installed SDK atomically, independent hash matches:
+CLI b98545029e672a61a2a42d988ed5e466d27a948df078af609cef97a140d4d4ca;
+LSP4d3a846feff84abd6270ca380a244de093b8e04a8e5b11a8dfcb58ff49f5953d.
+Current only preview: supervisor2111 / PTY58391, app2332 / LSP2333;
+bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-2111-1794465488243489000-0/Tsrust Studio.app.
+Log /tmp/studio-walkdir-dev.log. Full native build335594ms (check82750.4ms,
+emit3508.1ms,runtime227130.5ms,native/link248553.4ms; runtime/program misses).
+Old81803/app82069/LSP96369 stopped through PTY55205 after replacement was visibly
+ready. Process inspection confirmed old processes gone and new app/service live.
+Legitimate restarts remain authorized. Owner's one
+project-check draft was verified before reload: four extra spaces, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Full standalone Studio check passed; no repeat is needed. Native MAT created
+only an exclusive temporary .ignore containing README.md: query returned0hits,
+Settings toggle on returned README.md:8, reopening Settings retained on, restoring
+off returned0hits, and removing the temporary rule returned1hit without restart.
+Cleared the query, closed Settings and restored Files with src/services expanded,
+active project-check, nine tabs and one unsaved draft. SHA256 still matches before
+reload; no probe buffers were created/saved. Temporary .ignore removed and disk
+settings independently verified searchIncludeIgnored=false. CUA completed:
+Verified persisted ignore-aware Studio search. Settings' existing typography remains
+visually larger than the editor despite shared preference plumbing; retain that
+UI polish issue, rather than claiming complete sizing acceptance.
+
+Whole-project final formatting passed0files/0snippets/0fingerprints changed;
+git diff --check passed. Earlier formatting normalized5authored files and the new
+benchmark (1source fingerprint), proving tokens/idempotence through the formatter.
+Pruned5obsolete native cache entries/workspace payloads under namespace/build locks,
+keeping3latest runtime/program variants and2latest actual build payloads. Native
+cache4.7GiB ->3.7GiB; shared Cargo target/model artifacts untouched. Empty build
+lock/identity shells retained; filter actual payloads before future pruning.
+Focused compiler host checks passed3/3 in0.01s after3m36s setup/build: extracted
+discovery, observer classification and existing regex Result classification.
+The same built test consumer passed the lexical native-effect audit1/1 in0.00s
+without recompilation or rerunning passed cases. New benchmark Tsrust source also passes
+CLI checking; strict TypeScript source checking passed independently.
+No full regression matrix, measured benchmark, push or release. Next executable
+section: configurable tree visibility, shared watcher/index policy and cancellable background
+Studio scanning, then return
+to signature help and language-service latency/external-server work. Portable source
+setup/native benchmark verification remains a separate pending measurement task.
+
 Current discovery section — 2026-11-12, based on local checkpointdb488fe0.
 Pinned ignore0.4.28 (new lock entries ignore/globset/bstr), replaced the shared
 serial source-discovery worklist with WalkBuilder, and preserved existing compiler/

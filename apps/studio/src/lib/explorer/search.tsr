@@ -23,7 +23,7 @@ export interface SearchResults {
   skipped: int;
 }
 
-export function searchContents(workspace: ReadOnly<Workspace>, query: string, regex: boolean, caseSensitive: boolean): Result<SearchResults, string> {
+export function searchContents(workspace: ReadOnly<Workspace>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {
   const hits: SearchHit[] = [];
   let skipped = 0;
 
@@ -38,7 +38,7 @@ export function searchContents(workspace: ReadOnly<Workspace>, query: string, re
       return Err(clone(error.message));
     },
     Ok(pattern) => {
-      match (projectFiles(workspace.root)) {
+      match (projectFiles(workspace.root, includeIgnored)) {
         Err(error) => {
           return Err(error);
         },

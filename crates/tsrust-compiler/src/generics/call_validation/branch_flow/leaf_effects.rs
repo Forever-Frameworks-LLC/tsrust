@@ -10,7 +10,7 @@ pub(super) fn native_observer(symbol: &str) -> bool {
             || binding.module == "std:bytes"
                 && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8" | "toHex" | "fromHex" | "toUtf8Lossy" | "toBase64" | "fromBase64" | "toBase64Url" | "fromBase64Url" | "fromUtf16" | "toUtf16" | "concat" | "equals" | "compare" | "indexOf" | "readInt" | "readUint" | "readFloat32" | "readFloat64")
             || binding.module == "std:fs"
-                && matches!(binding.name, "stat" | "lstat" | "fileStat" | "readDir" | "canonicalize" | "readLink" | "readFile" | "readTextFile")
+                && matches!(binding.name, "stat" | "lstat" | "fileStat" | "readDir" | "walkDir" | "canonicalize" | "readLink" | "readFile" | "readTextFile")
             || binding.module == "std:testing-runtime"
                 && matches!(binding.name, "checkAssertion" | "assertionDetails" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })
@@ -45,6 +45,7 @@ mod tests {
             ("@native:std:path#join", true),
             ("@native:std:fs#stat", true),
             ("@native:std:fs#readDir", true),
+            ("@native:std:fs#walkDir", true),
             ("@native:std:fs#truncate", false),
             ("@native:std:fs#writeTextFile", false),
             ("@native:std:fs#writeTextFileAtomic", false),
