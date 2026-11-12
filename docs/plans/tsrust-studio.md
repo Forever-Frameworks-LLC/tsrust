@@ -75,6 +75,15 @@ separate Channel content-search Enter and summary spacing. Only one dev preview
 remains, with all12owner tabs and original draft intact. No whole-regression or
 memory-stability claim accompanies this UI change.
 
+Native intelligence MAT, November12: keyboard scalar hover now visibly uses syntax
+colors, configured text size and a single outer border. Function completion/Tab/undo
+passed live. Result.match now supplies separate editable Ok/Err body stops and final
+exit, confirmed through native typing/Tab and restored drafts. Focused indentation
+and expanded-source compiler witness1/1 passed; only LSP restarted. A bounded process
+sample found diagnostics doing full graph checking on its worker while the protocol
+thread waits. Short physical-footprint observations do not qualify memory stability;
+redundant background checking and long-running responsiveness remain open.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust

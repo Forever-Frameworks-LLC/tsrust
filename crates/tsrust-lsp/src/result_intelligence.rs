@@ -144,14 +144,14 @@ impl SourceIndex {
         if !receiver.is_empty() && "match".starts_with(prefix) {
             let binding = |ty: &str, name: &str| if ungroup_callable_type(ty) == "void" { "_".to_owned() } else { name.to_owned() };
             let indent=self.offset(replace.start).map(|offset|self.snippet_indent(offset)).unwrap_or("");
-            let text = format!("match ({receiver}) {{\n{indent}  Ok({}) => {{\n{indent}    $0\n{indent}  }}\n{indent}  Err({}) => {{\n{indent}  }}\n{indent}}}", binding(&ok, "value"), binding(&error, "error"));
+            let text = format!("match ({receiver}) {{\n{indent}  Ok({}) => {{\n{indent}    $1\n{indent}  }},\n{indent}  Err({}) => {{\n{indent}    $2\n{indent}  }}\n{indent}}}$0", binding(&ok, "value"), binding(&error, "error"));
             // The edit replaces the whole access, so it starts at the receiver.
             let mut range = replace;
             let width = receiver.encode_utf16().count() as u32 + 1 + prefix.encode_utf16().count() as u32;
             if !receiver.contains('\n') && range.end.character >= width {
                 range.start.character = range.end.character - width;
                 items.push(json!({"label":"match","kind":15,"detail":format!("match ({receiver}) {{ Ok(…) => … Err(…) => … }}"),
-                    "documentation":{"kind":"markdown","value":format!("Handle both alternatives of `{}`. `Ok` holds `{}`; `Err` holds `{}`.", self.display_type(ty), self.display_type(&ok), self.display_type(&error))},
+                    "documentation":{"kind":"markdown","value":format!("Handle both alternatives of `{}`. `Ok` holds `{}`; `Err` holds `{}`. Tab moves from the `Ok` body to the `Err` body, then past the match; Shift+Tab moves back.", self.display_type(ty), self.display_type(&ok), self.display_type(&error))},
                     "filterText":format!("{receiver}.match"),"insertTextFormat":2,
                     "textEdit":{"range":range,"newText":text}}));
             }

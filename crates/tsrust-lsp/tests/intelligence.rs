@@ -10275,6 +10275,11 @@ fn result_snippets_keep_document_indentation() {
         let mut position=at(&source,"mat\n",0);position.character+=3;
         let result=SourceIndex::new(&source).request("textDocument/completion",&json!({"position":position}),"file:///snippet.tsr").unwrap();
         let item=result.as_array().unwrap().iter().find(|item|item["label"]=="match").unwrap();
-        assert!(item["textEdit"]["newText"].as_str().unwrap().contains(&format!("\n{indent}    $0\n{indent}  }}")));
+        let snippet=item["textEdit"]["newText"].as_str().unwrap();
+        assert!(snippet.contains(&format!("\n{indent}    $1\n{indent}  }},")));
+        assert!(snippet.contains(&format!("\n{indent}    $2\n{indent}  }}")));
+        assert!(snippet.ends_with(&format!("\n{indent}}}$0")));
+        let expanded=snippet.replace("$1","console.log(value);").replace("$2","console.log(error);").replace("$0","");
+        tsrust_compiler::check(&format!("function inspect(value:Result<int,string>):void{{\n{indent}{expanded}\n}}function main(){{inspect(Ok(2));}}")).unwrap();
     }
 }

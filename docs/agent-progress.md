@@ -8,6 +8,43 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current intelligence continuation — November12, based ond3fc7c11 (previous goal
+turn was progress: accepted search dialog, local checkpoint and one live preview).
+Native MAT now confirms keyboard ShowHover on const count:int displays highlighted
+const/int, editor-sized text and one outer border without language badge/inner boxes.
+Explicit gre completion appeared within the same native interaction observation,
+Tab inserted greet and one undo restored gre; this is responsiveness evidence,
+not a measured latency distribution. A Result.match follow-up found its completion
+provided only $0, so Tab after writing the body correctly became indentation rather
+than navigating another body. Added $1/$2 body stops plus final $0, comma between arms
+and inline completion documentation for Tab/Shift+Tab. Native engine unchanged.
+
+Focused result_snippets_keep_document_indentation passed1/1 in0.03s,29.84s setup,
+covering space/tab layouts and compiler-checking the substituted bodies. Existing
+AI language reads/proposal planner receive the same LSP completion, no separate
+implementation. LSP-only binary build0.37s and atomic/hash-verified install:
+780bb47aad05e346ae7d039288ddb50fe0620e924cebf1345ea6c0777299238d.
+CLI remains1bf7b682e31da0ebcf321e13bdcd965ceaa6031108ccbaf346a37ed8a3339788.
+Loaded via actual Language services > tsrust > Restart, without replacing Studio.
+Live MAT confirms typing distinct comments into Ok and Err via Tab, then Tab places
+caret after match. Four undos restored original fixture. Cmd+W closed the temporary
+tab, tree tests collapsed and main active/content Channel results restored. CUA
+phase completed: Verified both snippet body stops. Journal independently reverified:12tabs,main active,zoom-1,original draft hash intact;
+never save protected owner draft. Ordinary AX tab-close clicks on offscreen controls
+were ineffective; use visible native controls or Cmd+W after checking active file.
+
+Bounded resource observation of previous LSP270: one-second sample showed protocol
+thread waiting while diagnostic worker ran check_graph_diagnostics/expression checks;
+no single UI-thread claim. Sample at2m33 reported308.6MiB footprint,309.9MiB peak.
+Later footprint snapshot before restart:295584752B current,497861568B peak,
+185974784B swapped/compressed, system30%free. This short session does not demonstrate
+a leak or qualify stability. Initial body diagnostics still occupy a core for several
+minutes across restored project documents; next inspect redundant graph work and
+prioritize interactive requests without dropping diagnostic coverage. Stop/restart
+only on actual need, never an observation timeout. Studio236/supervisor98383 remain
+live with LSP2569, replacing270. Whole formatter passed0source/doc changes and
+git diff --check passed. No broad regressions were run.
+
 Search dialog and content-search correction — accepted local section, November12,
 based on5f77ff0e. Full Studio goal remains active. Title bar opens a Kit Command
 dialog; Cmd+P searches files, > / Cmd+Shift+P filters fourteen real existing Shortcut
