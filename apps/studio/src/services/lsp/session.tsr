@@ -1,0 +1,407 @@
+import { length, fromUtf8 } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { Reader, Writer, read } from 'std:io';
+import { JsonLimits, parse, get, kind, stringify } from 'std:json';
+import { spawn } from 'std:process';
+
+import {
+  LanguageDocument,
+  LanguageIdentity,
+  languageIdentity,
+  PublishedDiagnostics,
+  documentProblems,
+  diagnosticPath,
+  documentUri
+} from '../../lib/language/diagnostics.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
+import { readFrame, writeFrame } from './transport.tsr';
+
+export interface LanguageMessage {
+  kind: string;
+  generation: int;
+  body?: string;
+  document?: LanguageDocument;
+  path?: string;
+}
+
+export interface LanguageUpdate {
+  kind: string;
+  generation: int;
+  message: string;
+  document?: LanguageIdentity;
+  problems?: Problem[];
+}
+
+interface TextChange {
+  text: string;
+}
+
+interface ResponseError {
+  message: string;
+}
+
+interface ConfigurationItem {
+  section?: string;
+}
+
+interface ConfigurationParams {
+  items: ConfigurationItem[];
+}
+
+interface ConfigurationRequest {
+  params: ConfigurationParams;
+}
+
+interface ServerCapabilities {
+  positionEncoding?: string;
+}
+
+interface InitializeResult {
+  capabilities: ServerCapabilities;
+}
+
+interface InitializeResponse {
+  result: InitializeResult;
+}
+
+interface DiagnosticNotification {
+  params: PublishedDiagnostics;
+}
+
+interface Envelope {
+  jsonrpc: string;
+  id?: string;
+  method?: string;
+  error?: ResponseError;
+}
+
+function envelopeFrom(body: ReadOnly<string>): Envelope {
+  const envelope = JSON.parse<EnvelopeWithoutId>(body, limits());
+  const value = unwrap(parse(body, limits()));
+  const id = unwrap(get(value, 'id'));
+  let encoded: string | undefined = undefined;
+
+  if (id !== undefined) {
+    const type = kind(id);
+
+    if (type !== 'null' && type !== 'string' && type !== 'number') throw 'Invalid JSON-RPC request identity.';
+
+    if (type !== 'null') encoded = unwrap(stringify(id, 4096));
+  }
+
+  return {
+    jsonrpc: clone(envelope.jsonrpc), method: clone(envelope.method), error: clone(envelope.error), id: encoded
+  };
+}
+
+interface EnvelopeWithoutId {
+  jsonrpc: string;
+  method?: string;
+  error?: ResponseError;
+}
+
+function limits(): JsonLimits {
+  return {
+    maxBytes: 16 * 1024 * 1024, maxDepth: 64, maxEntries: 100000, maxNodes: 500000
+  };
+}
+
+async function pump(reader: Reader, events: Sender<LanguageMessage>, generation: int): Task<void> {
+  try {
+    while (true) await events.send({
+      kind: 'frame', generation, body: await readFrame(reader)
+    });
+  } catch (error) {
+    await events.send({
+      kind: 'failed', generation, body: JSON.stringify(error)
+    });
+  }
+}
+
+async function drainErrors(reader: Reader): Task<void> {
+  // Drain stderr independently so a verbose server cannot block its protocol pipe.
+  while (true) {
+    const bytes = unwrap(await read(reader, 4096));
+
+    if (length(bytes) === 0) return;
+  }
+}
+
+function responseFor(body: ReadOnly<string>, envelope: ReadOnly<Envelope>): string | undefined {
+  if (envelope.id === undefined) return undefined;
+  const id = clone(envelope.id);
+  let response = '{"error":{"code":-32601,"message":"Unsupported client method."}}';
+
+  if (envelope.method === 'window/workDoneProgress/create') response = '{"result":null}';
+
+  if (envelope.method === 'workspace/applyEdit') response = '{"result":{"applied":false,"failureReason":"Server edits require review."}}';
+
+  if (envelope.method === 'workspace/configuration') {
+    const request = JSON.parse<ConfigurationRequest>(body, limits());
+    response = '{"result":' + '[' + request.params.items.map((_item) => 'null').join(',') + ']' + '}';
+  }
+
+  return '{"jsonrpc":"2.0","id":' + id + ',' + response.slice(1);
+}
+
+async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<boolean> {
+  const uri = JSON.stringify(documentUri(root));
+  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"publishDiagnostics":{"versionSupport":true}}}}}');
+
+  while (true) {
+    const message = await messages.receive();
+
+    if (message.generation !== generation) continue;
+
+    if (message.kind === 'restart') return false;
+
+    if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
+
+    if (message.kind !== 'frame') continue;
+    const body = message.body ?? '';
+    const envelope = envelopeFrom(body);
+
+    if (envelope.jsonrpc !== '2.0') throw 'Invalid language server protocol.';
+
+    if (envelope.method !== undefined) {
+      const response = responseFor(body, envelope);
+
+      if (response !== undefined) await writeFrame(writer, response);
+      continue;
+    }
+
+    if (envelope.id !== '1') continue;
+    const error = envelope.error;
+
+    if (error !== undefined) throw error.message;
+    const reply = JSON.parse<InitializeResponse>(body, limits());
+
+    if ((reply.result.capabilities.positionEncoding ?? 'utf-16') !== 'utf-16') throw 'The language server selected an unsupported position encoding.';
+    await writeFrame(writer, '{"jsonrpc":"2.0","method":"initialized","params":{}}');
+    return true;
+  }
+}
+
+interface QueuedWrite {
+  body: string;
+  bytes: int;
+}
+
+interface Outbox {
+  pending: QueuedWrite[];
+  bytes: int;
+}
+
+function enqueue(outbox: Mutable<Outbox>, body: string): void {
+  const bytes = length(unwrap(fromUtf8(body)));
+
+  if (outbox.pending.length >= 128 || outbox.bytes + bytes > 128 * 1024 * 1024) throw 'Language server is not keeping up. Restart the language service to reconnect.';
+  outbox.bytes += bytes;
+  outbox.pending.push({
+    body, bytes
+  });
+}
+
+async function sendFrames(writer: Writer, writes: Channel<string>, events: Sender<LanguageMessage>, generation: int): Task<void> {
+  try {
+    while (true) {
+      await writeFrame(writer, await writes.receive()).timeout(15000);
+      await events.send({
+        kind: 'wrote', generation
+      });
+    }
+  } catch (error) {
+    await events.send({
+      kind: 'failed', generation, body: JSON.stringify(error)
+    });
+  }
+}
+
+// Independent pipe tasks prevent stdin/stdout backpressure from deadlocking the client.
+async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
+  const writes = new Channel<string>(1);
+  const sender = writes.sender();
+  const output = sendFrames(writer, writes, messages.sender(), generation).start();
+  const outbox: Outbox = {
+    pending: [], bytes: 0
+  };
+  let busy = false;
+
+  try {
+    const documents: LanguageDocument[] = [];
+
+    while (true) {
+      if (!busy && outbox.pending.length > 0) {
+        const item = outbox.pending.shift();
+
+        if (item !== undefined) {
+          outbox.bytes -= item.bytes;
+          unwrap(sender.trySend(item.body));
+          busy = true;
+        }
+      }
+
+      const message = await messages.receive();
+
+      if (message.generation !== generation) continue;
+
+      if (message.kind === 'restart') return;
+
+      if (message.kind === 'wrote') busy = false;
+
+      if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
+
+      if (message.kind === 'document') {
+        const document = message.document;
+
+        if (document === undefined) continue;
+        const path = clone(document.path);
+        const index = documents.findIndex((entry) => entry.path === path);
+        const uri = documentUri(document.path);
+        const session = clone(document.session);
+        const fresh = !documents.some((entry) => entry.path === path && entry.session === session);
+
+        if (index >= 0 && fresh) enqueue(outbox, JSON.stringify({
+          jsonrpc: '2.0', method: 'textDocument/didClose', params: {
+            textDocument: {
+              uri: clone(uri)
+            }
+          }
+        }));
+
+        if (index >= 0) documents.splice(index, 1);
+        documents.push(clone(document));
+
+        if (fresh) {
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
+              textDocument: {
+                uri, languageId: 'tsrust', version: document.version, text: clone(document.text)
+              }
+            }
+          }));
+        } else {
+          const changes: TextChange[] = [{
+            text: clone(document.text)
+          }];
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didChange', params: {
+              textDocument: {
+                uri, version: document.version
+              }, contentChanges: changes
+            }
+          }));
+        }
+      }
+
+      if (message.kind === 'close') {
+        const path = message.path ?? '';
+        const index = documents.findIndex((entry) => entry.path === path);
+
+        if (index >= 0) {
+          documents.splice(index, 1);
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didClose', params: {
+              textDocument: {
+                uri: documentUri(path)
+              }
+            }
+          }));
+        }
+      }
+
+      if (message.kind !== 'frame') continue;
+      const body = message.body ?? '';
+      const envelope = envelopeFrom(body);
+
+      if (envelope.jsonrpc !== '2.0') throw 'Invalid language server protocol.';
+
+      if (envelope.method === 'textDocument/publishDiagnostics') {
+        const reply = JSON.parse<DiagnosticNotification>(body, limits());
+        const path = diagnosticPath(reply.params.uri);
+        const document = documents.find((entry) => entry.path === path);
+        // Unversioned/closed-file reports cannot identify an unsaved buffer safely.
+        if (document !== undefined && reply.params.version === document.version) {
+          await updates.send({
+            kind: 'diagnostics', generation, message: '', document: languageIdentity(document), problems: documentProblems(document, reply.params)
+          });
+        }
+      } else {
+        const response = responseFor(body, envelope);
+
+        if (response !== undefined) enqueue(outbox, response);
+      }
+    }
+  } finally {
+    output.cancel();
+
+    try {
+      await output;
+    } catch (_) {}
+  }
+}
+
+async function connection(root: ReadOnly<string>, program: ReadOnly<string>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
+  const child = unwrap(spawn(program, [], {
+    cwd: clone(root), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
+  }));
+  const writer = child.takeStdin();
+  const reader = child.takeStdout();
+  const stderr = child.takeStderr();
+
+  if (writer === undefined || reader === undefined || stderr === undefined) throw 'Could not open language server pipes.';
+  const input = pump(reader, messages.sender(), generation).start();
+  const errors = drainErrors(stderr).start();
+
+  try {
+    if (!(await initialize(writer, messages, generation, root).timeout(15000))) return;
+    await updates.send({
+      kind: 'ready', generation, message: 'Tsrust language service connected'
+    });
+    await connected(writer, messages, updates, generation);
+  } finally {
+    input.cancel();
+    errors.cancel();
+
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    try {
+      unwrap(await child.wait());
+    } catch (_) {}
+
+    try {
+      await input;
+    } catch (_) {}
+
+    try {
+      await errors;
+    } catch (_) {}
+  }
+}
+
+export async function languageWorker(root: string, program: string, messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  let generation = 0;
+
+  while (true) {
+    generation += 1;
+    await updates.send({
+      kind: 'starting', generation, message: 'Starting Tsrust language service…'
+    });
+
+    try {
+      await connection(root, program, messages, updates, generation);
+    } catch (error) {
+      await updates.send({
+        kind: 'failed', generation, message: JSON.stringify(error)
+      });
+      // Do not spin a missing/crashing executable; restart is an explicit action.
+      while (true) {
+        const command = await messages.receive();
+
+        if (command.kind === 'restart' && command.generation === generation) break;
+      }
+    }
+  }
+}

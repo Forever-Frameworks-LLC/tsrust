@@ -1,0 +1,95 @@
+import { fromUtf8, length } from 'std:bytes';
+import { fileUrlToPath, parseUrl, pathToFileUrl } from 'std:url';
+
+import { Problem } from '../workspace/problems.tsr';
+
+export interface LanguageIdentity {
+  path: string;
+  session: string;
+  revision: int;
+  version: int;
+}
+
+export interface LanguageDocument {
+  path: string;
+  session: string;
+  revision: int;
+  version: int;
+  text: string;
+}
+
+export interface DiagnosticPosition {
+  line: int;
+  character: int;
+}
+
+export interface DiagnosticRange {
+  start: DiagnosticPosition;
+  end: DiagnosticPosition;
+}
+
+export interface LanguageDiagnostic {
+  range: DiagnosticRange;
+  severity?: int;
+  code?: string;
+  message: string;
+}
+
+export interface PublishedDiagnostics {
+  uri: string;
+  version?: int;
+  diagnostics: LanguageDiagnostic[];
+}
+
+export function documentUri(path: ReadOnly<string>): string {
+  const url = unwrap(pathToFileUrl(path));
+  return String(url.href);
+}
+
+// LSP columns count UTF-16 units; Problems uses Unicode scalars.
+export function diagnosticColumn(line: ReadOnly<string>, units: int): int {
+  if (units < 0) throw 'Invalid diagnostic column.';
+  let offset = 0;
+  let column = 1;
+
+  for (const glyph of Array.from(line)) {
+    if (offset === units) return column;
+    offset += length(unwrap(fromUtf8(glyph))) > 3 ? 2 : 1;
+    column += 1;
+  }
+
+  if (offset !== units) throw 'Invalid diagnostic column.';
+  return column;
+}
+
+export function diagnosticPath(uri: ReadOnly<string>): string {
+  const url = unwrap(parseUrl(uri));
+  return unwrap(fileUrlToPath(url));
+}
+
+export function documentProblems(document: ReadOnly<LanguageDocument>, published: ReadOnly<PublishedDiagnostics>): Problem[] {
+  const result: Problem[] = [];
+
+  if (published.version !== document.version || diagnosticPath(published.uri) !== document.path) return result;
+  const lines = document.text.split('\n');
+
+  for (const diagnostic of published.diagnostics) {
+    const start = diagnostic.range.start;
+
+    if (start.line < 0 || start.line >= lines.length) continue;
+
+    try {
+      result.push({
+        source: 'lsp:tsrust', path: clone(document.path), line: start.line + 1, column: diagnosticColumn(lines[start.line], start.character), code: diagnostic.code === undefined ? '' : diagnostic.code.toString(), message: clone(diagnostic.message), severity: diagnostic.severity === 2 ? 'warning' : diagnostic.severity === 3 ? 'information' : diagnostic.severity === 4 ? 'hint' : 'error'
+      });
+    } catch (_) {}
+  }
+
+  return result;
+}
+
+export function languageIdentity(document: ReadOnly<LanguageDocument>): LanguageIdentity {
+  return {
+    path: clone(document.path), session: clone(document.session), revision: document.revision, version: document.version
+  };
+}

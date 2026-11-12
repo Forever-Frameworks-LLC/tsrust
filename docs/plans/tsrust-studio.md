@@ -6,6 +6,16 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
+connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
+Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,
+undo and real status-menu restart. Five focused public cases passed, including
+three-service startup/cancellation and stale/session/version guards. No full
+regression reruns. Initial workspace analysis is slow and remains an acceptance
+gap; hover/completion/snippets, native squiggles, generic server configuration and
+integrated AI hosting are not delivered by this connection slice. Exact current
+source/build/process observations are in docs/agent-progress.md.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust
@@ -53,7 +63,8 @@ Current formatter/workflow section, November 11: native menus/status commands,
 global/project rules and save/focus triggers are implemented. Focused formatter3/3,
 terminal-link parser1/1, public workflow/model6/6 passed. Native app builds and live
 MAT verified a named CLI check terminal plus Cmd-click navigation with destination
-highlighting; source-labeled Problems is implemented, LSP is still disconnected.
+highlighting; source-labeled Problems was implemented before the LSP connection
+slice described above.
 All8open files/4drafts/zoom-1 survived the final reload. Actual51-file manual CLI
 check completion and broader live focus/settings acceptance are still pending.
 Exact identities/checks and current supervisor are in docs/agent-progress.md.
@@ -553,7 +564,7 @@ Each item requires observed behavior; source changes alone do not close it.
 | 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; clean open files/active selection now restore (recovery2/2 passes), native Dock layout/zoom restore verified; IME/conflict/close UX and larger recovery scope pending |
 | 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; detailed capture names retained with nearest-parent fallback; native import/parameter/JSON styling observed in Studio Dark, Gruvbox Dark and Catppuccin Latte, saved configuration preserved; full catalog contrast/rendering pending |
 | 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual scrolling remains unverified |
-| 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding, unsaved state and unconnected-LSP status implemented; type/LSP text observed; services not yet connected |
+| 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding and unsaved state implemented; real Tsrust LSP state, diagnostics and restart observed; scan latency and broader intelligence remain pending |
 | 14 | Terminal toggle; planned-feature surfaces and controls | Independent terminal/task and AI-chat toggles/close controls plus configurable left/right/bottom regions observed; PTY/debug/Git/AI/extension functionality remains pending |
 
 Layout configuration now has model acceptance for all36combinations of navigation

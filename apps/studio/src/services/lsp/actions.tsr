@@ -1,0 +1,69 @@
+import { Sender } from 'std:futures';
+
+import { Problem } from '../../lib/workspace/problems.tsr';
+import { EditorTool } from '../editor-tools.tsr';
+import { LanguageMessage } from './session.tsr';
+
+export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage>>, generation: int): Result<void, string> {
+  match (requests.trySend({
+    kind: 'restart', generation
+  })) {
+    Ok(_) => {
+      return Ok();
+    },
+    Err(error) => {
+      return Err('Could not queue language service restart: ' + error.code);
+    }
+  }
+}
+
+export interface LanguageToolContext {
+  root: string;
+  generation: int;
+  status: string;
+  problems: Problem[];
+  allowRead: boolean;
+  allowRestart: boolean;
+}
+
+interface LanguageArguments {
+  root: string;
+  generation?: int;
+}
+
+export function languageTools(): EditorTool[] {
+  return [{
+    name: 'language_service_status', description: 'Read the current workspace language-service status and source-labelled LSP diagnostics without changing focus or files. The trusted host must grant read access.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'restart_language_service', description: 'Restart the existing workspace language server through the same action as the status menu. Requires a trusted host process-control grant and matching connection generation; cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","generation"]}'
+  }];
+}
+
+export function invokeLanguageTool(context: ReadOnly<LanguageToolContext>, requests: ReadOnly<Sender<LanguageMessage>>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!languageTools().some((tool) => tool.name === name)) return Err('Unknown language-service action.');
+
+  if (payload.length > 4096) return Err('Invalid language-service arguments.');
+
+  try {
+    const args = JSON.parse<LanguageArguments>(payload, {
+      maxBytes: 4096, maxDepth: 4, maxEntries: 8, maxNodes: 16
+    });
+
+    if (args.root !== context.root) return Err('Language-service workspace changed.');
+
+    if (name === 'language_service_status') {
+      if (!context.allowRead) return Err('Language-service read access is not permitted by the host.');
+      return Ok(JSON.stringify({
+        generation: context.generation, status: clone(context.status), problems: context.problems.filter((problem) => problem.source === 'lsp:tsrust')
+      }));
+    }
+
+    if (!context.allowRestart) return Err('Language-service restart is not permitted by the host.');
+
+    if (args.generation !== context.generation) return Err('Language-service connection changed.');
+    unwrap(restartLanguageService(requests, context.generation));
+    return Ok('{"queued":true}');
+  } catch (error) {
+    return Err(JSON.stringify(error));
+  }
+}

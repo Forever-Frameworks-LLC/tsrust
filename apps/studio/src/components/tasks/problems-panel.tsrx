@@ -75,8 +75,8 @@ function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): 
   const label = clone(location) + ' ' + clone(message);
   const details = problem.message.slice(0, 8192);
   const metadata = problem.path === '' ? clone(problem.source) : location + ' [' + problem.source + (problem.code === problem.source ? '' : '/' + problem.code) + ']';
-  const icon = problem.severity === 'warning' ? 'triangle-alert' : 'circle-x';
-  const iconClass = problem.severity === 'warning' ? 'text-muted-foreground' : 'text-destructive';
+  const icon = problem.severity === 'warning' ? 'triangle-alert' : problem.severity === 'information' || problem.severity === 'hint' ? 'info' : 'circle-x';
+  const iconClass = problem.severity === 'error' ? 'text-destructive' : 'text-muted-foreground';
   return (
     <ListItem value={index.toString()} accessibilityLabel={label} disabled={problem.path === '' && problem.terminal === undefined} className={rowClass.get()}>
       <Icon name={icon} size="sm" className={iconClass} />

@@ -1,0 +1,258 @@
+import { fromUtf8 } from 'std:bytes';
+import { get } from 'std:env';
+import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { reader } from 'std:io';
+import { dirname, join } from 'std:path';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { createDocument } from '../src/lib/workspace/documents.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { LanguageState, pollLanguage } from '../src/services/lsp/controller.tsr';
+
+import {
+  LanguageDocument,
+  LanguageIdentity,
+  PublishedDiagnostics,
+  documentProblems,
+  documentUri,
+  diagnosticColumn
+} from '../src/lib/language/diagnostics.tsr';
+import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
+import { studioWorkers } from '../src/services/workers.tsr';
+import { CheckResult } from '../src/services/project-check.tsr';
+import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
+import { LanguageToolContext, invokeLanguageTool } from '../src/services/lsp/actions.tsr';
+import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
+
+function rejectedHeader(header: string): boolean {
+  try {
+    contentLength(header);
+    return false;
+  } catch (_) {
+    return true;
+  }
+}
+
+test('LSP framing validates byte lengths and rejects ambiguous or oversized messages', async () => {
+  strictEqual(contentLength('Content-Length: 8'), 8);
+  strictEqual(contentLength('content-type: application/vscode-jsonrpc; charset=utf-8\r\ncontent-length: 8'), 8);
+  strictEqual(rejectedHeader('Content-Length: 8\r\nContent-Length: 8'), true);
+  strictEqual(rejectedHeader('Content-Length: -1'), true);
+  strictEqual(rejectedHeader('Content-Length: 16777217'), true);
+  strictEqual(rejectedHeader('Other: 3'), true);
+  strictEqual(rejectedHeader('Content-Length: 1e2'), true);
+  const input = reader(unwrap(fromUtf8('Content-Length: 4\r\n\r\n🦀Content-Length: 2\r\n\r\n{}')));
+  strictEqual(await readFrame(input), '🦀');
+  strictEqual(await readFrame(input), '{}');
+  let truncated = false;
+
+  try {
+    await readFrame(input);
+  } catch (_) {
+    truncated = true;
+  }
+
+  strictEqual(truncated, true);
+});
+
+test('LSP diagnostics translate UTF-16 and reject mismatched document versions', () => {
+  strictEqual(diagnosticColumn('é🦀x', 3), 3);
+  let surrogate = false;
+
+  try {
+    diagnosticColumn('é🦀x', 2);
+  } catch (_) {
+    surrogate = true;
+  }
+
+  strictEqual(surrogate, true);
+  const document: LanguageDocument = {
+    path: '/project/a b.tsr', session: 'one', revision: 5, version: 9, text: 'é🦀x'
+  };
+  const report: PublishedDiagnostics = {
+    uri: documentUri(document.path), version: 9, diagnostics: [{
+      range: {
+        start: {
+          line: 0, character: 3
+        }, end: {
+          line: 0, character: 4
+        }
+      }, message: 'example', severity: 2, code: 'demo'
+    }]
+  };
+  const problems = documentProblems(document, report);
+  strictEqual(problems.length, 1);
+  strictEqual(problems[0].column, 3);
+  strictEqual(problems[0].severity, 'warning');
+  strictEqual(problems[0].source, 'lsp:tsrust');
+  report.version = 8;
+  strictEqual(documentProblems(document, report).length, 0);
+  report.version = undefined;
+  strictEqual(documentProblems(document, report).length, 0);
+});
+
+async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
+  while (true) {
+    const event = await updates.receive();
+
+    if (event.kind === 'failed') throw event.message;
+
+    if (event.kind === kind) return event;
+  }
+}
+
+test('real Studio service jobs diagnose unsaved buffers, clear corrections, restart and settle', async () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-lsp-'))));
+  const configured = unwrap(get('TSRUST')) ?? 'tsrust';
+  const messages = new Channel<LanguageMessage>(8);
+  const updates = new Channel<LanguageUpdate>(8);
+  const replies = updates.sender();
+  const requests = messages.sender();
+  unwrap(writeTextFile(join(root, 'tsrust.config.json'), '{"name":"lsp-test","schemaVersion":1,"build":{"entry":"main.tsr","output":"target/test"}}'));
+  const path = join(root, 'main.tsr');
+  const saved = 'function main() { console.log("saved"); }\n';
+  unwrap(writeTextFile(path, saved));
+  const checks = new Channel<string>(1);
+  const checkResults = new Channel<CheckResult>(1);
+  const formats = new Channel<FormattingRequest>(1);
+  const formatResults = new Channel<FormattingResult>(1);
+  const worker = studioWorkers(clone(root), configured, checks, checkResults.sender(), formats, formatResults.sender(), messages, replies).start();
+
+  try {
+    const ready = await nextUpdate(updates, 'ready').timeout(20000);
+    const document: LanguageDocument = {
+      path: clone(path), session: 'session-one', revision: 1, version: 1, text: 'function main() { const value: int = "wrong"; console.log(value); }\n'
+    };
+    await requests.send({
+      kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const broken = await nextUpdate(updates, 'diagnostics').timeout(30000);
+    strictEqual((broken.problems ?? []).length > 0, true);
+    strictEqual(broken.document?.revision, 1);
+    document.revision = 2;
+    document.version = 2;
+    document.text = clone(saved);
+    await requests.send({
+      kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const clean = await nextUpdate(updates, 'diagnostics').timeout(30000);
+    strictEqual(clean.document?.version, 2);
+    strictEqual((clean.problems ?? []).length, 0);
+    await requests.send({
+      kind: 'restart', generation: ready.generation
+    });
+    const restarted = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(restarted.generation, ready.generation + 1);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('language-service tools require host grants and explicit current workspace identity', () => {
+  const messages = new Channel<LanguageMessage>(1);
+  const requests = messages.sender();
+  const context: LanguageToolContext = {
+    root: '/project', generation: 3, status: 'connected', problems: [], allowRead: true, allowRestart: false
+  };
+  const payload = '{"root":"/project","generation":3,"allowRestart":true}';
+  let denied = false;
+
+  match (invokeLanguageTool(context, requests, 'restart_language_service', payload)) {
+    Err(_) => {
+      denied = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(denied, true);
+  context.allowRestart = true;
+  let stale = false;
+
+  match (invokeLanguageTool(context, requests, 'restart_language_service', '{"root":"/project","generation":2}')) {
+    Err(_) => {
+      stale = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(stale, true);
+  strictEqual(unwrap(invokeLanguageTool(context, requests, 'restart_language_service', payload)), '{"queued":true}');
+  const queued = unwrap(messages.tryReceive());
+  strictEqual(queued.kind, 'restart');
+  strictEqual(queued.generation, 3);
+  let outside = false;
+
+  match (invokeLanguageTool(context, requests, 'language_service_status', '{"root":"/other"}')) {
+    Err(_) => {
+      outside = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(outside, true);
+});
+
+
+test('language controller rejects stale reports, clears edits and closes documents without selecting tabs', () => {
+  const document = unwrap(createDocument('/project/main.tsr', 'function main() {}'));
+  const initial: Workspace = {
+    root: '/project', files: [{
+      document: clone(document), name: 'main.tsr', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  };
+  const workspace = signal(initial);
+  const problems = signal<Problem[]>([]);
+  const state = signal<LanguageState>({
+    generation: 0, ready: false, status: '', detail: '', documents: [], version: 0
+  });
+  const requests = new Channel<LanguageMessage>(8);
+  const messages = requests.sender();
+  const updates = new Channel<LanguageUpdate>(8);
+  const replies = updates.sender();
+  unwrap(replies.trySend({
+    kind: 'starting', generation: 1, message: 'starting'
+  }));
+  unwrap(replies.trySend({
+    kind: 'ready', generation: 1, message: 'ready'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(unwrap(requests.tryReceive()).kind, 'document');
+  const identity: LanguageIdentity = {
+    path: clone(document.path), session: clone(document.session), revision: 0, version: 1
+  };
+  const report: LanguageUpdate = {
+    kind: 'diagnostics', generation: 1, message: '', document: identity, problems: [{
+      source: 'lsp:tsrust', path: clone(document.path), line: 1, column: 1, code: 'example', message: 'example', severity: 'error'
+    }]
+  };
+  unwrap(replies.trySend(clone(report)));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(problems.get().length, 1);
+  const changed = workspace.get();
+  changed.files[0].document.revision = 1;
+  changed.files[0].document.text = 'function main() { console.log(1); }';
+  workspace.set(changed);
+  unwrap(replies.trySend(clone(report)));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(problems.get().length, 0);
+  const sent = unwrap(requests.tryReceive());
+  strictEqual(sent.document?.version ?? -1, 2);
+  const closed = workspace.get();
+  closed.files = [];
+  workspace.set(closed);
+  unwrap(replies.trySend(report));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(unwrap(requests.tryReceive()).kind, 'close');
+  strictEqual(problems.get().length, 0);
+  strictEqual(workspace.get().active, '/project/main.tsr');
+});

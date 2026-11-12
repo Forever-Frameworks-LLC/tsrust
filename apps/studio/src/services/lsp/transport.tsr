@@ -1,0 +1,57 @@
+import { alloc, fromUtf8, toUtf8, length } from 'std:bytes';
+import {
+  Reader,
+  Writer,
+  read,
+  readExact,
+  writeAll,
+  flush
+} from 'std:io';
+import { toInt } from 'std:numeric';
+
+export function contentLength(header: ReadOnly<string>): int {
+  let size = -1;
+
+  for (const line of header.split('\r\n')) {
+    const colon = line.indexOf(':');
+
+    if (colon < 1) throw 'Invalid language server header.';
+
+    if (line.slice(0, colon).toLowerCase() !== 'content-length') continue;
+    const value = line.slice(colon + 1).trim();
+
+    if (size >= 0 || (value === '' || !Array.from(value).every((digit) => digit >= '0' && digit <= '9'))) throw 'Invalid language server Content-Length.';
+    size = unwrap(toInt(Number(value)));
+  }
+
+  if (size < 1 || size > 16 * 1024 * 1024) throw 'Language server message exceeds the 16 MiB limit.';
+  return size;
+}
+
+// Only this task reads stdout; cancelling another operation never drops a partial frame.
+export async function readFrame(reader: Mutable<Reader>): Task<string> {
+  let header = '';
+
+  while (!header.endsWith('\r\n\r\n')) {
+    const byte = unwrap(await read(reader, 1));
+
+    if (length(byte) === 0) throw 'Language server closed its output.';
+    header += unwrap(toUtf8(byte));
+
+    if (header.length > 8192) throw 'Language server header exceeds 8 KiB.';
+  }
+
+  const body = unwrap(alloc(contentLength(header.slice(0, -4))));
+  unwrap(await readExact(reader, body));
+  return unwrap(toUtf8(body));
+}
+
+export async function writeFrame(writer: Mutable<Writer>, body: string): Task<void> {
+  const bytes = unwrap(fromUtf8(body));
+  // A supported 16 MiB editor buffer can expand sixfold when JSON escaped.
+  if (length(bytes) > 128 * 1024 * 1024) throw 'Language server request exceeds 128 MiB.';
+  const header = unwrap(fromUtf8('Content-Length: ' + length(bytes).toString() + '\r\n\r\n'));
+  unwrap(await writeAll(writer, header));
+  unwrap(await writeAll(writer, bytes));
+  unwrap(await flush(writer));
+}

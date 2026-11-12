@@ -1,5 +1,6 @@
 import { currentDir, args, get } from 'std:env';
 import { Channel } from 'std:futures';
+import { canonicalize } from 'std:fs';
 import { extname } from 'std:path';
 import {
   View,
@@ -30,6 +31,8 @@ import { CheckPanel } from './components/tasks/check-panel.tsrx';
 import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
 import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
 import { Chrome } from './components/workbench/chrome.tsrx';
+import { LanguageStatus } from './components/workbench/language-status.tsrx';
+import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { Region } from './components/workbench/layout.tsrx';
 import { Panels, ChatPanel } from './components/workbench/panels.tsrx';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
@@ -44,10 +47,10 @@ import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recover
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
 import { zoomFontSize } from './lib/workspace/zoom.tsr';
-import { formattingWorker } from './services/formatting.tsr';
-import { CheckResult, projectCheckWorker } from './services/project-check.tsr';
+import { studioWorkers } from './services/workers.tsr';
+import { CheckResult } from './services/project-check.tsr';
 
-function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel<CheckResult>, formattingRequests: ReadOnly<Channel<FormattingRequest>>, formattingResults: Channel<FormattingResult>, program: string): Node {
+function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel<CheckResult>, formattingRequests: ReadOnly<Channel<FormattingRequest>>, formattingResults: Channel<FormattingResult>, program: string, languageMessages: ReadOnly<Channel<LanguageMessage>>, languageUpdates: Channel<LanguageUpdate>): Node {
   const initial = unwrap(openWorkspace(path));
   let journal: Recovery = {
     path: '', baseline: '', ready: false
@@ -259,9 +262,7 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
         >
           {warningCount.get().toString()}
         </Button>
-        <Text>
-          {t("LSP: not connected")}
-        </Text>
+        {LanguageStatus(workspace, problems, panel, font, languageMessages.sender(), languageMessages.sender(), languageUpdates)}
         {UnsavedFiles(workspace, recovery, font)}
         <Text>
           {status.get()}
@@ -281,7 +282,7 @@ async function main(): Task<void> {
   registerThemes(communityThemes);
   useTheme('Studio Dark');
   const parameters = unwrap(args());
-  const path = parameters.length > 1 ? clone(parameters[1]) : unwrap(currentDir());
+  const path = unwrap(canonicalize(parameters.length > 1 ? clone(parameters[1]) : unwrap(currentDir())));
   const requests = new Channel<string>(1);
   const results = new Channel<CheckResult>(1);
   const replies = results.sender();
@@ -290,24 +291,21 @@ async function main(): Task<void> {
   const formattingReplies = formattingResults.sender();
   const configured = unwrap(get('TSRUST'));
   const program: string = configured ?? 'tsrust';
-  const view = App(clone(path), requests, results, formattingRequests, formattingResults, clone(program));
-  const worker = projectCheckWorker(clone(path), clone(program), requests, replies).start();
-  const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
+  const languageMessages = new Channel<LanguageMessage>(8);
+  const languageUpdates = new Channel<LanguageUpdate>(8);
+  const languageReplies = languageUpdates.sender();
+  const view = App(clone(path), requests, results, formattingRequests, formattingResults, clone(program), languageMessages, languageUpdates);
+  const workers = studioWorkers(clone(path), program, requests, replies, formattingRequests, formattingReplies, languageMessages, languageReplies).start();
 
   try {
     unwrap(run(view, 'Tsrust Studio', {
       titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
     }));
   } finally {
-    worker.cancel();
-    formatter.cancel();
+    workers.cancel();
 
     try {
-      await worker;
-    } catch (_) {}
-
-    try {
-      await formatter;
+      await workers;
     } catch (_) {}
   }
 }

@@ -8,6 +8,70 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Real LSP diagnostics — connection/Problems slice accepted, follows2081e21f.
+Studio now has a Tsrust-authored stdio client (services/lsp), independent bounded
+pipe reader/writer tasks, UTF-8 Content-Length framing, initialize/open/full-change/
+close lifecycle, monotonic document versions and connection generations. Problems
+uses lsp:tsrust independently of manual checks. UTF-16 positions convert to scalar
+columns. Stale/session-mismatched/closed-file or unversioned reports are discarded;
+edits and closes clear previous reports. Status menu exposes real state, Problems
+and a restart action. No background selection/focus changes. Server applyEdit is
+rejected for review; unknown requests receive MethodNotFound. Inputs are bounded
+(8 KiB headers,16 MiB incoming,128 MiB outgoing/queued,128 queued writes); writes
+have15s timeout, initialization15s. The paired SDK sibling tsrust-lsp is used;
+programs from project configuration are never executed. Root launch args now
+canonicalize before services start. Standard-library process/io/futures only;
+no new native adapter, installed dependency or SDK change.
+
+Focused public tests5/5PASS447.99ms, /tmp/studio-lsp-tests.log: real server unsaved
+error/correction/restart, Unicode/version filtering, framing rejection/EOF,
+controller stale-edit/close behavior, executable action grant/root/generation
+checks. The AI status/restart adapter shares the UI action, but integrated model
+hosting/registration remains pending; this is not full AI parity acceptance.
+Services run as independent jobs, joined by one managed owner for cancellation
+and settlement. Inputs are cloned before lazy task construction, preventing the
+legitimate unused-task warning on a later fallible argument evaluation. Controller
+is separate from the small status component. The real-server test exercises this
+exact three-service startup/cleanup, not only an isolated LSP worker.
+
+Native acceptance PASS after repairing a startup stack overflow. Initial inline
+all([worker tasks]) composed large unoptimized futures and aborted a Tokio worker;
+The macOS crash report Tsrust Studio-2026-11-11-193422.ips identifies task startup.
+Starting workers independently before joining their Jobs fixes it without changing
+thread-stack limits or the SDK. Affected startup witness added to the same public
+suite. Final native build PASS130.604s:check63.9152s,emit3.1418s,backend30.8ms,
+native/link25.1845s,runtimehit (runtime prepare8.6586s); wall includes queued work,
+not a benchmark. Initial runtime miss build140.197s/setup50.5433s was NOT accepted
+because its program crashed. No full compiler/LSP matrices or broad benchmarks.
+
+Old supervisor97262/PTY44811 was checking an obsolete snapshot; replacement queued
+before it stopped. CURRENT supervisor15484/PTY94187, app17336; keep it running.
+Bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-15484-1794443929169414000-0/Tsrust Studio.app.
+Live MAT: LSP connected; unsaved syntax probe in terminal-panel.tsrx produced a
+source-labelled Problems row; clicking it highlighted the offending line. Undo
+restored the exact clean buffer and cleared the old report, without disk writes.
+Status-menu restart replaced server17340with17521 and reconnected. Restored panel
+hidden, original terminal-panel tab active,9clean tabs/zoom-1/recovery drafts[].
+CUA ended "Verified live LSP diagnostics". Tree expansion collapsed during editing;
+track native Tree state preservation separately. Existing image resize acceptance
+retained; this section did not repeat unchanged image or formatter matrices.
+
+Performance acceptance remains PENDING. Initial Studio workspace analysis used one
+LSP core (343952KiB RSS observed); live diagnostics were delayed during that scan.
+After restart, LSP17521was still scanning at100%CPU/146384KiB RSS after35s; app
+17336was5.9%CPU/74192KiB RSS. These are point observations, not leak/idle benchmarks.
+Brief1s sampling of the old frontend showed repeated error-effect annotation,
+220.2MiB footprint/465.9MiB peak. Before broad intelligence work, investigate this
+real-source latency and timer polling cost; do not claim the tiny fixture proves
+interactive Studio analysis. Whole formatter0files/0snippets/0fingerprints and
+diff check passed before checkpoint. Pruned11obsolete Studio program variants,
+3runtime variants and1old build workspace under nonblocking cache/build locks;
+kept the current app/test/runtime variants and shared Cargo target. No cold build
+after cleanup. NEXT compiler/LSP hot-path investigation,
+then hover/completion/snippets and generic server registrations/settings. Native
+squiggles, unversioned/project report policy, graceful LSP shutdown and full agent
+hosting/registration remain required. No push.
+
 Image resize flicker — accepted 2026-11-11, follows32082607.
 Two defects fixed. Reactive row shape compared live zoom/aggregate paragraph text,
 remounting the whole preview as its percentage changed. Shape now compares static

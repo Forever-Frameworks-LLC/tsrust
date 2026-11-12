@@ -1,0 +1,121 @@
+import { Channel, Sender } from 'std:futures';
+import { extname } from 'std:path';
+import { Signal } from 'std:ui';
+
+import { LanguageIdentity } from '../../lib/language/diagnostics.tsr';
+import { Problem, replaceProblems, operationProblem } from '../../lib/workspace/problems.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageMessage, LanguageUpdate } from './session.tsr';
+
+export interface LanguageState {
+  generation: int;
+  ready: boolean;
+  status: string;
+  detail: string;
+  documents: LanguageIdentity[];
+  version: int;
+}
+
+
+export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Problem[]>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, updates: Mutable<Channel<LanguageUpdate>>): void {
+  const next = state.get();
+  let current = problems.get();
+  let stateChanged = false;
+  let problemsChanged = false;
+  const files = workspace.get().files;
+
+  for (let count = 0; count < 8; count += 1) {
+    match (updates.tryReceive()) {
+      Err(_) => {
+        break;
+      },
+      Ok(update) => {
+        if (update.generation < next.generation) continue;
+
+        if (update.kind === 'starting' || update.kind === 'failed') {
+          stateChanged = true;
+          problemsChanged = true;
+          next.generation = update.generation;
+          next.ready = false;
+          next.status = update.kind === 'failed' ? 'LSP: failed' : 'LSP: starting';
+          next.detail = clone(update.message);
+          next.documents = [];
+          current = replaceProblems(current, 'lsp:tsrust', []);
+
+          if (update.kind === 'failed') current.push(operationProblem('lsp:tsrust', '', clone(update.message)));
+        }
+
+        if (update.kind === 'ready') {
+          stateChanged = true;
+          next.generation = update.generation;
+          next.ready = true;
+          next.status = 'LSP: connected';
+          next.detail = clone(update.message);
+        }
+
+        if (update.kind === 'diagnostics' && next.ready) {
+          const document = update.document;
+
+          if (document === undefined) continue;
+          const path = clone(document.path);
+          const file = files.find((file) => file.document.path === path);
+          const sent = next.documents.find((entry) => entry.path === path);
+
+          if (file !== undefined && sent !== undefined && file.document.session === document.session && file.document.revision === document.revision && sent.version === document.version) {
+            current = replaceProblems(current, 'lsp:tsrust', clone(update.problems ?? []), clone(document.path));
+            problemsChanged = true;
+          }
+        }
+      }
+    }
+  }
+
+  if (next.ready) {
+    for (const previous of clone(next.documents)) {
+      if (files.some((file) => file.document.path === previous.path && file.document.session === previous.session)) continue;
+
+      match (messages.trySend({
+        kind: 'close', generation: next.generation, path: clone(previous.path)
+      })) {
+        Ok(_) => {
+          stateChanged = true;
+          problemsChanged = true;
+          next.documents = next.documents.filter((entry) => entry.path !== previous.path);
+          current = replaceProblems(current, 'lsp:tsrust', [], clone(previous.path));
+        },
+        Err(_) => {}
+      }
+    }
+
+    for (const file of files) {
+      if (file.kind !== 'text' || (extname(file.document.path) !== '.tsr' && extname(file.document.path) !== '.tsrx')) continue;
+
+      if (next.documents.some((entry) => entry.path === file.document.path && entry.session === file.document.session && entry.revision === file.document.revision)) continue;
+      const version = next.version + 1;
+
+      match (messages.trySend({
+        kind: 'document', generation: next.generation, document: {
+          path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision, version, text: clone(file.document.text)
+        }
+      })) {
+        Ok(_) => {
+          stateChanged = true;
+          problemsChanged = true;
+          next.version = version;
+          next.documents = next.documents.filter((entry) => entry.path !== file.document.path);
+          next.documents.push({
+            path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision, version
+          });
+          current = replaceProblems(current, 'lsp:tsrust', [], clone(file.document.path));
+        },
+        Err(_) => {
+          break;
+        }
+      }
+    }
+  }
+
+  if (problemsChanged) problems.set(current);
+
+  if (stateChanged) state.set(next);
+}

@@ -18,7 +18,6 @@
   "Unsaved": "Unsaved",
   "No file open": "No file open",
   "Problems: language service not connected": "Problems: language service not connected",
-  "LSP: not connected": "LSP: not connected",
   "Terminal": "Terminal",
   "Problems": "Problems",
   "Output": "Output",
@@ -256,5 +255,11 @@
   "Sort imports by path, with std: imports first and a blank line before other imports.": "Sort imports by path, with std: imports first and a blank line before other imports.",
   "Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.": "Wrap named imports onto separate lines above this count. Set 0 to disable (0–100). Inclusive of aliases.",
   "format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).",
-  "Wrap named imports above": "Wrap named imports above"
+  "Wrap named imports above": "Wrap named imports above",
+  "LSP: starting": "LSP: starting",
+  "LSP: restarting": "LSP: restarting",
+  "LSP: connected": "LSP: connected",
+  "LSP: failed": "LSP: failed",
+  "Show language diagnostics": "Show language diagnostics",
+  "Restart language service": "Restart language service"
 }
