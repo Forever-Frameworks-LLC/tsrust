@@ -140,9 +140,9 @@ pub trait InputExtras: Default + 'static {
         None
     }
 
-    /// What this mode can offer its context menu: go-to-definition, code actions, references.
-    fn context_menu_capabilities(&self) -> (bool, bool, bool) {
-        (false, false, false)
+    /// What this mode can offer its context menu: go-to-definition, code actions, references and hover.
+    fn context_menu_capabilities(&self) -> (bool, bool, bool, bool) {
+        (false, false, false, false)
     }
 }
 

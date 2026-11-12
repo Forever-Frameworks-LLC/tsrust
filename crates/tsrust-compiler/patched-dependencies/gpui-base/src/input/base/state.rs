@@ -123,6 +123,7 @@ actions!(
         ToggleCodeActions,
         ShowCompletions,
         ShowSignatureHelp,
+        ShowHover,
         Search,
         Replace,
         GoToDefinition,
@@ -876,7 +877,7 @@ impl<M: InputModeKind> InputBaseState<M> {
     }
 
     pub fn context_menu_capabilities(&self) -> InputContextMenuCapabilities {
-        let (go_to_definition, code_actions, references) = self.extras.context_menu_capabilities();
+        let (go_to_definition, code_actions, references, hover) = self.extras.context_menu_capabilities();
         InputContextMenuCapabilities::new()
             .disabled(self.disabled)
             .readonly(self.readonly)
@@ -885,6 +886,7 @@ impl<M: InputModeKind> InputBaseState<M> {
             .masked(self.masked)
             .go_to_definition(go_to_definition)
             .references(references)
+            .hover(hover)
             .code_actions(code_actions)
     }
 
@@ -2486,6 +2488,7 @@ impl<M: InputModeKind> InputBaseState<M> {
 
         self.snippet = None;
         M::dismiss_parameter_hints(self);
+        M::clear_hover_state(self, cx);
 
         // Escape also dismisses a request whose popup has not arrived yet.
         M::hide_context_menu(self, cx);
@@ -3853,6 +3856,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         cx: &mut Context<Self>,
     ) {
         M::clear_inline_completion(self, cx);
+        M::clear_hover_state(self, cx);
 
         self.cursor_line_end_affinity = line_end_affinity;
         let offset = self.cursor_boundary(offset, Bias::Left);
@@ -3888,6 +3892,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         self.pause_blink_cursor(cx);
         self.undo_manager.break_transaction_coalescing();
         M::clear_inline_completion(self, cx);
+        M::clear_hover_state(self, cx);
 
         let mut active_affinity = false;
         let new_selections: Vec<CursorSelection> = self

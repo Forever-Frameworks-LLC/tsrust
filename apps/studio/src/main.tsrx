@@ -11,6 +11,7 @@ import {
   Node,
   signal,
   computed,
+  controlInput,
   useId,
   run,
   setTheme,
@@ -22,7 +23,7 @@ import {
 } from 'std:ui';
 
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
-import { ProjectTree } from './components/explorer/browser.tsrx';
+import { ProjectTree, RefreshExplorer } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
 import { FileSearchState } from './lib/explorer/search-actions.tsr';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
@@ -117,6 +118,7 @@ function App(
   }
 
   const explorerRevision = signal(0);
+  const refreshExplorer = RefreshExplorer(clone(workspace.get().root), workspace, recovery, explorerRevision);
   const browser = ProjectTree(
     workspace.get().root,
     workspace,
@@ -125,15 +127,8 @@ function App(
     settings,
     explorerRevision
   );
-  const fileSearch = FileSearch(
-    workspace,
-    recovery,
-    filenameSearch,
-    mode,
-    sidebar,
-    font
-  );
-  const contentSearch = ContentSearch(workspace, recovery, font, settings, explorerRevision);
+  const fileSearch = FileSearch(workspace, recovery, filenameSearch, font);
+  const contentSearch = ContentSearch(workspace, recovery, font, settings);
   const initialTerminals = emptyTerminals();
   unwrap(addTerminal(initialTerminals, useId()));
   const terminals = signal(initialTerminals);
@@ -220,8 +215,6 @@ function App(
     workspace,
     font,
     recovery,
-    mode,
-    sidebar,
     formatFocus,
     languageState,
     languageMessages.sender(),
@@ -254,9 +247,6 @@ function App(
   const explorer = <View className="flex-col size-full min-h-0">
     <View hidden={mode.get() !== 'files'} className="flex-col size-full min-h-0">
       {browser}
-    </View>
-    <View hidden={mode.get() !== 'filesearch'} className="flex-col size-full min-h-0">
-      {fileSearch}
     </View>
     <View hidden={mode.get() !== 'search'} className="flex-col size-full min-h-0">
       {contentSearch}
@@ -302,6 +292,8 @@ function App(
       onPress={() => {
         sidebar.set(mode.get() !== 'search' || !sidebar.get());
         mode.set('search');
+
+        if (sidebar.get()) controlInput('content-search', 'focus');
       }}
     />
     <Button
@@ -350,6 +342,8 @@ function App(
       {referenceControls}
       {SaveConflicts(workspace, recovery, font)}
       {chrome}
+      {fileSearch}
+      {refreshExplorer}
       <View className="grow min-h-0">
         <Resizable reverse={settings.get().activityBarSide === 'right'} className="size-full min-w-0 min-h-0">
           <ResizablePanel size={48} minSize={48} maxSize={48} fixed={true}>

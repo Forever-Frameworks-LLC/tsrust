@@ -1,6 +1,10 @@
 import {
   View,
   Button,
+  Text,
+  computed,
+  controlInput,
+  t,
   Shortcut,
   AppMenuBar,
   AppMenu,
@@ -9,7 +13,7 @@ import {
   Node
 } from 'std:ui';
 
-import { FileSearchState, SearchActionContext, showFileSearch } from '../../lib/explorer/search-actions.tsr';
+import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
@@ -18,6 +22,7 @@ import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
 import { zoomWorkspace } from '../../lib/workspace/zoom.tsr';
 import { unsavedTargets } from '../../services/save-actions.tsr';
+import { openPalette } from '../explorer/navigation.tsrx';
 import { showSettings } from '../settings/settings-window.tsrx';
 
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
@@ -43,6 +48,7 @@ export function Chrome(
   settings: Signal<StudioConfig>,
   fileSearch: Signal<FileSearchState>
 ): Node {
+  const paletteClass = computed<string>(() => 'w-full max-w-[320px] h-6 px-3 gap-2 min-w-0 justify-start border border-border rounded-sm bg-background text-muted-foreground text-[' + font.get().toString() + 'px]');
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
   return (
     <View className="relative shrink-0 h-9 bg-muted border-b border-border" windowDragRegion={true}>
@@ -56,6 +62,7 @@ export function Chrome(
           <MenuItem command="close-tab" label={message("Close Editor")} />
         </AppMenu>
         <AppMenu label={message("Edit")}>
+          <MenuItem command="show-commands" label={message("Command Palette")} />
           <MenuItem command="format-document" label={message("Format document")} disabled={!canFormat(workspace.get().active)} />
         </AppMenu>
         <AppMenu label={message("Project")}>
@@ -77,6 +84,22 @@ export function Chrome(
             sidebar.set(!sidebar.get());
           }}
         />
+      </View>
+      <View className="absolute left-32 right-12 top-0 bottom-0 flex-row items-center justify-center min-w-0">
+        <Button
+          icon="search"
+          variant="ghost"
+          size="small"
+          className={paletteClass.get()}
+          aria-label={accessibleName("Search files and commands")}
+          onPress={() => {
+            openPalette(workspace, recovery, fileSearch);
+          }}
+        >
+          <Text className="grow min-w-0 truncate">
+            {t("Search files and commands")}
+          </Text>
+        </Button>
       </View>
       <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
         <Button
@@ -101,18 +124,14 @@ export function Chrome(
         command="find-file"
         keys="secondary-p"
         onTrigger={() => {
-          const context: SearchActionContext = {
-            workspace, recovery, fileSearch, navigationMode: mode, sidebarVisible: sidebar, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
-          };
-
-          match (showFileSearch(context, workspace.get().root)) {
-            Ok(_) => {},
-            Err(error) => {
-              const next = workspace.get();
-              next.error = error;
-              workspace.set(next);
-            }
-          }
+          openPalette(workspace, recovery, fileSearch);
+        }}
+      />
+      <Shortcut
+        command="show-commands"
+        keys="secondary-shift-p"
+        onTrigger={() => {
+          openPalette(workspace, recovery, fileSearch, true);
         }}
       />
       <Shortcut
@@ -170,6 +189,8 @@ export function Chrome(
         onTrigger={() => {
           mode.set('search');
           sidebar.set(true);
+          controlInput('content-search', 'focus');
+          controlInput('content-search', 'selectAll');
         }}
       />
       <Shortcut

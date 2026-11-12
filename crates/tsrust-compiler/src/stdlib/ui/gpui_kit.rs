@@ -3499,7 +3499,11 @@ impl Root {
                     palette = palette.on_select(move |index: IndexPath, _, cx| {if let Some(item) = select_target(index) {let _ = select_root.update(cx, |root, cx| root.emit(item, "highlight", String::new(), cx));}});
                     if kit.handles("query") {let root = root.clone(); palette = palette.on_query(move |query, _, cx| {let query = query.to_owned(); let _ = root.update(cx, |root, cx| root.emit(id, "query", query, cx));});}
                     if kit.handles("cancel") {let root = root.clone(); palette = palette.on_cancel(move |_, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx));});}
-                    palette.into_any_element()
+                    // Modal focus is outside the workbench root; own named actions here too.
+                    let action_root=root.clone();
+                    div().w_full().min_h_0().on_action(move |command:&TsrustCommand,_,cx| {
+                        let _=action_root.update(cx,|root,cx|root.run_command(&command.name,cx));
+                    }).child(palette).into_any_element()
                 }
                 _ => div().into_any_element(),
             },

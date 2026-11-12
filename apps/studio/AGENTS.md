@@ -82,6 +82,12 @@ one current development preview running afterward. Once editable buffers are
 enabled, preserve drafts across legitimate dev reloads and restarts; restart
 authorization does not remove the file-safety requirements.
 
+When launching the native preview from an automated shell, use the authorized
+desktop-capable execution context. A restricted shell can deny macOS XPC desktop
+services and make NSPasteboard initialization return null; adding Info.plist keys
+does not lift that inherited restriction. Stop the previous supervisor before
+starting its replacement, and verify that only one Studio process remains.
+
 ## Editor completion requirements — owner, 2026-11-11
 
 Settings belong in a separate window backed by tsrust_studio.config.json. Keep

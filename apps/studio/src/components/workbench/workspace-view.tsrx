@@ -10,7 +10,7 @@ import {
   t
 } from 'std:ui';
 
-import { FileSearchState, SearchActionContext, showFileSearch } from '../../lib/explorer/search-actions.tsr';
+import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
@@ -18,6 +18,7 @@ import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState } from '../../services/lsp/controller.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
+import { openPalette } from '../explorer/navigation.tsrx';
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
 
@@ -25,8 +26,6 @@ export function EditorWorkspace(
   workspace: Signal<Workspace>,
   font: Signal<int>,
   recovery: Signal<Recovery>,
-  mode: Signal<string>,
-  sidebar: Signal<boolean>,
   focusQueue: Signal<QueuedFormatting[]>,
   language: Signal<LanguageState>,
   messages: Sender<LanguageMessage>,
@@ -69,18 +68,7 @@ export function EditorWorkspace(
           icon="file-search"
           variant="ghost"
           onPress={() => {
-            const context: SearchActionContext = {
-              workspace, recovery, fileSearch, navigationMode: mode, sidebarVisible: sidebar, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
-            };
-
-            match (showFileSearch(context, workspace.get().root)) {
-              Ok(_) => {},
-              Err(error) => {
-                const next = workspace.get();
-                next.error = error;
-                workspace.set(next);
-              }
-            }
+            openPalette(workspace, recovery, fileSearch);
           }}
         >
           {t("Open a file")}

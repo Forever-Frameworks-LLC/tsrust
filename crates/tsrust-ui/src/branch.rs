@@ -166,6 +166,27 @@ mod tests {
         }
     }
     #[test]
+    fn filtered_command_rows_keep_their_own_snapshot_bindings() {
+        let files=Signal::new(vec![String::from(".gitignore"),String::from("src/main.tsrx")]);let read=files.handle();
+        let slot=Node::each(move||{
+            let rows=read.get()?.into_iter().map(|path|{
+                let label=path.clone();
+                Ok(Child::Node(Node::kit("CommandItem",vec![],String::new())?
+                    .with_kit_binding("value",crate::TextBinding::computed(Box::new(move||Ok(path.clone()))))?
+                    .with_kit_binding("label",crate::TextBinding::computed(Box::new(move||Ok(label.clone()))))?))
+            }).collect::<Result<Vec<_>,String>>()?;
+            Ok(Some(Node::view(rows,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let main=root.visible_children().nth(1).unwrap().identity.get();
+        files.set(vec!["src/main.tsrx".into()]).unwrap();root.refresh().unwrap();
+        let row=root.visible_children().next().unwrap();
+        assert_eq!(row.identity.get(),main);
+        assert_eq!(row.kit.as_deref().unwrap().prop("label"),Some("src/main.tsrx"));
+        files.set(vec!["command:toggle-terminal".into()]).unwrap();root.refresh().unwrap();
+        assert_eq!(root.visible_children().next().unwrap().kit.as_deref().unwrap().prop("value"),Some("command:toggle-terminal"));
+    }
+    #[test]
     fn root_slots_are_transparent_and_failed_replacements_drop_the_previous_branch() {
         let show=Signal::new(true);let select=show.handle();let control=show.handle();let released=Rc::new(RefCell::new(0));let drops=released.clone();
         let mut root=Node::branch(move||select.get(),move||{let probe=Probe(drops.clone());Ok(Some(Node::button_children(vec![],String::new(),false,Some(Box::new(move||{let _=&probe;Ok(())})))?))},||Err("Branch construction failed".into())).unwrap().own_state(show).unwrap();
@@ -243,7 +264,7 @@ impl Node {
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     fn row_key(&self)->&str {
         if !self.semantics.id.is_empty(){return &self.semantics.id;}
-        self.kit.as_deref().and_then(|kit|match kit.name.as_str(){"DockPanel"=>kit.prop("value"),"TreeItem"=>kit.prop("id"),_=>None}).unwrap_or("")
+        self.kit.as_deref().and_then(|kit|match kit.name.as_str(){"DockPanel"|"CommandItem"=>kit.prop("value"),"TreeItem"=>kit.prop("id"),_=>None}).unwrap_or("")
     }
     /// A structural fingerprint: kind, static classes/text and component props, ignoring live values.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]

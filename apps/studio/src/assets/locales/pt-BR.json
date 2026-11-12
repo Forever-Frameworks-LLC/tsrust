@@ -298,5 +298,13 @@
   "File search query is too long.": "A consulta de arquivos é longa demais.",
   "File search is unavailable in this host.": "A pesquisa de arquivos não está disponível neste ambiente.",
   "This file search result is no longer available.": "Este resultado de pesquisa de arquivos não está mais disponível.",
-  "Choose an explicit file search result.": "Escolha um resultado de pesquisa de arquivos específico."
+  "Choose an explicit file search result.": "Escolha um resultado de pesquisa de arquivos específico.",
+  "Search files and commands": "Pesquisar arquivos e comandos",
+  "Search files or type > for commands": "Pesquise arquivos ou digite > para comandos",
+  "No matching files or commands.": "Nenhum arquivo ou comando correspondente.",
+  "Command Palette": "Paleta de comandos",
+  "Zoom in": "Aumentar zoom",
+  "Zoom out": "Diminuir zoom",
+  "Reset zoom": "Restaurar zoom",
+  "Opening the command dialog requires a host modal-presentation grant.": "Abrir a caixa de comandos requer permissão de apresentação modal do aplicativo."
 }

@@ -169,10 +169,8 @@ test('filename search shares explicit read presentation and open actions without
     const fileSearch = signal<FileSearchState>({
       root: clone(allowedRoot), query: '', files: []
     });
-    const navigationMode = signal('files');
-    const sidebarVisible = signal(false);
     const context: SearchActionContext = {
-      workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch, navigationMode, sidebarVisible
+      workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch
     };
     const query = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), query: 'SRC/É-MAIN'
@@ -180,13 +178,15 @@ test('filename search shares explicit read presentation and open actions without
     const result = unwrap(invokeEditorTool(context, 'search_files', query));
     strictEqual(result.includes('é-main.tsr'), true);
     strictEqual(result.includes('other.txt'), false);
-    strictEqual(context.navigationMode?.get() ?? '', 'files');
+    strictEqual(context.fileSearch?.get().open ?? false, false);
     strictEqual(context.workspace.get().files.length, 0);
+    deniedFileSearch(context, 'show_file_search', query);
+    deniedFileSearch(context, 'show_command_palette', '{"root":"' + (context.allowedRoot ?? '') + '","allowModal":true}');
+    context.allowModal = true;
     unwrap(invokeEditorTool(context, 'show_file_search', query));
     strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É-MAIN');
     strictEqual(context.fileSearch?.get().files.some((file) => file.name === 'hidden.txt') ?? true, false);
-    strictEqual(context.navigationMode?.get() ?? '', 'filesearch');
-    strictEqual(context.sidebarVisible?.get() ?? false, true);
+    strictEqual(context.fileSearch?.get().open ?? false, true);
     const target = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é-main.tsr'
     });
@@ -197,7 +197,7 @@ test('filename search shares explicit read presentation and open actions without
     deniedFileSearch(context, 'show_file_search', '{"root":"/other","allowNavigation":true}');
     unwrap(invokeEditorTool(context, 'open_file_search_result', target));
     strictEqual(context.workspace.get().active.endsWith('/src/é-main.tsr'), true);
-    strictEqual(context.navigationMode?.get() ?? '', 'files');
+    strictEqual(context.fileSearch?.get().open ?? false, false);
     const next = context.workspace.get();
     next.files[0].document.text = 'unsaved draft';
     next.files[0].document.revision += 1;
@@ -209,6 +209,19 @@ test('filename search shares explicit read presentation and open actions without
     unwrap(invokeEditorTool(context, 'open_file_search_result', target));
     strictEqual(context.workspace.get().files[0].document.text, 'unsaved draft');
     strictEqual(unwrap(readTextFile((context.allowedRoot ?? '') + '/src/é-main.tsr', 100)), 'const count = 8;');
+    const commandQuery = JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), query: 'terminal'
+    });
+    const commands = unwrap(invokeEditorTool(context, 'list_editor_commands', commandQuery));
+    strictEqual(commands.includes('toggle-terminal'), true);
+    strictEqual(commands.includes('save-all'), false);
+    unwrap(invokeEditorTool(context, 'show_command_palette', commandQuery));
+    strictEqual(context.fileSearch?.get().query ?? '', '>terminal');
+    strictEqual(context.fileSearch?.get().open ?? false, true);
+    unwrap(invokeEditorTool(context, 'close_command_palette', JSON.stringify({
+      root: clone(context.allowedRoot ?? '')
+    })));
+    strictEqual(context.fileSearch?.get().open ?? true, false);
     unwrap(removeFile((context.allowedRoot ?? '') + '/other.txt'));
     deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'

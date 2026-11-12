@@ -28,6 +28,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
+        cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-k cmd-i"} else {"ctrl-k ctrl-i"}, gpui_kit::base::input::ShowHover, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("shift-f12", gpui_kit::base::input::FindReferences, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("f12", gpui_kit::base::input::GoToDefinition, Some("Input && mode == editor"))]);

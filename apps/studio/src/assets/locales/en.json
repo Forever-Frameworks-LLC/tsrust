@@ -298,5 +298,13 @@
   "File search query is too long.": "File search query is too long.",
   "File search is unavailable in this host.": "File search is unavailable in this host.",
   "This file search result is no longer available.": "This file search result is no longer available.",
-  "Choose an explicit file search result.": "Choose an explicit file search result."
+  "Choose an explicit file search result.": "Choose an explicit file search result.",
+  "Search files and commands": "Search files and commands",
+  "Search files or type > for commands": "Search files or type > for commands",
+  "No matching files or commands.": "No matching files or commands.",
+  "Command Palette": "Command Palette",
+  "Zoom in": "Zoom in",
+  "Zoom out": "Zoom out",
+  "Reset zoom": "Reset zoom",
+  "Opening the command dialog requires a host modal-presentation grant.": "Opening the command dialog requires a host modal-presentation grant."
 }

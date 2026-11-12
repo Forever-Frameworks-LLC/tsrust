@@ -437,6 +437,9 @@ Input:
     zh-CN: 全选
     zh-HK: 全選
     zh-TW: 全選
+  Show Hover:
+    en: Show Hover
+    pt-BR: Mostrar documentação
   Find References:
     en: Find References
     pt-BR: Encontrar referências

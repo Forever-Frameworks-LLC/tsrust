@@ -36,7 +36,6 @@ function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Wor
         variant="ghost"
         className={rowClass.get()}
         aria-label={label}
-        tooltip={location}
         onPress={() => {
           match (openSearchResult(context, target)) {
             Ok(_) => {},
@@ -65,86 +64,120 @@ function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Wor
   );
 }
 
-export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>, explorerRevision: Signal<int>): Node {
+interface ContentSearchState {
+  query: string;
+  regex: boolean;
+  sensitive: boolean;
+  hits: SearchHit[];
+  error: string;
+  skipped: int;
+  searched: boolean;
+}
+
+function submitContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, search: Signal<ContentSearchState>): void {
+  const next = search.get();
+  const context: SearchActionContext = {
+    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot: clone(workspace.get().root)
+  };
+
+  match (runContentSearch(context, clone(next.query), next.regex, next.sensitive, settings.get().searchIncludeIgnored)) {
+    Ok(result) => {
+      next.hits = result.hits;
+      next.skipped = result.skipped;
+      next.error = '';
+    },
+    Err(error) => {
+      next.hits = [];
+      next.skipped = 0;
+      next.error = error;
+    }
+  }
+
+  next.searched = next.query !== '';
+  search.set(next);
+}
+
+export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>): Node {
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
-  const allowedRoot = clone(workspace.get().root);
-  const context: SearchActionContext = {
-    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot, explorerRevision
-  };
-  const query = signal('');
-  const regex = signal(false);
-  const sensitive = signal(false);
-  const hits = signal<SearchHit[]>([]);
-  const error = signal('');
-  const skipped = signal(0);
+  const search = signal<ContentSearchState>({
+    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false
+  });
   const summary = computed<string>(() => translateWith('matchingLines', {
-    count: hits.get().length
-  }) + ' • ' + translateWith('skippedFiles', {
-    count: skipped.get()
-  }));
+    count: search.get().hits.length
+  }) + (search.get().skipped > 0 ? ' • ' + translateWith('skippedFiles', {
+    count: search.get().skipped
+  }) : ''));
   return (
     <View className={panelClass.get()}>
-      <InputGroup size="small" className="w-full min-w-0">
-        <Input
-          value={query.get()}
-          placeholder={message("Search file contents")}
-          aria-label={accessibleName("Search file contents")}
-          className={fontClass.get()}
-          onChange={(event) => {
-            query.set(clone(event.target.value));
-          }}
-        />
-        <InputGroupAddon align="inline-end">
-          <InputGroupButton
-            icon="case-sensitive"
-            selected={sensitive.get()}
-            tooltip={message("Match case")}
-            accessibilityLabel={message("Match case")}
-            onClick={() => {
-              sensitive.set(!sensitive.get());
+      <View className="shrink-0 h-8 min-w-0">
+        <InputGroup size="small" className="w-full h-full min-w-0">
+          <Input
+            id="content-search"
+            value={search.get().query}
+            placeholder={message("Search file contents")}
+            aria-label={accessibleName("Search file contents")}
+            className={fontClass.get()}
+            onChange={(event) => {
+              const next = search.get();
+              next.query = clone(event.target.value);
+              next.searched = false;
+              next.hits = [];
+              next.error = '';
+              search.set(next);
+            }}
+            onSubmit={(_secondary) => {
+              submitContentSearch(workspace, recovery, settings, search);
             }}
           />
-          <InputGroupButton
-            icon="regex"
-            selected={regex.get()}
-            tooltip={message("Use regular expression")}
-            accessibilityLabel={message("Use regular expression")}
-            onClick={() => {
-              regex.set(!regex.get());
-            }}
-          />
-          <InputGroupButton
-            icon="search"
-            tooltip={message("Run content search")}
-            accessibilityLabel={message("Run content search")}
-            onClick={() => {
-              match (runContentSearch(context, query.get(), regex.get(), sensitive.get(), settings.get().searchIncludeIgnored)) {
-                Ok(result) => {
-                  hits.set(result.hits);
-                  skipped.set(result.skipped);
-                  error.set('');
-                },
-                Err(message) => {
-                  hits.set([]);
-                  skipped.set(0);
-                  error.set(message);
-                }
-              }
-            }}
-          />
-        </InputGroupAddon>
-      </InputGroup>
-      <Text>
-        {summary.get()}
-      </Text>
-      <View hidden={error.get() === ''}>
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              icon="case-sensitive"
+              selected={search.get().sensitive}
+              tooltip={message("Match case")}
+              accessibilityLabel={message("Match case")}
+              onClick={() => {
+                const next = search.get();
+                next.sensitive = !next.sensitive;
+                search.set(next);
+                submitContentSearch(workspace, recovery, settings, search);
+              }}
+            />
+            <InputGroupButton
+              icon="regex"
+              selected={search.get().regex}
+              tooltip={message("Use regular expression")}
+              accessibilityLabel={message("Use regular expression")}
+              onClick={() => {
+                const next = search.get();
+                next.regex = !next.regex;
+                search.set(next);
+                submitContentSearch(workspace, recovery, settings, search);
+              }}
+            />
+            <InputGroupButton
+              icon="search"
+              tooltip={message("Run content search")}
+              accessibilityLabel={message("Run content search")}
+              onClick={() => {
+                submitContentSearch(workspace, recovery, settings, search);
+              }}
+            />
+          </InputGroupAddon>
+        </InputGroup>
+      </View>
+      <View hidden={!search.get().searched || search.get().error !== ''} className="shrink-0 px-1">
+        <Text>
+          {summary.get()}
+        </Text>
+      </View>
+      <View hidden={search.get().error === ''} className="shrink-0 px-1">
         <Text className="text-destructive">
-          {localizeError(error.get())}
+          {localizeError(search.get().error)}
         </Text>
       </View>
       <View className="flex-col grow min-h-0 overflow-y-auto">
-        {...hits.get().map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery, font))}
+        {...search.get().hits.map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery, font))}
       </View>
     </View>
   );

@@ -83,6 +83,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         cx: &mut Context<Self>,
     ) {
         self.undo_manager.break_transaction_coalescing();
+        M::clear_hover_state(self, cx);
         self.selections.remove_all_but_active();
         let offset = self.cursor_boundary(offset, Bias::Left);
         self.cursor_line_end_affinity = line_end_affinity;
@@ -211,6 +212,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         cx: &mut Context<Self>,
     ) {
         self.undo_manager.break_transaction_coalescing();
+        M::clear_hover_state(self, cx);
         let mut active_affinity = false;
         let new_selections: Vec<CursorSelection> = self
             .selections

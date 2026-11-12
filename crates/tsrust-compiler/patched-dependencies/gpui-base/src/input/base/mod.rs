@@ -30,6 +30,7 @@ pub struct InputContextMenuCapabilities {
     masked: bool,
     go_to_definition: bool,
     references: bool,
+    hover: bool,
     code_actions: bool,
 }
 
@@ -72,6 +73,10 @@ impl InputContextMenuCapabilities {
 
     pub fn references(mut self, available: bool) -> Self {self.references=available;self}
     pub fn has_references(&self) -> bool {self.references}
+    /// Whether a hover provider can read documentation at the caret.
+    pub fn hover(mut self, available: bool) -> Self {self.hover=available;self}
+    /// Available on readonly editors too; it never changes text.
+    pub fn has_hover(&self) -> bool {self.hover}
 
     pub fn code_actions(mut self, code_actions: bool) -> Self {
         self.code_actions = code_actions;

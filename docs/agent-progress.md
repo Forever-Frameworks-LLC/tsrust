@@ -8,6 +8,68 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Search dialog and content-search correction — accepted local section, November12,
+based on5f77ff0e. Full Studio goal remains active. Title bar opens a Kit Command
+dialog; Cmd+P searches files, > / Cmd+Shift+P filters fourteen real existing Shortcut
+commands. Content search uses one Enter/button/toggle submit path, a separate
+summary below a fixed-height input, no zero-skipped text and no result path tooltip.
+Rail/shortcut focus its input. Modal mounts outside the sidebar; file selection
+leaves sidebar mode intact. Refresh Explorer Shortcut also mounts globally.
+
+Owner MAT exposed rows retaining .gitignore after filtering main. Root cause:
+reactive rows ignored snapshot-bound values when retaining same-shape positional
+rows. CommandItem values now supply row identity, preserving each filename/command's
+captured label and action. Focused native filtered_command_rows passed1/1 in0.00s,
+setup4.15s. Title-bar entry is max320px/high24px with12px horizontal padding/gap8.
+Live MAT on final app236 verified title-bar click, main.tsrx filter/Enter navigation,
+Cmd+Shift+P preserving > while typing terminal, real terminal toggle once, dialog
+closing, panel closing, Cmd+Shift+F and Channel Enter search. Screenshot confirms
+compact padded title entry and114matching-lines summary below input with highlighted,
+divided result rows and no zero-skipped text. Owner's12tabs/main/zoom-1 restored;
+only original project-check draft remains, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Never Cmd+S (saves all), discard or overwrite this draft.
+
+Registered list_editor_commands/show_command_palette/close_command_palette adapters
+share read/presentation actions; model execution retains individual guarded action
+routes, no generic privileged dispatch tool. Root/read/nav/modal grants and forged
+payload denial passed the focused explorer action case1/1,29.09ms,total29.85ms,
+setup28098.9ms(check7629.7,emit763.6,native/link19343.7), along with Unicode/ignore
+search, retained drafts and deleted-file errors. Earlier same-case result46.84ms
+is not additional distinct coverage. Native modal wrapper handles TsrustCommand
+because its focus path is outside the normal root; live terminal command passed.
+
+Keyboard ShowHover native action is also bundled, via context menu and Cmd+K Cmd+I,
+with immediate readonly caret request and Escape/caret/edit cancellation. Three
+focused native hover cases passed3/3 in0.01s,setup36.99s with base test-support.
+Pointer delay stays150ms. Native visual hover/scalar-color acceptance remains next;
+no long-running LSP memory qualification or full regression run in this section.
+
+Final SDK build3m02s and atomic install independently hash verified:
+CLI1bf7b682e31da0ebcf321e13bdcd965ceaa6031108ccbaf346a37ed8a3339788;
+LSP57e62c0898c2b379d310625afc9a92ff382724ec37abeaa8ef85aac1753e5a55.
+Whole-project formatter passed with0source/doc changes, Kit generator --check,
+308-key en/pt-BR parity and git diff --check passed. No source edits after these
+checks. Native cache cleanup used nonblocking locks, retaining3latest source/runtime
+entries and2complete build artifacts; active/locked paths preserved.
+
+Only supervisor98383/PTY99131 and app236 remain. Log
+/tmp/studio-command-row-native-dev.log; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-98383-1794510657632376000-0/Tsrust Studio.app.
+Final dev build197900ms(check112623.5,emit4351.6,runtime publish53016.9,native+link79982.4),
+not a benchmark. Old71062/app71348 and90530/app97687 exited. First replacement98056
+built185483ms but restricted-shell app98333 could not reach macOS XPC/NSPasteboard
+and panicked. Stopped it and launched final supervisor in approved desktop-capable
+context; final app starts and works. Native launch requirement is now in Studio
+AGENTS.md to prevent recurrence; no speculative plist permission added. Apple docs
+separately describe clipboard privacy/user-initiated paste at
+https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum .
+CUA phase completed: Verified compact search and commands. Bindingstudio points to
+final bundle. Use fresh AX before another UI action; never bind old bundles, which
+can relaunch them. Next: checkpoint this accepted section, then resume keyboard
+hover/scalar styling MAT and native completion/snippet latency/memory work, preserving
+owner state and one running dev preview.
+
 Filename Command palette and shared actions — accepted section, November12,
 based on340c2213. Previous goal turn was progress (completion transaction and
 filename focus checkpoints); this section adds native keyboard navigation and

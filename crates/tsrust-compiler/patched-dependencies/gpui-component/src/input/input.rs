@@ -628,6 +628,11 @@ impl RenderOnce for Input {
                     if capabilities.is_code_editor() {
                         menu = menu
                             .menu_with_disabled(
+                                t!("Input.Show Hover"),
+                                !(enabled && capabilities.has_hover()),
+                                Box::new(gpui_base::input::ShowHover),
+                            )
+                            .menu_with_disabled(
                                 t!("Input.Go to Definition"),
                                 !(enabled && capabilities.has_definition()),
                                 Box::new(gpui_base::input::GoToDefinition),

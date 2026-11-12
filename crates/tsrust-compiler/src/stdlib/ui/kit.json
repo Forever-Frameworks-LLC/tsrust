@@ -5042,7 +5042,7 @@
     },
     {
       "name": "CodeEditor",
-      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles.",
+      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles. Show Hover in the context menu or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere) requests documentation at the caret without editing or moving focus. A hover provider is required; Escape dismisses and cancels pending hover.",
       "props": [
         {
           "name": "value",

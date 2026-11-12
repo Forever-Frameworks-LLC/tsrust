@@ -1,0 +1,46 @@
+import { translate } from 'std:ui';
+
+import { dirty } from './documents.tsr';
+import { canFormat } from './formatting-actions.tsr';
+import { Workspace } from './workspace.tsr';
+
+export interface PaletteCommand {
+  id: string;
+  label: string;
+  disabled: boolean;
+}
+
+export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<string>): PaletteCommand[] {
+  if (!query.startsWith('>')) return [];
+  const filter = query.slice(1).trim().toLowerCase();
+  const rows: PaletteCommand[] = [{
+    id: 'save-all', label: translate('Save All'), disabled: !workspace.files.some((file) => dirty(file.document))
+  }, {
+    id: 'close-tab', label: translate('Close Editor'), disabled: workspace.active === ''
+  }, {
+    id: 'format-document', label: translate('Format document'), disabled: !canFormat(workspace.active)
+  }, {
+    id: 'format-project', label: translate('Format project'), disabled: false
+  }, {
+    id: 'check-project', label: translate('Check project'), disabled: false
+  }, {
+    id: 'find-file-references', label: translate('Find File References (Imports)'), disabled: workspace.active === ''
+  }, {
+    id: 'refresh-explorer', label: translate('Refresh Explorer'), disabled: false
+  }, {
+    id: 'search-workspace', label: translate('Search file contents'), disabled: false
+  }, {
+    id: 'toggle-terminal', label: translate('Toggle terminal'), disabled: false
+  }, {
+    id: 'toggle-sidebar', label: translate('Toggle sidebar'), disabled: false
+  }, {
+    id: 'open-settings', label: translate('Settings'), disabled: false
+  }, {
+    id: 'zoom-in', label: translate('Zoom in'), disabled: false
+  }, {
+    id: 'zoom-out', label: translate('Zoom out'), disabled: false
+  }, {
+    id: 'zoom-reset', label: translate('Reset zoom'), disabled: false
+  }];
+  return rows.filter((row) => row.label.toLowerCase().includes(filter) || row.id.includes(filter));
+}

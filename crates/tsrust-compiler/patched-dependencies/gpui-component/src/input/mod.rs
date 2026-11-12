@@ -38,7 +38,7 @@ pub use gpui_base::input::{
     PrepaintCaretGeometry, RangeDecoration, RangeDecorationCollection, RangeDecorationStyle, Redo,
     Replace, Rope, RopeExt, RopeLines, Search, SelectAll, SelectToEnd, SelectToEndOfLine,
     SelectToNextWordEnd, SelectToPreviousWordStart, SelectToStart, SelectToStartOfLine, Selection,
-    ShowCharacterPalette, ShowCompletions, ShowDocumentHandler, TabSize, TextDecoration,
+    ShowCharacterPalette, ShowCompletions, ShowHover, ShowDocumentHandler, TabSize, TextDecoration,
     TextDecorationCollection, TextareaState, ToggleCodeActions, Undo, WrappingIndent,
     highlight_characters, highlight_contains, highlight_prefix,
 };

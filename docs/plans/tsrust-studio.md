@@ -62,6 +62,19 @@ feedback over optimizing full compiler checks. Next intelligence work must wire
 the native editor provider and a fast current-buffer/cached-symbol request path;
 slow background checking must not hold up that interaction.
 
+Search/palette correction, November12 (accepted local section): content search
+uses a separate summary and shared Enter/button submission without result tooltips.
+A title-bar entry opens Kit Command in a dialog; Cmd+P searches files, while > or
+Cmd+Shift+P filters fourteen existing commands. Presentation adapters require a host
+modal grant, and execution retains individual action guards. Owner MAT exposed
+snapshot rows retaining .gitignore after filtering main.; CommandItem values now
+supply stable list identity, with a focused1/1 native regression. Compact title-bar
+geometry is320px maximum width,24px height,12px horizontal padding and8px icon gap.
+Live MAT passed title-bar click, main.tsrx filter/Enter, >terminal command execution,
+separate Channel content-search Enter and summary spacing. Only one dev preview
+remains, with all12owner tabs and original draft intact. No whole-regression or
+memory-stability claim accompanies this UI change.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust

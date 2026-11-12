@@ -14,19 +14,19 @@ export interface SearchActionContext {
   panel?: Signal<string>;
   recovery: Signal<Recovery>;
   allowNavigation: boolean;
+  allowModal?: boolean;
   allowRead?: boolean;
   allowedRoot?: string;
   explorerRevision?: Signal<int>;
   focusEditor: boolean;
   fileSearch?: Signal<FileSearchState>;
-  navigationMode?: Signal<string>;
-  sidebarVisible?: Signal<boolean>;
 }
 
 export interface FileSearchState {
   root: string;
   query: string;
   files: Entry[];
+  open?: boolean;
 }
 
 export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query: ReadOnly<string>): Result<Entry[], string> {
@@ -48,14 +48,18 @@ export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly
 
 export function showFileSearch(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query?: string): Result<void, string> {
   if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
-  const search = context.fileSearch;
-  const mode = context.navigationMode;
-  const sidebar = context.sidebarVisible;
 
-  if (search === undefined || mode === undefined || sidebar === undefined) return Err('File search is unavailable in this host.');
-  const requested = query ?? clone(search.get().query);
+  if (context.allowModal !== true) return Err('Opening the command dialog requires a host modal-presentation grant.');
+  const search = context.fileSearch;
+
+  if (search === undefined) return Err('File search is unavailable in this host.');
+  const previous = search.get().query;
+  const requested = query ?? (previous.startsWith('>') ? '' : clone(previous));
 
   if (requested.length > 4096) return Err('File search query is too long.');
+
+  if (context.allowRead !== true) return Err('Workspace search is not permitted for this task.');
+  const commandSelectionEnd = requested.startsWith('>') ? requested.length : -1;
 
   match (findFiles(context, root, '')) {
     Err(error) => {
@@ -63,19 +67,34 @@ export function showFileSearch(context: ReadOnly<SearchActionContext>, root: Rea
     },
     Ok(files) => {
       search.set({
-        root: clone(root), query: requested, files
+        root: clone(root), query: requested, files, open: true
       });
     }
   }
 
-  mode.set('filesearch');
-  sidebar.set(true);
-
   if (context.focusEditor) {
     controlInput('file-search', 'focus');
-    controlInput('file-search', 'selectAll');
+
+    if (commandSelectionEnd >= 0) {
+      controlInput('file-search', 'setSelection', {
+        start: 1, end: commandSelectionEnd
+      });
+    } else {
+      controlInput('file-search', 'selectAll');
+    }
   }
 
+  return Ok();
+}
+
+export function closeFileSearch(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+  const search = context.fileSearch;
+
+  if (search === undefined || search.get().root !== root) return Err('File search is unavailable in this host.');
+  const next = search.get();
+  next.open = false;
+  search.set(next);
   return Ok();
 }
 
@@ -94,9 +113,9 @@ export function openFileSearchResult(context: ReadOnly<SearchActionContext>, roo
   }
 
   publishWorkspace(next, context.workspace, context.recovery);
-  const mode = context.navigationMode;
-
-  if (mode !== undefined) mode.set('files');
+  const closed = search.get();
+  closed.open = false;
+  search.set(closed);
 
   if (context.focusEditor) controlInput(clone(path), 'focus');
   return Ok();

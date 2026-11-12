@@ -67,6 +67,26 @@ function directoryItems(position: int, tree: ReadOnly<DirectoryTree>, workspace:
   return nodes;
 }
 
+export function RefreshExplorer(path: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>, revision: Signal<int>): Node {
+  return (
+    <Shortcut
+      command="refresh-explorer"
+      keys="secondary-alt-r"
+      onTrigger={() => {
+        const next = workspace.get();
+
+        match (requestTreeRefresh(revision, clone(path), clone(path), clone(next.root), true)) {
+          Ok(_) => {},
+          Err(error) => {
+            next.error = error;
+            publishWorkspace(next, workspace, recovery);
+          }
+        }
+      }}
+    />
+  );
+}
+
 export function ProjectTree(
   path: string,
   workspace: Signal<Workspace>,
@@ -94,21 +114,6 @@ export function ProjectTree(
         interval={150}
         onTick={(_frame) => {
           pollTree(session);
-        }}
-      />
-      <Shortcut
-        command="refresh-explorer"
-        keys="secondary-alt-r"
-        onTrigger={() => {
-          const next = workspace.get();
-
-          match (requestTreeRefresh(revision, clone(path), clone(path), clone(next.root), true)) {
-            Ok(_) => {},
-            Err(error) => {
-              next.error = error;
-              publishWorkspace(next, workspace, recovery);
-            }
-          }
         }}
       />
       <View hidden={errorText.get() === ''} className="shrink-0">
