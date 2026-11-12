@@ -1,7 +1,7 @@
 import { test, strictEqual } from 'std:testing';
 import { get } from 'std:env';
 import { spawn } from 'std:threads';
-import { qwen_generate } from '@engine';
+import { qwen_generate, qwen_load, qwen_generate_loaded } from '@engine';
 import { chatPrompt } from '../prompts.tsr';
 
 function resource(name: string): string {
@@ -41,4 +41,34 @@ test('official quantized model performs a real offline generation', () => {
   strictEqual(result.output_tokens > 0, true);
   strictEqual(result.output_tokens <= 32, true);
   strictEqual(result.stop, 'eos');
+});
+
+test('resident model handles independent requests without loading twice', () => {
+  const modelPath = resource('STUDIO_PROOF_MODEL');
+  const tokenizerPath = resource('STUDIO_PROOF_TOKENIZER');
+  const worker = unwrap(spawn((task) => {
+    const model = unwrap(qwen_load(task, modelPath, tokenizerPath));
+    const first = unwrap(qwen_generate_loaded(task, model, chatPrompt('Reply with only the result of 2 + 3.'), 32));
+
+    match (qwen_generate_loaded(task, model, 'test', 0)) {
+      Ok(_) => {
+        throw 'invalid request succeeded';
+      },
+      Err(error) => {
+        strictEqual(error, 'admission max_tokens must be 1..=32');
+      }
+    }
+
+    const second = unwrap(qwen_generate_loaded(task, model, chatPrompt('Reply with only the result of 3 + 4.'), 32));
+    return {
+      first, second
+    };
+  }));
+  const result = unwrap(worker.join());
+  strictEqual(result.first.text.trim(), '5');
+  strictEqual(result.second.text.trim(), '7');
+  strictEqual(result.first.stop, 'eos');
+  strictEqual(result.second.stop, 'eos');
+  strictEqual(result.first.output_tokens <= 32, true);
+  strictEqual(result.second.output_tokens <= 32, true);
 });

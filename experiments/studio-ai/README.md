@@ -43,6 +43,16 @@ Cancellation is checked between model operations, and owners drop on return.
 Hard deadlines and whole-machine memory supervision belong to the invoking
 proof run; do not treat these cooperative checks as crash/process isolation.
 
+The resident candidate API uses `qwen_load` to create an opaque `QwenModel` inside
+a Tsrust worker, then `qwen_generate_loaded` to borrow it exclusively for each
+request. The model, tokenizer and backend remain loaded until the owner leaves
+scope; each request creates a fresh context. Prompts and scheduling stay in
+Tsrust. The pinned SDK permits only one backend owner at a time, and warns that
+concurrent context creation is unsafe; the exclusive borrow prevents that path.
+Model loading itself is not interruptible. Output is still buffered, with the
+same exploratory request limits. The resident test checks two distinct answers
+and an invalid request between them; its current acceptance is in the handoff.
+
 Model identities, initial memory observations, stop conditions, source references
 and honest current acceptance status live in
 [the audit](../../docs/plans/tsrust-studio-audit.md). In particular, arithmetic

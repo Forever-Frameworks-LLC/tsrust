@@ -21,7 +21,7 @@ full implementation on November 10. The required inventory in
 | Git | Existing process transport, Kit Diff | Git status/staging/history/conflicts and transactional proposals remain unimplemented. Never run agent tools in the live user tree. |
 | Preview | Kit Markdown and native window lifecycle | HTML web-view admission needs origin/focus/disposal tests; Markdown widget alone is not a browser. |
 | Credentials | Existing environment APIs | Native credential storage/provider adapters not yet audited/admitted. Never persist secrets as ordinary settings. |
-| Native AI | Checked `.bindings.json` packages | Concrete data/slices/Result and explicitly marked opaque Rust owners supported. Resource guards, native Drop/moves/borrows/carriers and LSP metadata have focused acceptance; returned borrows and cross-thread resource transfer remain rejected. Resident model integration and streaming remain open; no public integer handles/global model registry. |
+| Native AI | Checked `.bindings.json` packages | Concrete data/slices/Result and explicitly marked opaque Rust owners supported. Resource guards, native Drop/moves/borrows/carriers and LSP metadata have focused acceptance; returned borrows and cross-thread resource transfer remain rejected. Resident native model reuse passes two sequential requests and intervening invalid-request recovery; Studio integration and streaming remain open. No public integer handles/global model registry. |
 | Training | Compiler-owned `stdlib/ai/admission.rs` via experimental checked bindings | CPU scalar autodiff/SGD boundary and Tsrust iteration witness prepared. This cannot prove adapters, checkpoint files, optimizer-state resume, tokenizer agreement, quantized training or model quality. |
 
 ## Bounded local research decision
@@ -1369,3 +1369,25 @@ Final source rebuilt successfully in47.295s to app52643. Fresh native inspection
 confirmed accessible file:line/preview labels and left the three highlighted
 projectCheckWorker results visible. CUA: Displayed readable highlighted search
 results. No compiler/SDK change or supervisor restart was required for this feature.
+
+## Resident native model primitive — November 12
+
+Explicit opaque checked bindings now hold the pinned llama model/tokenizer/backend
+inside one Tsrust worker. `qwen_load` loads it once; exclusive
+`qwen_generate_loaded` borrows it for each fresh context. Model drops before backend.
+The SDK warns concurrent context creation is unsafe, so this API serializes it.
+No integer model registry, external server or Rust agent orchestration was added.
+
+The changed one-shot limit/oracle cases passed, but the supervisor stopped that
+combined run on809.06MiB global swap growth before resident acceptance. After six
+normal-pressure samples with decreasing swap, only the unfinished resident case
+was resumed. It passed1/1: two distinct answers5and7/EOS, invalid request recovery,
+1708.07ms test execution and463.5ms setup (native cache hit). Supervisor exited0,
+no stop, observed swapdelta0MiB and sampled owned-treeRSS1043054592bytes. These
+are bounded observations, not a benchmark or complete allocation/8GiB qualification.
+
+Offline dependency preparation required adding the previously introduced stdlib
+ignore0.4.28/globset0.4.21/bstr1.13.1 to the old binding lock. All previously
+resolved package entries were unchanged. Earlier failed locked setup executed no
+inference. Streaming, retained KV/chat sessions, actual editor host/agent tools,
+cancellation timing, held-out coding quality and full-machine acceptance remain open.

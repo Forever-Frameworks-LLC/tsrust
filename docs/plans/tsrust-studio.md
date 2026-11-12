@@ -868,8 +868,9 @@ change unrelated v0.2.0 acceptance or authorize a release.
   moves, shared/exclusive input borrows and native Drop. Five ordinary runtime
   cases cover scope/move/carriers/worker failure/cancellation; compiler guards and
   LSP hover/definitions/private completions pass focused acceptance. This removes
-  the plain-data prerequisite for a resident AI model; the actual model session,
-  streaming and editor agent remain unimplemented. Returned borrows and resource
+  the plain-data prerequisite for a resident AI model. A real opaque model now
+  passes two sequential generation requests with a rejected request between them;
+  native reuse is verified, while streaming and editor agent integration remain open. Returned borrows and resource
   transfer between threads remain unsupported. Exact evidence is in the handoff.
 - Native cache checksum/extraction whole-artifact buffers replaced by bounded
   streaming with protocol/validation regressions passing. Performance measurement

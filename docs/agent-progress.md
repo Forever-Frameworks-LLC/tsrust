@@ -8,6 +8,65 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current resident-model section — focused native acceptance, based on1dc742c6. Generic resource
+boundary checkpoint accepted. qwen_load returns an opaque QwenModel; exclusive
+qwen_generate_loaded borrow reuses model/tokenizer/backend but creates a fresh
+context per request. Field order drops model before backend. Pinned SDK warns
+concurrent context creation is unsound, so no shared generation borrow is exposed.
+Old one-shot path shares validation/generation and retains cheap invalid-limit
+rejection before artifact access. Tsrust suite adds two distinct arithmetic
+requests with an invalid request between them; source check passed. Native resident primitive proof passed; streaming/editor integration remain open. Limits remain input2048/output32,
+65536bytes, Metal/mmap/tokenizer equality. Planned proof runs existing changed
+one-shot coverage plus resident two-request case serially, no queued work. Same
+256MiB swap-growth and sustained-critical-pressure stops;180s total execution
+ceiling,1200s separate setup cap. Supervision uses disposable /tmp/studio-resident-proof.py,
+log/result siblings; it only terminates its owned process group. Model/tokenizer
+SHA256 freshly verified against previous artifacts:
+cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046;
+c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539.
+First native attempt exited1 in2.07s before execution: locked native-support
+manifest gained stdlib ignore but the old binding lock lacked ignore/globset/bstr.
+Supported resolve also failed because existing locks are intentionally retained.
+Used Cargo's offline precise update to the unchanged llama0.1.161 pin on the
+materialized manifest, then proved all previously resolved package entries byte-
+equivalent as parsed TOML (apart from root dependencies); only ignore0.4.28,
+globset0.4.21,bstr1.13.1 added. Published that repaired project lock; supported
+bindings resolve --offline now succeeds. No dependency upgrade/removal or source
+fetch. Initial failed setup had0swapgrowth/104202240B sampled ownedRSS. It is not
+an inference failure or model measurement. Rerun now uses the corrected lock.
+Corrected native run compiled and started: one-shot invalid limits and actual
+arithmetic oracle passed (actual2128.54ms). Supervisor then stopped owned group
+on809.06MiB global swapgrowth at11.325s total/~2.078s observed execution;
+owned-treeRSS sample519241728B. Resident case not completed; no resident acceptance.
+Do not rerun completed one-shot cases. Six samples over25s now show normal pressure(level1), swap5573.12→5557.12MiB
+without growth. Resume only unrun resident filter under unchanged resource ceilings. Global swap
+cannot be attributed entirely to this process from these samples.
+Resumed only resident filter passed1/1:1707.46ms case/1708.07ms tests; setup463.5ms
+(check105.5,emit26.8,backend181.4,native cachehit66.2). Exact answers5and7/EOS,
+output limits and intervening invalid-request rejection hold in one loaded owner.
+Supervisor exit0,stopnull,total3.076s,peak swapdelta0MiB, sampled owned-treeRSS
+1043054592B. No speed comparison/complete GPU allocation/whole-machine acceptance.
+Completed changed one-shot cases2/2 from prior run remain retained; combined run
+was stopped, never report that whole run passed. Resident execution log shows two
+fresh63MiB KV caches for its two sequential contexts. No native inference compile
+error and no model/tokenizer reopen between calls. This is persistent model reuse,
+not streaming/session KV reuse, useful coding quality or editor agent acceptance.
+Whole formatter1file then repeat0files/0doc/0fingerprints: idempotent; formatted
+source used by passing resident proof. Source identities: native adapter SHA256
+18b736100b02c55e1c5e09f1c9c2b8f13ec1e684613ae4deae45e6dfa24bd1c5;
+suite86ebe7899c4190a9a8318f30e4a5c024b463b63bfc91fb51878472fdab230d86;
+repaired bindinglock3fd58f2f984a301e18d3acc5ad5ca559b3f5e1b7d87d7af69f54f3fdd65f5d91.
+Next: local checkpoint, then Tsrust request-worker lifecycle/stream primitives and
+actual editor host. No giant default dependency addition before startup/disposal
+and request cancellation are ready. Native build cleanup retained3latest useful
+workspaces and removed obsolete/failed variants under nonblocking locks. Cache
+cleanup retains3recent source/runtime entries under namespace locks. Current
+Studio supervisor6369/app6790/LSP7437 independently live; no model process remains.
+Owner draft was not touched; installed pair still43029d77. No UI/source changes
+require preview restart for this section.
+No unchanged model replay, model/server install or Studio restart. Resident test
+will also require a second sequential backend init after one-shot unload.
+
 Current AI prerequisite — accepted focused section, based on43029d77. Previous goal turn was
 progress (diagnostic reuse, shared popup border, focused checks/native MAT/checkpoint).
 Existing inference admission is buffered and reloads its model each call. Audit
