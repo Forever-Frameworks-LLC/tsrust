@@ -61,8 +61,6 @@ impl Render for HoverPopover {
             self.symbol_range.clone(),
             move |window, cx| render_markdown("message", contents.clone(), font_size, window, cx),
         )
-        .border_1()
-        .border_color(cx.theme().border)
         .into_any_element()
     }
 }
@@ -174,6 +172,8 @@ impl Element for Popover {
                 .p_1()
                 .text_size(self.editor.read(cx).display_map().font_size())
                 .popover_style(cx)
+                .border_1()
+                .border_color(cx.theme().border)
                 .shadow_md()
                 .max_w(max_width)
                 .max_h(max_height)

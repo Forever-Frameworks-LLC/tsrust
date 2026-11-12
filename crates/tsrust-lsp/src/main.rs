@@ -11,6 +11,7 @@ use tsrust_lsp::{Documents, Snapshot, code_actions, diagnostics};
 struct DocumentJob {
     snapshot: Snapshot,
     workspace: Option<tsrust_lsp::workspace::WorkspaceSnapshot>,
+    cache_for_scan: bool,
 }
 
 enum DiagnosticBatch {
@@ -127,7 +128,7 @@ fn run(
                 }
                 Job::Document(job) => job,
             };
-            let DocumentJob {snapshot, workspace} = job;
+            let DocumentJob {snapshot, workspace, cache_for_scan} = job;
             let result = catch_unwind(AssertUnwindSafe(|| {
                 let cancelled = || worker_interrupt.load(std::sync::atomic::Ordering::Relaxed);
                 if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
@@ -147,6 +148,7 @@ fn run(
                     let started = Instant::now();
                     if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     let result = workspace.check_with_diagnostics(&entry);
+                    if cache_for_scan {scan_cache.remember(&entry,workspace,&result);}
                     if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     if trace { eprintln!("[analysis] check={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
@@ -203,7 +205,7 @@ fn run(
     let (header_jobs, header_work) = bounded::<DocumentJob>(1);
     let (header_completed, header_results) = bounded::<Option<DocumentDeclarations>>(1);
     std::thread::Builder::new().name("tsrust-declarations".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
-        while let Ok(DocumentJob {snapshot, workspace}) = header_work.recv() {
+        while let Ok(DocumentJob {snapshot, workspace, ..}) = header_work.recv() {
             let result = catch_unwind(AssertUnwindSafe(|| {
                 let workspace = workspace?;
                 let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri).ok()?;
@@ -253,6 +255,7 @@ fn run(
             in_flight_input = Some((snapshot.clone(), workspace.clone()));
             scan_interrupt.store(false, std::sync::atomic::Ordering::Relaxed);
             jobs.send(Job::Document(DocumentJob {
+                cache_for_scan: scanner.covers(&snapshot.uri),
                 snapshot,
                 workspace,
             }))
@@ -272,7 +275,7 @@ fn run(
                 if entry.headers_requested || projects.covers(&entry.uri) { return None; }
                 let snapshot = documents.snapshot(&entry.uri)?;
                 let workspace = projects.prepare(&snapshot)?;
-                Some(DocumentJob {snapshot: snapshot.clone(), workspace: Some(workspace)})
+                Some(DocumentJob {snapshot: snapshot.clone(), workspace: Some(workspace), cache_for_scan: false})
             }) {
                 for entry in &mut deferred {
                     if entry.uri == job.snapshot.uri { entry.headers_requested = true; }

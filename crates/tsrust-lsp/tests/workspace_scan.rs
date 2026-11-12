@@ -72,6 +72,33 @@ fn removing_last_root_clears_previous_publications() {
 }
 
 #[test]
+fn foreground_results_skip_duplicate_scans_and_keep_warnings_and_invalidation() {
+    use tsrust_lsp::workspace_scan::Cache;
+    let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join("tsrust.config.json"),r#"{"build":{"entry":"main.tsr"}}"#).unwrap();
+    std::fs::write(dir.0.join("main.tsr"),"import {value} from './library.tsr';function main(){const amount:int=value();console.log(amount);}").unwrap();
+    std::fs::write(dir.0.join("library.tsr"),"export function value():int{return 7;}async function one():Task<int>{return 1;}function probe(){one();}").unwrap();
+    let mut projects=ProjectSession::default();let mut scanner=Scanner::default();
+    scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    let entry=SourceId(dir.0.join("main.tsr").to_str().unwrap().into());
+    let input=projects.workspace.snapshot();let result=input.check_with_diagnostics(&entry);assert!(result.is_ok());
+    let mut cache=Cache::default();cache.remember(&entry,&input,&result);
+    let reused=cache.check(&job).unwrap();assert_eq!(cache.checked_entries(),0);
+    assert_eq!(reused,check(&job).unwrap());
+    assert!(reused.values().flatten().any(|item|item.severity==Some(lsp_types::DiagnosticSeverity::WARNING)));
+    projects.open(&Snapshot{uri:dir.uri("library.tsr"),version:1,generation:1,text:"export function value():string{return 'changed';}".into()});
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    let changed=cache.check(&job).unwrap();assert!(cache.checked_entries()>0);
+    assert_eq!(changed,check(&job).unwrap());
+    assert!(changed.values().flatten().any(|item|item.severity==Some(lsp_types::DiagnosticSeverity::ERROR)));
+    let input=projects.workspace.snapshot();let result=input.check_with_diagnostics(&entry);assert!(result.is_err());
+    cache.remember(&entry,&input,&result);
+    assert_eq!(cache.check(&job).unwrap(),changed);assert_eq!(cache.checked_entries(),0);
+}
+
+#[test]
 fn cached_scans_recheck_only_changed_inputs_and_importers() {
     use tsrust_lsp::workspace_scan::Cache;
     let dir=Directory::new();let now=Instant::now();

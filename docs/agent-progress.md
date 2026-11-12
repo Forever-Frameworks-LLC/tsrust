@@ -8,6 +8,60 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current diagnostic/signature section — accepted local section, based on44514254. Previous goal
+turn was progress: body stops implemented, focused check passed, live native MAT,
+LSP-only restart and local checkpoint. Tree initially observed in Files, retain
+that view rather than assuming prior content search. Owner state is12tabs/main/
+zoom-1, original project-check draft only; protect it.
+
+Native call-signature MAT on existing tests/editor-language-mat.tsr passed explicit
+Cmd+Shift+Space at count, active count:int; moving into first argument shows name:
+string, moving outside that nested call shows outer Ok(value:T). Syntax colors
+and font match editor. Signature popup lacked hover border; moved common border
+into shared Popover, preserving diagnostic-specific overrides and hover behavior.
+Fixture closed cleanly via Cmd+W, tests collapsed and main reactivated. Preliminary
+CUA phase found missing border; final new app6790 MAT confirms one clear outer
+border, highlighted function signature/count:int and editor-sized text. No source
+changes needed after that observation. Final CUA phase: Verified bordered signature help.
+
+Profiling/source review found foreground result discarded by workspace scan cache,
+so same unchanged entry is checked again. Cache.remember now shares completed
+foreground errors/warnings and successful module coverage with worker-local scan
+cache; no analysis graph retained. Existing revision/disk/config guards still
+control reuse. DocumentJob only enables this for scanner-covered files; standalone
+sessions do not accumulate a new cache. Successful scan warnings previously dropped
+are now retained too. New focused case compares seeded/unseeded buckets, zero repeat
+checks, preserved warnings, dependency edit invalidation and failed-result reuse.
+Initial integration test compilation rejected private WorkspaceSnapshot.fresh;
+replaced test-only calls with public workspace.snapshot. Focused workspace_scan
+suite passed9/9 in0.02s,2m55s setup. Imported-intelligence protocol priority witness
+passed1/1 in0.01s,7.46s setup. Logs/tmp/studio-shared-diagnostics-tests-fixed.log and
+/tmp/studio-shared-diagnostics-priority.log. Whole formatter passed0source/doc changes
+and git diff --check passed. Do not rerun unchanged evidence or broad suites.
+
+Final SDK build12.87s, atomic install/hash independently verified:
+CLI1edc82f7537f2db6359c49978e14c2135f06d22506ee0be00c163f0766568f38;
+LSP8992aae8003c26241f3bda2f13ff8b8f0afa5062597a81a5e59955d966825411.
+Old98383/app236/LSP2569 gracefully stopped. New native-capable supervisor6369/PTY5193 has log/tmp/studio-signature-diagnostics-dev.log.
+Final app6790/LSP6824 is live; only supervisor6369/PTY5193 remains, independently
+confirmed. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-6369-1794512040120557000-0/Tsrust Studio.app.
+Final dev build362127ms(check107918.6,emit4316.7,runtime publish223256.9,native+link249037.5).
+Long wait was confirmed active native gpui-component compilation, not a deadlock;
+no timeout restart. Owner journal independently verified12tabs/main active/zoom-1,
+original project-check draft hash unchanged. Current view is Files, tests collapsed,
+panel closed. No MAT edits in owner files. signatureStudio binds final app; old
+languageStudio/studio bind dead236 and must not be used. Final cache pruning retained
+3latest source/runtime entries and2complete build artifacts using nonblocking locks.
+
+Whole-project formatter passed0source/doc changes and git diff --check passed.
+Next: checkpoint this accepted section, then qualify automatic parameter-help triggers,
+continued native completion/snippet usage and bounded real-workspace resource behavior.
+Preserve completed checks; avoid repeating full regressions. Integrated AI hosting
+remains a required next product slice before Git/debugger/extensions; read its current
+plan/evidence before choosing implementation. No performance-speedup or memory-stability
+claim here; checked-entry count proves exact reuse only. Full Studio goal remains active.
+
 Current intelligence continuation — November12, based ond3fc7c11 (previous goal
 turn was progress: accepted search dialog, local checkpoint and one live preview).
 Native MAT now confirms keyboard ShowHover on const count:int displays highlighted

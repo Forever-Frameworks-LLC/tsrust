@@ -84,6 +84,18 @@ sample found diagnostics doing full graph checking on its worker while the proto
 thread waits. Short physical-footprint observations do not qualify memory stability;
 redundant background checking and long-running responsiveness remain open.
 
+Diagnostic reuse/signature follow-up, November12: foreground completed results now
+seed the workspace scanner's existing guarded cache. Same current inputs skip a
+second entry check, including failed checks; dependency changes invalidate them.
+Warnings from successful checks are retained. Shared cache holds dependency inputs
+and diagnostics, not full analysis graphs, and is enabled only for workspace-covered
+files. Focused scanner9/9 and request-priority1/1 passed; this is reuse evidence,
+not a measured startup/memory improvement. Native parameter-help MAT follows count,
+name and nested Ok calls with highlighted editor-sized signatures. Common popup
+border moved to shared Popover; final native MAT confirms the border with highlighted
+editor-sized parameter help. Owner12tabs/main/draft restored and one current preview
+left running. No end-to-end speedup or long-running memory qualification claimed.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust

@@ -84,6 +84,14 @@ pub struct Cache {
 impl Cache {
     /// Number of entry analyses performed by the most recent scan.
     pub fn checked_entries(&self)->usize {self.checked}
+    /// Reuse completed foreground diagnostics without retaining its analysis graph.
+    pub fn remember(&mut self, entry:&SourceId, input:&WorkspaceSnapshot, result:&Result<tsrust_compiler::project::ProjectAnalysis,Vec<ProjectDiagnostic>>) {
+        let (errors,modules)=match result {
+            Ok(analysis)=>(analysis.warnings(),analysis.graph.modules.keys().cloned().collect()),
+            Err(errors)=>(errors.clone(),BTreeSet::new()),
+        };
+        self.entries.insert(entry.clone(),Entry{input:input.retained(),errors,modules});
+    }
     pub fn check(&mut self, job: &Job) -> Result<Buckets,String> {
         self.check_cancellable(job,||false).map(|result|result.expect("uninterrupted scan"))
     }
@@ -111,11 +119,8 @@ impl Cache {
         used.insert(file.clone());
         if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
             let input=job.input.fresh();
-            let (errors,modules)=match input.check_with_diagnostics(&file) {
-                Ok(analysis)=>(vec![],analysis.graph.modules.keys().cloned().collect()),
-                Err(errors)=>(errors,BTreeSet::new()),
-            };
-            self.entries.insert(file.clone(),Entry{input:input.retained(),errors,modules});
+            let result=input.check_with_diagnostics(&file);
+            self.remember(&file,&input,&result);
             self.checked+=1;
         }
         let entry=&self.entries[&file];
