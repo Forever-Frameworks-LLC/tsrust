@@ -19,9 +19,12 @@ test('settings validate before persistence and round trip their named theme and 
     const text = '{"schemaVersion":1,"theme":"Studio Light","fontSize":18}';
     const discovery = defaultConfig();
     strictEqual(discovery.searchIncludeIgnored, false);
+    strictEqual(discovery.treeIncludeIgnored, true);
     discovery.searchIncludeIgnored = true;
+    discovery.treeIncludeIgnored = false;
     unwrap(saveConfig(path, formatConfig(discovery)));
     strictEqual(unwrap(loadConfig(path)).searchIncludeIgnored, true);
+    strictEqual(unwrap(loadConfig(path)).treeIncludeIgnored, false);
     unwrap(saveConfig(path, text));
     strictEqual(unwrap(loadConfig(path)).theme, 'Studio Light');
     strictEqual(unwrap(loadConfig(path)).fontSize, 18);

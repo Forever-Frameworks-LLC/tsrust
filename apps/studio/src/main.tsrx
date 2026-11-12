@@ -118,9 +118,17 @@ function App(
     }
   }
 
-  const browser = ProjectTree(workspace.get().root, workspace, font, recovery, settings);
+  const explorerRevision = signal(0);
+  const browser = ProjectTree(
+    workspace.get().root,
+    workspace,
+    font,
+    recovery,
+    settings,
+    explorerRevision
+  );
   const fileSearch = FileSearch(workspace.get().root, workspace, font, recovery);
-  const contentSearch = ContentSearch(workspace, recovery, font, settings);
+  const contentSearch = ContentSearch(workspace, recovery, font, settings, explorerRevision);
   const initialTerminals = emptyTerminals();
   unwrap(addTerminal(initialTerminals, useId()));
   const terminals = signal(initialTerminals);

@@ -96,7 +96,8 @@ after enumeration.
 
 `walkDir(path, includeIgnored, maxEntries?)` recursively returns regular files and
 directories sorted by canonical absolute path, excluding the root and symlinks.
-It always prunes `.git`, `node_modules` and `target`. With `includeIgnored: false`,
+It prunes nested `.git`, `node_modules` and `target` directories; an explicitly
+selected root is still traversed. With `includeIgnored: false`,
 workspace-local `.ignore` and `.gitignore` files filter discovery, including nested
 negation rules; parent/global Git rules are not read. Hidden entries remain visible
 unless an explicit rule excludes them. `true` includes ignored entries without

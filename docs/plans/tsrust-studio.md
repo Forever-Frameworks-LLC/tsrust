@@ -235,8 +235,18 @@ for ignored files; the registered AI search action shares the implementation and
 requires an exact host root/read grant. Public runtime1/1, Studio search/settings
 7/7, full Studio check and native MAT passed. MAT verified rule changes without
 restart and persisted enable/disable across Settings reopening. This is not full
-integrated-agent acceptance. Tree visibility settings, watcher/index refresh, cancellable background Studio
-scans and comparable traversal measurements remain required. Matched native/TypeScript
+integrated-agent acceptance. Tree visibility now has a persisted default-on ignored-file setting and native
+Project -> Refresh Explorer command. The tree consumes one shared snapshot grouped
+by parent; live settings, root/nested insertion/removal/rename and correct file
+opening passed native MAT with expansion, selection and drafts preserved. A shared
+runtime reconciliation fix keys TreeItems by path and treats their snapshot props
+as structural; focused runtime retention checks passed. The guarded registered AI
+route queues the same revision request; completion/error observation and integrated
+host parity remain open. The controller does not scan while request/policy state is
+unchanged. OS watcher/index refresh, cancellable background Studio scans and
+comparable traversal measurements remain required before broader workspace expansion.
+Resume native intelligence/signature-help and latency work on the current small
+package alongside these explicit remaining discovery requirements. Matched native/TypeScript
 benchmark support and independent oracle exist; Node control/source checks passed,
 while native benchmark verification awaits portable source-pack setup for the new
 lockfile. No speedup or measured acceptance is claimed.

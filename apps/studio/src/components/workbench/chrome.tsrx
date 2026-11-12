@@ -56,6 +56,7 @@ export function Chrome(
           <MenuItem command="format-document" label={message("Format document")} disabled={!canFormat(workspace.get().active)} />
         </AppMenu>
         <AppMenu label={message("Project")}>
+          <MenuItem command="refresh-explorer" label={message("Refresh Explorer")} />
           <MenuItem command="format-project" label={message("Format project")} />
           <MenuItem command="check-project" label={message("Check project")} />
         </AppMenu>

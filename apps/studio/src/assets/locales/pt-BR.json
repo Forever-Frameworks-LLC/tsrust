@@ -267,5 +267,10 @@
   "format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).": "format.argumentWrapThreshold deve estar entre 0 e 100 (0 desativa a quebra de linhas).",
   "Search": "Pesquisa",
   "Include ignored files": "Incluir arquivos ignorados",
-  "Search files excluded by workspace .ignore and .gitignore rules. Generated directories remain excluded.": "Pesquisar arquivos excluídos pelas regras .ignore e .gitignore do projeto. Diretórios gerados continuam excluídos."
+  "Search files excluded by workspace .ignore and .gitignore rules. Generated directories remain excluded.": "Pesquisar arquivos excluídos pelas regras .ignore e .gitignore do projeto. Diretórios gerados continuam excluídos.",
+  "Refresh Explorer": "Atualizar explorador",
+  "Explorer": "Explorador",
+  "Show ignored files": "Mostrar arquivos ignorados",
+  "Keep ignored files visible in the tree. Hidden configuration files remain visible unless explicitly ignored.": "Manter arquivos ignorados visíveis na árvore. Arquivos de configuração ocultos continuam visíveis, exceto quando ignorados explicitamente.",
+  "The project directory changed during discovery. Refresh the explorer.": "O diretório do projeto mudou durante a descoberta. Atualize o explorador."
 }

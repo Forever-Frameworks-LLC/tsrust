@@ -13,6 +13,7 @@ export interface SearchActionContext {
   allowNavigation: boolean;
   allowRead?: boolean;
   allowedRoot?: string;
+  explorerRevision?: Signal<int>;
   focusEditor: boolean;
 }
 

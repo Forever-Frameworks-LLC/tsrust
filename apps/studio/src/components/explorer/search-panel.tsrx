@@ -65,12 +65,12 @@ function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Wor
   );
 }
 
-export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>): Node {
+export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>, explorerRevision: Signal<int>): Node {
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
   const allowedRoot = clone(workspace.get().root);
   const context: SearchActionContext = {
-    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot
+    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot, explorerRevision
   };
   const query = signal('');
   const regex = signal(false);

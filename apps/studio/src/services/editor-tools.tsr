@@ -1,6 +1,7 @@
 import { JsonLimits } from 'std:json';
 
 import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
+import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
 import { SearchHit } from '../lib/explorer/search.tsr';
 import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
 
@@ -8,6 +9,10 @@ export interface EditorTool {
   name: string;
   description: string;
   inputSchema: string;
+}
+
+interface RefreshArguments {
+  root: string;
 }
 
 interface SearchArguments {
@@ -21,6 +26,8 @@ interface SearchArguments {
 // shortcut: schemas mirror typed arguments; generate from compiler types before expanding this catalog.
 export function editorTools(): EditorTool[] {
   return [{
+    name: 'refresh_explorer', description: 'Request a fresh explorer snapshot for an explicit workspace root. Requires a matching host read grant and bound explorer revision. Does not change focus, selection, files or settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
     name: 'open_problem', description: 'Open a workspace file at a one-based Unicode line and column, highlighting the rest of that line. Requires host navigation permission. No files are edited.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"line":{"type":"integer","minimum":1},"column":{"type":"integer","minimum":1}},"required":["path","line","column"]}'
   }, {
     name: 'search_content', description: 'Search saved files and unsaved buffers in the current workspace. Returns matching lines with UTF-8 ranges. One hit and first match per line. Requires host read permission for the explicit workspace root. includeIgnored applies only inside that grant.', inputSchema: '{"type":"object","properties":{"query":{"type":"string"},"regex":{"type":"boolean"},"caseSensitive":{"type":"boolean"},"includeIgnored":{"type":"boolean"}},"required":["query"]}'
@@ -40,6 +47,24 @@ export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: s
   if (!tools.some((tool) => tool.name === name)) return Err('Unknown editor tool.');
 
   try {
+    if (name === 'refresh_explorer') {
+      const args = JSON.parse<RefreshArguments>(payload, limits);
+      const revision = context.explorerRevision;
+
+      if (revision === undefined) return Err('Explorer refresh is unavailable in this host.');
+
+      match (requestTreeRefresh(revision, clone(args.root), context.allowedRoot ?? '', clone(context.workspace.get().root), context.allowRead ?? false)) {
+        Ok(generation) => {
+          return Ok(JSON.stringify({
+            queued: true, generation
+          }));
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
     if (name === 'open_problem') {
       const location = JSON.parse<ProblemLocation>(payload, limits);
 

@@ -1,6 +1,10 @@
 import { stat } from 'std:fs';
 import {
   Node,
+  View,
+  Shortcut,
+  Ticker,
+  signal,
   Text,
   Tree,
   TreeItem,
@@ -8,13 +12,16 @@ import {
   computed
 } from 'std:ui';
 
+import { TreeSession, refreshTree, pollTree } from '../../lib/explorer/tree-controller.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import { requestTreeRefresh } from '../../lib/explorer/tree-actions.tsr';
 import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
 import { localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { Workspace, entries, openFile } from '../../lib/workspace/workspace.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 
 function FileTreeItem(
   path: string,
@@ -40,87 +47,104 @@ function FileTreeItem(
   );
 }
 
-function directoryItems(path: string, workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Result<Node[], string> {
-  match (entries(path)) {
-    Err(message) => {
-      return Err(clone(message));
-    },
-    Ok(children) => {
-      const nodes: Node[] = [];
+function directoryItems(position: int, tree: ReadOnly<DirectoryTree>, workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Node[] {
+  const nodes: Node[] = [];
 
-      for (const entry of children) {
-        let nested: Node[] = [];
+  if (position < 0 || position >= tree.directories.length) return nodes;
 
-        if (entry.directory) {
-          match (directoryItems(entry.path, workspace, settings)) {
-            Ok(items) => {
-              nested = items;
-            },
-            Err(message) => {
-              return Err(clone(message));
-            }
-          }
-        }
-
-        nodes.push(FileTreeItem(
-          clone(entry.path),
-          clone(entry.name),
-          entry.directory,
-          nested,
-          workspace,
-          settings
-        ));
-      }
-
-      return Ok(nodes);
-    }
+  for (const entry of tree.directories[position].children) {
+    const nested = entry.directory ? directoryItems(entry.directoryIndex, tree, workspace, settings) : [];
+    nodes.push(FileTreeItem(
+      clone(entry.path),
+      clone(entry.name),
+      entry.directory,
+      nested,
+      workspace,
+      settings
+    ));
   }
+
+  return nodes;
 }
 
-export function ProjectTree(path: string, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
-  const treeClass = computed<string>(() => 'size-full min-w-0 font-mono text-[' + font.get().toString() + 'px]');
+export function ProjectTree(
+  path: string,
+  workspace: Signal<Workspace>,
+  font: Signal<int>,
+  recovery: Signal<Recovery>,
+  settings: Signal<StudioConfig>,
+  revision: Signal<int>
+): Node {
+  const textClass = computed<string>(() => 'font-mono text-[' + font.get().toString() + 'px]');
+  const treeClass = computed<string>(() => 'grow min-h-0 min-w-0 ' + textClass.get());
+  const snapshot = signal<DirectoryTree>({
+    root: clone(path), directories: []
+  });
+  const error = signal('');
+  const appliedRevision = signal(-1);
+  const appliedPolicy = signal(settings.get().treeIncludeIgnored);
+  const session: TreeSession = {
+    root: clone(path), workspace, settings, revision, appliedRevision, appliedPolicy, snapshot, error
+  };
+  refreshTree(session);
+  const errorText = computed<string>(() => localizeError(error.get()));
+  return (
+    <View className="flex-col size-full min-h-0">
+      <Ticker
+        interval={150}
+        onTick={(_frame) => {
+          pollTree(session);
+        }}
+      />
+      <Shortcut
+        command="refresh-explorer"
+        keys="secondary-alt-r"
+        onTrigger={() => {
+          const next = workspace.get();
 
-  match (directoryItems(path, workspace, settings)) {
-    Err(message) => {
-      const errorText = computed<string>(() => localizeError(message));
-      return (
-        <Text>
+          match (requestTreeRefresh(revision, clone(path), clone(path), clone(next.root), true)) {
+            Ok(_) => {},
+            Err(error) => {
+              next.error = error;
+              publishWorkspace(next, workspace, recovery);
+            }
+          }
+        }}
+      />
+      <View hidden={errorText.get() === ''} className="shrink-0">
+        <Text className={textClass.get() + ' text-destructive px-2 py-1'}>
           {errorText.get()}
         </Text>
-      );
-    },
-    Ok(children) => {
-      return (
-        <Tree
-          defaultSelected={workspace.get().active}
-          className={treeClass.get()}
-          onSelect={(selectedPath) => {
-            const next = workspace.get();
+      </View>
+      <Tree
+        defaultSelected={workspace.get().active}
+        className={treeClass.get()}
+        onSelect={(selectedPath) => {
+          const next = workspace.get();
 
-            match (stat(selectedPath)) {
-              Ok(metadata) => {
-                if (metadata.isDirectory) return;
-              },
-              Err(error) => {
-                next.error = clone(error.message);
-                publishWorkspace(next, workspace, recovery);
-                return;
-              }
+          match (stat(selectedPath)) {
+            Ok(metadata) => {
+              if (metadata.isDirectory) return;
+            },
+            Err(error) => {
+              next.error = clone(error.message);
+              publishWorkspace(next, workspace, recovery);
+              return;
             }
+          }
 
-            match (openFile(next, selectedPath)) {
-              Ok(_) => {},
-              Err(message) => {
-                next.error = clone(message);
-              }
+          match (openFile(next, selectedPath)) {
+            Ok(_) => {},
+            Err(message) => {
+              next.error = message;
             }
+          }
 
-            publishWorkspace(next, workspace, recovery);
-          }}
-        >
-          {...children}
-        </Tree>
-      );
-    }
-  }
+          publishWorkspace(next, workspace, recovery);
+        }}
+      >
+        {...directoryItems(0, snapshot.get(), workspace, settings)}
+      </Tree>
+    </View>
+  );
 }

@@ -8,6 +8,91 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Explorer visibility/refresh section — 2026-11-12, based on7956ab5a; checkpoint
+contains this entry. Tree and content/file search now use the same checked walkDir
+policy. Tree snapshot construction groups one traversal by parent with a local
+path/index Map, then returns plain serializable directory/entry arrays and child
+indices. The Map is not retained in Signal state. Root contents remain the first
+rows, with directories sorted before files. Existing workspace.entries remains a
+compatibility helper, not the active tree/search discovery route.
+
+Persisted treeIncludeIgnored defaults true (older configuration migration), with
+General -> Explorer -> Show ignored files in categorized Settings. Live policy
+changes rebuild the tree. Project -> Refresh Explorer / Cmd+Option+R invokes the
+same guarded revision request as registered refresh_explorer. Explicit root/read
+grants are required; unavailable host bindings and wrong roots reject. This is an
+executable queued-action adapter, not full integrated-agent acceptance: scan
+completion/error observation and model-host integration remain open. The 150ms
+controller tick compares scalar request/policy state; it does not scan the filesystem
+when unchanged. Failed scans retain the last successful snapshot and display a
+local error in the configured tree text size. OS watching, background/cancellable
+Studio scans and larger-workspace resource qualification remain open.
+
+Native MAT caught a shared runtime defect: reactive lists keyed only semantic IDs/
+DockPanel values, treating TreeItem bound IDs/labels/icons as reusable live values.
+Insertion produced stale/duplicated labels; nested replacements with unchanged
+counts could retain old children. Fixed crates/tsrust-ui/src/branch.rs: TreeItem id
+is a row key and TreeItem snapshot props stay structural, including nested data.
+Other editor/input live props retain their existing state behavior. Duplicate-row
+message is now generic distinct IDs; updated its preexisting assertion. Do not
+work around this with per-row rebuild keys or readDir copies. Computed remains
+scalar-only; snapshot arrays use Signal and ordinary reactive child expressions.
+
+Acceptance: first combined explorer/search/settings runtime suite9/9 passed605.70ms
+(setup7546.9ms). After snapshot/controller restructuring, affected explorer3/3
+passed2.75ms (setup6577.5ms); preserve unchanged search3/settings4, for10distinct
+current runtime cases. Coverage: prefix siblings, Unicode/hidden files, single
+snapshot grouping, persisted policy, root/read guards, no idle rescans, explicit
+refresh, and last-good snapshot after errors. Focused UI runtime tests: tree-bound
+identity/nested data and existing controlled-editor rows passed2cases; the existing
+identified-input-row case failed only its renamed-message assertion, then passed1/1
+in0.00s after repair. Three accepted UI runtime cases total; setups3.67s/3.29s.
+No whole compiler/LSP/UI matrix rerun.
+
+Repaired native MAT passed root insertion/removal, nested insertion and same-count
+rename, correct new row -> actual Markdown file contents, live ignored README
+hide/show, persistence across Settings reopen, unchanged expansion/selection,
+original active project-check, nine tabs, one draft and no duplicate rows. Opened
+only a clean temporary Markdown fixture, then closed it and restored project-check.
+Removed the exclusive .ignore and two Markdown fixtures; disk preferences restored
+treeIncludeIgnored=true/searchIncludeIgnored=false. Owner draft SHA256 still
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completed: Verified live explorer visibility and refresh. Reset CUA/getApp at
+new full bundle after process replacement; after compaction rewriteDocumentation.
+
+Current only preview: supervisor11208 / PTY83123, app11284, LSP11561 after native
+status-menu restart; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-11208-1794468747970271000-0/Tsrust Studio.app.
+Log /tmp/studio-tree-repaired-dev.log. Old2111/PTY58391/app10691 stopped after
+replacement became visible. Repaired build160219ms (check82814.2ms,emit3495.6ms,
+runtime51086.5ms,native/link73127.3ms; runtime/program misses). Earlier frontend
+build192199ms hit runtime, then MAT exposed the shared defect; it is superseded.
+SDK atomic independent hash matches: CLI
+0abe0bf6c0f17e6deaf6dc365bde36043606dc4fe36ad744b17dcd5a5dab2f3f;
+LSP da7f9889a9b39d7badcc76c205decfef266f4dc1c6de37097a42612c4ee3945d.
+Updated DirEntry/FsError help distinguishes readDir spelling/order/symlinks from
+walkDir canonical sorted/ignored results and its discovery failures. LSP build19.19s;
+CLI build2m21s. Legitimate dev restarts remain authorized.
+
+Bounded non-comparative observations after MAT: app age10m15s,5.8%CPU,
+footprint323.5MiB/peak387.0MiB; new LSP age2m03s,99.3%CPU while checking,
+footprint201.3MiB/peak270.3MiB. Earlier prototype CPU17% occurred during different
+work/build activity; do not treat these as matched benchmarks. Long-running leak,
+full editor-plus-AI8GiB and traversal performance acceptance remain open. Later
+LSP observation at15m55s settled at0%CPU: footprint231.9MiB/peak467.2MiB.
+This extends the observation, not long-running leak qualification.
+Whole-project final formatting passed0files/0snippets/0fingerprints changed and
+git diff --check passed. Pruned5obsolete native entries/workspace payloads under
+namespace/build locks, preserving3latest runtime/program artifacts and2latest
+actual build payloads; cache4.7GiB ->3.7GiB. Shared Cargo target/model artifacts
+were untouched. Old2111/app10691/LSP10692 are gone; only11208/app11284/LSP11561
+remain. Empty build lock/identity shells remain; filter actual payloads when pruning.
+Source checkpoint contains the completed UI slice and this exact evidence.
+Next prioritize signature-help/native intelligence and latency, per owner. Checked
+OS watching/background cancellation and refreshed portable benchmark sources remain
+required before larger-workspace discovery qualification; they do not block the
+existing small-package intelligence workflow. No push/release.
+
 Accepted checked discovery/content-search slice — 2026-11-12, source checkpoint
 contains this entry, based on9f8fbf3f.
 Compiler and generated std:fs.walkDir now embed one shared serial traversal source.

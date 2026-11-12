@@ -76,7 +76,7 @@ mod tests {
         assert_eq!(root.visible_children().nth(2).unwrap().identity.get(),ids[0]);
         assert_eq!(root.visible_children().nth(2).unwrap().text,"draft 🦀");
         control.set(vec!["one".into(),"one".into()]).unwrap();
-        assert!(root.refresh().unwrap_err().contains("distinct document IDs"));
+        assert!(root.refresh().unwrap_err().contains("distinct IDs"));
         assert!(root.mounted_nodes().contains(&ids[0]));
     }
 
@@ -96,6 +96,37 @@ mod tests {
         let kept=&root.visible_children().nth(1).unwrap().children[0];assert_eq!(kept.identity.get(),editor);assert_eq!(kept.text,"unsaved 🦀");
         order.set(vec!["one".into()]).unwrap();root.refresh().unwrap();assert_eq!(root.visible_children().next().unwrap().children[0].identity.get(),editor);
         order.set(vec!["one".into(),"one".into()]).unwrap();assert!(root.refresh().is_err());
+    }
+    #[test]
+    fn tree_rows_use_bound_path_identity_and_refresh_nested_snapshot_data() {
+        fn item(id:&str,label:&str,children:Vec<Child>)->Result<Node,String>{
+            let path=Signal::new(id.to_owned());let text=Signal::new(label.to_owned());
+            Node::kit("TreeItem",children,String::new())?
+                .with_kit_binding("id",path.text_binding(Clone::clone))?.own_state(path)?
+                .with_kit_binding("label",text.text_binding(Clone::clone))?.own_state(text)
+        }
+        let data=Signal::new(vec![(String::from("a"),String::from("A")),(String::from("b"),String::from("B"))]);
+        let read=data.handle();let control=data.handle();
+        let slot=Node::each(move||{
+            let rows=read.get()?.iter().map(|(id,label)|item(id,label,vec![]).map(Child::Node)).collect::<Result<Vec<_>,_>>()?;
+            Ok(Some(Node::view(rows,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let a=root.visible_children().next().unwrap().identity.get();
+        let labels=|root:&Node|root.visible_children().map(|node|node.kit.as_ref().unwrap().prop("label").unwrap().to_owned()).collect::<Vec<_>>();
+        control.set(vec![("new".into(),"New".into()),("a".into(),"A".into()),("b".into(),"B".into())]).unwrap();
+        root.refresh().unwrap();assert_eq!(labels(&root),["New","A","B"]);assert_eq!(root.visible_children().nth(1).unwrap().identity.get(),a);
+        control.set(vec![("b".into(),"B".into()),("a".into(),"Renamed".into())]).unwrap();
+        root.refresh().unwrap();assert_eq!(labels(&root),["B","Renamed"]);
+        control.set(vec![("a".into(),"A".into()),("a".into(),"Duplicate".into())]).unwrap();assert!(root.refresh().unwrap_err().contains("distinct IDs"));
+        let selected=Signal::new(String::from("first"));let read=selected.handle();let control=selected.handle();
+        let slot=Node::each(move||{
+            let id=read.get()?;let child=item(&id,&id,vec![])?;
+            Ok(Some(Node::view(vec![Child::Node(item("folder","Folder",vec![Child::Node(child)])?)],String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        control.set("second".into()).unwrap();root.refresh().unwrap();
+        let child=&root.visible_children().next().unwrap().children[0];assert_eq!(child.kit.as_ref().unwrap().prop("id"),Some("second"));assert_eq!(child.kit.as_ref().unwrap().prop("label"),Some("second"));
     }
     #[test]
     fn controlled_kit_rows_keep_identity_and_local_state_when_live_props_change() {
@@ -195,7 +226,7 @@ impl Node {
         let mut fresh=build()?.map(|wrapper|wrapper.children).unwrap_or_default();
         for row in &mut fresh{row.refresh_inner()?;}
         let mut keys=std::collections::BTreeSet::new();
-        for row in &fresh {if !row.row_key().is_empty()&&!keys.insert(row.row_key()){return Err("Reactive list rows require distinct document IDs".into());}}
+        for row in &fresh {if !row.row_key().is_empty()&&!keys.insert(row.row_key()){return Err("Reactive list rows require distinct IDs".into());}}
         let previous=std::mem::take(&mut self.children);let removed=previous.len().saturating_sub(fresh.len());
         let keys=previous.iter().enumerate().filter(|(_,row)|!row.row_key().is_empty()).map(|(index,row)|(row.row_key().to_owned(),index)).collect::<std::collections::BTreeMap<_,_>>();
         let mut previous=previous.into_iter().map(Some).collect::<Vec<_>>();let mut changed=usize::from(removed>0);
@@ -212,7 +243,7 @@ impl Node {
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     fn row_key(&self)->&str {
         if !self.semantics.id.is_empty(){return &self.semantics.id;}
-        self.kit.as_deref().filter(|kit|kit.name=="DockPanel").and_then(|kit|kit.prop("value")).unwrap_or("")
+        self.kit.as_deref().and_then(|kit|match kit.name.as_str(){"DockPanel"=>kit.prop("value"),"TreeItem"=>kit.prop("id"),_=>None}).unwrap_or("")
     }
     /// A structural fingerprint: kind, static classes/text and component props, ignoring live values.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
@@ -228,7 +259,8 @@ impl Node {
                     TextPart::Signal(_)=>out.push_str("bound-text;"),
                 }}}
             }
-            if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={}",if kit.is_bound(key){"<live>"}else{value});}}}
+            // TreeItem props describe snapshot data, including bound identities/decorations.
+            if let Some(kit)=&node.kit{let _=write!(out,"|{}",kit.name);for (key,value) in &kit.props{if !kit.is_local(key){let _=write!(out,";{key}={}",if kit.is_bound(key)&&kit.name!="TreeItem"{"<live>"}else{value});}}}
             out.push('[');for child in &node.children{write(child,out);}out.push(']');
         }
         let mut out=String::new();write(self,&mut out);out

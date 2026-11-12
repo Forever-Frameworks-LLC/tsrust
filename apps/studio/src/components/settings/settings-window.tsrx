@@ -94,6 +94,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const iconsSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
+  const treeSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
   const searchSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
@@ -248,6 +251,19 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                     const config = draft.get();
                     config.fileIcons = enabled;
                     commitSettings(iconsSession, config);
+                  }}
+                />
+              </SettingItem>
+            </SettingsGroup>
+            <SettingsGroup title={message("Explorer")}>
+              <SettingItem title={message("Show ignored files")} description={message("Keep ignored files visible in the tree. Hidden configuration files remain visible unless explicitly ignored.")}>
+                <Switch
+                  checked={draft.get().treeIncludeIgnored}
+                  accessibilityLabel={message("Show ignored files")}
+                  onChange={(enabled) => {
+                    const config = draft.get();
+                    config.treeIncludeIgnored = enabled;
+                    commitSettings(treeSession, config);
                   }}
                 />
               </SettingItem>

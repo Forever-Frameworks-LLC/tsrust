@@ -1,0 +1,134 @@
+import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
+import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
+import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
+import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
+import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { invokeEditorTool } from '../src/services/editor-tools.tsr';
+
+test('explorer groups a single snapshot by parent without losing prefix siblings or hidden config files', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-tree-'));
+
+  try {
+    unwrap(mkdirAll(root + '/a/nested'));
+    unwrap(writeTextFile(root + '/a/child.txt', ''));
+    unwrap(writeTextFile(root + '/a/nested/é-🦀.md', ''));
+    unwrap(writeTextFile(root + '/a.tsr', ''));
+    unwrap(writeTextFile(root + '/.config.json', '{}'));
+    unwrap(writeTextFile(root + '/ignored.md', ''));
+    unwrap(writeTextFile(root + '/.ignore', 'ignored.md\n'));
+    const tree = unwrap(scanTree(root, false));
+    strictEqual(tree.root, unwrap(canonicalize(root)));
+    const top = tree.directories[0].children;
+    strictEqual(top[0].name, 'a');
+    strictEqual(top.some((entry) => entry.name === 'a.tsr'), true);
+    strictEqual(top.some((entry) => entry.name === '.config.json'), true);
+    strictEqual(top.some((entry) => entry.name === 'ignored.md'), false);
+    const nested = tree.directories[tree.directories.findIndex((directory) => directory.path === tree.root + '/a')].children;
+    strictEqual(nested[0].name, 'nested');
+    strictEqual(nested[1].name, 'child.txt');
+    const included = unwrap(scanTree(root, true));
+    strictEqual(included.directories[0].children.some((entry) => entry.name === 'ignored.md'), true);
+    unwrap(writeTextFile(root + '/added.txt', ''));
+    strictEqual(unwrap(scanTree(root, false)).directories[0].children.some((entry) => entry.name === 'added.txt'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('registered explorer refresh targets the granted root and changes only its refresh revision', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-refresh-'));
+
+  try {
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const allowedRoot = clone(workspace.get().root);
+    const revision = signal(0);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const context: SearchActionContext = {
+      workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot, explorerRevision: revision
+    };
+    const payload = JSON.stringify({
+      root: clone(context.workspace.get().root)
+    });
+    strictEqual(unwrap(invokeEditorTool(context, 'refresh_explorer', payload)).includes('"queued":true'), true);
+    strictEqual(context.explorerRevision?.get() ?? -1, 1);
+    strictEqual(context.workspace.get().active, '');
+    strictEqual(context.workspace.get().files.length, 0);
+    context.allowRead = false;
+
+    match (invokeEditorTool(context, 'refresh_explorer', payload)) {
+      Ok(_) => {
+        throw 'ungranted explorer refresh succeeded';
+      },
+      Err(_) => {}
+    }
+
+    context.allowRead = true;
+
+    match (invokeEditorTool(context, 'refresh_explorer', JSON.stringify({
+      root: root + '/other', allowRead: true
+    }))) {
+      Ok(_) => {
+        throw 'refresh escaped its root';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(context.explorerRevision?.get() ?? -1, 1);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('explorer refreshes only on requests or visibility changes and retains its last successful snapshot on errors', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-tree-poll-'));
+
+  try {
+    unwrap(writeTextFile(root + '/before.txt', ''));
+    unwrap(writeTextFile(root + '/ignored.md', ''));
+    unwrap(writeTextFile(root + '/.ignore', 'ignored.md\n'));
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const canonicalRoot = clone(workspace.get().root);
+    const settings = signal(defaultConfig());
+    const revision = signal(0);
+    const appliedRevision = signal(-1);
+    const appliedPolicy = signal(true);
+    const snapshot = signal<DirectoryTree>({
+      root: clone(canonicalRoot), directories: []
+    });
+    const error = signal('');
+    const session: TreeSession = {
+      root: canonicalRoot, workspace, settings, revision, appliedRevision, appliedPolicy, snapshot, error
+    };
+    refreshTree(session);
+    strictEqual(session.error.get(), '');
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'ignored.md'), true);
+    unwrap(writeTextFile(root + '/after.txt', ''));
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'after.txt'), false);
+    unwrap(requestTreeRefresh(session.revision, clone(session.root), clone(session.root), clone(session.workspace.get().root), true));
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'after.txt'), true);
+    const config = session.settings.get();
+    config.treeIncludeIgnored = false;
+    session.settings.set(config);
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'ignored.md'), false);
+    unwrap(removeDirAll(root));
+    const before = session.snapshot.get().directories[0].children.length;
+    unwrap(requestTreeRefresh(session.revision, clone(session.root), clone(session.root), clone(session.workspace.get().root), true));
+    pollTree(session);
+    strictEqual(session.error.get().length > 0, true);
+    strictEqual(session.snapshot.get().directories[0].children.length, before);
+  } finally {
+    removeDirAll(root);
+  }
+});
