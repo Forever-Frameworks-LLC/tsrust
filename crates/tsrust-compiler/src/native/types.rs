@@ -56,6 +56,7 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
+static RUST_RESOURCE:Declaration=Declaration{id:NativeTypeId::RustResource{module:0,declaration:0},module:"@rust",name:"RustResource",type_parameters:&[],..THREAD};
 static LOGGER:Declaration=Declaration{id:NativeTypeId::Logger,module:"std:log-runtime",name:"Logger",type_parameters:&[],thread_transfer:true,..THREAD};
 static LOGGER_OPTIONS:Declaration=Declaration{id:NativeTypeId::LoggerOptions,module:"std:log-runtime",name:"LoggerOptions",fields:&[
  Field{name:"sink",signature:Signature::Union(&[Signature::StringLiteral("stdout"),Signature::StringLiteral("stderr"),Signature::StringLiteral("file")]),optional:false},
@@ -589,6 +590,7 @@ static ITERATOR_CURSOR:Declaration=Declaration{id:NativeTypeId::IteratorCursor,m
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::RustResource {..} => &RUST_RESOURCE,
         NativeTypeId::Logger=>&LOGGER,NativeTypeId::LoggerOptions=>&LOGGER_OPTIONS,NativeTypeId::LogError=>&LOG_ERROR,
         NativeTypeId::Locale=>&LOCALE_LOCALE,NativeTypeId::Collator=>&LOCALE_COLLATOR,NativeTypeId::Segmenter=>&LOCALE_SEGMENTER,NativeTypeId::NumberFormat=>&LOCALE_NUMBERFORMAT,NativeTypeId::SegmentRange=>&LOCALE_SEGMENTRANGE,NativeTypeId::LocaleError=>&LOCALE_LOCALEERROR,NativeTypeId::CollatorOptions=>&LOCALE_COLLATOROPTIONS,NativeTypeId::NumberFormatOptions=>&LOCALE_NUMBERFORMATOPTIONS,
         NativeTypeId::Regex=>&REGEX,NativeTypeId::RegexMatch=>&REGEX_MATCH,NativeTypeId::RegexCaptures=>&REGEX_CAPTURES,NativeTypeId::RegexError=>&REGEX_ERROR,NativeTypeId::RegexOptions=>&REGEX_OPTIONS,

@@ -2596,6 +2596,12 @@ impl Emitter<'_> {
             }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if let Some(crate::native_signatures::NativeTypeId::RustResource{module,declaration})=record.native_type {
+                let graph=self.source_graph.expect("linked Rust resource");
+                let rust=graph.modules[&graph.order[module]].rust.as_ref().expect("Rust resource module");
+                let name=rust.types.keys().nth(declaration).expect("Rust resource declaration");
+                let _=writeln!(output,"type Record{index}=tsr_rust{module}::{name};");continue;
+            }
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::Locale)=>Some("Locale"),Some(crate::native_signatures::NativeTypeId::Collator)=>Some("Collator"),Some(crate::native_signatures::NativeTypeId::Segmenter)=>Some("Segmenter"),Some(crate::native_signatures::NativeTypeId::NumberFormat)=>Some("NumberFormat"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_locale::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::TcpListener)=>Some("Listener"),Some(crate::native_signatures::NativeTypeId::TcpStream)=>Some("Stream"),Some(crate::native_signatures::NativeTypeId::UdpSocket)=>Some("Udp"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net_transport::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IpAddress)=>Some("IpAddress"),Some(crate::native_signatures::NativeTypeId::SocketAddress)=>Some("SocketAddress"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net::{name};");continue;}

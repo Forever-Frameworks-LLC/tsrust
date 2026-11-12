@@ -864,6 +864,13 @@ change unrelated v0.2.0 acceptance or authorize a release.
   the audit. This proves a bounded buffered inference primitive only. Streaming,
   cooperative cancellation measurement, repeated unload/reload, compiler/test
   tools, proposed diffs, held-out quality and full8GiB acceptance remain required.
+- Checked Rust bindings now support explicit opaque native owners with private state,
+  moves, shared/exclusive input borrows and native Drop. Five ordinary runtime
+  cases cover scope/move/carriers/worker failure/cancellation; compiler guards and
+  LSP hover/definitions/private completions pass focused acceptance. This removes
+  the plain-data prerequisite for a resident AI model; the actual model session,
+  streaming and editor agent remain unimplemented. Returned borrows and resource
+  transfer between threads remain unsupported. Exact evidence is in the handoff.
 - Native cache checksum/extraction whole-artifact buffers replaced by bounded
   streaming with protocol/validation regressions passing. Performance measurement
   remains separate; retained dev still uses its existing supervisor image.

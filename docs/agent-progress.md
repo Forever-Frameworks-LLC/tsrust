@@ -8,6 +8,65 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current AI prerequisite — accepted focused section, based on43029d77. Previous goal turn was
+progress (diagnostic reuse, shared popup border, focused checks/native MAT/checkpoint).
+Existing inference admission is buffered and reloads its model each call. Audit
+correctly identified plain-data-only checked Rust bindings as blocker to resident
+model owners; no model/server/AI UI acceptance is claimed by this section.
+
+Implemented generic explicit #[tsrust_resource] public concrete Rust structs:
+compiler-linked NativeTypeId::RustResource{module,declaration}, standard opaque
+capability/clone/thread guards, hidden private fields, owned moves and &/&mut input
+borrows. Native emission aliases the actual Rust owner, preserving Drop without
+integer handles, global resource registries, serialization or reconstruction.
+Marker stripped after validation, source spans retained. Unmarked Drop data stays
+rejected; source-discovery generation still requires explicit resource adapters.
+Resource declarations use a private diverging seed that is never executed: an
+initial throw seed incorrectly polluted native constructor effects and produced
+three Rust type mismatches. Replaced it with while(true){}; actual public runtime
+suite then passed4/4. Final public suite with array ownership passed5/5,0.45ms
+total tests at /tmp/studio-rust-resource-final-runtime.log. Exact native Drop
+counts hold for scope exit, moves, Option/Result/Vec, worker failure/cancellation.
+
+Final checker guard case1/1 passed0.05s,2.57s setup:
+/tmp/studio-rust-resource-final-guards.log. It first accepts real borrow/move calls,
+then rejects construction, cloning, private fields, moved use, cross-module casts,
+overlapping borrows, cross-thread transfer, JSON/reflection and record erasure.
+Earlier same case passed0.02/0.03s before added guards; do not count as extra cases.
+Stable native fixture under tests/fixtures/rust-resources uses one std:testing suite,
+with test-only atomic lifetime observations, including worker failure/cancellation.
+New compiler host target rust_resources registered in tools/host-tests.py (22total
+host targets); public suite is auto-discovered once tracked. New LSP rust_bridge
+case checks borrow help, source definitions and private-field completions; passed1/1
+in0.04s,21.08s setup (compiler rust_bridge filter selects0cases). Source files changed: project/rust{,_data,_generation}.rs,project/link.rs,
+native/signatures.rs/types.rs,emit/mod.rs/rust_bridge.rs, tests/docs/registration.
+
+Current CLI for proof is repository target/debug/tsrust (cargo integration builds
+its executable); installed pair unchanged from accepted43029d77. Do not run cargo
+build separately between each focused test: dev-dependency feature differences
+caused redundant compiler rebuilds earlier. Current production source frozen since
+seed fix. Resource malformed-marker/concrete/source-discovery and legacy Drop
+checks passed2/2,0.01s tests,3m40s build/setup (--lib authored_drop_owner_tests).
+Whole formatter passed1source/0doc changes,0fingerprints; repeat0changes proves
+idempotence. Formatter validates token preservation. Formatted native suite5/5,
+0.41ms total tests,1633.8ms setup(check82.7,emit14.4,backend128.3,native/link1337.3).
+Next: local checkpoint; then resident model.
+No broad matrix or unchanged model executable replay.
+
+Studio stays on app6790/supervisor6369/PTY5193, same bundle/log as section below.
+Current tsrust-lsp7437 is live (older6824 was replaced; inspect current state rather
+than relying on historical PID). No Studio restart/source change in this section.
+Owner draft/tabs remain protected; latest journal draft SHA256 still
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Supervisor6369/app6790/LSP7437 independently live; no duplicate preview observed.
+No CUA needed for generic binding source. Installed pair remains43029d77; new
+resource APIs are not used by the live Studio yet. Use repository CLI for next
+model proof; refresh consumers when actual users start depending on new APIs.
+After boundary acceptance, adapt pinned llama0.1.161 native wrapper to a real opaque
+model owner and separate generation primitive, with Tsrust worker/scheduling code.
+Preserve old bounded inference proof and resource ceilings; do not claim persistent
+streaming, useful model quality or full8GiB acceptance until independently proved.
+
 Current diagnostic/signature section — accepted local section, based on44514254. Previous goal
 turn was progress: body stops implemented, focused check passed, live native MAT,
 LSP-only restart and local checkpoint. Tree initially observed in Files, retain

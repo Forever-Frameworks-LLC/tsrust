@@ -158,6 +158,36 @@ crates are supported; git/path dependencies and custom registries are not. Bindi
 modules in one program must declare the same dependency configuration and lock.
 Share the same manifest when several source modules use one binding API.
 
+### Opaque native resource owners
+
+Mark a concrete public Rust struct with `#[tsrust_resource]` when it owns native
+state that cannot be projected as data. Its fields stay private to the adapter,
+and its Rust destructor runs when the Tsrust owner leaves scope or a worker fails.
+The marker is checked and removed before native compilation.
+
+```rust
+#[tsrust_resource]
+pub struct Session { text: String }
+
+pub fn create(text: String) -> Session { Session { text } }
+pub fn read(session: &Session) -> String { session.text.clone() }
+pub fn append(session: &mut Session, text: &str) { session.text.push_str(text); }
+```
+
+Tsrust imports `Session`, `create`, `read` and `append` normally. `read` borrows
+`ReadOnly<Session>`; `append` borrows `Mutable<Session>`. An owned `Session`
+parameter transfers the same owner. Resource results can be carried in ordinary
+Option/Result outputs without serializing or reconstructing their private state.
+
+Resources cannot be constructed with record literals, independently cloned,
+inspected through fields, or cast to another adapter's resource type. They are
+not eligible for transfer across thread boundaries: create and use the owner
+inside its worker. Returned Rust references and generic resource declarations
+remain unsupported. Source-discovery generation requires an explicit resource
+adapter rather than guessing how to copy a foreign owner.
+
+### Plain owned data
+
 Public structs require concrete named public fields. Enums support unit, tuple and
 named variants. `State::Ready(T)` maps to `StateReady { value: T }`; multiple tuple
 payloads use item0, item1, etc. Named fields keep their names. The enum maps to a

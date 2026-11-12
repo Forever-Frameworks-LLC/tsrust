@@ -4,6 +4,8 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    /// Compiler-linked Rust module and declaration identity, never a runtime handle.
+    RustResource { module: usize, declaration: usize },
     Logger,LoggerOptions,LogError,
     ProcessChild,ProcessCommandOptions,ProcessExitStatus,ProcessOutput,ProcessError,
     IpAddress,SocketAddress,NetError,TcpListener,TcpStream,UdpSocket,Datagram,

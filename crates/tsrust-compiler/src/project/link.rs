@@ -449,6 +449,10 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             type_parameters: BTreeSet::new(),
         };
         for record in &mut program.records {
+            if let Some(rust)=&graph.modules[id].rust
+                && let Some((declaration,_))=rust.types.iter().enumerate().find(|(_, (name,data))|**name==record.name.text && matches!(data,crate::project::rust::Data::Resource)) {
+                record.native_type=Some(crate::native_signatures::NativeTypeId::RustResource{module,declaration});
+            }
             if id.0=="std:iterator" && record.name.text=="Iterator"{record.native_type=Some(crate::native_signatures::NativeTypeId::OwnedIterator);}
             visitor.type_parameters = record.type_parameters.iter().map(|parameter| parameter.text.clone()).collect();
             for parameter in &mut record.type_parameters { visitor.span(&mut parameter.span); }

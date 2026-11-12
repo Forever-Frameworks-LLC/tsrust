@@ -22,7 +22,7 @@ the compiler from source, so the tests never exercised the binary that ships.
 | Build | `tsrust` + `tsrust-lsp` release build per OS, packaged with `tools/package-toolchain.mjs`, smoke-tested, uploaded as an artifact | CI `build` matrix (4 OS), fail fast |
 | Compiler library | `cargo test --lib` (unit, rejection and diagnostic-code checks, in process) | one Linux job, in parallel with the build |
 | Runtime suites | `tsrust test` on `tests/suites/<family>/` with the built artifact; one native program per family | CI `suites` matrix, after `build`, per OS |
-| Host tests | 21 named Rust targets (`tools/host-tests.py`) for CLI, signals, processes, offline export, packages, Rust adapters and LSP stdio | CI `host` matrix, after `build` |
+| Host tests | 22 named Rust targets (`tools/host-tests.py`) for CLI, signals, processes, offline export, packages, Rust adapters and LSP stdio | CI `host` matrix, after `build` |
 | Docs, editor depth, frozen UI | catalog example execution, completion/agreement matrices, docs and UI programs | path-filtered jobs, or local only |
 
 Diagnostics in CI assert codes and spans, not message prose. Editor typing-speed

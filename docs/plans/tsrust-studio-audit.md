@@ -21,7 +21,7 @@ full implementation on November 10. The required inventory in
 | Git | Existing process transport, Kit Diff | Git status/staging/history/conflicts and transactional proposals remain unimplemented. Never run agent tools in the live user tree. |
 | Preview | Kit Markdown and native window lifecycle | HTML web-view admission needs origin/focus/disposal tests; Markdown widget alone is not a browser. |
 | Credentials | Existing environment APIs | Native credential storage/provider adapters not yet audited/admitted. Never persist secrets as ordinary settings. |
-| Native AI | Checked `.bindings.json` packages | Concrete data/slices/Result supported; private-field/Drop resource owners and returned borrows rejected by `project/rust_data.rs` and `project/rust.rs`. Do not fake persistent models with public integer handles/global registries. A checked resource boundary is a prerequisite for reusable streaming model sessions. |
+| Native AI | Checked `.bindings.json` packages | Concrete data/slices/Result and explicitly marked opaque Rust owners supported. Resource guards, native Drop/moves/borrows/carriers and LSP metadata have focused acceptance; returned borrows and cross-thread resource transfer remain rejected. Resident model integration and streaming remain open; no public integer handles/global model registry. |
 | Training | Compiler-owned `stdlib/ai/admission.rs` via experimental checked bindings | CPU scalar autodiff/SGD boundary and Tsrust iteration witness prepared. This cannot prove adapters, checkpoint files, optimizer-state resume, tokenizer agreement, quantized training or model quality. |
 
 ## Bounded local research decision
