@@ -8,6 +8,48 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current discovery section — 2026-11-12, based on local checkpointdb488fe0.
+Pinned ignore0.4.28 (new lock entries ignore/globset/bstr), replaced the shared
+serial source-discovery worklist with WalkBuilder, and preserved existing compiler/
+dev source extensions, explicit-file selection, canonical sorted/deduplicated output,
+no-follow symlinks and .git/node_modules/target directory pruning. Compiler/dev and
+LSP diagnostics deliberately include ignored inputs. The cancellable Rust API also
+supports workspace-local .ignore/.gitignore filtering for forthcoming editor callers;
+ancestor/global ignore files and implicit hidden-file exclusion are disabled.
+Cancellation returns None, never an empty diagnostic publication. LSP discovery
+now invokes the same interruption callback as analysis. No parallel analysis pool.
+
+Focused traversal witness including extended .ignore coverage passed1/1 in0.01s;
+Cargo reported7m23s setup/build including shared-target lock wait. Initial witness
+before that extension also passed1/1 in0.01s after3m26s setup/build. Workspace-scan
+acceptance passed8/8 in0.01s; Cargo reported3m41s setup/build. This is9distinct
+accepted cases, not10. No full compiler/LSP matrix or timed performance benchmark.
+Whole-project formatting passed with0files/0snippets/0fingerprints changed;
+git diff --check passed. Logs /tmp/studio-ignore-{discovery-final,workspace}-test.log
+are disposable. Source checkpoint contains this entry; no push/release. Existing interruption witness now uses
+observed loaded source state rather than brittle callback counts, and separately
+checks pre-discovery cancellation. The unopened-error fixture now has a .gitignore
+that excludes *.tsr, proving diagnostic coverage is preserved. Do not claim the
+entire shared discovery slice accepted: checked Tsrust APIs, Studio tree/search
+settings and real guarded AI route, watcher refresh and comparable performance
+measurements remain open. Installed LSP now includes this source-discovery change, atomically copied from
+target/debug with independent SHA256 match:
+9bacd0196b4aa2df2c43b4dcdd4becbcdf7e81211dae9ad19840e313bd860b47.
+Native status-menu restart visibly went starting -> connected. Current service96369
+replaces89244; app82069 and supervisor81803/PTY55205 remain unchanged. No native
+app rebuild or CLI replacement was required; nine tabs, active project-check and
+one owner draft remain. CUA completed: Loaded cancellable discovery in Studio.
+Recovery file inspection independently confirms only project-check's four spaces.
+
+Live bounded vmmap observation ofLSP89244 later in this turn: footprint221.0MiB,
+peak576.1MiB. Earlier process check confirmed supervisor81803/app82069/LSP89244
+live (LSP age~29min); later snapshot happened during a compiler build, not a matched
+quiet-machine comparison. No new heap attribution or leak qualification claimed.
+Owner's sole project-check four-space draft remains protected. Next executable action:
+expose the shared walker/matcher through checked Tsrust filesystem bindings, then
+route Studio tree/search settings and guarded AI discovery through it. Keep explicit
+compiler inputs, diagnostic coverage, cancellation and workspace grants intact.
+
 Latest accepted memory section — 2026-11-12, source checkpoint contains this
 entry, based on2d7300c4. Navigation/nominal/foreign definitions now retain typed Location
 values; reference maps use Location keys and lazy iteration instead of per-location

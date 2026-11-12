@@ -16,6 +16,7 @@ impl Drop for Directory {fn drop(&mut self){std::fs::remove_dir_all(&self.0).unw
 #[test]
 fn scan_excludes_generated_files_deduplicates_roots_and_includes_unsaved_new_files() {
     let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join(".gitignore"),"*.tsr\n").unwrap();
     std::fs::write(dir.0.join("bad.tsr"),"function bad(){const value:int=\"bad\";}").unwrap();
     for excluded in ["target","node_modules",".git"] {
         std::fs::create_dir(dir.0.join(excluded)).unwrap();
@@ -133,8 +134,9 @@ fn interrupted_scan_resumes_completed_entries_and_keeps_stale_input_guards() {
     let dir=Directory::new();let projects=ProjectSession::default();let mut scanner=Scanner::default();let mut cache=Cache::default();let now=Instant::now();
     for name in ["a","b","c"] {std::fs::write(dir.0.join(format!("{name}.tsr")),format!("function {name}(){{const value:int=\"bad\";}}")).unwrap();}
     scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
-    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let mut visits=0;
-    assert!(cache.check_cancellable(&job,||{visits+=1;visits>1}).unwrap().is_none());assert_eq!(cache.checked_entries(),1);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    assert!(cache.check_cancellable(&job,||true).unwrap().is_none());assert_eq!(cache.checked_entries(),0,"discovery itself is cancellable");
+    assert!(cache.check_cancellable(&job,||!job.input.sources().is_empty()).unwrap().is_none());assert_eq!(cache.checked_entries(),1);
     scanner.dirty(now,Duration::ZERO);let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);assert_eq!(cache.checked_entries(),2);
     assert_eq!(result.as_ref().unwrap().values().map(Vec::len).sum::<usize>(),3);
     std::fs::write(dir.0.join("a.tsr"),"function a(){}").unwrap();assert!(scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap().is_empty());

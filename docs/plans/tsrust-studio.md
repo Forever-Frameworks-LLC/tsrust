@@ -220,9 +220,17 @@ and peak memory for existing and replacement walkers on the same tree, separatin
 cold/warm observations; no speedup claim without comparable measurements. Preserve
 full diagnostic coverage and reuse existing project/LSP acceptance witnesses.
 
-Status: next discovery section after the accepted native intelligence/compact-location
-memory slice; dependency not added, traversal not replaced,
-performance not measured. References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
+Implementation in progress, November12: ignore0.4.28 is pinned and the shared
+compiler/dev/LSP source walker now uses its serial traversal. Compiler and dev
+selection retain their existing exclusions and include ignored files. A compiler
+Rust API provides explicit workspace-local ignore filtering, hidden-file visibility,
+explicit-file preservation and cancellation; the LSP scanner now cancels during
+traversal rather than waiting for all directories. Focused traversal witness1/1 and
+workspace-scan cases8/8 passed; native Studio reconnected to the installed new LSP
+without replacing its window or losing its owner's draft. This proves the source
+walker/cancellation portion, not the full section. Studio tree/search settings, checked Tsrust/guarded AI integration, watcher policy
+and comparative traversal measurements remain required before this section passes.
+References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
 
 ## Current native terminal integration — 2026-11-11
 

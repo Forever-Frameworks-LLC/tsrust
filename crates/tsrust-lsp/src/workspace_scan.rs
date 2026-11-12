@@ -89,7 +89,8 @@ impl Cache {
     pub fn check_cancellable(&mut self, job:&Job,mut interrupted:impl FnMut()->bool)->Result<Option<Buckets>,String> {
     self.checked=0;
     let roots=job.roots.iter().filter(|root|root.exists()).cloned().collect::<Vec<_>>();
-    let mut files=tsrust_compiler::source_discovery::discover(&roots)?.into_iter()
+    let Some(discovered)=tsrust_compiler::source_discovery::discover_cancellable(&roots,true,&mut interrupted)? else {return Ok(None);};
+    let mut files=discovered.into_iter()
         .map(|path|SourceId(path.to_string_lossy().into_owned())).collect::<BTreeSet<_>>();
     for id in job.input.open_sources() {
         let path=PathBuf::from(&id.0);

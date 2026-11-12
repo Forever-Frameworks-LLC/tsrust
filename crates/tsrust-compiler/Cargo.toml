@@ -35,6 +35,7 @@ subtle = { version = "=2.6.1" }
 syn = { version = "=3.0.6", features = ["full", "visit"] }
 proc-macro2 = { version = "=1.0.107", features = ["span-locations"] }
 rayon = "=1.11.0"
+ignore = "=0.4.28"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 pulldown-cmark = { version = "=0.13.6", default-features = false }
