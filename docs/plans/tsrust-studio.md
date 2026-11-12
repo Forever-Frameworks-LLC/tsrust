@@ -191,6 +191,15 @@ regression with the full checker deliberately blocked, and stale publication
 protection still passes. This does not qualify all end-to-end typing latency. Overload cycling, context forwarding and external-server
 integration remain open; do not claim the full intelligence section complete.
 
+Typing responsiveness, November12: subsequent document edits now use the existing
+background Syntect parser for small files too. Initial colors stay immediate;
+shifted ranges display until the latest parse completes. Focused acceptance covers
+superseded work, Unicode ranges and fold results. Native typing, automatic completion,
+Tab and undo passed. A bounded follow-up sample places whole-document parsing on
+background queues rather than beneath main-thread insertion. This qualifies work
+placement, not a measured end-to-end latency target or the complete8GiB workload.
+Return to extension-ready external language-service registration before Git/debugger.
+
 ## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
 
 Integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/) for shared

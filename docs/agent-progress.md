@@ -9,13 +9,93 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+Background syntax highlighting — accepted section, 2026-11-12, based onb4406b01.
+This checkpoint contains the source and acceptance below. Previous goal turn made
+progress through source, focused test and CLI build; this turn completed native
+verification, a bounded after-profile and cleanup. Full Studio goal remains active.
+
+Changed only patched gpui-component/src/highlighter/syntect_backend.rs plus docs.
+A single initialized flag preserves immediate initial small-document colors; empty
+setup does not consume that initialization. Subsequent edits of EVERY document
+size reuse the existing shifted-highlight/background parser path. No new dependency,
+provider or public API. Existing150ms debounce/task replacement, eventual token
+mapping and fold callback remain intact. Initial loading and Markdown code-block
+highlighting are not claimed to be background-only.
+
+Focused GPUI witness edits_defer_small_document_parses_and_discard_superseded_text
+passed1/1 in0.14s, setup1m45s. It covers initial colors, deferred small-file edits,
+cancellation of a pending superseded parse, Unicode byte-boundary ranges, exact
+eventual token runs and folds. First preflight caught Rope lacking is_empty (use
+len()!=0) and TestAppContext borrowing while its VisualTestContext remained live
+(use window.run_until_parked/executor). Narrow repairs; no source workaround, new
+API, full matrix or repeat of prior accepted suites. Log
+/tmp/studio-highlight-background-test.log. Direct component command used --features
+syntect, working-tree gpui-base override, shared target/nonincremental/jobs1/debug0/
+opt1/wildcard package opt2. Self-generated two-line component Cargo.lock rewrite
+restored; both patched lockfiles have no diff. All check/build jobs completed.
+
+CLI build2m27s, atomic installed hash independently matches built executable:
+70d1d40ae1dbd25bd4e0a84d4b4212f2ed0e30ea7e4e87e25b960193f50b432d.
+LSP remains acceptedca5312e2, installed hash
+7cb435cd0b859baa8f6e0abd2b6fc11258282814c9afc5632e6f8271eb543924.
+Current ONLY preview: supervisor42993 / PTY86030, app43189 / LSP43190, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42993-1794475793745060000-0/Tsrust Studio.app.
+Log /tmp/studio-highlight-dev.log. Old37203/PTY95503 stopped AFTER replacement
+visibly ready; process check confirmed no old preview/server. Keep this dev session
+running; legitimate future restarts remain authorized. Native build317590ms:
+check79799.4,emit3482.1,runtime211491.4,native/link233527.5ms; cache misses.
+
+Native MAT passed initial colors, editing the existing146line recovery.tsr buffer,
+automatic imported readTextFile completion, Tab acceptance and eventual colors.
+Three Undo actions removed the entire UNSAVED append; nothing saved. Original
+active project-check, nine tabs and sole owner draft independently verified:
+SHA256 bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completed: Verified background highlighting while typing. Current binding
+highlightApp targets the full current bundle. After compaction rewriteDocumentation;
+after any future process replacement reset/getApp exact new bundle.
+
+Bounded15s follow-up captured the same reversible paste/character/Tab/Undo workflow
+as /tmp/studio-app-typing-sample.txt. The before sample showed SyntectInputHighlighter
+update -> parse beneath UI insertion on the main thread. Follow-up
+/tmp/studio-app-typing-after-sample.txt shows parse on concurrent default-qos queues;
+main-thread samples include result delivery/styles, not whole-document parsing in
+the edit path. This is evidence of work location, NOT a latency/speedup benchmark.
+Footprint321.3MiB/peak321.4MiB is an unmatched process-age/workload observation;
+no memory-regression, long-running leak or full8GiB editor+AI qualification claim.
+LSP at3m30s was still doing background analysis,99.7%CPU/RSS253824KiB; RSS is not
+footprint. UI tree/list reconstruction/cloning remains a profiling lead; do not
+invent a reactive framework or lower LSP polling intervals blindly.
+
+Pruned3obsolete program/runtime entries/build payload under namespace/entry locks,
+retaining3latest program/runtime artifacts and2latest complete build payloads.
+Cache4.5GiB after cleanup. Shared Cargo target and model qualification artifacts
+untouched. Empty build lock/identity shells retained. Whole-project formatter passed
+0files/0snippets/0fingerprints changed; git diff --check passed before checkpoint.
+No push/release or new benchmark/SQLite records.
+Next return to native language-service feature work: bounded audit of external
+server registration/configuration and available local servers, then a coherent
+extension-ready language-service slice. Preserve the existing Tsrust request guards,
+fast declaration path, draft safety and AI action parity. Git/debugger UI stays later.
+Bounded local inventory: /Users/seancotter/go/bin/gopls runs and reportsv0.23.0;
+/usr/local/go/bin/go is on PATH. rust-analyzer resolves only to the Rustup proxy;
+--version reports Unknown binary in current1.99.1 toolchain (component list omits
+it). typescript-language-server and VS Code JSON/HTML server commands are not on
+PATH. No installs performed. Current services/workers.tsr derives exactly one
+sibling tsrust-lsp executable, and controller restricts documents to .tsr/.tsrx;
+there is no external-server registration in settings. Next concrete slice should
+reuse generic framed session transport, add a lazy/configured registry and scoped
+per-server lifecycle/diagnostics, then exercise available gopls as an actual foreign
+server without replacing the owner's Studio package workspace. Do not merely add
+an unused language/path table or claim unavailable server acceptance.
+
 Signature help / completion responsiveness — accepted section, 2026-11-12.
 LSP responsiveness source checkpointca5312e2 is accepted; this Studio UI checkpoint
 contains the signature/Tab slice and this evidence. Full Studio goal remains active.
 Previous goal turn made progress: live LSP/Tab fixes and native MAT. Current turn
 finished focused harness checks, sampled actual typing, and pruned native caches.
 
-Current ONLY preview: supervisor37203 / PTY95503, app38977 / LSP38978. Bundle
+Accepted signature section preview (now superseded): supervisor37203 / PTY95503,
+app38977 / LSP38978. Bundle
 /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-37203-1794473624608740000-0/Tsrust Studio.app.
 Log /tmp/studio-completion-dev.log. Old19390/PTY56431 was stopped after replacement
 visibly ready; process check confirmed no duplicate preview/server. Keep this dev

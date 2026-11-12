@@ -33,8 +33,8 @@ static JSON_SCOPE: LazyLock<Scope> = LazyLock::new(|| Scope::new("source.json").
 static JSON_KEY_SCOPE: LazyLock<Scope> =
     LazyLock::new(|| Scope::new("meta.mapping.key.json").unwrap());
 
-/// Documents up to this size are reparsed on the keystroke; larger ones keep
-/// their shifted highlights until a background parse catches up.
+/// Small initial documents get colors immediately. Edits keep shifted highlights
+/// until the existing background parser catches up, regardless of document size.
 const SYNC_PARSE_MAX_BYTES: usize = 64 * 1024;
 const PARSE_DEBOUNCE: Duration = Duration::from_millis(150);
 
@@ -356,6 +356,7 @@ struct SyntectInputHighlighter {
     highlights: Rc<RefCell<Highlights>>,
     folds: Rc<RefCell<Vec<FoldRange>>>,
     parse_task: Option<Task<()>>,
+    initialized: bool,
 }
 
 impl SyntectInputHighlighter {
@@ -366,6 +367,7 @@ impl SyntectInputHighlighter {
             highlights: Rc::default(),
             folds: Rc::default(),
             parse_task: None,
+            initialized: false,
         }
     }
 }
@@ -383,13 +385,14 @@ impl InputHighlighter for SyntectInputHighlighter {
         window: &mut gpui::Window,
         cx: &mut gpui::Context<EditorState>,
     ) {
+        let initial = !self.initialized;
+        // Empty setup must not consume the first real document's initial colors.
+        self.initialized |= text.len() != 0;
         if let Some(edit) = edit {
             shift(&mut self.highlights.borrow_mut(), &edit);
         }
 
-        if text.len() <= SYNC_PARSE_MAX_BYTES {
-            // Syntect has no incremental mode: a small document is reparsed
-            // whole, which is quicker than any bookkeeping to avoid it.
+        if initial && text.len() <= SYNC_PARSE_MAX_BYTES {
             self.parse_task = None;
             let text = text.to_string();
             *self.highlights.borrow_mut() = parse(self.syntax, &text);
@@ -490,6 +493,83 @@ fn brace_fold_ranges(text: &str) -> Vec<FoldRange> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[gpui::test]
+    fn edits_defer_small_document_parses_and_discard_superseded_text(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use gpui::AppContext as _;
+        use gpui_base::input::Point;
+        cx.update(crate::init);
+        let window = cx.add_empty_window();
+        let syntax = find_syntax("typescript").unwrap();
+        let mut highlighter = SyntectInputHighlighter::new("typescript", syntax);
+        let original = "const before = 1;\nfunction one() {\n}";
+        let obsolete = "const stale = false;\nfunction old() {\n}";
+        let latest = "const emoji = \"🦀\";\nfunction current() {\n}";
+        let editor = window.update(|window, cx| {
+            let editor = cx.new(|cx| EditorState::new(window, cx));
+            editor.update(cx, |_, cx| {
+                highlighter.update(None, &Rope::new(), true, window, cx)
+            });
+            editor.update(cx, |_, cx| {
+                highlighter.update(None, &Rope::from_str(original), true, window, cx)
+            });
+            editor
+        });
+        assert!(highlighter.parse_task.is_none());
+        assert_eq!(*highlighter.highlights.borrow(), parse(syntax, original));
+        let replace = |old: &str, new: &str| InputEdit {
+            start_byte: 0,
+            old_end_byte: old.len(),
+            new_end_byte: new.len(),
+            start_position: Point::new(0, 0),
+            old_end_position: Point::new(2, 1),
+            new_end_position: Point::new(2, 1),
+        };
+        window.update(|window, cx| {
+            editor.update(cx, |_, cx| {
+                highlighter.update(
+                    Some(replace(original, obsolete)),
+                    &Rope::from_str(obsolete),
+                    true,
+                    window,
+                    cx,
+                );
+            })
+        });
+        assert!(highlighter.parse_task.is_some());
+        assert!(
+            highlighter.highlights.borrow().is_empty(),
+            "edits must not synchronously reparse even a small file"
+        );
+        window.run_until_parked();
+        window.executor().advance_clock(Duration::from_millis(75));
+        window.update(|window, cx| {
+            editor.update(cx, |_, cx| {
+                highlighter.update(
+                    Some(replace(obsolete, latest)),
+                    &Rope::from_str(latest),
+                    true,
+                    window,
+                    cx,
+                );
+            })
+        });
+        window.run_until_parked();
+        window.executor().advance_clock(PARSE_DEBOUNCE);
+        window.run_until_parked();
+        assert_eq!(*highlighter.highlights.borrow(), parse(syntax, latest));
+        assert_eq!(*highlighter.folds.borrow(), brace_fold_ranges(latest));
+        assert!(
+            highlighter
+                .highlights
+                .borrow()
+                .iter()
+                .all(|(range, _)| latest.is_char_boundary(range.start)
+                    && latest.is_char_boundary(range.end))
+        );
+    }
 
     fn names(language: &str, code: &str) -> Vec<(&'static str, String)> {
         let syntax = find_syntax(language).expect("a known language");
