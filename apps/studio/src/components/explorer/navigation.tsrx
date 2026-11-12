@@ -79,6 +79,7 @@ export function FileSearch(root: string, workspace: Signal<Workspace>, font: Sig
       return (
         <View className="flex-col size-full p-3 gap-2">
           <Input
+            id="file-search"
             className={inputClass.get()}
             value={query.get()}
             placeholder={message("Find a file by name or path")}

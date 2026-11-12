@@ -8,6 +8,27 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Quick filename focus — native UI verified, November 12, based on ac7415b7.
+Cmd+P and the empty-editor Open a file control address the existing filename input
+by stable ID, then use existing deferred controlInput focus/selectAll commands.
+Repeated Cmd+P replaces the previous query. Native MAT on app 55965 typed
+main.tsrx immediately after Cmd+P, then recovery.tsr immediately after a second
+Cmd+P; both filtered the right paths without a click or editing the active file.
+Restored empty search and Files view. 12 tabs/main.tsrx active, panel closed and
+only original project-check draft retained. Shared std:ui control API unchanged;
+legacy filename-search view has no dedicated registered AI presentation action
+or keyboard result confirmation yet, so those parity/navigation gaps remain open.
+Dev supervisor 52077/PTY6050 now runs app55965 from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-52077-1794503415372351000-0/Tsrust Studio.app.
+Log remains /tmp/studio-auto-import-repaired-dev.log. Build140493ms:
+check107069.4ms,emit4237.2ms,runtime hit,native/link28395.0ms.
+A one-second sample confirmed compiler checking, not a blocked watcher. No speed
+claim or extra full regressions. Whole formatter0/0/0. CUA phase completed:
+Verified immediate filename search focus. Binding quickOpenApp targets55965;
+all older bindings are stale. Next: filename-search keyboard confirmation and
+shared registered presentation, then accessible keyboard hover/scalar visual MAT.
+Keep goal active, preview running and the protected draft intact.
+
 Completion imports and native intelligence — accepted section, November 12, based on `649d0907`.
 Current supervisor is 52077 / PTY 6050; app 52646 is running from
 /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-52077-1794502962017429000-0/Tsrust Studio.app.

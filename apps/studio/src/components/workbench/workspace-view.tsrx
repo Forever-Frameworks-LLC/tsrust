@@ -1,6 +1,7 @@
 import { Sender } from 'std:futures';
 import {
   View,
+  controlInput,
   Button,
   Dock,
   Node,
@@ -69,6 +70,8 @@ export function EditorWorkspace(
           onPress={() => {
             mode.set('filesearch');
             sidebar.set(true);
+            controlInput('file-search', 'focus');
+            controlInput('file-search', 'selectAll');
           }}
         >
           {t("Open a file")}

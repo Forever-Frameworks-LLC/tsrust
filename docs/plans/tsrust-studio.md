@@ -210,6 +210,12 @@ preview remains. Complex snippet forms, broader language-server workflows and
 long-run memory qualification remain open; exact scope and identities are in the
 continuation handoff.
 
+Filename-search focus, November 12 (based on ac7415b7): stable input identity and
+existing deferred focus/selectAll now make Cmd+P immediately typeable and select
+the prior query when repeated. Native MAT verified both paths without active-file
+edits; owner tabs/draft restored. Dedicated AI filename-view presentation and
+keyboard result confirmation remain open. No new native API or dependency.
+
 Native scalar coloring, November12 (07ed204c): Tsrust fences retain native identity
 while using Kit's existing grammar, with theme type captures for native primitives.
 Six focused cases passed; installed renderer is running. Post-replacement hover

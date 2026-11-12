@@ -1,5 +1,6 @@
 import {
   View,
+  controlInput,
   Button,
   Shortcut,
   AppMenuBar,
@@ -100,6 +101,8 @@ export function Chrome(
         onTrigger={() => {
           mode.set('filesearch');
           sidebar.set(true);
+          controlInput('file-search', 'focus');
+          controlInput('file-search', 'selectAll');
         }}
       />
       <Shortcut
