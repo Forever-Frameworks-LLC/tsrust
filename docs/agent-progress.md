@@ -8,6 +8,69 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current streaming/worker section — accepted focused section, based on3a0aa298.
+Previous goal turn made progress: opaque resource1dc742c6 and resident model3a0aa298
+checkpoints; source tree clean before current work. Full product goal remains active.
+
+QwenStream moves the model into one native evaluation thread and returns it at
+finish: no unsafe/self-referential context, model registry/Arc sharing, native
+agent scheduler or extra app runtime. A one-prefix queue bounds output; producers
+check cancellation under backpressure, readers wait up to10ms. Drop disconnects,
+cancels and joins, unloading abandoned models. Finish returns the model even on
+cancellation/request errors; thread spawn/panic failure drops it. UTF-8 prefixes
+omit incomplete code points. Prefix detokenization is explicitly quadratic at the
+existing32-token admission limit; replace it before increasing budgets.
+
+Actual Tsrust coordinator experiments/studio-ai/model-worker.tsr uses existing
+std:threads blocking channels: idle receive sleeps, request IDs identify updates,
+stale control targets reject, targeted cancel/invalid requests preserve the model,
+shutdown and caller-owned cancellation/join settle the worker. No tools/files/
+workspace selection/permission grants run here. Move narrowed Option payload via
+a local before its fields; use mutually exclusive branches after moving text.
+
+Ordinary std:testing suite compiles together,5distinct affected cases all passed
+assertions across preserved/resumed runs. First full attempt compiled4825.3ms
+and passed invalid limits0.14ms plus changed one-shot arithmetic1802.45ms. Supervisor
+stopped group on531.06MiB global swapgrowth at7.257s total/~2.077s observed execution,
+owned-treeRSS657195008B. This stopped batch is NOT a whole resource pass. Six normal-
+pressure samples over25s showed swap5712.12→5696.12MiB with no growth. Only unrun
+filters resumed, under same180s execution/1200s setup/256MiB swap/critical-pressure
+stops; no repeated already passed cases.
+
+Streaming-only1/1:2547.66ms case/2548.49ms tests,4200.7ms setup; supervisor exit0,
+stopnull,total7.211s,swapdelta2.82MiB,sampled owned-treeRSS1277165568B. Exact5/7,
+prefix/final equality, targeted cancellation/model recovery, invalid request,
+abandoned-stream join and backend reload hold. Actual Tsrust worker1/1:2158.56ms
+case/2159.53ms tests,488.0ms setup; exit0,stopnull,total3.081s,swapdelta0MiB,
+owned-treeRSS1329283072B. IDs, stale cancel rejection, targeted cancellation,
+invalid request, next exact7, normal shutdown and blocked-idle cancellation hold.
+Remaining changed resident-only1/1:1684.54ms case/1685.47ms tests; exit0,stopnull,
+total3.083s,swapdelta0MiB,owned-treeRSS770981888B. These are bounded observations,
+not speed comparisons, complete GPU allocations or full8GiB qualification.
+
+Initial whole formatter changed2files; final0source/doc/fingerprints proves
+idempotence and no source changes after proof. git diff --check passes. Native
+adapter SHA2564498c55401f87d780c9ea28a6babbfdbe1f4cfc7d2144411488d6c9810756c49;
+worker698f4c51d22a5afda77febf00478ee1e63fc93bca819cd13193c1c1f6dc354db;
+suitef5969a0382f9c4f86099244d4bce6ee4bf1a3747db3b2252bb28620107de3e3d.
+Supervisor script/tmp/studio-stream-proof.py with disposable log/result siblings.
+Model/tokenizer/dependency pins unchanged. No SDK install/Studio restart here;
+installed pair still43029d77, repository CLI has new resource support.
+
+Next: checkpoint then actual editor host via shared typed commands, explicit
+start/stop, model-artifact configuration, streamed chat and owned lifecycle. Keep
+experimental32-token/2048-input admission limits clearly distinct from final coding
+quality/context requirements. Unicode-specific model output, active UI-close /
+blocked-decode cancellation timing, actual agent/tools and full8GiB acceptance stay
+open. Current Studio6369/app6790/LSP7437 and original draft must remain protected;
+latest independent inspection confirms same live processes and no proof process.
+Owner now has10tabs, active src/services/image-actions.tsr, zoom-1, original
+project-check draft SHA256bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Preserve this newer owner state, not historical12tabs/main. Obsolete source/runtime
+cache variants pruned under nonblocking namespace locks,3recent entries each kept.
+Revalidate live processes/journal before UI integration. Refresh SDK pair before
+loading app code that depends on checked resources; supervisor restart authorized.
+
 Current resident-model section — focused native acceptance, based on1dc742c6. Generic resource
 boundary checkpoint accepted. qwen_load returns an opaque QwenModel; exclusive
 qwen_generate_loaded borrow reuses model/tokenizer/backend but creates a fresh

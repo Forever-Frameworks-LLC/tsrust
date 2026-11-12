@@ -2,6 +2,8 @@
 use llama_cpp_2::{context::params::LlamaContextParams, llama_backend::LlamaBackend,
     llama_batch::LlamaBatch, model::{LlamaModel, params::LlamaModelParams}, sampling::LlamaSampler};
 use std::num::NonZeroU32;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}, mpsc::{self, Receiver, RecvTimeoutError, TrySendError}};
+use std::thread::JoinHandle;
 use tokenizers::Tokenizer;
 
 /// Buffered exploratory generation, not a persistent streaming session.
@@ -61,7 +63,7 @@ pub fn qwen_load(task: &TaskContext, model_path: &str, tokenizer_path: &str) -> 
 pub fn qwen_generate_loaded(task: &TaskContext, model: &mut QwenModel, prompt: &str, max_tokens: i64) -> Result<Generation, String> {
     check_cancel(task)?;
     let expected = request_tokens(&model.tokenizer, prompt, max_tokens)?;
-    generate(task, model, prompt, max_tokens, &expected)
+    generate(&||check_cancel(task), model, prompt, max_tokens, &expected, None)
 }
 
 /// Load, generate and unload one model. Prefer qwen_load/qwen_generate_loaded for repeated requests.
@@ -74,11 +76,11 @@ pub fn qwen_generate(task: &TaskContext, model_path: &str, tokenizer_path: &str,
     let tokenizer = Tokenizer::from_file(tokenizer_path).map_err(|error| error.to_string())?;
     let expected = request_tokens(&tokenizer, prompt, max_tokens)?;
     let mut model = load_model(task, model_path, tokenizer)?;
-    generate(task, &mut model, prompt, max_tokens, &expected)
+    generate(&||check_cancel(task), &mut model, prompt, max_tokens, &expected, None)
 }
 
-fn generate(task: &TaskContext, owner: &mut QwenModel, prompt: &str, max_tokens: i64, expected: &[u32]) -> Result<Generation, String> {
-    check_cancel(task)?;
+fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, prompt: &str, max_tokens: i64, expected: &[u32], mut publish: Option<&mut dyn FnMut(&[u8]) -> Result<(), String>>) -> Result<Generation, String> {
+    check()?;
     let model = &owner.model;
     let backend = &owner.backend;
     let vocab = model.vocab();
@@ -93,23 +95,126 @@ fn generate(task: &TaskContext, owner: &mut QwenModel, prompt: &str, max_tokens:
     for (position, token) in tokens.iter().enumerate() {
         batch.add(*token, position as i32, &[0], position + 1 == tokens.len()).map_err(|error| error.to_string())?;
     }
-    check_cancel(task)?;
+    check()?;
     context.decode(&mut batch).map_err(|error| error.to_string())?;
     let mut sampler = LlamaSampler::greedy();
     let mut generated = Vec::new();
     let mut stop = "length";
     for _ in 0..max_tokens {
-        check_cancel(task)?;
+        check()?;
         let token = sampler.sample(&context, batch.n_tokens() - 1);
         sampler.accept(token);
         if vocab.is_eog(token) { stop = "eos"; break; }
         generated.push(token);
+        if let Some(publish) = publish.as_mut() {
+            // shortcut: bounded 32-token admission detokenizes prefixes; use an incremental decoder before raising this limit.
+            publish(&vocab.detokenize(&generated, false, true))?;
+        }
         if generated.len() == max_tokens as usize { break; }
         batch.clear();
         batch.add(token, (tokens.len() + generated.len() - 1) as i32, &[0], true).map_err(|error| error.to_string())?;
         context.decode(&mut batch).map_err(|error| error.to_string())?;
     }
-    check_cancel(task)?;
+    check()?;
     let text = String::from_utf8(vocab.detokenize(&generated, false, true)).map_err(|error| error.to_string())?;
     Ok(Generation { text, input_tokens: tokens.len() as i64, output_tokens: generated.len() as i64, stop: stop.into() })
+}
+
+/// In-flight native token evaluation. Owns the model until qwen_stream_finish returns it.
+/// Dropping the stream cancels, disconnects output and joins the engine thread.
+#[tsrust_resource]
+pub struct QwenStream {
+    output: Option<Receiver<String>>,
+    cancel: Arc<AtomicBool>,
+    worker: Option<JoinHandle<(QwenModel, Result<Generation, String>)>>,
+}
+
+impl Drop for QwenStream {
+    fn drop(&mut self) {
+        self.cancel.store(true, Ordering::Release);
+        self.output.take();
+        if let Some(worker) = self.worker.take() { let _ = worker.join(); }
+    }
+}
+
+/// One output read. Changed text is the complete UTF-8 prefix, not a fragment.
+/// finished means output is drained; call qwen_stream_finish to recover the model/result.
+pub struct StreamPoll {
+    pub changed: bool,
+    pub finished: bool,
+    pub text: String,
+}
+
+/// The model is returned even on cancellation or an invalid generation request.
+/// generation is Some only on success; error is empty only on success.
+pub struct StreamFinished {
+    pub model: QwenModel,
+    pub generation: Option<Generation>,
+    pub error: String,
+}
+
+/// Move a model into one native evaluation thread. Only one UTF-8 prefix is queued.
+/// Tsrust owns request scheduling, polling and cancellation; no tools or agent code run here.
+/// Invalid requests report through finish and return the same model. Thread-spawn
+/// failure drops the model and returns an error. No context/owner lifetime is extended unsafely.
+pub fn qwen_stream_start(model: QwenModel, prompt: String, max_tokens: i64) -> Result<QwenStream, String> {
+    let (sender, output) = mpsc::sync_channel(1);
+    let cancel = Arc::new(AtomicBool::new(false));
+    let cancelled = Arc::clone(&cancel);
+    let worker = std::thread::Builder::new().name("tsrust-model-eval".into()).spawn(move || {
+        let mut model = model;
+        let check = || if cancelled.load(Ordering::Acquire) { Err("cancelled".into()) } else { Ok(()) };
+        let result = (|| {
+            check()?;
+            let expected = request_tokens(&model.tokenizer, &prompt, max_tokens)?;
+            let mut publish = |bytes: &[u8]| -> Result<(), String> {
+                let mut text = match std::str::from_utf8(bytes) {
+                    Ok(text) => text.to_owned(),
+                    Err(error) if error.error_len().is_none() => return Ok(()),
+                    Err(_) => return Err("generated text is not valid UTF-8".into()),
+                };
+                loop {
+                    check()?;
+                    match sender.try_send(text) {
+                        Ok(()) => return Ok(()),
+                        Err(TrySendError::Full(value)) => { text = value; std::thread::sleep(std::time::Duration::from_millis(1)); },
+                        Err(TrySendError::Disconnected(_)) => return Err("cancelled".into()),
+                    }
+                }
+            };
+            generate(&check, &mut model, &prompt, max_tokens, &expected, Some(&mut publish))
+        })();
+        (model, result)
+    }).map_err(|error|error.to_string())?;
+    Ok(QwenStream { output: Some(output), cancel, worker: Some(worker) })
+}
+
+/// Wait up to 10 milliseconds on a background worker. Empty differs from finished.
+/// The bounded wait yields CPU and lets Tsrust check requests/cancellation between reads.
+pub fn qwen_stream_next(stream: &mut QwenStream) -> StreamPoll {
+    match stream.output.as_ref().expect("live stream").recv_timeout(std::time::Duration::from_millis(10)) {
+        Ok(text) => StreamPoll { changed: true, finished: false, text },
+        Err(RecvTimeoutError::Timeout) => StreamPoll { changed: false, finished: false, text: String::new() },
+        Err(RecvTimeoutError::Disconnected) => StreamPoll { changed: false, finished: true, text: String::new() },
+    }
+}
+
+/// Request cancellation, including while the single-prefix queue is full.
+/// Native decode is cooperative: cancellation is observed between model operations.
+pub fn qwen_stream_cancel(stream: &QwenStream) {
+    stream.cancel.store(true, Ordering::Release);
+}
+
+/// Join and recover the model plus success/error. Call after poll.finished for normal completion.
+/// Finishing an unfinished stream cancels it. A native panic returns an error and drops the model.
+pub fn qwen_stream_finish(mut stream: QwenStream) -> Result<StreamFinished, String> {
+    if !stream.worker.as_ref().expect("live worker").is_finished() {
+        stream.cancel.store(true, Ordering::Release);
+    }
+    stream.output.take();
+    let (model, result) = stream.worker.take().expect("live worker").join().map_err(|_|"native generation worker panicked".to_owned())?;
+    Ok(match result {
+        Ok(generation) => StreamFinished { model, generation: Some(generation), error: String::new() },
+        Err(error) => StreamFinished { model, generation: None, error },
+    })
 }

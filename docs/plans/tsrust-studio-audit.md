@@ -1391,3 +1391,30 @@ ignore0.4.28/globset0.4.21/bstr1.13.1 to the old binding lock. All previously
 resolved package entries were unchanged. Earlier failed locked setup executed no
 inference. Streaming, retained KV/chat sessions, actual editor host/agent tools,
 cancellation timing, held-out coding quality and full-machine acceptance remain open.
+
+## Streaming primitive and Tsrust worker — November 12
+
+`QwenStream` moves the native model into one token-evaluation thread and returns it
+when joined. Its output queue holds one complete UTF-8 prefix; producer waits
+check cancellation, readers wait at most10ms, and scope exit disconnects/cancels/
+joins the worker. No unsafe lifetime extension, model registry or native agent
+scheduler is used. Tsrust's `model-worker.tsr` owns blocking request channels,
+logical request identities, targeted cancellation, recovery and shutdown.
+
+All five affected cases have passed assertions through one compiled ordinary
+std:testing suite. The initial batch stopped on531.06MiB global swapgrowth after
+the two buffered controls passed. Only unrun filters resumed after six normal-
+pressure samples with decreasing swap. Streaming passed1/1 (2548.49ms tests,
+4200.7ms setup), observed swapdelta2.82MiB, sampled owned-treeRSS1277165568B.
+Actual Tsrust worker passed1/1 (2159.53ms tests,488.0ms setup), swapdelta0MiB,
+owned-treeRSS1329283072B. Remaining changed resident case passed1/1 (1685.47ms
+tests), swapdelta0MiB. These observations do not make the stopped batch a resource
+pass, establish complete GPU allocations, speed comparisons or full8GiB acceptance.
+
+Witnesses include exact5/7, prefix/final equality, queue cancellation and model
+recovery, invalid request recovery, abandoned-stream join/backend reload, stale
+control rejection, request IDs, normal worker shutdown and blocked-idle worker
+cancellation. Unicode-specific generation, blocked native decode cancellation
+latency, actual editor-host lifecycle, tools, held-out coding quality and the
+remaining application requirements stay open. Prefix decoding is explicitly
+bounded/quadratic at32tokens and must become incremental before raising the limit.

@@ -53,6 +53,25 @@ Model loading itself is not interruptible. Output is still buffered, with the
 same exploratory request limits. The resident test checks two distinct answers
 and an invalid request between them; its current acceptance is in the handoff.
 
+Streaming moves the model into `qwen_stream_start`; `qwen_stream_next` returns a
+complete UTF-8 prefix or waits up to 10 ms on a background worker. One prefix is
+queued, so a slow consumer cannot accumulate output. `qwen_stream_cancel` also
+interrupts queue backpressure. `qwen_stream_finish` joins and returns the same
+model plus success/error; dropping a stream cancels/joins and unloads it. Native
+decode and model loading remain cooperative cancellation boundaries.
+
+`model-worker.tsr` supplies the actual Tsrust request loop over bounded blocking
+channels. It sleeps while idle, serializes generation, tags updates by request
+identity, rejects stale controls, supports targeted cancellation and shuts down
+through its caller-owned worker. It performs no tools or workspace writes.
+Native thread code only evaluates tokens. Ordinary native cases verify prefix/
+final equality, cancellation and invalid-request recovery, abandonment/backend
+reload, real worker routing/shutdown and cancellation while blocked idle.
+Prefix detokenization is quadratic within the existing 32-token admission limit;
+an incremental decoder is required before increasing that limit. This remains
+an experimental engine/worker boundary, not the editor's agent or a coding-quality
+qualification.
+
 Model identities, initial memory observations, stop conditions, source references
 and honest current acceptance status live in
 [the audit](../../docs/plans/tsrust-studio-audit.md). In particular, arithmetic

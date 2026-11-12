@@ -1,0 +1,110 @@
+import { Channel, Sender, TaskContext, cancellationRequested } from 'std:threads';
+
+import {
+  QwenModel,
+  qwen_load,
+  qwen_stream_start,
+  qwen_stream_next,
+  qwen_stream_cancel,
+  qwen_stream_finish
+} from '@engine';
+
+import { chatPrompt } from './prompts.tsr';
+
+export type ModelRequest = {
+  kind: string;
+  id: string;
+  prompt: string;
+  maxTokens: int;
+};
+
+export type ModelUpdate = {
+  kind: string;
+  id: string;
+  text: string;
+  error: string;
+};
+
+type RequestOutcome = {
+  model: QwenModel;
+  stopping: boolean;
+};
+
+function publish(updates: ReadOnly<Sender<ModelUpdate>>, kind: string, id: string, text: string = '', error: string = ''): void {
+  unwrap(updates.send({
+    kind, id, text, error
+  }));
+}
+
+function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
+  const stream = unwrap(qwen_stream_start(model, chatPrompt(request.prompt), request.maxTokens));
+  let stopping = false;
+
+  while (true) {
+    if (cancellationRequested()) qwen_stream_cancel(stream);
+
+    match (requests.tryReceive()) {
+      Ok(control) => {
+        if (control.kind === 'shutdown') {
+          stopping = true;
+          qwen_stream_cancel(stream);
+        } else if (control.kind === 'cancel' && control.id === request.id) {
+          qwen_stream_cancel(stream);
+        } else {
+          publish(updates, 'rejected', control.id, '', 'Another request is running or the cancellation target is stale.');
+        }
+      },
+      Err(error) => {
+        if (error.code !== 'empty') {
+          stopping = true;
+          qwen_stream_cancel(stream);
+        }
+      }
+    }
+
+    const update = qwen_stream_next(stream);
+
+    if (update.changed) publish(updates, 'prefix', clone(request.id), update.text);
+
+    if (update.finished) break;
+  }
+
+  const finished = unwrap(qwen_stream_finish(stream));
+
+  const result = finished.generation;
+
+  if (result.kind === 'some') {
+    const some = result;
+    const generation = some.value;
+    publish(updates, 'complete', request.id, generation.text);
+  } else {
+    publish(updates, finished.error === 'cancelled' ? 'cancelled' : 'error', request.id, '', finished.error);
+  }
+
+  return {
+    model: finished.model, stopping
+  };
+}
+
+// The caller owns this worker, its bounded channels and its cancellation/join lifecycle.
+// No tools, filesystem mutations, workspace selection or model-granted permissions run here.
+export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, tokenizerPath: string, requests: Channel<ModelRequest>, updates: Sender<ModelUpdate>): void {
+  let model = unwrap(qwen_load(task, modelPath, tokenizerPath));
+  publish(updates, 'ready', '');
+
+  while (!cancellationRequested()) {
+    const request = unwrap(requests.receive());
+
+    if (request.kind === 'shutdown') return;
+
+    if (request.kind !== 'generate' || request.id === '') {
+      publish(updates, 'rejected', request.id, '', 'Expected a generation request with a nonempty identity.');
+      continue;
+    }
+
+    const outcome = generate(model, request, requests, updates);
+    model = outcome.model;
+
+    if (outcome.stopping) return;
+  }
+}
