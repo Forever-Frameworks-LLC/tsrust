@@ -175,21 +175,43 @@ as the user; a tool catalog without executable integration is not acceptance.
 Reuse the existing native completion/hover/diff components where appropriate.
 Git, debugger and general extension UI follow these priorities.
 
+Native signature-help progress, November12: Studio now routes guarded signature
+reads through the same synchronization/cancellation path as hover/completion, with
+an executable language_signature_help AI action. Native MAT passed automatic call/
+comma triggers, manual invocation, cursor-based active argument changes, matching
+text size, syntax highlighting and Escape. Temporary edits were undone; the owner
+draft and nine tabs were preserved. Compact documentation, first-line popup placement and the macOS
+parameter-hint shortcut are now in the running renderer; first-line placement and
+shortcut passed native MAT. Tab now accepts selected completion items, also verified
+in Studio. Focused service acceptance is9distinct cases plus1docs-normalization host
+case and1signature-format component case. Base signature/cancellation, menu Tab insertion and indentation-fallback witnesses
+all pass; exact results are in agent-progress. LSP checkpointca5312e2 separates foreground declaration
+reads from full compiler checks; imported completion/hover/signatures passed a
+regression with the full checker deliberately blocked, and stale publication
+protection still passes. This does not qualify all end-to-end typing latency. Overload cycling, context forwarding and external-server
+integration remain open; do not claim the full intelligence section complete.
+
 ## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
 
-Evaluate and integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/)
-for shared filesystem traversal and matching. The crate supports Git-style ignore
-rules, file-type/glob filters and parallel walking. Current compiler discovery
-(`crates/tsrust-compiler/src/project/source_discovery.rs`) uses a serial read_dir
-worklist with only .git/node_modules/target directory exclusions; the LSP workspace
-scanner reuses it. Studio's tree and content-search paths must share the resulting
-policy through checked Tsrust APIs, rather than introduce handwritten Rust app logic.
+Integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/) for shared
+filesystem traversal and matching. The crate supports Git-style ignore rules,
+file-type/glob filters and parallel walking. The original compiler discovery
+(`crates/tsrust-compiler/src/project/source_discovery.rs`) used a serial read_dir
+worklist with only .git/node_modules/target directory exclusions. The compiler,
+LSP, Studio tree and content search now share the ignore-backed traversal through
+checked Tsrust APIs; remaining acceptance is recorded below.
 
 Priority: finish the active native hover/completion/snippet presentation and
 profile-driven LSP memory/cancellation section first. Then implement this discovery
 slice before expanding workspace indexing/search or starting Git/debugger/extension
 management. It improves traversal and exclusion behavior; it is not a replacement
 for fixing repeated type analysis or retained completion catalogs.
+
+Current execution order: native signature help and interactive LSP latency/memory
+work first; finish watcher refresh, cancellable background Studio discovery and
+matched traversal measurements before expanding beyond the Studio package.
+Parallel walking remains conditional on profiling evidence. Git, debugger and
+extension management stay behind language intelligence and the integrated AI agent.
 
 Required implementation scope:
 

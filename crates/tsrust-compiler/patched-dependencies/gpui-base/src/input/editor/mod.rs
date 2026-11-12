@@ -113,6 +113,7 @@ impl InputModeKind for EditorMode {
         cx: &mut gpui::Context<InputBaseState<Self>>,
     ) {
         state.handle_completion_trigger(range, text, window, cx);
+        state.handle_signature_help_trigger(text, window, cx);
     }
 
     fn clear_inline_completion(
@@ -127,6 +128,10 @@ impl InputModeKind for EditorMode {
         cx: &mut gpui::Context<InputBaseState<Self>>,
     ) {
         state.hide_context_menu(cx);
+    }
+
+    fn dismiss_parameter_hints(state: &mut InputBaseState<Self>) {
+        state.dismiss_signature_help();
     }
 
     fn is_context_menu_open(state: &InputBaseState<Self>, cx: &App) -> bool {
@@ -199,6 +204,7 @@ impl InputModeKind for EditorMode {
             .key_context("Input mode=editor")
             .on_action(window.listener_for(entity, InputBaseState::on_action_toggle_code_actions))
             .on_action(window.listener_for(entity, InputBaseState::on_action_show_completions))
+            .on_action(window.listener_for(entity, InputBaseState::on_action_show_signature_help))
             .on_action(window.listener_for(entity, InputBaseState::on_action_go_to_definition))
     }
 }

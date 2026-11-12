@@ -122,6 +122,7 @@ actions!(
         Escape,
         ToggleCodeActions,
         ShowCompletions,
+        ShowSignatureHelp,
         Search,
         Replace,
         GoToDefinition,
@@ -2479,6 +2480,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         }
 
         self.snippet = None;
+        M::dismiss_parameter_hints(self);
 
         // Escape also dismisses a request whose popup has not arrived yet.
         M::hide_context_menu(self, cx);
@@ -4017,6 +4019,7 @@ impl<M: InputModeKind> InputBaseState<M> {
     }
 
     fn on_blur(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        M::dismiss_parameter_hints(self);
         self.revealed_viewport = None;
         if M::is_context_menu_open(self, cx) {
             return;
@@ -5492,6 +5495,72 @@ mod tests {
             assert!(search.autocorrect);
             assert!(search.suggestions);
         });
+    }
+
+    #[gpui::test]
+    fn tab_routes_completion_before_indentation(cx: &mut TestAppContext) {
+        let view = InputView::<EditorMode>::new(cx);
+        let mut cx = VisualTestContext::from_window(view.window_handle.into(), cx);
+        let accepted = Rc::new(Cell::new(0));
+        cx.update(|window, cx| view.input.update(cx, |state, cx| {
+            state.set_value("rea", window, cx);
+            state.set_selected_range(3..3, cx);
+            state.present_completion_items(0, "rea", vec![lsp_types::CompletionItem {label: "readTextFile".into(), ..Default::default()}], cx);
+            let count = accepted.clone();
+            state.set_overlay_action_handler(move |_, action, _, _| {
+                if action.partial_eq(&IndentInline) { count.set(count.get()+1); true } else { false }
+            });
+            state.indent_inline(&IndentInline, window, cx);
+            assert_eq!(accepted.get(), 1);
+            assert_eq!(state.value(), "rea");
+            assert!(!state.completion_menu_state().open);
+            state.indent_inline(&IndentInline, window, cx);
+            assert_eq!(accepted.get(), 1);
+            assert_eq!(state.value(), "rea  ");
+        }));
+    }
+
+    #[gpui::test]
+    fn signature_help_tracks_cursor_and_cancels_pending_reads(cx: &mut TestAppContext) {
+        use crate::input::SignatureHelpProvider;
+        use std::cell::RefCell;
+        struct Provider(Rc<RefCell<Vec<usize>>>);
+        impl SignatureHelpProvider for Provider {
+            fn signature_help(&self, _: &Rope, offset: usize, _: &mut Window, _: &mut App) -> gpui::Task<anyhow::Result<Option<lsp_types::SignatureHelp>>> {
+                self.0.borrow_mut().push(offset);
+                gpui::Task::ready(Ok(Some(lsp_types::SignatureHelp {
+                    signatures: vec![lsp_types::SignatureInformation { label: "call(value: int)".into(), documentation: None, parameters: None, active_parameter: None }],
+                    active_signature: Some(0), active_parameter: Some(0)
+                })))
+            }
+        }
+        let view = InputView::<EditorMode>::new(cx);
+        let mut cx = VisualTestContext::from_window(view.window_handle.into(), cx);
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        cx.update(|window, cx| view.input.update(cx, |state, cx| {
+            state.focus(window, cx);
+            state.set_value("call(1)", window, cx);
+            state.set_selected_range(5..5, cx);
+            state.extras.lsp.signature_help_provider = Some(Rc::new(Provider(calls.clone())));
+            state.on_action_show_signature_help(&ShowSignatureHelp, window, cx);
+        }));
+        cx.run_until_parked();
+        cx.executor().advance_clock(std::time::Duration::from_millis(100));
+        cx.run_until_parked();
+        assert_eq!(*calls.borrow(), vec![5]);
+        cx.update(|window, cx| view.input.update(cx, |state, cx| {
+            assert!(state.signature_help().is_some());
+            state.refresh_signature_help(window, cx);
+            state.set_selected_range(6..6, cx);
+            state.refresh_signature_help(window, cx);
+            assert!(state.signature_help().is_none());
+            state.escape(&Escape, window, cx);
+            assert!(!state.signature_help_active());
+        }));
+        cx.run_until_parked();
+        cx.executor().advance_clock(std::time::Duration::from_millis(100));
+        cx.run_until_parked();
+        assert_eq!(*calls.borrow(), vec![5], "Escape cancels the queued cursor refresh");
     }
 
     #[gpui::test]

@@ -170,6 +170,23 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     const completions = await nextUpdate(updates, 'query').timeout(10000);
     strictEqual(completions.query?.id, 'completion-one');
     strictEqual((completions.result ?? '').includes('log'), true);
+    document.revision = 3;
+    document.version = 3;
+    document.text = 'function greet(name: string, count: int): void {}\nfunction main() { greet("🦀", 2); }\n';
+    await requests.send({
+      kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'signature-one', method: 'textDocument/signatureHelp', document: languageIdentity(document), position: {
+          line: 1, character: 30
+        }
+      }
+    });
+    const signature = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(signature.query?.id, 'signature-one');
+    strictEqual((signature.result ?? '').includes('count: int'), true);
+    strictEqual((signature.result ?? '').includes('"activeParameter":1'), true);
     await requests.send({
       kind: 'restart', generation: ready.generation
     });
@@ -370,7 +387,7 @@ test('AI language reads share the live request route without focus changes or mo
   match (invokeLanguageTool(
     context,
     sender,
-    'language_hover',
+    'language_signature_help',
     payload,
     workspace,
     state
@@ -386,13 +403,13 @@ test('AI language reads share the live request route without focus changes or mo
   strictEqual(unwrap(invokeLanguageTool(
     context,
     sender,
-    'language_hover',
+    'language_signature_help',
     payload,
     workspace,
     state
   )), '{"queued":true}');
   const request = unwrap(channel.tryReceive());
-  strictEqual(request.query?.method, 'textDocument/hover');
+  strictEqual(request.query?.method, 'textDocument/signatureHelp');
   strictEqual(unwrap(invokeLanguageTool(
     context,
     sender,

@@ -102,6 +102,7 @@ const GPUI_FILES:&[(&str,&[u8])]=&[
     ("src/input/editor/lsp/definitions.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/definitions.rs")),
     ("src/input/editor/lsp/document_colors.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/document_colors.rs")),
     ("src/input/editor/lsp/hover.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/hover.rs")),
+    ("src/input/editor/lsp/signature_help.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/signature_help.rs")),
     ("src/input/editor/lsp/mod.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/mod.rs")),
     ("src/input/editor/lsp/overlay.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/overlay.rs")),
     ("src/input/editor/lsp/semantic_tokens.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/semantic_tokens.rs")),

@@ -8,6 +8,118 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+
+Signature help / completion responsiveness — accepted section, 2026-11-12.
+LSP responsiveness source checkpointca5312e2 is accepted; this Studio UI checkpoint
+contains the signature/Tab slice and this evidence. Full Studio goal remains active.
+Previous goal turn made progress: live LSP/Tab fixes and native MAT. Current turn
+finished focused harness checks, sampled actual typing, and pruned native caches.
+
+Current ONLY preview: supervisor37203 / PTY95503, app38977 / LSP38978. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-37203-1794473624608740000-0/Tsrust Studio.app.
+Log /tmp/studio-completion-dev.log. Old19390/PTY56431 was stopped after replacement
+visibly ready; process check confirmed no duplicate preview/server. Keep this dev
+session running. Legitimate restarts remain authorized. Current installed SDK,
+independently matching built hashes:
+CLI ac7ed0f8e2671d0c721edcb76094fa5cfbf8772856d70f0e0f41bca632af01d4;
+LSP7cb435cd0b859baa8f6e0abd2b6fc11258282814c9afc5632e6f8271eb543924.
+Native build346562ms: check89707.6,emit3602.3,runtime228765.2,native/link252406.4;
+runtime/program misses. CLI build3m54s included shared-target lock wait. Earlier
+signature and polish builds are superseded; no more rebuild required for this source.
+
+Native signature help now connects Studio controller/session capabilities, guarded
+language_signature_help AI read/result/cancel action, shared native provider and
+GPUI Kit popup. Exact document/revision/cursor matching,75ms coalescing, automatic
+parenthesis/comma triggers, Escape/blur/reset cancellation, no idle re-queries.
+The popup reuses matching-font highlighted Markdown, UTF16 parameter-label ranges,
+signature active-parameter overrides, parameter docs with signature-doc fallback.
+Shared Popover uses input_bounds for vertical space, avoiding tab coverage at first
+line. macOS Cmd+Shift+Space explicitly requests hints (Ctrl+Shift+Space elsewhere).
+No contextSupport advertised; overload cycling/context forwarding remain open.
+AI action is executable/guarded but full integrated model-host parity is not accepted.
+
+Tab previously dismissed the completion list without inserting its selected item.
+Shared indent action now routes to the active menu before snippet navigation or
+indentation; completion menus accept it like Enter and the base closes the accepted
+overlay. When no menu handles it, ordinary indentation/snippet behavior remains.
+
+Owner reported VERY slow typing/Tab completion. A bounded1s sample of old LSP20118
+found protocol thread idle while tsrust-analysis spent CPU in full project checking/
+error-effect traversal. Source queued declaration refreshes behind that same pass
+and deferred reads up to3s. Checkpointca5312e2 adds ONE bounded header-only worker
+for deferred current intelligence. It uses existing request order/cancellation;
+attempt flags prevent repeat spinning, obsolete snapshots reject, and current
+indices cannot be downgraded. Existing diagnostic analysis/coverage remains intact.
+It is not a second full-analysis pool. Installed LSP restarted through native menu;
+connected verified. Its predecessor settled idle by13m; latest startup still had
+analysis CPU at4m. These ages/workloads are unmatched, not a memory regression claim.
+
+Accepted checks, no whole regression matrix:
+- Studio runtime language suite:8/9 initially passed; new real-server fixture
+  requested UTF16 position28 before its comma while expecting parameter1. Fixed
+  only position to30, affected case passed1/1, execution477.43ms (case476.45ms).
+  Preserve unchanged8cases:9distinct current accepted cases.
+- UI docs-normalization host1/1 passed0.00s; setup2m35s included target lock wait.
+- Component signature UTF16/doc-format witness1/1 passed0.00s, setup12m08s cold
+  standalone manifest/profile. Component actual Tab insertion witness1/1 passed
+ 0.01s, setup3m00s using its same prepared profile.
+- Base signature cursor/no-idle-request/pending-Escape witness1/1 passed0.01s,
+  setup1m46s after enabling required test-support feature. An initial harness
+  attempt failed2preexisting cfg-gated test_support imports, no tests executed;
+  no source workaround. Same built harness ran tab_routes_completion_before_indentation
+ 1/1 in0.10s, no rebuild, proving menu priority and indentation fallback.
+- LSP imported completion/hover/signatures while the full checker is deliberately
+  HELD blocked passed1/1 in0.01s, setup6.03s after repairing Snapshot thread-boundary
+  clone. Existing stale edit/close/reopen witness1/1 passed0.03s, setup3.32s.
+  LSP executable build4.41s. No new timed benchmark/SQLite record or speedup claim.
+
+Focused GPUI manifests use the shared root target, nonincremental/jobs1, debug0,
+dev/test opt1 with wildcard package opt2. Base requires --features test-support;
+component requires explicit --config patch.crates-io.gpui-base.path pointing to
+working-tree base. Component setup rewrites two Cargo.lock source/checksum lines;
+restored exact HEAD afterward. Both patched lockfiles have no diff. All acceptance
+jobs completed; do NOT restart them. Logs /tmp/studio-{signature,tab, lsp-priority}*
+are disposable. Base harness target/debug/deps/gpui_base-5f907694a26fe79a exists.
+
+Native MAT passed imported automatic readTextFile suggestion, real Tab insertion,
+parameter changes root -> program, outer call selection, automatic parenthesis/
+comma triggers, Escape, Cmd+Shift+Space, highlighted matching-font text and correct
+first-line placement below code. All temporary UNSAVED recovery.tsr edits were
+undone; no file saved. Original active project-check, nine tabs and sole owner draft
+independently verified after MAT/profiling, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+No temporary filesystem fixtures. Existing Find found1/1 but did not visibly scroll
+to its far-away match; retain separate navigation issue.
+CUA last completed phase: Profiled reversible typing and acceptance. Binding
+completionApp targets current bundle. After compaction rewriteDocumentation; after
+future app replacement reset/getApp exact new bundle to avoid stale-process guards.
+
+Bounded profiles: old LSP322.3MiB/peak483.7MiB; fresh app3s sample295.1/297.6MiB
+mostly idle and did NOT capture edit cost. Follow-up15s sample DID include paste,
+character, Tab and Undo, footprint296.3MiB/peak298.0MiB. It shows reactive list/tree
+construction/cloning and synchronous Syntect parsing in insertion paths; sample
+counts are not latencies and nested counts must not be summed. CUA round-trip times
+include automation/AX work; no end-to-end latency or long-running leak acceptance.
+Sources /tmp/studio-app-typing-sample.txt and /tmp/studio-signature-lsp-sample.txt.
+Source evidence: SyntectInputHighlighter.update reparses whole documents <=64KiB
+on the UI thread even for edits, although it already has shifted highlights,
+background parsing and stale-task replacement for larger documents.
+NEXT executable optimization: reuse that existing background path for edits in
+small documents as well; preserve initial highlighting, stale-response rejection,
+fold candidates and color accuracy. Add focused witness and native typing MAT.
+Then investigate repeated explorer row construction (each refresh rebuilds rows;
+per-row computed labels read whole workspace snapshots), if profiling still warrants.
+Do not add a speculative reactive framework or lower polling intervals blindly.
+UI150ms LSP polling and synchronous member-repair fallback remain possible costs.
+
+Pruned8obsolete program/runtime variants or build payloads under namespace/entry
+locks, preserving3latest program/runtime entries and2latest COMPLETE build payloads;
+removed one canceled partial build. Cache7.4GiB ->4.5GiB. Shared Cargo target/model
+qualification artifacts untouched. Empty lock/identity shells retained. Full8GiB
+editor+AI qualification, external language servers and integrated AI host remain
+open. No push/release. Final whole-project formatter passed0files/0snippets/
+0fingerprints changed; git diff --check passed before checkpoint.
+
 Explorer visibility/refresh section — 2026-11-12, based on7956ab5a; checkpoint
 contains this entry. Tree and content/file search now use the same checked walkDir
 policy. Tree snapshot construction groups one traversal by parent with a local

@@ -136,6 +136,7 @@ const GPUI_COMPONENT_FILES:&[(&str,&[u8])]=&[
     ("src/input/popovers/completion_menu.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/popovers/completion_menu.rs")),
     ("src/input/popovers/diagnostic_popover.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/popovers/diagnostic_popover.rs")),
     ("src/input/popovers/hover_popover.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/popovers/hover_popover.rs")),
+    ("src/input/popovers/signature_popover.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/popovers/signature_popover.rs")),
     ("src/input/popovers/mod.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/popovers/mod.rs")),
     ("src/input/search.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/search.rs")),
     ("src/input/state.rs",include_bytes!("../../patched-dependencies/gpui-component/src/input/state.rs")),

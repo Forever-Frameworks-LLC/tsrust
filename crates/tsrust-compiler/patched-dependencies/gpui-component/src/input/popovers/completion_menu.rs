@@ -312,7 +312,7 @@ impl CompletionMenu {
         }
 
         cx.propagate();
-        if input::Enter::is_primary(&*action) {
+        if input::Enter::is_primary(&*action) || action.partial_eq(&input::IndentInline) {
             self.on_action_enter(window, cx);
         } else if action.partial_eq(&input::Escape) {
             self.on_action_escape(window, cx);
@@ -512,6 +512,26 @@ impl Render for CompletionMenu {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[gpui::test]
+    fn tab_accepts_the_selected_completion(cx: &mut gpui::TestAppContext) {
+        cx.update(crate::init);
+        let window = cx.add_empty_window();
+        let (editor, _menu) = window.update(|window, cx| {
+            let editor = cx.new(|cx| EditorState::new(window, cx).default_value("rea"));
+            editor.update(cx, |editor, cx| editor.set_selected_range(3..3, cx));
+            let menu = CompletionMenu::new(editor.clone(), window, cx);
+            menu.update(cx, |menu, cx| {
+                menu.update_query(0, "rea");
+                menu.show(3, vec![CompletionItem { label: "readTextFile".into(), ..Default::default() }], window, cx);
+                assert!(menu.handle_action(Box::new(input::IndentInline), window, cx));
+                assert!(!menu.open);
+            });
+            (editor, menu)
+        });
+        cx.run_until_parked();
+        cx.read(|cx| assert_eq!(editor.read(cx).value(), "readTextFile"));
+    }
 
     #[test]
     fn highlight_ranges_are_ordered_and_do_not_overlap() {

@@ -615,6 +615,15 @@ pub(crate) fn language_markdown(method: &str, result: &mut serde_json::Value) {
     }
     if method=="textDocument/hover" {
         if let Some(contents)=result.get_mut("contents") { markup(contents); }
+    } else if method=="textDocument/signatureHelp" {
+        if let Some(signatures)=result.get_mut("signatures").and_then(serde_json::Value::as_array_mut) {
+            for signature in signatures {
+                if let Some(doc)=signature.get_mut("documentation") { markup(doc); }
+                if let Some(parameters)=signature.get_mut("parameters").and_then(serde_json::Value::as_array_mut) {
+                    for parameter in parameters { if let Some(doc)=parameter.get_mut("documentation") { markup(doc); } }
+                }
+            }
+        }
     } else if method=="textDocument/completion" {
         let items=if result.is_array() { result.as_array_mut() } else { result.get_mut("items").and_then(serde_json::Value::as_array_mut) };
         if let Some(items)=items { for item in items { if let Some(doc)=item.get_mut("documentation") { markup(doc); } } }
@@ -633,5 +642,11 @@ mod language_markdown_tests {
         super::language_markdown("textDocument/completion",&mut completion);
         assert_eq!(completion["items"][0]["documentation"],"```tsx\n<Text />\n```");
         assert_eq!(completion["items"][0]["data"],data);
+        let mut signatures=serde_json::json!({"signatures":[{"label":"call(🦀: int)","parameters":[{"label":[5,7],"documentation":{"kind":"markdown","value":"```tsrx\n<Text />\n```"}}],"documentation":{"kind":"markdown","value":"```tsrust\ncall(1);\n```"}}]});
+        let label=signatures["signatures"][0]["parameters"][0]["label"].clone();
+        super::language_markdown("textDocument/signatureHelp",&mut signatures);
+        assert_eq!(signatures["signatures"][0]["documentation"]["value"],"```typescript\ncall(1);\n```");
+        assert_eq!(signatures["signatures"][0]["parameters"][0]["documentation"]["value"],"```tsx\n<Text />\n```");
+        assert_eq!(signatures["signatures"][0]["parameters"][0]["label"],label);
     }
 }

@@ -153,16 +153,20 @@ impl Element for Popover {
             }
         };
 
+        const SNAP_TO_EDGE: Pixels = px(8.);
+        let viewport = self.editor.read(cx).input_bounds();
+        let top_space = (trigger_bounds.top() - viewport.top() - SNAP_TO_EDGE).max(px(0.));
+        let bottom_space = (viewport.bottom() - trigger_bounds.bottom() - SNAP_TO_EDGE).max(px(0.));
         let max_width = self
             .width_limit
             .end
             .min(window.bounds().size.width - SNAP_TO_EDGE * 2)
             .max(px(200.));
-        let max_height = (window.bounds().size.height - SNAP_TO_EDGE * 2).min(px(320.));
+        let max_height = top_space.max(bottom_space).min(px(320.));
 
         let mut popover = deferred(
             div()
-                .id("hover-popover-content")
+                .id(self.id.clone())
                 .flex_none()
                 .occlude()
                 .p_1()
@@ -179,8 +183,6 @@ impl Element for Popover {
         .into_any_element();
 
         let popover_size = popover.layout_as_root(AvailableSpace::min_size(), window, cx);
-        const SNAP_TO_EDGE: Pixels = px(8.);
-        let top_space = trigger_bounds.top() - SNAP_TO_EDGE;
         let right_space = window.bounds().size.width - trigger_bounds.left() - SNAP_TO_EDGE;
 
         let mut pos = point(

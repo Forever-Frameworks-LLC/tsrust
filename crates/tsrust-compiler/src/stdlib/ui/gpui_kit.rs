@@ -82,7 +82,7 @@ use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
-use gpui_kit::base::input::{HoverProvider, CompletionProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
+use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
 
 struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64 }
 impl EditorLanguageProvider {
@@ -112,6 +112,12 @@ impl HoverProvider for EditorLanguageProvider {
     fn hover(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::Hover>>> {
         let task=self.request("textDocument/hover",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
         cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/hover",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl SignatureHelpProvider for EditorLanguageProvider {
+    fn signature_help(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::SignatureHelp>>> {
+        let task=self.request("textDocument/signatureHelp",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/signatureHelp",&mut value);Ok(serde_json::from_value(value)?)})
     }
 }
 impl CompletionProvider for EditorLanguageProvider {
@@ -2014,7 +2020,7 @@ impl Root {
                     let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
                     if has_language {
                         let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id});
-                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider);});
+                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider);});
                     }
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
                         match event {

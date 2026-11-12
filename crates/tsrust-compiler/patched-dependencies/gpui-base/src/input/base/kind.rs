@@ -300,6 +300,9 @@ pub trait InputModeKind: sealed::Sealed + Sized + 'static {
     ) {
     }
 
+    /// Dismisses call hints on Escape or loss of focus.
+    fn dismiss_parameter_hints(_state: &mut InputBaseState<Self>) {}
+
     /// Closes any open completion or code-action menu.
     fn hide_context_menu(
         _state: &mut InputBaseState<Self>,

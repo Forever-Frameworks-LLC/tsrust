@@ -110,6 +110,8 @@ export function languageReadTools(): EditorTool[] {
   }, {
     name: 'language_completion', description: 'Queue current LSP completion candidates without inserting them. Requires an explicit document identity, zero-based UTF-16 position and host read grant. Returned edits are proposals only; this action cannot apply them.', inputSchema: clone(readSchema)
   }, {
+    name: 'language_signature_help', description: 'Queue read-only call signatures and active-parameter documentation for an explicit current document and zero-based UTF-16 position. Requires host read permission. Use language_read_result or language_cancel_read; never changes editor focus or files.', inputSchema: clone(readSchema)
+  }, {
     name: 'language_read_result', description: 'Consume a completed language read for the same explicit document identity; returns ready=false while pending. Rejects changed documents and other targets.', inputSchema: clone(schema)
   }, {
     name: 'language_cancel_read', description: 'Cancel the matching scoped language read and release its result without editing or changing editor focus.', inputSchema: schema
@@ -142,7 +144,7 @@ export function invokeLanguageRead(
     const id = 'agent:' + args.id;
     const next = state.get();
 
-    if (name === 'language_hover' || name === 'language_completion') {
+    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help') {
       const position = args.position;
 
       if (position === undefined) return Err('A UTF-16 language position is required.');
@@ -152,7 +154,7 @@ export function invokeLanguageRead(
         requests,
         clone(id),
         {
-          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : 'textDocument/completion', position: clone(position)
+          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : 'textDocument/signatureHelp', position: clone(position)
         },
         undefined
       ));

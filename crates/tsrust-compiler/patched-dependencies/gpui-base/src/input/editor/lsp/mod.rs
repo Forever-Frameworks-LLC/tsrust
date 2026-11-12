@@ -12,6 +12,7 @@ mod document_colors;
 mod hover;
 mod overlay;
 mod semantic_tokens;
+mod signature_help;
 
 pub use code_actions::*;
 pub use completions::*;
@@ -20,6 +21,7 @@ pub use document_colors::*;
 pub use hover::*;
 pub use overlay::*;
 pub use semantic_tokens::*;
+pub use signature_help::*;
 
 /// Host hook to show a document when following an LSP location
 /// (Go to Definition), modeled after the `window/showDocument` request.
@@ -43,6 +45,11 @@ pub struct Lsp {
     pub code_action_providers: Vec<Rc<dyn CodeActionProvider>>,
     /// The hover provider.
     pub hover_provider: Option<Rc<dyn HoverProvider>>,
+    pub signature_help_provider: Option<Rc<dyn SignatureHelpProvider>>,
+    pub(crate) signature_help: Option<Rc<SignatureHelpPopoverState>>,
+    pub(crate) signature_help_active: bool,
+    pub(crate) signature_help_position: Option<(u64, usize)>,
+    pub(crate) _signature_help_task: Task<Result<()>>,
     /// The definition provider.
     pub definition_provider: Option<Rc<dyn DefinitionProvider>>,
     /// The document color provider.
@@ -81,6 +88,11 @@ impl Default for Lsp {
             completion_provider: None,
             code_action_providers: vec![],
             hover_provider: None,
+            signature_help_provider: None,
+            signature_help: None,
+            signature_help_active: false,
+            signature_help_position: None,
+            _signature_help_task: Task::ready(Ok(())),
             definition_provider: None,
             document_color_provider: None,
             completion_menu: CompletionMenuOptions::default(),
@@ -129,6 +141,10 @@ impl Lsp {
 
     /// Reset all LSP states.
     pub(crate) fn reset(&mut self) {
+        self.signature_help = None;
+        self.signature_help_active = false;
+        self.signature_help_position = None;
+        self._signature_help_task = Task::ready(Ok(()));
         self.document_colors.clear();
         self.semantic_tokens.clear();
         self._hover_task = Task::ready(Ok(()));

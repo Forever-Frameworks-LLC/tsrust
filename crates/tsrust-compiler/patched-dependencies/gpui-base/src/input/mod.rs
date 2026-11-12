@@ -118,7 +118,7 @@ pub use lsp::{
     CompletionMenuOptions, CompletionMenuState, CompletionProvider, DefinitionProvider,
     DocumentColorProvider, DocumentRangeSemanticTokensProvider, HoverPopoverState, HoverProvider,
     InputOverlayKind, Lsp, ShowDocumentHandler, highlight_characters, highlight_contains,
-    highlight_prefix,
+    highlight_prefix, SignatureHelpProvider, SignatureHelpPopoverState,
 };
 #[doc(hidden)]
 pub use {anyhow, lsp_types};

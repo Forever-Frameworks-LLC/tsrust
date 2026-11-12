@@ -201,10 +201,11 @@ impl InputBaseState<crate::input::EditorMode> {
 impl<M: InputModeKind> InputBaseState<M> {
     pub(super) fn indent_inline(
         &mut self,
-        _: &IndentInline,
+        action: &IndentInline,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if M::handle_context_menu_action(self, Box::new(action.clone()), window, cx) { return; }
         if self.is_editable() && self.advance_snippet(false, cx) { return; }
         // First, try to accept inline completion if present
         if M::accept_inline_completion(self, window, cx) {
