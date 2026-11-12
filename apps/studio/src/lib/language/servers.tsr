@@ -1,0 +1,29 @@
+export interface LanguageServer {
+  id: string;
+  name: string;
+  program: string;
+  arguments: string[];
+  languages: string[];
+}
+
+export function tsrustServer(program: string): LanguageServer {
+  return {
+    id: 'tsrust', name: 'Tsrust', program, arguments: [], languages: ['tsrust', 'tsrx']
+  };
+}
+
+export function validateLanguageServer(server: ReadOnly<LanguageServer>): Result<void, string> {
+  if (server.id.length === 0 || !Array.from(server.id).every((character) => (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character === '-' || character === '_')) return Err('Language server IDs must contain lowercase letters, digits, hyphens or underscores.');
+
+  if (server.name.trim() === '' || server.program.trim() === '' || server.program.includes('\0')) return Err('Language servers require a name and executable.');
+
+  if (server.arguments.some((argument) => argument.includes('\0'))) return Err('Language server arguments cannot contain null characters.');
+
+  if (server.languages.length === 0 || server.languages.some((language) => language.trim() === '' || language.includes('\0'))) return Err('Language servers require explicit language IDs.');
+
+  for (let index = 0; index < server.languages.length; index += 1) {
+    if (server.languages.indexOf(server.languages[index]) !== index) return Err('Language server language IDs must be distinct.');
+  }
+
+  return Ok();
+}

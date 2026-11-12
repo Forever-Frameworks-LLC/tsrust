@@ -9,6 +9,46 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+External-server transport prerequisite — 2026-11-12, based on8f155582.
+This is backend acceptance, NOT Studio Go UI or full external-language acceptance.
+Added validated LanguageServer descriptor (stable source ID, display name, program,
+argv and explicit language IDs); existing workers use tsrustServer without changing
+Tsrust process selection. Generic framed session launches that descriptor, checks
+opened document languages, emits server identities and source-labels diagnostics.
+No shell interpolation, install, workspace executable override or new analysis pool.
+Mixed numeric/string diagnostic codes normalize through checked raw JSON fields;
+public diagnostics remain strings. Exact version/URI/document-session checks,
+UTF16 negotiation, query cancellation, explicit restart after failure and child
+kill/wait cleanup remain. An optional document language preserves existing callers.
+
+Focused combined std:testing acceptance12/12 passed in1201.62ms execution;
+setup/build28615.0ms (check7900.5,emit837.8,native/link19666.3).
+Command selected tests/external-language-service.test.tsr and existing
+language-service.test.tsr once together with shared target/nonincremental/jobs1,
+GOPLS=/Users/seancotter/go/bin/gopls, TSRUST=current installed CLI,90s body timeout.
+Actual gopls v0.23.0 via argv['serve'] passed731.28ms: Go unsaved type error and
+corrected diagnostics with lsp:go source/version, hover, completion, signature active
+parameter after supplementary Unicode, restart identity/generation and cleanup.
+Two pure descriptor/code-normalization witnesses passed; existing9Tsrust/AI/framing/
+controller cases passed unchanged. No full matrix or timed performance claim.
+Initial checks found required owned copies and unsupported typed mixed-shape union;
+wire JsonRaw normalization fixes that boundary without changing the compiler.
+Initial sandboxed gopls run returned a workspace warning because Go could not
+create its normal build cache. Final process check ran with authorized cache access.
+Fixture also now waits beyond an initial legitimate empty diagnostics publication.
+Log /tmp/studio-external-acceptance.log is disposable; no fixture roots/processes remain.
+
+Current dev supervisor42993 remains running with original app43189/LSP43190 while
+its latest source rebuild completes; earlier invalid intermediate source correctly
+left last-good app intact. No native external-language UI MAT claimed. Owner draft
+has not been edited/saved by this section. Installed CLI/LSP identities unchanged.
+NEXT: actual trusted global language-server settings, lazy per-server lifecycle,
+controller/AI routing scoped by server generation and native multi-language MAT.
+Do not mark a descriptor or passing transport test as complete extension support.
+Keep Tsrust and external servers simultaneous; do not replace the Tsrust service
+on each foreign-language tab. Existing150ms polling remains unchanged.
+
+
 Background syntax highlighting — accepted section, 2026-11-12, based onb4406b01.
 This checkpoint contains the source and acceptance below. Previous goal turn made
 progress through source, focused test and CLI build; this turn completed native

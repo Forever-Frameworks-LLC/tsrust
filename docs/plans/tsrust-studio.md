@@ -200,6 +200,15 @@ background queues rather than beneath main-thread insertion. This qualifies work
 placement, not a measured end-to-end latency target or the complete8GiB workload.
 Return to extension-ready external language-service registration before Git/debugger.
 
+External-server transport prerequisite, November12: shared framed sessions now
+accept validated executable/argv/language descriptors and label diagnostics by
+server. Real installed gopls v0.23.0 passed Go unsaved/corrected diagnostics, hover,
+completion, Unicode parameter hints and restart; numeric and string diagnostic
+codes normalize without weakening exact-version guards. Combined focused service
+acceptance12/12 passed; detailed timings and identities are in agent-progress.
+Trusted global server settings, lazy simultaneous processes, native/AI routing and
+foreign-language UI acceptance remain next. This is not full extension support.
+
 ## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
 
 Integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/) for shared

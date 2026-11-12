@@ -1,4 +1,5 @@
 import { fromUtf8, length } from 'std:bytes';
+import { JsonRaw, JsonLimits } from 'std:json';
 import { fileUrlToPath, parseUrl, pathToFileUrl } from 'std:url';
 
 import { Problem } from '../workspace/problems.tsr';
@@ -11,6 +12,7 @@ export interface LanguageIdentity {
 }
 
 export interface LanguageDocument {
+  languageId?: string;
   path: string;
   session: string;
   revision: int;
@@ -41,6 +43,45 @@ export interface PublishedDiagnostics {
   diagnostics: LanguageDiagnostic[];
 }
 
+interface WireDiagnostic {
+  range: DiagnosticRange;
+  severity?: int;
+  code?: JsonRaw;
+  message: string;
+}
+
+interface WireDiagnostics {
+  uri: string;
+  version?: int;
+  diagnostics: WireDiagnostic[];
+}
+
+interface DiagnosticNotification {
+  params: WireDiagnostics;
+}
+
+export function publishedDiagnostics(body: ReadOnly<string>, limits: ReadOnly<JsonLimits>): PublishedDiagnostics {
+  const notification = JSON.parse<DiagnosticNotification>(body, limits);
+  const result: PublishedDiagnostics = {
+    uri: clone(notification.params.uri), version: notification.params.version, diagnostics: []
+  };
+
+  for (const diagnostic of notification.params.diagnostics) {
+    let code = '';
+
+    if (diagnostic.code !== undefined) {
+      const encoded = JSON.stringify(diagnostic.code);
+      code = encoded.startsWith('"') ? JSON.parse<string>(encoded) : JSON.parse<int>(encoded).toString();
+    }
+
+    result.diagnostics.push({
+      range: clone(diagnostic.range), severity: diagnostic.severity, code, message: clone(diagnostic.message)
+    });
+  }
+
+  return result;
+}
+
 export function documentUri(path: ReadOnly<string>): string {
   const url = unwrap(pathToFileUrl(path));
   return String(url.href);
@@ -67,7 +108,7 @@ export function diagnosticPath(uri: ReadOnly<string>): string {
   return unwrap(fileUrlToPath(url));
 }
 
-export function documentProblems(document: ReadOnly<LanguageDocument>, published: ReadOnly<PublishedDiagnostics>): Problem[] {
+export function documentProblems(document: ReadOnly<LanguageDocument>, published: ReadOnly<PublishedDiagnostics>, source: string = 'lsp:tsrust'): Problem[] {
   const result: Problem[] = [];
 
   if (published.version !== document.version || diagnosticPath(published.uri) !== document.path) return result;
@@ -80,7 +121,7 @@ export function documentProblems(document: ReadOnly<LanguageDocument>, published
 
     try {
       result.push({
-        source: 'lsp:tsrust', path: clone(document.path), line: start.line + 1, column: diagnosticColumn(lines[start.line], start.character), code: diagnostic.code === undefined ? '' : diagnostic.code.toString(), message: clone(diagnostic.message), severity: diagnostic.severity === 2 ? 'warning' : diagnostic.severity === 3 ? 'information' : diagnostic.severity === 4 ? 'hint' : 'error'
+        source: clone(source), path: clone(document.path), line: start.line + 1, column: diagnosticColumn(lines[start.line], start.character), code: diagnostic.code === undefined ? '' : diagnostic.code.toString(), message: clone(diagnostic.message), severity: diagnostic.severity === 2 ? 'warning' : diagnostic.severity === 3 ? 'information' : diagnostic.severity === 4 ? 'hint' : 'error'
       });
     } catch (_) {}
   }

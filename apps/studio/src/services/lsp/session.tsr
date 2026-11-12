@@ -8,13 +8,14 @@ import {
   LanguageDocument,
   LanguageIdentity,
   languageIdentity,
-  PublishedDiagnostics,
+  publishedDiagnostics,
   documentProblems,
   diagnosticPath,
   documentUri,
   DiagnosticPosition
 } from '../../lib/language/diagnostics.tsr';
 import { Problem } from '../../lib/workspace/problems.tsr';
+import { LanguageServer, validateLanguageServer } from '../../lib/language/servers.tsr';
 import { readFrame, writeFrame } from './transport.tsr';
 
 export interface LanguageQuery {
@@ -36,6 +37,7 @@ export interface LanguageMessage {
 }
 
 export interface LanguageUpdate {
+  server?: string;
   kind: string;
   generation: int;
   message: string;
@@ -75,10 +77,6 @@ interface InitializeResult {
 
 interface InitializeResponse {
   result: InitializeResult;
-}
-
-interface DiagnosticNotification {
-  params: PublishedDiagnostics;
 }
 
 interface Envelope {
@@ -230,8 +228,12 @@ async function sendFrames(writer: Writer, writes: Channel<string>, events: Sende
   }
 }
 
+function documentLanguage(document: ReadOnly<LanguageDocument>, server: ReadOnly<LanguageServer>): string {
+  return clone(document.languageId) ?? clone(server.languages[0]);
+}
+
 // Independent pipe tasks prevent stdin/stdout backpressure from deadlocking the client.
-async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
+async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int, server: ReadOnly<LanguageServer>): Task<void> {
   const writes = new Channel<string>(1);
   const sender = writes.sender();
   const output = sendFrames(writer, writes, messages.sender(), generation).start();
@@ -269,6 +271,9 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
         const document = message.document;
 
         if (document !== undefined) {
+          const languageId = documentLanguage(document, server);
+
+          if (!server.languages.includes(languageId)) throw 'No matching language is registered for this server.';
           const path = clone(document.path);
           const index = documents.findIndex((entry) => entry.path === path);
           const uri = documentUri(document.path);
@@ -300,7 +305,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
             enqueue(outbox, JSON.stringify({
               jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
                 textDocument: {
-                  uri, languageId: 'tsrust', version: document.version, text: clone(document.text)
+                  uri, languageId: clone(languageId), version: document.version, text: clone(document.text)
                 }
               }
             }));
@@ -353,7 +358,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
             }));
           } else {
             await updates.send({
-              kind: 'query', generation, message: 'Language request is unavailable or outdated.', query: clone(query), result: 'null'
+              kind: 'query', generation, server: clone(server.id), message: 'Language request is unavailable or outdated.', query: clone(query), result: 'null'
             });
           }
         }
@@ -402,7 +407,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
           const value = unwrap(parse(body, limits()));
           const result = unwrap(get(value, 'result'));
           await updates.send({
-            kind: 'query', generation, message: envelope.error === undefined ? '' : clone(envelope.error.message), query: clone(query), result: result === undefined ? 'null' : unwrap(stringify(result, 16 * 1024 * 1024))
+            kind: 'query', generation, server: clone(server.id), message: envelope.error === undefined ? '' : clone(envelope.error.message), query: clone(query), result: result === undefined ? 'null' : unwrap(stringify(result, 16 * 1024 * 1024))
           });
         }
 
@@ -410,13 +415,13 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
       }
 
       if (envelope.method === 'textDocument/publishDiagnostics') {
-        const reply = JSON.parse<DiagnosticNotification>(body, limits());
-        const path = diagnosticPath(reply.params.uri);
+        const published = publishedDiagnostics(body, limits());
+        const path = diagnosticPath(published.uri);
         const document = documents.find((entry) => entry.path === path);
         // Unversioned/closed-file reports cannot identify an unsaved buffer safely.
-        if (document !== undefined && reply.params.version === document.version) {
+        if (document !== undefined && published.version === document.version) {
           await updates.send({
-            kind: 'diagnostics', generation, message: '', document: languageIdentity(document), problems: documentProblems(document, reply.params)
+            kind: 'diagnostics', generation, server: clone(server.id), message: '', document: languageIdentity(document), problems: documentProblems(document, published, 'lsp:' + server.id)
           });
         }
       } else {
@@ -434,8 +439,8 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
   }
 }
 
-async function connection(root: ReadOnly<string>, program: ReadOnly<string>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
-  const child = unwrap(spawn(program, [], {
+async function connection(root: ReadOnly<string>, server: ReadOnly<LanguageServer>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
+  const child = unwrap(spawn(server.program, clone(server.arguments), {
     cwd: clone(root), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
   }));
   const writer = child.takeStdin();
@@ -449,9 +454,9 @@ async function connection(root: ReadOnly<string>, program: ReadOnly<string>, mes
   try {
     if (!(await initialize(writer, messages, generation, root).timeout(15000))) return;
     await updates.send({
-      kind: 'ready', generation, message: 'Tsrust language service connected'
+      kind: 'ready', generation, server: clone(server.id), message: server.name + ' language service connected'
     });
-    await connected(writer, messages, updates, generation);
+    await connected(writer, messages, updates, generation, server);
   } finally {
     input.cancel();
     errors.cancel();
@@ -474,20 +479,21 @@ async function connection(root: ReadOnly<string>, program: ReadOnly<string>, mes
   }
 }
 
-export async function languageWorker(root: string, program: string, messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+export async function languageWorker(root: string, server: LanguageServer, messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  unwrap(validateLanguageServer(server));
   let generation = 0;
 
   while (true) {
     generation += 1;
     await updates.send({
-      kind: 'starting', generation, message: 'Starting Tsrust language service…'
+      kind: 'starting', generation, server: clone(server.id), message: 'Starting ' + server.name + ' language service…'
     });
 
     try {
-      await connection(root, program, messages, updates, generation);
+      await connection(root, server, messages, updates, generation);
     } catch (error) {
       await updates.send({
-        kind: 'failed', generation, message: JSON.stringify(error)
+        kind: 'failed', generation, server: clone(server.id), message: JSON.stringify(error)
       });
       // Do not spin a missing/crashing executable; restart is an explicit action.
       while (true) {

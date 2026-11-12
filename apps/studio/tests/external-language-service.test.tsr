@@ -1,0 +1,154 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { join } from 'std:path';
+import { strictEqual, test } from 'std:testing';
+
+import { LanguageDocument, languageIdentity, publishedDiagnostics, documentProblems } from '../src/lib/language/diagnostics.tsr';
+import { LanguageServer, validateLanguageServer } from '../src/lib/language/servers.tsr';
+import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
+
+async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
+  while (true) {
+    const event = await updates.receive();
+
+    if (event.kind === 'failed') throw event.message;
+
+    if (event.kind === kind) return event;
+  }
+}
+
+function invalidServer(server: ReadOnly<LanguageServer>): boolean {
+  match (validateLanguageServer(server)) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+test('foreign diagnostic codes normalize strings and integers without weakening version guards', () => {
+  const report = publishedDiagnostics('{"params":{"uri":"file:///project/main.go","version":2,"diagnostics":[{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":1}},"code":1234,"message":"number"},{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":1}},"code":"type-error","message":"string"}]}}', {
+    maxBytes: 4096, maxDepth: 16, maxEntries: 100, maxNodes: 100
+  });
+  strictEqual(report.diagnostics[0].code, '1234');
+  strictEqual(report.diagnostics[1].code, 'type-error');
+  const document: LanguageDocument = {
+    languageId: 'go', path: '/project/main.go', session: 'one', revision: 1, version: 2, text: 'x'
+  };
+  strictEqual(documentProblems(document, report, 'lsp:go')[0].source, 'lsp:go');
+  report.version = 1;
+  strictEqual(documentProblems(document, report, 'lsp:go').length, 0);
+  report.version = undefined;
+  strictEqual(documentProblems(document, report, 'lsp:go').length, 0);
+});
+
+test('external server definitions reject ambiguous identities and invalid process arguments', () => {
+  const server: LanguageServer = {
+    id: 'go', name: 'Go', program: 'gopls', arguments: ['serve'], languages: ['go']
+  };
+  unwrap(validateLanguageServer(server));
+  server.id = '../go';
+  strictEqual(invalidServer(server), true);
+  server.id = 'go';
+  server.arguments = ['serve\0'];
+  strictEqual(invalidServer(server), true);
+  server.arguments = ['serve'];
+  server.languages = ['go', 'go'];
+  strictEqual(invalidServer(server), true);
+});
+
+async function nextProblems(updates: ReadOnly<Channel<LanguageUpdate>>): Task<LanguageUpdate> {
+  while (true) {
+    const event = await nextUpdate(updates, 'diagnostics');
+
+    if ((event.problems ?? []).length > 0) return event;
+  }
+}
+
+test('real gopls transport handles Go diagnostics intelligence and restart', async () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-gopls-'))));
+  const server: LanguageServer = {
+    id: 'go', name: 'Go', program: unwrap(get('GOPLS')) ?? 'gopls', arguments: ['serve'], languages: ['go']
+  };
+  const messages = new Channel<LanguageMessage>(16);
+  const updates = new Channel<LanguageUpdate>(16);
+  const requests = messages.sender();
+  const path = join(root, 'main.go');
+  const saved = 'package main\nfunc greet(name string, count int) {}\nfunc main() { greet("🦀", 2) }\n';
+  unwrap(writeTextFile(join(root, 'go.mod'), 'module studio-language-test\n\ngo 1.23\n'));
+  unwrap(writeTextFile(path, saved));
+  const worker = languageWorker(clone(root), server, messages, updates.sender()).start();
+
+  try {
+    const ready = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(ready.server, 'go');
+    const document: LanguageDocument = {
+      languageId: 'go', path: clone(path), session: 'go-one', revision: 1, version: 1, text: 'package main\nfunc main() { var value int = "wrong"; _ = value }\n'
+    };
+    await requests.send({
+      kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const broken = await nextProblems(updates).timeout(30000);
+    strictEqual((broken.problems ?? []).length > 0, true, 'Go reports the unsaved type error');
+    strictEqual((broken.problems ?? [])[0].source, 'lsp:go');
+    strictEqual(broken.document?.version, 1);
+    document.revision = 2;
+    document.version = 2;
+    document.text = clone(saved);
+    await requests.send({
+      kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const clean = await nextUpdate(updates, 'diagnostics').timeout(30000);
+    strictEqual(clean.document?.version, 2);
+    strictEqual((clean.problems ?? []).length, 0, 'Go corrected diagnostics: ' + JSON.stringify(clean.problems));
+
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'go-hover', method: 'textDocument/hover', document: languageIdentity(document), position: {
+          line: 2, character: 15
+        }
+      }
+    });
+    const hover = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(hover.query?.id, 'go-hover');
+    strictEqual((hover.result ?? '').includes('greet'), true, 'Go hover: ' + (hover.result ?? 'missing'));
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'go-completion', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 2, character: 17
+        }
+      }
+    });
+    const completion = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(completion.query?.id, 'go-completion');
+    strictEqual((completion.result ?? '').includes('greet'), true, 'Go completion: ' + (completion.result ?? 'missing'));
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'go-signature', method: 'textDocument/signatureHelp', document: languageIdentity(document), position: {
+          line: 2, character: 26
+        }
+      }
+    });
+    const signature = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(signature.query?.id, 'go-signature');
+    strictEqual((signature.result ?? '').includes('count int'), true, 'Go signature: ' + (signature.result ?? 'missing'));
+    strictEqual((signature.result ?? '').includes('"activeParameter":1'), true, 'Go signature parameter: ' + (signature.result ?? 'missing'));
+    await requests.send({
+      kind: 'restart', generation: ready.generation
+    });
+    const restarted = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(restarted.server, 'go');
+    strictEqual(restarted.generation, ready.generation + 1);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(root));
+  }
+});
