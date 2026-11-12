@@ -42,6 +42,15 @@ Current dev supervisor42993 remains running with original app43189/LSP43190 whil
 its latest source rebuild completes; earlier invalid intermediate source correctly
 left last-good app intact. No native external-language UI MAT claimed. Owner draft
 has not been edited/saved by this section. Installed CLI/LSP identities unchanged.
+Checkpointd7fb0494; whole-project formatter passed2files,0documentation snippets,
+0fingerprints; diff-check clean. Independent recovery read still finds original
+active project-check, nine tabs and sole draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Bounded1s supervisor sample /tmp/studio-dev-current-sample.txt confirms current
+CPU is dev-frontend project checking/error_effects traversal, not a native Cargo
+build or idle filesystem spin. Supervisor footprint291.0MiB/peak443.7MiB at sample;
+not a matched memory benchmark. Keep live last-good app; final source rebuild is
+still pending. Do not launch another full check merely to duplicate that work.
 NEXT: actual trusted global language-server settings, lazy per-server lifecycle,
 controller/AI routing scoped by server generation and native multi-language MAT.
 Do not mark a descriptor or passing transport test as complete extension support.
