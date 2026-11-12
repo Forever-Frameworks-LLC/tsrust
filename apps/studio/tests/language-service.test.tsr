@@ -1,3 +1,6 @@
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { requestFileReferences, pollFileReferences, clearLanguageReferences } from '../src/services/lsp/references.tsr';
 import { fromUtf8 } from 'std:bytes';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
@@ -993,4 +996,81 @@ test('native reference queries capture their symbol and source before presentati
   cancelNativeLanguage(state, sender, 9);
   strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
   strictEqual(state.get().queries.length, 0);
+});
+
+
+function exerciseFileReferences(context: ReadOnly<SearchActionContext>): void {
+  const workspace = context.workspace;
+  const references = context.references;
+  const panel = context.panel;
+
+  if (references === undefined || panel === undefined) throw 'Missing host state.';
+  const initial = createLanguageState();
+  initial.connections[0].ready = true;
+  initial.connections[0].generation = 1;
+  const state = signal(initial);
+  const channel = new Channel<LanguageMessage>(8);
+  const sender = channel.sender();
+  unwrap(requestFileReferences(context, state, sender, '/project/data.json'));
+  const queryMessage = unwrap(channel.tryReceive());
+  strictEqual(queryMessage.server, 'tsrust');
+  strictEqual(queryMessage.query?.method ?? '', 'tsrust/fileReferences');
+  strictEqual(queryMessage.document === undefined, true);
+  strictEqual(state.get().documents.length, 0);
+  strictEqual(references.get().query?.kind ?? '', 'file');
+  strictEqual(panel.get(), 'references');
+  const next = state.get();
+  const query = clone(next.queries[0]);
+  next.queries = [];
+  next.readResults.push({
+    query, error: '', result: '{"locations":[],"issues":[{"uri":"file:///project/broken.tsr","message":"Missing import"}],"scanned":4}'
+  });
+  state.set(next);
+  pollFileReferences(workspace, references, state, sender);
+  strictEqual(references.get().pending ?? true, false);
+  strictEqual(references.get().issues?.length ?? 0, 1);
+  strictEqual(references.get().scanned ?? 0, 4);
+  strictEqual(state.get().readResults.length, 0);
+  unwrap(requestFileReferences(context, state, sender, '/project/data.json'));
+  unwrap(channel.tryReceive());
+  unwrap(clearLanguageReferences(context, '/project'));
+  pollFileReferences(workspace, references, state, sender);
+  strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
+  strictEqual(state.get().queries.length, 0);
+  strictEqual(references.get().query === undefined, true);
+  const toolContext: LanguageToolContext = {
+    root: '/project', settingsPath: '', generation: 1, status: 'ready', problems: [], allowRead: true, allowRestart: false
+  };
+  const args = JSON.stringify({
+    root: '/project', id: 'imports', path: '/project/data.json', session: clone(workspace.get().files[0].document.session), revision: workspace.get().files[0].document.revision
+  });
+  unwrap(invokeLanguageTool(
+    toolContext,
+    sender,
+    'language_file_references',
+    args,
+    workspace,
+    state
+  ));
+  const agent = unwrap(channel.tryReceive());
+  strictEqual(agent.query?.method ?? '', 'tsrust/fileReferences');
+  strictEqual(agent.query?.id ?? '', 'agent:imports');
+  strictEqual(references.get().query === undefined, true);
+  strictEqual(workspace.get().active, '/project/data.json');
+}
+
+test('file import reads share UI and guarded AI routing and clear cancels late results', () => {
+  const document = unwrap(createDocument('/project/data.json', '{"ok":true}'));
+  const context: SearchActionContext = {
+    workspace: signal<Workspace>({
+      root: '/project', files: [{
+        document, name: 'data.json', kind: 'text'
+      }], active: '/project/data.json', error: '', dockLayout: '', zoomLevel: 0
+    }), references: signal<LanguageReferences>({
+      root: '/project', locations: []
+    }), panel: signal(''), recovery: signal<Recovery>({
+      path: '/project/journal.json', baseline: '', ready: true
+    }), allowedRoot: '/project', allowNavigation: true, allowRead: true, focusEditor: false
+  };
+  exerciseFileReferences(context);
 });

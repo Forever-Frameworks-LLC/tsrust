@@ -1,6 +1,10 @@
+import { Sender } from 'std:futures';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { toInt } from 'std:numeric';
 import {
   View,
+  Shortcut,
+  Ticker,
   Button,
   translate,
   translateWith,
@@ -16,7 +20,7 @@ import {
 } from 'std:ui';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
-import { clearLanguageReferences } from '../../services/lsp/references.tsr';
+import { clearLanguageReferences, requestFileReferences, pollFileReferences } from '../../services/lsp/references.tsr';
 import { documentUri } from '../../lib/language/diagnostics.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
@@ -103,6 +107,8 @@ export function ReferencesPanel(workspace: Signal<Workspace>, recovery: Signal<R
     const query = current.query;
 
     if (query === undefined) return translate('No reference query');
+
+    if (query.kind === 'file') return translate('File imports');
     return query.symbol === '' ? translate('Symbol references') : translateWith('References to {symbol}', {
       symbol: clone(query.symbol)
     });
@@ -118,7 +124,16 @@ export function ReferencesPanel(workspace: Signal<Workspace>, recovery: Signal<R
       }
     });
   });
-  const busy = computed<boolean>(() => language.get().queries.some((query) => query.nativeRequest !== undefined && query.method === 'textDocument/references'));
+  const busy = computed<boolean>(() => references.get().pending === true || language.get().queries.some((query) => query.nativeRequest !== undefined && query.method === 'textDocument/references'));
+  const incomplete = computed<boolean>(() => (references.get().issues?.length ?? 0) > 0);
+  const scope = computed<string>(() => {
+    const result = references.get();
+
+    if (result.query?.kind !== 'file') return '';
+    return translateWith('Direct Tsrust imports • {count} files scanned', {
+      count: (result.scanned ?? 0).toString()
+    });
+  });
   return (
     <View className={panelClass.get()}>
       <View className="flex-row items-center gap-2 px-3 py-1 shrink-0 border-b border-border">
@@ -148,6 +163,16 @@ export function ReferencesPanel(workspace: Signal<Workspace>, recovery: Signal<R
             clearReferences(workspace, recovery, references);
           }}
         />
+      </View>
+      <View hidden={scope.get() === '' || busy.get()} className="px-3 py-1">
+        <Text className="text-muted-foreground">
+          {scope.get()}
+        </Text>
+      </View>
+      <View hidden={!incomplete.get() || busy.get()} className="px-3 py-1">
+        <Text className="text-muted-foreground">
+          {t('Some imports could not be resolved. Results may be incomplete.')}
+        </Text>
       </View>
       <View hidden={!busy.get()} className="p-3">
         <Text className="text-muted-foreground">
@@ -180,6 +205,49 @@ export function ReferencesPanel(workspace: Signal<Workspace>, recovery: Signal<R
           </ListEmpty>
         </List>
       </View>
+    </View>
+  );
+}
+
+// Window commands and result delivery must remain mounted when the panel is closed.
+export function ReferenceControls(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  references: Signal<LanguageReferences>,
+  language: Signal<LanguageState>,
+  panel: Signal<string>,
+  messages: Sender<LanguageMessage>
+): Node {
+  const pollMessages = messages.share();
+  const needsPoll = computed<boolean>(() => references.get().pending === true || language.get().queries.some((query) => query.id.startsWith('ui:file-references:')) || language.get().readResults.some((result) => result.query.id.startsWith('ui:file-references:')));
+  return (
+    <View>
+      <Shortcut
+        command="find-file-references"
+        keys="secondary-alt-shift-f12"
+        onTrigger={() => {
+          const root = clone(workspace.get().root);
+          const path = clone(workspace.get().active);
+          const context: SearchActionContext = {
+            workspace, recovery, references, panel, allowedRoot: root, allowNavigation: true, allowRead: true, focusEditor: false
+          };
+
+          match (requestFileReferences(context, language, messages, path)) {
+            Ok(_) => {},
+            Err(error) => {
+              const next = context.workspace.get();
+              next.error = clone(error);
+              context.workspace.set(next);
+            }
+          }
+        }}
+      />
+      <Ticker
+        interval={150}
+        onTick={(_frame) => {
+          if (needsPoll.get()) pollFileReferences(workspace, references, language, pollMessages);
+        }}
+      />
     </View>
   );
 }

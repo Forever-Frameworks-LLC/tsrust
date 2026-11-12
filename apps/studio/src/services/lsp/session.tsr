@@ -353,8 +353,8 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
         if (query !== undefined) {
           const identity = clone(query.document);
           const queryId = clone(query.id);
-          const current = documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
-          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references';
+          const current = query.method === 'tsrust/fileReferences' || documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
+          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references' || query.method === 'tsrust/fileReferences';
 
           if (current && allowed && queries.length < 32 && !queries.some((entry) => entry.id === queryId)) {
             queries.push(clone(query));

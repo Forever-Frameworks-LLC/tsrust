@@ -20,6 +20,8 @@ pub struct Scanner {
     published: BTreeSet<SourceId>,
 }
 impl Scanner {
+    pub fn roots(&self) -> Vec<PathBuf> {self.roots.iter().cloned().collect()}
+    pub fn revision(&self) -> u64 {self.revision}
     pub fn initialize(&mut self, params: &serde_json::Value, now: Instant) {
         let uris = params.get("workspaceFolders").and_then(|value|value.as_array())
             .map(|folders|folders.iter().filter_map(|folder|folder.get("uri").and_then(|uri|uri.as_str())).collect::<Vec<_>>())

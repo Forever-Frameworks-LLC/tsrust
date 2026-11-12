@@ -8,6 +8,69 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+File/import references — accepted section, November12, based on727965a7.
+New compiler module_imports reads tolerant complete import declarations. LSP custom
+`tsrust/fileReferences` scans initialized workspace Tsrust importers with existing
+ignore discovery, aliases/path resolver and exact UTF-16 import token spans. Open
+buffers are authoritative, including ignored/new files. Target must be inside a
+workspace folder; nonfile URIs reject. One dedicated bounded cancellable worker
+keeps this I/O separate from hover/completion/body checking. Cancellation/folder
+changes/shutdown interrupt scans; changed observed inputs/workspace revision reject
+publication. No cached whole-project AST/index added. Partial resolution/read
+errors return issues alongside matches. Existing tolerant parser skips unfinished
+import declarations; this is complete direct imports, not arbitrary text/dynamic
+references or external-language incoming imports.
+
+Studio Project menu/shortcut, explicit File imports query label, scan-count/partial
+warning, shared row navigation and Clear route through shared service/controller.
+Registered language_file_references uses host read/root/document identity grants;
+read/present/open/clear remain separate actions. File targets use Tsrust server
+without a fake Tsrust didOpen for JSON/images/etc. UI clear/query replacement cancels
+or drains its own pending/results; unrelated agent reads remain independent.
+Polling only reads snapshots when UI work is pending, avoiding recurring copies of
+completed reference arrays. Source query remains fixed while changing active tabs.
+
+Checks: LSP scanner1/1 passed0.01s (setup2m33s); actual stdio1/1 passed0.44s
+(setup2.64s), including unopened JSON target, incomplete body and invalid URI.
+UI/AI public runtime1/1 passed0.73ms, total tests1.61ms, build34.090s (check12.070s,
+emit1.204s,native/link20.557s). Initial compile failures repaired in witness ownership,
+optional ID borrow and Rust pattern guard; no passing full-matrix claim. Both
+locale catalogs294 matching keys. Whole formatter last0/0/0; diff-check passed.
+Installed SDK atomically/hash verified: CLI
+05a4ed06eec5e294984277e19a5a7be2bfe09e34738273d921f56ccb0157f7b6;
+LSP2bc59ac05066a0fcddc1d269741bccbaf37fdeb00c86a4b3c2ba4ea91069e864.
+SDK build13.48s after focused test compilation. Current supervisor33494/PTY93275
+and app39361 remain running, log/tmp/studio-file-references-dev.log. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-33494-1794498477104912000-0/Tsrust Studio.app.
+Final successful reload173558ms: check120328.5ms,emit4862.6ms,runtime hit,
+native/link36646.9ms. Earlier accepted candidate135585ms; final UI follow-up moved
+Shortcut/Ticker outside the conditional panel after native MAT exposed unavailable
+menu handling while closed. ReferenceControls is prebuilt before root JSX, like
+other workbench nodes. Superseded worker work delayed reload; a one-second sample
+showed UI expression/wrapper checking and508.5MiB compiler footprint, not I/O.
+No speedup/leak conclusion. Extra supervisor39299 was stopped with INT once the
+original watcher finished current sources first; only33494 remains. Earlier17527
+was retired after the SDK refresh. Do not bind old CUA bundles, which can relaunch.
+
+Native MAT passed current Project menu with panel closed, pending/results state,
+File imports26/source recovery.tsr/86files scanned, row navigation to existing
+editor.tsrx, exact import path highlighting, stable query source while navigating,
+source return (candidate35168), Clear/removal/disabled Clear, and no refill while
+restoring main.tsrx. Final39361 passed closed-panel command and row/Clear again.
+No tab additions, edits or saves. Owner state restored:12tabs/main.tsrx active,
+Services collapsed, panel closed; protected project-check draft hash remains
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA phase completed: Verified labelled clearable reference queries.
+Current binding finalReferencesApp targets39361. Earlier fileReferencesApp targets
+obsolete35168. Three focused new cases passed; retain prior22symbol-reference
+cases as prior evidence, not rerun coverage. Native partial-error UI, keyboard
+file-query shortcut, cross-language imports, long-run LSP memory and complete8GiB
+editor-plus-AI qualification remain unverified. Whole formatter/diff check and
+lock-safe native cache cleanup precede this section's local checkpoint.
+Next: resume native completion/snippet/hover acceptance and bounded LSP profiling,
+then remaining intelligence/AI work before Git/debugger/extensions. Keep full
+Studio goal active and one current preview running; no full regression or push.
+
 References and owner UI corrections — accepted section, November12, based ond92228e1.
 Current dev supervisor17527 / PTY21946 and app27135 remain running. Bundle
 /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-17527-1794495773310299000-0/Tsrust Studio.app.

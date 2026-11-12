@@ -25,7 +25,7 @@ import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
-import { ReferencesPanel } from './components/tasks/references-panel.tsrx';
+import { ReferencesPanel, ReferenceControls } from './components/tasks/references-panel.tsrx';
 import { LanguageReferences } from './lib/language/references.tsr';
 import { CheckPanel } from './components/tasks/check-panel.tsrx';
 import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
@@ -257,6 +257,14 @@ function App(
     248,
     160
   );
+  const referenceControls = ReferenceControls(
+    workspace,
+    recovery,
+    references,
+    languageState,
+    panel,
+    languageMessages.sender()
+  );
   const workbench = <View id="workbench" className="size-full min-w-0 min-h-0">
     {navigationArea}
   </View>;
@@ -326,6 +334,7 @@ function App(
   </View>;
   return (
     <View className="flex-col size-full bg-background text-foreground">
+      {referenceControls}
       {SaveConflicts(workspace, recovery, font)}
       {chrome}
       <View className="grow min-h-0">

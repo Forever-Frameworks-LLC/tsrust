@@ -197,6 +197,8 @@ export function languageReadTools(): EditorTool[] {
   }, {
     name: 'language_completion', description: 'Queue current LSP completion candidates without inserting them. Requires an explicit document identity, zero-based UTF-16 position and host read grant. Returned edits are proposals only; this action cannot apply them.', inputSchema: clone(readSchema)
   }, {
+    name: 'language_file_references', description: 'Queue direct Tsrust import references to an explicit open file through the Tsrust server. Scans workspace Tsrust sources using compiler import resolution, ignores generated/ignored files except open buffers, and reports scan issues. No cursor position required. Requires host read grant. Use language_read_result/cancel; UI presentation requires a separate navigation grant.', inputSchema: clone(schema)
+  }, {
     name: 'language_references', description: 'Queue all LSP reference locations for an explicit current document and UTF-16 position. includeDeclaration defaults to true. Requires host read permission. Read with language_read_result; presenting or opening results requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
     name: 'language_definition', description: 'Queue LSP definition locations for an explicit current document and UTF-16 position. Requires host read permission. Read with language_read_result; opening a returned location requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
@@ -235,8 +237,12 @@ export function invokeLanguageRead(
     const id = 'agent:' + args.id;
     const next = state.get();
 
-    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition' || name === 'language_references') {
-      const position = args.position;
+    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition' || name === 'language_references' || name === 'language_file_references') {
+      const position = name === 'language_file_references' ? {
+        line: 0, character: 0
+      }
+
+      : args.position;
 
       if (position === undefined) return Err('A UTF-16 language position is required.');
       unwrap(queueLanguageRead(
@@ -245,7 +251,7 @@ export function invokeLanguageRead(
         requests,
         clone(id),
         {
-          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : name === 'language_references' ? 'textDocument/references' : 'textDocument/signatureHelp', position: clone(position), includeDeclaration: args.includeDeclaration
+          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_file_references' ? 'tsrust/fileReferences' : name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : name === 'language_references' ? 'textDocument/references' : 'textDocument/signatureHelp', position: clone(position), includeDeclaration: args.includeDeclaration
         },
         undefined
       ));

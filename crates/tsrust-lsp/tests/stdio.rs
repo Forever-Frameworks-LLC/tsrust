@@ -476,3 +476,23 @@ fn declared_import_help_arrives_before_body_diagnostics() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.finish(0);
 }
+
+#[test]
+fn file_references_scan_direct_imports_without_opening_target_or_body_checking() {
+    let directory=std::env::temp_dir().join(format!("tsrust-file-ref-protocol-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    std::fs::create_dir(&directory).unwrap();
+    struct Cleanup(std::path::PathBuf);impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+    let _cleanup=Cleanup(directory.clone());let directory=directory.canonicalize().unwrap();
+    let uri=|name:&str|tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(directory.join(name).to_string_lossy().into_owned())).unwrap().to_string();
+    std::fs::write(directory.join("data.json"),"{\"ok\":true}").unwrap();
+    std::fs::write(directory.join("main.tsr"),"import data from './data.json';function main(){ unfinished ! }").unwrap();
+    let mut server=Server::start();
+    server.request(1,"initialize",json!({"rootUri":uri(""),"capabilities":{}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.result.as_ref().unwrap()["capabilities"]["experimental"]["fileReferences"]==true));
+    server.notify("initialized",json!({}));
+    server.request(2,"tsrust/fileReferences",json!({"textDocument":{"uri":uri("data.json")}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.id==RequestId::from(2) && response.result.as_ref().is_some_and(|result|result["locations"].as_array().unwrap().len()==1 && result["scanned"]==1)));
+    server.request(3,"tsrust/fileReferences",json!({"textDocument":{"uri":"https://example.com/data.json"}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_some()));
+    server.request(4,"shutdown",Value::Null);server.response();server.finish(0);
+}

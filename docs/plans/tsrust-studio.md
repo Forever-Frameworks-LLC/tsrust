@@ -220,8 +220,21 @@ clears to explicit usage guidance. Native MAT passed107 Workspace references,
 row navigation/source return and Clear;22distinct focused cases accepted across
 public runtime and native bridge scopes. One current preview and protected owner
 draft retained. Exact identities/timings and limitations are in agent-progress.md.
-Owner requests explicit file references/incoming imports next; symbol queries are
-not automatic whole-file queries. File scope/mode, external-language reference MAT,
+Explicit file imports, November12: Project → Find File References (Imports) queues
+`tsrust/fileReferences` through the same guarded read controller used by the
+registered `language_file_references` AI action. This is a deliberate separate
+scope, not an automatic whole-file query. Results identify the source file and
+complete direct Tsrust imports, report files scanned/incomplete resolution, and
+share exact location navigation and Clear. A separate cancellable single worker
+uses compiler import parsing/resolution and current workspace buffers; it does not
+queue behind body checking or retain an analysis cache. Ignored files are omitted
+unless open; only Tsrust importers are scanned. Incomplete import declarations are
+skipped using the existing tolerant header parser. Imported-symbol usage remains
+the separate Find References action. External-language incoming imports are not
+implemented. Focused scanner, actual protocol and UI/AI runtime witnesses pass;
+native MAT passed closed-panel menu dispatch,26 recovery.tsr imports across86files,
+exact row navigation, stable query source and Clear, with owner state restored.
+External-language symbol MAT,
 forced-stall timeout MAT and complete resource qualification remain open.
 
 ## Immediate implementation priority — owner, 2026-11-11

@@ -219,6 +219,8 @@ fn run(
             if header_completed.send(result).is_err() { break; }
         }
     }).map_err(|error| format!("Cannot start declaration worker: {error}"))?;
+    let (file_jobs,file_results)=tsrust_lsp::file_references::worker()?;
+    let mut file_active: Option<(RequestId,std::sync::Arc<std::sync::atomic::AtomicBool>)> = None;
     let mut header_busy = false;
     let mut documents = Documents::default();
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
@@ -233,6 +235,7 @@ fn run(
     let mut shutdown = false;
     let mut debounce = Duration::from_millis(200);
     loop {
+        if shutdown && let Some((_,cancel))=&file_active {cancel.store(true,std::sync::atomic::Ordering::Relaxed);}
         if let Some((snapshot, workspace)) = &in_flight_input
             && (shutdown || !documents.current(snapshot) || workspace.as_ref().is_some_and(|input| !projects.workspace.current(input))) {
             scan_interrupt.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -311,7 +314,7 @@ fn run(
                                     scanner.initialize(&request.params, Instant::now());
                                     initialized = true;
                                     Response::new_ok(request.id, json!({
-                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
+                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "experimental":{"fileReferences":true}, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
                                         "serverInfo": {"name": "tsrust-lsp", "version": env!("CARGO_PKG_VERSION")}
                                     }))
                             }
@@ -347,6 +350,19 @@ fn run(
                                     None => Response::new_ok(request.id, json!([])),
                                 }
                             }
+                            "tsrust/fileReferences" if initialized && ready && !shutdown => {
+                                let target=request.params.pointer("/textDocument/uri").and_then(Value::as_str).ok_or_else(||"A file URI is required.".to_owned()).and_then(tsrust_lsp::project_diagnostics::source_id);
+                                match target {
+                                    Err(error)=>Response::new_err(request.id,ErrorCode::InvalidParams as i32,error),
+                                    Ok(_) if file_active.is_some()=>Response::new_err(request.id,ErrorCode::RequestFailed as i32,"A file reference search is still running. Cancel it before starting another.".into()),
+                                    Ok(target)=>{
+                                        let cancel=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                                        file_active=Some((request.id.clone(),cancel.clone()));
+                                        file_jobs.send(tsrust_lsp::file_references::Job {id:request.id,roots:scanner.roots(),revision:scanner.revision(),input:projects.workspace.snapshot(),target,cancel}).map_err(|_|"file reference worker stopped")?;
+                                        continue;
+                                    }
+                                }
+                            }
                             "tsrust/counters" if initialized => Response::new_ok(request.id, tsrust_lsp::counters::snapshot()),
                             method if initialized && !shutdown && matches!(method, "textDocument/hover" | "textDocument/completion" | "textDocument/signatureHelp" | "textDocument/definition" | "textDocument/references" | "textDocument/documentHighlight" | "textDocument/documentSymbol" | "textDocument/foldingRange") => {
                                 let uri = request.params.pointer("/textDocument/uri").and_then(Value::as_str).map(str::to_owned);
@@ -375,11 +391,14 @@ fn run(
                     Message::Notification(notification) => {
                         if notification.method == "exit" { return Ok(if shutdown { 0 } else { 1 }); }
                         if notification.method == "$/cancelRequest" {
-                            if let Some(id) = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok())
-                                && let Some(index) = deferred.iter().position(|entry| entry.request.id == id)
-                            {
-                                let entry = deferred.remove(index);
-                                send(&connection, Response::new_err(entry.request.id, ErrorCode::RequestCanceled as i32, "Request was cancelled".into()))?;
+                            if let Some(id) = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok()) {
+                                if let Some((active,cancel))=&file_active && *active==id && !cancel.swap(true,std::sync::atomic::Ordering::Relaxed) {
+                                    send(&connection,Response::new_err(id.clone(),ErrorCode::RequestCanceled as i32,"Request was cancelled".into()))?;
+                                }
+                                if let Some(index) = deferred.iter().position(|entry| entry.request.id == id) {
+                                    let entry = deferred.remove(index);
+                                    send(&connection, Response::new_err(entry.request.id, ErrorCode::RequestCanceled as i32, "Request was cancelled".into()))?;
+                                }
                             }
                             continue;
                         }
@@ -388,7 +407,11 @@ fn run(
                         let handled: Result<(), String> = match notification.method.as_str() {
                             "initialized" => {ready=true;Ok(())},
                             "workspace/didChangeWorkspaceFolders" => {
-                                scanner.change_folders(&notification.params,now);Ok(())
+                                scanner.change_folders(&notification.params,now);
+                                if let Some((id,cancel))=&file_active && !cancel.swap(true,std::sync::atomic::Ordering::Relaxed) {
+                                    send(&connection,Response::new_err(id.clone(),ErrorCode::RequestCanceled as i32,"Workspace folders changed.".into()))?;
+                                }
+                                Ok(())
                             },
                             "workspace/didChangeWatchedFiles" => serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(notification.params).map_err(|e|e.to_string()).map(|params| {
                                 scanner.dirty(now,debounce);
@@ -445,6 +468,20 @@ fn run(
                         if let Err(error) = handled { eprintln!("tsrust-lsp: invalid notification: {error}"); }
                     }
                     Message::Response(_) => {}
+                }
+            }
+            recv(file_results) -> result => {
+                let checked=result.map_err(|_|"file reference worker stopped")?;
+                file_active=None;
+                if !shutdown && !checked.job.cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                    let response=if checked.job.revision!=scanner.revision() || !projects.workspace.current(&checked.job.input) {
+                        Response::new_err(checked.job.id,ErrorCode::ContentModified as i32,"Workspace changed during file reference search. Run it again.".into())
+                    } else {match checked.result {
+                        Ok(Some(result))=>Response::new_ok(checked.job.id,result.json()),
+                        Ok(None)=>Response::new_err(checked.job.id,ErrorCode::RequestCanceled as i32,"Request was cancelled".into()),
+                        Err(error)=>Response::new_err(checked.job.id,ErrorCode::RequestFailed as i32,error),
+                    }};
+                    send(&connection,response)?;
                 }
             }
             recv(header_results) -> result => {

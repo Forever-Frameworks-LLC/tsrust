@@ -288,5 +288,9 @@
   "Symbol references": "Referências do símbolo",
   "References to {symbol}": "Referências a {symbol}",
   "Clear references": "Limpar referências",
-  "Right-click a symbol and choose Find References (Shift+F12).": "Clique com o botão direito em um símbolo e escolha Encontrar referências (Shift+F12)."
+  "Right-click a symbol and choose Find References (Shift+F12).": "Clique com o botão direito em um símbolo e escolha Encontrar referências (Shift+F12).",
+  "File imports": "Importações do arquivo",
+  "Find File References (Imports)": "Encontrar referências ao arquivo (importações)",
+  "Direct Tsrust imports • {count} files scanned": "Importações diretas do Tsrust • {count} arquivos examinados",
+  "Some imports could not be resolved. Results may be incomplete.": "Não foi possível resolver algumas importações. Os resultados podem estar incompletos."
 }

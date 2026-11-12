@@ -292,23 +292,50 @@ export function queueLanguageRead(
   request: ReadOnly<LanguageRead>,
   nativeRequest: int | undefined
 ): Result<void, string> {
-  const route = languageRoute(state.servers, request.path);
+  const fileReferences = request.method === 'tsrust/fileReferences';
+  const route = fileReferences ? {
+    server: 'tsrust', language: 'tsrust'
+  }
+
+  : languageRoute(state.servers, request.path);
 
   if (route === undefined) return Err('No language server is registered for this file.');
   const connection = connectionFor(state, route.server);
 
   if (connection === undefined || !connection.ready) return Err('Language service is not connected.');
 
-  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references') return Err('Unsupported language read.');
+  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references' && !fileReferences) return Err('Unsupported language read.');
 
   if (request.position.line < 0 || request.position.character < 0) return Err('Invalid language position.');
   const file = workspace.files.find((file) => file.document.path === request.path && file.document.session === request.session && file.document.revision === request.revision);
 
-  if (file === undefined || file.kind !== 'text') return Err('Language document changed.');
+  if (file === undefined || (!fileReferences && file.kind !== 'text')) return Err('Language document changed.');
 
   const pending = clone(state.queries);
 
   if (pending.length + state.readResults.length >= 32 || pending.some((query) => query.id === id) || state.readResults.some((result) => result.query.id === id)) return Err('Language request queue is full or its identity is already in use.');
+
+  if (fileReferences) {
+    const query: LanguageQuery = {
+      id, method: clone(request.method), position: clone(request.position), document: {
+        server: 'tsrust', path: clone(request.path), session: clone(request.session), revision: request.revision, version: 0
+      }
+    };
+
+    match (messages.trySend({
+      server: 'tsrust', kind: 'query', generation: connection.generation, query: clone(query)
+    })) {
+      Err(_) => {
+        return Err('Could not queue language request.');
+      },
+      Ok(_) => {}
+    }
+
+    pending.push(query);
+    state.queries = pending;
+    return Ok();
+  }
+
   let version = state.version + 1;
   let synchronize = true;
   {
