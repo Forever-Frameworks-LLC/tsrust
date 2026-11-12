@@ -361,6 +361,8 @@ pub(crate) struct TextWrapper {
 
 #[allow(unused)]
 impl TextWrapper {
+    pub(crate) fn font_size(&self) -> Pixels { self.font_size }
+
     pub(crate) fn new(font: Font, font_size: Pixels, wrap_width: Option<Pixels>) -> Self {
         Self {
             text: Rope::new(),

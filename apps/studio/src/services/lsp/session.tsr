@@ -11,10 +11,19 @@ import {
   PublishedDiagnostics,
   documentProblems,
   diagnosticPath,
-  documentUri
+  documentUri,
+  DiagnosticPosition
 } from '../../lib/language/diagnostics.tsr';
 import { Problem } from '../../lib/workspace/problems.tsr';
 import { readFrame, writeFrame } from './transport.tsr';
+
+export interface LanguageQuery {
+  id: string;
+  method: string;
+  document: LanguageIdentity;
+  position: DiagnosticPosition;
+  nativeRequest?: int;
+}
 
 export interface LanguageMessage {
   kind: string;
@@ -22,6 +31,8 @@ export interface LanguageMessage {
   body?: string;
   document?: LanguageDocument;
   path?: string;
+  query?: LanguageQuery;
+  queryId?: string;
 }
 
 export interface LanguageUpdate {
@@ -30,6 +41,8 @@ export interface LanguageUpdate {
   message: string;
   document?: LanguageIdentity;
   problems?: Problem[];
+  query?: LanguageQuery;
+  result?: string;
 }
 
 interface TextChange {
@@ -146,7 +159,7 @@ function responseFor(body: ReadOnly<string>, envelope: ReadOnly<Envelope>): stri
 
 async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<boolean> {
   const uri = JSON.stringify(documentUri(root));
-  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"publishDiagnostics":{"versionSupport":true}}}}}');
+  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"publishDiagnostics":{"versionSupport":true},"hover":{"contentFormat":["markdown","plaintext"]},"completion":{"completionItem":{"snippetSupport":true,"documentationFormat":["markdown","plaintext"]}}}}}}');
 
   while (true) {
     const message = await messages.receive();
@@ -229,6 +242,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
 
   try {
     const documents: LanguageDocument[] = [];
+    let queries: LanguageQuery[] = [];
 
     while (true) {
       if (!busy && outbox.pending.length > 0) {
@@ -251,52 +265,113 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
 
       if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
 
-      if (message.kind === 'document') {
+      if (message.kind === 'document' || message.kind === 'query') {
         const document = message.document;
 
-        if (document === undefined) continue;
-        const path = clone(document.path);
-        const index = documents.findIndex((entry) => entry.path === path);
-        const uri = documentUri(document.path);
-        const session = clone(document.session);
-        const fresh = !documents.some((entry) => entry.path === path && entry.session === session);
+        if (document !== undefined) {
+          const path = clone(document.path);
+          const index = documents.findIndex((entry) => entry.path === path);
+          const uri = documentUri(document.path);
+          const session = clone(document.session);
+          const fresh = !documents.some((entry) => entry.path === path && entry.session === session);
 
-        if (index >= 0 && fresh) enqueue(outbox, JSON.stringify({
-          jsonrpc: '2.0', method: 'textDocument/didClose', params: {
-            textDocument: {
-              uri: clone(uri)
-            }
-          }
-        }));
-
-        if (index >= 0) documents.splice(index, 1);
-        documents.push(clone(document));
-
-        if (fresh) {
-          enqueue(outbox, JSON.stringify({
-            jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
+          if (index >= 0 && fresh) enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didClose', params: {
               textDocument: {
-                uri, languageId: 'tsrust', version: document.version, text: clone(document.text)
+                uri: clone(uri)
               }
             }
           }));
-        } else {
-          const changes: TextChange[] = [{
-            text: clone(document.text)
-          }];
+
+          for (const pending of queries.filter((query) => query.document.path === path)) {
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: '$/cancelRequest', params: {
+                id: 'studio:' + pending.id
+              }
+            }));
+          }
+
+          queries = queries.filter((query) => query.document.path !== path);
+
+          if (index >= 0) documents.splice(index, 1);
+          documents.push(clone(document));
+
+          if (fresh) {
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
+                textDocument: {
+                  uri, languageId: 'tsrust', version: document.version, text: clone(document.text)
+                }
+              }
+            }));
+          } else {
+            const changes: TextChange[] = [{
+              text: clone(document.text)
+            }];
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: 'textDocument/didChange', params: {
+                textDocument: {
+                  uri, version: document.version
+                }, contentChanges: changes
+              }
+            }));
+          }
+        }
+
+      }
+
+      if (message.kind === 'cancel') {
+        const id = message.queryId ?? '';
+
+        if (queries.some((query) => query.id === id)) {
+          queries = queries.filter((query) => query.id !== id);
           enqueue(outbox, JSON.stringify({
-            jsonrpc: '2.0', method: 'textDocument/didChange', params: {
-              textDocument: {
-                uri, version: document.version
-              }, contentChanges: changes
+            jsonrpc: '2.0', method: '$/cancelRequest', params: {
+              id: 'studio:' + id
             }
           }));
+        }
+      }
+
+      if (message.kind === 'query') {
+        const query = message.query;
+
+        if (query !== undefined) {
+          const identity = clone(query.document);
+          const queryId = clone(query.id);
+          const current = documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
+          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion';
+
+          if (current && allowed && queries.length < 32 && !queries.some((entry) => entry.id === queryId)) {
+            queries.push(clone(query));
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', id: 'studio:' + query.id, method: clone(query.method), params: {
+                textDocument: {
+                  uri: documentUri(identity.path)
+                }, position: clone(query.position)
+              }
+            }));
+          } else {
+            await updates.send({
+              kind: 'query', generation, message: 'Language request is unavailable or outdated.', query: clone(query), result: 'null'
+            });
+          }
         }
       }
 
       if (message.kind === 'close') {
         const path = message.path ?? '';
         const index = documents.findIndex((entry) => entry.path === path);
+
+        for (const pending of queries.filter((query) => query.document.path === path)) {
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: '$/cancelRequest', params: {
+              id: 'studio:' + pending.id
+            }
+          }));
+        }
+
+        queries = queries.filter((query) => query.document.path !== path);
 
         if (index >= 0) {
           documents.splice(index, 1);
@@ -315,6 +390,24 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
       const envelope = envelopeFrom(body);
 
       if (envelope.jsonrpc !== '2.0') throw 'Invalid language server protocol.';
+
+      if (envelope.method === undefined && envelope.id !== undefined) {
+        const id = clone(envelope.id);
+        const index = queries.findIndex((query) => JSON.stringify('studio:' + query.id) === id);
+
+        if (index >= 0) {
+          const query = clone(queries[index]);
+          const queryId = clone(query.id);
+          queries = queries.filter((pending) => pending.id !== queryId);
+          const value = unwrap(parse(body, limits()));
+          const result = unwrap(get(value, 'result'));
+          await updates.send({
+            kind: 'query', generation, message: envelope.error === undefined ? '' : clone(envelope.error.message), query: clone(query), result: result === undefined ? 'null' : unwrap(stringify(result, 16 * 1024 * 1024))
+          });
+        }
+
+        continue;
+      }
 
       if (envelope.method === 'textDocument/publishDiagnostics') {
         const reply = JSON.parse<DiagnosticNotification>(body, limits());

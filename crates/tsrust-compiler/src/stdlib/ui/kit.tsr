@@ -7773,6 +7773,10 @@ export interface CodeEditorProps {
   onSubmit?: Owned<Function<void, [secondary: boolean]>>;
   /** Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it. */
   onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
+  /** Receives JSON {id, method, params, text} for native hover/completion. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers. */
+  onLanguageRequest?: Owned<Function<void, [request: ReadOnly<string>]>>;
+  /** Receives the window-scoped request id when native hover/completion is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored. */
+  onLanguageCancel?: Owned<Function<void, [request: int]>>;
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
 }
@@ -8048,6 +8052,18 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (event_onPaste !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'paste', event_onPaste));
+  }
+
+  const event_onLanguageRequest = props.onLanguageRequest;
+
+  if (event_onLanguageRequest !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'languageRequest', event_onLanguageRequest));
+  }
+
+  const event_onLanguageCancel = props.onLanguageCancel;
+
+  if (event_onLanguageCancel !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'languageCancel', event_onLanguageCancel));
   }
 
   return node;

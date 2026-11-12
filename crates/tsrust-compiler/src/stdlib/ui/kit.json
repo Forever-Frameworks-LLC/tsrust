@@ -5279,6 +5279,18 @@
           "value": "predicate",
           "param": "payload",
           "doc": "Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it."
+        },
+        {
+          "prop": "onLanguageRequest",
+          "value": "string",
+          "param": "request",
+          "doc": "Receives JSON {id, method, params, text} for native hover/completion. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+        },
+        {
+          "prop": "onLanguageCancel",
+          "value": "int",
+          "param": "request",
+          "doc": "Receives the window-scoped request id when native hover/completion is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored."
         }
       ]
     },

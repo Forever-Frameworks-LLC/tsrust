@@ -581,6 +581,7 @@ pub struct InputBaseState<M: InputModeKind> {
 
     /// A flag to indicate if we are currently inserting a completion item.
     pub(super) completion_inserting: bool,
+    pub(super) snippet: Option<super::snippets::Snippet>,
     pub(super) overlay_action_handler: Option<
         Rc<
             dyn Fn(
@@ -1048,6 +1049,7 @@ impl<M: InputModeKind> InputBaseState<M> {
             pending_context_menu: None,
             enable_context_menu: true,
             completion_inserting: false,
+            snippet: None,
             overlay_action_handler: None,
             silent_replace_text: false,
             emit_events: true,
@@ -1262,6 +1264,7 @@ impl<M: InputModeKind> InputBaseState<M> {
         cx: &mut Context<Self>,
     ) {
         let content = value.into();
+        self.snippet = None;
         self.inline_tokens = None;
         self.undo_manager.set_ignoring(true);
         self.emit_events = false;
@@ -2475,6 +2478,8 @@ impl<M: InputModeKind> InputBaseState<M> {
             return;
         }
 
+        self.snippet = None;
+
         // Escape also dismisses a request whose popup has not arrived yet.
         M::hide_context_menu(self, cx);
 
@@ -3340,6 +3345,9 @@ impl<M: InputModeKind> InputBaseState<M> {
         selection_before: CursorSelection,
         selection_after: Option<CursorSelection>,
     ) -> bool {
+        if self.snippet.as_mut().is_some_and(|snippet| !snippet.adjust(range, new_text.len())) {
+            self.snippet = None;
+        }
         self.document_revision = self.document_revision.wrapping_add(1);
         let token_delta = self.edit_tokens(range, new_text.len());
         if self.undo_manager.is_ignoring() {
@@ -3390,6 +3398,7 @@ impl<M: InputModeKind> InputBaseState<M> {
     }
 
     fn replay_history(&mut self, undo: bool, window: &mut Window, cx: &mut Context<Self>) {
+        self.snippet = None;
         if !self.is_editable() {
             return;
         }
@@ -3560,6 +3569,29 @@ impl<M: InputModeKind> InputBaseState<M> {
     ///
     /// Non-empty ranges expand to character boundaries. Empty ranges remain empty and are
     /// clipped to the preceding character boundary.
+    pub(super) fn select_snippet_stop(&mut self, cx: &mut Context<Self>) {
+        let Some(snippet) = &self.snippet else { return; };
+        let ranges = snippet.stops.iter().filter(|(number, _)| *number == snippet.active)
+            .map(|(_, range)| range.clone()).collect::<Vec<_>>();
+        let finished = snippet.active == 0;
+        for (index, range) in ranges.into_iter().enumerate() {
+            if index == 0 { self.set_selected_range(range, cx); }
+            else { self.add_selection(range, cx); }
+        }
+        if finished { self.snippet = None; }
+    }
+
+    pub(super) fn advance_snippet(&mut self, backwards: bool, cx: &mut Context<Self>) -> bool {
+        let selection = self.selected_range();
+        let Some(snippet) = &mut self.snippet else { return false; };
+        if !snippet.contains(&selection) || !snippet.advance(backwards) {
+            self.snippet = None;
+            return false;
+        }
+        self.select_snippet_stop(cx);
+        true
+    }
+
     pub fn set_selected_range(&mut self, range: Range<usize>, cx: &mut Context<Self>) {
         self.set_selected_range_with_direction(range, false, cx);
     }

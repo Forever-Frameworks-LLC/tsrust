@@ -90,7 +90,7 @@ pub struct SourceIndex {
     end_scope: usize,
     pub(crate) checked_control_labels: Vec<(Span,Span)>,
     /// Import name regions with the completion items of the imported module.
-    import_exports: Vec<(Span, Vec<Value>)>,
+    import_exports: Vec<(Span, std::sync::Arc<Vec<Value>>)>,
     checked_views: Vec<(Span, String)>,
     checked_array_capabilities: Vec<(Span, tsrust_compiler::ArrayCapabilities)>,
     json_string_receivers: Vec<Span>,
@@ -3137,15 +3137,13 @@ impl SourceIndex {
         }
     }
     /// Offer the exports of a dependency between the braces of its import.
-    pub(crate) fn import_export_names<'a>(
-        &mut self,
-        names: Span,
-        dependency: &SourceIndex,
+    pub(crate) fn export_completions<'a>(
+        &self,
         exports: impl Iterator<Item = (&'a str, &'a str)>,
-    ) {
-        let items = exports
+    ) -> Vec<Value> {
+        exports
             .filter_map(|(exported,local)| {
-                let symbol = dependency.symbols.iter().find(|s| {
+                let symbol = self.symbols.iter().find(|s| {
                     s.name == local && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23 | 26)
                 })?;
                 let kind = match symbol.kind {
@@ -3156,21 +3154,27 @@ impl SourceIndex {
                 };
                 Some(json!({"label":exported,"kind":kind,"detail":symbol.signature.replacen(local,exported,1),"documentation":{"kind":"markdown","value":crate::documentation::render(&symbol.docs)}}))
             })
-            .collect();
-        self.import_exports.push((names, items));
+            .collect()
+    }
+    pub(crate) fn import_export_names(&mut self,names:Span,items:std::sync::Arc<Vec<Value>>) {
+        self.import_exports.push((names,items));
     }
     /// Offer the documented members of a native module between the braces of its import.
     pub(crate) fn import_native_names(&mut self, names: Span, module: &str) {
-        let items = builtins_for(module)
-            .into_iter()
-            .filter(|entry| entry["name"].is_string())
-            .map(|entry| {
-                let kind = if entry["name"].as_str().is_some_and(|name| tsrust_compiler::native_types::lookup(module, name).is_some()) { 22 } else { 3 };
+        // Module contracts are immutable; every project/source shares their completion JSON.
+        static CATALOGS: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeMap<String,std::sync::Arc<Vec<Value>>>>> = std::sync::OnceLock::new();
+        let mut catalogs=CATALOGS.get_or_init(Default::default).lock().expect("native import catalogs");
+        let items=catalogs.entry(module.to_owned()).or_insert_with(|| std::sync::Arc::new(
+            builtins_for(module).into_iter().filter(|entry| entry["name"].is_string()).map(|entry| {
+                let kind=if entry["name"].as_str().is_some_and(|name|tsrust_compiler::native_types::lookup(module,name).is_some()){22}else{3};
                 json!({"label":entry["name"],"kind":kind,"detail":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]}})
-            })
-            .collect();
-        self.import_exports.push((names, items));
+            }).collect()
+        )).clone();
+        // Unknown module strings must not grow a process-lifetime cache.
+        if items.is_empty() { catalogs.remove(module); }
+        self.import_exports.push((names,items));
     }
+
     fn inherit_interface_fields(&mut self) {
         let bases=self.interface_bases.clone();
         for _ in 0..=bases.len() {
@@ -4824,5 +4828,24 @@ mod async_declaration_scope_tests {
         let hidden=index.symbols.iter().find(|symbol|symbol.name=="hidden").expect("named async expression");
         assert_ne!(hidden.scope,0);
         assert!(index.symbols.iter().any(|symbol|symbol.name=="ordinary" && symbol.scope==0));
+    }
+}
+
+#[cfg(test)]
+mod native_import_catalog_tests {
+    use super::*;
+    #[test]
+    fn native_import_catalogs_share_storage_but_responses_are_independent() {
+        let source="import { } from 'std:ui';function main(){}";
+        let indices=(0..20).map(|_|SourceIndex::new(source)).collect::<Vec<_>>();
+        let shared=&indices[0].import_exports[0].1;
+        assert!(shared.len()>100);
+        assert!(indices.iter().all(|index|std::sync::Arc::ptr_eq(shared,&index.import_exports[0].1)));
+        let params=json!({"position":{"line":0,"character":9}});
+        let original=indices[0].request("textDocument/completion",&params,"file:///main.tsr").unwrap();
+        let mut response=original.clone();
+        response[0]["documentation"]=json!("local response only");
+        assert_eq!(indices[1].request("textDocument/completion",&params,"file:///main.tsr").unwrap(),original);
+        assert_ne!(response,original);
     }
 }

@@ -11,8 +11,8 @@ pub(crate) use diagnostic_popover::*;
 pub(crate) use hover_popover::*;
 
 use gpui::{
-    App, Div, ElementId, InteractiveElement as _, SharedString, Stateful, StyleRefinement,
-    Styled as _, Window, div, px, rems,
+    App, Div, ElementId, InteractiveElement as _, SharedString, Stateful, StyleRefinement, Pixels,
+    Styled as _, Window, div, rems,
 };
 
 use crate::{
@@ -23,6 +23,7 @@ use crate::{
 pub(super) fn render_markdown(
     id: impl Into<ElementId>,
     markdown: impl Into<SharedString>,
+    font_size: Pixels,
     _: &mut Window,
     cx: &mut App,
 ) -> TextView {
@@ -30,18 +31,18 @@ pub(super) fn render_markdown(
         .style(
             TextViewStyle::default()
                 .paragraph_gap(rems(0.5))
-                .heading_font_size(|level, rem_size| match level {
-                    1..=3 => rem_size * 1,
-                    4 => rem_size * 0.9,
-                    _ => rem_size * 0.8,
-                })
+                .heading_font_size(move |_, _| font_size)
                 .code_block(
                     StyleRefinement::default()
                         .bg(cx.theme().transparent)
                         .p_0()
-                        .text_size(px(11.)),
+                        .border_0()
+                        .rounded_none()
+                        .text_size(font_size),
                 ),
         )
+        .text_size(font_size)
+        .code_block_actions(|_, _, _| gpui::Empty)
         .selectable(true)
 }
 

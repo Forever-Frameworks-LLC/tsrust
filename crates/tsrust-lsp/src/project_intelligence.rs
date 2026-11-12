@@ -113,11 +113,17 @@ impl ProjectIndex {
     }
     pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
     pub fn with_diagnostics(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic]) -> Self {
+        Self::with_diagnostics_cancellable(graph, errors, || false).expect("uncancelled index")
+    }
+    pub fn with_diagnostics_cancellable(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic], cancelled: impl Fn() -> bool) -> Option<Self> {
+        if cancelled() { return None; }
         let mut index = Self::build(graph);
         for id in &graph.order {
+            if cancelled() { return None; }
             if graph.modules[id].data.is_some(){continue;}
             let mut source=index.indices.remove(id).expect("indexed project source");
-            source.recover_project_member_receivers(graph,id);
+            source.recover_project_member_receivers_cancellable(graph,id,&cancelled);
+            if cancelled() { return None; }
             if let Some(error)=errors.iter().filter(|error|error.code=="syntax" && error.location.source==*id)
                 .min_by_key(|error|error.location.span.start)
             {
@@ -125,13 +131,15 @@ impl ProjectIndex {
             }
             index.indices.insert(id.clone(),source);
         }
+        if cancelled() { return None; }
         index.refresh_references();
-        index
+        Some(index)
     }
     fn build(graph: &ProjectGraph) -> Self {
         let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
         let mut indices = BTreeMap::new();
         let mut declarations: BTreeMap<SourceId, SourceIndex> = BTreeMap::new();
+        let mut export_completions = BTreeMap::new();
         for id in &graph.order {
             let started = std::time::Instant::now();
             let module = &graph.modules[id];
@@ -166,7 +174,10 @@ impl ProjectIndex {
                 };
                 let dependency = &graph.modules[target];
                 let foreign = &declarations[target];
-                index.import_export_names(import.names, foreign, dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))));
+                let items=export_completions.entry(target.clone()).or_insert_with(||std::sync::Arc::new(
+                    foreign.export_completions(dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))))
+                ));
+                index.import_export_names(import.names,items.clone());
                 let Ok(uri) = file_uri(target) else {
                     continue;
                 };

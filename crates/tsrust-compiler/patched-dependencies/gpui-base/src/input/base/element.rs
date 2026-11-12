@@ -50,9 +50,9 @@ fn diagnostic_highlight_style(
 
 const BOTTOM_MARGIN_ROWS: usize = 3;
 pub(super) const RIGHT_MARGIN: Pixels = px(10.);
-pub(super) const LINE_NUMBER_RIGHT_MARGIN: Pixels = px(6.);
+pub(super) const LINE_NUMBER_RIGHT_MARGIN: Pixels = px(0.);
 const FOLD_ICON_WIDTH: Pixels = px(14.);
-const FOLD_ICON_HITBOX_WIDTH: Pixels = px(18.);
+const FOLD_ICON_HITBOX_WIDTH: Pixels = FOLD_ICON_WIDTH;
 /// Space between the gutter decoration strip and the line numbers.
 const GUTTER_DECORATION_GAP: Pixels = px(4.);
 /// Height of the pill an empty gutter decoration paints on a line boundary.

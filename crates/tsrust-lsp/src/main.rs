@@ -14,6 +14,7 @@ struct DocumentJob {
 }
 
 enum DiagnosticBatch {
+    Interrupted,
     Single(Vec<lsp_types::Diagnostic>),
     Project(
         tsrust_lsp::project_session::Buckets,
@@ -105,8 +106,8 @@ fn run(
     let (completed, results) = bounded::<Checked>(1);
     let scan_interrupt=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let worker_interrupt=std::sync::Arc::clone(&scan_interrupt);
-    // Analysis is synchronous. Dropping this thread's handle permits exit without
-    // waiting for an obsolete check. Cooperative interruption is compiler task C3.
+    // Stages skip obsolete work; an individual compiler pass is still synchronous.
+    // Dropping the handle permits exit without waiting for that pass.
     // One analysis worker with the compiler's stack, so deeply nested source
     // checks in the editor as it does on the command line.
     std::thread::Builder::new().name("tsrust-analysis".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
@@ -127,6 +128,8 @@ fn run(
             };
             let DocumentJob {snapshot, workspace} = job;
             let result = catch_unwind(AssertUnwindSafe(|| {
+                let cancelled = || worker_interrupt.load(std::sync::atomic::Ordering::Relaxed);
+                if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
                     let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
@@ -141,7 +144,9 @@ fn run(
                     }
                     if trace { eprintln!("[analysis] declarations={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     let result = workspace.check_with_diagnostics(&entry);
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     if trace { eprintln!("[analysis] check={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
                     let index = match &result {
@@ -149,11 +154,12 @@ fn run(
                         Err(errors) => {
                             tsrust_compiler::project::load_project_headers(workspace, &entry.0)
                                 .ok()
-                                .map(|graph| {
-                                    tsrust_lsp::project_intelligence::ProjectIndex::with_diagnostics(&graph, errors)
+                                .and_then(|graph| {
+                                    tsrust_lsp::project_intelligence::ProjectIndex::with_diagnostics_cancellable(&graph, errors, cancelled)
                                 })
                         }
                     };
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     if trace { eprintln!("[analysis] index={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
                     let errors = match result {Ok(analysis)=>analysis.warnings(),Err(errors)=>errors};
@@ -165,6 +171,7 @@ fn run(
                             )
                         })
                         .transpose()?;
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     let converted = tsrust_lsp::project_diagnostics::convert_all(workspace, &errors)
                         .map(|buckets| DiagnosticBatch::Project(buckets, index, actions));
                     if trace { eprintln!("[analysis] diagnostics={}ms", started.elapsed().as_millis()); }
@@ -197,12 +204,17 @@ fn run(
     let mut busy = false;
     // The document whose analysis the worker is running.
     let mut in_flight: Option<String> = None;
+    let mut in_flight_input: Option<(Snapshot, Option<tsrust_lsp::workspace::WorkspaceSnapshot>)> = None;
     let mut deferred: Vec<Deferred> = Vec::new();
     let mut initialized = false;
     let mut ready = false;
     let mut shutdown = false;
     let mut debounce = Duration::from_millis(200);
     loop {
+        if let Some((snapshot, workspace)) = &in_flight_input
+            && (shutdown || !documents.current(snapshot) || workspace.as_ref().is_some_and(|input| !projects.workspace.current(input))) {
+            scan_interrupt.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
         if busy && in_flight.is_none() && (shutdown || documents.pending_count()!=0 || scanner.due_in(Instant::now()).is_some()) {
             scan_interrupt.store(true,std::sync::atomic::Ordering::Relaxed);
         }
@@ -213,6 +225,8 @@ fn run(
         {
             let workspace = projects.prepare(&snapshot);
             in_flight = Some(snapshot.uri.clone());
+            in_flight_input = Some((snapshot.clone(), workspace.clone()));
+            scan_interrupt.store(false, std::sync::atomic::Ordering::Relaxed);
             jobs.send(Job::Document(DocumentJob {
                 snapshot,
                 workspace,
@@ -407,6 +421,7 @@ fn run(
                 };
                 busy = false;
                 in_flight = None;
+                in_flight_input = None;
                 let checked = match result {
                     Checked::WorkspaceInterrupted=>{
                         if !shutdown{scanner.dirty(Instant::now(),debounce);}
@@ -429,6 +444,7 @@ fn run(
                 };
                 if !shutdown && documents.current(&checked.snapshot) && checked.workspace.as_ref().is_none_or(|snapshot| projects.workspace.current(snapshot)) {
                     match checked.result {
+                        Ok(DiagnosticBatch::Interrupted) => { documents.reschedule(&checked.snapshot.uri, Instant::now(), debounce); },
                         Ok(DiagnosticBatch::Single(diagnostics)) => {
                             if scanner.covers(&checked.snapshot.uri) {continue;}
                             for publication in projects.forget_project(&checked.snapshot.uri) { publish_project(&connection, publication)?; }

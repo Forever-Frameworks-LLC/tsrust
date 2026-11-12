@@ -134,6 +134,25 @@ provider bridge and actual hover/completion/snippet UI remain unaccepted. Memory
 observations and exact focused evidence are in docs/agent-progress.md; no overall
 memory reduction or leak qualification is claimed.
 
+Native intelligence bridge, November 12: the existing editor now receives real
+hover/completion through a correlated, cancellable Tsrust session/controller. Live
+MAT verified automatic/member and explicit completion, insertion, numeric snippet
+placeholder replacement/Tab navigation with correct indentation, editor-sized
+syntax-highlighted documentation without inner boxes/language badges, single-line
+completion details and preserved explorer expansion during dirty-state changes.
+Guarded registered AI language reads share the controller, but integrated model
+hosting/full action parity remain open. Space/tab indentation, stale/cancelled
+responses and independent channel endpoints have focused regression evidence.
+
+Profiling found whole-project incomplete-code recovery and repeated immutable
+completion catalogs. Staged cancellation and shared catalogs are implemented;
+compiler passes already running remain synchronous. Actual later LSP observation
+still reached947.7MiB peak/617.9MiB idle, so overall memory/leak qualification is
+not passed. Compact retained location/reference metadata is the next investigation
+candidate. Signature UI, external servers and complete snippet-language support
+remain open. Exact checks, SDK identities and current preview are in the sole
+handoff; this section is not full intelligence or resource acceptance.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize
@@ -152,6 +171,54 @@ review/diffs and eventual debugger stepping must use the same guarded commands
 as the user; a tool catalog without executable integration is not acceptance.
 Reuse the existing native completion/hover/diff components where appropriate.
 Git, debugger and general extension UI follow these priorities.
+
+## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
+
+Evaluate and integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/)
+for shared filesystem traversal and matching. The crate supports Git-style ignore
+rules, file-type/glob filters and parallel walking. Current compiler discovery
+(`crates/tsrust-compiler/src/project/source_discovery.rs`) uses a serial read_dir
+worklist with only .git/node_modules/target directory exclusions; the LSP workspace
+scanner reuses it. Studio's tree and content-search paths must share the resulting
+policy through checked Tsrust APIs, rather than introduce handwritten Rust app logic.
+
+Priority: finish the active native hover/completion/snippet presentation and
+profile-driven LSP memory/cancellation section first. Then implement this discovery
+slice before expanding workspace indexing/search or starting Git/debugger/extension
+management. It improves traversal and exclusion behavior; it is not a replacement
+for fixing repeated type analysis or retained completion catalogs.
+
+Required implementation scope:
+
+- Use one shared walker/matcher with explicit caller policy. Workspace search and
+  background indexing honor configured ignore rules, with an editor option to
+  include ignored files. Tree visibility has an explicit configurable policy;
+  hidden project/config files must not disappear merely because ignore defaults
+  hide dotfiles.
+- Preserve compiler source-selection semantics. Project includes/excludes remain
+  authoritative; Git-ignore filtering is an explicit discovery policy, not an
+  implicit redefinition of compiler inputs. Explicitly opened/selected paths and
+  imports remain resolvable even when excluded from background discovery.
+- Preserve deterministic sorted/deduplicated results, current no-follow symlink
+  behavior, diagnostics for traversal failures and workspace boundaries. Cancel
+  obsolete scans. Reuse matching rules across initial scans and watcher updates.
+- Start with bounded worker concurrency appropriate to the8GiB machine. Use the
+  parallel walker only where measured traversal benefits justify its memory/I/O
+  cost; do not spawn another analysis pool or add arbitrary cache limits.
+- Keep UI and guarded AI search/discovery actions on the same checked operation,
+  with explicit workspace identity, exclusions and cancellation. Agents cannot
+  expand filesystem grants by selecting include-ignored.
+
+Acceptance: a focused shared fixture covers nested ignore rules/negation, hidden
+config files, explicit ignored files/imports, project includes/excludes, symlinks,
+errors, cancellation and deterministic output. Exercise real Studio search/index
+refresh after an ignore-file change. Record discovered-file counts, traversal time
+and peak memory for existing and replacement walkers on the same tree, separating
+cold/warm observations; no speedup claim without comparable measurements. Preserve
+full diagnostic coverage and reuse existing project/LSP acceptance witnesses.
+
+Status: planned and prioritized; dependency not added, traversal not replaced,
+performance not measured. References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
 
 ## Current native terminal integration — 2026-11-11
 

@@ -81,7 +81,7 @@ pub(crate) fn source_language(name:&str)->&str {
 pub(crate) fn highlighted_markdown(source: &str) -> String {
     let mut output=String::with_capacity(source.len());
     for line in source.split_inclusive('\n') {
-        let replacement=[("```tsrx","```tsx"),("```tsr","```typescript"),("~~~tsrx","~~~tsx"),("~~~tsr","~~~typescript")].into_iter().find_map(|(prefix,replacement)| {
+        let replacement=[("```tsrx","```tsx"),("```tsrust","```typescript"),("```tsr","```typescript"),("~~~tsrx","~~~tsx"),("~~~tsrust","~~~typescript"),("~~~tsr","~~~typescript")].into_iter().find_map(|(prefix,replacement)| {
             line.strip_prefix(prefix).filter(|tail|tail.is_empty() || tail.starts_with(char::is_whitespace)).map(|tail|(replacement,tail))
         });
         match replacement {Some((prefix,tail))=>{output.push_str(prefix);output.push_str(tail);},None=>output.push_str(line)}
@@ -99,7 +99,7 @@ mod markdown_tests {
     #[test]
     fn tsrust_fences_use_kit_grammars_without_changing_code_or_other_languages() {
         let source="```tsrx\r\n<Text>hello</Text>\r\n```\r\n```tsr\nconst x = 1;\n```\n```bash\ntsrust dev\n```\ninline ```tsr\n~~~tsrust\n";
-        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1));
+        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1).replacen("~~~tsrust\n","~~~typescript\n",1));
     }
 }
 
@@ -599,5 +599,39 @@ mod image_view_tests {
         for scroll in [r#"{"x":-1,"y":0,"request":1}"#,r#"{"x":0,"y":0}"#,r#"{"x":0,"y":0,"request":1,"extra":true}"#] {assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",scroll).is_err());}
         assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",r#"{"x":120,"y":80,"request":1}"#).is_ok());
 
+    }
+}
+
+#[cfg(any(test, feature = "gpui"))]
+pub(crate) fn language_markdown(method: &str, result: &mut serde_json::Value) {
+    fn markup(value: &mut serde_json::Value) {
+        if let Some(text)=value.as_str() { *value=highlighted_markdown(text).into(); }
+        else if let Some(parts)=value.as_array_mut() { for part in parts { markup(part); } }
+        else if value.get("kind").and_then(serde_json::Value::as_str)==Some("markdown") {
+            if let Some(text)=value.get_mut("value") { markup(text); }
+        } else if let Some(language)=value.get_mut("language") {
+            if let Some(name)=language.as_str() { *language=source_language(name).to_owned().into(); }
+        }
+    }
+    if method=="textDocument/hover" {
+        if let Some(contents)=result.get_mut("contents") { markup(contents); }
+    } else if method=="textDocument/completion" {
+        let items=if result.is_array() { result.as_array_mut() } else { result.get_mut("items").and_then(serde_json::Value::as_array_mut) };
+        if let Some(items)=items { for item in items { if let Some(doc)=item.get_mut("documentation") { markup(doc); } } }
+    }
+}
+
+#[cfg(test)]
+mod language_markdown_tests {
+    #[test]
+    fn hover_and_completion_fences_use_editor_grammars_without_touching_payloads() {
+        let mut hover=serde_json::json!({"contents":{"kind":"markdown","value":"```tsrust\nconst value = 1;\n```"}});
+        super::language_markdown("textDocument/hover",&mut hover);
+        assert_eq!(hover["contents"]["value"],"```typescript\nconst value = 1;\n```");
+        let mut completion=serde_json::json!({"items":[{"documentation":"```tsrx\n<Text />\n```","data":{"value":"```tsrust\nopaque\n```"}}]});
+        let data=completion["items"][0]["data"].clone();
+        super::language_markdown("textDocument/completion",&mut completion);
+        assert_eq!(completion["items"][0]["documentation"],"```tsx\n<Text />\n```");
+        assert_eq!(completion["items"][0]["data"],data);
     }
 }

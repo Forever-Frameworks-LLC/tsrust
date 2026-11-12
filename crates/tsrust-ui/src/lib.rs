@@ -40,6 +40,7 @@ mod visibility;
 mod kit;
 #[cfg(feature = "runtime")]
 mod commands;
+mod editor_language;
 #[cfg(feature = "runtime")]
 mod terminal_links;
 #[cfg(feature = "runtime")]

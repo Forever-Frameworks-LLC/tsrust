@@ -644,6 +644,21 @@ export function readTerminal(id: string, onRead: Owned<Function<void, [snapshot:
   }));
 }
 
+/** Result of delivering a language response to its native request. */
+export interface EditorLanguageDelivery {
+  /** False if the request expired, was cancelled, belongs to another window, or its text changed. */
+  accepted: boolean;
+}
+
+/** Replies to a CodeEditor onLanguageRequest in the current window. result is the JSON-encoded LSP hover or completion result, or 'null' to dismiss. Example: answerEditorLanguage(request.id, 'null', (_delivery) => {}); This only supplies native help; it never edits a document. Stale/cancelled requests are ignored. Ownership: result is copied; onResult runs once on delivery. */
+export function answerEditorLanguage(request: int, result: string, onResult: Owned<Function<void, [delivery: ReadOnly<EditorLanguageDelivery>]>>): void {
+  unwrap(nativeCommandReply('editor-language-reply', JSON.stringify({
+    request, result
+  }), (text: ReadOnly<string>): void => {
+    onResult(JSON.parse<EditorLanguageDelivery>(text));
+  }));
+}
+
 /** A field's text, selection and scroll position, read by readInput. */
 export interface InputSnapshot {
   /** False when no mounted field has the id; the other fields are then absent. */

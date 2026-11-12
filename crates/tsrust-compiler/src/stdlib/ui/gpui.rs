@@ -28,6 +28,7 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
+        cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);
         #[cfg(feature = "gpui-http")]
         cx.set_http_client(std::sync::Arc::new(RemoteImages::new()));
         gpui_kit::component::set_locale(&super::i18n::locale());
@@ -88,7 +89,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -263,6 +264,7 @@ struct Root {
     input_options: HashMap<u64, std::collections::BTreeMap<String, String>>,
     /// Kit component state entities (select, sliders, pickers), by node.
     states: HashMap<u64, KitState>,
+    language_requests: std::rc::Rc<std::cell::RefCell<super::editor_language::Requests>>,
     /// The node whose dialog or sheet is open, if any.
     dialog: Option<u64>,
     sheet: Option<u64>,

@@ -48,6 +48,8 @@ import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
+import { LanguageState } from './services/lsp/controller.tsr';
+
 import communityThemes from './assets/themes/community.json';
 import studioThemes from './assets/themes/studio.json';
 
@@ -198,13 +200,18 @@ function App(
     recovery,
     settings
   );
+  const languageState = signal<LanguageState>({
+    generation: 0, ready: false, status: 'LSP: starting', detail: '', documents: [], version: 0, queries: [], readResults: []
+  });
   const editor = EditorWorkspace(
     workspace,
     font,
     recovery,
     mode,
     sidebar,
-    formatFocus
+    formatFocus,
+    languageState,
+    languageMessages.sender()
   );
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');
@@ -362,7 +369,8 @@ function App(
           font,
           languageMessages.sender(),
           languageMessages.sender(),
-          languageUpdates
+          languageUpdates,
+          languageState
         )}
         {UnsavedFiles(workspace, recovery, font)}
         <Text>

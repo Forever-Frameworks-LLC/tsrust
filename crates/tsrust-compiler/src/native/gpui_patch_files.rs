@@ -107,6 +107,7 @@ const GPUI_FILES:&[(&str,&[u8])]=&[
     ("src/input/editor/lsp/semantic_tokens.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/lsp/semantic_tokens.rs")),
     ("src/input/editor/mod.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/mod.rs")),
     ("src/input/editor/search.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/search.rs")),
+    ("src/input/editor/snippets.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/editor/snippets.rs")),
     ("src/input/input/mod.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/input/mod.rs")),
     ("src/input/mod.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/mod.rs")),
     ("src/input/scrollbar_presentation.rs",include_bytes!("../../patched-dependencies/gpui-base/src/input/scrollbar_presentation.rs")),

@@ -82,6 +82,48 @@ use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
+use gpui_kit::base::input::{HoverProvider, CompletionProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
+
+struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64 }
+impl EditorLanguageProvider {
+    fn request(&self, method: &str, text: &Rope, params: serde_json::Value, cx: &mut App) -> Task<serde_json::Value> {
+        let (root,target,method,text)=(self.root.clone(),self.target,method.to_owned(),text.to_string());
+        // A programmatic edit may still borrow Root. Enter it on the next task poll.
+        cx.spawn(async move |cx| {
+            let result = root.update(cx, |root, cx| {
+                let (id, mut reply) = super::editor_language::Requests::begin(&root.language_requests,target,&method,text.clone());
+                let owner = root.command_owner.context();
+                reply.on_cancel = Some(Box::new(move || {let _scope=owner();let _=commands::command("editor-language-wake","{}");}));
+                root.emit(target,"languageRequest",serde_json::json!({"id":id,"method":method,"params":params,"text":text}).to_string(),cx);
+                reply
+            });
+            let Ok(reply)=result else{return serde_json::Value::Null};
+            let mut reply=Box::pin(reply);
+            let mut timer=Box::pin(cx.background_executor().timer(std::time::Duration::from_secs(5)));
+            std::future::poll_fn(move |cx| {
+                if let std::task::Poll::Ready(value)=std::future::Future::poll(reply.as_mut(),cx) {return std::task::Poll::Ready(value);}
+                if std::future::Future::poll(timer.as_mut(),cx).is_ready() {return std::task::Poll::Ready(serde_json::Value::Null);}
+                std::task::Poll::Pending
+            }).await
+        })
+    }
+}
+impl HoverProvider for EditorLanguageProvider {
+    fn hover(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::Hover>>> {
+        let task=self.request("textDocument/hover",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/hover",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl CompletionProvider for EditorLanguageProvider {
+    fn completions(&self, text: &Rope, offset: usize, context: LanguageTypes::CompletionContext, _: &mut Window, cx: &mut App) -> Task<LanguageResult<LanguageTypes::CompletionResponse>> {
+        let task=self.request("textDocument/completion",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null),"context":context}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/completion",&mut value); Ok(if value.is_null(){LanguageTypes::CompletionResponse::Array(vec![])}else{serde_json::from_value(value)?})})
+    }
+    fn is_completion_trigger(&self, _: usize, text: &str, _: &mut App) -> bool {
+        text.chars().count()==1 && text.chars().all(|ch|ch.is_alphanumeric() || matches!(ch,'_'|'.'|':'))
+    }
+}
+
 
 /// One List row: a ListItem (or ListSeparator) node with its searchable text.
 #[derive(Clone)]
@@ -1690,8 +1732,20 @@ impl Root {
                         // Rebuild the items when the TreeItem children change.
                         let current = tree_shape(&self.node, id);
                         if *shape != current {
-                            let items = find(&self.node, id).map(tree_items).unwrap_or_default();
-                            state.update(cx, |state, cx| state.set_items(items, cx));
+                            let (expanded,selected) = {
+                                let current=state.read(cx);
+                                let mut expanded=HashMap::new();
+                                let mut roots=Vec::new();
+                                let mut index=0;
+                                while let Some(entry)=current.entry(index) {if entry.is_root(){roots.push(entry.item());}index+=1;}
+                                while let Some(item)=roots.pop(){expanded.insert(item.id.clone(),item.is_expanded());roots.extend(item.children.iter());}
+                                (expanded,current.selected_item().map(|item|item.id.clone()))
+                            };
+                            let items = find(&self.node, id).map(|node|tree_items(node,&expanded)).unwrap_or_default();
+                            state.update(cx, |state, cx| {
+                                state.set_items(items, cx);
+                                state.set_selected_index(selected.as_ref().and_then(|id|state.index_of(id)),cx);
+                            });
                             if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
                         }
                         if let Some(KitState::Tree(state, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
@@ -1957,6 +2011,11 @@ impl Root {
                         if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
                     });
+                    let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
+                    if has_language {
+                        let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id});
+                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider);});
+                    }
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
                         match event {
                             InputEvent::Change => this.emit(id,"change",state.read(cx).value().to_string(),cx),
@@ -2146,7 +2205,7 @@ impl Root {
                     KitState::Scroller(cx.new(|cx| MessageScrollerState::new(count, cx)), count)
                 }
                 "Tree" => {
-                    let items = find(&self.node, id).map(tree_items).unwrap_or_default();
+                    let items = find(&self.node, id).map(|node|tree_items(node,&HashMap::new())).unwrap_or_default();
                     let state = cx.new(|cx| TreeState::new(cx).items(items));
                     if let Some(selected) = props.get("selected").or(props.get("defaultSelected")).cloned() {
                         state.update(cx, |state, cx| tree_select(state, &selected.into(), cx));
@@ -2354,8 +2413,13 @@ impl Root {
     }
 
     /// Run queued application commands; replies refresh the tree like handlers.
+    fn flush_language_cancellations(&mut self, cx: &mut Context<Self>) {
+        let cancellations=self.language_requests.borrow_mut().cancellations(|id|self.states.contains_key(&id));
+        for (target,id) in cancellations {self.emit(target,"languageCancel",id.to_string(),cx);}
+    }
     fn run_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let _scope=self.scope();
+        self.flush_language_cancellations(cx);
         commands::set_dark(matches!(window.appearance(), WindowAppearance::Dark | WindowAppearance::VibrantDark));
         // GPUI Kit's own strings (calendar months, placeholders) follow the app locale.
         if super::i18n::take_changed() {gpui_kit::component::set_locale(&super::i18n::locale());}
@@ -2392,6 +2456,7 @@ impl Root {
                         "quit" => cx.quit(),
                         "open-url" => cx.open_url(&text("url")),
                         "input" => self.control_input(&value, window, cx),
+                        "editor-language-wake" => {},
                         "relaunch" => match super::update::relaunch() {Ok(()) => cx.quit(), Err(error) => window.push_notification(Notification::error(error), cx)},
                         _ => cx.write_to_clipboard(ClipboardItem::new_string(text("text"))),
                     }
@@ -2420,6 +2485,15 @@ impl Root {
                         #[cfg(not(feature="gpui-terminal"))]
                         let response = if name == "read-terminal" {serde_json::json!({"found": false, "error": "Native terminal support is not selected"})} else {serde_json::json!({"ok": false, "error": "Native terminal support is not selected"})};
                         self.reply(reply, &response.to_string(), cx);
+                        continue;
+                    }
+                    if name == "editor-language-reply" {
+                        let token=value.get("request").and_then(|value|value.as_u64()).unwrap_or(0);
+                        let target=self.language_requests.borrow().target(token);
+                        let text=target.and_then(|id|self.states.get(&id)).and_then(|state|if let KitState::Editor(state,_)=state{Some(state.read(cx).value().to_string())}else{None});
+                        let result=value.get("result").and_then(|value|value.as_str()).filter(|text|text.len()<=16*1024*1024).and_then(|text|serde_json::from_str(text).ok()).unwrap_or(serde_json::Value::Null);
+                        let accepted=self.language_requests.borrow_mut().resolve(token,text.as_deref(),result);
+                        self.reply(reply, &serde_json::json!({"accepted":accepted}).to_string(), cx);
                         continue;
                     }
                     if name == "read-input" {
@@ -3762,12 +3836,13 @@ impl Root {
 }
 
 /// TreeItem children as GPUI Kit tree items, recursively.
-fn tree_items(node: &Node) -> Vec<TreeItem> {
+fn tree_items(node: &Node, expanded: &HashMap<SharedString,bool>) -> Vec<TreeItem> {
     items(node, "TreeItem").map(|(child, item)| {
         // A TreeItem's id defaults to its label; expanded/defaultExpanded opens a folder.
         let label = item.text("label");
         let id = item.prop("id").map_or_else(|| label.clone(), str::to_owned);
-        TreeItem::new(id, label).expanded(item.prop("expanded").map_or(item.flag("defaultExpanded"), |open| open == "true")).disabled(item.flag("disabled")).children(tree_items(child))
+        let open=item.prop("expanded").map_or_else(||expanded.get(id.as_str()).copied().unwrap_or(item.flag("defaultExpanded")), |open| open=="true");
+        TreeItem::new(id, label).expanded(open).disabled(item.flag("disabled")).children(tree_items(child,expanded))
     }).collect()
 }
 

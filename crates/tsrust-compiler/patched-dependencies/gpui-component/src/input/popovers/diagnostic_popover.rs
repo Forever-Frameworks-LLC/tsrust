@@ -38,6 +38,7 @@ impl Render for DiagnosticPopover {
             return Empty.into_any_element();
         };
         let message = self.diagnostic.message.clone();
+        let font_size = state.read(cx).display_map().font_size();
 
         let (border, bg, fg) = (
             crate::highlighter::diagnostic_border(self.diagnostic.severity, cx),
@@ -49,7 +50,7 @@ impl Render for DiagnosticPopover {
             "diagnostic-popover",
             state,
             self.diagnostic.range.clone(),
-            move |window, cx| render_markdown("message", message.clone(), window, cx),
+            move |window, cx| render_markdown("message", message.clone(), font_size, window, cx),
         )
         .px_1()
         .py_0p5()

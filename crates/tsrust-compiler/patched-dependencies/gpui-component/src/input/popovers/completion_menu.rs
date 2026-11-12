@@ -4,7 +4,7 @@ use gpui::{
     Action, AnyElement, App, AppContext, Context, DismissEvent, Empty, Entity, EventEmitter,
     HighlightStyle, InteractiveElement as _, IntoElement, ParentElement, Pixels, Render,
     RenderOnce, SharedString, Styled, StyledText, Subscription, WeakEntity, Window, deferred, div,
-    prelude::FluentBuilder, px, rems,
+    prelude::FluentBuilder, px, relative,
 };
 use gpui_base::TestSupportExt as _;
 use gpui_base::input::CompletionHighlighter;
@@ -80,6 +80,7 @@ impl ContextMenuDelegate {
 
 #[derive(IntoElement)]
 struct CompletionMenuItem {
+    font_size: Pixels,
     ix: usize,
     item: Rc<CompletionItem>,
     children: Vec<AnyElement>,
@@ -90,12 +91,14 @@ struct CompletionMenuItem {
 
 impl CompletionMenuItem {
     fn new(
+        font_size: Pixels,
         ix: usize,
         item: Rc<CompletionItem>,
         query: SharedString,
         highlight: Rc<CompletionHighlighter>,
     ) -> Self {
         Self {
+            font_size,
             ix,
             item,
             children: vec![],
@@ -145,10 +148,10 @@ impl RenderOnce for CompletionMenuItem {
         MenuItemElement::new(self.ix)
             .aria_label(item.label.clone())
             .selected(self.selected)
-            .text_sm()
+            .text_size(self.font_size)
             .py_0()
             .px_2()
-            .h(rems(26. / 16.))
+            .h((self.font_size * 1.625).max(px(18.)))
             .mb_0p5()
             .rounded(cx.theme().radius)
             .when(item.deprecated.unwrap_or(false), |this| this.line_through())
@@ -157,10 +160,14 @@ impl RenderOnce for CompletionMenuItem {
                     .w_full()
                     .gap_3()
                     .justify_between()
-                    .child(StyledText::new(item.label.clone()).with_highlights(highlights))
+                    .overflow_hidden()
+                    .child(div().flex_1().min_w_0().truncate().child(StyledText::new(item.label.clone()).with_highlights(highlights)))
                     .when_some(item.detail.as_ref(), |this, detail| {
                         this.child(
-                            Label::new(detail.clone())
+                            Label::new(detail.replace(['\r','\n'], " "))
+                                .max_w(relative(0.5))
+                                .min_w_0()
+                                .truncate()
                                 .text_color(cx.theme().muted_foreground)
                                 .when(deprecated, |this| this.line_through())
                                 .italic(),
@@ -184,10 +191,13 @@ impl ListDelegate for ContextMenuDelegate {
         &mut self,
         ix: crate::IndexPath,
         _: &mut Window,
-        _: &mut Context<ListState<Self>>,
+        cx: &mut Context<ListState<Self>>,
     ) -> Option<Self::Item> {
         let item = self.items.get(ix.row)?;
+        let editor = self.menu.read(cx).editor.upgrade()?;
+        let font_size = editor.read(cx).display_map().font_size();
         Some(CompletionMenuItem::new(
+            font_size,
             ix.row,
             item.clone(),
             self.query.clone(),
@@ -427,6 +437,7 @@ impl Render for CompletionMenu {
         // The anchor is resolved in the popup's deferred prepaint from the
         // input's current-frame geometry; the content below is built there.
         let configured_max = editor.read(cx).lsp().completion_menu.max_width;
+        let font_size = editor.read(cx).display_map().font_size();
         let list = self.list.clone();
         let menu = cx.weak_entity();
 
@@ -454,7 +465,7 @@ impl Render for CompletionMenu {
                     .child(
                         editor_popover("completion-menu", cx)
                             .popover_style(cx)
-                            .text_sm()
+                            .text_size(font_size)
                             // Each virtual row includes the menu's inter-item gap.
                             .pb_0p5()
                             .test_support()
@@ -475,10 +486,10 @@ impl Render for CompletionMenu {
                             div().child(
                                 editor_popover("completion-menu", cx)
                                     .popover_style(cx)
-                                    .text_sm()
+                                    .text_size(font_size)
                                     .w(configured_max)
                                     .px_2()
-                                    .child(render_markdown("doc", doc, window, cx)),
+                                    .child(render_markdown("doc", doc, font_size, window, cx)),
                             ),
                         )
                     })

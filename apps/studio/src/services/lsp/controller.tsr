@@ -1,11 +1,17 @@
 import { Channel, Sender } from 'std:futures';
 import { extname } from 'std:path';
-import { Signal } from 'std:ui';
+import { Signal, answerEditorLanguage } from 'std:ui';
 
-import { LanguageIdentity } from '../../lib/language/diagnostics.tsr';
+import { LanguageIdentity, LanguageDocument, DiagnosticPosition, languageIdentity } from '../../lib/language/diagnostics.tsr';
 import { Problem, replaceProblems, operationProblem } from '../../lib/workspace/problems.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { LanguageMessage, LanguageUpdate } from './session.tsr';
+import { LanguageMessage, LanguageUpdate, LanguageQuery } from './session.tsr';
+
+export interface LanguageReadResult {
+  query: LanguageQuery;
+  result: string;
+  error: string;
+}
 
 export interface LanguageState {
   generation: int;
@@ -14,6 +20,8 @@ export interface LanguageState {
   detail: string;
   documents: LanguageIdentity[];
   version: int;
+  queries: LanguageQuery[];
+  readResults: LanguageReadResult[];
 }
 
 
@@ -40,6 +48,13 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           next.status = update.kind === 'failed' ? 'LSP: failed' : 'LSP: starting';
           next.detail = clone(update.message);
           next.documents = [];
+
+          for (const pending of next.queries) {
+            if (pending.nativeRequest !== undefined) answerEditorLanguage(pending.nativeRequest, 'null', (_delivery) => {});
+          }
+
+          next.queries = [];
+          next.readResults = [];
           current = replaceProblems(current, 'lsp:tsrust', []);
 
           if (update.kind === 'failed') current.push(operationProblem('lsp:tsrust', '', clone(update.message)));
@@ -51,6 +66,33 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           next.ready = true;
           next.status = 'LSP: connected';
           next.detail = clone(update.message);
+        }
+
+        if (update.kind === 'query' && next.ready) {
+          const query = update.query;
+
+          if (query !== undefined) {
+            const queryId = clone(query.id);
+            const index = next.queries.findIndex((entry) => entry.id === queryId);
+            stateChanged = true;
+
+            if (index >= 0) {
+              const pending = clone(next.queries[index]);
+              next.queries = next.queries.filter((entry) => entry.id !== queryId);
+              const target = clone(pending.document);
+              const matches = files.some((file) => file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision);
+
+              if (pending.nativeRequest !== undefined) {
+                answerEditorLanguage(pending.nativeRequest, matches ? update.result ?? 'null' : 'null', (_delivery) => {});
+              } else {
+                const results = next.readResults;
+                results.push({
+                  query: clone(pending), result: matches ? update.result ?? 'null' : 'null', error: matches ? clone(update.message) : 'Language document changed.'
+                });
+                next.readResults = results;
+              }
+            }
+          }
         }
 
         if (update.kind === 'diagnostics' && next.ready) {
@@ -68,6 +110,33 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
         }
       }
     }
+  }
+
+  for (const pending of clone(next.queries)) {
+    const target = clone(pending.document);
+
+    if (files.some((file) => file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision)) continue;
+    const id = clone(pending.id);
+
+    match (messages.trySend({
+      kind: 'cancel', generation: next.generation, queryId: clone(id)
+    })) {
+      Ok(_) => {},
+      Err(_) => {}
+    }
+
+    next.queries = next.queries.filter((query) => query.id !== id);
+
+    if (pending.nativeRequest !== undefined) answerEditorLanguage(pending.nativeRequest, 'null', (_delivery) => {});
+    stateChanged = true;
+  }
+
+  const resultCount = next.readResults.length;
+  const retained = next.readResults.filter((result) => files.some((file) => file.document.path === result.query.document.path && file.document.session === result.query.document.session && file.document.revision === result.query.document.revision));
+
+  if (retained.length !== resultCount) {
+    next.readResults = retained;
+    stateChanged = true;
   }
 
   if (next.ready) {
@@ -118,4 +187,132 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
   if (problemsChanged) problems.set(current);
 
   if (stateChanged) state.set(next);
+}
+
+interface NativeLanguageRequest {
+  id: int;
+  method: string;
+  params: NativeLanguageParams;
+  text: string;
+}
+
+interface NativeLanguageParams {
+  position: DiagnosticPosition;
+}
+
+export interface LanguageRead {
+  path: string;
+  session: string;
+  revision: int;
+  method: string;
+  position: DiagnosticPosition;
+}
+
+export function queueLanguageRead(
+  workspace: ReadOnly<Workspace>,
+  state: Mutable<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  id: string,
+  request: ReadOnly<LanguageRead>,
+  nativeRequest: int | undefined
+): Result<void, string> {
+  if (!state.ready) return Err('Language service is not connected.');
+
+  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion') return Err('Unsupported language read.');
+
+  if (request.position.line < 0 || request.position.character < 0) return Err('Invalid language position.');
+  const file = workspace.files.find((file) => file.document.path === request.path && file.document.session === request.session && file.document.revision === request.revision);
+
+  if (file === undefined || file.kind !== 'text') return Err('Language document changed.');
+
+  if (extname(request.path) !== '.tsr' && extname(request.path) !== '.tsrx') return Err('No language server is registered for this file.');
+  const pending = clone(state.queries);
+
+  if (pending.length + state.readResults.length >= 32 || pending.some((query) => query.id === id) || state.readResults.some((result) => result.query.id === id)) return Err('Language request queue is full or its identity is already in use.');
+  let version = state.version + 1;
+  let synchronize = true;
+  {
+    const sent = state.documents.find((entry) => entry.path === request.path && entry.session === request.session && entry.revision === request.revision);
+
+    if (sent !== undefined) {
+      version = sent.version;
+      synchronize = false;
+    }
+  }
+
+  const document: LanguageDocument = {
+    path: clone(request.path), session: clone(request.session), revision: request.revision, version, text: clone(file.document.text)
+  };
+  const query: LanguageQuery = {
+    id, method: clone(request.method), position: clone(request.position), document: languageIdentity(document), nativeRequest
+  };
+
+  match (messages.trySend({
+    kind: 'query', generation: state.generation, query: clone(query), document: synchronize ? clone(document) : undefined
+  })) {
+    Err(_) => {
+      return Err('Could not queue language request.');
+    },
+    Ok(_) => {}
+  }
+
+  if (synchronize) {
+    state.version = version;
+    state.documents = state.documents.filter((entry) => entry.path !== request.path);
+    state.documents.push(languageIdentity(document));
+  }
+
+  pending.push(query);
+  state.queries = pending;
+  return Ok();
+}
+
+export function requestNativeLanguage(workspace: Signal<Workspace>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, path: ReadOnly<string>, payload: ReadOnly<string>): void {
+  try {
+    const request = JSON.parse<NativeLanguageRequest>(payload, {
+      maxBytes: 16 * 1024 * 1024, maxDepth: 12, maxEntries: 64, maxNodes: 256
+    });
+    const current = workspace.get();
+    const file = current.files.find((file) => file.document.path === path && file.document.text === request.text);
+
+    if (file === undefined) {
+      answerEditorLanguage(request.id, 'null', (_delivery) => {});
+      return;
+    }
+
+    const next = state.get();
+
+    match (queueLanguageRead(
+      current,
+      next,
+      messages,
+      'editor:' + request.id.toString(),
+      {
+        path: clone(path), session: clone(file.document.session), revision: file.document.revision, method: clone(request.method), position: clone(request.params.position)
+      },
+      request.id
+    )) {
+      Ok(_) => {
+        state.set(next);
+      },
+      Err(_) => {
+        answerEditorLanguage(request.id, 'null', (_delivery) => {});
+      }
+    }
+  } catch (_) {}
+}
+
+export function cancelNativeLanguage(state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, request: int): void {
+  const next = state.get();
+  const id = 'editor:' + request.toString();
+  next.queries = next.queries.filter((query) => query.id !== id);
+
+  match (messages.trySend({
+    kind: 'cancel', generation: next.generation, queryId: id
+  })) {
+    Ok(_) => {},
+    Err(_) => {}
+  }
+
+  state.set(next);
 }

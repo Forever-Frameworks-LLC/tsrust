@@ -1,7 +1,11 @@
 import { Sender } from 'std:futures';
+import { Signal } from 'std:ui';
 
 import { Problem } from '../../lib/workspace/problems.tsr';
 import { EditorTool } from '../editor-tools.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { DiagnosticPosition } from '../../lib/language/diagnostics.tsr';
+import { LanguageState, queueLanguageRead } from './controller.tsr';
 import { LanguageMessage } from './session.tsr';
 
 export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage>>, generation: int): Result<void, string> {
@@ -36,10 +40,31 @@ export function languageTools(): EditorTool[] {
     name: 'language_service_status', description: 'Read the current workspace language-service status and source-labelled LSP diagnostics without changing focus or files. The trusted host must grant read access.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
   }, {
     name: 'restart_language_service', description: 'Restart the existing workspace language server through the same action as the status menu. Requires a trusted host process-control grant and matching connection generation; cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","generation"]}'
-  }];
+  }, ...languageReadTools()];
 }
 
-export function invokeLanguageTool(context: ReadOnly<LanguageToolContext>, requests: ReadOnly<Sender<LanguageMessage>>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+export function invokeLanguageTool(
+  context: ReadOnly<LanguageToolContext>,
+  requests: ReadOnly<Sender<LanguageMessage>>,
+  name: ReadOnly<string>,
+  payload: ReadOnly<string>,
+  workspace: Signal<Workspace> | undefined = undefined,
+  state: Signal<LanguageState> | undefined = undefined
+): Result<string, string> {
+  if (languageReadTools().some((tool) => tool.name === name)) {
+    if (workspace === undefined || state === undefined) return Err('Document language reads are unavailable in this host context.');
+    return invokeLanguageRead(
+      context,
+      workspace,
+      state,
+      requests,
+      name,
+      payload
+    );
+  }
+
+  if (name !== 'language_service_status' && name !== 'restart_language_service') return Err('Unknown language-service action.');
+
   if (!languageTools().some((tool) => tool.name === name)) return Err('Unknown language-service action.');
 
   if (payload.length > 4096) return Err('Invalid language-service arguments.');
@@ -63,6 +88,100 @@ export function invokeLanguageTool(context: ReadOnly<LanguageToolContext>, reque
     if (args.generation !== context.generation) return Err('Language-service connection changed.');
     unwrap(restartLanguageService(requests, context.generation));
     return Ok('{"queued":true}');
+  } catch (error) {
+    return Err(JSON.stringify(error));
+  }
+}
+
+interface LanguageReadArguments {
+  root: string;
+  id: string;
+  path: string;
+  session: string;
+  revision: int;
+  position?: DiagnosticPosition;
+}
+
+export function languageReadTools(): EditorTool[] {
+  const schema = '{"type":"object","properties":{"root":{"type":"string"},"id":{"type":"string"},"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["root","id","path","session","revision"]}';
+  const readSchema = schema.slice(0, schema.length - 2) + ',"position"]}';
+  return [{
+    name: 'language_hover', description: 'Queue a read-only LSP hover for an explicit current document and zero-based UTF-16 position. Requires host read permission. Does not focus, edit or save. Use language_read_result to receive it or language_cancel_read to cancel.', inputSchema: clone(readSchema)
+  }, {
+    name: 'language_completion', description: 'Queue current LSP completion candidates without inserting them. Requires an explicit document identity, zero-based UTF-16 position and host read grant. Returned edits are proposals only; this action cannot apply them.', inputSchema: clone(readSchema)
+  }, {
+    name: 'language_read_result', description: 'Consume a completed language read for the same explicit document identity; returns ready=false while pending. Rejects changed documents and other targets.', inputSchema: clone(schema)
+  }, {
+    name: 'language_cancel_read', description: 'Cancel the matching scoped language read and release its result without editing or changing editor focus.', inputSchema: schema
+  }];
+}
+
+export function invokeLanguageRead(
+  context: ReadOnly<LanguageToolContext>,
+  workspace: Signal<Workspace>,
+  state: Signal<LanguageState>,
+  requests: ReadOnly<Sender<LanguageMessage>>,
+  name: ReadOnly<string>,
+  payload: ReadOnly<string>
+): Result<string, string> {
+  if (!context.allowRead) return Err('Language-service read access is not permitted by the host.');
+
+  if (!languageReadTools().some((tool) => tool.name === name)) return Err('Unknown document language action.');
+
+  try {
+    const args = JSON.parse<LanguageReadArguments>(payload, {
+      maxBytes: 8192, maxDepth: 8, maxEntries: 32, maxNodes: 64
+    });
+    const current = workspace.get();
+
+    if (args.root !== context.root || args.root !== current.root) return Err('Language-service workspace changed.');
+
+    if (args.id.length === 0 || args.id.length > 128) return Err('Invalid language read identity.');
+
+    if (!current.files.some((file) => file.document.path === args.path && file.document.session === args.session && file.document.revision === args.revision)) return Err('Language document changed.');
+    const id = 'agent:' + args.id;
+    const next = state.get();
+
+    if (name === 'language_hover' || name === 'language_completion') {
+      const position = args.position;
+
+      if (position === undefined) return Err('A UTF-16 language position is required.');
+      unwrap(queueLanguageRead(
+        current,
+        next,
+        requests,
+        clone(id),
+        {
+          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : 'textDocument/completion', position: clone(position)
+        },
+        undefined
+      ));
+      state.set(next);
+      return Ok('{"queued":true}');
+    }
+
+    const pendingIndex = next.queries.findIndex((query) => query.id === id && query.document.path === args.path && query.document.session === args.session && query.document.revision === args.revision);
+    const resultIndex = next.readResults.findIndex((result) => result.query.id === id && result.query.document.path === args.path && result.query.document.session === args.session && result.query.document.revision === args.revision);
+
+    if (pendingIndex < 0 && resultIndex < 0) return Err('No matching language read.');
+
+    if (name === 'language_cancel_read') {
+      unwrap(requests.trySend({
+        kind: 'cancel', generation: next.generation, queryId: clone(id)
+      }));
+      next.queries = next.queries.filter((query) => query.id !== id);
+      next.readResults = next.readResults.filter((entry) => entry.query.id !== id);
+      state.set(next);
+      return Ok('{"cancelled":true}');
+    }
+
+    if (resultIndex < 0) return Ok('{"ready":false}');
+    const answer = JSON.stringify({
+      ready: true, result: clone(next.readResults[resultIndex].result), error: clone(next.readResults[resultIndex].error)
+    });
+    next.readResults = next.readResults.filter((entry) => entry.query.id !== id);
+    state.set(next);
+    return Ok(answer);
   } catch (error) {
     return Err(JSON.stringify(error));
   }

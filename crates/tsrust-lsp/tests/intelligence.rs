@@ -10249,3 +10249,19 @@ fn array_is_array_static_union_guards_keep_checked_project_help(){
  let id=SourceId(std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("json-array-guard-editor-{}",std::process::id())).join("main.tsr").to_string_lossy().into_owned());let uri=file_uri(&id).unwrap().to_string();let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.clone());let checked=workspace.snapshot().check_with_diagnostics(&id).unwrap();let index=ProjectIndex::checked(&checked);
  for occurrence in [0,1]{let hover=index.request("textDocument/hover",&json!({"position":at(&source,"value);",occurrence)}),&uri).unwrap().unwrap();assert!(hover["contents"]["value"].as_str().unwrap().contains("JsonValue"));}
 }
+
+#[test]
+fn result_snippets_keep_document_indentation() {
+    for indent in ["  ","\t"] {
+        let source=format!("function main(value:Result<int,string>){{\n{indent}match(value){{\n{indent}{indent}O\n{indent}}}\n}}");
+        let mut position=at(&source,"O\n",0);position.character+=1;
+        let result=SourceIndex::new(&source).request("textDocument/completion",&json!({"position":position}),"file:///snippet.tsr").unwrap();
+        let item=result.as_array().unwrap().iter().find(|item|item["label"]=="Ok").unwrap();
+        assert_eq!(item["textEdit"]["newText"],format!("Ok(${{1:value}}) => {{\n{indent}{indent}  $0\n{indent}{indent}}}"));
+        let source=format!("function main(value:Result<int,string>){{\n{indent}value.mat\n}}");
+        let mut position=at(&source,"mat\n",0);position.character+=3;
+        let result=SourceIndex::new(&source).request("textDocument/completion",&json!({"position":position}),"file:///snippet.tsr").unwrap();
+        let item=result.as_array().unwrap().iter().find(|item|item["label"]=="match").unwrap();
+        assert!(item["textEdit"]["newText"].as_str().unwrap().contains(&format!("\n{indent}    $0\n{indent}  }}")));
+    }
+}

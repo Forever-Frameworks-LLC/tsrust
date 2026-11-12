@@ -142,7 +142,7 @@ impl Analyzer {
                 (Some(NativeTypeId::CancellationToken),"isCancelled")=>Some("__tokenIsCancelled"),
                 (Some(NativeTypeId::CancellationToken),"cancelled")=>Some("__tokenCancelled"),
                 (Some(NativeTypeId::Job),"cancel")=>Some("__cancel"),
-                (Some(NativeTypeId::AsyncChannel),"sender")=>Some("__sender"),
+                (Some(NativeTypeId::AsyncChannel),"sender")|(Some(NativeTypeId::AsyncSender),"share")=>Some("__sender"),
                 (Some(NativeTypeId::AsyncChannel),"receive")=>Some("__receive"),
                 (Some(NativeTypeId::AsyncChannel),"tryReceive")=>Some("__tryReceive"),
                 (Some(NativeTypeId::AsyncChannel|NativeTypeId::AsyncSender),"trySend")=>Some("__trySend"),

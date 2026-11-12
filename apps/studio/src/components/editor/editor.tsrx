@@ -1,3 +1,4 @@
+import { Sender } from 'std:futures';
 import { extname } from 'std:path';
 import {
   View,
@@ -17,11 +18,24 @@ import { dirty } from '../../lib/workspace/documents.tsr';
 import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import { LanguageState, requestNativeLanguage, cancelNativeLanguage } from '../../services/lsp/controller.tsr';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { ImagePreview } from './image-preview.tsrx';
 
-export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, focusQueue: Signal<QueuedFormatting[]>): Node {
+export function FilePanel(
+  file: ReadOnly<OpenFile>,
+  workspace: Signal<Workspace>,
+  font: Signal<int>,
+  recovery: Signal<Recovery>,
+  focusQueue: Signal<QueuedFormatting[]>,
+  language: Signal<LanguageState>,
+  messages: Sender<LanguageMessage>
+): Node {
   const path = clone(file.document.path);
   const editPath = clone(path);
+  const languagePath = clone(path);
+  const languageRequests = messages.share();
+  const languageCancels = messages.share();
   const focusPath = clone(path);
   const blurPath = clone(path);
   const labelPath = clone(path);
@@ -86,6 +100,12 @@ export function FilePanel(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>
             id={clone(file.document.path)}
             language={extname(file.document.path).slice(1)}
             value={text.get()}
+            onLanguageRequest={(request) => {
+              requestNativeLanguage(workspace, language, languageRequests, languagePath, request);
+            }}
+            onLanguageCancel={(request) => {
+              cancelNativeLanguage(language, languageCancels, request);
+            }}
             onChange={(value) => {
               updateDraft(workspace, recovery, editPath, value);
             }}

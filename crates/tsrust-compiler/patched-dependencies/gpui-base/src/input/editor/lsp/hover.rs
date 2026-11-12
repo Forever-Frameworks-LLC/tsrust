@@ -44,6 +44,7 @@ impl InputBaseState<EditorMode> {
         }
 
         let text = self.text.clone();
+        let revision = self.document_revision;
         let mut symbol_range = self.text.word_range(offset).unwrap_or(offset..offset);
         let editor = cx.entity();
         let should_delay = self.extras.hover_popover.is_none();
@@ -62,6 +63,7 @@ impl InputBaseState<EditorMode> {
             let result = task.await?;
 
             _ = editor.update(cx, |editor, cx| {
+                if editor.document_revision != revision {return;}
                 match result {
                     Some(hover) => {
                         if let Some(range) = hover.range {

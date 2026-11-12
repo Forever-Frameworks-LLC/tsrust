@@ -9492,7 +9492,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
-                    if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
+                    if let Some(call) = self.future_native(fun, expr, id, args) { return Self::access_wrapped(expr, mode, call); }
                     if let Some(call)=self.ui_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.cache_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }

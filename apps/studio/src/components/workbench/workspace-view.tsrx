@@ -1,3 +1,4 @@
+import { Sender } from 'std:futures';
 import {
   View,
   Button,
@@ -13,6 +14,8 @@ import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
+import { LanguageState } from '../../services/lsp/controller.tsr';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
 
@@ -22,8 +25,19 @@ export function EditorWorkspace(
   recovery: Signal<Recovery>,
   mode: Signal<string>,
   sidebar: Signal<boolean>,
-  focusQueue: Signal<QueuedFormatting[]>
+  focusQueue: Signal<QueuedFormatting[]>,
+  language: Signal<LanguageState>,
+  messages: Sender<LanguageMessage>
 ): Node {
+  const renderFile = (file: ReadOnly<OpenFile>): Node => FilePanel(
+    file,
+    workspace,
+    font,
+    recovery,
+    focusQueue,
+    language,
+    messages.share()
+  );
   const layoutFailed = signal(false);
   const dockClass = computed<string>(() => 'size-full text-[' + font.get().toString() + 'px]');
   const initialLayout = clone(workspace.get().dockLayout);
@@ -72,7 +86,7 @@ export function EditorWorkspace(
             closeTab(workspace, recovery, clone(path));
           }}
         >
-          {...workspace.get().files.map((file: ReadOnly<OpenFile>) => FilePanel(file, workspace, font, recovery, focusQueue))}
+          {...workspace.get().files.map(renderFile)}
         </Dock>
       </View>
     </View>

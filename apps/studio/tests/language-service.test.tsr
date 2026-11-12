@@ -1,10 +1,10 @@
 import { fromUtf8 } from 'std:bytes';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
-import { Channel } from 'std:futures';
+import { Channel, Sender, CancellationToken } from 'std:futures';
 import { reader } from 'std:io';
 import { dirname, join } from 'std:path';
-import { test, strictEqual } from 'std:testing';
+import { test, strictEqual, startOutputCapture, finishOutputCapture } from 'std:testing';
 import { signal } from 'std:ui';
 
 import {
@@ -13,14 +13,15 @@ import {
   PublishedDiagnostics,
   documentProblems,
   documentUri,
-  diagnosticColumn
+  diagnosticColumn,
+  languageIdentity
 } from '../src/lib/language/diagnostics.tsr';
 import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool } from '../src/services/lsp/actions.tsr';
-import { LanguageState, pollLanguage } from '../src/services/lsp/controller.tsr';
+import { LanguageState, LanguageRead, pollLanguage, queueLanguageRead } from '../src/services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
 import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
 import { CheckResult } from '../src/services/project-check.tsr';
@@ -150,6 +151,26 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     strictEqual(clean.document?.version, 2);
     strictEqual((clean.problems ?? []).length, 0);
     await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'hover-one', method: 'textDocument/hover', document: languageIdentity(document), position: {
+          line: 0, character: 27
+        }
+      }
+    });
+    const hover = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(hover.query?.id, 'hover-one');
+    strictEqual(hover.result !== 'null', true);
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'completion-one', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 0, character: 26
+        }
+      }
+    });
+    const completions = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(completions.query?.id, 'completion-one');
+    strictEqual((completions.result ?? '').includes('log'), true);
+    await requests.send({
       kind: 'restart', generation: ready.generation
     });
     const restarted = await nextUpdate(updates, 'ready').timeout(20000);
@@ -221,7 +242,7 @@ test('language controller rejects stale reports, clears edits and closes documen
   const workspace = signal(initial);
   const problems = signal<Problem[]>([]);
   const state = signal<LanguageState>({
-    generation: 0, ready: false, status: '', detail: '', documents: [], version: 0
+    generation: 0, ready: false, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
   });
   const requests = new Channel<LanguageMessage>(8);
   const messages = requests.sender();
@@ -263,4 +284,206 @@ test('language controller rejects stale reports, clears edits and closes documen
   strictEqual(unwrap(requests.tryReceive()).kind, 'close');
   strictEqual(problems.get().length, 0);
   strictEqual(workspace.get().active, '/project/main.tsr');
+});
+
+test('language reads synchronize before queries, reuse matching versions and reject outdated targets', () => {
+  const document = unwrap(createDocument('/project/main.tsr', 'function main(){console.log(1);}'));
+  const workspace: Workspace = {
+    root: '/project', files: [{
+      document: clone(document), name: 'main.tsr', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  };
+  const state: LanguageState = {
+    generation: 1, ready: true, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
+  };
+  const channel = new Channel<LanguageMessage>(8);
+  const sender = channel.sender();
+  const request: LanguageRead = {
+    path: clone(document.path), session: clone(document.session), revision: document.revision, method: 'textDocument/hover', position: {
+      line: 0, character: 1
+    }
+  };
+  unwrap(queueLanguageRead(
+    workspace,
+    state,
+    sender,
+    'first',
+    request,
+    undefined
+  ));
+  const first = unwrap(channel.tryReceive());
+  strictEqual(first.document?.version, 1);
+  strictEqual(first.query?.document.version, 1);
+  unwrap(queueLanguageRead(
+    workspace,
+    state,
+    sender,
+    'second',
+    request,
+    undefined
+  ));
+  strictEqual(unwrap(channel.tryReceive()).document === undefined, true);
+  strictEqual(state.version, 1);
+  request.revision += 1;
+  let stale = false;
+
+  match (queueLanguageRead(
+    workspace,
+    state,
+    sender,
+    'third',
+    request,
+    undefined
+  )) {
+    Err(_) => {
+      stale = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(stale, true);
+  strictEqual(workspace.active, '/project/main.tsr');
+});
+
+test('AI language reads share the live request route without focus changes or model-granted access', () => {
+  const document = unwrap(createDocument('/project/main.tsr', 'function main(){}'));
+  const workspace = signal<Workspace>({
+    root: '/project', files: [{
+      document: clone(document), name: 'main.tsr', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  });
+  const state = signal<LanguageState>({
+    generation: 1, ready: true, status: '', detail: '', documents: [], version: 0, queries: [], readResults: []
+  });
+  const channel = new Channel<LanguageMessage>(8);
+  const sender = channel.sender();
+  const context: LanguageToolContext = {
+    root: '/project', generation: 1, status: '', problems: [], allowRead: false, allowRestart: false
+  };
+  const payload = JSON.stringify({
+    root: '/project', id: 'hover', path: clone(document.path), session: clone(document.session), revision: document.revision, position: {
+      line: 0, character: 1
+    }, allowRead: true
+  });
+  let denied = false;
+
+  match (invokeLanguageTool(
+    context,
+    sender,
+    'language_hover',
+    payload,
+    workspace,
+    state
+  )) {
+    Err(_) => {
+      denied = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(denied, true);
+  context.allowRead = true;
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_hover',
+    payload,
+    workspace,
+    state
+  )), '{"queued":true}');
+  const request = unwrap(channel.tryReceive());
+  strictEqual(request.query?.method, 'textDocument/hover');
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_read_result',
+    payload,
+    workspace,
+    state
+  )), '{"ready":false}');
+  const updates = new Channel<LanguageUpdate>(8);
+  const output = updates.sender();
+  unwrap(output.trySend({
+    kind: 'query', generation: 1, message: '', query: clone(request.query), result: '{"contents":"help"}'
+  }));
+  const problems = signal<Problem[]>([]);
+  pollLanguage(workspace, problems, state, sender, updates);
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_read_result',
+    payload,
+    workspace,
+    state
+  )).includes('help'), true);
+  strictEqual(state.get().readResults.length, 0);
+  strictEqual(workspace.get().active, '/project/main.tsr');
+  strictEqual(workspace.get().files[0].document.text, 'function main(){}');
+});
+
+test('shared send endpoints close independently and cannot reopen closed senders', async () => {
+  const queue = new Channel<int>(1);
+  const first = queue.sender();
+  const second = first.share();
+  first.close();
+  unwrap(second.trySend(42));
+  strictEqual(await queue.receive(), 42);
+  const closed = first.share();
+  let retained = 0;
+
+  match (closed.trySend(7)) {
+    Err(error) => {
+      strictEqual(error.code, 'closed');
+      retained = error.value;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(retained, 7);
+  queue.close();
+  let receiverClosed = false;
+
+  match (second.trySend(9)) {
+    Err(error) => {
+      receiverClosed = error.code === 'closed' && error.value === 9;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(receiverClosed, true);
+});
+
+function sendBorrowed(sender: ReadOnly<Sender<int>>, value: int): void {
+  unwrap(sender.trySend(value));
+}
+
+function tokenCancelled(token: ReadOnly<CancellationToken>): boolean {
+  return token.isCancelled();
+}
+
+test('temporary future resources borrow correctly and the sender example prints its documented output', async () => {
+  const queue = new Channel<int>(2);
+  sendBorrowed(queue.sender(), 99);
+  strictEqual(unwrap(queue.tryReceive()), 99);
+  startOutputCapture();
+  const first = queue.sender();
+  const second = first.share();
+  first.close();
+  sendBorrowed(second.share(), 42);
+  console.log(await queue.receive());
+  const closed = first.share();
+
+  match (closed.trySend(7)) {
+    Err(error) => {
+      console.log(error.code, error.value);
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(finishOutputCapture(), '42\nclosed 7\n');
+  const token = new CancellationToken();
+  token.cancel();
+  strictEqual(tokenCancelled(token.share()), true);
+  strictEqual(tokenCancelled(token.child()), true);
+  queue.close();
 });

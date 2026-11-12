@@ -238,6 +238,7 @@ mod tsrust_native_futures {
         pub fn close(&mut self){self.receiver.get_mut().close();}
     }
     impl<T> Sender<T>{
+        pub fn sender(&self)->Self{Self(self.0.clone())}
         pub async fn send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>sender.send(value).await.map_err(|error|SendError{code:"closed",value:error.0}),None=>Err(SendError{code:"closed",value})}}
         pub fn try_send(&self,value:T)->Result<(),SendError<T>>{match &self.0{Some(sender)=>try_send(sender,value),None=>Err(SendError{code:"closed",value})}}
         pub fn close(&mut self){self.0.take();}

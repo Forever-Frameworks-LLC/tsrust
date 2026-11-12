@@ -8,6 +8,175 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest accepted native interaction — 2026-11-12 (checkpoint pending final format).
+The preceding goal turn made progress: native build/MAT completed; three observed UI
+bugs repaired, built and verified without broader regressions. Native popup docs now
+use editor-sized syntax-highlighted examples with no inner border or language badge.
+Completion rows constrain primary/detail labels, flatten detail newlines and ellipsize
+instead of overlapping. Numeric snippet Ok default selection/replacement, Tab to body,
+body insertion and corrected indentation all worked in the actual app. Targeted LSP
+space/tab indentation1/1 passed0.04s; SDK pair build2m44s. Native Tree refresh now
+preserves expansion and selected ID, honoring explicit controlled expanded props;
+real dirty/clean transitions kept src/services expanded and selection intact. No new
+public Tree API or application-host Rust introduced.
+
+CURRENT ONLY PREVIEW supersedes process details below: supervisor81803 / PTY55205,
+app82069, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-81803-1794460353665739000-0/Tsrust Studio.app.
+Old78662 / PTY36743 stopped after replacement GUI was confirmed. New supervisor has
+explicit shared CARGO_TARGET_DIR, jobs1/incremental0, TSRUST=~/.cargo/bin/tsrust,
+NO_COLOR/CODEX_TOOL_CALL_ID cleared, elevated macOS desktop access. Native build
+322241ms: check72863.0ms,emit3312.7ms,runtime222432.4ms,native/link245292.6ms,
+runtime/program misses. Log /tmp/studio-editor-language-polish-dev.log. Installed
+CLI fda077eb5701cdfcdb88bf42288ba103fdea7459ed65b898f8b51d7745452c2c,
+LSP cf8bc15c3a22a8f413c5861d84c669d21cf535dcc8401f6588a21066871c872e,
+atomic installation and independent hash matches. All earlier passed evidence below
+remains valid; no full compiler/LSP rerun, push or release.
+
+CUA refresh issue was stale control state after replacing processes, NOT proven owner
+activity: js_reset + first-call getApp(full current bundle) fixed it. Repeat this on
+replacement; after compaction first rewriteDocumentation. Last CUA phase completed
+with completion_summary Verified repaired snippets and explorer. Two probes were
+ONLY unsaved appended recovery.tsr text; first143chars/second151chars removed exactly
+from EOF after verifying prefix matched savedText. Never saved them. Remaining sole
+owner draft is still project-check.tsr4spaces on its blank line. Owner tabs9/zoom-1/
+active project-check preserved; src/services expanded and original tree selection
+restored. Do not erase/save the owner draft during cleanup.
+
+Memory remains unresolved. After real completions, snippet edit and143backspaces,
+previous LSP79444 settled617.9MiB/peak947.7MiB at12min,0%CPU, vs initial418.6MiB
+active at2min. This does NOT qualify a leak fix or formal improvement over old
+708.2MiB idle/1.0GiB peak. Trace /tmp/studio-editor-language-memory-after-mat.txt.
+Sharing eliminates proven duplicated catalogs, but large retained storage persists.
+Next evidence-led target: ProjectIndex.references stores a serde_json::Value location
+for every reference token; SourceIndex.foreign_definitions and nominal_definitions
+also store nested JSON locations. reference_locations eagerly clones/materializes
+both definition and reference JSON. The old heap's497,836640-byte nodes may include
+these JSON B-trees (inference, not allocation-stack proof). Inspect/count retained
+locations, consider compact typed locations with JSON generated only for replies,
+and verify navigation/reference equivalence plus repeated real-use memory. Do not
+cap caches or weaken diagnostics to hide growth. Full intelligence, signature/
+keyboard-hover UI, external servers, integrated AI hosting and8GiB qualification
+remain open. Planned ignore traversal follows current intelligence/memory slice.
+
+Native language help, snippets and memory — active uncommitted section after95b491c8.
+Previous goal turn made progress: real native bridge, guarded AI reads, sender sharing,
+presentation fixes, staged cancellation, immutable completion-catalog sharing and
+focused validation; ignore discovery added to the plan at owner's request. Full
+Studio goal remains active, one writer/no agents. No push/release/full matrix.
+
+Implementation: CodeEditor onLanguageRequest/onLanguageCancel + answerEditorLanguage;
+existing HoverProvider/CompletionProvider with Ctrl-Space, window-owned pending
+requests/5s timeout/drop cancellation/process-wide unique native IDs, UTF-16/scalar
+range conversion, unchanged opaque completion data, and stale text/revision guards.
+Tsrust session/controller synchronizes exact document identities and versions,
+correlates/cancels reads; LanguageState is App-owned and shared with editors/status.
+Registered language_hover/completion/read_result/cancel_read use invokeLanguageTool
+and trusted host allowRead/root + explicit target identity. No model hosting or
+full editor action parity claim. New registry is sourcepacked through stdlib/ui.
+
+Required Sender.share creates another owned channel endpoint with independent close.
+Future-native emission now honors access wrapping for temporary returned sender/token
+values; this fixed actual native Studio E0308. Complete builtin docs/example and
+matched Tsrust/TypeScript/Rust async_channel_share_try workload/oracle/driver/manifest/
+contract support are ready, UNMEASURED. No SQLite timing claim.
+
+Native popovers now read the editor's DisplayMap font; hover/completion/diagnostic
+Markdown code has no inner border/radius or language badge. Presentation-only Tsrust
+fences use existing Kit TypeScript/TSX grammar mapping; MarkedString language values
+render as fenced code. Gutter removes code-editor left padding, trailing line-number
+margin and fold-icon inset. Native numeric snippets expand stops/defaults, select
+mirrored occurrences, support Tab/Shift-Tab, adjust offsets on edits, cancel on
+undo/reset/Escape. Variables/transforms/nested defaults remain unsupported and are
+rejected before insertion. Signatures/external servers/full snippet scope still open.
+
+Memory work: obsolete document/workspace snapshots set the existing worker interrupt
+flag. Skip later recovery/index/action stages, including between repaired graph checks;
+an already-running compiler pass stays synchronous. Immutable native import completion
+catalog JSON uses Arc<Vec<Value>> shared across source indices; project export catalogs
+share per dependency within a graph. Clone selected response items before per-document
+text edits. Unknown empty module catalogs are not retained. No arbitrary cache cap or
+reduced checking/inference coverage.
+
+Passed focused checks (preserve, do not rerun unchanged): native registry2/2 (0.00s);
+public Studio language-service9/9 (802.90ms), real worker hover/completion/restart,
+stale/identity/grants/no focus or edits, Sender.share and readonly temporary witnesses;
+existing async task suites15/15 (8.71ms); benchmark contracts4/4 (257ms). Direct services
+and workspace-view checks passed. New numeric snippet source witness1/1 (0.00s);
+Markdown mapping/isolation1/1 (filter also ran one existing i18n case, total2/2,0.00s);
+cancellable recovery + existing array capability/generic prefix3/3 (0.14s);
+protocol stale edit/close/reopen1/1 (0.00s); native catalog storage/reply isolation1/1
+(0.04s); existing imported inherited help/Signal alias2/2 (4.70s). Native Studio builds
+passed. Whole-project formatter latest0files/0snippets/0fingerprints; diff check passed.
+
+Installed CLI8099246bf55af8fbdda6049faaf7948d4fc9aa8c26462fdf0128cf8de85ef4c3,
+LSP21e249aa47c153dde406ccfa4f26f1636d44892ed221991ba41a7d9a6b695b42, atomic copies
+and independent hashes matched. Final pair build2m49s; LSP-only sharing refresh18.10s.
+First native candidate built850398ms (runtime746434.6ms) but sandbox launch failed
+NSPasteboard generalPasteboard NULL; supervisor69130 / PTY24597 stopped. It omitted
+CARGO_TARGET_DIR. Corrected elevated dev launch explicitly sets shared root target:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target.
+It built324464ms: check71328.4ms,emit3309.7ms,runtime220936.1ms,native/link248967.7ms,
+runtime/program misses. No need another pre-build or repeat tests of the executable.
+
+CURRENT ONLY PREVIEW: supervisor78662 / PTY36743, app79412, LSP79444, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-78662-1794459016898094000-0/Tsrust Studio.app.
+Log /tmp/studio-editor-language-desktop-current.log. One benign mac sandbox_extension
+warning after successful GUI launch. Old58964 / PTY52232 stopped after replacement.
+Brief cached-binary preview /private/tmp/studio-language-preview-vuy7vups was closed
+(PTY84407); no duplicate apps/LSPs remain. That temporary bundle can be removed.
+
+Live acceptance: BEFORE latest styling/snippet edits Ctrl-Space showed real declarations
+and Channel docs, automatic console completion log/error appeared, accepting filtered
+log replaced l and cleared diagnostic. Probe removed exactly, no saved file changes.
+Owner later observed actual hover but reported old oversized/unhighlighted/badged style.
+LATEST app screenshot confirms compact gutter, connected service,0errors/0warnings,
+9owner tabs/zoom-1/active project-check and1owner draft restored. CUA actions on the new
+window repeatedly reject with 'user changed ... re-query'; full AX refresh did not
+resolve it. Do not force edits while owner is interacting. Latest CUA phase completed
+with completion_summary Loaded updated Studio preview. New popup styling/snippet tab
+stops still need interaction MAT; not accepted from compilation or source alone.
+Next CUA action may reset a stale control session after multiple app replacements,
+then first call exactly getApp(full CURRENT path); after compaction rewriteDocumentation.
+
+OWNER DRAFT: project-check.tsr has4indent spaces on blank line103, appeared AFTER
+our old completion probe was fully removed/0drafts verified. Preserve it. Recovery
+~/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+Do not treat it as our scratch text or save/reset it. Any next snippet probe must
+use a different clean tab and restore only its exact appended content, leaving this
+owner draft intact and returning active selection afterward.
+
+Old LSP59142: active footprint1107592608bytes (~1056.3MiB),~98–100%CPU;3s sample
+showed with_diagnostics -> recover_project_member_receivers -> whole-graph compiler
+check. Eventually idle708.2MiB,1.0GiB peak. Bounded heap inspection succeeded:2,517,558
+malloc nodes,483,601,312live bytes;497,836640-byte nodes account for318,615,040bytes.
+vmmap~461.2MiB allocated +243.1MiB fragmentation. JSON B-tree attribution is an
+INFERENCE without allocation stacks, but repeated catalogs are proven by source/test.
+NEW LSP79444 at~2min:418.6MiB footprint/peak,100%CPU,RSS382736KiB.3s sample now in
+ordinary project check_graph_diagnostics/analyze_recursive_with_proofs, protocol
+main parked. This is a DIFFERENT PHASE/workload, not a comparable improvement or
+leak qualification. Logs /tmp/studio-editor-language-memory-current.txt and
+/tmp/studio-editor-language-sample-current.txt; older heap/memory traces under same
+prefix are disposable. Continue repeated-use/settled-memory observation on current
+process; no restart-savings claim or quiet-machine benchmark claim.
+
+Owner ignore0.4.28 follow-up: documented in docs/plans/tsrust-studio.md section
+Shared workspace discovery and ignore rules. After active native intelligence/memory
+section, before broader workspace index/search expansion and Git/debug/extensions.
+Shared caller policy, explicit imports/compiler inputs preserved, configurable hidden/
+ignored visibility, deterministic results, symlink/errors/cancellation/AI grants.
+Dependency NOT added/traversal NOT changed/performance NOT measured. Primary docs
+verified at https://docs.rs/ignore/0.4.28/ignore/.
+
+Next: finish native popup/snippet MAT when control is stable, measure current LSP
+settled/repeated-use memory, final format/local checkpoint with exact remaining limits,
+then remaining fast intelligence/signature/keyboard hover and prioritized discovery.
+Prune obsolete native variants under namespace/per-directory locks, keeping current
+and two recent/shared target. Root target is~82GiB (debug~62GiB); preserve model
+qualification artifacts and unrelated work, do not indiscriminately clean everything.
+Full goal, external servers, integrated AI host and8GiB whole-app qualification remain
+open. No broad compiler/LSP matrix or release authorization inferred.
+
 Early declaration help and stale-result release — 2026-11-11, follows9d7fc272.
 Previous goal turn made progress: verified panel inset and local checkpoint.
 Owner now requests6px instead of12px on both Close and terminal trash. Applied

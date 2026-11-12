@@ -143,7 +143,8 @@ impl SourceIndex {
         }
         if !receiver.is_empty() && "match".starts_with(prefix) {
             let binding = |ty: &str, name: &str| if ungroup_callable_type(ty) == "void" { "_".to_owned() } else { name.to_owned() };
-            let text = format!("match ({receiver}) {{\n  Ok({}) => {{\n    $0\n  }}\n  Err({}) => {{\n  }}\n}}", binding(&ok, "value"), binding(&error, "error"));
+            let indent=self.offset(replace.start).map(|offset|self.snippet_indent(offset)).unwrap_or("");
+            let text = format!("match ({receiver}) {{\n{indent}  Ok({}) => {{\n{indent}    $0\n{indent}  }}\n{indent}  Err({}) => {{\n{indent}  }}\n{indent}}}", binding(&ok, "value"), binding(&error, "error"));
             // The edit replaces the whole access, so it starts at the receiver.
             let mut range = replace;
             let width = receiver.encode_utf16().count() as u32 + 1 + prefix.encode_utf16().count() as u32;

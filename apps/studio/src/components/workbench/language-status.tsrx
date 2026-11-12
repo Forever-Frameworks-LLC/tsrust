@@ -7,7 +7,6 @@ import {
   Ticker,
   Node,
   Signal,
-  signal,
   computed,
   translate
 } from 'std:ui';
@@ -26,11 +25,9 @@ export function LanguageStatus(
   font: Signal<int>,
   messages: Sender<LanguageMessage>,
   restarts: Sender<LanguageMessage>,
-  updates: Channel<LanguageUpdate>
+  updates: Channel<LanguageUpdate>,
+  state: Signal<LanguageState>
 ): Node {
-  const state = signal<LanguageState>({
-    generation: 0, ready: false, status: 'LSP: starting', detail: '', documents: [], version: 0
-  });
   const label = computed<string>(() => translate(state.get().status));
   return (
     <View>

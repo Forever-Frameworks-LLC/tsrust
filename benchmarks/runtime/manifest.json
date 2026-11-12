@@ -28805,6 +28805,29 @@
       "sourceSha256": "398b0c1985e7c987fe8fc0d47fe9bf530b0cfbf45134f46cfd4322843ad3c6c7",
       "counterpartSha256": "2bcf53cc8124820aa3dec515d261cc6d4f20d38c4ce1978fc71828668abb8a63",
       "rustReferenceSha256": "f176ca8c7137b7782ef8bae20b175d685c7068073234953f935364fd5f4def76"
+    },
+    {
+      "id": "async_channel_share_try",
+      "category": "task-ergonomics",
+      "family": "task-ergonomics",
+      "description": "Share and close one independent sender per ordered four-message batch",
+      "source": "workloads/async_channel_share_try.tsr",
+      "counterpart": "workloads/async_channel_share_try.ts",
+      "rustReference": "parity/async_channel_share_try.rs",
+      "iterations": 2000,
+      "operationsPerIteration": 4,
+      "operationUnit": "One observed task/message/cancellation result",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "measured": false,
+      "measurementStatus": "unmeasured-task-ergonomics",
+      "specification": "task-ergonomics-contract.mjs",
+      "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
+      "sourceSha256": "ff6330436260a823e615acc7fa9ac961d002c08329b6bc543d9f91c114994876",
+      "counterpartSha256": "c379c89effbd8efc1b3cccb577726e23688847d9ea4ed03d89644a82df20cbe8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

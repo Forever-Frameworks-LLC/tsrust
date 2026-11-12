@@ -68,6 +68,8 @@ mod scrollbar_presentation;
 mod search;
 #[path = "base/selection.rs"]
 mod selection;
+#[path = "editor/snippets.rs"]
+mod snippets;
 #[path = "base/state.rs"]
 mod state;
 #[path = "base/tab_stops.rs"]
@@ -118,6 +120,8 @@ pub use lsp::{
     InputOverlayKind, Lsp, ShowDocumentHandler, highlight_characters, highlight_contains,
     highlight_prefix,
 };
+#[doc(hidden)]
+pub use {anyhow, lsp_types};
 pub use lsp_types::Position;
 pub use mask_pattern::MaskPattern;
 #[cfg(target_os = "macos")]

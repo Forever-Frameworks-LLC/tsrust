@@ -32,6 +32,8 @@ pub struct DisplayMap {
 }
 
 impl DisplayMap {
+    pub fn font_size(&self) -> Pixels { self.wrap_map.font_size() }
+
     pub fn new(font: Font, font_size: Pixels, wrap_width: Option<Pixels>) -> Self {
         Self {
             wrap_map: WrapMap::new(font, font_size, wrap_width),

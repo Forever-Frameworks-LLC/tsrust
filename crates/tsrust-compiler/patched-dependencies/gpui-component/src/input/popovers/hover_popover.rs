@@ -37,17 +37,18 @@ impl HoverPopover {
 }
 
 impl Render for HoverPopover {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut gpui::Context<Self>) -> impl IntoElement {
+        let font_size = self.editor.read(cx).display_map().font_size();
         let contents = match self.hover.contents.clone() {
             lsp_types::HoverContents::Scalar(scalar) => match scalar {
                 lsp_types::MarkedString::String(s) => s,
-                lsp_types::MarkedString::LanguageString(ls) => ls.value,
+                lsp_types::MarkedString::LanguageString(ls) => format!("```{}\n{}\n```", ls.language, ls.value),
             },
             lsp_types::HoverContents::Array(arr) => arr
                 .into_iter()
                 .map(|item| match item {
                     lsp_types::MarkedString::String(s) => s,
-                    lsp_types::MarkedString::LanguageString(ls) => ls.value,
+                    lsp_types::MarkedString::LanguageString(ls) => format!("```{}\n{}\n```", ls.language, ls.value),
                 })
                 .collect::<Vec<_>>()
                 .join("\n\n"),
@@ -58,7 +59,7 @@ impl Render for HoverPopover {
             "hover-popover",
             self.editor.clone(),
             self.symbol_range.clone(),
-            move |window, cx| render_markdown("message", contents.clone(), window, cx),
+            move |window, cx| render_markdown("message", contents.clone(), font_size, window, cx),
         )
         .into_any_element()
     }
@@ -165,7 +166,7 @@ impl Element for Popover {
                 .flex_none()
                 .occlude()
                 .p_1()
-                .text_xs()
+                .text_size(self.editor.read(cx).display_map().font_size())
                 .popover_style(cx)
                 .shadow_md()
                 .max_w(max_width)

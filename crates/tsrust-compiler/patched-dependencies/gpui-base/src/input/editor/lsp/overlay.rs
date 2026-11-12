@@ -170,6 +170,7 @@ impl InputBaseState<EditorMode> {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if !self.is_editable() { return; }
         let mut range = fallback_range;
         let mut new_text = item.label.clone();
         if let Some(edit) = item.text_edit.as_ref() {
@@ -187,12 +188,20 @@ impl InputBaseState<EditorMode> {
             }
         } else if let Some(insert_text) = item.insert_text.as_ref() {
             new_text.clone_from(insert_text);
-            range = range.end..range.end;
+
         }
+        self.snippet = None;
+        let snippet = if item.insert_text_format == Some(lsp_types::InsertTextFormat::SNIPPET) {
+            let Some(snippet) = crate::input::snippets::Snippet::parse(&new_text, range.start) else { return; };
+            new_text.clone_from(&snippet.text);
+            Some(snippet)
+        } else { None };
         self.completion_inserting = true;
         let range = self.range_to_utf16(&range);
         self.replace_text_in_range_silent(Some(range), &new_text, window, cx);
         self.completion_inserting = false;
+        self.snippet = snippet;
+        self.select_snippet_stop(cx);
         self.focus(window, cx);
     }
 

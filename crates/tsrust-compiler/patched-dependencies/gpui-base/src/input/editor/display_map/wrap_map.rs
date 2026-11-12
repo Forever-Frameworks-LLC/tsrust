@@ -23,6 +23,8 @@ pub(super) struct WrapMap {
 }
 
 impl WrapMap {
+    pub(super) fn font_size(&self) -> Pixels { self.wrapper.font_size() }
+
     pub(super) fn new(font: Font, font_size: Pixels, wrap_width: Option<Pixels>) -> Self {
         Self {
             wrapper: TextWrapper::new(font, font_size, wrap_width),
