@@ -71,6 +71,11 @@ pub fn appearance() -> String {(if DARK.with(Cell::get) {"dark"} else {"light"})
 
 pub(crate) fn set_dark(dark: bool) {DARK.with(|value| value.set(dark));}
 
+pub(crate) fn has_pending(owner:&Owner)->bool {
+    let owner=Rc::downgrade(&owner.0);
+    QUEUE.with(|queue|queue.borrow().iter().any(|pending|pending.owner.as_ref().is_none_or(|target|Weak::ptr_eq(target,&owner))))
+}
+
 pub(crate) fn take(owner:&Owner) -> Vec<Command> {
     let pending=QUEUE.with(|queue|std::mem::take(&mut *queue.borrow_mut()));
     let mut output=Vec::new();let mut remaining=Vec::new();
@@ -89,6 +94,18 @@ pub(crate) fn take(owner:&Owner) -> Vec<Command> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn polling_checks_keep_commands_for_their_own_window_until_rendered() {
+        let first=Owner::new();let second=Owner::new();
+        assert!(!has_pending(&first));
+        {let _scope=first.enter();command("set-title","first").unwrap();}
+        assert!(has_pending(&first));assert!(has_pending(&first));
+        assert!(!has_pending(&second));assert_eq!(take(&first).len(),1);
+        assert!(!has_pending(&first));
+        command("notify","startup").unwrap();
+        assert!(has_pending(&first));assert!(has_pending(&second));
+        assert_eq!(take(&second).len(),1);assert!(!has_pending(&first));
+    }
     #[test]
     fn windows_keep_their_commands_in_order_and_drop_closed_window_replies() {
         let first=Owner::new();let second=Owner::new();

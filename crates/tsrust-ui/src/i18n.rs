@@ -47,6 +47,8 @@ pub fn set_locale(tag: &str) {
 }
 
 /// Whether the locale or catalogs changed since the renderer last asked.
+pub(crate) fn has_changed() -> bool {CHANGED.with(Cell::get)}
+
 pub(crate) fn take_changed() -> bool {CHANGED.with(|changed| changed.replace(false))}
 
 /// Look up a message: the exact locale, its language, then en; the key itself if missing.
@@ -80,6 +82,12 @@ pub fn translation(key: String, values: String) -> TextBinding {TextBinding::com
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pending_locale_checks_do_not_consume_the_renderer_update() {
+        let _=take_changed();set_locale("en");
+        assert!(has_changed());assert!(has_changed());
+        assert!(take_changed());assert!(!has_changed());
+    }
     #[test]
     fn lookup_falls_back_by_language_then_english_and_selects_plurals() {
         set_translations("en", r#"{"greeting":"Hello, {name}!","items_one":"{count} item","items_other":"{count} items","menu":{"save":"Save"},"only":"English"}"#).unwrap();

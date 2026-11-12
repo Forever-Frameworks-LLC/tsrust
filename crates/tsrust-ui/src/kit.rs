@@ -340,6 +340,34 @@ impl Node {
 mod tests {
     use super::super::{Child, Node, Signal};
     #[test]
+    fn timer_refresh_distinguishes_idle_bindings_shared_writes_and_commands() {
+        use super::super::{commands, state, Node, Signal, Child, TextBinding, TextPart};
+        use std::{cell::Cell,rc::Rc};
+        let local=Rc::new(Cell::new(0));let read=local.clone();let update=local.clone();
+        let shared=Signal::new(0);let write=shared.handle();
+        let timer=Node::kit("Ticker",vec![],String::new()).unwrap()
+            .with_kit_event("tick",move|frame|match frame {
+                "2"=>{update.set(1);Ok(())},
+                "3"=>commands::command("set-title","timer"),
+                "4"=>write.set(1),
+                _=>Ok(()),
+            }).unwrap();
+        let text=Node::text(vec![TextPart::Signal(TextBinding::computed(move||Ok(read.get().to_string())))],String::new()).unwrap();
+        let mut root=Node::view(vec![Child::Node(timer),Child::Node(text)],String::new()).unwrap().own_state(shared).unwrap();
+        root.refresh().unwrap();let id=root.children[0].identity.get();
+        let owner=commands::Owner::new();let _scope=owner.enter();
+        let revision=state::revision();
+        assert!(root.kit_event(id,"tick","1").unwrap());
+        assert_eq!(root.refresh().unwrap(),0);assert_eq!(revision,state::revision());assert!(!commands::has_pending(&owner));
+        assert!(root.kit_event(id,"tick","2").unwrap());
+        assert!(root.refresh().unwrap()>0);assert_eq!(revision,state::revision());
+        assert_eq!(root.children[1].text,"1","ordinary mutable bindings still refresh");
+        assert!(root.kit_event(id,"tick","3").unwrap());
+        assert_eq!(root.refresh().unwrap(),0);assert!(commands::has_pending(&owner));assert_eq!(commands::take(&owner).len(),1);
+        assert!(root.kit_event(id,"tick","4").unwrap());
+        assert_ne!(revision,state::revision(),"writes can invalidate another window without changing this tree");
+    }
+    #[test]
     fn live_placeholders_keep_field_identity_and_contents_and_render_in_html() {
         let hint=Signal::new(String::from("English <hint>"));let read=hint.handle();
         let mut field=Node::input_control(None,Some("seed".into()),"{}",String::new(),None).unwrap()

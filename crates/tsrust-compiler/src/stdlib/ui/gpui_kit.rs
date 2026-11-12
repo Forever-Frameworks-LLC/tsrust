@@ -1227,7 +1227,8 @@ impl Root {
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
         let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
-        self.settle(result, cx);
+        // Polling timers still refresh bindings and run commands, but idle ticks need no frame.
+        self.settle_event(result, cx, event != "tick");
     }
 
     fn sync_dock(&mut self,id:u64,window:&mut Window,cx:&mut Context<Self>) {

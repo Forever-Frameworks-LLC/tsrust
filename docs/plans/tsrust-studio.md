@@ -16,6 +16,11 @@ gap; hover/completion/snippets, native squiggles, generic server configuration a
 integrated AI hosting are not delivered by this connection slice. Exact current
 source/build/process observations are in docs/agent-progress.md.
 
+Owner priority, November 11: prioritize lightning-fast hover and interactive LSP
+feedback over optimizing full compiler checks. Next intelligence work must wire
+the native editor provider and a fast current-buffer/cached-symbol request path;
+slow background checking must not hold up that interaction.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust

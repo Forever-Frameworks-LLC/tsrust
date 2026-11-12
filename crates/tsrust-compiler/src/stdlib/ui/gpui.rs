@@ -289,15 +289,19 @@ impl Root {
     /// A failed handler or binding ends the application with its message, as an
     /// uncaught exception ends a backend program.
     fn settle(&mut self, result: Result<bool, String>, cx: &mut Context<Self>) {
+        self.settle_event(result,cx,true);
+    }
+    fn settle_event(&mut self, result: Result<bool, String>, cx: &mut Context<Self>, force: bool) {
         match result.and_then(|_| self.node.refresh()) {
-            Ok(_) => {
+            Ok(changed) => {
                 let revision=super::state::revision();
                 if self.revision != revision {
                     // shortcut: redraw live windows on shared writes; track subscribers if window counts make this costly.
                     cx.refresh_windows();
                 }
+                let redraw=force || changed>0 || self.revision!=revision || commands::has_pending(&self.command_owner) || super::i18n::has_changed();
                 self.revision=revision;
-                cx.notify();
+                if redraw {cx.notify();}
             }
             Err(error) => fail(&self.failure, error),
         }

@@ -8,6 +8,69 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Quiet timer redraws — accepted, follows c94cefc9.
+Owner steering2026-11-11: prioritize lightning-fast hover and interactive LSP
+feedback; full compiler checks are secondary. Do not continue general compiler
+optimization before wiring usable intelligence. Scope of this checkpoint is only
+idle timer painting; no new LSP intelligence feature is claimed.
+
+Root::emit uses non-forced settlement for timer ticks only. Bindings still refresh;
+changed bindings/global signal revisions/queued commands/locale changes request
+rendering. Other input events retain forced redraws. commands::has_pending and
+i18n::has_changed are private, non-consuming checks.150UI library tests PASS0.05s,
+3.36s setup, /tmp/studio-timer-tests.log: command owner isolation, locale pending
+state and real timer callbacks with ordinary mutable bindings/shared state/commands.
+Initial test compile needed missing imports fixed before the passed run. Timer
+witness moved from dock_layout_tests to general kit tests afterward, code unchanged;
+final targeted witness1/1PASS0.00s/3.63s setup, /tmp/studio-timer-final-witness.log.
+No public API/config/builtins change and no AI action semantics change.
+
+A separate error-effect fixed-point reuse experiment passed49internal tests1.07s
+(3m28s setup), but Studio CLI observations were64.93s before/65.14s after
+(64.53/63.90s user), complete stdout identical. NOT a meaningful speedup. Removed
+experimental code/tests/counter, restoring error_effects/mod.rs exactly from
+c94cefc9. Logs /tmp/studio-effects-before.log, /tmp/studio-effects-after.log and
+/tmp/studio-effects-tests.log are disposable observations, not benchmarks. Do not
+repeat that rejected cache or present it as an accepted compiler optimization.
+
+Final UI-only SDK pair PASS2m49s, /tmp/studio-performance-sdk.log. Installed
+atomically and independently matched CLI64884661489e9fe02a8d352ccf9d5aa825232f06ff6026305ccffedd96c0156b;
+LSP90a333c9bff90bc00b241d46711ef47645af5b6b458be4b92412a07c963b4aba.
+Native build PASS141.859s:check65.6638s,emit3.184s,backend178.9ms,
+runtime-prepare4.6324s/runtime-build50.4769s,native/link72.2472s. Setup observation,
+not a benchmark. Current supervisor22770/PTY19783/app22879; keep running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-22770-1794445953601229000-0/Tsrust Studio.app.
+Old15484/PTY94187/app17336 stopped only after replacement started. One preview.
+
+Idle CPU single5s observations: before app17336used0.20CPU-seconds/5.016s wall
+(3.99%of one core); after app22879used0.09/5.012s (1.80%). Point observations, NOT
+statistical benchmarks/leak acceptance. Live UI shows LSP connected,0errors/
+0warnings. Status-menu restart replaced real child22882with23095 and reconnected.
+Main tab active,9clean tabs,zoom-1,recovery drafts[]; panel hidden. Current owner
+selection differs from earlier terminal-panel baseline; preserve main selection.
+CUA ended "Verified quiet timers and reconnect". No new unsaved diagnostic probe
+this section; prior live Problems/navigation evidence retained. No full compiler/
+LSP matrices. Required formatter0files/0snippets/0fingerprints; diff check passed.
+Pruned1obsolete Studio program and1runtime variant under cache locks, keeping
+current/previous variants and the shared Cargo target; no cold rebuild afterward.
+
+NEXT implement actual native hover, completion/signatures/snippets and fast
+feedback. Useful localization already read: GPUI Base InputBaseState has an existing
+HoverProvider in patched-dependencies/gpui-base/src/input/editor/lsp/hover.rs;
+provider is missing from std:ui CodeEditor integration. Native hover waits150ms
+before querying; keep cancellation/stale-document safeguards. Existing LSP main.rs
+has ANSWER_WITHIN=3seconds and defers imported-document queries without a current
+project index. Documents::index (src/lib.rs) calls SourceIndex::new; that constructor
+synchronously calls cache_checked_views/compiler check, unsuitable for an always-
+fast request path. SourceIndex::for_project already builds without that local
+check. Build/use a current-version lightweight header/symbol index for fast answers,
+while full checking continues independently. Do not invent ownership/flow facts or
+serve stale replies. Reuse the native hover Markdown/popover, not a custom website
+popup. Studio's Tsrust service currently transports diagnostics only; add correlated
+read requests/results and checked native provider hooks, with shared executable AI
+action routes and host grants. Integrated agent hosting remains pending separately.
+Keep native Tree expansion on edits as a UI follow-up. Full goal remains active.
+
 Real LSP diagnostics — connection/Problems slice accepted, follows2081e21f.
 Studio now has a Tsrust-authored stdio client (services/lsp), independent bounded
 pipe reader/writer tasks, UTF-8 Content-Length framing, initialize/open/full-change/
