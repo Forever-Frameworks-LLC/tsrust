@@ -8,6 +8,20 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Owner fixture organization, November12 — supersedes temporary Go cleanup notes.
+Owner explicitly permits other-language editor examples under tests/ and prohibits
+mixing them into application files. Moved the unchanged Go module manifest from
+apps/studio/go.mod to apps/studio/tests/go.mod. Existing tests/editor-language-mat.go
+stays open at the same path and is now a retained, intentional editor fixture;
+do NOT delete it under older exclusive-fixture cleanup instructions. tests/README.md
+explains its intentional type error. Added the owner rule to apps/studio/AGENTS.md.
+No foreign-language source/manifests remain outside tests/ (generated target excluded).
+Whole formatter passed0files/0snippets/0fingerprints; no regression tests for relocation.
+Native Refresh Explorer removed root go.mod. Restarted only Go75300->84396 to load
+its test-only module; diagnostic count returned1. Tsrust82720/app75287/supervisor69762
+unchanged.11tabs/owner-active main.tsrx/sole protected draft hash unchanged. CUA phase
+completed: Isolated other-language fixtures under tests. Keep dev running.
+
 Native-only bundled linking reuse — November12, based onb6c0e755.
 Previous goal turn made progress by deferring reference tables and qualifying exact
 reference/snapshot behavior. This section addresses the measured~200ms std:ui native

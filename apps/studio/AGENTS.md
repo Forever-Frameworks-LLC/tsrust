@@ -21,6 +21,11 @@ Use this `apps/studio` package as the initial open directory when developing and
 testing Studio. Do not initially open/index the entire Tsrust checkout. Expand
 the workspace only when a concrete workflow requires it.
 
+Other-language editor fixtures (Go, JavaScript/TypeScript, Rust and similar),
+including their package/module manifests, belong under `tests/`. Keep them out
+of Studio's application source and project root. Studio application code remains
+`.tsr`/`.tsrx`.
+
 Read `tsrust.config.json` before changing entrypoints, output paths, UI targets or
 component locations. Tsrust checks ownership and supported language/library APIs;
 use its diagnostics and local source instead of assuming every TypeScript or Node
