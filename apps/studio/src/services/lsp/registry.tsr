@@ -1,0 +1,50 @@
+import { Channel, Sender, all } from 'std:futures';
+
+import { LanguageServer, validateLanguageServers } from '../../lib/language/servers.tsr';
+import { LanguageMessage, LanguageUpdate, languageWorker } from './session.tsr';
+
+async function lazyLanguageWorker(root: string, server: LanguageServer, messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  if (server.id !== 'tsrust') {
+    while (true) {
+      const message = await messages.receive();
+
+      if (message.kind === 'start' && message.generation === 0) break;
+    }
+  }
+
+  await languageWorker(root, server, messages, updates);
+}
+
+async function routeMessages(servers: LanguageServer[], routes: Sender<LanguageMessage>[], messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  while (true) {
+    const message = await messages.receive();
+    const id = clone(message.server) ?? 'tsrust';
+    const index = servers.findIndex((server) => server.id === id);
+
+    if (index < 0) {
+      await updates.send({
+        server: id, kind: 'failed', generation: message.generation, message: 'No matching language server is registered.'
+      });
+      continue;
+    }
+
+    const route = routes[index].share();
+    await route.send(message);
+  }
+}
+
+// Each session owns its protocol inbox and generation; cancellation settles every child.
+export async function languageServices(root: string, servers: LanguageServer[], messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  unwrap(validateLanguageServers(servers));
+  const routes: Sender<LanguageMessage>[] = [];
+  const tasks: Task<void>[] = [];
+
+  for (const server of servers) {
+    const inbox = new Channel<LanguageMessage>(8);
+    routes.push(inbox.sender());
+    tasks.push(lazyLanguageWorker(clone(root), clone(server), inbox, updates.share()));
+  }
+
+  tasks.push(routeMessages(servers, routes, messages, updates));
+  await all(tasks);
+}

@@ -27,3 +27,21 @@ export function validateLanguageServer(server: ReadOnly<LanguageServer>): Result
 
   return Ok();
 }
+
+export function validateLanguageServers(servers: ReadOnly<LanguageServer[]>): Result<void, string> {
+  const ids: string[] = [];
+
+  for (const server of servers) {
+    match (validateLanguageServer(server)) {
+      Err(error) => {
+        return Err(clone(error));
+      },
+      Ok(_) => {}
+    }
+
+    if (ids.includes(server.id)) return Err('Language server IDs must be distinct.');
+    ids.push(clone(server.id));
+  }
+
+  return Ok();
+}

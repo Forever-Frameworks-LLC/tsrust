@@ -9,6 +9,48 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
+Lazy multi-server registry prerequisite — 2026-11-12, based oncce05eda.
+Previous goal turn was progress: generic transport/source checkpointd7fb0494 and
+real gopls acceptance. This turn adds actual process/inbox routing, not merely a
+server table. New services/lsp/registry.tsr owns one independent session task and
+bounded protocol inbox per registered descriptor, routes typed messages by server
+ID and settles every task through existing std:futures all cancellation. Only
+Tsrust starts immediately; foreign processes wait for explicit generation-zero
+start. Descriptors reject duplicate server IDs before constructing jobs. Unknown
+server requests produce scoped failed updates and leave registered services alive.
+No external executable can be selected through a protocol message. Standard
+Sender.share creates the independently owned endpoint required across await; no
+resource cloning workaround. workers.tsr now uses this registry for existing Tsrust.
+Studio config and document-controller multi-server routing are still NOT wired.
+
+Focused real registry witness passed392.41ms (suite3/3,394.16ms execution;
+setup9569.7ms). One temporary root held actual Tsrust and Go files/configs; both
+installed servers ran simultaneously. Go unsaved/corrected diagnostics, hover,
+completion, Unicode signatures and restart passed; then a Tsrust hover still used
+its original generation. An unused descriptor deliberately points at a nonexistent
+executable: eager launch would fail the witness. An unknown target was rejected
+before a subsequent valid Tsrust read. Parent cancellation/await settles children;
+no fixture files retained. Existing actual Studio service entrypoint witness passed
+1/1 in469.13ms execution, setup17002.0ms, through the new registry. Changed duplicate
+ID validation witness then passed1/1 in1.43ms execution, setup5832.7ms. Other accepted
+transport/AI/controller tests are preserved from prior checkpoint; no whole matrix.
+Logs /tmp/studio-registry-{test,primary-test,definition-test}.log are disposable.
+Initial preflight caught moving optional server identity before sending the whole
+record (now clone that owned ID), and indexed Sender's borrowed async temporary
+(now named independent share). These were ownership repairs, no compiler change.
+
+Whole-project formatter passed3files,0documentation snippets,0fingerprints changed;
+diff-check passed. No SDK rebuild/install, new dependencies, push or release.
+Live supervisor42993 / PTY86030 confirmed alive via write_stdin this turn. Last-good
+app43189/LSP43190 stays open while dev source rebuild is pending. Dev reported source
+changed during dependency capture and retry after formatting, not app failure.
+No Go UI/native registry acceptance claimed, and no new latency/memory measurement.
+NEXT concrete work: use the registry from trusted global settings and per-server
+controller states, associate documents declaratively, route native and guarded AI
+reads/cancel/restart/status, and verify two languages in native Studio. Preserve
+owner draft, current workspace, server generations and stale document guards.
+
+
 External-server transport prerequisite — 2026-11-12, based on8f155582.
 This is backend acceptance, NOT Studio Go UI or full external-language acceptance.
 Added validated LanguageServer descriptor (stable source ID, display name, program,

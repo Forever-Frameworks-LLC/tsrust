@@ -206,8 +206,12 @@ server. Real installed gopls v0.23.0 passed Go unsaved/corrected diagnostics, ho
 completion, Unicode parameter hints and restart; numeric and string diagnostic
 codes normalize without weakening exact-version guards. Combined focused service
 acceptance12/12 passed; detailed timings and identities are in agent-progress.
-Trusted global server settings, lazy simultaneous processes, native/AI routing and
-foreign-language UI acceptance remain next. This is not full extension support.
+A lazy session registry now routes independently scoped server inboxes and keeps
+unused foreign executables unlaunched. A real simultaneous Tsrust/Go witness passed
+Go restart followed by a Tsrust read at its unchanged generation, unknown-target
+rejection and parent cancellation. Existing Studio service entrypoint passed
+through the registry. Trusted global settings, per-server document/controller
+states, native/AI routing and foreign-language UI acceptance remain next. This is not full extension support.
 
 ## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
 

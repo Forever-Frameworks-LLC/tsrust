@@ -27,6 +27,7 @@ export interface LanguageQuery {
 }
 
 export interface LanguageMessage {
+  server?: string;
   kind: string;
   generation: int;
   body?: string;
