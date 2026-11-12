@@ -93,8 +93,11 @@ test('editor defaults persist and project overrides are partial and live', () =>
     strictEqual(unwrap(parseConfig(formatConfig(config))).formatOnFocusChange, true);
     config.format.organizeImports = false;
     config.format.importWrapThreshold = 8;
+    config.format.argumentWrapThreshold = 7;
     strictEqual(unwrap(parseConfig(formatConfig(config))).format.organizeImports, false);
     strictEqual(unwrap(parseConfig(formatConfig(config))).format.importWrapThreshold, 8);
+    strictEqual(unwrap(parseConfig(formatConfig(config))).format.argumentWrapThreshold, 7);
+    strictEqual(legacy.format.argumentWrapThreshold, 5);
     config.format.jsxReturnParentheses = false;
     strictEqual(unwrap(parseConfig(formatConfig(config))).format.jsxReturnParentheses, false);
     const defaults: EditorPolicy = {
@@ -109,10 +112,13 @@ test('editor defaults persist and project overrides are partial and live', () =>
     strictEqual(project.format.jsxReturnParentheses, false);
     strictEqual(project.format.organizeImports, false);
     strictEqual(project.format.importWrapThreshold, 8);
-    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"organizeImports":true,"importWrapThreshold":3}}'));
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"organizeImports":true,"importWrapThreshold":3,"argumentWrapThreshold":2}}'));
     const importPolicy = unwrap(projectEditorPolicy(root, defaults));
     strictEqual(importPolicy.format.organizeImports, true);
     strictEqual(importPolicy.format.importWrapThreshold, 3);
+    strictEqual(importPolicy.format.argumentWrapThreshold, 2);
+    unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"argumentWrapThreshold":101}}'));
+    strictEqual(rejected(projectEditorPolicy(root, defaults)), true);
     unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"importWrapThreshold":101}}'));
     strictEqual(rejected(projectEditorPolicy(root, defaults)), true);
     unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"indentWidth":0}}'));
@@ -164,7 +170,7 @@ test('registered formatting tool uses the real CLI and returns an isolated revis
   const root = unwrap(createTempDir(undefined, 'studio-format-tool-'));
 
   try {
-    const source = 'function Panel():Node{return <View className="grow"><Icon/><View label="日本語"/></View>;}';
+    const source = 'import asset from "./assets/data.json";import { helper } from "./code.tsr";function Panel():Node{return <View className="grow"><Icon/><View label="日本語"/></View>;}function crowded(a:int,b:int,c:int,d:int,e:int,f:int):int{return five(new Map<string,int>(),[1,2],{a:1,b:2},other(1,2),1<2);}';
     const state = workspace(clone(root), clone(source));
     unwrap(writeTextFile(state.active, source));
     unwrap(writeTextFile(root + '/tsrust.config.json', '{"format":{"indentWidth":4}}'));
@@ -183,6 +189,12 @@ test('registered formatting tool uses the real CLI and returns an isolated revis
     strictEqual(proposal.revision, 0);
     strictEqual(proposal.after.includes('return (\n'), true);
     strictEqual(proposal.after.includes('\n        <View '), true);
+    strictEqual(proposal.after.includes('function crowded(\n'), true);
+    strictEqual(proposal.after.includes('five(\n'), false);
+    strictEqual(proposal.after.includes('from "./code.tsr";\n\nimport asset from "./assets/data.json";'), true);
+    context.policy.format.argumentWrapThreshold = 2;
+    const overridden = JSON.parse<ProposedEdit>(unwrap(await invokeWorkflowTool(context, 'format_document', payload)));
+    strictEqual(overridden.after.includes('five(\n'), true);
     strictEqual(unwrap(readTextFile(state.active)), state.files[0].document.text);
     strictEqual(rejected(await invokeWorkflowTool(context, 'check_project', '{"allowCheck":true}')), true);
     strictEqual(rejected(await invokeWorkflowTool(context, 'format_document', '{"path":"/outside.tsr"}')), true);
@@ -211,9 +223,30 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
   strictEqual(unwrap(applyFormatting(state, result)), true);
   strictEqual(state.active, '/project/other.tsr');
   strictEqual(state.files[0].document.savedText, 'const value=1;');
-  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'format', options.format, true, false)), true);
-  strictEqual(rejected(prepareProjectTask(state, 'tsrust', 'check', options.format, false, false)), true);
-  const task = unwrap(prepareProjectTask(state, '/bin/tsrust', 'check', options.format, true, false));
+  strictEqual(rejected(prepareProjectTask(
+    state,
+    'tsrust',
+    'format',
+    options.format,
+    true,
+    false
+  )), true);
+  strictEqual(rejected(prepareProjectTask(
+    state,
+    'tsrust',
+    'check',
+    options.format,
+    false,
+    false
+  )), true);
+  const task = unwrap(prepareProjectTask(
+    state,
+    '/bin/tsrust',
+    'check',
+    options.format,
+    true,
+    false
+  ));
   strictEqual(task.program, '/bin/tsrust');
   strictEqual(task.args.join(' '), 'check . --color=always --progress');
   const selected = problemSelection('first\n日本 value', 2, 3);
@@ -231,7 +264,14 @@ test('project formatting preserves open drafts while selecting unopened disk sou
     edit(state.files[0].document, 'unsaved draft');
     const closed = actual + '/closed.tsr';
     unwrap(writeTextFile(closed, 'const value=1;'));
-    const task = unwrap(prepareProjectTask(state, 'tsrust', 'format', defaultFormatting(), true, true));
+    const task = unwrap(prepareProjectTask(
+      state,
+      'tsrust',
+      'format',
+      defaultFormatting(),
+      true,
+      true
+    ));
     strictEqual(task.args.includes(closed), true);
     strictEqual(task.args.includes(state.active), false);
     strictEqual(task.args.includes('--write'), true);

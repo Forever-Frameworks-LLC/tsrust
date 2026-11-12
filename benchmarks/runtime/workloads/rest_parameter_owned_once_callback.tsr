@@ -16,7 +16,14 @@ function apply(action: Once<Function<string[], [trace: Mutable<Trace>, ...values
     return action(trace, base);
   }
 
-  return action(trace, base, base + 1, base + 2, base + 3, base + 4);
+  return action(
+    trace,
+    base,
+    base + 1,
+    base + 2,
+    base + 3,
+    base + 4
+  );
 }
 
 function workload(n: int, seed: int, input: string): string[][] {

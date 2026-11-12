@@ -25,7 +25,15 @@ import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { copyProblems, ProblemActionContext } from '../../services/problem-actions.tsr';
 
 
-function revealProblem(workspace: Signal<Workspace>, recovery: Signal<Recovery>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, problems: Signal<Problem[]>, terminalError: Signal<string>, value: ReadOnly<string>): void {
+function revealProblem(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  terminals: Signal<TerminalWorkspace>,
+  panel: Signal<string>,
+  problems: Signal<Problem[]>,
+  terminalError: Signal<string>,
+  value: ReadOnly<string>
+): void {
   match (toInt(Number(value))) {
     Err(_) => {},
     Ok(index) => {
@@ -92,7 +100,15 @@ function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): 
   );
 }
 
-export function ProblemsPanel(workspace: Signal<Workspace>, recovery: Signal<Recovery>, terminals: Signal<TerminalWorkspace>, panel: Signal<string>, problems: Signal<Problem[]>, terminalError: Signal<string>, font: Signal<int>): Node {
+export function ProblemsPanel(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  terminals: Signal<TerminalWorkspace>,
+  panel: Signal<string>,
+  problems: Signal<Problem[]>,
+  terminalError: Signal<string>,
+  font: Signal<int>
+): Node {
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   return (
     <View className={panelClass.get()}>
@@ -104,10 +120,26 @@ export function ProblemsPanel(workspace: Signal<Workspace>, recovery: Signal<Rec
       <List
         className="grow min-h-0"
         onSelect={(value) => {
-          revealProblem(workspace, recovery, terminals, panel, problems, terminalError, value);
+          revealProblem(
+            workspace,
+            recovery,
+            terminals,
+            panel,
+            problems,
+            terminalError,
+            value
+          );
         }}
         onConfirm={(value) => {
-          revealProblem(workspace, recovery, terminals, panel, problems, terminalError, value);
+          revealProblem(
+            workspace,
+            recovery,
+            terminals,
+            panel,
+            problems,
+            terminalError,
+            value
+          );
         }}
       >
         {...collectProblems(workspace.get(), problems.get(), terminalError.get()).map((problem: ReadOnly<Problem>, index: int) => ProblemRow(problem, index, font))}

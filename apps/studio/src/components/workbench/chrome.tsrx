@@ -32,7 +32,15 @@ export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery
   publishWorkspace(next, workspace, recovery);
 }
 
-export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, mode: Signal<string>, font: Signal<int>, panel: Signal<string>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>): Node {
+export function Chrome(
+  workspace: Signal<Workspace>,
+  sidebar: Signal<boolean>,
+  mode: Signal<string>,
+  font: Signal<int>,
+  panel: Signal<string>,
+  recovery: Signal<Recovery>,
+  settings: Signal<StudioConfig>
+): Node {
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
   return (
     <View className="relative shrink-0 h-9 bg-muted border-b border-border" windowDragRegion={true}>
@@ -117,7 +125,14 @@ export function Chrome(workspace: Signal<Workspace>, sidebar: Signal<boolean>, m
         command="zoom-reset"
         keys="secondary-0"
         onTrigger={() => {
-          zoomWorkspace(workspace, recovery, font, settings, 0, true);
+          zoomWorkspace(
+            workspace,
+            recovery,
+            font,
+            settings,
+            0,
+            true
+          );
         }}
       />
       <Shortcut

@@ -2,9 +2,10 @@ import { homeDir } from 'std:env';
 import { readTextFile, writeTextFileAtomic, mkdirAll } from 'std:fs';
 import { join } from 'std:path';
 
+import { FormattingOptions, FormattingOverrides, defaultFormatting, resolveFormatting } from './formatting.tsr';
+
 import localeNames from '../../assets/locales/names.json';
 import themeNames from '../../assets/themes/names.json';
-import { FormattingOptions, FormattingOverrides, defaultFormatting, resolveFormatting } from './formatting.tsr';
 
 export function themes(): string[] {
   return clone(themeNames);
@@ -143,5 +144,5 @@ export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>, expec
 
 
 export function formatConfig(config: ReadOnly<StudioConfig>): string {
-  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
+  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + ',\n    "argumentWrapThreshold": ' + config.format.argumentWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
 }

@@ -2,6 +2,7 @@
 use crate::syntax::TokenKind;
 use crate::{Diagnostic, Span};
 mod imports;
+mod arguments;
 mod types;
 mod match_layout;
 mod options;
@@ -46,6 +47,7 @@ fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnost
     let ends_operand = |index: usize| operand_ends[index];
     let (match_headers, match_commas) = match_layout::layout(real);
     let generic_spans = types::generic_spans(&tokens);
+    let (argument_breaks,argument_indent)=arguments::layout(real,&generic_spans,options);
     let generic = |at: usize| types::contains(&generic_spans, at);
     if real.is_empty() {
         return Ok(source.to_owned());
@@ -284,6 +286,11 @@ fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnost
     let mut offset = 0;
     for (i, token) in real.iter().enumerate() {
         let gap = &source[offset..token.span.start];
+        let separated;
+        let leading=gap.len()-gap.trim_start().len();
+        let gap=if argument_breaks[i] && !gap.trim().is_empty() && !gap[..leading].contains('\n') && !gap.trim_start().starts_with("//") {
+            separated=format!("\n{gap}");separated.as_str()
+        }else{gap};
         let previous = i.checked_sub(1).map(|i| &real[i]);
         let symbol = token.kind == TokenKind::Symbol;
         if depth == 0 && token.kind == TokenKind::Name && token.text == "import" {
@@ -299,8 +306,8 @@ fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnost
         // Comments are source trivia, not lexer tokens; retain their exact content.
         if !gap.chars().all(char::is_whitespace) {
             let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
-            let code_depth = depth + clauses.saturating_sub(usize::from(label_start[i]));
-            let comment_depth = depth + clauses + usize::from(symbol && token.text == "}" && !pattern[i]);
+            let code_depth = depth + argument_indent[i] + clauses.saturating_sub(usize::from(label_start[i]));
+            let comment_depth = depth + argument_indent[i] + clauses + usize::from(symbol && token.text == "}" && !pattern[i]);
             output.push_str(&trivia::reindent_gap(gap, options.indent_width * comment_depth, options.indent_width * code_depth)?);
         } else if i == 0 {
             output.push_str(&"\n".repeat(gap.bytes().filter(|&byte| byte == b'\n').count()));
@@ -314,7 +321,7 @@ fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnost
             let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
             let jsx_open=prev=="(" && token.kind==TokenKind::String && source.as_bytes().get(token.span.start)==Some(&b'<');
             let jsx_close=current==")" && previous.kind==TokenKind::String && source.as_bytes().get(previous.span.start)==Some(&b'<');
-            let newline = if jsx_open || jsx_close {true} else if empty_pair || pattern[i - 1] {
+            let newline = if argument_breaks[i] || jsx_open || jsx_close {true} else if empty_pair || pattern[i - 1] {
                 false
             } else if label_colon[i - 1] || interface_field_comma[i - 1] || match_commas[i - 1] {
                 true
@@ -351,7 +358,7 @@ fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnost
                 output.push_str(&"\n".repeat(count));
                 // Inside a switch body, everything except a label sits one level deeper.
                 let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
-                output.push_str(&" ".repeat(options.indent_width * (depth + usize::from(jsx_open) + clauses.saturating_sub(usize::from(label_start[i])))));
+                output.push_str(&" ".repeat(options.indent_width * (depth + argument_indent[i] + usize::from(jsx_open) + clauses.saturating_sub(usize::from(label_start[i])))));
             } else {
                 let postfix_assertion = symbol && current == "!" && ends_operand(i - 1);
                 // Signs after postfix operators are binary; signs after prefixes

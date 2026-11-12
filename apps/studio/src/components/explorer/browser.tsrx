@@ -16,7 +16,14 @@ import { dirty } from '../../lib/workspace/documents.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, entries, openFile } from '../../lib/workspace/workspace.tsr';
 
-function FileTreeItem(path: string, name: string, directory: boolean, children: Node[], workspace: Signal<Workspace>, settings: Signal<StudioConfig>): Node {
+function FileTreeItem(
+  path: string,
+  name: string,
+  directory: boolean,
+  children: Node[],
+  workspace: Signal<Workspace>,
+  settings: Signal<StudioConfig>
+): Node {
   const decoration = fileDecoration(name, directory);
   const labelPath = clone(path);
   const label = computed<string>(() => name + (workspace.get().files.some((file) => file.document.path === labelPath && dirty(file.document)) ? ' ●' : ''));
@@ -55,7 +62,14 @@ function directoryItems(path: string, workspace: Signal<Workspace>, settings: Si
           }
         }
 
-        nodes.push(FileTreeItem(clone(entry.path), clone(entry.name), entry.directory, nested, workspace, settings));
+        nodes.push(FileTreeItem(
+          clone(entry.path),
+          clone(entry.name),
+          entry.directory,
+          nested,
+          workspace,
+          settings
+        ));
       }
 
       return Ok(nodes);

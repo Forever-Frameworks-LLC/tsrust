@@ -47,7 +47,20 @@ function requestSaveAll(workspace: Signal<Workspace>, queue: Signal<QueuedFormat
   }
 }
 
-export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, requests: ReadOnly<Sender<FormattingRequest>>, checks: ReadOnly<Sender<string>>, busy: Signal<boolean>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, saveCheckPending: Signal<boolean>, mode: string, queuedTarget: FormattingTarget | undefined = undefined): void {
+export function requestAction(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  settings: Signal<StudioConfig>,
+  requests: ReadOnly<Sender<FormattingRequest>>,
+  checks: ReadOnly<Sender<string>>,
+  busy: Signal<boolean>,
+  checking: Signal<boolean>,
+  output: Signal<string>,
+  problems: Signal<Problem[]>,
+  saveCheckPending: Signal<boolean>,
+  mode: string,
+  queuedTarget: FormattingTarget | undefined = undefined
+): void {
   const next = workspace.get();
   const targetPath = queuedTarget === undefined ? clone(next.active) : clone(queuedTarget.path);
 
@@ -129,7 +142,23 @@ export function requestAction(workspace: Signal<Workspace>, recovery: Signal<Rec
   }
 }
 
-export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, panel: Signal<string>, requests: ReadOnly<Channel<FormattingRequest>>, results: Channel<FormattingResult>, checks: ReadOnly<Channel<string>>, checking: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, terminals: Signal<TerminalWorkspace>, terminalError: Signal<string>, program: string, busy: Signal<boolean>, focusQueue: Signal<QueuedFormatting[]>): Node {
+export function WorkflowControls(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  settings: Signal<StudioConfig>,
+  panel: Signal<string>,
+  requests: ReadOnly<Channel<FormattingRequest>>,
+  results: Channel<FormattingResult>,
+  checks: ReadOnly<Channel<string>>,
+  checking: Signal<boolean>,
+  output: Signal<string>,
+  problems: Signal<Problem[]>,
+  terminals: Signal<TerminalWorkspace>,
+  terminalError: Signal<string>,
+  program: string,
+  busy: Signal<boolean>,
+  focusQueue: Signal<QueuedFormatting[]>
+): Node {
   const saveCheckPending = signal(false);
   const available = computed<boolean>(() => canFormat(workspace.get().active));
   const buttonRequests = requests.sender();
@@ -165,7 +194,19 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         tooltipCommand="format-document"
         aria-label={accessibleName("Format document")}
         onPress={() => {
-          requestAction(workspace, recovery, settings, buttonRequests, formatButtonChecks, busy, checking, output, problems, saveCheckPending, 'format');
+          requestAction(
+            workspace,
+            recovery,
+            settings,
+            buttonRequests,
+            formatButtonChecks,
+            busy,
+            checking,
+            output,
+            problems,
+            saveCheckPending,
+            'format'
+          );
         }}
       />
       <Button
@@ -178,14 +219,34 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         tooltipCommand="check-project"
         aria-label={accessibleName("Check project")}
         onPress={() => {
-          runProjectTask(workspace, settings, terminals, panel, terminalError, clone(buttonProgram), 'check');
+          runProjectTask(
+            workspace,
+            settings,
+            terminals,
+            panel,
+            terminalError,
+            clone(buttonProgram),
+            'check'
+          );
         }}
       />
       <Shortcut
         command="format-document"
         keys="alt-shift-f"
         onTrigger={() => {
-          requestAction(workspace, recovery, settings, shortcutRequests, formatShortcutChecks, busy, checking, output, problems, saveCheckPending, 'format');
+          requestAction(
+            workspace,
+            recovery,
+            settings,
+            shortcutRequests,
+            formatShortcutChecks,
+            busy,
+            checking,
+            output,
+            problems,
+            saveCheckPending,
+            'format'
+          );
         }}
       />
       <Shortcut
@@ -199,14 +260,31 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
         command="check-project"
         keys="secondary-shift-b"
         onTrigger={() => {
-          runProjectTask(workspace, settings, terminals, panel, terminalError, clone(program), 'check');
+          runProjectTask(
+            workspace,
+            settings,
+            terminals,
+            panel,
+            terminalError,
+            clone(program),
+            'check'
+          );
         }}
       />
       <Shortcut
         command="format-project"
         keys="secondary-alt-shift-f"
         onTrigger={() => {
-          runProjectTask(workspace, settings, terminals, panel, terminalError, clone(formatProgram), 'format', focusQueue);
+          runProjectTask(
+            workspace,
+            settings,
+            terminals,
+            panel,
+            terminalError,
+            clone(formatProgram),
+            'format',
+            focusQueue
+          );
         }}
       />
       <Ticker
@@ -220,7 +298,20 @@ export function WorkflowControls(workspace: Signal<Workspace>, recovery: Signal<
               const entry = pending.shift();
               focusQueue.set(pending);
 
-              if (entry !== undefined) requestAction(workspace, recovery, settings, focusRequests, focusChecks, busy, checking, output, problems, saveCheckPending, clone(entry.mode), clone(entry.target));
+              if (entry !== undefined) requestAction(
+                workspace,
+                recovery,
+                settings,
+                focusRequests,
+                focusChecks,
+                busy,
+                checking,
+                output,
+                problems,
+                saveCheckPending,
+                clone(entry.mode),
+                clone(entry.target)
+              );
             }
           }
 

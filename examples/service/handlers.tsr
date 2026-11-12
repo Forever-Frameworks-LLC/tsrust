@@ -49,13 +49,34 @@ export async function observe(c: Mutable<Context<Application, Variables>>, next:
   c.header('vary', 'Origin');
   c.header('cache-control', 'no-store');
   c.header('x-content-type-options', 'nosniff');
-  await emitEvent(c.env.telemetry, trace, 'request-start', 'service.handle', 0, 0);
+  await emitEvent(
+    c.env.telemetry,
+    trace,
+    'request-start',
+    'service.handle',
+    0,
+    0
+  );
   await next();
 
   if (c.res.status() >= 500) {
-    await emitEvent(c.env.telemetry, trace, 'request-failed', 'service.handle', c.res.status(), monotonicNow() - started);
+    await emitEvent(
+      c.env.telemetry,
+      trace,
+      'request-failed',
+      'service.handle',
+      c.res.status(),
+      monotonicNow() - started
+    );
   } else {
-    await emitEvent(c.env.telemetry, trace, 'request-end', 'service.handle', c.res.status(), monotonicNow() - started);
+    await emitEvent(
+      c.env.telemetry,
+      trace,
+      'request-end',
+      'service.handle',
+      c.res.status(),
+      monotonicNow() - started
+    );
   }
 }
 

@@ -41,6 +41,13 @@ fn declarations(tokens: &[Token]) -> Vec<Import> {
     result
 }
 
+fn group(path:&str)->u8 {
+    if path.starts_with("std:"){return 0;}
+    let relative=path.starts_with("./")||path.starts_with("../")||path.starts_with('/');
+    let asset=relative && std::path::Path::new(path).extension().and_then(|value|value.to_str()).is_some_and(|extension|!matches!(extension,"tsr"|"tsrx"|"rs"|"ts"|"tsx"|"js"|"jsx"|"mjs"|"cjs"|"go"|"c"|"h"|"cpp"));
+    if asset {2}else{1}
+}
+
 pub(super) fn organize(source: &str, options: &FormatOptions) -> Result<String, Diagnostic> {
     if !options.organize_imports { return Ok(source.to_owned()); }
     let tokens = crate::syntax::lex(source)?;
@@ -72,7 +79,7 @@ pub(super) fn organize(source: &str, options: &FormatOptions) -> Result<String, 
                 if !gap.trim().is_empty() || gap.contains('\n') { break; }
                 end = comment.end;
             }
-            entries.push((!tokens[import.path].text.starts_with("std:"), tokens[import.path].text.as_str(), source[begin..end].trim()));
+            entries.push((group(&tokens[import.path].text), tokens[import.path].text.as_str(), source[begin..end].trim()));
             begin = end;
         }
         entries.sort_by(|left, right| (left.0, left.1).cmp(&(right.0, right.1)));
@@ -122,6 +129,14 @@ pub(super) fn wrap(source: &str, options: &FormatOptions) -> Result<String, Diag
 #[cfg(test)]
 mod tests {
 use crate::format;
+
+#[test]
+fn asset_imports_follow_code_in_a_separate_sorted_group() {
+    let source="import themes from './assets/themes.json';import { View } from 'std:ui';import icon from './icon.png';import { App } from './app.tsrx';import config from './config.json';import { native } from './native.rs';";
+    let result=format(source).unwrap();
+    assert_eq!(result,"import { View } from 'std:ui';\n\nimport { App } from './app.tsrx';\nimport { native } from './native.rs';\n\nimport themes from './assets/themes.json';\nimport config from './config.json';\nimport icon from './icon.png';\n");
+    assert_eq!(format(&result).unwrap(),result);
+}
 
 #[test]
 fn import_rules_group_sort_wrap_and_preserve_declarations() {

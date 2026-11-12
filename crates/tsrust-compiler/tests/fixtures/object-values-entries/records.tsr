@@ -55,7 +55,14 @@ function main() {
   console.log(entries.length, entries);
   values.push("extra");
   entries.pop();
-  console.log(values.length, entries.length, p.label, p.x, p.ok, Object.values(p).length);
+  console.log(
+    values.length,
+    entries.length,
+    p.label,
+    p.x,
+    p.ok,
+    Object.values(p).length
+  );
   const size: Size = {
     w: 4, h: 5
   };

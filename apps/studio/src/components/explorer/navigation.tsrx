@@ -15,7 +15,14 @@ import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, Entry, projectFiles, openFile } from '../../lib/workspace/workspace.tsr';
 
 
-function SearchResult(file: ReadOnly<Entry>, root: string, workspace: Signal<Workspace>, query: Signal<string>, font: Signal<int>, recovery: Signal<Recovery>): Node {
+function SearchResult(
+  file: ReadOnly<Entry>,
+  root: string,
+  workspace: Signal<Workspace>,
+  query: Signal<string>,
+  font: Signal<int>,
+  recovery: Signal<Recovery>
+): Node {
   const path = clone(file.path);
   const label = file.path.slice(root.length + 1);
   const searchText = label.toLowerCase();
@@ -61,7 +68,14 @@ export function FileSearch(root: string, workspace: Signal<Workspace>, font: Sig
     Ok(files) => {
       const results: Node[] = [];
 
-      for (const file of files) results.push(SearchResult(file, clone(root), workspace, query, font, recovery));
+      for (const file of files) results.push(SearchResult(
+        file,
+        clone(root),
+        workspace,
+        query,
+        font,
+        recovery
+      ));
       return (
         <View className="flex-col size-full p-3 gap-2">
           <Input

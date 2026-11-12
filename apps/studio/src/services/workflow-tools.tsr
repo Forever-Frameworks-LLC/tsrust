@@ -49,7 +49,14 @@ export async function invokeWorkflowTool(context: ReadOnly<WorkflowToolContext>,
     const args = JSON.parse<WorkflowArguments>(payload, limits);
 
     if (name === 'format_project') {
-      match (prepareProjectTask(context.workspace, clone(context.program), 'format', context.policy.format, context.allowCheck, context.allowProjectWrite ?? false)) {
+      match (prepareProjectTask(
+        context.workspace,
+        clone(context.program),
+        'format',
+        context.policy.format,
+        context.allowCheck,
+        context.allowProjectWrite ?? false
+      )) {
         Err(error) => {
           return Err(clone(error));
         },

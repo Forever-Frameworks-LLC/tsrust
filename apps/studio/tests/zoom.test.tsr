@@ -36,7 +36,14 @@ test('zoom persists per workspace, clamps text size and resets to the configured
     strictEqual(unwrap(readTextFile(path)), maximum);
     zoomWorkspace(workspace, journal, font, settings, -100);
     strictEqual(font.get(), 8);
-    zoomWorkspace(workspace, journal, font, settings, 0, true);
+    zoomWorkspace(
+      workspace,
+      journal,
+      font,
+      settings,
+      0,
+      true
+    );
     strictEqual(font.get(), 18);
     const reset = unwrap(openWorkspace(root));
     unwrap(restoreRecovery(reset, clone(path)));

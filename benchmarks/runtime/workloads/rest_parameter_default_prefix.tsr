@@ -40,7 +40,15 @@ function workload(n: int, seed: int, input: string): int[][] {
     const base = (i * 13 + seed) % 97;
     const before = argumentTrace.calls;
     const defaults = trace.defaults;
-    const values = mode === 0 ? pack(trace) : mode === 1 ? pack(trace, undefined, argument(argumentTrace, base)) : pack(trace, base, argument(argumentTrace, base), argument(argumentTrace, base + 1), argument(argumentTrace, base + 2), argument(argumentTrace, base + 3), argument(argumentTrace, base + 4));
+    const values = mode === 0 ? pack(trace) : mode === 1 ? pack(trace, undefined, argument(argumentTrace, base)) : pack(
+      trace,
+      base,
+      argument(argumentTrace, base),
+      argument(argumentTrace, base + 1),
+      argument(argumentTrace, base + 2),
+      argument(argumentTrace, base + 3),
+      argument(argumentTrace, base + 4)
+    );
     output.push(values);
     output.push([argumentTrace.calls - before, trace.defaults - defaults]);
     i = i + 1;

@@ -4,6 +4,7 @@ import { join } from 'std:path';
 export interface FormattingOptions {
   organizeImports: boolean;
   importWrapThreshold: int;
+  argumentWrapThreshold: int;
   indentWidth: int;
   jsxReturnParentheses: boolean;
   jsxChildrenOnNewLines: boolean;
@@ -13,6 +14,7 @@ export interface FormattingOptions {
 export interface FormattingOverrides {
   organizeImports?: boolean;
   importWrapThreshold?: int;
+  argumentWrapThreshold?: int;
   indentWidth?: int;
   jsxReturnParentheses?: boolean;
   jsxChildrenOnNewLines?: boolean;
@@ -41,18 +43,20 @@ interface ProjectSettings {
 
 export function defaultFormatting(): FormattingOptions {
   return {
-    organizeImports: true, importWrapThreshold: 5, indentWidth: 2, jsxReturnParentheses: true, jsxChildrenOnNewLines: true, blankLinesAroundBlocks: true
+    organizeImports: true, importWrapThreshold: 5, argumentWrapThreshold: 5, indentWidth: 2, jsxReturnParentheses: true, jsxChildrenOnNewLines: true, blankLinesAroundBlocks: true
   };
 }
 
 export function resolveFormatting(base: ReadOnly<FormattingOptions>, overrides: ReadOnly<FormattingOverrides>): Result<FormattingOptions, string> {
   const resolved: FormattingOptions = {
-    organizeImports: overrides.organizeImports ?? base.organizeImports, importWrapThreshold: overrides.importWrapThreshold ?? base.importWrapThreshold, indentWidth: overrides.indentWidth ?? base.indentWidth, jsxReturnParentheses: overrides.jsxReturnParentheses ?? base.jsxReturnParentheses, jsxChildrenOnNewLines: overrides.jsxChildrenOnNewLines ?? base.jsxChildrenOnNewLines, blankLinesAroundBlocks: overrides.blankLinesAroundBlocks ?? base.blankLinesAroundBlocks
+    organizeImports: overrides.organizeImports ?? base.organizeImports, importWrapThreshold: overrides.importWrapThreshold ?? base.importWrapThreshold, argumentWrapThreshold: overrides.argumentWrapThreshold ?? base.argumentWrapThreshold, indentWidth: overrides.indentWidth ?? base.indentWidth, jsxReturnParentheses: overrides.jsxReturnParentheses ?? base.jsxReturnParentheses, jsxChildrenOnNewLines: overrides.jsxChildrenOnNewLines ?? base.jsxChildrenOnNewLines, blankLinesAroundBlocks: overrides.blankLinesAroundBlocks ?? base.blankLinesAroundBlocks
   };
 
   if (resolved.indentWidth < 1 || resolved.indentWidth > 8) return Err('format.indentWidth must be between 1 and 8.');
 
   if (resolved.importWrapThreshold < 0 || resolved.importWrapThreshold > 100) return Err('format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).');
+
+  if (resolved.argumentWrapThreshold < 0 || resolved.argumentWrapThreshold > 100) return Err('format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).');
   return Ok(resolved);
 }
 

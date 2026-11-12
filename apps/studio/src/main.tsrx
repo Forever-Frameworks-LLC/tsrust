@@ -1,6 +1,6 @@
 import { currentDir, args, get } from 'std:env';
-import { Channel } from 'std:futures';
 import { canonicalize } from 'std:fs';
+import { Channel } from 'std:futures';
 import { extname } from 'std:path';
 import {
   View,
@@ -21,8 +21,6 @@ import {
   t
 } from 'std:ui';
 
-import communityThemes from './assets/themes/community.json';
-import studioThemes from './assets/themes/studio.json';
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
@@ -32,7 +30,6 @@ import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.t
 import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
 import { Chrome } from './components/workbench/chrome.tsrx';
 import { LanguageStatus } from './components/workbench/language-status.tsrx';
-import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { Region } from './components/workbench/layout.tsrx';
 import { Panels, ChatPanel } from './components/workbench/panels.tsrx';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
@@ -47,10 +44,23 @@ import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recover
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
 import { openWorkspace } from './lib/workspace/workspace.tsr';
 import { zoomFontSize } from './lib/workspace/zoom.tsr';
-import { studioWorkers } from './services/workers.tsr';
+import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
+import { studioWorkers } from './services/workers.tsr';
 
-function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel<CheckResult>, formattingRequests: ReadOnly<Channel<FormattingRequest>>, formattingResults: Channel<FormattingResult>, program: string, languageMessages: ReadOnly<Channel<LanguageMessage>>, languageUpdates: Channel<LanguageUpdate>): Node {
+import communityThemes from './assets/themes/community.json';
+import studioThemes from './assets/themes/studio.json';
+
+function App(
+  path: string,
+  requests: ReadOnly<Channel<string>>,
+  results: Channel<CheckResult>,
+  formattingRequests: ReadOnly<Channel<FormattingRequest>>,
+  formattingResults: Channel<FormattingResult>,
+  program: string,
+  languageMessages: ReadOnly<Channel<LanguageMessage>>,
+  languageUpdates: Channel<LanguageUpdate>
+): Node {
   const initial = unwrap(openWorkspace(path));
   let journal: Recovery = {
     path: '', baseline: '', ready: false
@@ -117,10 +127,57 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
   const problemCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'error').length);
   const warningCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'warning').length);
   const problemLabel = computed<string>(() => translate('Errors') + ': ' + problemCount.get().toString());
-  const panelView = Panels(panel, CheckPanel(requests.sender(), results, font, checking, checkOutput, problems, panel), TerminalPanel(workspace.get().root, font, terminals, terminalError, workspace, recovery), NewTerminal(terminals, terminalError), ProblemsPanel(workspace, recovery, terminals, panel, problems, terminalError, font), CopyProblems(workspace, problems, terminalError), font);
+  const panelView = Panels(
+    panel,
+    CheckPanel(
+      requests.sender(),
+      results,
+      font,
+      checking,
+      checkOutput,
+      problems,
+      panel
+    ),
+    TerminalPanel(
+      workspace.get().root,
+      font,
+      terminals,
+      terminalError,
+      workspace,
+      recovery
+    ),
+    NewTerminal(terminals, terminalError),
+    ProblemsPanel(
+      workspace,
+      recovery,
+      terminals,
+      panel,
+      problems,
+      terminalError,
+      font
+    ),
+    CopyProblems(workspace, problems, terminalError),
+    font
+  );
   const formatBusy = signal(false);
   const formatFocus = signal<QueuedFormatting[]>([]);
-  const workflows = WorkflowControls(workspace, recovery, settings, panel, formattingRequests, formattingResults, requests, checking, checkOutput, problems, terminals, terminalError, program, formatBusy, formatFocus);
+  const workflows = WorkflowControls(
+    workspace,
+    recovery,
+    settings,
+    panel,
+    formattingRequests,
+    formattingResults,
+    requests,
+    checking,
+    checkOutput,
+    problems,
+    terminals,
+    terminalError,
+    program,
+    formatBusy,
+    formatFocus
+  );
   const chatView = ChatPanel(chat);
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');
   const status = computed<string>(() => {
@@ -132,16 +189,45 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
 
     return translate('No file open');
   });
-  const chrome = Chrome(workspace, sidebar, mode, font, panel, recovery, settings);
-  const editor = EditorWorkspace(workspace, font, recovery, mode, sidebar, formatFocus);
+  const chrome = Chrome(
+    workspace,
+    sidebar,
+    mode,
+    font,
+    panel,
+    recovery,
+    settings
+  );
+  const editor = EditorWorkspace(
+    workspace,
+    font,
+    recovery,
+    mode,
+    sidebar,
+    formatFocus
+  );
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');
   const chatPosition = computed<string>(() => settings.get().chatPosition);
   const chatVisible = computed<boolean>(() => chat.get());
   const navigationPosition = computed<string>(() => settings.get().navigationSide);
   const navigationVisible = computed<boolean>(() => sidebar.get());
-  const panelArea = Region(editor, panelView, panelPosition, panelVisible, 220, 100);
-  const chatArea = Region(panelArea, chatView, chatPosition, chatVisible, 320, 160);
+  const panelArea = Region(
+    editor,
+    panelView,
+    panelPosition,
+    panelVisible,
+    220,
+    100
+  );
+  const chatArea = Region(
+    panelArea,
+    chatView,
+    chatPosition,
+    chatVisible,
+    320,
+    160
+  );
   const explorer = <View className="flex-col size-full min-h-0">
     <View hidden={mode.get() !== 'files'} className="flex-col size-full min-h-0">
       {browser}
@@ -153,7 +239,14 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
       {contentSearch}
     </View>
   </View>;
-  const navigationArea = Region(chatArea, explorer, navigationPosition, navigationVisible, 248, 160);
+  const navigationArea = Region(
+    chatArea,
+    explorer,
+    navigationPosition,
+    navigationVisible,
+    248,
+    160
+  );
   const workbench = <View id="workbench" className="size-full min-w-0 min-h-0">
     {navigationArea}
   </View>;
@@ -262,7 +355,15 @@ function App(path: string, requests: ReadOnly<Channel<string>>, results: Channel
         >
           {warningCount.get().toString()}
         </Button>
-        {LanguageStatus(workspace, problems, panel, font, languageMessages.sender(), languageMessages.sender(), languageUpdates)}
+        {LanguageStatus(
+          workspace,
+          problems,
+          panel,
+          font,
+          languageMessages.sender(),
+          languageMessages.sender(),
+          languageUpdates
+        )}
         {UnsavedFiles(workspace, recovery, font)}
         <Text>
           {status.get()}
@@ -294,8 +395,26 @@ async function main(): Task<void> {
   const languageMessages = new Channel<LanguageMessage>(8);
   const languageUpdates = new Channel<LanguageUpdate>(8);
   const languageReplies = languageUpdates.sender();
-  const view = App(clone(path), requests, results, formattingRequests, formattingResults, clone(program), languageMessages, languageUpdates);
-  const workers = studioWorkers(clone(path), program, requests, replies, formattingRequests, formattingReplies, languageMessages, languageReplies).start();
+  const view = App(
+    clone(path),
+    requests,
+    results,
+    formattingRequests,
+    formattingResults,
+    clone(program),
+    languageMessages,
+    languageUpdates
+  );
+  const workers = studioWorkers(
+    clone(path),
+    program,
+    requests,
+    replies,
+    formattingRequests,
+    formattingReplies,
+    languageMessages,
+    languageReplies
+  ).start();
 
   try {
     unwrap(run(view, 'Tsrust Studio', {

@@ -25,7 +25,14 @@ function workload(n: int, seed: int, input: string): int[][] {
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;
-    const values = mode === 0 ? pack(base) : mode === 1 ? pack(base, first) : pack(base, first, second, first, second, first);
+    const values = mode === 0 ? pack(base) : mode === 1 ? pack(base, first) : pack(
+      base,
+      first,
+      second,
+      first,
+      second,
+      first
+    );
     output.push(values);
     i = i + 1;
   }

@@ -109,11 +109,15 @@ including “Parenthesize TSRX returns”. Language-specific formatting/lint rul
 overrides remain planned; the existing persisted rule keys stay compatible.
 
 Import rules, November 11: shared CLI/LSP formatting now groups consecutive import
-blocks with std: first, one blank line before other paths, and lexical path order.
+blocks with std: first, then code paths, then asset/data paths; each group has a
+blank line before it and lexical path order.
 Whole declarations retain binding order, aliases and attached comments; bare
 side-effect imports retain their order as boundaries. Named lists above five
 bindings wrap by default. Global/project organizeImports and importWrapThreshold
-settings use the existing guarded formatting routes. Focused checks and live
+settings use the existing guarded formatting routes. Independent
+argumentWrapThreshold defaults to5 (0 disables) for function/callback parameters
+and call arguments, excluding nested commas. Native Settings and global/project
+overrides share the CLI/LSP rule. Focused checks and live
 acceptance are recorded in docs/agent-progress.md; this is not LSP hosting or
 integrated-agent acceptance.
 

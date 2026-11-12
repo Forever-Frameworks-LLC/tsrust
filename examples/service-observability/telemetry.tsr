@@ -56,7 +56,14 @@ export function formatEvent(event: ReadOnly<Event>): string {
   return JSON.stringify(line, 1024);
 }
 
-export async function emitEvent(sender: ReadOnly<Sender<Event>>, trace: ReadOnly<Trace>, phase: Phase, site: Site, status: int, elapsedMs: number): Task<void> {
+export async function emitEvent(
+  sender: ReadOnly<Sender<Event>>,
+  trace: ReadOnly<Trace>,
+  phase: Phase,
+  site: Site,
+  status: int,
+  elapsedMs: number
+): Task<void> {
   const event: Event = {
     trace: clone(trace), phase, site, status, elapsedMs
   };
@@ -67,7 +74,14 @@ export async function stopTelemetry(sender: ReadOnly<Sender<Event>>): Task<void>
   const trace: Trace = {
     requestId: unwrap(parseUuid('00000000-0000-0000-0000-000000000000')), operation: 'service.request'
   };
-  await emitEvent(sender, trace, 'stop', 'service.handle', 0, 0);
+  await emitEvent(
+    sender,
+    trace,
+    'stop',
+    'service.handle',
+    0,
+    0
+  );
 }
 
 export function emptyMetrics(): Metrics {

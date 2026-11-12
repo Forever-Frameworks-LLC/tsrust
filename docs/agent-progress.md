@@ -8,6 +8,46 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Argument wrapping and asset imports — accepted, follows 4e7cfa23.
+Shared CLI/LSP format.argumentWrapThreshold defaults to5 (0 disables,0–100).
+Wraps function/callback parameters and call arguments above the direct-item limit;
+nested commas/generic types are excluded. Import groups are std:, code paths,
+then asset/data paths, separated by blank lines and sorted within groups. Bare
+side-effect imports remain ordering barriers. Studio global/project overrides,
+pretty config, native Settings number input and en/pt-BR strings use existing
+formatting policy and guarded format_document routes. Applied to Studio itself.
+
+Focused formatter family4/4PASS3.97s, including639lexable fixtures and86standalone
+contracts for token preservation/idempotence. Public Studio runtime6/6PASS25.96ms,
+including actual CLI/guarded proposal, override threshold, disk unchanged and
+invalid permission grants rejected. Logs /tmp/studio-argument-format-{tests,runtime}.log.
+No full compiler/LSP matrix. Whole-project formatter15files/1documentation snippet/
+5fingerprints; explicit Studio organization21files; final idempotence0/0/0.
+Other source changes are required token-preserving formatting. Diff check passed.
+Final SDK build2m54s, /tmp/studio-argument-format-sdk-final.log; atomically installed
+and hashes independently matched CLI f9f8acbac1dabb2209bc5c1d973a16f0a2dc90347012b4d35755002b983b39fb,
+LSP c9b2ad74d293a301f782822a47435ed15beeec074d9fa5e158a187612d1cb62e.
+Native final build102900ms (check70605.4ms,emit3209.9ms,backend191ms,
+native/link28291.1ms,runtimehit). Setup observations, not benchmarks.
+Live native Settings5→6→5 persisted correctly; Main App signature multiline and
+assets last. Final preview LSP connected,0errors/0warnings,9clean tabs,zoom-1.
+CUA ended "Verified the running Studio preview". Supervisor30396/PTY88187/app30480,
+LSP30483; leave running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-30396-1794449456062244000-0/Tsrust Studio.app.
+Old22770/19783/app26971 stopped only after replacement started; one preview.
+
+Owner asked about544MB LSP. Idle old child26972 measured with footprint --swapped:
+physical570754152bytes (544.3MiB),peak813270120 (775.6MiB),compressed/swapped
+569868288; Malloc Small548061184. RSS1360KiB alone was misleading. One sample,
+not proof of leak or acceptable8GiB qualification. Final reload legitimately
+restarted LSP; lower fresh-process use MUST NOT be presented as a memory fix.
+Read-only hypothesis: ProjectSession retains per-root ProjectIndex values owning
+whole graph/source/token/symbol maps; overlapping retention is unmeasured. Next
+bounded investigation needs cache counts/ownership and repeated-edit growth,
+without delaying usable hover behind full checks. No heap dump/growth test yet.
+Actual integrated agent hosting remains pending; existing guarded formatter action
+is executable, not a claim that model hosting or all intelligence features work.
+
 Quiet timer redraws — accepted, follows c94cefc9.
 Owner steering2026-11-11: prioritize lightning-fast hover and interactive LSP
 feedback; full compiler checks are secondary. Do not continue general compiler

@@ -7,6 +7,7 @@ pub struct FormatOptions {
     pub indent_width: usize,
     pub organize_imports: bool,
     pub import_wrap_threshold: usize,
+    pub argument_wrap_threshold: usize,
     pub jsx_return_parentheses: bool,
     pub jsx_children_on_new_lines: bool,
     pub blank_lines_around_blocks: bool,
@@ -14,7 +15,7 @@ pub struct FormatOptions {
 
 impl Default for FormatOptions {
     fn default() -> Self {
-        Self { organize_imports: true, import_wrap_threshold: 5, indent_width: 2, jsx_return_parentheses: true, jsx_children_on_new_lines: true, blank_lines_around_blocks: true }
+        Self { organize_imports: true, import_wrap_threshold: 5, argument_wrap_threshold: 5, indent_width: 2, jsx_return_parentheses: true, jsx_children_on_new_lines: true, blank_lines_around_blocks: true }
     }
 }
 
@@ -55,6 +56,9 @@ impl FormatOptions {
         }
         if self.import_wrap_threshold > 100 {
             return Err("format.importWrapThreshold must be between 0 and 100 (0 disables wrapping).".into());
+        }
+        if self.argument_wrap_threshold > 100 {
+            return Err("format.argumentWrapThreshold must be between 0 and 100 (0 disables wrapping).".into());
         }
         Ok(())
     }

@@ -15,7 +15,14 @@ export function zoomFontSize(base: int, level: int): int {
   return size;
 }
 
-export function zoomWorkspace(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>, step: int, reset: boolean = false): void {
+export function zoomWorkspace(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  font: Signal<int>,
+  settings: Signal<StudioConfig>,
+  step: int,
+  reset: boolean = false
+): void {
   const current = workspace.get();
   const image = current.files.find((file) => file.document.path === current.active && file.kind === 'image');
 

@@ -115,7 +115,14 @@ function sessionEnded(state: Signal<TerminalWorkspace>, id: string, workspace: S
   });
 }
 
-function SessionViewport(session: ReadOnly<TerminalSession>, directory: string, state: Signal<TerminalWorkspace>, font: Signal<int>, workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
+function SessionViewport(
+  session: ReadOnly<TerminalSession>,
+  directory: string,
+  state: Signal<TerminalWorkspace>,
+  font: Signal<int>,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>
+): Node {
   const id = clone(session.id);
   const ordinal = session.ordinal;
   const title = clone(session.title ?? '');
@@ -244,10 +251,24 @@ export function NewTerminal(state: Signal<TerminalWorkspace>, error: Signal<stri
   );
 }
 
-export function TerminalPanel(directory: string, font: Signal<int>, state: Signal<TerminalWorkspace>, error: Signal<string>, workspace: Signal<Workspace>, recovery: Signal<Recovery>): Node {
+export function TerminalPanel(
+  directory: string,
+  font: Signal<int>,
+  state: Signal<TerminalWorkspace>,
+  error: Signal<string>,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>
+): Node {
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   const empty = computed<boolean>(() => state.get().sessions.length === 0);
-  const viewport = (session: ReadOnly<TerminalSession>): Node => SessionViewport(session, clone(directory), state, font, workspace, recovery);
+  const viewport = (session: ReadOnly<TerminalSession>): Node => SessionViewport(
+    session,
+    clone(directory),
+    state,
+    font,
+    workspace,
+    recovery
+  );
   const selected = computed<int>(() => {
     const current = state.get();
     return current.sessions.findIndex((session) => session.id === current.active);

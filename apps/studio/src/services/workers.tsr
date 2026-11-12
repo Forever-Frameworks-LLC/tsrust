@@ -7,7 +7,16 @@ import { LanguageMessage, LanguageUpdate, languageWorker } from './lsp/session.t
 import { CheckResult, projectCheckWorker } from './project-check.tsr';
 
 // One owner cancels and settles every service when the application closes.
-export async function studioWorkers(root: string, program: string, requests: Channel<string>, replies: Sender<CheckResult>, formattingRequests: Channel<FormattingRequest>, formattingReplies: Sender<FormattingResult>, languageMessages: Channel<LanguageMessage>, languageReplies: Sender<LanguageUpdate>): Task<void> {
+export async function studioWorkers(
+  root: string,
+  program: string,
+  requests: Channel<string>,
+  replies: Sender<CheckResult>,
+  formattingRequests: Channel<FormattingRequest>,
+  formattingReplies: Sender<FormattingResult>,
+  languageMessages: Channel<LanguageMessage>,
+  languageReplies: Sender<LanguageUpdate>
+): Task<void> {
   const server = program.includes('/') ? join(dirname(program), 'tsrust-lsp') : 'tsrust-lsp';
   const languageRoot = clone(root);
   const checkProgram = clone(program);

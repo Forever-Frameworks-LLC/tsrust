@@ -171,7 +171,19 @@ export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>
   const variant = props['data-variant'];
   const label = props['aria-label'] ?? '';
   const hidden = props['aria-hidden'];
-  const metadata = semanticConfig('svg', String(props.role ?? ''), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    'svg',
+    String(props.role ?? ''),
+    label,
+    props.id ?? '',
+    hidden,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: SvgOptions = {
     viewBox: props.viewBox ?? '0 0 24 24', width, height, preserveAspectRatio: props.preserveAspectRatio ?? 'xMidYMid meet', paint: {
       fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
@@ -186,7 +198,19 @@ export function Path(props: PathProps<ReactiveValue<string>, ReactiveValue<strin
   const data = props.d;
   const className = props.className;
   const variant = props['data-variant'];
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: SvgPaintProps = {
     fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
   };
@@ -698,7 +722,19 @@ function TextField(props: TextFieldOptions): Node {
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    clone(id),
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: InputOptions = {
     placeholder: '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
@@ -794,7 +830,19 @@ export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, Reactiv
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   return applyProperties(unwrapNode(nativeCopyButton(props.value, classes)), metadata, className, variant);
 }
 
@@ -806,7 +854,19 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
   const muted = tone === 'secondary' || tone === 'muted';
   const given: string = typeof className === 'string' ? clone(className) : '';
   const classes = muted ? `text-muted-foreground ${given}` : given;
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    String(props.as ?? ''),
+    String(props.role ?? ''),
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    String(props['aria-orientation'] ?? ''),
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const result = text(props.children ?? [], classes);
 
   match (result) {
@@ -833,7 +893,27 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex, undefined, undefined, props['data-state'], props.colSpan, String(props.scope ?? ''));
+  const metadata = semanticConfig(
+    String(props.as ?? ''),
+    String(props.role ?? ''),
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    String(props['aria-orientation'] ?? ''),
+    props['aria-describedby'] ?? '',
+    props['aria-invalid'],
+    props.htmlFor ?? '',
+    props.windowDragRegion ?? false,
+    props.tabIndex,
+    undefined,
+    undefined,
+    props['data-state'],
+    props.colSpan,
+    String(props.scope ?? '')
+  );
   const result = view(props.children ?? [], classes);
 
   match (result) {
@@ -873,11 +953,35 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'], '', false, undefined, props['aria-expanded'], props['aria-controls']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid'],
+    '',
+    false,
+    undefined,
+    props['aria-expanded'],
+    props['aria-controls']
+  );
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
-  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false);
+  const options = buttonOptions(
+    props.variant,
+    props.size,
+    props.icon,
+    props.outline ?? false,
+    props.compact ?? false,
+    props.caret ?? false
+  );
   const extra: [string, string][] = [];
 
   if (props.tooltipCommand !== undefined) {
@@ -988,7 +1092,14 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
 }
 
 /** Kit button options that are set, as name/value pairs. */
-function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean): [string, string][] {
+function buttonOptions(
+  variant: string | undefined,
+  size: string | undefined,
+  icon: string | undefined,
+  outline: boolean,
+  compact: boolean,
+  caret: boolean
+): [string, string][] {
   const options: [string, string][] = [];
 
   if (variant !== undefined) {
@@ -1035,7 +1146,19 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   let node = unwrapNode(nativeLink(props.children ?? [], classes, props.href));
   const disabled = props.disabled;
 
@@ -1310,7 +1433,16 @@ function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | und
   return value.evaluate();
 }
 
-function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>, state: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+function semanticSnapshot(
+  config: ReadOnly<SemanticConfig>,
+  label: Mutable<ReactiveValue<string | undefined> | undefined>,
+  hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  describedBy: Mutable<ReactiveValue<string | undefined> | undefined>,
+  invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  controls: Mutable<ReactiveValue<string | undefined> | undefined>,
+  state: Mutable<ReactiveValue<string | undefined> | undefined>
+): string {
   const next = clone(config);
   next.label = semanticString(label);
   const hiddenValue = semanticBoolean(hidden);
@@ -1330,7 +1462,27 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   return JSON.stringify(next);
 }
 
-function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>, state?: ReactiveValue<string | undefined>, colSpan?: int, scope: string = ''): ReactiveValue<string> {
+function semanticConfig(
+  tag: string,
+  role: string,
+  label: ReactiveValue<string | undefined> | undefined,
+  id: string,
+  hidden: ReactiveValue<boolean | undefined> | undefined,
+  slot: string,
+  size: string,
+  variant: string,
+  orientation: string,
+  describedBy: ReactiveValue<string | undefined> | undefined = '',
+  invalid: ReactiveValue<boolean | undefined> | undefined = undefined,
+  htmlFor: string = '',
+  windowDragRegion: boolean = false,
+  tabIndex?: int,
+  expanded?: ReactiveValue<boolean | undefined>,
+  controls?: ReactiveValue<string | undefined>,
+  state?: ReactiveValue<string | undefined>,
+  colSpan?: int,
+  scope: string = ''
+): ReactiveValue<string> {
   const config: SemanticConfig = {
     tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex, state: '', colSpan, scope
   };
@@ -1356,7 +1508,16 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
   }
 
   return {
-    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls, state)
+    evaluate: () => semanticSnapshot(
+      config,
+      label,
+      hidden,
+      describedBy,
+      invalid,
+      expanded,
+      controls,
+      state
+    )
   };
 }
 

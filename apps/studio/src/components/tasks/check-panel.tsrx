@@ -29,7 +29,15 @@ export function beginCheck(requests: ReadOnly<Sender<string>>, running: Signal<b
   }
 }
 
-export function CheckPanel(cancellations: Sender<string>, results: Channel<CheckResult>, font: Signal<int>, running: Signal<boolean>, output: Signal<string>, problems: Signal<Problem[]>, panel: Signal<string>): Node {
+export function CheckPanel(
+  cancellations: Sender<string>,
+  results: Channel<CheckResult>,
+  font: Signal<int>,
+  running: Signal<boolean>,
+  output: Signal<string>,
+  problems: Signal<Problem[]>,
+  panel: Signal<string>
+): Node {
   const editorClass = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
   return (
     <View className="flex-col size-full min-h-0">

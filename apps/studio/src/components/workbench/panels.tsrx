@@ -13,7 +13,15 @@ import {
 
 import { accessibleName, message } from '../../lib/localization.tsr';
 
-export function Panels(panel: Signal<string>, output: Node, terminal: Node, terminalActions: Node, problems: Node, problemsActions: Node, font: Signal<int>): Node {
+export function Panels(
+  panel: Signal<string>,
+  output: Node,
+  terminal: Node,
+  terminalActions: Node,
+  problems: Node,
+  problemsActions: Node,
+  font: Signal<int>
+): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
   const tabsClass = computed<string>(() => 'w-full min-w-0 text-[' + font.get().toString() + 'px]');
   return (

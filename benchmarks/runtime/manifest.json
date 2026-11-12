@@ -18237,7 +18237,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "b239f8174199dac111ca90c5e7fb2c437a33975b60a0461c5002f3690889021d",
+      "sourceSha256": "111456b4d5a703ae2f2f4039fcb7e57f47c25c3f0f7a4cc1d343134da80c805c",
       "counterpartSha256": "ebf9d8978195b2766ede8b9b69dd4a5bb003e2d01975daaf3355f2ffee250546",
       "notes": "Fixed-prefix omitted or undefined defaults execute after supplied tail arguments; the prefix and ordered tail are retained with exact argument/default counters. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim. Argument counters and default/body counters use distinct ordinary records outside the loop, preserving the native incoming-loan policy; earlier same-root source failure is retained.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."
@@ -18266,7 +18266,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "dfed623c7fcf28f534f1a3c29dc50083494bcfe559c59bc7331c237abe34f1f6",
+      "sourceSha256": "fae9ee4cbef7bfcaca671dabe89cacbbaa85ba361bc013473744721af7e63049",
       "counterpartSha256": "e1d75b42f1aa13b85fab8601d801dc714c3bfcb712f0dd190ebcc9b9ca322f07",
       "notes": "A reusable captured callback is passed through an explicit borrowed read contract; its fresh rest pack and exact call counter are observed. Native capture loans are compile-time restrictions, not a JavaScript runtime comparison. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."
@@ -18295,7 +18295,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "980a54647161ec3021852845d7de6c74ed8278568a1437bfc1658de077468965",
+      "sourceSha256": "117e47a96a9cabd74c29c4cf8db25084099fb8a8016723356397f04fc5a337a6",
       "counterpartSha256": "0256966b3ba88cb0af29ecf3573af13022102cc52fbc64c5a3d6696fd52cf1d4",
       "notes": "A reusable captured callback is passed through an explicit borrowed mutate contract; its fresh rest pack and exact call counter are observed. Native capture loans are compile-time restrictions, not a JavaScript runtime comparison. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."
@@ -18324,7 +18324,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "ea29d9ff21e8764ec677991795bba76a93fbe104686641261e10e32d4313d697",
+      "sourceSha256": "bd12fed96fd269d2003bad44d4348701bbdeff8691bebea9dcaa26c0a2792b92",
       "counterpartSha256": "19aa23415e7d89ca71e578054402378c6dbb130e139bc2f0618a0711af444c5b",
       "notes": "A fresh callback consumes its captured String once and returns the complete ordered rest contents as text; native ownership transfer and JavaScript reference sharing differ. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."
@@ -18353,7 +18353,7 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "sourceSha256": "3c3931ffc83d98c1c3df1b0f1d2ff94a8e10d67852f82132e5e753ca84b13ae2",
+      "sourceSha256": "a3b03b17082a5c33f1ae943008b84bf5b9579adc7d3631480c9b6548994c75be",
       "counterpartSha256": "8e0ca755597016e5ce0f719b51ada0b68019bb852a25e1f00862b095ff7c4414",
       "notes": "Fresh owning rest storage holds a finite reusable callable family; one or five reached calls reveal the full family order, while the denominator remains one scenario. Construction, argument evaluation, pack creation, body work and complete output retention are inside the workload; observation is outside. Native owned tails transfer, whereas JavaScript retains references; no identity or allocation parity claim.",
       "specification": "One whole scenario includes setup, ordered argument construction, fresh rest-pack construction, body access/formatting/projection and complete result retention. Zero, one or five tail elements; reached-call count is not the throughput denominator. Independent output observation occurs outside measurement. Native owned elements transfer into the pack; JavaScript object references differ. No isolated rest latency, ownership identity, or allocation parity claim."

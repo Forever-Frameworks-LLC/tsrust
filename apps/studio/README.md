@@ -31,6 +31,7 @@ tsrust_studio.config.json. Project overrides in tsrust.config.json are partial:
   "indentWidth": 2,
   "organizeImports": true,
   "importWrapThreshold": 5,
+  "argumentWrapThreshold": 5,
   "jsxReturnParentheses": true,
   "jsxChildrenOnNewLines": true,
   "blankLinesAroundBlocks": true
@@ -176,9 +177,12 @@ that the disk snapshot and draft revision have not changed since comparison.
 The same guarded resolution and clipboard actions have executable AI tool routes;
 the actual integrated agent transport remains pending.
 
-Within each import block, formatting groups `std:` imports first, then other paths after one blank
-line, sorting each group by path. Declarations keep their bindings and attached
-comments; bare side-effect imports are ordering boundaries. More than five named
-bindings wrap one per line by default. `organizeImports` disables reordering;
-`importWrapThreshold` accepts 0–100, with 0 disabling wrapping. These rules use the
-same global/project overrides and guarded formatting actions as other rules.
+Within each import block, formatting groups `std:` imports first, code imports
+next, and asset/data imports last, with a blank line between groups. Each group
+sorts by path. Declarations keep their bindings and attached comments; bare
+side-effect imports remain ordering boundaries. More than five named imports
+wrap one per line by default. Function parameters and call arguments likewise
+wrap above five, counting only the direct list, not nested calls or generic types.
+`importWrapThreshold` and `argumentWrapThreshold` are independent settings (0–100;
+0 disables wrapping). `organizeImports` controls reordering. Global/project
+overrides and guarded UI/AI formatting actions share these rules.

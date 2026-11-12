@@ -43,17 +43,45 @@ async function loadNote(trace: Owned<Trace>, fail: boolean): Task<Loaded> {
 async function handle(sender: ReadOnly<Sender<Event>>, input: Request, fail: boolean): Task<Response> {
   const trace = newTrace();
   const start = monotonicNow();
-  await emitEvent(sender, trace, 'request-start', 'service.handle', 0, 0);
+  await emitEvent(
+    sender,
+    trace,
+    'request-start',
+    'service.handle',
+    0,
+    0
+  );
   let response = text('unavailable', 503);
 
   try {
     const job = loadNote(clone(trace), fail).start();
     const loaded = await job;
-    await emitEvent(sender, loaded.trace, 'task-end', 'service.loadNote', 200, loaded.elapsedMs);
+    await emitEvent(
+      sender,
+      loaded.trace,
+      'task-end',
+      'service.loadNote',
+      200,
+      loaded.elapsedMs
+    );
     response = text(loaded.body);
-    await emitEvent(sender, trace, 'request-end', 'service.handle', 200, monotonicNow() - start);
+    await emitEvent(
+      sender,
+      trace,
+      'request-end',
+      'service.handle',
+      200,
+      monotonicNow() - start
+    );
   } catch {
-    await emitEvent(sender, trace, 'request-failed', 'service.loadNote', 503, monotonicNow() - start);
+    await emitEvent(
+      sender,
+      trace,
+      'request-failed',
+      'service.loadNote',
+      503,
+      monotonicNow() - start
+    );
   }
 
   response.setHeader('x-request-id', formatUuid(trace.requestId));

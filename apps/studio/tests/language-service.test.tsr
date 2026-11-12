@@ -7,11 +7,6 @@ import { dirname, join } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
-import { createDocument } from '../src/lib/workspace/documents.tsr';
-import { Problem } from '../src/lib/workspace/problems.tsr';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
-import { LanguageState, pollLanguage } from '../src/services/lsp/controller.tsr';
-
 import {
   LanguageDocument,
   LanguageIdentity,
@@ -20,12 +15,16 @@ import {
   documentUri,
   diagnosticColumn
 } from '../src/lib/language/diagnostics.tsr';
-import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
-import { studioWorkers } from '../src/services/workers.tsr';
-import { CheckResult } from '../src/services/project-check.tsr';
+import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool } from '../src/services/lsp/actions.tsr';
+import { LanguageState, pollLanguage } from '../src/services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
+import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
+import { CheckResult } from '../src/services/project-check.tsr';
+import { studioWorkers } from '../src/services/workers.tsr';
 
 function rejectedHeader(header: string): boolean {
   try {
@@ -119,7 +118,16 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
   const checkResults = new Channel<CheckResult>(1);
   const formats = new Channel<FormattingRequest>(1);
   const formatResults = new Channel<FormattingResult>(1);
-  const worker = studioWorkers(clone(root), configured, checks, checkResults.sender(), formats, formatResults.sender(), messages, replies).start();
+  const worker = studioWorkers(
+    clone(root),
+    configured,
+    checks,
+    checkResults.sender(),
+    formats,
+    formatResults.sender(),
+    messages,
+    replies
+  ).start();
 
   try {
     const ready = await nextUpdate(updates, 'ready').timeout(20000);

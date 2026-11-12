@@ -132,6 +132,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const importWrapSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
+  const argumentWrapSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
   const jsxReturnSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
@@ -337,7 +340,7 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                   }}
                 />
               </SettingItem>
-              <SettingItem title={message("Organize imports")} description={message("Sort imports by path, with std: imports first and a blank line before other imports.")}>
+              <SettingItem title={message("Organize imports")} description={message("Sort imports by path: std: imports, code imports, then assets, with blank lines between groups.")}>
                 <Switch
                   checked={draft.get().format.organizeImports}
                   accessibilityLabel={message("Organize imports")}
@@ -364,6 +367,28 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                         const config = draft.get();
                         config.format.importWrapThreshold = count;
                         commitSettings(importWrapSession, config);
+                      },
+                      Err(_) => {}
+                    }
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={message("Wrap arguments above")} description={message("Wrap function parameters and call arguments onto separate lines above this count. Set 0 to disable (0–100).")}>
+                <NumberInput
+                  value={Number(draft.get().format.argumentWrapThreshold)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValidate={(candidate) => Number.isInteger(Number(candidate))}
+                  size="small"
+                  className="w-28"
+                  accessibilityLabel={message("Wrap arguments above")}
+                  onChange={(value) => {
+                    match (toInt(value)) {
+                      Ok(count) => {
+                        const config = draft.get();
+                        config.format.argumentWrapThreshold = count;
+                        commitSettings(argumentWrapSession, config);
                       },
                       Err(_) => {}
                     }

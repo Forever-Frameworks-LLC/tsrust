@@ -16,7 +16,14 @@ import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.t
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
 
-export function EditorWorkspace(workspace: Signal<Workspace>, font: Signal<int>, recovery: Signal<Recovery>, mode: Signal<string>, sidebar: Signal<boolean>, focusQueue: Signal<QueuedFormatting[]>): Node {
+export function EditorWorkspace(
+  workspace: Signal<Workspace>,
+  font: Signal<int>,
+  recovery: Signal<Recovery>,
+  mode: Signal<string>,
+  sidebar: Signal<boolean>,
+  focusQueue: Signal<QueuedFormatting[]>
+): Node {
   const layoutFailed = signal(false);
   const dockClass = computed<string>(() => 'size-full text-[' + font.get().toString() + 'px]');
   const initialLayout = clone(workspace.get().dockLayout);
