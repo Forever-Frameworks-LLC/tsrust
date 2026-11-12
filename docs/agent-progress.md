@@ -8,6 +8,42 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Native-only bundled linking reuse — November12, based onb6c0e755.
+Previous goal turn made progress by deferring reference tables and qualifying exact
+reference/snapshot behavior. This section addresses the measured~200ms std:ui native
+import-link cost. Existing finite bundled cache now retains native imports, aliases
+and finish_imports results too. Eligibility requires exact compiler-owned bytes,
+no data/Rust adapter, and EVERY import native with no project target. All workspace
+or project-dependent linking stays fresh. Shared link_native_import preserves the
+original native path; returned SourceIndex copies retain graph-local isolation.
+Cache mode/declaration-source invalidation and one-pair-per-bundle bounds unchanged.
+
+Extended reuse witness rejects even a known bundle ID with a project dependency.
+Declaration cases2/2 passed0.09s (setup17.67s), inherited alias/Signal cases2/2 passed
+1.88s.4distinct cases; no full regression matrix. Build18.06s; whole formatter
+0files/0snippets/0fingerprints and diff-check passed. Logs
+/tmp/studio-native-bundle-{declaration-tests,alias-tests,build,format}.log.
+Same real-source probe: all24response hashes matched. Hover first request for
+revisions1–4 before999.13/286.47/289.30/303.22ms, after976.91/100.18/100.34/105.01ms.
+Trace after: header load36–38ms, warm declaration build57–60ms; cold std:ui875ms.
+Peak187.1MiB in the short probe is not a leak or controlled memory benchmark.
+Logs /tmp/studio-native-bundle-{before,after}.log; current disposable JSON remains
+target/lsp-studio-probe.json. No new SQLite benchmark speed claims.
+
+Built/probed/installed LSP hash independently matches
+577bd0db414187789b473a05ee25da2b27681b87cac06d4de63afe02ae6a5576.
+Native menu restart80798->82720 reconnected; Go75300, app75287 and supervisor69762 /
+PTY64634 unchanged. Same bundle as preceding sections. Owner changed active tab to
+main.tsrx; preserve this selection rather than restoring image-actions.11tabs, sole
+project-check draft SHA256bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17
+unchanged. No native editor typing/saves or scratch changes: owner activity is evident.
+CUA completionPreview remains bound; phase completed: Loaded native bundle linking reuse.
+Native typing/snippet MAT remains pending an idle window; long-running memory and
+full8GiB editor-plus-AI qualification remain open. Stop speculative optimization now:
+return to native language-navigation/completion features and AI action parity,
+inspect the existing provider/action APIs first. Profile further only for a measured
+remaining interaction issue; do not substitute short protocol probes for native MAT.
+
 On-demand reference indexing — November12, based on2c220bd3.
 Previous turn made progress with finite bundled parse reuse and native service
 reload. Added opt-in TSRUST_LSP_TRACE_TIMINGS spans for foreground header loading

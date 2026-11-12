@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap,HashMap};
 use std::sync::OnceLock;
 use lsp_types::Location;
-use tsrust_compiler::project::{ProjectGraph, SourceId};
+use tsrust_compiler::project::{ModuleImport, ModuleSource, ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
     declarations_only: bool,
@@ -25,10 +25,38 @@ struct BundledIndices {
     body: SourceIndex,
 }
 
-fn module_indices(module: &tsrust_compiler::project::ModuleSource, entry_help: bool) -> (SourceIndex, SourceIndex) {
-    let build = || (SourceIndex::for_project(&module.declaration_source, false), SourceIndex::for_project(module.checked_source(), entry_help));
-    // Only the finite compiler-owned bundle is cached; workspace text never grows this map.
-    if tsrust_compiler::project::bundled_source(&module.source.id) != Some(module.source.text.as_str()) {
+fn reusable_bundle(module: &ModuleSource) -> bool {
+    tsrust_compiler::project::bundled_source(&module.source.id) == Some(module.source.text.as_str())
+        && module.rust.is_none() && module.data.is_none()
+        && module.imports.iter().all(|import| import.native.is_some() && import.target.is_none())
+}
+
+fn link_native_import(import: &ModuleImport, native: &str, declaration: &mut SourceIndex, index: &mut SourceIndex) {
+    index.import_native_names(import.names, native);
+    for binding in &import.bindings {
+        for index in [&mut *index, &mut *declaration] {
+            index.import_native(native, &binding.exported, &binding.local, binding.span);
+        }
+    }
+}
+
+fn module_indices(module: &ModuleSource, entry_help: bool) -> (SourceIndex, SourceIndex) {
+    let reusable = reusable_bundle(module);
+    let build = || {
+        let mut declaration = SourceIndex::for_project(&module.declaration_source, false);
+        let mut index = SourceIndex::for_project(module.checked_source(), entry_help);
+        if reusable {
+            declaration.inherit_public_record_aliases(&index);
+            for import in &module.imports {
+                if let Some(native) = import.native { link_native_import(import, native, &mut declaration, &mut index); }
+            }
+            declaration.finish_imports();
+            index.finish_imports();
+        }
+        (declaration, index)
+    };
+    // Only compiler bundles with no project dependencies retain linked state.
+    if !reusable {
         return build();
     }
     static BUNDLED: std::sync::OnceLock<std::sync::Mutex<BTreeMap<SourceId, BundledIndices>>> = std::sync::OnceLock::new();
@@ -178,61 +206,53 @@ impl ProjectIndex {
                 index.add_data_schema(&schema);
             }
 
-            // Declaration text blanks export markers; retain public aliases from the original source.
-            declaration.inherit_public_record_aliases(&index);
-            for import in &module.imports {
-                if let Some(native) = import.native {
-                    index.import_native_names(import.names, native);
+            if !reusable_bundle(module) {
+                // Declaration text blanks export markers; retain public aliases from the original source.
+                declaration.inherit_public_record_aliases(&index);
+                for import in &module.imports {
+                    if let Some(native) = import.native {
+                        link_native_import(import, native, &mut declaration, &mut index);
+                        continue;
+                    }
+                    let Some(target) = &import.target else {
+                        continue;
+                    };
+                    let dependency = &graph.modules[target];
+                    let foreign = &declarations[target];
+                    let items=export_completions.entry(target.clone()).or_insert_with(||std::sync::Arc::new(
+                        foreign.export_completions(dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))))
+                    ));
+                    index.import_export_names(import.names,items.clone());
+                    let Ok(uri) = file_uri(target) else {
+                        continue;
+                    };
+                    let types = module
+                        .imports
+                        .iter()
+                        .filter(|other| other.target.as_ref() == Some(target))
+                        .flat_map(|other| other.bindings.iter())
+                        .filter(|binding| foreign.is_record_declaration(&binding.exported))
+                        .map(|binding| (binding.exported.clone(), binding.local.clone()))
+                        .collect::<BTreeMap<_, _>>();
                     for binding in &import.bindings {
-                        for index in [&mut index, &mut declaration] {
-                            index.import_native(
-                                native,
-                                &binding.exported,
-                                &binding.local,
-                                binding.span,
-                            );
-                        }
-                    }
-                    continue;
-                }
-                let Some(target) = &import.target else {
-                    continue;
-                };
-                let dependency = &graph.modules[target];
-                let foreign = &declarations[target];
-                let items=export_completions.entry(target.clone()).or_insert_with(||std::sync::Arc::new(
-                    foreign.export_completions(dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))))
-                ));
-                index.import_export_names(import.names,items.clone());
-                let Ok(uri) = file_uri(target) else {
-                    continue;
-                };
-                let types = module
-                    .imports
-                    .iter()
-                    .filter(|other| other.target.as_ref() == Some(target))
-                    .flat_map(|other| other.bindings.iter())
-                    .filter(|binding| foreign.is_record_declaration(&binding.exported))
-                    .map(|binding| (binding.exported.clone(), binding.local.clone()))
-                    .collect::<BTreeMap<_, _>>();
-                for binding in &import.bindings {
-                    if dependency.exports.contains_key(&binding.exported) {
-                        for index in [&mut index, &mut declaration] {
-                            index.import_declaration(
-                                foreign,
-                                dependency.exported_local(&binding.exported),
-                                &binding.local,
-                                binding.span,
-                                uri.as_str(),
-                                &types,
-                            );
+                        if dependency.exports.contains_key(&binding.exported) {
+                            for index in [&mut index, &mut declaration] {
+                                index.import_declaration(
+                                    foreign,
+                                    dependency.exported_local(&binding.exported),
+                                    &binding.local,
+                                    binding.span,
+                                    uri.as_str(),
+                                    &types,
+                                );
+                            }
                         }
                     }
                 }
+                declaration.finish_imports();
+                index.finish_imports();
             }
-            declaration.finish_imports();
             declarations.insert(id.clone(), declaration);
-            index.finish_imports();
             indices.insert(id.clone(), index);
             if trace && started.elapsed().as_millis() >= 50 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
@@ -409,6 +429,7 @@ mod declaration_only_tests {
         workspace.open(entry.clone(), 1, "import {test} from 'std:testing';function main(){}".into());
         let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &entry.0).unwrap();
         let module = &graph.modules[&SourceId("std:testing".into())];
+        assert!(reusable_bundle(module));
         let (mut declaration, mut body) = module_indices(module, false);
         declaration.mark_checked();
         body.mark_checked();
@@ -436,6 +457,14 @@ mod declaration_only_tests {
         let before = builds();
         module_indices(&changed, false);
         module_indices(&changed, false);
+        assert_eq!(builds(), before + 4);
+        let mut dependent = module.clone();
+        dependent.imports[0].native = None;
+        dependent.imports[0].target = Some(entry);
+        assert!(!reusable_bundle(&dependent), "project-dependent links must never enter the bundle cache");
+        let before = builds();
+        module_indices(&dependent, false);
+        module_indices(&dependent, false);
         assert_eq!(builds(), before + 4);
     }
 

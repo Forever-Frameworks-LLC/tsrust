@@ -32,6 +32,13 @@ snapshot behavior pass focused checks. All24probe responses matched, with hover
 after subsequent edits observed~301–316ms. First reference lookup pays table-build
 cost; native latency and long-running resource qualification remain open.
 
+Native-only bundle follow-up, November12: fully linked state is reused only for
+exact compiler bundles whose imports are all native and have no project targets.
+Workspace-dependent alias linking remains fresh. Four focused cases passed and
+all24real-source responses matched. Hover after subsequent edits observed~100–105ms
+versus~286–303ms before, with cold startup~977ms. Native typing/snippet acceptance
+and long-running resource qualification remain open; resume language features/AI parity.
+
 Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
 connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
 Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,
