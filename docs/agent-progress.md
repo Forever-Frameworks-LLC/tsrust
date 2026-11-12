@@ -8,6 +8,45 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Bundled declaration parse reuse — November12, based on75d4e493.
+Previous goal turn made concrete progress by removing protocol-thread compiler
+repair from preliminary completion and fixing native service-menu generation state.
+This section reuses the immutable base SourceIndex pair for compiler-owned bundled
+modules before per-project alias/native/import linking. SourceIndex/LineIndex now
+derive Clone. Cache eligibility requires exact bundled bytes; only the finite bundle
+IDs can enter it. Each ID retains one pair, replaced if declaration text or entry-help
+mode differs. Workspace overrides bypass caching, and graph mutations affect copies.
+
+Focused acceptance: declaration-only cases2/2 passed0.05s (setup17.67s), inherited
+alias/Signal help cases2/2 passed3.20s;4distinct cases. Final reuse witness rerun passed
+1/1 in0.07s after making restoration assertion tolerate another test thread warming
+the original cache. Witness proves no second parse, isolated mutations, mode/source
+invalidation, restored declarations and uncached workspace substitutions. Logs
+/tmp/studio-bundled-index-{tests,alias-tests,final-test}.log. Build19.05s/final18.61s;
+whole formatter0files/0snippets/0fingerprints and diff-check passed.
+
+Same bounded real-source probe, all24response hashes matched. First-hover observations
+before:1273.25/1229.92/1209.95/1215.96ms for revisions1–4; after:
+1297.13/616.84/610.53/598.61ms. Cold initialization still pays the parse; warm document
+requests remain around2ms. After footprint peaked210.0MiB in5.79s, not a matched memory
+benchmark or long-running leak acceptance. Logs /tmp/studio-bundled-index-{before,after}.log;
+target/lsp-studio-probe.json has the current disposable structured observation.
+No new benchmark/SQLite speed claims, full regression matrix or native typing MAT.
+
+Installed/probe LSP hashes independently match:
+1854e3b6a2e4c4e793893454bbc87a5fb68cb65c61409b2f8d3156a7fc36d65f.
+Native menu restart75343->78772 reconnected, Go75300 stayed running, app75287 and
+supervisor69762 / PTY64634 unchanged. Current bundle remains
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794484683288229000-0/Tsrust Studio.app.
+11tabs, owner-active image-actions and sole protected project-check draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17 preserved.
+CUA completionPreview remains bound; phase completed: Loaded faster bundled declaration
+service. No native documents edited/saved. Keep Go probe fixture open during owner MAT.
+Next profile remaining~600ms declaration build/import-link/reference phases on edits;
+consider native-only bundled linking reuse only if measured, preserving graph-local
+imports, immutable snapshot identity and checked recovery. Native typing/snippet/hover
+MAT and long-running editor-plus-AI memory qualification remain open.
+
 Interactive declaration completion — current section, November12.
 Previous goal turn made progress: built/checkpointed hover border4af5317a and left
 supervisor69762 / PTY64634 running. Bounded2s sample of live LSP69968 at~64s age

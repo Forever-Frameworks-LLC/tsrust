@@ -17,6 +17,32 @@ pub struct ProjectIndex {
     graph: ProjectGraph,
 }
 
+struct BundledIndices {
+    declaration_source: String,
+    entry_help: bool,
+    declaration: SourceIndex,
+    body: SourceIndex,
+}
+
+fn module_indices(module: &tsrust_compiler::project::ModuleSource, entry_help: bool) -> (SourceIndex, SourceIndex) {
+    let build = || (SourceIndex::for_project(&module.declaration_source, false), SourceIndex::for_project(module.checked_source(), entry_help));
+    // Only the finite compiler-owned bundle is cached; workspace text never grows this map.
+    if tsrust_compiler::project::bundled_source(&module.source.id) != Some(module.source.text.as_str()) {
+        return build();
+    }
+    static BUNDLED: std::sync::OnceLock<std::sync::Mutex<BTreeMap<SourceId, BundledIndices>>> = std::sync::OnceLock::new();
+    let mut bundled = BUNDLED.get_or_init(Default::default).lock().expect("bundled declaration indices");
+    let cached = bundled.entry(module.source.id.clone()).or_insert_with(|| {
+        let (declaration, body) = build();
+        BundledIndices { declaration_source: module.declaration_source.clone(), entry_help, declaration, body }
+    });
+    if cached.declaration_source != module.declaration_source || cached.entry_help != entry_help {
+        let (declaration, body) = build();
+        *cached = BundledIndices { declaration_source: module.declaration_source.clone(), entry_help, declaration, body };
+    }
+    (cached.declaration.clone(), cached.body.clone())
+}
+
 #[cfg(test)]
 mod inherited_help_tests {
     use super::*;
@@ -145,7 +171,7 @@ impl ProjectIndex {
             let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
-            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::for_project(&module.declaration_source,false),SourceIndex::for_project(module.checked_source(),id==&graph.entry))};
+            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{module_indices(module,id==&graph.entry)};
             if let Some(data) = &module.data && !text_asset {
                 let schema = data.schema();
                 declaration = SourceIndex::for_project(&module.source.text, false);
@@ -374,6 +400,44 @@ mod generic_prefix_recovery_tests {
 #[cfg(test)]
 mod declaration_only_tests {
     use super::*;
+    #[test]
+    fn bundled_parse_reuse_is_finite_isolated_and_sensitive_to_source_and_mode() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-bundled-index-reuse");
+        let entry = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(entry.clone(), 1, "import {test} from 'std:testing';function main(){}".into());
+        let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &entry.0).unwrap();
+        let module = &graph.modules[&SourceId("std:testing".into())];
+        let (mut declaration, mut body) = module_indices(module, false);
+        declaration.mark_checked();
+        body.mark_checked();
+        let builds = || crate::intelligence::PROJECT_SOURCE_BUILDS.with(|count| count.get());
+        let before = builds();
+        let (declaration, body) = module_indices(module, false);
+        assert_eq!(builds(), before, "unchanged bundle must reuse both parses");
+        assert!(!declaration.checked() && !body.checked(), "project mutations must not contaminate the cache");
+        module_indices(module, true);
+        assert_eq!(builds(), before + 2, "entry help mode must be respected");
+        let mut changed = module.clone();
+        changed.declaration_source.push_str("\nfunction cacheWitness(value: int): int { return value; }\n");
+        let (declaration, _) = module_indices(&changed, false);
+        assert_eq!(builds(), before + 4);
+        let start = changed.declaration_source.find("cacheWitness").unwrap();
+        let prefix = &changed.declaration_source[..start];
+        let params = serde_json::json!({"position":{"line":prefix.bytes().filter(|&b| b == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}});
+        assert!(declaration.request_declarations("textDocument/hover", &params, "file:///bundle.tsr").unwrap().to_string().contains("cacheWitness(value: int)"));
+        let before = builds();
+        let (restored, _) = module_indices(module, false);
+        assert!(builds() <= before + 2, "another test thread may already have restored the immutable bundle");
+        assert!(!restored.request_declarations("textDocument/documentSymbol", &serde_json::json!({}), "file:///bundle.tsr").unwrap().to_string().contains("cacheWitness"), "original declarations must be restored");
+        // Even a known bundle ID cannot cache substituted workspace source.
+        changed.source.text.push_str("\n// private workspace override");
+        let before = builds();
+        module_indices(&changed, false);
+        module_indices(&changed, false);
+        assert_eq!(builds(), before + 4);
+    }
+
     #[test]
     fn preliminary_help_uses_declared_imports_and_marks_completions_incomplete() {
         let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-declaration-help");

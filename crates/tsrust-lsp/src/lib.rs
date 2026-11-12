@@ -18,6 +18,7 @@ use std::time::{Duration, Instant};
 use tsrust_compiler::Span;
 
 /// Indexes the exact immutable compiler input; LSP positions are UTF-16.
+#[derive(Clone)]
 pub struct LineIndex {
     starts: Vec<usize>,
 }

@@ -18,6 +18,13 @@ an edit still takes about1.2s, with std:ui declaration indexing the main traced 
 Long-running memory stability, native completion/snippet MAT and8GiB editor-plus-AI
 qualification remain open. Exact focused checks and live session in agent-progress.
 
+Follow-up bundled parse reuse, November12: exact compiler-bundled module source
+indices are reused before graph-local import linking; mutable workspace source is
+excluded and returned copies remain isolated. Four focused declaration/alias cases
+passed. All24real-source responses matched; hover after subsequent private edits
+observed~600–617ms versus~1210–1230ms before, while cold startup remained~1.3s.
+These short protocol observations do not qualify native typing latency or a leak fix.
+
 Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
 connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
 Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,

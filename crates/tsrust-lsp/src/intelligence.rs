@@ -31,6 +31,7 @@ use tsrust_compiler::Span;
 #[cfg(test)]
 std::thread_local! {
     pub(crate) static MEMBER_REPAIR_ATTEMPTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    pub(crate) static PROJECT_SOURCE_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn imported_location(uri: &str, range: Range) -> Location {
@@ -71,6 +72,7 @@ struct CheckedGenericCall {
     parameters: Vec<tsrust_compiler::GenericParameterInfo>,
     result: Option<String>,
 }
+#[derive(Clone)]
 pub struct SourceIndex {
     enum_scalar_types: std::collections::BTreeMap<String,String>,
     /// `type Name = Type;` declarations: name to fully expanded type text.
@@ -139,7 +141,11 @@ impl SourceIndex {
         { let mut index = Self::with_entry_help(source, true); index.recover_native_imports(); index.finish_imports(); index }
     }
     pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {Self::build(source,entry_help,true)}
-    pub(crate) fn for_project(source:&str,entry_help:bool)->Self {Self::build(source,entry_help,false)}
+    pub(crate) fn for_project(source:&str,entry_help:bool)->Self {
+        #[cfg(test)]
+        PROJECT_SOURCE_BUILDS.with(|count| count.set(count.get() + 1));
+        Self::build(source,entry_help,false)
+    }
     fn build(source:&str,entry_help:bool,local_check:bool)->Self {
         let mut index = Self {
             enum_scalar_types: Default::default(),
