@@ -12,6 +12,7 @@ import {
   signal
 } from 'std:ui';
 
+import { navigateNativeLanguage } from '../../lib/language/navigation.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
@@ -102,6 +103,9 @@ export function FilePanel(
             value={text.get()}
             onLanguageRequest={(request) => {
               requestNativeLanguage(workspace, language, languageRequests, languagePath, request);
+            }}
+            onLanguageNavigate={(location) => {
+              navigateNativeLanguage(workspace, recovery, location);
             }}
             onLanguageCancel={(request) => {
               cancelNativeLanguage(language, languageCancels, request);

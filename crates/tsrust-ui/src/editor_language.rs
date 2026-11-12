@@ -85,6 +85,16 @@ pub(crate) fn position(text: &str, offset: usize) -> Option<Value> {
     let prefix=text.get(..offset)?;
     Some(serde_json::json!({"line":prefix.bytes().filter(|&b|b==b'\n').count(),"character":prefix.rsplit('\n').next()?.encode_utf16().count()}))
 }
+/// Definition responses permit one Location, arrays of Locations/LocationLinks, or null.
+/// Target ranges stay in UTF-16 for the host opening that target document.
+pub(crate) fn definition_links(value: Value) -> Value {
+    let items=match value {Value::Null=>vec![],Value::Array(items)=>items,item=>vec![item]};
+    Value::Array(items.into_iter().map(|item| {
+        if item.get("targetUri").is_some() {item} else {
+            serde_json::json!({"targetUri":item.get("uri"),"targetRange":item.get("range"),"targetSelectionRange":item.get("range")})
+        }
+    }).collect())
+}
 fn native_ranges(method: &str, value: &mut Value, text: &str) -> bool {
     let lines=text.split('\n').collect::<Vec<_>>();
     fn range(value: &mut Value, lines: &[&str]) -> bool {
@@ -107,6 +117,10 @@ fn native_ranges(method: &str, value: &mut Value, text: &str) -> bool {
             for edit in edits {if !edit.get_mut("range").is_some_and(|value|range(value,lines)){return false;}}
         }
         true
+    }
+    if method=="textDocument/definition" {
+        fn origin(item:&mut Value,lines:&[&str])->bool {item.get_mut("originSelectionRange").is_none_or(|value|range(value,lines))}
+        return match value {Value::Array(items)=>items.iter_mut().all(|item|origin(item,&lines)),item=>origin(item,&lines)};
     }
     if method=="textDocument/hover" {return value.get_mut("range").is_none_or(|value|range(value,&lines));}
     if method=="textDocument/completion" {
@@ -136,6 +150,20 @@ mod tests {
         assert_eq!(result["items"][0]["data"]["character"],12);
         let mut hover=serde_json::json!({"range":{"start":{"line":0,"character":4},"end":{"line":0,"character":5}}});
         assert!(!native_ranges("textDocument/hover",&mut hover,text),"surrogate interior must be rejected");
+    }
+    #[test]
+    fn definitions_normalize_response_shapes_and_only_convert_origin_ranges() {
+        let target=serde_json::json!({"start":{"line":8,"character":12},"end":{"line":8,"character":16}});
+        let location=serde_json::json!({"uri":"file:///project/other.tsr","range":target});
+        assert_eq!(definition_links(Value::Null),serde_json::json!([]));
+        let link=definition_links(location.clone());
+        assert_eq!(link[0]["targetSelectionRange"],target);
+        assert_eq!(link,definition_links(serde_json::json!([location])));
+        let mut links=serde_json::json!([{"targetUri":"file:///project/other.tsr","targetRange":target,"targetSelectionRange":target,"originSelectionRange":{"start":{"line":0,"character":3},"end":{"line":0,"character":7}}}]);
+        assert!(native_ranges("textDocument/definition",&mut links,"😀 name"));
+        assert_eq!(links[0]["originSelectionRange"]["start"]["character"],2);
+        assert_eq!(links[0]["targetSelectionRange"],target);
+        assert_eq!(definition_links(links.clone()),links);
     }
     #[test]
     fn replies_require_current_text_and_cancel_on_replace_drop_timeout_and_unmount() {

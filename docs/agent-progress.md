@@ -8,7 +8,61 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
-Scalar hover coloring — current uncommitted section, November12, based on61a0e0f5.
+Go to Definition — current section, November12, based on07ed204c.
+Native Kit already has definition context-menu/keyboard/Cmd-hover behavior. Added
+its provider to the existing EditorLanguageProvider and F12 binding, normalized
+Location/Location[]/LocationLink[]/null responses, and converted only origin ranges
+to native scalar positions. Target ranges retain UTF-16 for the target document.
+New generated CodeEditor.onLanguageNavigate receives ShowDocumentParams; native
+fallback is always consumed so an unhandled server URI cannot launch a browser
+or incorrectly move within the source buffer. Tsrust navigation validates the
+explicit workspace root, uses openFile's canonical containment/symlink checks,
+and selects exact ranges against current drafts without saving. Invalid ranges,
+non-file URIs, unsupported targets or ungranted navigation leave workspace unchanged.
+UI callback and registered open_language_location share openLanguageLocation;
+registered language_definition uses the same correlated session/controller reads,
+with existing generation/revision/cancellation guards and host read grants.
+Definition initialization advertises linkSupport. Multiple definitions currently
+follow Kit's first-target behavior; a picker and virtual stdlib-document hosting
+remain open feature work. This does not qualify References/Rename or the AI host.
+
+Host bridge3/3 passed0.00s (normalization, UTF-16 boundary conversion, current-text
+receipts/cancellation/timeout/unmount). Added stable public navigation witness for
+Unicode/CRLF/current drafts and denied/invalid targets, real-session definition
+query, shared controller/registered AI definition cancellation, and updated search
+catalog count. Public runtime acceptance passed15/15 across navigation, language-service and
+search suites in536.16ms; setup/build47.316s (check10.956s,emit1.108s,native34.943s).
+Fixed explicit InputActionOptions construction, optional-query assertion and
+owned context/optional-view lifetimes revealed by initial compilation. Superseded
+multi-entry check stopped; its old snapshot is not a pass. Replacement app build
+provides application acceptance rather than repeating that multi-entry check.
+SDK final build passed2m33s; CLI installed/independently hash-verified
+ d20749321d95742bab7d7cc8d4d5e7826ad86e84d88a36e0d903ed64b75c33c0.
+LSP rebuilt18.22s for new embedded CodeEditor API/docs and installed/hash-verified
+ c72f90c1eb3b9be9c44419542c27339cb084c1c77e0d40081cb165822d69317b.
+Generated Kit consistency check passed. Final full formatter passed0files/0snippets/
+0fingerprints after source repairs; no full compiler/LSP matrix or latency claim.
+Replacement dev supervisor2258 / PTY10949 and native app2368 are running.
+Build passed168530ms: check91492.7ms,emit3894.7ms,runtime-prepare5040.0ms,
+runtime-build+publish48810.3ms,native/link72343.0ms. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-2258-1794491556425311000-0/Tsrust Studio.app.
+Old94903 stopped with authorized SIGINT after new2368 started. Native MAT passed
+F12 from ImageViewContext's Workspace type in image-actions.tsr to workspace.tsr;
+context menu Go to Definition also opened that file and visibly selected exactly
+Workspace at its declaration on line21. Temporary workspace.tsr tab closed;
+owner12tabs/image-actions.tsr active restored. No edits/saves. Recovery confirmed
+sole protected draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA phase completed (Verified native definition navigation); definitionPreview
+binds new2368. Cmd-click/external-language navigation and scalar-hover popup color
+are not visually accepted yet. Native motion-only hover is unavailable in CUA;
+scroll/click can cancel hover. Do not repeat unchanged attempts.
+Next implement References/result picking through the same shared language reads
+and guarded locations; retain actual integrated AI host as an open requirement.
+
+Logs /tmp/studio-definition-{sdk-build,bridge-test,check,format}.log.
+
+Scalar hover coloring — checkpoint07ed204c, November12, based on61a0e0f5.
 Owner reports plain Tsrust scalar hovers while Go works. Native inspection in
 app88099 reproduced plain `revision: int` on documents.test.tsr, whereas
 `const document: Document` colored correctly. CUA can trigger hover without edits:

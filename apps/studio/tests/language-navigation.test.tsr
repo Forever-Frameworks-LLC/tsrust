@@ -1,0 +1,102 @@
+import { createTempDir, writeTextFile, removeDirAll } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { documentUri } from '../src/lib/language/diagnostics.tsr';
+import { LanguageLocation, languageSelection, openLanguageLocation } from '../src/lib/language/navigation.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { invokeEditorTool } from '../src/services/editor-tools.tsr';
+
+function rejected(result: Result<void, string>): void {
+  match (result) {
+    Err(_) => {},
+    Ok(_) => {
+      throw 'Invalid navigation accepted.';
+    }
+  }
+}
+
+test('language navigation selects UTF-16 ranges in current drafts without saving', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-definition-'));
+
+  try {
+    unwrap(writeTextFile(root + '/source.tsr', 'saved'));
+    unwrap(writeTextFile(root + '/other.tsr', 'other'));
+    const current = unwrap(openWorkspace(root));
+    unwrap(openFile(current, root + '/source.tsr'));
+    edit(current.files[0].document, '🦀 name\r\nnext');
+    unwrap(openFile(current, root + '/other.tsr'));
+    const workspace = signal(current);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const allowedRoot = clone(workspace.get().root);
+    const context: SearchActionContext = {
+      workspace, recovery, allowNavigation: true, allowedRoot, focusEditor: false
+    };
+    const location: LanguageLocation = {
+      root: clone(context.workspace.get().root), uri: documentUri(root + '/source.tsr'), selection: {
+        start: {
+          line: 0, character: 3
+        }, end: {
+          line: 0, character: 7
+        }
+      }
+    };
+    const selected = languageSelection('🦀 name\r\nnext', location.selection ?? {
+      start: {
+        line: 0, character: 0
+      }, end: {
+        line: 0, character: 0
+      }
+    });
+    strictEqual(selected.start, 5);
+    strictEqual(selected.end, 9);
+    unwrap(invokeEditorTool(context, 'open_language_location', JSON.stringify(location)));
+    strictEqual(context.workspace.get().active.endsWith('/source.tsr'), true);
+    strictEqual(context.workspace.get().files[0].document.text, '🦀 name\r\nnext');
+    strictEqual(context.workspace.get().files[0].document.savedText, 'saved');
+    const active = clone(context.workspace.get().active);
+    location.selection = {
+      start: {
+        line: 0, character: 1
+      }, end: {
+        line: 0, character: 3
+      }
+    };
+    rejected(openLanguageLocation(context, location));
+    location.selection = {
+      start: {
+        line: 20, character: 0
+      }, end: {
+        line: 20, character: 1
+      }
+    };
+    rejected(openLanguageLocation(context, location));
+    location.uri = 'https://example.com/source.tsr';
+    rejected(openLanguageLocation(context, location));
+    location.uri = documentUri(root + '/../outside.tsr');
+    rejected(openLanguageLocation(context, location));
+    location.uri = documentUri(root + '/other.tsr');
+    location.selection = undefined;
+    context.allowNavigation = false;
+
+    match (invokeEditorTool(context, 'open_language_location', JSON.stringify(location))) {
+      Err(_) => {},
+      Ok(_) => {
+        throw 'Model bypassed navigation grant.';
+      }
+    }
+
+    context.allowNavigation = true;
+    location.root += '/changed';
+    rejected(openLanguageLocation(context, location));
+    strictEqual(context.workspace.get().active, active);
+    strictEqual(context.workspace.get().files.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

@@ -188,6 +188,17 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     strictEqual(signature.query?.id, 'signature-one');
     strictEqual((signature.result ?? '').includes('count: int'), true);
     strictEqual((signature.result ?? '').includes('"activeParameter":1'), true);
+    await requests.send({
+      kind: 'query', generation: ready.generation, query: {
+        id: 'definition-one', method: 'textDocument/definition', document: languageIdentity(document), position: {
+          line: 1, character: 19
+        }
+      }
+    });
+    const definition = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(definition.query?.id, 'definition-one');
+    strictEqual((definition.result ?? '').includes(documentUri(document.path)), true);
+    strictEqual((definition.result ?? '').includes('"line":0'), true);
     const panelPath = join(root, 'panel.tsrx');
     const panelText = 'function panel(value: int): int { return value; }\nfunction main(){panel(1); }\n';
     unwrap(writeTextFile(panelPath, panelText));
@@ -532,6 +543,16 @@ test('language reads synchronize before queries, reuse matching versions and rej
   ));
   strictEqual(unwrap(channel.tryReceive()).document === undefined, true);
   strictEqual(state.version, 1);
+  request.method = 'textDocument/definition';
+  unwrap(queueLanguageRead(
+    workspace,
+    state,
+    sender,
+    'definition',
+    request,
+    undefined
+  ));
+  strictEqual(unwrap(channel.tryReceive()).query?.method ?? '', 'textDocument/definition');
   request.revision += 1;
   let stale = false;
 
@@ -626,6 +647,26 @@ test('AI language reads share the live request route without focus changes or mo
     state
   )).includes('help'), true);
   strictEqual(state.get().readResults.length, 0);
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_definition',
+    payload,
+    workspace,
+    state
+  )), '{"queued":true}');
+  const definition = unwrap(channel.tryReceive());
+  strictEqual(definition.query?.method, 'textDocument/definition');
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_cancel_read',
+    payload,
+    workspace,
+    state
+  )), '{"cancelled":true}');
+  strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
+  strictEqual(state.get().queries.length, 0);
   strictEqual(workspace.get().active, '/project/main.tsr');
   strictEqual(workspace.get().files[0].document.text, 'function main(){}');
 });

@@ -5284,13 +5284,19 @@
           "prop": "onLanguageRequest",
           "value": "string",
           "param": "request",
-          "doc": "Receives JSON {id, method, params, text} for native hover/completion. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+          "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help and definition reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
         },
         {
           "prop": "onLanguageCancel",
           "value": "int",
           "param": "request",
-          "doc": "Receives the window-scoped request id when native hover/completion is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored."
+          "doc": "Receives the window-scoped request id when a native language read is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored."
+        },
+        {
+          "prop": "onLanguageNavigate",
+          "value": "string",
+          "param": "location",
+          "doc": "Receives LSP ShowDocumentParams JSON for Go to Definition. The host must validate the file URI and UTF-16 selection and open the target. Native URL/local-buffer fallbacks are consumed even when omitted; omission disables navigation delivery."
         }
       ]
     },

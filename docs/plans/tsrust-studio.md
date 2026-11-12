@@ -197,6 +197,21 @@ Overall editor-plus-AI resource acceptance remains open. Signature UI, external
 servers and complete snippet-language support remain open. Exact checks, SDK identities and current preview are in the sole
 handoff; this section is not full intelligence or resource acceptance.
 
+Native scalar coloring, November12 (07ed204c): Tsrust fences retain native identity
+while using Kit's existing grammar, with theme type captures for native primitives.
+Six focused cases passed; installed renderer is running. Post-replacement hover
+visual confirmation remains open because automation did not display a popup.
+
+Go to Definition, November12: connected Kit's existing F12/context
+menu/Cmd-click provider to Studio's LSP session and guarded workspace navigation.
+UI and registered AI definition/location commands share the same services. Host
+protocol conversion3/3 and affected public runtime15/15 cases passed. Native app
+build passed; live F12 and context-menu navigation opened workspace.tsr and selected
+the exact declaration. Owner tabs/draft preserved; one replacement preview running.
+Cmd-click/external-language navigation remain unverified.
+Multiple-target picker and virtual stdlib locations remain open. Exact identities,
+results and next action are maintained in docs/agent-progress.md.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

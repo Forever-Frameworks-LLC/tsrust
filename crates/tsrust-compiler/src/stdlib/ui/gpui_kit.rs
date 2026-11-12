@@ -82,7 +82,7 @@ use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
-use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
+use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, DefinitionProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
 
 struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64 }
 impl EditorLanguageProvider {
@@ -112,6 +112,12 @@ impl HoverProvider for EditorLanguageProvider {
     fn hover(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::Hover>>> {
         let task=self.request("textDocument/hover",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
         cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/hover",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl DefinitionProvider for EditorLanguageProvider {
+    fn definitions(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Vec<LanguageTypes::LocationLink>>> {
+        let task=self.request("textDocument/definition",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {Ok(serde_json::from_value(super::editor_language::definition_links(task.await))?)})
     }
 }
 impl SignatureHelpProvider for EditorLanguageProvider {
@@ -2020,8 +2026,17 @@ impl Root {
                     let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
                     if has_language {
                         let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id});
-                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider);});
+                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider);});
                     }
+                    let root=cx.entity().downgrade();
+                    state.update(cx, |state,_| {
+                        // Always consume navigation: the Tsrust host validates URIs instead of opening URLs or moving in the wrong buffer.
+                        state.lsp_mut().show_document=Some(std::rc::Rc::new(move |params,_,cx| {
+                            let payload=serde_json::to_string(params).unwrap_or_default();
+                            let _=root.update(cx,|root,cx| root.emit(id,"languageNavigate",payload,cx));
+                            true
+                        }));
+                    });
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
                         match event {
                             InputEvent::Change => this.emit(id,"change",state.read(cx).value().to_string(),cx),

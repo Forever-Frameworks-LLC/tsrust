@@ -2,6 +2,7 @@ import { JsonLimits } from 'std:json';
 
 import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
+import { LanguageLocation, openLanguageLocation } from '../lib/language/navigation.tsr';
 import { SearchHit } from '../lib/explorer/search.tsr';
 import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
 
@@ -27,6 +28,8 @@ interface SearchArguments {
 export function editorTools(): EditorTool[] {
   return [{
     name: 'refresh_explorer', description: 'Request a fresh explorer snapshot for an explicit workspace root. Requires a matching host read grant and bound explorer revision. Does not change focus, selection, files or settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'open_language_location', description: 'Open a file URI returned by a language service and select its exact zero-based UTF-16 range. Requires an explicit workspace root and host navigation grant for that root. Rejects outside-workspace paths, symlink escapes, non-file URIs and invalid ranges. Does not edit or save.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"uri":{"type":"string"},"selection":{"type":"object"}},"required":["root","uri"]}'
   }, {
     name: 'open_problem', description: 'Open a workspace file at a one-based Unicode line and column, highlighting the rest of that line. Requires host navigation permission. No files are edited.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"line":{"type":"integer","minimum":1},"column":{"type":"integer","minimum":1}},"required":["path","line","column"]}'
   }, {
@@ -63,6 +66,12 @@ export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: s
           return Err(error);
         }
       }
+    }
+
+    if (name === 'open_language_location') {
+      const location = JSON.parse<LanguageLocation>(payload, limits);
+      unwrap(openLanguageLocation(context, location));
+      return Ok('{"opened":true}');
     }
 
     if (name === 'open_problem') {
