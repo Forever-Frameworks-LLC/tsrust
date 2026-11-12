@@ -19,7 +19,7 @@ use gpui_kit::component::hover_card::HoverCard;
 use gpui_kit::component::input::NumberInput;
 use gpui_kit::component::kbd::Kbd;
 use gpui_kit::component::label::{HighlightsMatch, Label};
-use gpui_kit::component::menu::{AppMenuBar, ContextMenuExt, DropdownMenu as _, PopupMenuItem};
+use gpui_kit::component::menu::{AppMenuBar, ContextMenuExt, DropdownMenu as _, PopupMenu, PopupMenuItem};
 use gpui_kit::component::input::{OtpEvent, OtpInput, OtpState};
 use gpui_kit::component::pagination::Pagination;
 use gpui_kit::component::popover::Popover;
@@ -591,7 +591,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -848,18 +848,23 @@ impl DockPanelView for DockContent {
     fn tab_name(&self, _: &App) -> Option<SharedString> {Some(self.title.clone())}
     fn title(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {self.title.clone()}
     fn inner_padding(&self, _: &App) -> bool {false}
-    fn toolbar_buttons(&mut self,_:&mut Window,cx:&mut Context<Self>)->Option<Vec<Button>> {
-        let mut buttons=Vec::new();
+    fn dropdown_menu(&mut self, mut menu:PopupMenu,_:&mut Window,cx:&mut Context<Self>)->PopupMenu {
         if self.split_controls {
-            let enabled=self.can_split;
-            for (icon,placement,label) in [(gpui_kit::assets::IconName::Columns2,Placement::Right,"Split right"),(gpui_kit::assets::IconName::Rows2,Placement::Bottom,"Split down")] {
+            for (placement,label) in [(Placement::Right,"Split right"),(Placement::Bottom,"Split down")] {
                 let area=self.area.clone();let group=self.group.clone();let panel=PanelId::from(cx.entity_id());
-                let text=super::i18n::translate(label,"{}");
-                buttons.push(Button::new(label).icon(icon).accessibility_label(text.clone()).tooltip(text).disabled(!enabled).on_click(move|_,window,cx|{
+                menu=menu.item(PopupMenuItem::new(super::i18n::translate(label,"{}")).disabled(!self.can_split).on_click(move|_,window,cx|{
                     if let Some(group)=group.as_ref().and_then(WeakEntity::upgrade) {let node=group.read(cx).node();let _=area.update(cx,|area,cx|area.move_panel(panel,InsertTarget::Split{node,placement,size:None},window,cx));}
                 }));
             }
         }
+        if self.root.upgrade().is_some_and(|root|find(&root.read(cx).node,self.dock).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("closeAll"))) {
+            let root=self.root.clone();let dock=self.dock;
+            menu=menu.separator().item(PopupMenuItem::new(super::i18n::translate("Close All","{}")).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"closeAll",String::new(),cx));}));
+        }
+        menu
+    }
+    fn toolbar_buttons(&mut self,_:&mut Window,cx:&mut Context<Self>)->Option<Vec<Button>> {
+        let mut buttons=Vec::new();
         if self.last_close {
             let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
             buttons.push(Button::new("close-document").icon(gpui_kit::assets::IconName::X).accessibility_label(super::i18n::translate("Close document","{}")).tooltip(super::i18n::translate("Close document","{}")).disabled(!self.closable).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"close",value.clone(),cx));}));
@@ -3626,7 +3631,7 @@ impl Root {
             }
             "InputGroup" => {
                 // shadcn composition: one Input or Textarea child and InputGroupAddon children.
-                let mut group = InputGroup::new(element_id).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid"));
+                let mut group = InputGroup::new(element_id).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid")).refine_style(&self.node_style(node));
                 if let Some(size) = kit_size(kit) {group = group.with_size(size);}
                 if let Some(label) = kit.prop("accessibilityLabel") {group = group.aria_label(label.to_owned());}
                 for child in node.visible_children() {
@@ -3640,7 +3645,7 @@ impl Root {
                     }
                     let Some(part) = child.kit.as_deref().filter(|part| part.name == "InputGroupAddon") else {continue};
                     let align = match part.prop("align") {Some("inline-end") => InputGroupAddonAlignment::InlineEnd, Some("block-start") => InputGroupAddonAlignment::BlockStart, Some("block-end") => InputGroupAddonAlignment::BlockEnd, _ => InputGroupAddonAlignment::InlineStart};
-                    let mut addon = InputGroupAddon::new(ElementId::Integer(child.identity.get())).align(align);
+                    let mut addon = InputGroupAddon::new(ElementId::Integer(child.identity.get())).align(align).refine_style(&self.node_style(child));
                     for item in child.visible_children() {
                         addon = match item.kit.as_deref().map(|kit| kit.name.as_str()) {
                             Some("InputGroupText") => addon.child(InputGroupText::new().children(self.content(item, cx))),

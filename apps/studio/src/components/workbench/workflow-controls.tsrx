@@ -1,11 +1,16 @@
+import { writeTextFileAtomic } from 'std:fs';
+
 import { Channel, Sender } from 'std:futures';
 import {
   View,
   Button,
+  DropdownMenu,
+  MenuItem,
   Shortcut,
   Ticker,
   Node,
   Signal,
+  useId,
   computed,
   signal
 } from 'std:ui';
@@ -26,7 +31,7 @@ import {
 } from '../../lib/workspace/formatting-actions.tsr';
 import { Problem, operationProblem, replaceProblems } from '../../lib/workspace/problems.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { TerminalWorkspace } from '../../lib/workspace/terminals.tsr';
+import { TerminalWorkspace, addTerminal } from '../../lib/workspace/terminals.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { runProjectTask } from '../../services/project-tasks.tsr';
 import { SaveActionContext, queueSaves, unsavedTargets } from '../../services/save-actions.tsr';
@@ -157,7 +162,8 @@ export function WorkflowControls(
   terminalError: Signal<string>,
   program: string,
   busy: Signal<boolean>,
-  focusQueue: Signal<QueuedFormatting[]>
+  focusQueue: Signal<QueuedFormatting[]>,
+  font: Signal<int>
 ): Node {
   const saveCheckPending = signal(false);
   const available = computed<boolean>(() => canFormat(workspace.get().active));
@@ -183,42 +189,19 @@ export function WorkflowControls(
           panel.set(panel.get() === 'terminal' ? '' : 'terminal');
         }}
       />
-      <Button
-        icon="braces"
-        className="size-5 p-0"
-        variant="ghost"
-        size="xsmall"
-        disabled={!available.get() || busy.get()}
-        loading={busy.get()}
-        tooltip={message("Format document")}
-        tooltipCommand="format-document"
-        aria-label={accessibleName("Format document")}
-        onPress={() => {
-          requestAction(
-            workspace,
-            recovery,
-            settings,
-            buttonRequests,
-            formatButtonChecks,
-            busy,
-            checking,
-            output,
-            problems,
-            saveCheckPending,
-            'format'
-          );
-        }}
-      />
-      <Button
-        icon="circle-check"
-        className="size-5 p-0"
-        variant="ghost"
-        size="xsmall"
-        disabled={checking.get()}
-        tooltip={message("Check project")}
-        tooltipCommand="check-project"
-        aria-label={accessibleName("Check project")}
-        onPress={() => {
+      <DropdownMenu fontSize={font.get()}>
+        <Button icon="braces" className="size-5 p-0" variant="ghost" size="xsmall" loading={busy.get()} tooltip={message('Format')} aria-label={accessibleName('Format')} />
+        <MenuItem label={message('Document')} icon="file-code" command="format-document" disabled={!available.get() || busy.get()} />
+        <MenuItem label={message('Project')} icon="folder" command="format-project" disabled={busy.get()} />
+      </DropdownMenu>
+      <DropdownMenu fontSize={font.get()}>
+        <Button icon="circle-check" className="size-5 p-0" variant="ghost" size="xsmall" tooltip={message('Check')} aria-label={accessibleName('Check')} />
+        <MenuItem label={message('Document')} icon="file-code" command="check-document" disabled={!available.get()} />
+        <MenuItem label={message('Project')} icon="folder" command="check-project" />
+      </DropdownMenu>
+      <Shortcut
+        command="check-document"
+        onTrigger={() => {
           runProjectTask(
             workspace,
             settings,
@@ -226,7 +209,7 @@ export function WorkflowControls(
             panel,
             terminalError,
             clone(buttonProgram),
-            'check'
+            'check-document'
           );
         }}
       />
@@ -334,6 +317,37 @@ export function WorkflowControls(
               }
             },
             Ok(result) => {
+              const task = clone(result.task);
+
+              if (task !== undefined) {
+                const sessions = terminals.get();
+                const id = useId();
+
+                match (addTerminal(sessions, clone(id))) {
+                  Ok(_) => {
+                    const index = sessions.sessions.length - 1;
+                    sessions.sessions[index].title = 'Format document';
+                    sessions.sessions[index].program = clone(task.program);
+                    sessions.sessions[index].args = clone(task.args);
+                    sessions.sessions[index].task = 'format-document';
+                    sessions.sessions[index].formatCompletion = clone(task.completion);
+                    sessions.sessions[index].formatTarget = {
+                      path: clone(result.request.document.path), session: clone(result.request.document.session), revision: result.request.document.revision
+                    };
+                    terminals.set(sessions);
+                    panel.set('terminal');
+                  },
+                  Err(error) => {
+                    terminalError.set(clone(error));
+                    writeTextFileAtomic(task.completion, JSON.stringify({
+                      success: false
+                    }));
+                  }
+                }
+
+                return;
+              }
+
               const next = workspace.get();
               next.error = '';
               let check = false;
@@ -349,7 +363,7 @@ export function WorkflowControls(
                   const conflicted = next.files.some((file) => file.document.path === result.request.document.path && file.document.saveConflict !== undefined);
                   problems.set(replaceProblems(problems.get(), 'formatter', conflicted ? [] : [operationProblem('formatter', clone(result.request.document.path), clone(error))], clone(result.request.document.path)));
 
-                  if (result.request.mode === 'format') panel.set('problems');
+                  if (result.request.mode === 'format' && result.error === '') panel.set('problems');
                 }
               }
 

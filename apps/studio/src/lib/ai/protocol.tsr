@@ -1,0 +1,18 @@
+import { ChatMessage } from './prompts.tsr';
+
+export type ModelRequest = {
+  kind: string;
+  id: string;
+  prompt: string;
+  maxTokens: int;
+  modelPath?: string;
+  tokenizerPath?: string;
+  messages?: ChatMessage[];
+};
+
+export type ModelUpdate = {
+  kind: string;
+  id: string;
+  text: string;
+  error: string;
+};

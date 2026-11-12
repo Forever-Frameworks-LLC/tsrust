@@ -11,8 +11,7 @@ export interface PaletteCommand {
 }
 
 export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<string>): PaletteCommand[] {
-  if (!query.startsWith('>')) return [];
-  const filter = query.slice(1).trim().toLowerCase();
+  const filter = (query.startsWith('>') ? query.slice(1) : query).trim().toLowerCase();
   const rows: PaletteCommand[] = [{
     id: 'save-all', label: translate('Save All'), disabled: !workspace.files.some((file) => dirty(file.document))
   }, {
@@ -22,9 +21,10 @@ export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<
   }, {
     id: 'format-project', label: translate('Format project'), disabled: false
   }, {
-    id: 'check-project', label: translate('Check project'), disabled: false
+    id: 'check-document', label: translate('Check document'), disabled: !canFormat(workspace.active)
   }, {
-    id: 'find-file-references', label: translate('Find File References (Imports)'), disabled: workspace.active === ''
+    id: 'check-project', label: translate('Check project'), disabled: false
+
   }, {
     id: 'refresh-explorer', label: translate('Refresh Explorer'), disabled: false
   }, {

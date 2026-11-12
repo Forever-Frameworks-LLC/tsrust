@@ -8,6 +8,186 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Current accepted Studio section — November12:
+- Footer Format/Check now open Document/Project menus using the SAME command IDs
+  as native menus. Manual Check is independent of background-check busy state.
+  Live CUA passed footer Check→Project actual CLI task startup/progress;
+  Check→Document completed with “Check passed.” in its named retained terminal.
+  Footer Format→Document formatted an UNSAVED fixture from
+  `const studioFormatProbe=1;` to `const studioFormatProbe = 1;` in an actual
+  colored CLI task terminal, without saving the source file. Restored fixture
+  exactly through UI, closed only that clean fixture, no disk diff.
+- Manual formatting stages a private exact buffer snapshot; terminal exit receipt
+  returns it through existing session/revision/baseline checks. Errors retain the
+  terminal and populate formatter Problems. Source/staging failures return errors
+  without permanently terminating the worker loop. Save/focus automation retains
+  background CLI behavior and does not take focus. Trusted formatter snapshot
+  links map only to the same current editor revision; other paths keep normal
+  workspace navigation guards.
+- Focused terminal-formatting suite FINAL3/3,68.06ms tests,7803.2ms setup. Covers
+  actual CLI staging/disk preservation/stale rejection, Close All stale/dirty/
+  discard guards and trusted snapshot link mapping. Workflow suite6/6,25.71ms
+  tests,31998.8ms setup, including check-document scope and denied/stale tool calls.
+  Existing AI actions3/3 and native host protocol1/1 remain passed, not replayed.
+- Native More menu contains Split right/down and Close All; standalone split
+  buttons removed. Close All opens explicit unsaved-discard dialog; Cancel MAT
+  preserved every tab and draft. Never actually discarded or closed owner's tabs.
+- Header AI toggle works; header Settings removed; imports-reference menu removed.
+  Palette finds Settings/LSP without requiring >, supports command-only > mode,
+  and closes on backdrop click. Native LSP Stop/Start from palette passed; current
+  Tsrust service connected. Named row renderer matches existing editor-tab pattern;
+  indexed connection lookup avoids borrowing state across its mutation.
+- AI composer is a Textarea InputGroup with shared controls, minRows2/maxRows8.
+  Native MAT confirmed twelve pasted lines cap at eight visible rows and remain
+  inside its frame. Single state-aware Start/Stop and Send/Cancel controls, Clear
+  and Settings buttons. InputGroup/Addon apply node styles directly; InputGroup
+  avoids duplicate class wrappers. Categorized model-path inputs fit Settings.
+
+Current ONE preview: supervisor42787/PTY72431, app45141, LSP45258 (restarted through
+palette), log/tmp/studio-ai-chat-dev.log. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42787-1794522139796474000-0/Tsrust Studio.app
+Native build226782ms (check140074.7,emit4939.2,runtimeprepare6122.3,
+runtimebuild/publish51505.1,native+link80787.3). Missing PopupMenu import and source
+ownership errors repaired; this final native build passed. Only benign macOS
+sandbox_extension warning, no pasteboard failure. Final installed SDK pair:
+CLI0b20926bf66a85d4cd99078dc9057865dcccb7fcb4c5e75a1dfaae0a0330d9c5
+LSP61b4a7342a5d64a34b9c215f2316acd11a35b9739ee6e93ba055733896fac1e1.
+Current journal has11tabs, active src/services/ai/actions.tsr, zoom-1, NO drafts.
+Owner saved the historical project-check draft while we worked; do not restore it.
+Theme Alduin/font11 unchanged. Model paths configured through real GUI to the
+verified target/studio-models GGUF/tokenizer artifacts. Chat cleared/stopped.
+CUA phase COMPLETE, summary “Verified Studio footer CLI controls.” Do not reuse old
+bundle bindings. Current binding studioNow refers to the bundle above.
+
+Local model UI resource trial is INCOMPLETE, not accepted generation/8GiB proof:
+- Model reached ready through native UI, private child45397. One prompt submitted,
+  but no assistant text observed before stopping; investigate protocol/rendering
+  after resource pressure settles rather than claiming chat quality works.
+- Baseline global swap4972.44MiB; after startup5083.75; after request5729.94
+  (+757.50MiB), exceeding256MiB stop condition. Stopped via UI immediately and
+  verified child gone. One observed child RSS1043760KiB, not a measured peak.
+- Concurrent manual project CLI task45210 and fresh LSP scan were each near100%CPU;
+  this was an uncontrolled system observation, no causal memory attribution or
+  benchmark. Native UI itself observed~79%CPU. Capture/repair polling/render costs
+  and concurrent analysis before another bounded integrated resource trial.
+- Project-check task45210 was started by MAT, still running (~6minutes at last
+  observation) with retained “Checking102source files…” output. Do not launch a
+  duplicate full check. Document check completed. Dev stays running as requested.
+- Current model transport is private stdio, no HTTP/TCP server. If localhost hosting
+  is later added, fresh per-start session-only API key is mandatory.
+
+Final locale/generator checks passed2catalogs/423keys and generated226components.
+Whole-project formatter completed:0source files,0documentation snippets and0
+fingerprint updates. Final log/tmp/studio-format-project.log. No full regression/unchanged executable/model replay.
+Full goal remains active: actual AI tool execution/proposal review, useful coding
+quality, packaging companion discovery and complete8GiB qualification remain open.
+
+Current editor AI host section — in progress, based onfcf1a192. Previous turn was
+progress: streaming/native and real Tsrust coordinator checkpoint accepted. Current
+worktree changes are ours; no checkpoint yet. Owner draft remains protected.
+
+Moved the accepted engine package/worker into apps/studio/model-host with its own
+ordinary tsrust.config.json and pinned checked binding/lock. Shared protocol and
+Qwen conversation template live in parent src/lib/ai. experiments/studio-ai now
+imports actual app worker/template/binding rather than retaining copies. Host
+build output /repo/target/studio-model-host succeeds with shared root Cargo target,
+incremental-off/jobs1, CMake jobs1/static llama. It reads/writes bounded128KiB JSON
+lines on private stdio; Tsrust owns workers, console framing, lifecycle and requests.
+Native model code remains compiler stdlib ai/llama_admission.rs unchanged.
+
+Important discovered boundary: runtime_build.rs explicitly rejects GPUI+checked
+Rust packages. Initial in-process UI-thread spawn also hit early completion opaque
+error discovery in the large UI graph (isolated host case checks fine). Temporary
+TSRUST_TRACE_CARRIERS probe confirmed UnknownError, Void, explicit[String],opaque.
+Probe removed from source; no guard relaxed. One temporary repo CLI build still
+contains that failure-only probe, but installed pair is the earlier source build.
+Chose separate native child process, appropriate for model fault/deadline isolation;
+UI does not import native binding/worker. Do not reintroduce @engine into UI graph.
+
+UI modelService uses existing std:process/std:futures: bounded JSON-line pipes,
+independent stdout/stderr draining and command forwarding; stderr not retained,
+128KiB frames,5s writes,180s absolute startup/generation deadline, cleanup kill/wait.
+Stop works during load and kills isolated process. Internal settled messages track
+completion without resetting deadlines. Model executable is private dev override
+TSRUST_STUDIO_MODEL_HOST or sibling tsrust-studio-model-host beside currentExe.
+For current preview set dev env to /repo/target/studio-model-host. Packaging still
+needs bundling that sibling executable; no separate installed runtime/server.
+
+New shared invokeModelTool/state controller routes UI start/stop/send/cancel/clear
+through host grants. Explicit IDs, monotonic sequence, stale responses/cancel
+rejection, bounded queues and failed-enqueue state preservation; no model tools or
+file mutations. AI pane uses Kit MessageScroller/Message/Markdown, shared text zoom,
+compact header icons, input/send/cancel and clear experimental32-token/no-tools label.
+Persistent aiModelPath/aiTokenizerPath defaults blank; Settings AI page has explicit
+apply controls, existing save/conflict boundary. Real conversation history is
+Qwen templated, input budget remains2048. Settings formatConfig initially omitted
+new paths; focused test caught it, now fixed and affected test rerunning.
+
+Accepted this section so far: actual native child pipe protocol test1/1,336.98ms
+execution,5552.3ms setup; verifies failed load, retry and EOF cleanup (no model read).
+Controller suite initial2/3 pass (permissions/stale/history; queue rollback), one
+persistence failure fixed in serializer; current handle/test15135 exited, final
+rerun handle see active tool state/log /tmp/studio-ai-actions-test-final.log. Setup
+initial43461.6ms(check7911.9,emit761.0,native/link34454.1), tests0.77ms. Earlier
+ownership fixes: ReadOnly→Mutable async receive; separate Signal.handle() owners
+for contexts; owned Markdown text snapshots; spread Node[] children. Whole formatter
+changed9files; final idempotence/format-behavior acceptance pending. Locale check
+passes2catalogs/405keys, including previously missing language-service translations.
+
+Installed SDK pair atomic/hash verified before UI changes:
+CLI82023a2418ad4d1becbdf285147e834712dad31f00048e1df59046951bde87fe;
+LSPa3dfbfdffe08cb125ebf6e62ec12263e85fd0bbd2745090b81c24a45183b663c.
+Build2m47s. Repo CLI trace-only build after that2m25s; avoid redundant SDK rebuild
+unless needed. Generic resource source unchanged since accepted checkpoint.
+
+Preview still historical supervisor6369/app6790/LSP7437; it embeds old compiler,
+keeps previous working app on failures, and watches current source. Logs
+/tmp/studio-signature-diagnostics-dev.log. Manual outdated check26306/handle11544
+was sampled (normal continuation/UI calls,100%CPU,170MiBRSS) then explicitly TERM'd
+because source snapshot obsolete; postprocessor JSONDecodeError is from intentional
+cancel, not a new compiler bug. Next manual check39924 exited callback-access;
+owned Markdown snapshot fixed it. Do not duplicate full root checks alongside dev.
+Use supervisor build as final whole UI check, plus focused test repairs. Need restart
+supervisor after final coherent formatter with current SDK/native-capable elevated
+launch, TSRUST_STUDIO_MODEL_HOST set, preserve journal and one preview. No new UI
+MAT yet. Restart only after safe source/build readiness, no extra owner permission.
+Current owner journal last verified10tabs/image-actions active/zoom-1, original
+project-check draft hashbc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17;
+re-read before restart. CUA must start await cua.rewriteDocumentation(); then bind
+only final live app, never old bundles (getApp can relaunch). Preserve owner state.
+
+Latest controller suite fixed3/3 passes,0.76ms tests;20109.3ms setup
+(check7696.9,emit734.7,native/link11307.0), log/tmp/studio-ai-actions-test-final.log.
+Final formatter0changes after prior9files; native host rebuilt from formatted
+source, /repo/target/studio-model-host. SDK public source unchanged.
+
+Old supervisor6369/PTY5193 gracefully stopped (old app6790/LSP7437 exited). Replacement
+native-capable supervisor31210/PTY56426 with log/tmp/studio-ai-chat-dev.log uses
+TSRUST_STUDIO_MODEL_HOST=/repo/target/studio-model-host; only it was confirmed live.
+Initial formatted UI build caught unsettled-job: main started existing workers
+before fallible model executable discovery. Fixed by moving discovery before task
+start and adding modelService to existing studioWorkers all-group, preserving one
+coordinator/cancel-and-await owner. Automatic dev retry now building; no duplicate
+root checks. No new preview visible yet until build succeeds. Keep this session
+alive; do not restart merely for observation timeout. Owner journal immediately
+before restart still10tabs/image-actions/zoom-1/original draft SHA above.
+
+CUA documentation refreshed successfully via rewriteDocumentation; no app selected
+or UI actions yet. After new live app discover exact bundle and bind only that;
+old app bindings can relaunch duplicates. Need actual UI MAT, focused pipeline
+success/cancel/stop and resource observations, then evidence/checkpoint. No new
+model loaded during this section so far. Model compiler/program ordinary protocol
+case passed without real artifacts. GUI presets remain empty for model/tokenizer
+until explicit configuration through Settings; do not silently write owner config.
+
+Next executable actions: collect fixed controller test; fix remaining actual UI
+compiler diagnostics from dev log, finish/verify transport/deadline/proposal grants;
+format once coherent, restart/build one preview with host env, inspect actual chat/
+Settings and bounded one real generation/cancel/stop lifecycle. Record actual model
+memory under prior256MiB swap/critical pressure/180s execution stops. No unchanged
+full model suite or broad regression. Tool executor/agent, useful coding quality,
+packaged companion and full8GiB acceptance remain open. Full goal active.
+
 Current streaming/worker section — accepted focused section, based on3a0aa298.
 Previous goal turn made progress: opaque resource1dc742c6 and resident model3a0aa298
 checkpoints; source tree clean before current work. Full product goal remains active.

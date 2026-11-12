@@ -1,0 +1,116 @@
+import { get } from 'std:env';
+import { Channel } from 'std:futures';
+import { createTempDir, removeDirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
+import { run } from 'std:process';
+import { test, strictEqual } from 'std:testing';
+
+import { defaultFormatting } from '../src/lib/settings/formatting.tsr';
+import { createDocument, propose, edit } from '../src/lib/workspace/documents.tsr';
+import { FormattingRequest, FormattingResult, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
+import { closeEditors, planCloseEditors } from '../src/lib/workspace/close-editors.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
+import { TerminalSession, terminalLocation } from '../src/lib/workspace/terminals.tsr';
+import { formattingWorker } from '../src/services/formatting.tsr';
+
+function workspace(root: string): Workspace {
+  const path = root + '/main.tsrx';
+  return {
+    root, files: [{
+      document: unwrap(createDocument(clone(path), 'const value=1;')), name: 'main.tsrx', kind: 'text'
+    }], active: path, error: '', dockLayout: '', zoomLevel: 0
+  };
+}
+
+function rejected<T>(result: Result<T, string>): boolean {
+  match (result) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+test('manual formatter launches the real CLI and applies only its unsaved snapshot', async () => {
+  const program = unwrap(get('TSRUST'));
+
+  if (program === undefined) throw 'Set TSRUST to the current compiler.';
+  const root = unwrap(createTempDir(undefined, 'studio-terminal-format-'));
+  const requests = new Channel<FormattingRequest>(2);
+  const replies = new Channel<FormattingResult>(2);
+  const commands = requests.sender();
+  const state = workspace(clone(root));
+  unwrap(writeTextFileAtomic(state.active, 'const disk = 9;\n'));
+  const request: FormattingRequest = {
+    root: clone(root), document: propose(state.files[0].document, ''), options: defaultFormatting(), mode: 'format', checkOnSave: false
+  };
+  const worker = formattingWorker(clone(program), requests, replies.sender()).start();
+
+  try {
+    await commands.send(request);
+    const launch = await replies.receive().timeout(5000);
+    const task = launch.task;
+
+    if (task === undefined) throw 'Missing terminal task.';
+    strictEqual(task.program, program);
+    strictEqual(task.args[0], 'format');
+    strictEqual(task.args.includes('--color=always'), true);
+    strictEqual(task.args[1] === state.active, false);
+    const output = unwrap(await run(task.program, task.args, {
+      cwd: clone(root), deadlineMs: 30000, maxOutputBytes: 1024 * 1024
+    }));
+    strictEqual(output.status.success, true);
+    unwrap(writeTextFileAtomic(task.completion, JSON.stringify({
+      success: true
+    })));
+    const result = await replies.receive().timeout(5000);
+    strictEqual(result.error, '');
+    unwrap(applyFormatting(state, result));
+    strictEqual(state.files[0].document.text, 'const value = 1;\n');
+    strictEqual(unwrap(readTextFile(state.active, 1024)), 'const disk = 9;\n');
+    edit(state.files[0].document, 'const value = 2;\n');
+    strictEqual(rejected(applyFormatting(state, result)), true);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    removeDirAll(root);
+  }
+});
+
+test('close all requires the exact editors and an explicit discard grant', () => {
+  const state = workspace('/project');
+  const original = planCloseEditors(state);
+  edit(state.files[0].document, 'unsaved');
+  strictEqual(rejected(closeEditors(state, original, true, true)), true);
+  const current = planCloseEditors(state);
+  strictEqual(rejected(closeEditors(state, current, false, true)), true);
+  strictEqual(rejected(closeEditors(state, current, true, false)), true);
+  strictEqual(state.files.length, 1);
+  unwrap(closeEditors(state, current, true, true));
+  strictEqual(state.files.length, 0);
+  strictEqual(state.active, '');
+});
+
+test('formatter terminal links map only exact host snapshots and reject edited targets', () => {
+  const state = workspace('/project');
+  const terminal: TerminalSession = {
+    id: 'task', ordinal: 1, exited: true, task: 'format-document', args: ['format', '/private/snapshot/main.tsrx'], formatTarget: {
+      path: clone(state.active), session: clone(state.files[0].document.session), revision: 0
+    }
+  };
+  const location: ProblemLocation = {
+    path: '/private/snapshot/main.tsrx', line: 1, column: 2
+  };
+  strictEqual(unwrap(terminalLocation(terminal, state, location)).path, state.active);
+  strictEqual(unwrap(terminalLocation(terminal, state, {
+    path: '/outside.tsr', line: 1, column: 1
+  })).path, '/outside.tsr');
+  edit(state.files[0].document, 'new text');
+  strictEqual(rejected(terminalLocation(terminal, state, location)), true);
+});

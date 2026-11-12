@@ -1,3 +1,4 @@
+import { ModelRequest, ModelUpdate } from '../../../apps/studio/src/lib/ai/protocol.tsr';
 import { test, strictEqual } from 'std:testing';
 import { get } from 'std:env';
 import { spawn, Channel } from 'std:threads';
@@ -12,8 +13,8 @@ import {
   QwenStream,
   StreamFinished
 } from '@engine';
-import { chatPrompt } from '../prompts.tsr';
-import { modelWorker, ModelRequest, ModelUpdate } from '../model-worker.tsr';
+import { chatPrompt } from '../../../apps/studio/src/lib/ai/prompts.tsr';
+import { modelWorker } from '../../../apps/studio/model-host/src/worker.tsr';
 
 function resource(name: string): string {
   const value = unwrap(get(name));

@@ -1,0 +1,19 @@
+// Matches the pinned Qwen template's no-tools, system/user/assistant branch.
+export function chatPrompt(message: ReadOnly<string>): string {
+  return '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n' + message + '<|im_end|>\n<|im_start|>assistant\n';
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export function conversationPrompt(messages: ReadOnly<ChatMessage[]>): string {
+  let prompt = '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n';
+
+  for (const entry of messages) {
+    prompt += '<|im_start|>' + entry.role + '\n' + entry.content + '<|im_end|>\n';
+  }
+
+  return prompt + '<|im_start|>assistant\n';
+}

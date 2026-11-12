@@ -10193,6 +10193,8 @@ export interface DockProps {
   onLayoutChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout. */
   onLayoutError?: Owned<Function<void, [value: ReadOnly<string>]>>;
+  /** Requests closing all panels through the host. Resolve unsaved data before removing children; no panel is removed automatically. */
+  onCloseAll?: Owned<Function<void>>;
   /** DockPanel elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -10248,6 +10250,12 @@ export function Dock(props: DockProps): Node {
 
   if (event_onLayoutError !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'layoutError', event_onLayoutError));
+  }
+
+  const event_onCloseAll = props.onCloseAll;
+
+  if (event_onCloseAll !== undefined) {
+    node = unwrapNode(nativeKitOnVoid(node, 'closeAll', event_onCloseAll));
   }
 
   return node;

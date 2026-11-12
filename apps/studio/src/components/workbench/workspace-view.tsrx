@@ -21,6 +21,8 @@ import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { openPalette } from '../explorer/navigation.tsrx';
 import { FilePanel } from '../editor/editor.tsrx';
 import { closeTab } from './chrome.tsrx';
+import { CloseEditorsState, CloseEditorsDialog, requestCloseEditors } from '../editor/close-editors.tsrx';
+import { planCloseEditors } from '../../lib/workspace/close-editors.tsr';
 
 export function EditorWorkspace(
   workspace: Signal<Workspace>,
@@ -44,6 +46,9 @@ export function EditorWorkspace(
     references,
     panel
   );
+  const closing = signal<CloseEditorsState>({
+    open: false, plan: planCloseEditors(workspace.get())
+  });
   const layoutFailed = signal(false);
   const dockClass = computed<string>(() => 'size-full text-[' + font.get().toString() + 'px]');
   const initialLayout = clone(workspace.get().dockLayout);
@@ -63,6 +68,7 @@ export function EditorWorkspace(
   };
   return (
     <View className="flex-col size-full min-w-0 min-h-0 bg-background">
+      {CloseEditorsDialog(workspace, recovery, closing)}
       <View hidden={workspace.get().files.length !== 0} className="flex-col grow items-center justify-center">
         <Button
           icon="file-search"
@@ -86,6 +92,9 @@ export function EditorWorkspace(
             const next = workspace.get();
 
             if (next.active !== path && selectFile(next, clone(path))) publishWorkspace(next, workspace, recovery);
+          }}
+          onCloseAll={() => {
+            requestCloseEditors(workspace, recovery, closing);
           }}
           onClose={(path) => {
             closeTab(workspace, recovery, clone(path));

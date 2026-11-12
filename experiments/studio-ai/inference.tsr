@@ -1,7 +1,7 @@
 import { args } from 'std:env';
 import { spawn } from 'std:threads';
 import { qwen_generate } from '@engine';
-import { chatPrompt } from './prompts.tsr';
+import { chatPrompt } from '../../apps/studio/src/lib/ai/prompts.tsr';
 
 function main() {
   const arguments = unwrap(args());

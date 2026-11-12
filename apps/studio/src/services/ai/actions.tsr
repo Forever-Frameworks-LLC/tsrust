@@ -1,0 +1,174 @@
+import { Sender, Channel } from 'std:futures';
+import { Signal } from 'std:ui';
+
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { ChatMessage } from '../../lib/ai/prompts.tsr';
+import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
+import { EditorTool } from '../editor-tools.tsr';
+
+export interface AiMessage {
+  role: 'user' | 'assistant';
+  text: string;
+  request: string;
+}
+
+export interface AiState {
+  phase: string;
+  active: string;
+  sequence: int;
+  messages: AiMessage[];
+  notice: string;
+}
+
+export interface AiContext {
+  state: Signal<AiState>;
+  settings: Signal<StudioConfig>;
+  commands: Sender<ModelRequest>;
+  allowRead: boolean;
+  allowControl: boolean;
+  allowInference: boolean;
+}
+
+interface Arguments {
+  prompt?: string;
+  request?: string;
+}
+
+export function initialAiState(): AiState {
+  return {
+    phase: 'stopped', active: '', sequence: 0, messages: [], notice: ''
+  };
+}
+
+export function modelTools(): EditorTool[] {
+  return [{
+    name: 'local_model_read', description: 'Read this host-bound conversation and local model state. Requires a host read grant.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'local_model_start', description: 'Load the configured local artifacts. Requires explicit host lifecycle permission; arguments cannot choose model paths or grant permissions.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'local_model_stop', description: 'Cancel current generation and unload the local model. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'local_model_send', description: 'Generate a response in the bound conversation. Requires host inference permission and an idle loaded model. Executes no tools or file writes.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string","maxLength":65536}},"required":["prompt"]}'
+  }, {
+    name: 'local_model_cancel', description: 'Cancel the explicit active request identity. Rejects stale requests. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
+  }, {
+    name: 'local_model_clear', description: 'Clear the bound idle conversation. Requires host control permission; never changes files.', inputSchema: '{"type":"object","properties":{}}'
+  }];
+}
+
+export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!modelTools().some((tool) => tool.name === name)) return Err('Unknown local model action.');
+  const next = context.state.get();
+
+  if (name === 'local_model_read') {
+    if (!context.allowRead) return Err('The host has not permitted reading this conversation.');
+    return Ok(JSON.stringify(next));
+  }
+
+  try {
+    const args = JSON.parse<Arguments>(payload, {
+      maxBytes: 128 * 1024, maxDepth: 4, maxEntries: 8, maxNodes: 16
+    });
+    let request: ModelRequest = {
+      kind: '', id: '', prompt: '', maxTokens: 32
+    };
+
+    if (name === 'local_model_send') {
+      if (!context.allowInference) return Err('The host has not permitted inference.');
+
+      if (next.phase !== 'ready') return Err('Start the model and wait until it is ready.');
+      const prompt = args.prompt ?? '';
+
+      if (prompt.trim() === '' || prompt.length > 65536) return Err('Enter a prompt of 1–65536 characters.');
+      next.sequence += 1;
+      next.active = 'request-' + next.sequence.toString();
+      next.messages.push({
+        role: 'user', text: clone(prompt), request: clone(next.active)
+      });
+      const messages: ChatMessage[] = next.messages.map((entry): ChatMessage => ({
+        role: clone(entry.role), content: clone(entry.text)
+      }));
+      next.messages.push({
+        role: 'assistant', text: '', request: clone(next.active)
+      });
+      request = {
+        kind: 'generate', id: clone(next.active), prompt, maxTokens: 32, messages
+      };
+      next.phase = 'generating';
+    } else {
+      if (!context.allowControl) return Err('The host has not permitted model lifecycle actions.');
+
+      if (name === 'local_model_clear') {
+        if (next.phase !== 'ready' && next.phase !== 'stopped') return Err('Finish or cancel generation before clearing.');
+        next.messages = [];
+      } else if (name === 'local_model_start') {
+        if (next.phase !== 'stopped') return Err('The local model is already starting or running.');
+        const config = context.settings.get();
+
+        if (config.aiModelPath === '' || config.aiTokenizerPath === '') return Err('Set the GGUF model and tokenizer paths in Settings → AI.');
+        request = {
+          kind: 'start', id: '', prompt: '', maxTokens: 32, modelPath: config.aiModelPath, tokenizerPath: config.aiTokenizerPath
+        };
+        next.phase = 'starting';
+      } else if (name === 'local_model_stop') {
+        if (next.phase !== 'starting' && next.phase !== 'ready' && next.phase !== 'generating') return Err('The local model is not running.');
+        request.kind = 'shutdown';
+        next.phase = 'stopping';
+      } else {
+        if (next.phase !== 'generating' || args.request !== next.active) return Err('The generation request is no longer active.');
+        request.kind = 'cancel';
+        request.id = clone(next.active);
+      }
+    }
+
+    if (request.kind !== '') {
+      match (context.commands.trySend(request)) {
+        Err(_) => {
+          return Err('The model command queue is full or closed.');
+        },
+        Ok(_) => {}
+      }
+    }
+
+    next.notice = '';
+    context.state.set(next);
+    return Ok('{"accepted":true}');
+  } catch (_) {
+    return Err('Invalid local model action arguments.');
+  }
+}
+
+export function pollModel(state: Signal<AiState>, updates: Mutable<Channel<ModelUpdate>>): void {
+  const next = state.get();
+  let changed = false;
+
+  for (let index = 0; index < 8; index += 1) {
+    match (updates.tryReceive()) {
+      Err(_) => {
+        break;
+      },
+      Ok(update) => {
+        changed = true;
+
+        if (update.kind === 'ready') next.phase = 'ready';
+        else if (update.kind === 'stopped') {
+          next.phase = 'stopped';
+          next.active = '';
+        } else if (update.id === next.active && update.id !== '') {
+          const message = next.messages.findIndex((entry) => entry.role === 'assistant' && entry.request === update.id);
+
+          if (message >= 0 && (update.kind === 'prefix' || update.kind === 'complete')) next.messages[message].text = clone(update.text);
+
+          if (update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') {
+            next.phase = 'ready';
+            next.active = '';
+          }
+
+          if (update.error !== '') next.notice = clone(update.error);
+        } else if (update.kind === 'error') next.notice = clone(update.error);
+      }
+    }
+  }
+
+  if (changed) state.set(next);
+}

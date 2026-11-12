@@ -1,4 +1,0 @@
-// Matches the pinned Qwen template's no-tools, system/user/assistant branch.
-export function chatPrompt(message: ReadOnly<string>): string {
-  return '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n' + message + '<|im_end|>\n<|im_start|>assistant\n';
-}

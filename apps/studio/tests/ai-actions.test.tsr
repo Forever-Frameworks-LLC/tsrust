@@ -1,0 +1,106 @@
+import { test, strictEqual } from 'std:testing';
+import { Channel } from 'std:futures';
+import { signal } from 'std:ui';
+
+import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { initialAiState, invokeModelTool, pollModel, AiContext } from '../src/services/ai/actions.tsr';
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+
+test('local model settings preserve legacy defaults and artifact paths', () => {
+  const config = defaultConfig();
+  strictEqual(config.aiModelPath, '');
+  config.aiModelPath = '/models/模型.gguf';
+  config.aiTokenizerPath = '/models/tokenizer.json';
+  const loaded = unwrap(parseConfig(formatConfig(config)));
+  strictEqual(loaded.aiModelPath, config.aiModelPath);
+  strictEqual(loaded.aiTokenizerPath, config.aiTokenizerPath);
+  const legacy = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}'));
+  strictEqual(legacy.aiModelPath, '');
+});
+
+test('shared model commands enforce host grants and reject stale responses', () => {
+  const commands = new Channel<ModelRequest>(2);
+  const updates = new Channel<ModelUpdate>(4);
+  const replies = updates.sender();
+  const state = signal(initialAiState());
+  const config = defaultConfig();
+  config.aiModelPath = '/models/local.gguf';
+  config.aiTokenizerPath = '/models/tokenizer.json';
+  const settings = signal(config);
+  const denied: AiContext = {
+    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: false, allowControl: false, allowInference: false
+  };
+  const allowed: AiContext = {
+    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+
+  match (invokeModelTool(denied, 'local_model_start', '{}')) {
+    Ok(_) => {
+      throw 'grant bypass';
+    },
+    Err(_) => {}
+  }
+
+  strictEqual(state.get().phase, 'stopped');
+  unwrap(invokeModelTool(allowed, 'local_model_start', '{}'));
+  strictEqual(unwrap(commands.tryReceive()).modelPath ?? '', '/models/local.gguf');
+  unwrap(replies.trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(state, updates);
+  unwrap(invokeModelTool(allowed, 'local_model_send', '{"prompt":"Hello"}'));
+  const request = unwrap(commands.tryReceive());
+  strictEqual(request.id, 'request-1');
+  strictEqual(state.get().messages.length, 2);
+  unwrap(replies.trySend({
+    kind: 'complete', id: 'stale', text: 'wrong', error: ''
+  }));
+  unwrap(replies.trySend({
+    kind: 'prefix', id: 'request-1', text: 'Hi', error: ''
+  }));
+  unwrap(replies.trySend({
+    kind: 'complete', id: 'request-1', text: 'Hi there', error: ''
+  }));
+  pollModel(state, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().messages[1].text, 'Hi there');
+
+  match (invokeModelTool(allowed, 'local_model_cancel', '{"request":"request-1"}')) {
+    Ok(_) => {
+      throw 'stale cancellation accepted';
+    },
+    Err(_) => {}
+  }
+
+  unwrap(invokeModelTool(allowed, 'local_model_send', '{"prompt":"Next"}'));
+  const next = unwrap(commands.tryReceive());
+  strictEqual(next.id, 'request-2');
+  const messages = next.messages;
+
+  if (messages === undefined) throw 'history missing';
+  strictEqual(messages.length, 3);
+  strictEqual(messages[1].content, 'Hi there');
+});
+
+test('full command queues preserve conversation and request identity', () => {
+  const commands = new Channel<ModelRequest>(1);
+  const context: AiContext = {
+    state: signal(initialAiState()), settings: signal(defaultConfig()), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+  const ready = context.state.get();
+  ready.phase = 'ready';
+  context.state.set(ready);
+  unwrap(context.commands.trySend({
+    kind: 'generate', id: 'occupied', prompt: '', maxTokens: 32
+  }));
+  const before = JSON.stringify(context.state.get());
+
+  match (invokeModelTool(context, 'local_model_send', '{"prompt":"Hello"}')) {
+    Ok(_) => {
+      throw 'queue overflow accepted';
+    },
+    Err(_) => {}
+  }
+
+  strictEqual(JSON.stringify(context.state.get()), before);
+});

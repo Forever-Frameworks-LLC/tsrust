@@ -43,8 +43,15 @@ export interface FormattingRequest {
   checkOnSave: boolean;
 }
 
+export interface FormattingTerminalTask {
+  program: string;
+  args: string[];
+  completion: string;
+}
+
 export interface FormattingResult {
   request: FormattingRequest;
+  task?: FormattingTerminalTask;
   text: string;
   error: string;
 }

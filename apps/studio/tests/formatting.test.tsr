@@ -197,9 +197,12 @@ test('registered formatting tool uses the real CLI and returns an isolated revis
     strictEqual(overridden.after.includes('five(\n'), true);
     strictEqual(unwrap(readTextFile(state.active)), state.files[0].document.text);
     strictEqual(rejected(await invokeWorkflowTool(context, 'check_project', '{"allowCheck":true}')), true);
+    strictEqual(rejected(await invokeWorkflowTool(context, 'check_document', payload)), true);
+    context.allowCheck = true;
+    strictEqual(rejected(await invokeWorkflowTool(context, 'check_document', '{"path":"/outside.tsr","session":"stale","revision":0}')), true);
     strictEqual(rejected(await invokeWorkflowTool(context, 'format_document', '{"path":"/outside.tsr"}')), true);
     strictEqual(rejected(await invokeWorkflowTool(context, 'format_project', '{"allowProjectWrite":true}')), true);
-    strictEqual(workflowTools().length, 3);
+    strictEqual(workflowTools().length, 4);
   } finally {
     unwrap(removeDirAll(root));
   }
@@ -247,6 +250,16 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
     true,
     false
   ));
+  const documentState = workspace('/project', 'const value = 1;');
+  const documentTask = unwrap(prepareProjectTask(
+    documentState,
+    '/bin/tsrust',
+    'check-document',
+    options.format,
+    true,
+    false
+  ));
+  strictEqual(documentTask.args.join(' '), 'check /project/main.tsrx --color=always --progress');
   strictEqual(task.program, '/bin/tsrust');
   strictEqual(task.args.join(' '), 'check . --color=always --progress');
   const selected = problemSelection('first\n日本 value', 2, 3);

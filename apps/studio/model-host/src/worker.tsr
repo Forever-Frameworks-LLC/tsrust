@@ -9,21 +9,9 @@ import {
   qwen_stream_finish
 } from '@engine';
 
-import { chatPrompt } from './prompts.tsr';
+import { chatPrompt, conversationPrompt, ChatMessage } from '../../src/lib/ai/prompts.tsr';
 
-export type ModelRequest = {
-  kind: string;
-  id: string;
-  prompt: string;
-  maxTokens: int;
-};
-
-export type ModelUpdate = {
-  kind: string;
-  id: string;
-  text: string;
-  error: string;
-};
+import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 
 type RequestOutcome = {
   model: QwenModel;
@@ -37,7 +25,8 @@ function publish(updates: ReadOnly<Sender<ModelUpdate>>, kind: string, id: strin
 }
 
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
-  const stream = unwrap(qwen_stream_start(model, chatPrompt(request.prompt), request.maxTokens));
+  const prompt = request.messages === undefined ? chatPrompt(request.prompt) : conversationPrompt(request.messages);
+  const stream = unwrap(qwen_stream_start(model, prompt, request.maxTokens));
   let stopping = false;
 
   while (true) {
@@ -88,7 +77,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
 
 // The caller owns this worker, its bounded channels and its cancellation/join lifecycle.
 // No tools, filesystem mutations, workspace selection or model-granted permissions run here.
-export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, tokenizerPath: string, requests: Channel<ModelRequest>, updates: Sender<ModelUpdate>): void {
+export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, tokenizerPath: string, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): void {
   let model = unwrap(qwen_load(task, modelPath, tokenizerPath));
   publish(updates, 'ready', '');
 
@@ -106,5 +95,26 @@ export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, toke
     model = outcome.model;
 
     if (outcome.stopping) return;
+  }
+}
+
+// Studio owns one dormant worker. Loading is explicit and stop returns to this idle loop.
+export function modelHost(task: ReadOnly<TaskContext>, requests: Channel<ModelRequest>, updates: Sender<ModelUpdate>): void {
+  while (!cancellationRequested()) {
+    const request = unwrap(requests.receive());
+
+    if (request.kind !== 'start') {
+      publish(updates, 'rejected', request.id, '', 'Start the local model before sending a request.');
+      continue;
+    }
+
+    try {
+      modelWorker(task, request.modelPath ?? '', request.tokenizerPath ?? '', requests, updates);
+    } catch (error) {
+      if (cancellationRequested()) return;
+      publish(updates, 'error', '', '', JSON.stringify(error));
+    }
+
+    publish(updates, 'stopped', '');
   }
 }

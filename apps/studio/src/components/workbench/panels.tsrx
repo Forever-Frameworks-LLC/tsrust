@@ -98,30 +98,3 @@ export function Panels(
     </View>
   );
 }
-
-export function ChatPanel(open: Signal<boolean>): Node {
-  return (
-    <View className="flex-col size-full min-h-0">
-      <View className="flex-row items-center px-3 py-1 border-b border-border">
-        <Text className="grow">
-          {t("AI Chat")}
-        </Text>
-        <Button
-          icon="x"
-          variant="ghost"
-          size="xsmall"
-          tooltip={message("Close AI Chat")}
-          aria-label={accessibleName("Close AI Chat")}
-          onPress={() => {
-            open.set(false);
-          }}
-        />
-      </View>
-      <View className="p-3">
-        <Text>
-          {t("Agent chat and proposed-change review are planned. No agent is running.")}
-        </Text>
-      </View>
-    </View>
-  );
-}

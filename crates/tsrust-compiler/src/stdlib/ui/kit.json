@@ -6738,6 +6738,11 @@
           "value": "string",
           "prop": "onLayoutError",
           "doc": "Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout."
+        },
+        {
+          "value": "void",
+          "prop": "onCloseAll",
+          "doc": "Requests closing all panels through the host. Resolve unsaved data before removing children; no panel is removed automatically."
         }
       ]
     },

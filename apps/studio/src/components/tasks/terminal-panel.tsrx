@@ -1,4 +1,4 @@
-import { readTextFile } from 'std:fs';
+import { readTextFile, writeTextFileAtomic } from 'std:fs';
 import { JsonLimits } from 'std:json';
 import {
   View,
@@ -30,7 +30,7 @@ import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty, reload } from '../../lib/workspace/documents.tsr';
 import { ProblemLocation, openProblem } from '../../lib/workspace/problem-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { TerminalWorkspace, TerminalSession, terminalExited } from '../../lib/workspace/terminals.tsr';
+import { TerminalWorkspace, TerminalSession, terminalExited, terminalLocation } from '../../lib/workspace/terminals.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { TerminalAuthority, TerminalArguments, invokeTerminalTool } from '../../services/terminal-actions.tsr';
 import { TerminalSessionAuthority, invokeTerminalSessionTool } from '../../services/terminal-sessions.tsr';
@@ -91,6 +91,21 @@ function sessionEnded(state: Signal<TerminalWorkspace>, id: string, workspace: S
     if (index < 0) return;
     terminalExited(next, clone(id), true);
     next.sessions[index].failed = (snapshot.error ?? '') !== '' || (next.sessions[index].task !== undefined ? snapshot.exitCode !== 0 : (snapshot.exitCode ?? 0) !== 0);
+    const receipt = next.sessions[index].formatCompletion;
+
+    if (receipt !== undefined) {
+      match (writeTextFileAtomic(receipt, JSON.stringify({
+        success: snapshot.exitCode === 0
+      }))) {
+        Ok(_) => {},
+        Err(error) => {
+          const files = workspace.get();
+          files.error = 'Could not read the formatter result: ' + error.message;
+          workspace.set(files);
+        }
+      }
+    }
+
     const formatted = next.sessions[index].task === 'format' && snapshot.exitCode === 0;
     state.set(next);
 
@@ -127,6 +142,7 @@ function SessionViewport(
   const ordinal = session.ordinal;
   const title = clone(session.title ?? '');
   const activeId = clone(id);
+  const linkId = clone(id);
   const hidden = computed<boolean>(() => state.get().active !== clone(activeId));
   const name = computed<string>(() => clone(title) !== '' ? translate(clone(title)) : translateWith('Terminal {number}', {
     number: ordinal
@@ -148,7 +164,23 @@ function SessionViewport(
           };
 
           try {
-            const location = JSON.parse<ProblemLocation>(value, limits);
+            const parsed = JSON.parse<ProblemLocation>(value, limits);
+            const current = state.get().sessions.find((entry) => entry.id === linkId);
+
+            if (current === undefined) return;
+            let location = clone(parsed);
+
+            match (terminalLocation(current, workspace.get(), parsed)) {
+              Ok(mapped) => {
+                location = clone(mapped);
+              },
+              Err(error) => {
+                const next = workspace.get();
+                next.error = clone(error);
+                workspace.set(next);
+                return;
+              }
+            }
 
             match (openProblem(context, location)) {
               Err(error) => {

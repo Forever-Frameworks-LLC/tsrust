@@ -96,6 +96,23 @@ border moved to shared Popover; final native MAT confirms the border with highli
 editor-sized parameter help. Owner12tabs/main/draft restored and one current preview
 left running. No end-to-end speedup or long-running memory qualification claimed.
 
+Manual workflow correction, November12 (native footer acceptance passed): footer Format
+and Check now share the native menu command identifiers, each with Document/Project
+scope. Manual checks are independent of background-check availability. Unsaved
+manual formatting runs the public CLI in a task terminal against a private buffer
+snapshot, then applies only to the original unchanged editor identity/revision.
+CLI errors stay visible in the terminal and also produce formatter Problems.
+Private formatter locations map back only through trusted task metadata and exact
+current editor revisions; other terminal paths retain workspace navigation guards.
+Focused workflow tests6/6 and terminal-formatting/close/link tests3/3 pass. Native footer Format→Document formatted unsaved text in a real CLI task terminal;
+Check→Project launched its actual CLI task, and Check→Document completed with
+“Check passed.” Retained colored output, original disk bytes and restored owner
+workspace were observed. Project-format execution was not replayed. Integrated
+local model startup reached ready, but its one-request resource trial exceeded the
+256MiB global swap-growth stop and was stopped; generation/rendering and full8GiB
+qualification remain open. Exact process/resources and next action are in the
+single continuation handoff.
+
 ## Owner requirements
 
 - Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust

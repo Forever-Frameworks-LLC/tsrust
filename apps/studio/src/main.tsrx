@@ -1,9 +1,10 @@
-import { currentDir, args, get } from 'std:env';
+import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
 import { Channel } from 'std:futures';
-import { extname } from 'std:path';
+import { extname, dirname, join } from 'std:path';
 import {
   View,
+  Ticker,
   Text,
   Button,
   Resizable,
@@ -35,7 +36,10 @@ import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.ts
 import { Chrome } from './components/workbench/chrome.tsrx';
 import { LanguageStatus } from './components/workbench/language-status.tsrx';
 import { Region } from './components/workbench/layout.tsrx';
-import { Panels, ChatPanel } from './components/workbench/panels.tsrx';
+import { Panels } from './components/workbench/panels.tsrx';
+import { ChatPanel } from './components/ai/chat-panel.tsrx';
+import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
+import { initialAiState, pollModel } from './services/ai/actions.tsr';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
 import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
@@ -67,6 +71,8 @@ function App(
   program: string,
   languageMessages: ReadOnly<Channel<LanguageMessage>>,
   languageUpdates: Channel<LanguageUpdate>,
+  modelRequests: ReadOnly<Channel<ModelRequest>>,
+  modelUpdates: Channel<ModelUpdate>,
   initialConfig: StudioConfig,
   settingsError: string
 ): Node {
@@ -106,6 +112,7 @@ function App(
   const checking = signal(false);
   const checkOutput = signal('');
   const chat = signal(false);
+  const aiState = signal(initialAiState());
   setLocale(initialConfig.locale);
   font.set(zoomFontSize(initialConfig.fontSize, workspace.get().zoomLevel));
   useTheme(clone(initialConfig.theme));
@@ -127,7 +134,6 @@ function App(
     settings,
     explorerRevision
   );
-  const fileSearch = FileSearch(workspace, recovery, filenameSearch, font);
   const contentSearch = ContentSearch(workspace, recovery, font, settings);
   const initialTerminals = emptyTerminals();
   unwrap(addTerminal(initialTerminals, useId()));
@@ -138,6 +144,14 @@ function App(
   const warningCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'warning').length);
   const problemLabel = computed<string>(() => translate('Errors') + ': ' + problemCount.get().toString());
   const languageState = signal(createLanguageState(studioServers(program, settings.get().languageServers)));
+  const fileSearch = FileSearch(
+    workspace,
+    recovery,
+    filenameSearch,
+    font,
+    languageState,
+    languageMessages.sender()
+  );
   const panelView = Panels(
     panel,
     CheckPanel(
@@ -188,9 +202,17 @@ function App(
     terminalError,
     program,
     formatBusy,
-    formatFocus
+    formatFocus,
+    font
   );
-  const chatView = ChatPanel(chat);
+  const chatView = ChatPanel(
+    chat,
+    aiState,
+    settings,
+    modelRequests,
+    font,
+    workspace
+  );
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');
   const status = computed<string>(() => {
     const state = workspace.get();
@@ -209,7 +231,8 @@ function App(
     panel,
     recovery,
     settings,
-    filenameSearch
+    filenameSearch,
+    chat
   );
   const editor = EditorWorkspace(
     workspace,
@@ -330,7 +353,7 @@ function App(
       icon="bot"
       variant="ghost"
       selected={chat.get()}
-      tooltip={message("AI Chat (planned)")}
+      tooltip={message("AI Chat")}
       aria-label={accessibleName("AI Chat")}
       onPress={() => {
         chat.set(!chat.get());
@@ -339,6 +362,13 @@ function App(
   </View>;
   return (
     <View className="flex-col size-full bg-background text-foreground">
+      <Ticker
+        interval={50}
+        running={true}
+        onTick={(_frame) => {
+          pollModel(aiState, modelUpdates);
+        }}
+      />
       {referenceControls}
       {SaveConflicts(workspace, recovery, font)}
       {chrome}
@@ -441,6 +471,9 @@ async function main(): Task<void> {
   const languageMessages = new Channel<LanguageMessage>(8);
   const languageUpdates = new Channel<LanguageUpdate>(8);
   const languageReplies = languageUpdates.sender();
+  const modelRequests = new Channel<ModelRequest>(8);
+  const modelUpdates = new Channel<ModelUpdate>(8);
+  const modelReplies = modelUpdates.sender();
   const view = App(
     clone(path),
     requests,
@@ -450,9 +483,12 @@ async function main(): Task<void> {
     clone(program),
     languageMessages,
     languageUpdates,
+    modelRequests,
+    modelUpdates,
     clone(startupConfig),
     startupError
   );
+  const modelProgram = unwrap(get('TSRUST_STUDIO_MODEL_HOST')) ?? join(dirname(unwrap(currentExe())), 'tsrust-studio-model-host');
   const workers = studioWorkers(
     clone(path),
     program,
@@ -462,14 +498,19 @@ async function main(): Task<void> {
     formattingReplies,
     languageMessages,
     languageReplies,
+    modelProgram,
+    modelRequests,
+    modelReplies,
     startupConfig.languageServers
   ).start();
+
 
   try {
     unwrap(run(view, 'Tsrust Studio', {
       titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
     }));
   } finally {
+
     workers.cancel();
 
     try {

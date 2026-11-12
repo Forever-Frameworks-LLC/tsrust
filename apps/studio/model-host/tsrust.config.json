@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "studio-model-host",
+  "build": {
+    "entry": "src/main.tsr",
+    "output": "../../../target/studio-model-host"
+  },
+  "paths": {
+    "@engine": "./llama.bindings.json"
+  }
+}

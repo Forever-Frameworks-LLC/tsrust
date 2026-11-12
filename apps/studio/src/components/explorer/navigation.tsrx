@@ -9,13 +9,19 @@ import {
   Node,
   Signal,
   computed,
-  t
+  t,
+  translate
 } from 'std:ui';
 
 import { FileSearchState, SearchActionContext, showFileSearch, closeFileSearch, openFileSearchResult } from '../../lib/explorer/search-actions.tsr';
 import { PaletteCommand, paletteCommands } from '../../lib/workspace/commands.tsr';
 import { Workspace, Entry } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Sender } from 'std:futures';
+import { LanguageState } from '../../services/lsp/controller.tsr';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
+import { languageControlAvailable, requestLanguageControl } from '../../services/lsp/actions.tsr';
+
 import { message } from '../../lib/localization.tsr';
 
 export function openPalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, search: Signal<FileSearchState>, commands: boolean = false): void {
@@ -72,7 +78,67 @@ function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
   return search.files.filter((file) => file.path.slice(search.root.length + 1).toLowerCase().includes(query));
 }
 
-export function FileSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, search: Signal<FileSearchState>, font: Signal<int>): Node {
+interface LanguagePaletteAction {
+  server: string;
+  action: string;
+  label: string;
+  disabled: boolean;
+}
+
+function LanguageCommand(command: ReadOnly<LanguagePaletteAction>, state: Signal<LanguageState>, messages: Sender<LanguageMessage>): Node {
+  const server = clone(command.server);
+  const action = clone(command.action);
+  return (
+    <CommandItem
+      value={'command:lsp:' + server + ':' + action}
+      label={clone(command.label)}
+      disabled={command.disabled}
+      icon="languages"
+      onSelect={() => {
+        const next = state.get();
+        const index = next.connections.findIndex((entry) => entry.server === server);
+
+        if (index < 0) return;
+
+        const generation = next.connections[index].generation;
+
+        match (requestLanguageControl(next, messages, clone(server), generation, clone(action))) {
+          Ok(_) => {
+            state.set(next);
+          },
+          Err(_) => {}
+        }
+      }}
+    />
+  );
+}
+
+function languageCommands(state: ReadOnly<LanguageState>, query: ReadOnly<string>): LanguagePaletteAction[] {
+  const rows: LanguagePaletteAction[] = [];
+  const filter = (query.startsWith('>') ? query.slice(1) : query).trim().toLowerCase();
+
+  for (const connection of state.connections) {
+    for (const action of ['start', 'stop', 'restart']) {
+      const label = 'LSP: ' + translate(action === 'start' ? 'Start' : action === 'stop' ? 'Stop' : 'Restart') + ' — ' + connection.server;
+
+      if (label.toLowerCase().includes(filter)) rows.push({
+        server: clone(connection.server), action: clone(action), label, disabled: !languageControlAvailable(connection, action)
+      });
+    }
+  }
+
+  return rows;
+}
+
+export function FileSearch(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  search: Signal<FileSearchState>,
+  font: Signal<int>,
+  language: Signal<LanguageState>,
+  messages: Sender<LanguageMessage>
+): Node {
+  const renderLanguage = (command: ReadOnly<LanguagePaletteAction>): Node => LanguageCommand(command, language, messages.share());
   const textClass = computed<string>(() => 'w-full min-h-0 text-[' + font.get().toString() + 'px]');
   return (
     <Dialog
@@ -81,7 +147,8 @@ export function FileSearch(workspace: Signal<Workspace>, recovery: Signal<Recove
       maxWidth={720}
       marginTop={64}
       closeButton={false}
-      overlay={false}
+      overlay={true}
+      overlayClosable={true}
       onOpenChange={(open) => {
         if (!open) closePalette(workspace, recovery, search);
       }}
@@ -126,6 +193,7 @@ export function FileSearch(workspace: Signal<Workspace>, recovery: Signal<Recove
           >
             {...fileMatches(search.get()).map((file: ReadOnly<Entry>) => FileSearchItem(file, search.get().root))}
             {...paletteCommands(workspace.get(), search.get().query).map((command: ReadOnly<PaletteCommand>) => CommandItemRow(command))}
+            {...languageCommands(language.get(), search.get().query).map(renderLanguage)}
             <CommandEmpty>
               <Text>
                 {t('No matching files or commands.')}

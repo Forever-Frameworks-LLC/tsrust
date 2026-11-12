@@ -8,7 +8,7 @@ Prepare the exact training and selected inference dependencies explicitly:
 
 ```sh
 tsrust bindings resolve experiments/studio-ai/training.bindings.json
-tsrust bindings resolve experiments/studio-ai/llama.bindings.json
+tsrust bindings resolve apps/studio/model-host/llama.bindings.json
 ```
 
 Run the separate suites (the distinct checked dependency closures cannot be
@@ -60,7 +60,7 @@ interrupts queue backpressure. `qwen_stream_finish` joins and returns the same
 model plus success/error; dropping a stream cancels/joins and unloads it. Native
 decode and model loading remain cooperative cancellation boundaries.
 
-`model-worker.tsr` supplies the actual Tsrust request loop over bounded blocking
+`apps/studio/model-host/src/worker.tsr` supplies the actual Tsrust request loop over bounded blocking
 channels. It sleeps while idle, serializes generation, tags updates by request
 identity, rejects stale controls, supports targeted cancellation and shuts down
 through its caller-owned worker. It performs no tools or workspace writes.

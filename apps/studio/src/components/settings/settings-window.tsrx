@@ -32,6 +32,7 @@ import {
   StudioConfig
 } from '../../lib/settings/settings.tsr';
 import { LanguageSettings } from './language-settings.tsrx';
+import { AiSettings } from './ai-settings.tsrx';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
@@ -466,6 +467,7 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
               </SettingItem>
             </SettingsGroup>
           </SettingsPage>
+          {AiSettings(languageSession, font)}
           {LanguageSettings(languageSession, font, draft)}
           <SettingsPage title={message("Workbench")} icon="panels-top-left" resettable={false}>
             <SettingsGroup title={message("Navigation")}>

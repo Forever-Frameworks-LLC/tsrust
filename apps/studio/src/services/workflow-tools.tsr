@@ -32,6 +32,8 @@ export function workflowTools(): EditorTool[] {
   }, {
     name: 'format_document', description: 'Format an explicit open .tsr/.tsrx document revision and return an isolated ProposedEdit. Never applies or saves it. Requires a host proposal grant; project format rules override editor defaults.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer","minimum":0}},"required":["path","session","revision"]}'
   }, {
+    name: 'check_document', description: 'Check an explicit current open document session/revision on disk with the public CLI. Requires a host check grant. Unsaved edits are not written.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"}},"required":["path","session","revision"]}'
+  }, {
     name: 'check_project', description: 'Check saved files in the host-selected workspace using the public compiler. Bounded to five minutes and 4 MiB output; no file writes or focus changes. Requires a host check grant.', inputSchema: '{"type":"object","properties":{}}'
   }];
 }
@@ -91,6 +93,35 @@ export async function invokeWorkflowTool(context: ReadOnly<WorkflowToolContext>,
               }));
             }
           }
+        }
+      }
+    }
+
+    if (name === 'check_document') {
+      const document = context.workspace.files.find((file) => file.document.path === args.path && file.document.session === args.session && file.document.revision === args.revision);
+
+      if (document === undefined) return Err('Checking target has changed or is not open.');
+      const selected = clone(context.workspace);
+      selected.active = clone(document.document.path);
+      const task = unwrap(prepareProjectTask(
+        selected,
+        clone(context.program),
+        'check-document',
+        context.policy.format,
+        context.allowCheck,
+        false
+      ));
+
+      match (await run(task.program, task.args, {
+        cwd: clone(context.workspace.root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
+      })) {
+        Err(error) => {
+          return Err(clone(error.message));
+        },
+        Ok(output) => {
+          return Ok(JSON.stringify({
+            success: output.status.success, stdout: unwrap(toUtf8(output.stdout)), stderr: unwrap(toUtf8(output.stderr))
+          }));
         }
       }
     }

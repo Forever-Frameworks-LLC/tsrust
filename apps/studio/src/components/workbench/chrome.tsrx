@@ -46,7 +46,8 @@ export function Chrome(
   panel: Signal<string>,
   recovery: Signal<Recovery>,
   settings: Signal<StudioConfig>,
-  fileSearch: Signal<FileSearchState>
+  fileSearch: Signal<FileSearchState>,
+  chat: Signal<boolean>
 ): Node {
   const paletteClass = computed<string>(() => 'w-full max-w-[320px] h-6 px-3 gap-2 min-w-0 justify-start border border-border rounded-sm bg-background text-muted-foreground text-[' + font.get().toString() + 'px]');
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
@@ -66,9 +67,9 @@ export function Chrome(
           <MenuItem command="format-document" label={message("Format document")} disabled={!canFormat(workspace.get().active)} />
         </AppMenu>
         <AppMenu label={message("Project")}>
-          <MenuItem command="find-file-references" label={message("Find File References (Imports)")} disabled={workspace.get().active === ''} />
           <MenuItem command="refresh-explorer" label={message("Refresh Explorer")} />
           <MenuItem command="format-project" label={message("Format project")} />
+          <MenuItem command="check-document" label={message("Check document")} disabled={!canFormat(workspace.get().active)} />
           <MenuItem command="check-project" label={message("Check project")} />
         </AppMenu>
       </AppMenuBar>
@@ -103,13 +104,14 @@ export function Chrome(
       </View>
       <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
         <Button
-          icon="settings"
+          icon="sparkles"
           variant="ghost"
           size="small"
-          aria-label={accessibleName("Settings")}
-          tooltip={message("Settings")}
+          selected={chat.get()}
+          aria-label={accessibleName('AI Chat')}
+          tooltip={message('AI Chat')}
           onPress={() => {
-            showSettings(font, settings, workspace);
+            chat.set(!chat.get());
           }}
         />
       </View>

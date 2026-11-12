@@ -1,3 +1,7 @@
+import { FormattingTarget } from './formatting-actions.tsr';
+import { ProblemLocation } from './problem-actions.tsr';
+import { Workspace } from './workspace.tsr';
+
 export interface TerminalSession {
   id: string;
   ordinal: int;
@@ -7,6 +11,8 @@ export interface TerminalSession {
   args?: string[];
   task?: string;
   failed?: boolean;
+  formatCompletion?: string;
+  formatTarget?: FormattingTarget;
 }
 
 export interface TerminalWorkspace {
@@ -59,4 +65,21 @@ export function terminalExited(workspace: Mutable<TerminalWorkspace>, id: string
       return;
     }
   }
+}
+
+// Only host-owned formatter task metadata can map a private snapshot back to an editor.
+export function terminalLocation(session: ReadOnly<TerminalSession>, workspace: ReadOnly<Workspace>, location: ReadOnly<ProblemLocation>): Result<ProblemLocation, string> {
+  const target = session.formatTarget;
+  const args = session.args;
+
+  if (session.task !== 'format-document' || target === undefined || args === undefined || args.length < 2 || args[1] !== location.path) return Ok(clone(location));
+
+  const path = clone(target.path);
+  const sessionId = clone(target.session);
+  const revision = target.revision;
+
+  if (!workspace.files.some((file) => file.document.path === path && file.document.session === sessionId && file.document.revision === revision)) return Err('The formatted document changed. Run Format again before following this location.');
+  return Ok({
+    path: clone(target.path), line: location.line, column: location.column
+  });
 }
