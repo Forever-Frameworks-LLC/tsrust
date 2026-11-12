@@ -48,6 +48,7 @@ struct Deferred {
     request: Request,
     uri: String,
     since: Instant,
+    headers_requested: bool,
 }
 
 /// The longest a request waits for a current project analysis. After that it
@@ -198,6 +199,22 @@ fn run(
             }
         }
     }).map_err(|error|format!("Cannot start analysis worker: {error}"))?;
+    // Declaration reads never queue behind a synchronous full compiler pass.
+    let (header_jobs, header_work) = bounded::<DocumentJob>(1);
+    let (header_completed, header_results) = bounded::<Option<DocumentDeclarations>>(1);
+    std::thread::Builder::new().name("tsrust-declarations".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
+        while let Ok(DocumentJob {snapshot, workspace}) = header_work.recv() {
+            let result = catch_unwind(AssertUnwindSafe(|| {
+                let workspace = workspace?;
+                let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri).ok()?;
+                let graph = tsrust_compiler::project::load_project_headers(&workspace, &entry.0).ok()?;
+                let index = tsrust_lsp::project_intelligence::ProjectIndex::declarations(&graph);
+                Some(DocumentDeclarations {snapshot, workspace, index})
+            })).unwrap_or(None);
+            if header_completed.send(result).is_err() { break; }
+        }
+    }).map_err(|error| format!("Cannot start declaration worker: {error}"))?;
+    let mut header_busy = false;
     let mut documents = Documents::default();
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
     let mut scanner = tsrust_lsp::workspace_scan::Scanner::default();
@@ -239,6 +256,22 @@ fn run(
             scan_interrupt.store(false,std::sync::atomic::Ordering::Relaxed);
             jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
             busy=true;
+        }
+        if !header_busy && !shutdown {
+            // Use request order/cancellation already owned by the deferred queue;
+            // never accumulate another queue of obsolete document snapshots.
+            if let Some(job) = deferred.iter().rev().find_map(|entry| {
+                if entry.headers_requested || projects.covers(&entry.uri) { return None; }
+                let snapshot = documents.snapshot(&entry.uri)?;
+                let workspace = projects.prepare(&snapshot)?;
+                Some(DocumentJob {snapshot: snapshot.clone(), workspace: Some(workspace)})
+            }) {
+                for entry in &mut deferred {
+                    if entry.uri == job.snapshot.uri { entry.headers_requested = true; }
+                }
+                header_jobs.send(job).map_err(|_| "declaration worker stopped")?;
+                header_busy = true;
+            }
         }
         // A deferred request is answered when the analysis of its text
         // arrives, when no analysis can still produce one, or at its deadline.
@@ -323,7 +356,7 @@ fn run(
                                     && (documents.pending(&uri) || in_flight.as_deref() == Some(uri.as_str()))
                                 {
                                     documents.expedite(&uri, Instant::now());
-                                    deferred.push(Deferred { request, uri, since: Instant::now() });
+                                    deferred.push(Deferred { request, uri, since: Instant::now(), headers_requested: false });
                                     continue;
                                 }
                                 intelligence(request, &projects, &mut documents, false)
@@ -407,6 +440,16 @@ fn run(
                         if let Err(error) = handled { eprintln!("tsrust-lsp: invalid notification: {error}"); }
                     }
                     Message::Response(_) => {}
+                }
+            }
+            recv(header_results) -> result => {
+                header_busy = false;
+                if let Some(declarations) = result.map_err(|_| "declaration worker stopped")?
+                    && !shutdown && documents.current(&declarations.snapshot)
+                    && projects.workspace.current(&declarations.workspace)
+                    && !projects.covers(&declarations.snapshot.uri)
+                {
+                    projects.cache_index(&declarations.snapshot.uri, &declarations.workspace, Some(declarations.index));
                 }
             }
             recv(results) -> result => {
@@ -545,6 +588,57 @@ mod tests {
         assert!(matches!(receive(client), Message::Response(response) if response.error.is_none()));
         notify(client,"initialized",json!({}));
     }
+    #[test]
+    fn imported_intelligence_does_not_wait_for_an_unrelated_full_check() {
+        let (server, client) = Connection::memory();
+        let (entered_tx, entered_rx) = bounded(1);
+        let (release_tx, release_rx) = bounded(1);
+        let worker = std::thread::spawn(move || run(server, move |text, uri| {
+            if uri == "file:///tsrust-priority/blocker.tsr" {
+                entered_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+            }
+            diagnostics(text, uri)
+        }));
+        initialize(&client);
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":"file:///tsrust-priority/blocker.tsr", "languageId":"tsrust", "version":1, "text":"function main() {}"
+        }}));
+        entered_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        let uri = "file:///tsrust-priority/main.tsr";
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":"file:///tsrust-priority/dep.tsr", "languageId":"tsrust", "version":1,
+            "text":"export function quick(value: int): int { return value; }"
+        }}));
+        let text = "import {quick} from './dep.tsr'; function main(){quick(1);}";
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":uri, "languageId":"tsrust", "version":1, "text":text
+        }}));
+        for (id, method, offset) in [
+            (20, "textDocument/completion", text.rfind("quick").unwrap()+3),
+            (21, "textDocument/hover", text.rfind("quick").unwrap()+2),
+            (22, "textDocument/signatureHelp", text.rfind("quick(").unwrap()+6),
+        ] {
+            client.sender.send(Message::Request(Request {
+                id: id.into(), method: method.into(),
+                params: json!({"textDocument":{"uri":uri},"position":{"line":0,"character":offset}}),
+            })).unwrap();
+            let deadline = Instant::now()+Duration::from_secs(2);
+            loop {
+                let message = client.receiver.recv_timeout(deadline.saturating_duration_since(Instant::now())).expect("intelligence must respond while the full checker is still blocked");
+                if let Message::Response(response) = message && response.id == RequestId::from(id) {
+                    assert!(response.error.is_none(), "{response:?}");
+                    let result = response.result.unwrap();
+                    assert!(result.to_string().contains("value: int"), "{method}: {result}");
+                    break;
+                }
+            }
+        }
+        release_tx.send(()).unwrap();
+        notify(&client,"exit",json!(null));
+        assert_eq!(worker.join().unwrap().unwrap(), 1);
+    }
+
     #[test]
     fn slow_check_cannot_publish_after_edit_close_or_reopen() {
         let (server, client) = Connection::memory();
