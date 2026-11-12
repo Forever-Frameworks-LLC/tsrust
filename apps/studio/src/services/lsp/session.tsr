@@ -24,6 +24,7 @@ export interface LanguageQuery {
   document: LanguageIdentity;
   position: DiagnosticPosition;
   nativeRequest?: int;
+  includeDeclaration?: boolean;
 }
 
 export interface LanguageMessage {
@@ -46,6 +47,10 @@ export interface LanguageUpdate {
   problems?: Problem[];
   query?: LanguageQuery;
   result?: string;
+}
+
+interface ReferenceContext {
+  includeDeclaration: boolean;
 }
 
 interface TextChange {
@@ -349,15 +354,20 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
           const identity = clone(query.document);
           const queryId = clone(query.id);
           const current = documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
-          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition';
+          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references';
 
           if (current && allowed && queries.length < 32 && !queries.some((entry) => entry.id === queryId)) {
             queries.push(clone(query));
+            const context: ReferenceContext | undefined = query.method === 'textDocument/references' ? {
+              includeDeclaration: query.includeDeclaration ?? true
+            }
+
+            : undefined;
             enqueue(outbox, JSON.stringify({
               jsonrpc: '2.0', id: 'studio:' + query.id, method: clone(query.method), params: {
                 textDocument: {
                   uri: documentUri(identity.path)
-                }, position: clone(query.position)
+                }, position: clone(query.position), context
               }
             }));
           } else {

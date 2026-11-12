@@ -25,6 +25,8 @@ import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree } from './components/explorer/browser.tsrx';
 import { FileSearch } from './components/explorer/navigation.tsrx';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
+import { ReferencesPanel } from './components/tasks/references-panel.tsrx';
+import { LanguageReferences } from './lib/language/references.tsr';
 import { CheckPanel } from './components/tasks/check-panel.tsrx';
 import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
 import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
@@ -93,6 +95,9 @@ function App(
   const mode = signal('files');
   const font = signal(14);
   const panel = signal('');
+  const references = signal<LanguageReferences>({
+    root: clone(workspace.get().root), locations: []
+  });
   const checking = signal(false);
   const checkOutput = signal('');
   const chat = signal(false);
@@ -126,6 +131,7 @@ function App(
   const problemCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'error').length);
   const warningCount = computed<int>(() => collectProblems(workspace.get(), problems.get(), terminalError.get()).filter((problem) => problem.severity === 'warning').length);
   const problemLabel = computed<string>(() => translate('Errors') + ': ' + problemCount.get().toString());
+  const languageState = signal(createLanguageState(studioServers(program, settings.get().languageServers)));
   const panelView = Panels(
     panel,
     CheckPanel(
@@ -156,11 +162,11 @@ function App(
       font
     ),
     CopyProblems(workspace, problems, terminalError),
+    ReferencesPanel(workspace, recovery, references, languageState, font),
     font
   );
   const formatBusy = signal(false);
   const formatFocus = signal<QueuedFormatting[]>([]);
-  const languageState = signal(createLanguageState(studioServers(program, settings.get().languageServers)));
   const workflows = WorkflowControls(
     workspace,
     recovery,
@@ -206,7 +212,9 @@ function App(
     sidebar,
     formatFocus,
     languageState,
-    languageMessages.sender()
+    languageMessages.sender(),
+    references,
+    panel
   );
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');

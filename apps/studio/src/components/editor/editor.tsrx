@@ -12,6 +12,8 @@ import {
   signal
 } from 'std:ui';
 
+import { LanguageReferences } from '../../lib/language/references.tsr';
+import { showNativeLanguageReferences } from '../../services/lsp/references.tsr';
 import { navigateNativeLanguage } from '../../lib/language/navigation.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
@@ -30,11 +32,14 @@ export function FilePanel(
   recovery: Signal<Recovery>,
   focusQueue: Signal<QueuedFormatting[]>,
   language: Signal<LanguageState>,
-  messages: Sender<LanguageMessage>
+  messages: Sender<LanguageMessage>,
+  references: Signal<LanguageReferences>,
+  panel: Signal<string>
 ): Node {
   const path = clone(file.document.path);
   const editPath = clone(path);
   const languagePath = clone(path);
+  const referencePath = clone(path);
   const languageRequests = messages.share();
   const languageCancels = messages.share();
   const focusPath = clone(path);
@@ -102,7 +107,25 @@ export function FilePanel(
             language={extname(file.document.path).slice(1)}
             value={text.get()}
             onLanguageRequest={(request) => {
-              requestNativeLanguage(workspace, language, languageRequests, languagePath, request);
+              requestNativeLanguage(
+                workspace,
+                language,
+                languageRequests,
+                languagePath,
+                request,
+                panel,
+                references
+              );
+            }}
+            onLanguageReferences={(locations) => {
+              showNativeLanguageReferences(
+                workspace,
+                recovery,
+                references,
+                panel,
+                locations,
+                referencePath
+              );
             }}
             onLanguageNavigate={(location) => {
               navigateNativeLanguage(workspace, recovery, location);

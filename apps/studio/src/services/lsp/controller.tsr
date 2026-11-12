@@ -1,6 +1,7 @@
 import { Channel, Sender } from 'std:futures';
 import { Signal, answerEditorLanguage } from 'std:ui';
 
+import { LanguageReferences, referenceSymbol } from '../../lib/language/references.tsr';
 import { LanguageServer, languageRoute, tsrustServer } from '../../lib/language/servers.tsr';
 import { LanguageIdentity, LanguageDocument, DiagnosticPosition, languageIdentity } from '../../lib/language/diagnostics.tsr';
 import { Problem, replaceProblems, operationProblem } from '../../lib/workspace/problems.tsr';
@@ -125,7 +126,10 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
               const matches = files.some((file) => file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision);
 
               if (pending.nativeRequest !== undefined) {
-                answerEditorLanguage(pending.nativeRequest, matches ? update.result ?? 'null' : 'null', (_delivery) => {});
+                const result = pending.method === 'textDocument/references' && update.message !== '' ? JSON.stringify({
+                  error: clone(update.message)
+                }) : update.result ?? 'null';
+                answerEditorLanguage(pending.nativeRequest, matches ? result : 'null', (_delivery) => {});
               } else {
                 const results = next.readResults;
                 results.push({
@@ -272,6 +276,7 @@ interface NativeLanguageParams {
 }
 
 export interface LanguageRead {
+  includeDeclaration?: boolean;
   path: string;
   session: string;
   revision: int;
@@ -294,7 +299,7 @@ export function queueLanguageRead(
 
   if (connection === undefined || !connection.ready) return Err('Language service is not connected.');
 
-  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition') return Err('Unsupported language read.');
+  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references') return Err('Unsupported language read.');
 
   if (request.position.line < 0 || request.position.character < 0) return Err('Invalid language position.');
   const file = workspace.files.find((file) => file.document.path === request.path && file.document.session === request.session && file.document.revision === request.revision);
@@ -319,7 +324,7 @@ export function queueLanguageRead(
     server: clone(route.server), languageId: clone(route.language), path: clone(request.path), session: clone(request.session), revision: request.revision, version, text: clone(file.document.text)
   };
   const query: LanguageQuery = {
-    id, method: clone(request.method), position: clone(request.position), document: languageIdentity(document), nativeRequest
+    id, method: clone(request.method), position: clone(request.position), document: languageIdentity(document), includeDeclaration: request.includeDeclaration, nativeRequest
   };
 
   match (messages.trySend({
@@ -342,7 +347,15 @@ export function queueLanguageRead(
   return Ok();
 }
 
-export function requestNativeLanguage(workspace: Signal<Workspace>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, path: ReadOnly<string>, payload: ReadOnly<string>): void {
+export function requestNativeLanguage(
+  workspace: Signal<Workspace>,
+  state: Signal<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  path: ReadOnly<string>,
+  payload: ReadOnly<string>,
+  panel: Signal<string> | undefined = undefined,
+  references: Signal<LanguageReferences> | undefined = undefined
+): void {
   try {
     const request = JSON.parse<NativeLanguageRequest>(payload, {
       maxBytes: 16 * 1024 * 1024, maxDepth: 12, maxEntries: 64, maxNodes: 256
@@ -369,6 +382,16 @@ export function requestNativeLanguage(workspace: Signal<Workspace>, state: Signa
     )) {
       Ok(_) => {
         state.set(next);
+
+        if (request.method === 'textDocument/references') {
+          if (references !== undefined) references.set({
+            root: clone(current.root), locations: [], query: {
+              path: clone(path), position: clone(request.params.position), symbol: referenceSymbol(request.text, request.params.position)
+            }
+          });
+
+          if (panel !== undefined) panel.set('references');
+        }
       },
       Err(_) => {
         answerEditorLanguage(request.id, 'null', (_delivery) => {});

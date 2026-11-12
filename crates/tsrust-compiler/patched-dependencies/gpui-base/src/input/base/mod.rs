@@ -29,6 +29,7 @@ pub struct InputContextMenuCapabilities {
     selection: bool,
     masked: bool,
     go_to_definition: bool,
+    references: bool,
     code_actions: bool,
 }
 
@@ -68,6 +69,9 @@ impl InputContextMenuCapabilities {
         self.go_to_definition = go_to_definition;
         self
     }
+
+    pub fn references(mut self, available: bool) -> Self {self.references=available;self}
+    pub fn has_references(&self) -> bool {self.references}
 
     pub fn code_actions(mut self, code_actions: bool) -> Self {
         self.code_actions = code_actions;

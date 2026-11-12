@@ -90,7 +90,7 @@ test('registered AI search tools share results and enforce host navigation and s
     const context: SearchActionContext = {
       workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot
     };
-    strictEqual(editorTools().length, 5);
+    strictEqual(editorTools().length, 7);
     context.allowRead = false;
 
     match (invokeEditorTool(context, 'search_content', '{"query":"needle","allowRead":true}')) {

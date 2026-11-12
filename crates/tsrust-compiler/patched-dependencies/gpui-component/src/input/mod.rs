@@ -25,7 +25,7 @@ pub use gpui_base::input::CursorBlink;
 pub(crate) use gpui_base::input::InputBaseState;
 pub use gpui_base::input::{
     Backspace, BufferPoint, CodeActionItem, CodeActionProvider, CompletionHighlighter,
-    CompletionMenuOptions, CompletionProvider, Copy, Cut, DefinitionProvider, Delete,
+    CompletionMenuOptions, CompletionProvider, Copy, Cut, DefinitionProvider, ReferencesProvider, ShowReferencesHandler, FindReferences, Delete,
     DeleteToBeginningOfLine, DeleteToEndOfLine, DeleteToNextWordEnd, DeleteToPreviousWordStart,
     DisplayMap, DisplayPoint, DocumentColorProvider, DocumentRangeSemanticTokensProvider,
     EditorState, Enter, Escape, FoldRange, GoToDefinition, GutterDecoration,

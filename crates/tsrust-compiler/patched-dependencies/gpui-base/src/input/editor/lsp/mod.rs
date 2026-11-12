@@ -8,6 +8,7 @@ use crate::input::{EditorMode, InputBaseState, RopeExt};
 mod code_actions;
 mod completions;
 mod definitions;
+mod references;
 mod document_colors;
 mod hover;
 mod overlay;
@@ -17,6 +18,7 @@ mod signature_help;
 pub use code_actions::*;
 pub use completions::*;
 pub use definitions::*;
+pub use references::*;
 pub use document_colors::*;
 pub use hover::*;
 pub use overlay::*;
@@ -51,6 +53,9 @@ pub struct Lsp {
     pub(crate) signature_help_position: Option<(u64, usize)>,
     pub(crate) _signature_help_task: Task<Result<()>>,
     /// The definition provider.
+    pub references_provider: Option<Rc<dyn ReferencesProvider>>,
+    pub show_references: Option<ShowReferencesHandler>,
+    pub(crate) _references_task: Task<Result<()>>,
     pub definition_provider: Option<Rc<dyn DefinitionProvider>>,
     /// The document color provider.
     pub document_color_provider: Option<Rc<dyn DocumentColorProvider>>,
@@ -93,6 +98,9 @@ impl Default for Lsp {
             signature_help_active: false,
             signature_help_position: None,
             _signature_help_task: Task::ready(Ok(())),
+            references_provider: None,
+            show_references: None,
+            _references_task: Task::ready(Ok(())),
             definition_provider: None,
             document_color_provider: None,
             completion_menu: CompletionMenuOptions::default(),
@@ -149,6 +157,7 @@ impl Lsp {
         self.semantic_tokens.clear();
         self._hover_task = Task::ready(Ok(()));
         self._definition_task = Task::ready(Ok(()));
+        self._references_task = Task::ready(Ok(()));
         self._document_color_task = Task::ready(());
         self._semantic_tokens_task = Task::ready(());
     }

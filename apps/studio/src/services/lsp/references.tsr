@@ -1,0 +1,74 @@
+import { separator } from 'std:path';
+import { Signal } from 'std:ui';
+
+import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { LanguageReferences, ReferenceLocation } from '../../lib/language/references.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+
+export function presentLanguageReferences(context: ReadOnly<SearchActionContext>, result: ReadOnly<LanguageReferences>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== context.workspace.get().root || result.root !== context.workspace.get().root) return Err('Language results are not permitted for this workspace.');
+
+  if (result.locations.length > 0 && result.query === undefined) return Err('A reference query source is required.');
+  {
+    const query = result.query;
+    const prefix = result.root.endsWith(separator()) ? clone(result.root) : result.root + separator();
+
+    if (query !== undefined && (!query.path.startsWith(prefix) || query.path.length > 8192 || query.position.line < 0 || query.position.character < 0)) return Err('Invalid reference query source.');
+  }
+
+  const references = context.references;
+  const panel = context.panel;
+
+  if (references === undefined || panel === undefined) return Err('Language results are unavailable in this host.');
+  references.set(result);
+  panel.set('references');
+  return Ok();
+}
+
+export function clearLanguageReferences(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== context.workspace.get().root || root !== context.workspace.get().root) return Err('Clearing reference results is not permitted for this workspace.');
+  const references = context.references;
+
+  if (references === undefined) return Err('Reference results are unavailable in this host.');
+  references.set({
+    root: clone(root), locations: []
+  });
+  return Ok();
+}
+
+interface NativeReferences {
+  locations: ReferenceLocation[];
+  error?: string | null;
+}
+
+export function showNativeLanguageReferences(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  references: Signal<LanguageReferences>,
+  panel: Signal<string>,
+  payload: ReadOnly<string>,
+  source: ReadOnly<string> | undefined = undefined
+): void {
+  const root = clone(workspace.get().root);
+  const previous = references.get();
+
+  if (source !== undefined && (previous.root !== root || previous.query?.path !== source)) return;
+  const query = clone(previous.query);
+  const context: SearchActionContext = {
+    workspace, recovery, references, panel, allowedRoot: clone(root), allowNavigation: true, focusEditor: false
+  };
+
+  try {
+    const result = JSON.parse<NativeReferences>(payload, {
+      maxBytes: 16 * 1024 * 1024, maxDepth: 8, maxEntries: 100000, maxNodes: 100000
+    });
+    unwrap(presentLanguageReferences(context, {
+      root, query, locations: clone(result.locations), error: result.error === null ? undefined : clone(result.error)
+    }));
+  } catch (_) {
+    const next = context.workspace.get();
+    next.error = 'The language server returned invalid reference locations.';
+    context.workspace.set(next);
+  }
+}

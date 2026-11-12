@@ -206,6 +206,7 @@ impl InputModeKind for EditorMode {
             .on_action(window.listener_for(entity, InputBaseState::on_action_show_completions))
             .on_action(window.listener_for(entity, InputBaseState::on_action_show_signature_help))
             .on_action(window.listener_for(entity, InputBaseState::on_action_go_to_definition))
+            .on_action(window.listener_for(entity, InputBaseState::on_action_find_references))
     }
 }
 
@@ -304,10 +305,11 @@ impl crate::input::InputExtras for super::EditorExtras {
         self.inline_completion.item.as_ref()
     }
 
-    fn context_menu_capabilities(&self) -> (bool, bool) {
+    fn context_menu_capabilities(&self) -> (bool, bool, bool) {
         (
             self.lsp.definition_provider.is_some(),
             !self.lsp.code_action_providers.is_empty(),
+            self.lsp.references_provider.is_some() && self.lsp.show_references.is_some(),
         )
     }
 }

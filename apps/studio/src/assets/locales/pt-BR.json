@@ -278,5 +278,15 @@
   "Restart": "Reiniciar",
   "LSP: idle": "LSP: inativo",
   "LSP: stopped": "LSP: parado",
-  "LSP: stopping": "LSP: parando"
+  "LSP: stopping": "LSP: parando",
+  "References": "Referências",
+  "No references found.": "Nenhuma referência encontrada.",
+  "Finding references…": "Procurando referências…",
+  "The language request timed out. Try Find References again.": "A solicitação ao servidor de linguagem expirou. Tente encontrar as referências novamente.",
+  "The language server returned invalid reference locations.": "O servidor de linguagem retornou localizações de referência inválidas.",
+  "No reference query": "Nenhuma consulta de referências",
+  "Symbol references": "Referências do símbolo",
+  "References to {symbol}": "Referências a {symbol}",
+  "Clear references": "Limpar referências",
+  "Right-click a symbol and choose Find References (Shift+F12).": "Clique com o botão direito em um símbolo e escolha Encontrar referências (Shift+F12)."
 }

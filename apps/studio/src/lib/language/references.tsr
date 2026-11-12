@@ -1,0 +1,52 @@
+import { fromUtf8, length, view, toUtf8 } from 'std:bytes';
+import { compile } from 'std:regex';
+
+import { DiagnosticRange, DiagnosticPosition, diagnosticColumn, diagnosticPath } from './diagnostics.tsr';
+
+export interface ReferenceLocation {
+  uri: string;
+  range: DiagnosticRange;
+}
+
+export interface ReferenceQuery {
+  path: string;
+  position: DiagnosticPosition;
+  symbol: string;
+}
+
+export interface LanguageReferences {
+  query?: ReferenceQuery;
+  root: string;
+  error?: string;
+  locations: ReferenceLocation[];
+}
+
+export function referenceLabel(root: ReadOnly<string>, location: ReadOnly<ReferenceLocation>): string {
+  let path = clone(location.uri);
+
+  try {
+    path = diagnosticPath(location.uri);
+  } catch (_) {}
+
+  if (path.startsWith(root + '/')) path = path.slice(root.length + 1);
+  return path + ':' + (location.range.start.line + 1).toString() + ':' + (location.range.start.character + 1).toString();
+}
+
+export function referenceSymbol(text: ReadOnly<string>, position: ReadOnly<DiagnosticPosition>): string {
+  try {
+    const lines = text.split('\n');
+
+    if (position.line < 0 || position.line >= lines.length) return '';
+    const line = lines[position.line];
+    const prefix = Array.from(line).slice(0, diagnosticColumn(line, position.character) - 1).join('');
+    const offset = length(unwrap(fromUtf8(prefix)));
+    const bytes = unwrap(fromUtf8(line));
+    const pattern = unwrap(compile('[\\p{L}\\p{N}_$]+'));
+
+    for (const found of pattern.findAll(line)) {
+      if (found.start <= offset && offset <= found.end) return unwrap(toUtf8(unwrap(view(bytes, found.start, found.end))));
+    }
+  } catch (_) {}
+
+  return '';
+}

@@ -16,13 +16,22 @@ import {
   diagnosticColumn,
   languageIdentity
 } from '../src/lib/language/diagnostics.tsr';
+import { ReferenceLocation, LanguageReferences } from '../src/lib/language/references.tsr';
 import { languageRoute, tsrustServer } from '../src/lib/language/servers.tsr';
 import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
-import { LanguageState, LanguageRead, createLanguageState, pollLanguage, queueLanguageRead } from '../src/services/lsp/controller.tsr';
+import {
+  LanguageState,
+  LanguageRead,
+  createLanguageState,
+  pollLanguage,
+  queueLanguageRead,
+  requestNativeLanguage,
+  cancelNativeLanguage
+} from '../src/services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
 import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
 import { CheckResult } from '../src/services/project-check.tsr';
@@ -199,6 +208,22 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     strictEqual(definition.query?.id, 'definition-one');
     strictEqual((definition.result ?? '').includes(documentUri(document.path)), true);
     strictEqual((definition.result ?? '').includes('"line":0'), true);
+
+    for (const includeDeclaration of [false, true]) {
+      await requests.send({
+        kind: 'query', generation: ready.generation, query: {
+          id: 'references', method: 'textDocument/references', document: languageIdentity(document), position: {
+            line: 1, character: 19
+          }, includeDeclaration
+        }
+      });
+      const update = await nextUpdate(updates, 'query').timeout(10000);
+      const locations = JSON.parse<ReferenceLocation[]>(update.result ?? 'null');
+      strictEqual(locations.length, includeDeclaration ? 2 : 1);
+      strictEqual(locations.every((location) => location.uri === documentUri(document.path)), true);
+      strictEqual(locations.some((location) => location.range.start.line === 0), includeDeclaration);
+    }
+
     const panelPath = join(root, 'panel.tsrx');
     const panelText = 'function panel(value: int): int { return value; }\nfunction main(){panel(1); }\n';
     unwrap(writeTextFile(panelPath, panelText));
@@ -667,6 +692,31 @@ test('AI language reads share the live request route without focus changes or mo
   )), '{"cancelled":true}');
   strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
   strictEqual(state.get().queries.length, 0);
+  const referencePayload = JSON.stringify({
+    root: '/project', id: 'references', path: clone(document.path), session: clone(document.session), revision: document.revision, position: {
+      line: 0, character: 1
+    }, includeDeclaration: false
+  });
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_references',
+    referencePayload,
+    workspace,
+    state
+  )), '{"queued":true}');
+  const referenceRequest = unwrap(channel.tryReceive());
+  strictEqual(referenceRequest.query?.method ?? '', 'textDocument/references');
+  strictEqual(referenceRequest.query?.includeDeclaration ?? true, false);
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_cancel_read',
+    referencePayload,
+    workspace,
+    state
+  )), '{"cancelled":true}');
+  strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
   strictEqual(workspace.get().active, '/project/main.tsr');
   strictEqual(workspace.get().files[0].document.text, 'function main(){}');
 });
@@ -901,4 +951,46 @@ test('multiple language controllers isolate generations diagnostics and guarded 
   strictEqual(state.get().connections[1].ready, false);
   strictEqual(state.get().connections[0].generation, 2);
   strictEqual(workspace.get().active, '/project/main.tsr');
+});
+
+test('native reference queries capture their symbol and source before presentation', () => {
+  const document = unwrap(createDocument('/project/main.tsr', 'const Workspace = 8;'));
+  const workspace = signal<Workspace>({
+    root: '/project', files: [{
+      document: clone(document), name: 'main.tsr', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  });
+  const initial = createLanguageState();
+  initial.connections[0].ready = true;
+  initial.connections[0].generation = 1;
+  const state = signal(initial);
+  const references = signal<LanguageReferences>({
+    root: '/project', locations: []
+  });
+  const panel = signal('');
+  const channel = new Channel<LanguageMessage>(4);
+  const sender = channel.sender();
+  requestNativeLanguage(
+    workspace,
+    state,
+    sender,
+    '/project/main.tsr',
+    JSON.stringify({
+      id: 9, method: 'textDocument/references', text: 'const Workspace = 8;', params: {
+        position: {
+          line: 0, character: 9
+        }
+      }
+    }),
+    panel,
+    references
+  );
+  strictEqual(references.get().query?.symbol ?? '', 'Workspace');
+  strictEqual(references.get().query?.path ?? '', '/project/main.tsr');
+  strictEqual(references.get().query?.position.character ?? 0, 9);
+  strictEqual(panel.get(), 'references');
+  strictEqual(unwrap(channel.tryReceive()).query?.nativeRequest ?? 0, 9);
+  cancelNativeLanguage(state, sender, 9);
+  strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
+  strictEqual(state.get().queries.length, 0);
 });

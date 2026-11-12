@@ -8,7 +8,87 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
-Go to Definition — current section, November12, based on07ed204c.
+References and owner UI corrections — accepted section, November12, based ond92228e1.
+Current dev supervisor17527 / PTY21946 and app27135 remain running. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-17527-1794495773310299000-0/Tsrust Studio.app.
+Log /tmp/studio-references-final-dev.log. Latest build passed274437ms including
+superseded-source capture retry; final check103576.1ms,emit4154.7ms,runtime hit,
+native/link29745.3ms. Final SDK/expiry identities and original section evidence below.
+
+Owner clarified symbol/file scope and requested sizing, query label and Clear.
+Rows and source caption now bind shared explicit font sizing. Native request stores
+ReferenceQuery{path,position,symbol} from the exact text/UTF-16 position before
+presentation. Heading identifies the symbol plus clickable source path/position.
+Nonempty AI presentation requires explicit provenance; invalid query paths/positions
+are rejected. A selected result does not silently change the query's origin.
+Clear uses registered clear_language_references with host navigation/root grants,
+preserves files/focus/panel and removes query identity. Late native delivery after
+Clear is ignored by source/query guard. Empty state explains right-click/Shift+F12.
+AI reads do not present UI; presentation and clear are separate explicit actions.
+No automatic whole-file search. Incoming imports/file references is the next
+owner-requested feature, to be offered as an explicit separate scope/mode, not
+placeholder tabs or a silent active-file replacement for the symbol query.
+
+Focused owner correction checks: navigation4/search3 combined7/7 passed47.08ms
+(build20.918s:check3.153s,emit0.485s,native16.797s). New native origin/request/cancel
+witness1/1 passed2.30ms (setup37.702s:check13.087s,emit1.259s,native22.966s).
+Retain earlier11service+3host evidence. Distinct accepted total19public runtime+
+3host=22; not a full regression run. Both locale catalogs have identical290keys.
+Whole-project formatter last0files/0snippets/0fingerprints; diff-check passed.
+
+Native MAT app27135 passed Shift+F12 and context-menu Find References on Workspace,
+pending state,107 real project references, row text matching editor size, stable
+References to Workspace/source caption while navigating to editor.tsrx, exact
+Workspace selection at23:10, clickable origin return to image-actions.tsr:8:25,
+Clear/disabled Clear/empty guidance, and no refill after returning to main.tsrx.
+No source edits/saves. Observed latest owner state was main.tsrx active and Services
+collapsed,12tabs; preserved it rather than stale image-actions target. Protected
+project-check draft still SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+References left open but cleared, with guidance rather than the agent's unexplained
+query. CUA phase completed: Verified reference sizing query and clear.
+referencesOwner binding targets current27135. Source/style changes are now loaded.
+External-language references, forced-stall UI timeout, full zoom matrix and long-run
+memory/resource qualification remain unverified; no global completion claim.
+Next: cache cleanup/local checkpoint, then explicit file/import references action
+with source/scope labelling and shared AI route. Preserve current dev and owner draft.
+
+Find References implementation evidence — qualified by the current section above.
+Base/Kit ReferencesProvider, show_references handler and FindReferences action are
+exported through both native facades; context menu capability and Shift+F12 share
+that action. New references.rs is registered in the compiler-owned bundled payload.
+Native replies reject changed text/cursor/blur; controller/session preserve explicit
+document revision/generation/cancellation and includeDeclaration(defaulttrue).
+Reference target ranges remain UTF-16. Registered language_references returns reads
+without presentation; present/clear/open-location have separate trusted UI grants.
+
+Original service11/search3 acceptance retained from combined run. Original native
+bridge3/3 passed0.00s; affected deadline/drop/stale case rerun1/1 passed0.00s after
+fixing both provider timer and Requests deadline sweep to report reference timeout
+errors. That is3distinct host cases, not4. Ordinary hover/cancel/unmount retains
+its prior null result. Initial native envelope MAT exposed error:null rejection;
+NativeReferences now explicitly decodes string|null and normalizes null to undefined.
+Actual-envelope witness preserves locations, failure strings and nullable success.
+
+A two-second sample of an obsolete active build at~327MiB RSS/one core identified
+UI expression/wrapper checking, not an I/O wait. Inspection found references.get()
+inside every result row, copying the full list per row. Cached scalar root/count/
+error bindings remove quadratic snapshot copying. No measured speedup or leak claim.
+Initial corrected native app built300831ms (check95566.2,emit3991.7,runtime miss,
+runtime prepare5190.1,runtime-build+publish176495.8,native/link200423.1). Later nullable/
+expiry native build passed228308ms (check122987.0,emit4673.3,runtime prepare5923.9,
+runtime-build+publish65175.9,native/link99728.0). Current UI reload is recorded above.
+
+Current installed/hash-verified SDK: CLI
+6efeb2444cbcc0cb6ac91fe5d94cd4fb83663fe90e2d092b01b165e686f132f2;
+LSPc67df02ea53d52a6393fc35aa8b6e8d7f4330f8eb07a728fea0745079a29f41b.
+Final SDK build finished3m14s including Cargo wait. Generated Kit check passed.
+No full compiler/LSP matrix, statistically timed benchmark, long-run memory or
+8GiB editor-plus-AI resource qualification claimed. Logs /tmp/studio-references-*.log
+and sample are disposable. The current live process/owner recovery state at the top
+supersedes all earlier preview identities below.
+
+Go to Definition — checkpointd92228e1, November12, based on07ed204c.
 Native Kit already has definition context-menu/keyboard/Cmd-hover behavior. Added
 its provider to the existing EditorLanguageProvider and F12 binding, normalized
 Location/Location[]/LocationLink[]/null responses, and converted only origin ranges

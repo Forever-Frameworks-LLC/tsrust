@@ -212,6 +212,18 @@ Cmd-click/external-language navigation remain unverified.
 Multiple-target picker and virtual stdlib locations remain open. Exact identities,
 results and next action are maintained in docs/agent-progress.md.
 
+Find References, November12: real symbol queries now use Shift+F12/context menu,
+correlated cancellable LSP reads, declaration inclusion and shared AI read/present/
+clear actions. The pane identifies its queried symbol/source, preserves that origin
+while navigating, opens exact target ranges, uses configured row text sizing and
+clears to explicit usage guidance. Native MAT passed107 Workspace references,
+row navigation/source return and Clear;22distinct focused cases accepted across
+public runtime and native bridge scopes. One current preview and protected owner
+draft retained. Exact identities/timings and limitations are in agent-progress.md.
+Owner requests explicit file references/incoming imports next; symbol queries are
+not automatic whole-file queries. File scope/mode, external-language reference MAT,
+forced-stall timeout MAT and complete resource qualification remain open.
+
 ## Immediate implementation priority — owner, 2026-11-11
 
 Finish the current formatting/task-terminal/Problems integration, then prioritize

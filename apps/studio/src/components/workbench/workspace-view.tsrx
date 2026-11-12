@@ -10,6 +10,7 @@ import {
   t
 } from 'std:ui';
 
+import { LanguageReferences } from '../../lib/language/references.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -27,7 +28,9 @@ export function EditorWorkspace(
   sidebar: Signal<boolean>,
   focusQueue: Signal<QueuedFormatting[]>,
   language: Signal<LanguageState>,
-  messages: Sender<LanguageMessage>
+  messages: Sender<LanguageMessage>,
+  references: Signal<LanguageReferences>,
+  panel: Signal<string>
 ): Node {
   const renderFile = (file: ReadOnly<OpenFile>): Node => FilePanel(
     file,
@@ -36,7 +39,9 @@ export function EditorWorkspace(
     recovery,
     focusQueue,
     language,
-    messages.share()
+    messages.share(),
+    references,
+    panel
   );
   const layoutFailed = signal(false);
   const dockClass = computed<string>(() => 'size-full text-[' + font.get().toString() + 'px]');

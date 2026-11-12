@@ -2,6 +2,8 @@ import { JsonLimits } from 'std:json';
 
 import { SearchActionContext, runContentSearch, openSearchResult } from '../lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
+import { LanguageReferences } from '../lib/language/references.tsr';
+import { presentLanguageReferences, clearLanguageReferences } from './lsp/references.tsr';
 import { LanguageLocation, openLanguageLocation } from '../lib/language/navigation.tsr';
 import { SearchHit } from '../lib/explorer/search.tsr';
 import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
@@ -28,6 +30,10 @@ interface SearchArguments {
 export function editorTools(): EditorTool[] {
   return [{
     name: 'refresh_explorer', description: 'Request a fresh explorer snapshot for an explicit workspace root. Requires a matching host read grant and bound explorer revision. Does not change focus, selection, files or settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'clear_language_references', description: 'Clear the explicit workspace reference query and results without changing files, focus or panel visibility. Invalidates pending native presentation, so late replies cannot refill the cleared pane. Requires a host navigation grant and bound reference state.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'present_language_references', description: 'Show explicit reference locations in the References pane without selecting a file. Nonempty results require query {path, position, symbol} so users can identify the search. Requires host navigation permission for the explicit root and a bound results pane. Locations use file URIs and zero-based UTF-16 ranges; opening a row validates its target separately.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"locations":{"type":"array","items":{"type":"object"}},"query":{"type":"object","properties":{"path":{"type":"string"},"symbol":{"type":"string"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["path","position","symbol"]}},"required":["root","locations"]}'
   }, {
     name: 'open_language_location', description: 'Open a file URI returned by a language service and select its exact zero-based UTF-16 range. Requires an explicit workspace root and host navigation grant for that root. Rejects outside-workspace paths, symlink escapes, non-file URIs and invalid ranges. Does not edit or save.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"uri":{"type":"string"},"selection":{"type":"object"}},"required":["root","uri"]}'
   }, {
@@ -66,6 +72,17 @@ export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: s
           return Err(error);
         }
       }
+    }
+
+    if (name === 'clear_language_references') {
+      const args = JSON.parse<RefreshArguments>(payload, limits);
+      unwrap(clearLanguageReferences(context, args.root));
+      return Ok('{"cleared":true}');
+    }
+
+    if (name === 'present_language_references') {
+      unwrap(presentLanguageReferences(context, JSON.parse<LanguageReferences>(payload, limits)));
+      return Ok('{"presented":true}');
     }
 
     if (name === 'open_language_location') {

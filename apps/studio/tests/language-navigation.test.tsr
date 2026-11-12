@@ -1,13 +1,15 @@
-import { createTempDir, writeTextFile, removeDirAll } from 'std:fs';
+import { createTempDir, writeTextFile, removeDirAll, canonicalize } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import { documentUri } from '../src/lib/language/diagnostics.tsr';
+import { LanguageReferences, referenceLabel, referenceSymbol } from '../src/lib/language/references.tsr';
 import { LanguageLocation, languageSelection, openLanguageLocation } from '../src/lib/language/navigation.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { showNativeLanguageReferences } from '../src/services/lsp/references.tsr';
 import { invokeEditorTool } from '../src/services/editor-tools.tsr';
 
 function rejected(result: Result<void, string>): void {
@@ -20,7 +22,7 @@ function rejected(result: Result<void, string>): void {
 }
 
 test('language navigation selects UTF-16 ranges in current drafts without saving', () => {
-  const root = unwrap(createTempDir(undefined, 'studio-definition-'));
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-definition-'))));
 
   try {
     unwrap(writeTextFile(root + '/source.tsr', 'saved'));
@@ -96,6 +98,166 @@ test('language navigation selects UTF-16 ranges in current drafts without saving
     rejected(openLanguageLocation(context, location));
     strictEqual(context.workspace.get().active, active);
     strictEqual(context.workspace.get().files.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('registered reference presentation requires workspace grants and keeps the active editor unchanged', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-references-'))));
+
+  try {
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const references = signal<LanguageReferences>({
+      root: '', locations: []
+    });
+    const panel = signal('terminal');
+    const allowedRoot = clone(workspace.get().root);
+    const context: SearchActionContext = {
+      workspace, recovery, references, panel, allowedRoot: clone(allowedRoot), allowNavigation: false, focusEditor: false
+    };
+    const result: LanguageReferences = {
+      root: allowedRoot, query: {
+        path: root + '/source.tsr', symbol: 'Workspace', position: {
+          line: 2, character: 3
+        }
+      }, locations: [{
+        uri: documentUri(root + '/source.tsr'), range: {
+          start: {
+            line: 2, character: 3
+          }, end: {
+            line: 2, character: 7
+          }
+        }
+      }]
+    };
+    strictEqual(referenceLabel(result.root, result.locations[0]), 'source.tsr:3:4');
+    const payload = JSON.stringify(result);
+
+    match (invokeEditorTool(context, 'present_language_references', payload)) {
+      Err(_) => {},
+      Ok(_) => {
+        throw 'Missing navigation grant accepted.';
+      }
+    }
+
+    strictEqual(context.panel?.get() ?? '', 'terminal');
+    context.allowNavigation = true;
+    unwrap(invokeEditorTool(context, 'present_language_references', payload));
+    strictEqual(context.panel?.get() ?? '', 'references');
+    strictEqual(context.references?.get().locations.length ?? 0, 1);
+    strictEqual(context.workspace.get().active, '');
+    result.error = 'Reference lookup failed.';
+    result.locations = [];
+    unwrap(invokeEditorTool(context, 'present_language_references', JSON.stringify(result)));
+    strictEqual(context.references?.get().error ?? '', 'Reference lookup failed.');
+    result.root += '/changed';
+
+    match (invokeEditorTool(context, 'present_language_references', JSON.stringify(result))) {
+      Err(_) => {},
+      Ok(_) => {
+        throw 'Changed workspace accepted.';
+      }
+    }
+
+    strictEqual(context.references?.get().root ?? '', context.workspace.get().root);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('native reference envelopes accept nullable errors and preserve locations and failure details', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-native-references-'))));
+
+  try {
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const references = signal<LanguageReferences>({
+      root: clone(root), locations: [], query: {
+        path: root + '/source.tsr', symbol: 'source', position: {
+          line: 0, character: 3
+        }
+      }
+    });
+    const panel = signal('');
+    showNativeLanguageReferences(workspace, recovery, references, panel, '{"locations":[{"uri":"file:///source.tsr","range":{"start":{"line":0,"character":3},"end":{"line":0,"character":7}}}],"error":null}');
+    strictEqual(references.get().locations.length, 1);
+    strictEqual(references.get().error === undefined, true);
+    strictEqual(panel.get(), 'references');
+    strictEqual(workspace.get().error, '');
+    showNativeLanguageReferences(workspace, recovery, references, panel, '{"locations":[],"error":"request failed"}');
+    strictEqual(references.get().error ?? '', 'request failed');
+    strictEqual(references.get().locations.length, 0);
+    strictEqual(workspace.get().active, '');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('reference query labels handle UTF-16 and clearing suppresses late native presentation', () => {
+  strictEqual(referenceSymbol('/*😀*/ const café = 8;', {
+    line: 0, character: 15
+  }), 'café');
+  strictEqual(referenceSymbol('const Workspace = 8;', {
+    line: 0, character: 9
+  }), 'Workspace');
+  strictEqual(referenceSymbol('/*😀*/', {
+    line: 0, character: 3
+  }), '');
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-clear-references-'))));
+
+  try {
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const references = signal<LanguageReferences>({
+      root: clone(root), locations: [], query: {
+        path: root + '/source.tsr', symbol: 'source', position: {
+          line: 0, character: 0
+        }
+      }
+    });
+    const panel = signal('references');
+    const context: SearchActionContext = {
+      workspace, recovery, references, panel, allowNavigation: false, allowedRoot: clone(root), focusEditor: false
+    };
+    const args = JSON.stringify({
+      root: clone(root)
+    });
+
+    match (invokeEditorTool(context, 'clear_language_references', args)) {
+      Err(_) => {},
+      Ok(_) => {
+        throw 'Clear bypassed navigation grant.';
+      }
+    }
+
+    strictEqual(context.references?.get().query !== undefined, true);
+    context.allowNavigation = true;
+    unwrap(invokeEditorTool(context, 'clear_language_references', args));
+    strictEqual(context.references?.get().query === undefined, true);
+    const boundReferences = context.references;
+    const boundPanel = context.panel;
+
+    if (boundReferences === undefined || boundPanel === undefined) throw 'Missing reference host state.';
+    showNativeLanguageReferences(
+      context.workspace,
+      context.recovery,
+      boundReferences,
+      boundPanel,
+      '{"locations":[],"error":"late"}',
+      root + '/source.tsr'
+    );
+    strictEqual(boundReferences.get().query === undefined, true);
+    strictEqual(boundReferences.get().error === undefined, true);
+    strictEqual(boundPanel.get(), 'references');
+    strictEqual(context.workspace.get().active, '');
   } finally {
     unwrap(removeDirAll(root));
   }

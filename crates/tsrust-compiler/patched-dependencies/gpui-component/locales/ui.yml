@@ -437,6 +437,9 @@ Input:
     zh-CN: 全选
     zh-HK: 全選
     zh-TW: 全選
+  Find References:
+    en: Find References
+    pt-BR: Encontrar referências
   Go to Definition:
     en: Go to Definition
     pt-BR: "Ir para a definição"

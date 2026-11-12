@@ -186,15 +186,18 @@ interface LanguageReadArguments {
   session: string;
   revision: int;
   position?: DiagnosticPosition;
+  includeDeclaration?: boolean;
 }
 
 export function languageReadTools(): EditorTool[] {
-  const schema = '{"type":"object","properties":{"root":{"type":"string"},"id":{"type":"string"},"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["root","id","path","session","revision"]}';
+  const schema = '{"type":"object","properties":{"root":{"type":"string"},"id":{"type":"string"},"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"},"includeDeclaration":{"type":"boolean"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["root","id","path","session","revision"]}';
   const readSchema = schema.slice(0, schema.length - 2) + ',"position"]}';
   return [{
     name: 'language_hover', description: 'Queue a read-only LSP hover for an explicit current document and zero-based UTF-16 position. Requires host read permission. Does not focus, edit or save. Use language_read_result to receive it or language_cancel_read to cancel.', inputSchema: clone(readSchema)
   }, {
     name: 'language_completion', description: 'Queue current LSP completion candidates without inserting them. Requires an explicit document identity, zero-based UTF-16 position and host read grant. Returned edits are proposals only; this action cannot apply them.', inputSchema: clone(readSchema)
+  }, {
+    name: 'language_references', description: 'Queue all LSP reference locations for an explicit current document and UTF-16 position. includeDeclaration defaults to true. Requires host read permission. Read with language_read_result; presenting or opening results requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
     name: 'language_definition', description: 'Queue LSP definition locations for an explicit current document and UTF-16 position. Requires host read permission. Read with language_read_result; opening a returned location requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
@@ -232,7 +235,7 @@ export function invokeLanguageRead(
     const id = 'agent:' + args.id;
     const next = state.get();
 
-    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition') {
+    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition' || name === 'language_references') {
       const position = args.position;
 
       if (position === undefined) return Err('A UTF-16 language position is required.');
@@ -242,7 +245,7 @@ export function invokeLanguageRead(
         requests,
         clone(id),
         {
-          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : 'textDocument/signatureHelp', position: clone(position)
+          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : name === 'language_references' ? 'textDocument/references' : 'textDocument/signatureHelp', position: clone(position), includeDeclaration: args.includeDeclaration
         },
         undefined
       ));

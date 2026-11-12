@@ -62,7 +62,8 @@ impl Requests {
     }
     fn cancel(&mut self, id: u64) {
         if let Some(pending) = self.pending.remove(&id) {
-            pending.slot.borrow_mut().finish(Value::Null);
+            let result=if pending.deadline<=Instant::now(){timeout_result(&pending.method)}else{Value::Null};
+            pending.slot.borrow_mut().finish(result);
             self.cancelled.push((pending.target, id));
         }
     }
@@ -85,6 +86,10 @@ pub(crate) fn position(text: &str, offset: usize) -> Option<Value> {
     let prefix=text.get(..offset)?;
     Some(serde_json::json!({"line":prefix.bytes().filter(|&b|b==b'\n').count(),"character":prefix.rsplit('\n').next()?.encode_utf16().count()}))
 }
+pub(crate) fn timeout_result(method: &str) -> Value {
+    if method=="textDocument/references" {serde_json::json!({"error":"The language request timed out. Try Find References again."})}else{Value::Null}
+}
+
 /// Definition responses permit one Location, arrays of Locations/LocationLinks, or null.
 /// Target ranges stay in UTF-16 for the host opening that target document.
 pub(crate) fn definition_links(value: Value) -> Value {
@@ -164,6 +169,11 @@ mod tests {
         assert_eq!(links[0]["originSelectionRange"]["start"]["character"],2);
         assert_eq!(links[0]["targetSelectionRange"],target);
         assert_eq!(definition_links(links.clone()),links);
+        let mut references=serde_json::json!([{"uri":"file:///other.tsr","range":target}]);
+        assert!(native_ranges("textDocument/references",&mut references,"😀 name"));
+        assert_eq!(references[0]["range"],target,"reference ranges belong to their target documents");
+        assert!(timeout_result("textDocument/references")["error"].is_string());
+        assert_eq!(timeout_result("textDocument/hover"),Value::Null);
     }
     #[test]
     fn replies_require_current_text_and_cancel_on_replace_drop_timeout_and_unmount() {
@@ -193,6 +203,10 @@ mod tests {
         let (id, mut reply) = Requests::begin(&requests, 3, "hover", "current".into());
         assert_eq!(requests.borrow_mut().cancellations(|_|false), vec![(3,id)]);
         assert_eq!(poll(&mut reply), Poll::Ready(Value::Null));
+        let (id,mut reply)=Requests::begin(&requests,4,"textDocument/references","current".into());
+        requests.borrow_mut().pending.get_mut(&id).unwrap().deadline=Instant::now();
+        assert_eq!(requests.borrow_mut().cancellations(|_|true),vec![(4,id)]);
+        assert_eq!(poll(&mut reply),Poll::Ready(timeout_result("textDocument/references")));
         assert!(requests.borrow().pending.is_empty());
     }
 }

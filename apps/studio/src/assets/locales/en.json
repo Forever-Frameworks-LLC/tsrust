@@ -278,5 +278,15 @@
   "Restart": "Restart",
   "LSP: idle": "LSP: idle",
   "LSP: stopped": "LSP: stopped",
-  "LSP: stopping": "LSP: stopping"
+  "LSP: stopping": "LSP: stopping",
+  "References": "References",
+  "No references found.": "No references found.",
+  "Finding references…": "Finding references…",
+  "The language request timed out. Try Find References again.": "The language request timed out. Try Find References again.",
+  "The language server returned invalid reference locations.": "The language server returned invalid reference locations.",
+  "No reference query": "No reference query",
+  "Symbol references": "Symbol references",
+  "References to {symbol}": "References to {symbol}",
+  "Clear references": "Clear references",
+  "Right-click a symbol and choose Find References (Shift+F12).": "Right-click a symbol and choose Find References (Shift+F12)."
 }

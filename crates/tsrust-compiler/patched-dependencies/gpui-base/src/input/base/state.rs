@@ -126,6 +126,7 @@ actions!(
         Search,
         Replace,
         GoToDefinition,
+        FindReferences,
     ]
 );
 
@@ -875,7 +876,7 @@ impl<M: InputModeKind> InputBaseState<M> {
     }
 
     pub fn context_menu_capabilities(&self) -> InputContextMenuCapabilities {
-        let (go_to_definition, code_actions) = self.extras.context_menu_capabilities();
+        let (go_to_definition, code_actions, references) = self.extras.context_menu_capabilities();
         InputContextMenuCapabilities::new()
             .disabled(self.disabled)
             .readonly(self.readonly)
@@ -883,6 +884,7 @@ impl<M: InputModeKind> InputBaseState<M> {
             .selection(!self.active_selection().is_empty())
             .masked(self.masked)
             .go_to_definition(go_to_definition)
+            .references(references)
             .code_actions(code_actions)
     }
 

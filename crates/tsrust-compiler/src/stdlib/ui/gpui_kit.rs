@@ -82,7 +82,7 @@ use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
-use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, DefinitionProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
+use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, DefinitionProvider, ReferencesProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
 
 struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64 }
 impl EditorLanguageProvider {
@@ -99,10 +99,11 @@ impl EditorLanguageProvider {
             });
             let Ok(reply)=result else{return serde_json::Value::Null};
             let mut reply=Box::pin(reply);
+            let timeout=super::editor_language::timeout_result(&method);
             let mut timer=Box::pin(cx.background_executor().timer(std::time::Duration::from_secs(5)));
             std::future::poll_fn(move |cx| {
                 if let std::task::Poll::Ready(value)=std::future::Future::poll(reply.as_mut(),cx) {return std::task::Poll::Ready(value);}
-                if std::future::Future::poll(timer.as_mut(),cx).is_ready() {return std::task::Poll::Ready(serde_json::Value::Null);}
+                if std::future::Future::poll(timer.as_mut(),cx).is_ready() {return std::task::Poll::Ready(timeout.clone());}
                 std::task::Poll::Pending
             }).await
         })
@@ -112,6 +113,16 @@ impl HoverProvider for EditorLanguageProvider {
     fn hover(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::Hover>>> {
         let task=self.request("textDocument/hover",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
         cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/hover",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl ReferencesProvider for EditorLanguageProvider {
+    fn references(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Vec<LanguageTypes::Location>>> {
+        let task=self.request("textDocument/references",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {
+            let value=task.await;
+            if let Some(error)=value.get("error").and_then(serde_json::Value::as_str) {return Err(gpui_kit::base::input::anyhow::anyhow!(error.to_owned()));}
+            Ok(if value.is_null(){vec![]}else{serde_json::from_value(value)?})
+        })
     }
 }
 impl DefinitionProvider for EditorLanguageProvider {
@@ -2024,12 +2035,18 @@ impl Root {
                         state
                     });
                     let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
+                    let has_references = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageReferences"));
                     if has_language {
                         let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id});
-                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider);});
+                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider.clone());if has_references {state.lsp_mut().references_provider=Some(provider);}});
                     }
                     let root=cx.entity().downgrade();
                     state.update(cx, |state,_| {
+                        let references_root=root.clone();
+                        state.lsp_mut().show_references=Some(std::rc::Rc::new(move |locations,error,_,cx| {
+                            let payload=serde_json::json!({"locations":locations,"error":error}).to_string();
+                            let _=references_root.update(cx,|root,cx|root.emit(id,"languageReferences",payload,cx));
+                        }));
                         // Always consume navigation: the Tsrust host validates URIs instead of opening URLs or moving in the wrong buffer.
                         state.lsp_mut().show_document=Some(std::rc::Rc::new(move |params,_,cx| {
                             let payload=serde_json::to_string(params).unwrap_or_default();

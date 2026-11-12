@@ -633,6 +633,11 @@ impl RenderOnce for Input {
                                 Box::new(gpui_base::input::GoToDefinition),
                             )
                             .menu_with_disabled(
+                                t!("Input.Find References"),
+                                !(enabled && capabilities.has_references()),
+                                Box::new(gpui_base::input::FindReferences),
+                            )
+                            .menu_with_disabled(
                                 t!("Input.Show Code Actions"),
                                 !(editable && capabilities.has_code_actions()),
                                 Box::new(gpui_base::input::ToggleCodeActions),

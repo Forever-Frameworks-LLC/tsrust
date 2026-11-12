@@ -20,6 +20,7 @@ export function Panels(
   terminalActions: Node,
   problems: Node,
   problemsActions: Node,
+  references: Node,
   font: Signal<int>
 ): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
@@ -38,6 +39,7 @@ export function Panels(
         >
           <Tab value="terminal" label={message("Terminal")} />
           <Tab value="problems" label={message("Problems")} />
+          <Tab value="references" label={message("References")} />
           <Tab value="output" label={message("Output")} />
           <Tab value="debug" label={message("Debug Console")} />
           <Tab value="git" label={message("Source Control")} />
@@ -70,6 +72,9 @@ export function Panels(
         </View>
         <View hidden={panel.get() !== 'problems'} className="size-full min-h-0">
           {problems}
+        </View>
+        <View hidden={panel.get() !== 'references'} className="size-full min-h-0">
+          {references}
         </View>
         <View hidden={panel.get() !== 'output'} className="size-full min-h-0">
           {output}
