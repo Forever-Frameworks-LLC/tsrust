@@ -266,7 +266,7 @@ impl SourceIndex {
             if let Some(parameters)=dependency.generic_parameters.get(&declaration.name){self.generic_parameters.insert(local.into(),parameters.clone());}
             let mut symbol=declaration.clone();symbol.name=local.into();symbol.ty=local.into();symbol.signature=symbol.signature.replacen(&format!("type {}",declaration.name),&format!("type {local}"),1);symbol.span=span;symbol.extent=span;
             if let Some(module)=uri.strip_prefix("tsrust-stdlib:///") && let Some(entry)=builtin_entry(module,declaration.name.as_str()) && let Some(documentation)=entry["documentation"].as_str(){symbol.docs=documentation.to_owned();}
-            self.foreign_definitions.insert(self.symbols.len(),json!({"uri":uri,"range":dependency.range(declaration.span)}));self.symbols.push(symbol);return true;
+            self.foreign_definitions.insert(self.symbols.len(),imported_location(uri,dependency.range(declaration.span)));self.symbols.push(symbol);return true;
         }
         let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };
         self.type_aliases.insert(local.into(), ty.clone());
@@ -276,7 +276,7 @@ impl SourceIndex {
         symbol.signature = format!("type {local} = {}", self.display_type(&ty));
         symbol.span = span;
         symbol.extent = span;
-        self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
+        self.foreign_definitions.insert(self.symbols.len(), imported_location(uri,dependency.range(declaration.span)));
         self.symbols.push(symbol);
         true
     }

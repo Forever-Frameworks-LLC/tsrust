@@ -4,14 +4,15 @@ use crate::{
     project_diagnostics::{file_uri, source_id},
 };
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap,HashMap};
+use lsp_types::Location;
 use tsrust_compiler::project::{ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
     declarations_only: bool,
     indices: BTreeMap<SourceId, SourceIndex>,
     entry_aliases: BTreeMap<SourceId,SourceId>,
-    references: BTreeMap<String, Vec<(Value, bool)>>,
+    references: HashMap<Location, Vec<(Location, bool)>>,
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
 }
@@ -214,7 +215,7 @@ impl ProjectIndex {
             declarations_only: false,
             indices,
             entry_aliases: BTreeMap::new(),
-            references: BTreeMap::new(),
+            references: HashMap::new(),
             graph: graph.clone(),
         }
     }
@@ -230,9 +231,9 @@ impl ProjectIndex {
         self.references.clear();
         for (id, index) in &self.indices {
             if let Ok(uri) = file_uri(id) {
-                for (definition, location, declaration) in index.reference_locations(uri.as_str()) {
+                for (definition, location, declaration) in index.reference_locations(&uri) {
                     self.references
-                        .entry(definition.to_string())
+                        .entry(definition)
                         .or_default()
                         .push((location, declaration));
                 }
@@ -259,9 +260,9 @@ impl ProjectIndex {
                             .pointer("/context/includeDeclaration")
                             .and_then(Value::as_bool)
                             .unwrap_or(true);
+                        let definition=serde_json::from_value::<Location>(definition).ok();
                         let mut locations=serde_json::json!(
-                            self.references
-                                .get(&definition.to_string())
+                            definition.as_ref().and_then(|definition|self.references.get(definition))
                                 .into_iter()
                                 .flatten()
                                 .filter(|(_, declaration)| include || !declaration)
@@ -389,5 +390,50 @@ mod declaration_only_tests {
         assert_eq!(completion["isIncomplete"], true);
         assert!(completion["items"].as_array().unwrap().iter().any(|item|item["label"]=="value"), "{completion}");
         assert!(index.indices.values().all(|index| !index.checked()));
+    }
+}
+
+#[cfg(test)]
+mod compact_location_tests {
+    use super::*;
+    #[test]
+    fn compact_locations_keep_unicode_alias_references_and_snapshot_identity() {
+        use crate::{LineIndex,workspace::Workspace};
+        use tsrust_compiler::{Span,project::load_project_headers};
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust location é");
+        let entry=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dependency=SourceId(root.join("lib é.tsr").to_string_lossy().into_owned());
+        let auxiliary=SourceId(root.join("aux.tsr").to_string_lossy().into_owned());
+        let source="/*😀*/ export function source():int{return 1;}";
+        let main="import {source as renamed} from './lib é.tsr';import {forward} from './aux.tsr';function main(){console.log(renamed(),forward(),renamed());}";
+        let mut workspace=Workspace::default();
+        workspace.open(entry.clone(),1,main.into());
+        workspace.open(dependency.clone(),1,source.into());
+        workspace.open(auxiliary,1,"import {source as original} from './lib é.tsr';export function forward():int{return original();}".into());
+        let index=ProjectIndex::declarations(&load_project_headers(&workspace.snapshot(),&entry.0).unwrap());
+        let uri=file_uri(&entry).unwrap();
+        let at=main.find("renamed()").unwrap();
+        let params=serde_json::json!({"position":{"line":0,"character":main[..at].encode_utf16().count()},"context":{"includeDeclaration":true}});
+        let declaration=source.find("source()").unwrap();
+        let expected=serde_json::json!({"uri":file_uri(&dependency).unwrap(),"range":LineIndex::new(source).range(source,Span::new(declaration,declaration+6)).unwrap()});
+        assert!(expected["uri"].as_str().unwrap().contains("%20"));
+        assert_eq!(index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap(),expected);
+        let all=index.request("textDocument/references",&params,uri.as_str()).unwrap().unwrap();
+        assert!(all.as_array().unwrap().contains(&expected));
+        assert!(all.as_array().unwrap().len()>4);
+        let mut without=params.clone();without["context"]["includeDeclaration"]=false.into();
+        let references=index.request("textDocument/references",&without,uri.as_str()).unwrap().unwrap();
+        let expected_references=all.as_array().unwrap().iter().filter(|location|**location!=expected).cloned().collect::<Vec<_>>();
+        assert_eq!(references,serde_json::json!(expected_references));
+        for location in all.as_array().unwrap() {
+            let typed=serde_json::from_value::<Location>(location.clone()).unwrap();
+            assert_eq!(serde_json::to_value(typed).unwrap(),*location);
+        }
+        assert!(workspace.change(&dependency,2,format!("\r\n{source}")));
+        let newer=ProjectIndex::declarations(&load_project_headers(&workspace.snapshot(),&entry.0).unwrap());
+        let moved=newer.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap();
+        assert_eq!(moved["range"]["start"]["line"],1);
+        assert_eq!(moved["range"]["start"]["character"],expected["range"]["start"]["character"]);
+        assert_eq!(index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap(),expected,"older snapshot stays immutable");
     }
 }

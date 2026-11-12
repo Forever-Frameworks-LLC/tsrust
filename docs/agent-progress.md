@@ -8,6 +8,50 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Latest accepted memory section — 2026-11-12, source checkpoint contains this
+entry, based on2d7300c4. Navigation/nominal/foreign definitions now retain typed Location
+values; reference maps use Location keys and lazy iteration instead of per-location
+JSON trees, serialized string keys and an eager temporary vector. Wire responses
+still serialize at the protocol boundary. Exact URI identity, order, aliases,
+Unicode/UTF-16 ranges and immutable snapshot behavior are preserved.
+
+Focused acceptance: compact-location Unicode/alias/snapshot witness1/1 (0.01s),
+project definition cases7/7 (0.05s), navigation7passed (0.03s) plus repaired stale
+witness1/1 (0.05s), alias/shadow reference case1/1, inherited-help cases2/2 (3.84s):
+19accepted cases. The stale navigation assertion expected line5; both the previous
+installed LSP and current formatted source put the binding on line6. Its replacement
+computes the full expected range independently from the fixture text. Passed cases
+were preserved; no full regression matrix or statistical benchmark was repeated.
+
+Actual same-window manual completion/snippet workflow, idle before/after:
+previous LSP PID82075 at~14m28s: footprint616.7MiB, peak907.5MiB,
+2,159,088live malloc nodes /421,341,280live bytes. New LSP PID89244 at~15m15s:
+footprint264.1MiB, peak576.1MiB,908,264nodes /151,319,440bytes. Both idle
+snapshots had0%CPU before/after heap inspection. The640-byte allocation group fell
+from434,392nodes to14,153nodes; allocator size alone does not prove every allocation's
+origin. Earlier active new-service snapshot576.0MiB at98.8%CPU is not an idle
+comparison. This supports the location-memory change, not a universal leak fix or
+full8GiB editor-plus-AI qualification. Disposable traces are under
+/tmp/studio-compact-locations-*. Native MAT repeated real completion, Ok snippet
+placeholder replacement, Tab/body insertion and exact151-character probe removal.
+Only the owner's project-check.tsr four-space draft remains; never save/reset it.
+
+SDK LSP atomically installed with independent hash match:
+b6b8058caa61d3c9ae6e11acd6a5cd85f8373cc9460557198beb3715fb5693ce.
+CLI remains fda077eb5701cdfcdb88bf42288ba103fdea7459ed65b898f8b51d7745452c2c.
+Restarted only language service through its native status menu; app82069 and
+supervisor81803/PTY55205 remain the current preview. Older process/hash/resource
+notes below are historical. No native app rebuild was needed. Last CUA phase
+completed: Verified language-service reload and editing. Nine tabs, zoom-1,
+explorer expansion and owner's draft preserved. Whole-project formatter passed:0files,0documentation snippets and0fingerprints
+changed; git diff --check passed. No broader checks are needed for this checkpoint.
+
+Next executable section: shared workspace discovery/ignore policy in the Studio
+plan, ahead of expanded indexing/search and Git/debugger/extensions. Dependency
+not added yet; preserve compiler input semantics and explicit ignored imports.
+Continue intelligence/signature/external-server work and bounded live monitoring;
+long-running leak/resource qualification remains open.
+
 Latest accepted native interaction — 2026-11-12, source checkpoint10777c1f.
 Final checkpoint/cleanup:10777c1f contains the complete native help/snippet section
 and focused evidence. Worktree was clean after that commit. Final MAT verified

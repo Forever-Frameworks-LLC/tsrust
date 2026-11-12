@@ -175,7 +175,7 @@ impl SourceIndex {
                         let range = LineIndex::new(source)
                             .range(source, declaration.span)
                             .ok()?;
-                        let location = json!({"uri":uri,"range":range});
+                        let location = Location::new(uri.clone(),range);
                         let visible = self
                             .symbols
                             .iter()
@@ -272,7 +272,7 @@ impl SourceIndex {
             if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
                 let source=graph.modules[&location.source].checked_source();
                 // Inherited checked spans identify the extends clause, not the field declaration.
-                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.entry(id).or_insert_with(||json!({"uri":uri,"range":range}));}
+                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.entry(id).or_insert_with(||Location::new(uri,range));}
             }
         }
         for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}

@@ -24,9 +24,13 @@ mod cursor_repair;
 #[path = "position_completion.rs"]
 mod position_completion;
 use crate::LineIndex;
-use lsp_types::{Position, Range};
+use lsp_types::{Position, Range, Location, Uri};
 use serde_json::{Value, json};
 use tsrust_compiler::Span;
+
+fn imported_location(uri: &str, range: Range) -> Location {
+    Location::new(uri.parse().expect("validated file or compiler-owned import URI"), range)
+}
 
 #[derive(Clone, Debug)]
 struct Token {
@@ -69,10 +73,10 @@ pub struct SourceIndex {
     generic_aliases:Option<tsrust_compiler::TypeAliasCatalog>,
     public_record_aliases:std::collections::BTreeMap<String,(String,usize)>,
     generic_display_names: std::collections::BTreeMap<String, String>,
-    nominal_definitions: std::collections::BTreeMap<String, Value>,
+    nominal_definitions: std::collections::BTreeMap<String, Location>,
     checked_nominal_spellings: std::collections::BTreeMap<(tsrust_compiler::project::SourceId,usize,usize),String>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
-    foreign_definitions: std::collections::BTreeMap<usize, Value>,
+    foreign_definitions: std::collections::BTreeMap<usize, Location>,
     native_parameter_docs: std::collections::BTreeMap<usize, Vec<String>>,
     native_origins: std::collections::BTreeMap<usize, usize>,
     native_type_aliases: std::collections::BTreeMap<String, tsrust_compiler::native_signatures::NativeTypeId>,
@@ -2954,7 +2958,7 @@ impl SourceIndex {
         }
         self.foreign_definitions.insert(
             id,
-            json!({"uri":uri,"range":dependency.range(declaration.span)}),
+            imported_location(uri,dependency.range(declaration.span)),
         );
         let native_identity=dependency.native_type_aliases.get(exported).copied().or_else(||{
             // Bundled source records keep their authored fields/navigation, while
@@ -3004,7 +3008,7 @@ impl SourceIndex {
                         .symbols
                         .iter()
                         .find(|symbol| matches!(symbol.kind, 10 | 23) && symbol.name == record)
-                        .map(|symbol| json!({"uri":uri,"range":dependency.range(symbol.span)}))
+                        .map(|symbol| imported_location(uri,dependency.range(symbol.span)))
                 });
             if let Some(origin) = origin {
                 self.nominal_definitions.insert(owner.clone(), origin);
@@ -3023,7 +3027,7 @@ impl SourceIndex {
                 if let Some(existing)=self.symbols.iter().position(|symbol|symbol.owner.as_deref()==Some(owner.as_str())&&symbol.name==field.name){
                     if !self.declared_record_fields.contains(&(owner.clone(),field.name.clone())){
                         if self.symbols[existing].docs.is_empty(){self.symbols[existing].docs=Self::imported_field_docs(dependency,&record,field,uri);}
-                        self.foreign_definitions.entry(existing).or_insert_with(||dependency.foreign_definitions.get(&field_id).cloned().unwrap_or_else(||json!({"uri":uri,"range":dependency.range(field.span)})));
+                        self.foreign_definitions.entry(existing).or_insert_with(||dependency.foreign_definitions.get(&field_id).cloned().unwrap_or_else(||imported_location(uri,dependency.range(field.span))));
                     }
                     continue;
                 }
@@ -3130,7 +3134,7 @@ impl SourceIndex {
                         .foreign_definitions
                         .get(&field_id)
                         .cloned()
-                        .unwrap_or_else(|| json!({"uri":uri,"range":dependency.range(field.span)})),
+                        .unwrap_or_else(|| imported_location(uri,dependency.range(field.span))),
                 );
                 self.symbols.push(imported);
             }
@@ -3216,28 +3220,27 @@ impl SourceIndex {
         self.recover_result_payloads();
     }
     /// Resolved token locations and their declaration identity, for project references.
-    pub(crate) fn reference_locations(&self, uri: &str) -> Vec<(Value, Value, bool)> {
+    pub(crate) fn reference_locations<'a>(&'a self, uri: &'a Uri) -> impl Iterator<Item=(Location,Location,bool)> + 'a {
         self.tokens
             .iter()
             .enumerate()
             .filter(|(_, token)| !token.literal && name(&token.text))
-            .filter_map(|(id, token)| {
+            .filter_map(move |(id, token)| {
                 if let Some((span,definition))=self.checked_control_labels.iter().find(|(span,_)|*span==token.span){
-                    return Some((json!({"uri":uri,"range":self.range(*definition)}),json!({"uri":uri,"range":self.range(*span)}),*span==*definition));
+                    return Some((Location::new(uri.clone(),self.range(*definition)),Location::new(uri.clone(),self.range(*span)),*span==*definition));
                 }
                 let symbol = self.resolve_token(id)?;
                 let declaration = &self.symbols[symbol];
                 let foreign = self.foreign_definitions.get(&symbol);
                 let definition = foreign
                     .cloned()
-                    .unwrap_or_else(|| json!({"uri":uri,"range":self.range(declaration.span)}));
+                    .unwrap_or_else(|| Location::new(uri.clone(),self.range(declaration.span)));
                 Some((
                     definition,
-                    json!({"uri":uri,"range":self.range(token.span)}),
+                    Location::new(uri.clone(),self.range(token.span)),
                     foreign.is_none() && token.span == declaration.span,
                 ))
             })
-            .collect()
     }
     pub fn request(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
         if method == "textDocument/documentSymbol" {
@@ -3275,7 +3278,7 @@ impl SourceIndex {
             .ok_or("Position is outside the document or splits a surrogate pair")?;
         if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some((field,ty,symbol,span))=self.record_literal_field(offset) {
             if method=="textDocument/definition" {
-                if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
+                if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
             }else{
                 let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
                 return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```\n\n{docs}",self.display_type(&ty))},"range":self.range(span)}));
@@ -3295,7 +3298,7 @@ impl SourceIndex {
                 let owners=self.record_alternatives(&receiver,false);
                 let symbol=self.symbols.iter().position(|symbol|symbol.name==field && symbol.owner.as_ref().is_some_and(|owner|owners.contains(owner)));
                 if method=="textDocument/definition" && let Some(symbol)=symbol {
-                    return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+                    return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
                 }
                 if method=="textDocument/hover" {
                     let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
@@ -3326,7 +3329,7 @@ impl SourceIndex {
         };
         if let Some((span,field))=self.jsx_attribute_at(offset) {
             if method=="textDocument/definition" && let Some(symbol)=self.jsx_prop_symbol(span.end,&field) {
-                return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+                return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
             }
             if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(span.end)
                 && let Some((_,ty))=fields.iter().find(|(name,_)|name==&field) {
@@ -3377,7 +3380,7 @@ impl SourceIndex {
             "textDocument/definition" => Ok(self
                 .foreign_definitions
                 .get(&symbol)
-                .cloned()
+                .map(|location|json!(location))
                 .unwrap_or_else(|| json!({"uri":uri,"range":self.range(s.span)}))),
             "textDocument/references" | "textDocument/documentHighlight" => {
                 let include = params

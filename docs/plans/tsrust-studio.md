@@ -146,11 +146,14 @@ responses and independent channel endpoints have focused regression evidence.
 
 Profiling found whole-project incomplete-code recovery and repeated immutable
 completion catalogs. Staged cancellation and shared catalogs are implemented;
-compiler passes already running remain synchronous. Actual later LSP observation
-still reached947.7MiB peak/617.9MiB idle, so overall memory/leak qualification is
-not passed. Compact retained location/reference metadata is the next investigation
-candidate. Signature UI, external servers and complete snippet-language support
-remain open. Exact checks, SDK identities and current preview are in the sole
+compiler passes already running remain synchronous. Compact retained navigation
+and reference locations now use typed LSP values rather than JSON trees; reference
+collection is lazy. A matched manual editing workflow reduced observed idle
+footprint from616.7MiB to264.1MiB and peak from907.5MiB to576.1MiB; live heap
+bytes fell from421,341,280 to151,319,440. These are practical before/after
+observations, not statistical benchmarks or long-running leak qualification.
+Overall editor-plus-AI resource acceptance remains open. Signature UI, external
+servers and complete snippet-language support remain open. Exact checks, SDK identities and current preview are in the sole
 handoff; this section is not full intelligence or resource acceptance.
 
 ## Immediate implementation priority — owner, 2026-11-11
@@ -217,7 +220,8 @@ and peak memory for existing and replacement walkers on the same tree, separatin
 cold/warm observations; no speedup claim without comparable measurements. Preserve
 full diagnostic coverage and reuse existing project/LSP acceptance witnesses.
 
-Status: planned and prioritized; dependency not added, traversal not replaced,
+Status: next discovery section after the accepted native intelligence/compact-location
+memory slice; dependency not added, traversal not replaced,
 performance not measured. References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
 
 ## Current native terminal integration — 2026-11-11
