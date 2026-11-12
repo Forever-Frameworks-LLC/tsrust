@@ -1,5 +1,12 @@
 import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
-import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance, appInfo as nativeAppInfo } from 'std:ui-runtime';
+import {
+  command as nativeCommand,
+  commandReply as nativeCommandReply,
+  openWindow as nativeOpenWindow,
+  appearance as nativeAppearance,
+  appInfo as nativeAppInfo,
+  completionProposal as nativeCompletionProposal
+} from 'std:ui-runtime';
 import {
   useId as nativeUseId,
   svg as nativeSvg,
@@ -1822,4 +1829,22 @@ export function setTheme(mode: 'light' | 'dark' | 'system'): void {
   unwrap(nativeCommand('theme', JSON.stringify({
     mode: `${mode}`
   })));
+}
+
+
+interface CompletionTextResult {
+  text?: string;
+  error?: string;
+}
+
+/** Prepare completion text and same-document additionalTextEdits without editing a view or saving a file. text is the exact current UTF-8 document; item is one JSON-encoded LSP CompletionItem with UTF-16 positions. start/end are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Returns the complete proposed text, expanding numeric snippet stops/defaults. Rejects invalid/surrogate-interior/out-of-document/overlapping ranges, unsupported snippets and inputs larger than 16 MiB. Ignores server commands. Example: unwrap(completionText('pri', '{"label":"print"}', 0, 3)) returns 'print'. Callers must verify document session/revision before applying the proposal. Ownership: reads all inputs; returns independent text. */
+export function completionText(text: string, item: string, start: int, end: int): Result<string, string> {
+  const result = JSON.parse<CompletionTextResult>(nativeCompletionProposal(text, item, start, end), {
+    maxBytes: 128 * 1024 * 1024, maxDepth: 4, maxEntries: 4, maxNodes: 8
+  });
+
+  if (result.error !== undefined) return Err(clone(result.error));
+
+  if (result.text === undefined) return Err('Completion proposal returned no text.');
+  return Ok(clone(result.text));
 }

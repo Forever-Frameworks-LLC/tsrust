@@ -236,6 +236,7 @@ pub struct CompletionMenu {
     /// The offset of the first character that triggered the completion.
     pub(crate) trigger_start_offset: Option<usize>,
     query: SharedString,
+    source: Option<(u64, Range<usize>)>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -280,6 +281,7 @@ impl CompletionMenu {
                 open: false,
                 trigger_start_offset: None,
                 query: SharedString::default(),
+                source: None,
                 _subscriptions,
             }
         })
@@ -289,10 +291,12 @@ impl CompletionMenu {
         let item = item.clone();
         let range = self.trigger_start_offset.unwrap_or(self.offset)..self.offset;
 
+        let Some((revision, selection)) = self.source.clone() else { return; };
         let editor = self.editor.clone();
 
         cx.spawn_in(window, async move |_, cx| {
             editor.update_in(cx, |editor, window, cx| {
+                if editor.document_revision() != revision || editor.selected_range() != selection { return; }
                 editor.insert_completion(&item, range, window, cx);
             })
         })
@@ -383,6 +387,10 @@ impl CompletionMenu {
         cx: &mut Context<Self>,
     ) {
         let items = items.into();
+        self.source = self.editor.upgrade().map(|editor| {
+            let editor = editor.read(cx);
+            (editor.document_revision(), editor.selected_range())
+        });
         self.offset = offset;
         self.open = true;
         self.list.update(cx, |this, cx| {
@@ -524,13 +532,36 @@ mod tests {
             menu.update(cx, |menu, cx| {
                 menu.update_query(0, "rea");
                 menu.show(3, vec![CompletionItem { label: "readTextFile".into(), ..Default::default() }], window, cx);
+            });
+            // Keyboard overlay actions run inside an editor update, unlike pointer clicks.
+            editor.update(cx, |_, cx| menu.update(cx, |menu, cx| {
                 assert!(menu.handle_action(Box::new(input::IndentInline), window, cx));
                 assert!(!menu.open);
-            });
+            }));
             (editor, menu)
         });
         cx.run_until_parked();
         cx.read(|cx| assert_eq!(editor.read(cx).value(), "readTextFile"));
+    }
+
+    #[gpui::test]
+    fn queued_completion_does_not_edit_a_changed_document(cx: &mut gpui::TestAppContext) {
+        cx.update(crate::init);
+        let window = cx.add_empty_window();
+        let editor = window.update(|window, cx| {
+            let editor = cx.new(|cx| EditorState::new(window, cx).default_value("fm"));
+            editor.update(cx, |editor, cx| editor.set_selected_range(2..2, cx));
+            let menu = CompletionMenu::new(editor.clone(), window, cx);
+            menu.update(cx, |menu, cx| {
+                menu.update_query(0, "fm");
+                menu.show(2, vec![CompletionItem { label: "fmt".into(), ..Default::default() }], window, cx);
+                assert!(menu.handle_action(Box::new(input::IndentInline), window, cx));
+            });
+            editor.update(cx, |editor, cx| { editor.set_value("newer text", window, cx); editor.set_value("fm", window, cx); editor.set_selected_range(2..2, cx); });
+            editor
+        });
+        cx.run_until_parked();
+        cx.read(|cx| assert_eq!(editor.read(cx).value(), "fm"));
     }
 
     #[test]

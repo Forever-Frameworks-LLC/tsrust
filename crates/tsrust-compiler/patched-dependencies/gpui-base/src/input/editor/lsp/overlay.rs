@@ -171,37 +171,23 @@ impl InputBaseState<EditorMode> {
         cx: &mut Context<Self>,
     ) {
         if !self.is_editable() { return; }
-        let mut range = fallback_range;
-        let mut new_text = item.label.clone();
-        if let Some(edit) = item.text_edit.as_ref() {
-            match edit {
-                lsp_types::CompletionTextEdit::Edit(edit) => {
-                    new_text.clone_from(&edit.new_text);
-                    range = self.text.position_to_offset(&edit.range.start)
-                        ..self.text.position_to_offset(&edit.range.end);
-                }
-                lsp_types::CompletionTextEdit::InsertAndReplace(edit) => {
-                    new_text.clone_from(&edit.new_text);
-                    range = self.text.position_to_offset(&edit.replace.start)
-                        ..self.text.position_to_offset(&edit.replace.end);
-                }
-            }
-        } else if let Some(insert_text) = item.insert_text.as_ref() {
-            new_text.clone_from(insert_text);
-
-        }
+        let Ok(value) = serde_json::to_value(item) else { return; };
+        let plan = match crate::input::completion_edit::plan(&self.text.to_string(), &value, fallback_range) {
+            Ok(plan) => plan,
+            Err(error) => { tracing::warn!("Ignoring invalid completion: {error}"); return; }
+        };
+        let before = self.selections.iter().copied().collect();
         self.snippet = None;
-        let snippet = if item.insert_text_format == Some(lsp_types::InsertTextFormat::SNIPPET) {
-            let Some(snippet) = crate::input::snippets::Snippet::parse(&new_text, range.start) else { return; };
-            new_text.clone_from(&snippet.text);
-            Some(snippet)
-        } else { None };
+        self.undo_manager.set_pending_intent(crate::input::undo_manager::EditIntent::Atomic);
         self.completion_inserting = true;
-        let range = self.range_to_utf16(&range);
-        self.replace_text_in_range_silent(Some(range), &new_text, window, cx);
+        self.silent_replace_text = true;
+        self.replace_text_in_ranges(&plan.edits, window, cx);
+        self.silent_replace_text = false;
         self.completion_inserting = false;
-        self.snippet = snippet;
+        self.set_selected_range(plan.insertion.end..plan.insertion.end, cx);
+        self.snippet = plan.snippet;
         self.select_snippet_stop(cx);
+        self.undo_manager.record_selections(before, self.selections.iter().copied().collect());
         self.focus(window, cx);
     }
 

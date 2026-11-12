@@ -1,10 +1,12 @@
 import { Sender } from 'std:futures';
-import { Signal } from 'std:ui';
+import { parse, get, kind, stringify, at } from 'std:json';
+import { Signal, completionText } from 'std:ui';
 
-import { Problem } from '../../lib/workspace/problems.tsr';
-import { EditorTool } from '../editor-tools.tsr';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DiagnosticPosition } from '../../lib/language/diagnostics.tsr';
+import { propose } from '../../lib/workspace/documents.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { EditorTool } from '../editor-tools.tsr';
 import { LanguageState, LanguageConnection, queueLanguageRead, cancelLanguageRead, connectionFor } from './controller.tsr';
 import { LanguageMessage } from './session.tsr';
 import { languageSettingsTools, invokeLanguageSettingsTool } from './settings-tools.tsr';
@@ -187,11 +189,15 @@ interface LanguageReadArguments {
   revision: int;
   position?: DiagnosticPosition;
   includeDeclaration?: boolean;
+  itemIndex?: int;
+  start?: int;
+  end?: int;
 }
 
 export function languageReadTools(): EditorTool[] {
-  const schema = '{"type":"object","properties":{"root":{"type":"string"},"id":{"type":"string"},"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"},"includeDeclaration":{"type":"boolean"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["root","id","path","session","revision"]}';
+  const schema = '{"type":"object","properties":{"root":{"type":"string"},"id":{"type":"string"},"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer"},"itemIndex":{"type":"integer","minimum":0},"start":{"type":"integer","minimum":0},"end":{"type":"integer","minimum":0},"includeDeclaration":{"type":"boolean"},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["root","id","path","session","revision"]}';
   const readSchema = schema.slice(0, schema.length - 2) + ',"position"]}';
+  const proposalSchema = schema.slice(0, schema.length - 2) + ',"itemIndex","start","end"]}';
   return [{
     name: 'language_hover', description: 'Queue a read-only LSP hover for an explicit current document and zero-based UTF-16 position. Requires host read permission. Does not focus, edit or save. Use language_read_result to receive it or language_cancel_read to cancel.', inputSchema: clone(readSchema)
   }, {
@@ -204,6 +210,8 @@ export function languageReadTools(): EditorTool[] {
     name: 'language_definition', description: 'Queue LSP definition locations for an explicit current document and UTF-16 position. Requires host read permission. Read with language_read_result; opening a returned location requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
     name: 'language_signature_help', description: 'Queue read-only call signatures and active-parameter documentation for an explicit current document and zero-based UTF-16 position. Requires host read permission. Use language_read_result or language_cancel_read; never changes editor focus or files.', inputSchema: clone(readSchema)
+  }, {
+    name: 'language_completion_proposal', description: 'Read a completed language_completion request and prepare one candidate plus all same-document import/additional edits as an isolated ProposedEdit. itemIndex selects the zero-based candidate; start/end give fallback UTF-8 byte offsets. Poll this action until ready=true before consuming language_read_result. Requires the same explicit document identity and host read grant; rejects stale results and invalid/overlapping edits. Does not apply, focus or save. Proposal acceptance uses normal review/conflict checks.', inputSchema: proposalSchema
   }, {
     name: 'language_read_result', description: 'Consume a completed language read for the same explicit document identity; returns ready=false while pending. Rejects changed documents and other targets.', inputSchema: clone(schema)
   }, {
@@ -271,6 +279,28 @@ export function invokeLanguageRead(
     }
 
     if (resultIndex < 0) return Ok('{"ready":false}');
+
+    if (name === 'language_completion_proposal') {
+      const completed = next.readResults[resultIndex];
+
+      if (completed.query.method !== 'textDocument/completion') return Err('This request is not a completion read.');
+
+      if (completed.error !== '') return Err(clone(completed.error));
+      const start = args.start;
+      const end = args.end;
+      const itemIndex = args.itemIndex;
+
+      if (start === undefined || end === undefined || itemIndex === undefined || start < 0 || end < start || itemIndex < 0) return Err('A candidate index and fallback byte range are required.');
+      const item = completionItem(completed.result, itemIndex);
+      const file = current.files.find((file) => file.document.path === args.path && file.document.session === args.session && file.document.revision === args.revision);
+
+      if (file === undefined) return Err('Language document changed.');
+      const after = unwrap(completionText(file.document.text, item, start, end));
+      return Ok(JSON.stringify({
+        ready: true, proposal: propose(file.document, after)
+      }));
+    }
+
     const answer = JSON.stringify({
       ready: true, result: clone(next.readResults[resultIndex].result), error: clone(next.readResults[resultIndex].error)
     });
@@ -280,4 +310,25 @@ export function invokeLanguageRead(
   } catch (error) {
     return Err(JSON.stringify(error));
   }
+}
+
+function completionItem(payload: ReadOnly<string>, index: int): string {
+  const value = unwrap(parse(payload, {
+    maxBytes: 16 * 1024 * 1024, maxDepth: 64, maxEntries: 100000, maxNodes: 500000
+  }));
+
+  if (kind(value) === 'array') {
+    const item = unwrap(at(value, index));
+
+    if (item === undefined) throw 'Completion candidate is unavailable.';
+    return unwrap(stringify(item, 16 * 1024 * 1024));
+  }
+
+  const items = unwrap(get(value, 'items'));
+
+  if (items === undefined) throw 'Completion response has no candidates.';
+  const item = unwrap(at(items, index));
+
+  if (item === undefined) throw 'Completion candidate is unavailable.';
+  return unwrap(stringify(item, 16 * 1024 * 1024));
 }

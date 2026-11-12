@@ -1625,6 +1625,9 @@ impl<M: InputModeKind> InputBaseState<M> {
         self
     }
 
+    /// Monotonic text revision for rejecting deferred edits after any intervening change.
+    pub fn document_revision(&self) -> u64 { self.document_revision }
+
     /// Return the value of the input field as an owned string.
     ///
     /// The string is materialized on each call. See [`Self::text`] for the

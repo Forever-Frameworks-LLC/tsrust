@@ -197,6 +197,19 @@ Overall editor-plus-AI resource acceptance remains open. Signature UI, external
 servers and complete snippet-language support remain open. Exact checks, SDK identities and current preview are in the sole
 handoff; this section is not full intelligence or resource acceptance.
 
+Completion import transactions, November 12: native completion and the guarded
+AI completion-proposal action now share one edit/snippet planner. Primary and
+additionalTextEdits apply as one undo transaction, with exact Unicode positions,
+overlap rejection, import-adjusted snippet/cursor offsets and deferred revision
+checks. Eleven focused cases pass. Native MAT verified real Go auto-import,
+single undo/redo and subsequent member completion, plus Tsrust function completion,
+syntax-colored active-parameter hints and numeric match-arm placeholder navigation.
+A keyboard nested-update crash found during MAT was repaired and reproduced in the
+native menu regression. Temporary buffers were restored without saves; one current
+preview remains. Complex snippet forms, broader language-server workflows and
+long-run memory qualification remain open; exact scope and identities are in the
+continuation handoff.
+
 Native scalar coloring, November12 (07ed204c): Tsrust fences retain native identity
 while using Kit's existing grammar, with theme type captures for native primitives.
 Six focused cases passed; installed renderer is running. Post-replacement hover

@@ -1,6 +1,3 @@
-import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
-import { requestFileReferences, pollFileReferences, clearLanguageReferences } from '../src/services/lsp/references.tsr';
 import { fromUtf8 } from 'std:bytes';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
@@ -10,6 +7,7 @@ import { dirname, join } from 'std:path';
 import { test, strictEqual, startOutputCapture, finishOutputCapture } from 'std:testing';
 import { signal } from 'std:ui';
 
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import {
   LanguageDocument,
   LanguageIdentity,
@@ -21,9 +19,11 @@ import {
 } from '../src/lib/language/diagnostics.tsr';
 import { ReferenceLocation, LanguageReferences } from '../src/lib/language/references.tsr';
 import { languageRoute, tsrustServer } from '../src/lib/language/servers.tsr';
+import { ProposedEdit } from '../src/lib/workspace/documents.tsr';
 import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
 import {
@@ -35,6 +35,7 @@ import {
   requestNativeLanguage,
   cancelNativeLanguage
 } from '../src/services/lsp/controller.tsr';
+import { requestFileReferences, pollFileReferences, clearLanguageReferences } from '../src/services/lsp/references.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
 import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
 import { CheckResult } from '../src/services/project-check.tsr';
@@ -1074,3 +1075,83 @@ test('file import reads share UI and guarded AI routing and clear cancels late r
   };
   exerciseFileReferences(context);
 });
+
+
+test('completion proposals include imports without mutating drafts and reject stale identities', () => {
+  const document = unwrap(createDocument('/project/main.tsr', '// demo\npri'));
+  const workspace = signal<Workspace>({
+    root: '/project', files: [{
+      document: clone(document), name: 'main.tsr', kind: 'text'
+    }], active: '/project/main.tsr', error: '', dockLayout: '', zoomLevel: 0
+  });
+  const initial = createLanguageState();
+  initial.readResults.push({
+    query: {
+      id: 'agent:completion', method: 'textDocument/completion', document: {
+        path: clone(document.path), session: clone(document.session), revision: 0, version: 1
+      }, position: {
+        line: 1, character: 3
+      }
+    }, error: '', result: "{\"items\":[{\"label\":\"print\",\"insertText\":\"print(${1:value});$0\",\"insertTextFormat\":2,\"additionalTextEdits\":[{\"range\":{\"start\":{\"line\":0,\"character\":0},\"end\":{\"line\":0,\"character\":0}},\"newText\":\"import print from \\\"./print.tsr\\\";\\n\"}]}]}"
+  });
+  const state = signal(initial);
+  const messages = new Channel<LanguageMessage>(1);
+  const context: LanguageToolContext = {
+    root: '/project', generation: 1, status: 'ready', problems: [], allowRead: true, allowRestart: false
+  };
+  const args = JSON.stringify({
+    root: '/project', id: 'completion', path: clone(document.path), session: clone(document.session), revision: 0, itemIndex: 0, start: 8, end: 11
+  });
+  const result = JSON.parse<CompletionProposal>(unwrap(invokeLanguageTool(
+    context,
+    messages.sender(),
+    'language_completion_proposal',
+    args,
+    workspace,
+    state
+  )));
+  strictEqual(result.ready, true);
+  strictEqual(result.proposal.after, 'import print from "./print.tsr";\n// demo\nprint(value);');
+  strictEqual(result.proposal.before, '// demo\npri');
+  strictEqual(workspace.get().files[0].document.text, '// demo\npri');
+  strictEqual(workspace.get().files[0].document.revision, 0);
+  context.allowRead = false;
+
+  match (invokeLanguageTool(
+    context,
+    messages.sender(),
+    'language_completion_proposal',
+    args,
+    workspace,
+    state
+  )) {
+    Err(_) => {},
+    Ok(_) => {
+      throw 'Read grant bypassed.';
+    }
+  }
+
+  context.allowRead = true;
+  const next = workspace.get();
+  next.files[0].document.revision = 1;
+  workspace.set(next);
+
+  match (invokeLanguageTool(
+    context,
+    messages.sender(),
+    'language_completion_proposal',
+    args,
+    workspace,
+    state
+  )) {
+    Err(_) => {},
+    Ok(_) => {
+      throw 'Stale completion accepted.';
+    }
+  }
+});
+
+interface CompletionProposal {
+  ready: boolean;
+  proposal: ProposedEdit;
+}

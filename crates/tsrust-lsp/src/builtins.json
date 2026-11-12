@@ -23458,6 +23458,29 @@
       "documentation": "Deliver native language-read results in the current window. Stale, cancelled, expired and other-window ids cannot receive results. This supplies help and never changes file contents.\n\n```tsrx\nanswerEditorLanguage(request.id, 'null', (_delivery) => {});\n```\n\nOwnership: copies the response and retains the callback until delivery."
     },
     {
+      "name": "completionText",
+      "signature": "completionText(text: string, item: string, start: int, end: int): Result<string, string>",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "item",
+          "type": "string"
+        },
+        {
+          "name": "start",
+          "type": "int"
+        },
+        {
+          "name": "end",
+          "type": "int"
+        }
+      ],
+      "documentation": "Prepare a completion and its same-document import/additional edits as independent proposed text. Never edits, focuses or saves a document.\n\n`text` is the exact current UTF-8 document; `item` is one JSON-encoded LSP CompletionItem with UTF-16 positions. `start` and `end` are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Numeric snippet stops/defaults are expanded; server commands are ignored. Returns the complete proposed document. Invalid, surrogate-interior, reversed, outside-document or overlapping ranges and unsupported snippets return an error. Inputs and output are limited to 16 MiB each. Verify document session/revision before applying.\n\n```tsr\nconst proposed = unwrap(completionText('pri', '{\"label\":\"print\"}', 0, 3));\nconsole.log(proposed); // print\n```\n\nOwnership: reads inputs; returns independent text."
+    },
+    {
       "name": "Icon",
       "signature": "Icon(props: IconProps): Node",
       "parameters": [

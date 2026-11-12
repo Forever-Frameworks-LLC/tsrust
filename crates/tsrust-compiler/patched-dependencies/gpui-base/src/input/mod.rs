@@ -12,6 +12,8 @@ pub(crate) const MASK_CHAR: char = '•';
 
 #[path = "editor/auto_close.rs"]
 mod auto_close;
+#[path = "editor/completion_edit.rs"]
+mod completion_edit;
 mod base;
 #[path = "base/blink_cursor.rs"]
 pub(crate) mod blink_cursor;

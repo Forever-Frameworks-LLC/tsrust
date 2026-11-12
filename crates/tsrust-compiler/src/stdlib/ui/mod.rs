@@ -141,6 +141,7 @@ pub(crate) const COMMAND:NativeBinding=NativeBinding{name:"command",parameters:&
 pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_command_reply"},..COMMAND};
 pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
 pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
+pub(crate) const COMPLETION_PROPOSAL:NativeBinding=NativeBinding{name:"completionProposal",result:NativeType::String,parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("item",NativeType::String,Mode::Read),parameter("start",NativeType::Int,Mode::Read),parameter("end",NativeType::Int,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_completion_proposal"},..TEXT};
 pub(crate) const APP_INFO:NativeBinding=NativeBinding{name:"appInfo",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_app_info"},..TEXT};
 
 // Translations: catalogs, the current locale, live and snapshot lookups, and one
@@ -186,6 +187,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
         .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod commands;",&module("commands",source!("commands.rs")))
+        .replace("mod editor_completion;",&module("editor_completion",source!("editor_completion.rs")))
         .replace("mod editor_language;",&module("editor_language",source!("editor_language.rs")))
         .replace("mod terminal_links;",&module("terminal_links",source!("terminal_links.rs")))
         .replace("mod i18n;",&module("i18n",source!("i18n.rs")))

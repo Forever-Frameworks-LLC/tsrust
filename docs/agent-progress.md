@@ -8,6 +8,104 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Completion imports and native intelligence — accepted section, November 12, based on `649d0907`.
+Current supervisor is 52077 / PTY 6050; app 52646 is running from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-52077-1794502962017429000-0/Tsrust Studio.app.
+Import organization triggered a final benign rebuild in 150749 ms (runtime hit);
+the original owner draft and active file were retained. Whole formatter completed
+0 source files/0 snippets/0 fingerprints; diff-check passed. Obsolete native cache
+variants were pruned under nonblocking locks; retained the latest three linked
+variants and two completed runtime payloads.
+Log: /tmp/studio-auto-import-repaired-dev.log. This supersedes all older preview
+identities below. Final native build passed in 350644 ms: check 100410.6 ms,
+emit 4211.2 ms, runtime miss/build+publish 220138.7 ms, native/link 245272.6 ms.
+
+Live MAT found that completing Go `fm` inserted `fmt` without its import. Native
+completion now applies the primary edit and all additionalTextEdits together,
+with strict range/overlap validation and one Atomic undo transaction. Cursor and
+snippet offsets account for imports inserted earlier in the document. The planner
+and numeric snippet implementation have one canonical source in
+crates/tsrust-ui/src/editor_completion.rs; the compiler embeds it into GPUIbase at
+src/input/editor/completion_edit.rs, and the local patched file includes that source.
+The old snippets module reexports it. Native bridge UTF-16 conversion stays intact.
+Server commands and opaque completion data do not execute.
+
+New pure std:ui completionText uses the same planner through the runtime's
+completion_proposal_json export. API/native binding/emission/runtime inlining and
+IntelliSense documentation are complete. Registered language_completion_proposal
+requires a retained matching completion read, explicit root/session/revision,
+read grant, candidate index and fallback byte offsets. It returns an isolated
+ProposedEdit without changing files, focus or draft. Poll before consuming
+language_read_result; normal review/conflict handling owns application.
+
+The first native race guard caused a Tab crash by reading an editor entity during
+its existing keyboard update. Repaired by capturing document revision/selection
+when the menu synchronizes, then comparing inside the deferred editor update.
+This avoids whole-buffer snapshot copies and rejects edits even if text/cursor are
+restored between dispatch and execution. The native Tab witness now deliberately
+runs while the editor is being updated. Failed app 50533 and old supervisors 50197
+and 33494 are gone; recovery preserved both the owner draft and our temporary Go
+buffer through the crash. Do not relaunch their stale CUA bundle bindings.
+
+Focused evidence (11 distinct cases, not a full regression):
+- Shared host completion 5/5 passed in 0.00 s, setup 2.32 s: Unicode/surrogates,
+  CRLF/import-adjusted stops, overlap rejection and preserved numeric snippets.
+- Isolated AI proposal 1/1 passed in 0.77 ms; combined public setup 38.753 s
+  (check 13.391 s, emit 1.313 s, native/link 23.698 s). Asserts complete proposed
+  text, unchanged live draft/revision, denied read grant and stale identity.
+- Real gopls integration 1/1 passed in 595.54 ms, total tests 596.93 ms, including
+  actual additionalTextEdits and the resulting import. Its initial sandboxed run
+  failed before completion because normal Go cache writes were denied. `go list`
+  confirmed operation-not-permitted; no cache was cleared or assertion weakened.
+  Only this affected case was rerun unsandboxed. Setup 214.451 s includes Cargo
+  wait behind native app compilation; check 14.463 s, emit 1.369 s,
+  native/link 198.338 s. Do not call that wait a compiler timing regression.
+- Native completion-menu family 4/4 passed in 0.02 s, setup 40.61 s: Tab inside
+  editor.update, stale revision, old-menu replacement and highlight bounds. The
+  stale case was then tightened to restore the same cursor/text; its affected
+  rerun passed 1/1 in 0.02 s. Count four distinct menu cases, not five.
+  Correct command: cargo test --offline --manifest-path
+  crates/tsrust-compiler/patched-dependencies/gpui-component/Cargo.toml
+  --config 'patch.crates-io.gpui-base.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/gpui-base"'
+  --lib input::popovers::completion_menu::tests -- --nocapture.
+  Use the shared root target, CARGO_INCREMENTAL=0/CARGO_BUILD_JOBS=1. Framework
+  test dependencies are now warm. Restored the tracked upstream Cargo.lock after
+  the test-only path override; no dependency update belongs to this feature.
+- Tsrust manual fixture check passed; generated Kit 226-component check passed.
+
+Final native MAT on 52323 passed: recovered Go `fm` completion adds import plus
+`fmt`; one Cmd+Z removes both; Cmd+Shift+Z restores both; typing a dot after redo
+lands at the correct cursor and shows real fmt members. Tsrust fixture passed
+Ctrl+Space/Tab function completion, editor-sized syntax-colored signature help
+with active count:int, and Ok match-arm snippet expansion, selected default,
+replacement with a longer name, Tab to body and correct indentation. Both fixtures
+were restored through the UI without saving and their added tabs closed. Added
+stable tests/editor-language-mat.tsr and documented its purpose in tests/README.md.
+CUA phase completed: Verified completion imports snippets and undo.
+Current binding repairedCompletionApp targets 52323; all older bindings are stale.
+
+Owner state restored and independently checked: 12 tabs, main.tsrx active, Files
+view, src expanded, tests/services collapsed, panel closed; only original
+project-check draft remains with SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Current installed CLI/LSP were atomically replaced and independently hash verified:
+CLI 53251080d568a70041650aa893ead7dbd3ddfc1d918dd4e8f6fdb1e3c9377350;
+LSP d92427720ef40efefb8540c2204f8553b1a638b6d47cf1224e65111f8c88cc47.
+SDK build 2m34s. Only a regression-test assertion changed afterward; runtime code
+is unchanged. Earlier generated bridge failures (embedded module root and JSON
+encoding in the application instead of runtime) were repaired before public
+acceptance; their logs under /tmp/studio-auto-import-* are disposable.
+
+Prework one-second sample of old LSP 39367 found full check_graph_diagnostics CPU;
+physical footprint 479708048 bytes, compressed/swapped 146980864 bytes. This is one
+observation, not leak/stability qualification. No benchmark speed claim, full
+compiler/LSP matrix or complete 8 GiB editor-plus-AI qualification. Complex snippet
+variables/choices/transforms and scalar-hover visual confirmation remain open.
+Next: local checkpoint, then quick-open autofocus
+(found missing during MAT), accessible hover presentation and remaining language
+features/AI host work before Git/debugger/extensions. Keep the full goal active
+and one current dev preview running. Preserve the protected owner draft.
+
 File/import references — accepted section, November12, based on727965a7.
 New compiler module_imports reads tolerant complete import declarations. LSP custom
 `tsrust/fileReferences` scans initialized workspace Tsrust importers with existing

@@ -210,3 +210,39 @@ mod tests {
         assert!(requests.borrow().pending.is_empty());
     }
 }
+
+/// Prepare a same-document completion without editing or focusing a native view.
+pub fn completion_proposal(text: &str, item: &str, start: i64, end: i64) -> Result<String,String> {
+    if text.len() > 16 * 1024 * 1024 || item.len() > 16 * 1024 * 1024 { return Err("Completion proposal exceeds the input limit.".into()); }
+    let start=usize::try_from(start).map_err(|_|"Invalid completion start.")?;
+    let end=usize::try_from(end).map_err(|_|"Invalid completion end.")?;
+    let item:Value=serde_json::from_str(item).map_err(|error|error.to_string())?;
+    let mut response=Value::Array(vec![item]);
+    if !native_ranges("textDocument/completion",&mut response,text) {return Err("Invalid completion UTF-16 range.".into());}
+    let result=super::editor_completion::plan(text,&response[0],start..end)?;
+    let proposed=result.text(text);
+    if proposed.len()>16*1024*1024 {return Err("Completion proposal exceeds the output limit.".into());}
+    Ok(proposed)
+}
+
+#[cfg(test)]
+mod completion_proposal_tests {
+    use super::*;
+    #[test]
+    fn wire_completion_proposals_validate_unicode_ranges_and_preserve_imports() {
+        let text="/*🦀*/pri";
+        let item=serde_json::json!({"label":"print","textEdit":{"range":{"start":{"line":0,"character":6},"end":{"line":0,"character":9}},"newText":"print(${1:é})$0"},"insertTextFormat":2,"additionalTextEdits":[{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"newText":"import value from './value.tsr';\n"}]}).to_string();
+        assert_eq!(completion_proposal(text,&item,8,11).unwrap(),"import value from './value.tsr';\n/*🦀*/print(é)");
+        let bad=serde_json::json!({"label":"bad","textEdit":{"range":{"start":{"line":0,"character":3},"end":{"line":0,"character":9}},"newText":"lost"}}).to_string();
+        assert!(completion_proposal(text,&bad,8,11).is_err());
+        assert!(completion_proposal(text,&item,-1,11).is_err());
+    }
+}
+
+/// Encode the pure proposal result inside the runtime, which owns serde_json.
+pub fn completion_proposal_json(text: &str, item: &str, start: i64, end: i64) -> String {
+    match completion_proposal(text,item,start,end) {
+        Ok(text)=>serde_json::json!({"text":text}),
+        Err(error)=>serde_json::json!({"error":error}),
+    }.to_string()
+}

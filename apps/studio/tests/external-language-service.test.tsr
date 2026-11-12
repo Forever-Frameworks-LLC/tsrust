@@ -1,13 +1,15 @@
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
 import { Channel } from 'std:futures';
+import { parse, get as jsonGet, at, stringify } from 'std:json';
 import { join } from 'std:path';
 import { strictEqual, test } from 'std:testing';
+import { completionText } from 'std:ui';
 
 import { LanguageDocument, languageIdentity, publishedDiagnostics, documentProblems } from '../src/lib/language/diagnostics.tsr';
 import { LanguageServer, validateLanguageServer, validateLanguageServers, tsrustServer } from '../src/lib/language/servers.tsr';
-import { LanguageMessage, LanguageUpdate } from '../src/services/lsp/session.tsr';
 import { languageServices } from '../src/services/lsp/registry.tsr';
+import { LanguageMessage, LanguageUpdate } from '../src/services/lsp/session.tsr';
 
 async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
   while (true) {
@@ -79,7 +81,7 @@ async function nextProblems(updates: ReadOnly<Channel<LanguageUpdate>>): Task<La
   }
 }
 
-test('real registry keeps Tsrust and Go independent and unused servers lazy', async () => {
+test('real registry completion imports keep Tsrust and Go independent and unused servers lazy', async () => {
   const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-gopls-'))));
   const server: LanguageServer = {
     id: 'go', name: 'Go', program: unwrap(get('GOPLS')) ?? 'gopls', arguments: ['serve'], languages: ['go']
@@ -162,6 +164,33 @@ test('real registry keeps Tsrust and Go independent and unused servers lazy', as
     strictEqual(signature.query?.id, 'go-signature');
     strictEqual((signature.result ?? '').includes('count int'), true, 'Go signature: ' + (signature.result ?? 'missing'));
     strictEqual((signature.result ?? '').includes('"activeParameter":1'), true, 'Go signature parameter: ' + (signature.result ?? 'missing'));
+    document.revision = 3;
+    document.version = 3;
+    document.text = 'package main\nfunc main() { fm }\n';
+    await requests.send({
+      server: 'go', kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    await requests.send({
+      server: 'go', kind: 'query', generation: ready.generation, query: {
+        id: 'go-import-completion', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 1, character: 16
+        }
+      }
+    });
+    const imported = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(imported.query?.id, 'go-import-completion');
+    const response = unwrap(parse(imported.result ?? 'null'));
+    const items = unwrap(jsonGet(response, 'items'));
+
+    if (items === undefined) throw 'Go completion returned no candidate list.';
+    const candidate = unwrap(at(items, 0));
+
+    if (candidate === undefined) throw 'Go completion returned no fmt candidate.';
+    const encoded = unwrap(stringify(candidate));
+    strictEqual(encoded.includes('additionalTextEdits'), true, 'Real Go import edit: ' + encoded);
+    const proposed = unwrap(completionText(document.text, encoded, 27, 29));
+    strictEqual(proposed.includes('import "fmt"'), true, proposed);
+    strictEqual(proposed.includes('func main() { fmt }'), true, proposed);
     await requests.send({
       server: 'go', kind: 'restart', generation: ready.generation
     });
