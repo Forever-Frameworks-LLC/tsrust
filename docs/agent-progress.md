@@ -8,7 +8,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
-Current accepted Studio section — November12:
+Current accepted Studio section — November12, source checkpoint feb9fa82:
 - Footer Format/Check now open Document/Project menus using the SAME command IDs
   as native menus. Manual Check is independent of background-check busy state.
   Live CUA passed footer Check→Project actual CLI task startup/progress;
@@ -43,10 +43,13 @@ Current accepted Studio section — November12:
   and Settings buttons. InputGroup/Addon apply node styles directly; InputGroup
   avoids duplicate class wrappers. Categorized model-path inputs fit Settings.
 
-Current ONE preview: supervisor42787/PTY72431, app45141, LSP45258 (restarted through
-palette), log/tmp/studio-ai-chat-dev.log. Bundle:
-/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42787-1794522139796474000-0/Tsrust Studio.app
-Native build226782ms (check140074.7,emit4939.2,runtimeprepare6122.3,
+Current ONE preview: supervisor42787/PTY72431, app49041, LSP49055 (fresh final reload), log/tmp/studio-ai-chat-dev.log. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42787-1794522964696920000-0/Tsrust Studio.app
+Acceptance ran on prior app45141, then the final EOF-only formatting cleanup
+reloaded successfully:261908ms,check217079.5,emit5690.8,runtimecachehit,
+native+link38213.1. Verified final11clean tabs, connected LSP and footer Check
+Document/Project menu; left that menu visible. Old app45141/model/task are gone.
+Native acceptance build226782ms (check140074.7,emit4939.2,runtimeprepare6122.3,
 runtimebuild/publish51505.1,native+link80787.3). Missing PopupMenu import and source
 ownership errors repaired; this final native build passed. Only benign macOS
 sandbox_extension warning, no pasteboard failure. Final installed SDK pair:
@@ -56,8 +59,10 @@ Current journal has11tabs, active src/services/ai/actions.tsr, zoom-1, NO drafts
 Owner saved the historical project-check draft while we worked; do not restore it.
 Theme Alduin/font11 unchanged. Model paths configured through real GUI to the
 verified target/studio-models GGUF/tokenizer artifacts. Chat cleared/stopped.
-CUA phase COMPLETE, summary “Verified Studio footer CLI controls.” Do not reuse old
-bundle bindings. Current binding studioNow refers to the bundle above.
+CUA phases COMPLETE, summaries “Verified Studio footer CLI controls” and
+“Stopped disposable project check task” and “Verified the reloaded Studio preview.”
+Do not reuse old bundle bindings. Current binding studioFinal refers to the bundle
+above; studioNow belongs to the terminated acceptance window.
 
 Local model UI resource trial is INCOMPLETE, not accepted generation/8GiB proof:
 - Model reached ready through native UI, private child45397. One prompt submitted,
@@ -70,9 +75,21 @@ Local model UI resource trial is INCOMPLETE, not accepted generation/8GiB proof:
   this was an uncontrolled system observation, no causal memory attribution or
   benchmark. Native UI itself observed~79%CPU. Capture/repair polling/render costs
   and concurrent analysis before another bounded integrated resource trial.
-- Project-check task45210 was started by MAT, still running (~6minutes at last
-  observation) with retained “Checking102source files…” output. Do not launch a
-  duplicate full check. Document check completed. Dev stays running as requested.
+- Project-check task45210 was started by MAT; after observing real CLI progress,
+  ended the disposable long check through its terminal controls. Interrupt echoed
+  ^C without prompt exit; killed that task through its trash control and verified
+  process45210 gone. Document check completed successfully. Dev stays running.
+- After removing that task, selecting the remaining document-check row through
+  its label/Pick did not switch the viewport from Format document. Investigate
+  List selection/identity after removals; do not claim this rail behavior accepted.
+  Trial ended with completed formatter visible and three remaining sessions.
+  Final dev reload reset transient terminal/panel state; no trial task is running.
+- Pruned22 obsolete locked Studio runtime cache variants; retained current UI key
+  002821e114b92b68 and current affected test runtime08918c74fc9926a3. No source or
+  user state removed. Git source tree was clean after the implementation commit.
+- Next actions: repair terminal selection after removal; inspect empty AI response
+  rendering/protocol and idle UI polling with bounded witnesses, then profile the
+  integrated model under recorded pressure stops. No model replay under pressure.
 - Current model transport is private stdio, no HTTP/TCP server. If localhost hosting
   is later added, fresh per-start session-only API key is mandatory.
 
