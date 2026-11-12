@@ -59,9 +59,7 @@ export function LanguageStatus(
   return (
     <View>
       <DropdownMenu fontSize={font.get()}>
-        <Button variant="ghost" size="xsmall" className={'text-[' + font.get().toString() + 'px]'} tooltip={detail.get()} aria-label={label.get()}>
-          {label.get()}
-        </Button>
+        <Button icon="languages" variant="ghost" size="xsmall" tooltip={label.get() + ' — ' + detail.get()} aria-label={translate('Language services')} />
         <MenuItem
           label={translate('Show language diagnostics')}
           onSelect={() => {

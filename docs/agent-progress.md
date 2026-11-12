@@ -8,6 +8,15 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Owner status-bar refinement, November12: replaced the persistent LSP connection
+text with a compact Language services icon. Connection detail remains in its
+tooltip; diagnostics and per-server start/restart actions remain in the same menu.
+Whole-project formatter passed with0files/0snippets/0fingerprints changed;
+diff-check passed. No new tests for this presentation-only change. Dev rebuilt
+successfully in120239ms and started app67936; supervisor57441 remains running.
+Current bundle is /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794483382816047000-0/Tsrust Studio.app.
+Native visual inspection is pending; preserve owner-active tabs and drafts.
+
 
 Source checkpoint1e43dab2: current source formatter passed1file,0snippets,
 0fingerprints after the .tsrx regression witness; diff-check passed. Cache cleanup
