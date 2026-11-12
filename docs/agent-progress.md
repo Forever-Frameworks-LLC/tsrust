@@ -9,7 +9,7 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 ### Tsrust Studio active implementation — 2026-11-11
 
 
-Checkpoint preparation: current source formatter passed1file,0snippets,
+Source checkpoint1e43dab2: current source formatter passed1file,0snippets,
 0fingerprints after the .tsrx regression witness; diff-check passed. Cache cleanup
 under nonblocking namespace/entry locks removed27obsolete program/runtime/build
 payloads, retaining3latest-used program entries,3runtime entries and2complete build
@@ -68,7 +68,7 @@ refer to64202; after replacement rebind exact bundle; after compaction rewrite d
 
 Configured editor language services — IN PROGRESS, November12, based onb665a589.
 Previous goal turn was progress: independent lazy registry checkpointf454659d.
-This turn has substantial UNCOMMITTED source plus accepted focused checks and a
+Source checkpoint1e43dab2 contains this slice with accepted focused checks and a
 running native preview. Full goal stays active. DO NOT repeat completed checks.
 
 Implemented: declarative extension/language/server routes (no extension if-chain),
@@ -179,9 +179,8 @@ tab and delete owned fixtures afterward. Never open entire tsrust workspace.
 Whole-project formatter has passed after each coherent fix; most recent0files/
 0snippets/0fingerprints before minor w-56/label/aria change, whose formatter is
 PTY80256 (check its completion/log /tmp/studio-language-final-format.log). Existing
-accepted tests retain token preservation. Git diff-check clean so far. No new
-source checkpoint yet; commit entire accepted coherent slice with evidence once
-native Go workflows and cleanup pass. No push/release/new benchmark claim.
+accepted tests retain token preservation. Git diff-check clean so far. Source checkpoint1e43dab2 records the accepted configuration/routing/weak-state
+slice; remaining native Go workflows and owned fixture cleanup are still pending. No push/release/new benchmark claim.
 
 NEXT: wait on confirmed live dev PTY38630 for replacement, inspect new process/bundle,
 verify Apply visible at default Settings width and Go persistence. Then actual Go
