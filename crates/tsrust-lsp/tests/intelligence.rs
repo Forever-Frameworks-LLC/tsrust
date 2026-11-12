@@ -4,6 +4,19 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn scalar_hovers_are_fenced_tsrust_for_both_source_extensions() {
+    let source = "function main(){const count=8;const enabled=true;const title=\"label\";console.log(count,enabled,title);}";
+    let index = SourceIndex::new(source);
+    for uri in ["file:///scalar.tsr", "file:///scalar.tsrx"] {
+        for (name, ty) in [("count", "int"), ("enabled", "boolean"), ("title", "string")] {
+            let hover = index.request("textDocument/hover", &json!({"position":at(source,&format!("{name}="),0)}), uri).unwrap();
+            assert_eq!(hover["contents"]["kind"], "markdown");
+            assert_eq!(hover["contents"]["value"], format!("```tsrust\nconst {name}: {ty}\n```"), "{uri}: {hover}");
+        }
+    }
+}
+
+#[test]
 fn inferred_result_hover_uses_public_types_including_nested_payloads() {
     let source = tsrust_compiler::format("function main(){const result=Ok<Result<string,int>,boolean>(Err<string,int>(4));match(result){Ok(inner)=>{match(inner){Ok(text)=>{console.log(text);},Err(code)=>{console.log(code);}}},Err(flag)=>{console.log(flag);}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);

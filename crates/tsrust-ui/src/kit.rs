@@ -74,14 +74,14 @@ mod dock_layout_tests {
 
 #[cfg(any(test,feature="gpui"))]
 pub(crate) fn source_language(name:&str)->&str {
-    if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"typescript"}else if name.eq_ignore_ascii_case("tsrx"){"tsx"}else{name}
+    if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"tsrust"}else if name.eq_ignore_ascii_case("tsrx"){"tsrx"}else{name}
 }
-/// Highlight Tsrust fences with the corresponding Kit grammar, preserving code bytes.
+/// Preserve Tsrust identity for native scalar highlighting, without changing code bytes.
 #[cfg(any(test, feature = "gpui"))]
 pub(crate) fn highlighted_markdown(source: &str) -> String {
     let mut output=String::with_capacity(source.len());
     for line in source.split_inclusive('\n') {
-        let replacement=[("```tsrx","```tsx"),("```tsrust","```typescript"),("```tsr","```typescript"),("~~~tsrx","~~~tsx"),("~~~tsrust","~~~typescript"),("~~~tsr","~~~typescript")].into_iter().find_map(|(prefix,replacement)| {
+        let replacement=[("```tsrx","```tsrx"),("```tsrust","```tsrust"),("```tsr","```tsrust"),("~~~tsrx","~~~tsrx"),("~~~tsrust","~~~tsrust"),("~~~tsr","~~~tsrust")].into_iter().find_map(|(prefix,replacement)| {
             line.strip_prefix(prefix).filter(|tail|tail.is_empty() || tail.starts_with(char::is_whitespace)).map(|tail|(replacement,tail))
         });
         match replacement {Some((prefix,tail))=>{output.push_str(prefix);output.push_str(tail);},None=>output.push_str(line)}
@@ -93,13 +93,13 @@ pub(crate) fn highlighted_markdown(source: &str) -> String {
 mod markdown_tests {
     #[test]
     fn source_names_select_existing_grammars_without_renaming_other_languages() {
-        for name in ["tsr","TSR","tsrust"] {assert_eq!(super::source_language(name),"typescript");}
-        assert_eq!(super::source_language("tsrx"),"tsx");assert_eq!(super::source_language("rust"),"rust");
+        for name in ["tsr","TSR","tsrust"] {assert_eq!(super::source_language(name),"tsrust");}
+        assert_eq!(super::source_language("tsrx"),"tsrx");assert_eq!(super::source_language("rust"),"rust");
     }
     #[test]
     fn tsrust_fences_use_kit_grammars_without_changing_code_or_other_languages() {
         let source="```tsrx\r\n<Text>hello</Text>\r\n```\r\n```tsr\nconst x = 1;\n```\n```bash\ntsrust dev\n```\ninline ```tsr\n~~~tsrust\n";
-        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1).replacen("~~~tsrust\n","~~~typescript\n",1));
+        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsr\nconst","```tsrust\nconst",1));
     }
 }
 
@@ -636,17 +636,17 @@ mod language_markdown_tests {
     fn hover_and_completion_fences_use_editor_grammars_without_touching_payloads() {
         let mut hover=serde_json::json!({"contents":{"kind":"markdown","value":"```tsrust\nconst value = 1;\n```"}});
         super::language_markdown("textDocument/hover",&mut hover);
-        assert_eq!(hover["contents"]["value"],"```typescript\nconst value = 1;\n```");
+        assert_eq!(hover["contents"]["value"],"```tsrust\nconst value = 1;\n```");
         let mut completion=serde_json::json!({"items":[{"documentation":"```tsrx\n<Text />\n```","data":{"value":"```tsrust\nopaque\n```"}}]});
         let data=completion["items"][0]["data"].clone();
         super::language_markdown("textDocument/completion",&mut completion);
-        assert_eq!(completion["items"][0]["documentation"],"```tsx\n<Text />\n```");
+        assert_eq!(completion["items"][0]["documentation"],"```tsrx\n<Text />\n```");
         assert_eq!(completion["items"][0]["data"],data);
         let mut signatures=serde_json::json!({"signatures":[{"label":"call(🦀: int)","parameters":[{"label":[5,7],"documentation":{"kind":"markdown","value":"```tsrx\n<Text />\n```"}}],"documentation":{"kind":"markdown","value":"```tsrust\ncall(1);\n```"}}]});
         let label=signatures["signatures"][0]["parameters"][0]["label"].clone();
         super::language_markdown("textDocument/signatureHelp",&mut signatures);
-        assert_eq!(signatures["signatures"][0]["documentation"]["value"],"```typescript\ncall(1);\n```");
-        assert_eq!(signatures["signatures"][0]["parameters"][0]["documentation"]["value"],"```tsx\n<Text />\n```");
+        assert_eq!(signatures["signatures"][0]["documentation"]["value"],"```tsrust\ncall(1);\n```");
+        assert_eq!(signatures["signatures"][0]["parameters"][0]["documentation"]["value"],"```tsrx\n<Text />\n```");
         assert_eq!(signatures["signatures"][0]["parameters"][0]["label"],label);
     }
 }

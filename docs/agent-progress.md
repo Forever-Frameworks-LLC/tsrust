@@ -8,6 +8,55 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Scalar hover coloring — current uncommitted section, November12, based on61a0e0f5.
+Owner reports plain Tsrust scalar hovers while Go works. Native inspection in
+app88099 reproduced plain `revision: int` on documents.test.tsr, whereas
+`const document: Document` colored correctly. CUA can trigger hover without edits:
+scroll at a symbol by0.001pages (0 is rejected), then getAXStateAndScreenshot.
+Coordinates are screenshot pixels. In the current2240x1562 window revision is
+around[970,645] and document around[790,550]; tiny scrolling shifts these slightly.
+No buffers edited. Owner state later changed to12tabs/active image-actions.tsr;
+that latest state and the protected draft are preserved. Do not use undocumented
+mouse APIs.
+
+Cause: normalizing tsrust/tsrx fences and editors to TypeScript/TSX loses language
+identity; that grammar does not color native scalar int in these fragments. UI kit
+now preserves native identity (tsr canonicalizes to tsrust); Syntect resolves native
+aliases to its existing TypeScript/TSX syntax but supplements only code-token roles
+with native int/number/string/boolean/void type captures. Per-scope disjoint scanning
+uses one cached regex and preserves sorted UTF-8 ranges, background parsing, strings,
+comments, member/call names and JSX attributes/text. Ordinary TypeScript is unchanged.
+Rule follows editors/vscode/syntaxes/tsrust.tmLanguage.json's native primitive rule.
+
+Passed: focused native scalar/alias/fragment/Unicode/protected-context case1/1 in0.31s
+(final component setup1m49s); UI Markdown identity/payload witnesses3/3 in0.00s;
+LSP scalar producer fence/type witness for both extensions1/1 in0.00s (setup7.54s);
+existing background edit/obsolete-text witness1/1 in0.17s.6distinct accepted cases.
+An intermediate JSX assertion accidentally counted the legitimate View component
+type; repaired to inspect the actual attribute/text spans, with final case passing.
+No full matrix or memory/latency claim. Component test Cargo.lock's temporary local
+gpui-base substitution restored exactly; neither patched lockfile has a diff.
+Logs /tmp/studio-scalar-hover-{qualified-capture,markdown,lsp,background}-test.log.
+Final formatter passed0files/0snippets/0fingerprints; diff-check passed.
+
+SDK CLI builds passed2m30s; final built/installed hash independently matches
+0b50487994348cfeed48fb5eaba3b7ac81389b0bf1b23113d385f746ad81eb5f.
+LSP remains577bd0db414187789b473a05ee25da2b27681b87cac06d4de63afe02ae6a5576.
+Replacement dev supervisor94903 / PTY93018 and app96280 remain running.
+Log /tmp/studio-scalar-hover-dev.log; native build passed358219ms (check94019.2,
+emit3867.0,runtime-prepare5057.1,runtime-build+publish232721.2,native/link259525.6).
+Bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-94903-1794490024983438000-0/Tsrust Studio.app.
+Old supervisor69762 stopped with authorized SIGINT after replacement started.
+Native view confirms the new scalar source colors. Post-replacement hover MAT is
+UNVERIFIED: positive tiny scroll/click/raise at revision and document did not show
+any popup; do not call the rendered hover visually accepted. Avoid repeating the
+same automation attempts. CUA phase completed; active image-actions.tsr restored.
+Latest recovery has12tabs and sole project-check.tsr draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+independently confirmed after inspection. Never save/reset this protected draft.
+Next: human/native hover confirmation on revision:int, then resume language
+navigation and AI parity; retain running supervisor, no broad regression rerun.
+
 Per-server Start/Stop/Restart submenus — November12, based onc0612664.
 Owner explicitly requested separate lifecycle controls in each LSP submenu. Uses
 existing std:ui Submenu/MenuItem, localized Start/Stop/Restart and state-dependent

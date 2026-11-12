@@ -58,7 +58,7 @@ pub(crate) fn highlight_code(
     let Some(syntax) = find_syntax(language) else {
         return Vec::new();
     };
-    resolve_styles(&parse(syntax, code), &(0..code.len()), resolver)
+    resolve_styles(&parse_language(syntax, code, is_tsrust(language)), &(0..code.len()), resolver)
 }
 
 /// Highlight names for `text`, for presentations that resolve styles later.
@@ -66,7 +66,7 @@ pub(crate) fn capture_names(language: &str, text: &str) -> Vec<(Range<usize>, Sh
     let Some(syntax) = find_syntax(language) else {
         return Vec::new();
     };
-    parse(syntax, text)
+    parse_language(syntax, text, is_tsrust(language))
         .into_iter()
         .map(|(range, name)| (range, SharedString::new_static(name)))
         .collect()
@@ -95,7 +95,24 @@ fn find_syntax(language: &str) -> Option<&'static SyntaxReference> {
 }
 
 /// Runs syntect over `text` and keeps the spans that map to a highlight name.
+fn is_tsrust(language: &str) -> bool {
+    matches!(language.to_ascii_lowercase().as_str(), "tsr" | "tsrust" | "tsrx")
+}
+
+fn append_highlight(highlights: &mut Highlights, range: Range<usize>, name: &'static str) {
+    if range.is_empty() { return; }
+    match highlights.last_mut() {
+        Some((last, last_name)) if last.end == range.start && *last_name == name => last.end = range.end,
+        _ => highlights.push((range, name)),
+    }
+}
+
+#[cfg(test)]
 fn parse(syntax: &SyntaxReference, text: &str) -> Highlights {
+    parse_language(syntax, text, false)
+}
+
+fn parse_language(syntax: &SyntaxReference, text: &str, tsrust: bool) -> Highlights {
     let syntaxes = &*SYNTAXES;
     let mut parser = ParseState::new(syntax);
     let mut scopes = ScopeStack::new();
@@ -133,13 +150,24 @@ fn parse(syntax: &SyntaxReference, text: &str) -> Highlights {
         {
             name = Some("boolean");
         }
-        if let Some(name) = name {
-            match highlights.last_mut() {
-                Some((last, last_name)) if last.end == range.start && *last_name == name => {
-                    last.end = range.end;
-                }
-                _ => highlights.push((range, name)),
+        if tsrust && matches!(name, Some("variable" | "type" | "keyword" | "operator")) {
+            // Match the native primitive rule from the Tsrust editor grammar, not TypeScript's types.
+            static PRIMITIVES: LazyLock<regex::Regex> = LazyLock::new(|| regex::Regex::new(r"\b(?:int|number|string|boolean|void)\b").unwrap());
+            let mut cursor = range.start;
+            for primitive in PRIMITIVES.find_iter(&text[range.clone()]) {
+                let start = range.start + primitive.start();
+                let end = range.start + primitive.end();
+                let identifier = |c: char| c.is_alphanumeric() || matches!(c, '_' | '$');
+                if text[..start].chars().next_back().is_some_and(|c| identifier(c) || c == '.')
+                    || text[end..].chars().next().is_some_and(identifier)
+                    || text[end..].trim_start().starts_with('(') { continue; }
+                if let Some(name) = name { append_highlight(highlights, cursor..start, name); }
+                append_highlight(highlights, start..end, "type");
+                cursor = end;
             }
+            if let Some(name) = name { append_highlight(highlights, cursor..range.end, name); }
+        } else if let Some(name) = name {
+            append_highlight(highlights, range, name);
         }
     };
 
@@ -357,6 +385,7 @@ struct SyntectInputHighlighter {
     folds: Rc<RefCell<Vec<FoldRange>>>,
     parse_task: Option<Task<()>>,
     initialized: bool,
+    tsrust: bool,
 }
 
 impl SyntectInputHighlighter {
@@ -368,6 +397,7 @@ impl SyntectInputHighlighter {
             folds: Rc::default(),
             parse_task: None,
             initialized: false,
+            tsrust: is_tsrust(language),
         }
     }
 }
@@ -395,7 +425,7 @@ impl InputHighlighter for SyntectInputHighlighter {
         if initial && text.len() <= SYNC_PARSE_MAX_BYTES {
             self.parse_task = None;
             let text = text.to_string();
-            *self.highlights.borrow_mut() = parse(self.syntax, &text);
+            *self.highlights.borrow_mut() = parse_language(self.syntax, &text, self.tsrust);
             *self.folds.borrow_mut() = if folding {
                 brace_fold_ranges(&text)
             } else {
@@ -405,6 +435,7 @@ impl InputHighlighter for SyntectInputHighlighter {
         }
 
         let syntax = self.syntax;
+        let tsrust = self.tsrust;
         let highlights = self.highlights.clone();
         let folds = self.folds.clone();
         let text = text.clone();
@@ -421,7 +452,7 @@ impl InputHighlighter for SyntectInputHighlighter {
                     } else {
                         Vec::new()
                     };
-                    (parse(syntax, &text), folded)
+                    (parse_language(syntax, &text, tsrust), folded)
                 })
                 .await;
             *highlights.borrow_mut() = parsed;
@@ -493,6 +524,26 @@ fn brace_fold_ranges(text: &str) -> Vec<FoldRange> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scalar_hover_signatures_have_syntax_captures() {
+        for language in ["tsr", "tsrust", "tsrx"] {
+            for text in ["const count: int", "/*🦀*/ revision: int", "title: string", "enabled: boolean", "size: number", "result: void"] {
+                let names = capture_names(language, text);
+                let start = text.rfind(' ').unwrap() + 1;
+                assert!(names.iter().any(|(range, name)| range.start <= start && range.end == text.len() && name == "type"), "{language} {text}: {names:?}");
+                assert!(names.iter().all(|(range, _)| text.is_char_boundary(range.start) && text.is_char_boundary(range.end)));
+            }
+            let text = "const text = \"int number string boolean void\"; // int\nobject.int; int(1); const print = 1;";
+            assert!(!capture_names(language, text).iter().any(|(_, name)| name == "type"), "strings/comments/properties/calls must keep their original roles");
+        }
+        let jsx = "<View int={8} string=\"int\">int string boolean void</View>";
+        let names = capture_names("tsrx", jsx);
+        for start in [jsx.find(" int=").unwrap() + 1, jsx.find(" string=").unwrap() + 1, jsx.find('>').unwrap() + 1] {
+            assert!(!names.iter().any(|(range, name)| range.contains(&start) && name == "type"), "JSX attributes/text must keep their roles: {names:?}");
+        }
+        assert!(!capture_names("typescript", "revision: int").iter().any(|(_, name)| name == "type"), "ordinary TypeScript does not acquire Tsrust keywords");
+    }
 
     #[gpui::test]
     fn edits_defer_small_document_parses_and_discard_superseded_text(

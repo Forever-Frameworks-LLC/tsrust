@@ -5,6 +5,8 @@ use gpui::SharedString;
 pub(crate) fn language_name(name: &str) -> SharedString {
     let name = name.to_lowercase();
     match name.as_str() {
+        "tsr" | "tsrust" => "typescript".into(),
+        "tsrx" => "tsx".into(),
         "plain" => "text".into(),
         "plaintext" => "text".into(),
         "jsonc" => "json".into(),
