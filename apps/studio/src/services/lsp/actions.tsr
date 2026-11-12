@@ -5,31 +5,52 @@ import { Problem } from '../../lib/workspace/problems.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DiagnosticPosition } from '../../lib/language/diagnostics.tsr';
-import { LanguageState, queueLanguageRead, cancelLanguageRead, connectionFor } from './controller.tsr';
+import { LanguageState, LanguageConnection, queueLanguageRead, cancelLanguageRead, connectionFor } from './controller.tsr';
 import { LanguageMessage } from './session.tsr';
 import { languageSettingsTools, invokeLanguageSettingsTool } from './settings-tools.tsr';
 
 export function restartLanguageService(requests: ReadOnly<Sender<LanguageMessage>>, generation: int, server: string = 'tsrust'): Result<void, string> {
+  return sendLanguageControl(requests, generation, server, 'restart');
+}
+
+function sendLanguageControl(requests: ReadOnly<Sender<LanguageMessage>>, generation: int, server: ReadOnly<string>, action: ReadOnly<string>): Result<void, string> {
   match (requests.trySend({
-    server: clone(server), kind: generation === 0 && server !== 'tsrust' ? 'start' : 'restart', generation
+    server: clone(server), kind: action === 'restart' && generation === 0 && server !== 'tsrust' ? 'start' : clone(action), generation
   })) {
     Ok(_) => {
       return Ok();
     },
     Err(error) => {
-      return Err('Could not queue language service restart: ' + error.code);
+      return Err('Could not queue language service control: ' + error.code);
     }
   }
 }
 
 export function requestLanguageRestart(state: Mutable<LanguageState>, requests: ReadOnly<Sender<LanguageMessage>>, server: string, generation: int): Result<void, string> {
+  return requestLanguageControl(state, requests, server, generation, 'restart');
+}
+
+export function languageControlAvailable(connection: ReadOnly<LanguageConnection>, action: ReadOnly<string>): boolean {
+  if (connection.transitioning === true) return false;
+
+  if (action === 'start') return !connection.requested || connection.status === 'LSP: stopped' || connection.status === 'LSP: failed';
+
+  if (action === 'stop') return connection.generation > 0 && connection.requested && connection.status !== 'LSP: stopped' && connection.status !== 'LSP: failed';
+
+  if (action === 'restart') return connection.generation > 0 || !connection.requested;
+  return false;
+}
+
+export function requestLanguageControl(state: Mutable<LanguageState>, requests: ReadOnly<Sender<LanguageMessage>>, server: string, generation: int, action: string): Result<void, string> {
   const index = state.connections.findIndex((entry) => entry.server === server);
 
   if (index < 0) return Err('No matching language server is registered.');
 
   if (state.connections[index].generation !== generation) return Err('Language-service connection changed.');
 
-  match (restartLanguageService(requests, generation, server)) {
+  if (!languageControlAvailable(state.connections[index], action)) return Err('Language-service action is unavailable in its current state.');
+
+  match (sendLanguageControl(requests, generation, server, action)) {
     Err(error) => {
       return Err(clone(error));
     },
@@ -38,7 +59,8 @@ export function requestLanguageRestart(state: Mutable<LanguageState>, requests: 
 
   state.connections[index].ready = false;
   state.connections[index].requested = true;
-  state.connections[index].status = 'LSP: restarting';
+  state.connections[index].transitioning = true;
+  state.connections[index].status = action === 'stop' ? 'LSP: stopping' : action === 'start' ? 'LSP: starting' : 'LSP: restarting';
   return Ok();
 }
 
@@ -53,6 +75,7 @@ export interface LanguageToolContext {
   problems: Problem[];
   allowRead: boolean;
   allowRestart: boolean;
+  allowControl?: boolean;
 }
 
 interface LanguageArguments {
@@ -66,6 +89,10 @@ export function languageTools(): EditorTool[] {
     name: 'language_service_status', description: 'Read the current workspace language-service status and source-labelled LSP diagnostics without changing focus or files. The trusted host must grant read access.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
   }, {
     name: 'restart_language_service', description: 'Restart the existing workspace language server through the same action as the status menu. Requires a trusted host process-control grant and matching connection generation; cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"server":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","generation"]}'
+  }, {
+    name: 'start_language_service', description: 'Start a registered stopped, failed or idle language server through the same guarded action as its submenu. Requires trusted host allowControl, explicit server and current generation. Cannot select an executable or change files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"server":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","server","generation"]}'
+  }, {
+    name: 'stop_language_service', description: 'Stop only the explicit registered language server and cancel its pending reads. It stays stopped while files remain open. Requires trusted host allowControl and current generation; does not edit or save files.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"server":{"type":"string"},"generation":{"type":"integer","minimum":0}},"required":["root","server","generation"]}'
   }, ...languageReadTools(), ...languageSettingsTools()];
 }
 
@@ -96,7 +123,7 @@ export function invokeLanguageTool(
     );
   }
 
-  if (name !== 'language_service_status' && name !== 'restart_language_service') return Err('Unknown language-service action.');
+  if (name !== 'language_service_status' && name !== 'restart_language_service' && name !== 'start_language_service' && name !== 'stop_language_service') return Err('Unknown language-service action.');
 
   if (!languageTools().some((tool) => tool.name === name)) return Err('Unknown language-service action.');
 
@@ -124,7 +151,11 @@ export function invokeLanguageTool(
       }));
     }
 
-    if (!context.allowRestart) return Err('Language-service restart is not permitted by the host.');
+    const action = name === 'start_language_service' ? 'start' : name === 'stop_language_service' ? 'stop' : 'restart';
+
+    if (action === 'restart' ? !context.allowRestart && context.allowControl !== true : context.allowControl !== true) return Err('Language-service control is not permitted by the host.');
+
+    if (action !== 'restart' && (state === undefined || args.server === undefined)) return Err('Language-service control requires explicit server state.');
 
     let generation = context.generation;
 
@@ -139,7 +170,7 @@ export function invokeLanguageTool(
 
     if (state !== undefined) {
       const next = state.get();
-      unwrap(requestLanguageRestart(next, requests, server, generation));
+      unwrap(requestLanguageControl(next, requests, server, generation, action));
       state.set(next);
     } else unwrap(restartLanguageService(requests, generation, server));
     return Ok('{"queued":true}');

@@ -39,6 +39,14 @@ all24real-source responses matched. Hover after subsequent edits observed~100–
 versus~286–303ms before, with cold startup~977ms. Native typing/snippet acceptance
 and long-running resource qualification remain open; resume language features/AI parity.
 
+Language-service controls, November12: each configured server now has a native
+submenu with Start, Stop and Restart. Availability follows connection state; Stop
+keeps that server off while documents remain open for the current Studio session.
+Native Go stop/absence/start/restart/diagnostic restoration passed without replacing
+Tsrust or the active editor. Shared guarded AI Start/Stop/Restart handlers require
+trusted process-control grants and exact connection generation; focused public
+suite11/11 passed. Integrated model hosting and remaining intelligence MAT stay open.
+
 Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
 connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
 Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,

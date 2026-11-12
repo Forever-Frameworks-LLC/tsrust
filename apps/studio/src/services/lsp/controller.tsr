@@ -20,6 +20,7 @@ export interface LanguageConnection {
   ready: boolean;
   status: string;
   detail: string;
+  transitioning?: boolean;
 }
 
 export interface LanguageState {
@@ -73,12 +74,19 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
 
         if (update.kind !== 'starting' && update.kind !== 'failed' && update.generation !== connection.generation) continue;
 
-        if (update.kind === 'starting' || update.kind === 'failed') {
+        if (connection.transitioning === true && update.kind !== 'starting' && update.kind !== 'failed' && update.kind !== 'stopped') continue;
+
+        if (connection.transitioning === true && update.kind === 'starting' && update.generation <= connection.generation) continue;
+
+        if (update.kind === 'ready' && connection.status !== 'LSP: starting') continue;
+
+        if (update.kind === 'starting' || update.kind === 'failed' || update.kind === 'stopped') {
           stateChanged = true;
           problemsChanged = true;
           connection.generation = update.generation;
           connection.ready = false;
-          connection.status = update.kind === 'failed' ? 'LSP: failed' : 'LSP: starting';
+          connection.status = update.kind === 'stopped' ? 'LSP: stopped' : update.kind === 'failed' ? 'LSP: failed' : 'LSP: starting';
+          connection.transitioning = false;
           connection.detail = clone(update.message);
           connection.requested = true;
           next.documents = next.documents.filter((entry) => identityServer(entry) !== server);

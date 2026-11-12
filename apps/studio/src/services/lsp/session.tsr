@@ -156,7 +156,7 @@ function responseFor(body: ReadOnly<string>, envelope: ReadOnly<Envelope>): stri
   return '{"jsonrpc":"2.0","id":' + id + ',' + response.slice(1);
 }
 
-async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<boolean> {
+async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<string> {
   const uri = JSON.stringify(documentUri(root));
   await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"publishDiagnostics":{"versionSupport":true},"signatureHelp":{"signatureInformation":{"documentationFormat":["markdown","plaintext"],"parameterInformation":{"labelOffsetSupport":true},"activeParameterSupport":true}},"hover":{"contentFormat":["markdown","plaintext"]},"completion":{"completionItem":{"snippetSupport":true,"documentationFormat":["markdown","plaintext"]}}}}}}');
 
@@ -165,7 +165,7 @@ async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<La
 
     if (message.generation !== generation) continue;
 
-    if (message.kind === 'restart') return false;
+    if (message.kind === 'restart' || message.kind === 'stop') return clone(message.kind);
 
     if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
 
@@ -190,7 +190,7 @@ async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<La
 
     if ((reply.result.capabilities.positionEncoding ?? 'utf-16') !== 'utf-16') throw 'The language server selected an unsupported position encoding.';
     await writeFrame(writer, '{"jsonrpc":"2.0","method":"initialized","params":{}}');
-    return true;
+    return 'ready';
   }
 }
 
@@ -237,7 +237,7 @@ function documentLanguage(document: ReadOnly<LanguageDocument>, server: ReadOnly
 }
 
 // Independent pipe tasks prevent stdin/stdout backpressure from deadlocking the client.
-async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int, server: ReadOnly<LanguageServer>): Task<void> {
+async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int, server: ReadOnly<LanguageServer>): Task<string> {
   const writes = new Channel<string>(1);
   const sender = writes.sender();
   const output = sendFrames(writer, writes, messages.sender(), generation).start();
@@ -265,7 +265,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
 
       if (message.generation !== generation) continue;
 
-      if (message.kind === 'restart') return;
+      if (message.kind === 'restart' || message.kind === 'stop') return clone(message.kind);
 
       if (message.kind === 'wrote') busy = false;
 
@@ -443,7 +443,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
   }
 }
 
-async function connection(root: ReadOnly<string>, server: ReadOnly<LanguageServer>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<void> {
+async function connection(root: ReadOnly<string>, server: ReadOnly<LanguageServer>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<string> {
   const child = unwrap(spawn(server.program, clone(server.arguments), {
     cwd: clone(root), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
   }));
@@ -456,11 +456,13 @@ async function connection(root: ReadOnly<string>, server: ReadOnly<LanguageServe
   const errors = drainErrors(stderr).start();
 
   try {
-    if (!(await initialize(writer, messages, generation, root).timeout(15000))) return;
+    const action = await initialize(writer, messages, generation, root).timeout(15000);
+
+    if (action !== 'ready') return action;
     await updates.send({
       kind: 'ready', generation, server: clone(server.id), message: server.name + ' language service connected'
     });
-    await connected(writer, messages, updates, generation, server);
+    return await connected(writer, messages, updates, generation, server);
   } finally {
     input.cancel();
     errors.cancel();
@@ -493,17 +495,34 @@ export async function languageWorker(root: string, server: LanguageServer, messa
       kind: 'starting', generation, server: clone(server.id), message: 'Starting ' + server.name + ' language service…'
     });
 
+    let waitForStart = false;
+
     try {
-      await connection(root, server, messages, updates, generation);
+      const action = await connection(root, server, messages, updates, generation);
+      waitForStart = action === 'stop';
+
+      if (waitForStart) await updates.send({
+        kind: 'stopped', generation, server: clone(server.id), message: server.name + ' language service stopped'
+      });
     } catch (error) {
       await updates.send({
         kind: 'failed', generation, server: clone(server.id), message: JSON.stringify(error)
       });
-      // Do not spin a missing/crashing executable; restart is an explicit action.
+      waitForStart = true;
+    }
+
+    if (waitForStart) {
+      // Stopped/failed servers drain old traffic but launch only on explicit control.
       while (true) {
         const command = await messages.receive();
 
-        if (command.kind === 'restart' && command.generation === generation) break;
+        if (command.generation !== generation) continue;
+
+        if (command.kind === 'start' || command.kind === 'restart') break;
+
+        if (command.kind === 'stop') await updates.send({
+          kind: 'stopped', generation, server: clone(server.id), message: server.name + ' language service stopped'
+        });
       }
     }
   }

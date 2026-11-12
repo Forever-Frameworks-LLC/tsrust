@@ -8,6 +8,51 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Per-server Start/Stop/Restart submenus — November12, based onc0612664.
+Owner explicitly requested separate lifecycle controls in each LSP submenu. Uses
+existing std:ui Submenu/MenuItem, localized Start/Stop/Restart and state-dependent
+disabled entries. Callbacks resolve current explicit server/generation and invoke
+shared requestLanguageControl. Stop is session-local: it stays off with files open;
+relaunching Studio uses configured enabled servers. No extra placeholder commands.
+
+Worker now returns explicit ready/restart/stop outcomes from initialization/session,
+settles/kills the old child before stopped acknowledgement, drains obsolete traffic
+while stopped/failed and resumes only on exact-generation Start/Restart. Controller
+clears only that server's documents/pending reads/diagnostics; requested=true keeps
+open-file polling from auto-starting stopped servers. Transition gating rejects
+queued old ready/query replies. Queue failure leaves state untouched. Added registered
+start_language_service/stop_language_service routes through the same command, with
+explicit server/current generation and a trusted allowControl grant. Legacy restart
+grant preserved; model arguments cannot grant control or choose executables. Actual
+integrated model host remains a separate open goal item, not qualified here.
+
+Focused public language-service suite11/11 passed465.45ms, including real Tsrust
+stop/start/resynchronization/hover, stale controls, open-file stop behavior, queue
+failure, grants and prior routing cases. Affected control case rerun after final
+Start status label passed1/1; final extension directly invokes registered AI Stop
+as well as Start, passed1/1 in1.63ms total.11distinct cases retained, not13. Logs
+/tmp/studio-language-controls-{test,final-test,ai-test}.log. Narrow submenu source
+check passed; no full compiler/LSP regression matrix or unchanged executable retest.
+Final whole formatter1file/0snippets/0fingerprints; diff-check passed. Both locale
+catalogs have identical280keys. No SDK/compiler/LSP binary rebuild/install needed.
+
+Native app88099 built/reloaded in245298ms (check89911.0,emit3833.2,runtime-prepare8321.3,
+runtime hit,native/link27272.9). Supervisor69762 / PTY64634 remains running;
+current bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794487041734633000-0/Tsrust Studio.app.
+Native MAT passed visible nested controls/icons and disabled Start while connected,
+Go Stop88116->absent with its document still open, stopped submenu/Start availability,
+Start->88409 and diagnostics restored, Restart->88432 and diagnostics restored.
+Tsrust88101 stayed running throughout the Go controls. No editor typing or saves.
+Owner added tests/go.mod and documents.test.tsr tabs:13tabs, active documents.test.tsr.
+Preserve these owner changes; do NOT restore older11tab/active-main targets. Sole
+protected project-check draft remains SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completionPreview targets app88099; phase completed: Verified per-server lifecycle
+submenus. Latest test-only source change may cause an unchanged-app watcher check;
+keep existing preview, do not restart solely for observation timeouts. Next resume
+native language-navigation features/AI parity; typing/snippet MAT needs an idle
+window, and long-running resource qualification remains open.
+
 Owner fixture organization, November12 — supersedes temporary Go cleanup notes.
 Owner explicitly permits other-language editor examples under tests/ and prohibits
 mixing them into application files. Moved the unchanged Go module manifest from

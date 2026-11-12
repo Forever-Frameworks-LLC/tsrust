@@ -272,5 +272,11 @@
   "Explorer": "Explorador",
   "Show ignored files": "Mostrar arquivos ignorados",
   "Keep ignored files visible in the tree. Hidden configuration files remain visible unless explicitly ignored.": "Manter arquivos ignorados visíveis na árvore. Arquivos de configuração ocultos continuam visíveis, exceto quando ignorados explicitamente.",
-  "The project directory changed during discovery. Refresh the explorer.": "O diretório do projeto mudou durante a descoberta. Atualize o explorador."
+  "The project directory changed during discovery. Refresh the explorer.": "O diretório do projeto mudou durante a descoberta. Atualize o explorador.",
+  "Start": "Iniciar",
+  "Stop": "Parar",
+  "Restart": "Reiniciar",
+  "LSP: idle": "LSP: inativo",
+  "LSP: stopped": "LSP: parado",
+  "LSP: stopping": "LSP: parando"
 }

@@ -21,7 +21,7 @@ import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
-import { LanguageToolContext, invokeLanguageTool } from '../src/services/lsp/actions.tsr';
+import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
 import { LanguageState, LanguageRead, createLanguageState, pollLanguage, queueLanguageRead } from '../src/services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
 import { contentLength, readFrame } from '../src/services/lsp/transport.tsr';
@@ -213,6 +213,33 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     });
     const restarted = await nextUpdate(updates, 'ready').timeout(20000);
     strictEqual(restarted.generation, ready.generation + 1);
+    await requests.send({
+      kind: 'stop', generation: restarted.generation
+    });
+    const stopped = await nextUpdate(updates, 'stopped').timeout(10000);
+    strictEqual(stopped.generation, restarted.generation);
+    // An open document and an obsolete restart cannot relaunch a stopped session.
+    await requests.send({
+      kind: 'document', generation: stopped.generation, document: clone(document)
+    });
+    await requests.send({
+      kind: 'restart', generation: ready.generation
+    });
+    await requests.send({
+      kind: 'start', generation: stopped.generation
+    });
+    const started = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(started.generation, stopped.generation + 1);
+    await requests.send({
+      kind: 'query', generation: started.generation, document: clone(panelDocument), query: {
+        id: 'hover-after-start', method: 'textDocument/hover', document: languageIdentity(panelDocument), position: {
+          line: 1, character: 17
+        }
+      }
+    });
+    const resumed = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(resumed.query?.id, 'hover-after-start');
+    strictEqual((resumed.result ?? '').includes('panel'), true);
   } finally {
     worker.cancel();
 
@@ -222,6 +249,151 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
 
     unwrap(removeDirAll(root));
   }
+});
+
+test('language controls stay stopped, reject stale transitions and require trusted process grants', () => {
+  const workspace = signal<Workspace>({
+    root: '/project', active: '/project/main.tsr', files: [{
+      name: 'main.tsr', kind: 'text', document: unwrap(createDocument('/project/main.tsr', 'function main(){}'))
+    }], error: '', dockLayout: '', zoomLevel: 0
+  });
+  const state = signal<LanguageState>(createLanguageState());
+  const problems = signal<Problem[]>([]);
+  const channel = new Channel<LanguageMessage>(1);
+  const messages = channel.sender();
+  const updates = new Channel<LanguageUpdate>(8);
+  const replies = updates.sender();
+  unwrap(replies.trySend({
+    kind: 'starting', generation: 1, message: 'starting'
+  }));
+  unwrap(replies.trySend({
+    kind: 'ready', generation: 1, message: 'ready'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  unwrap(channel.tryReceive());
+  const next = state.get();
+  strictEqual(languageControlAvailable(next.connections[0], 'start'), false);
+  strictEqual(languageControlAvailable(next.connections[0], 'stop'), true);
+  unwrap(requestLanguageControl(next, messages, 'tsrust', 1, 'stop'));
+  state.set(next);
+  strictEqual(unwrap(channel.tryReceive()).kind, 'stop');
+  strictEqual(languageControlAvailable(state.get().connections[0], 'restart'), false);
+  // A queued old ready must not reverse the user's stop request.
+  unwrap(replies.trySend({
+    kind: 'ready', generation: 1, message: 'obsolete'
+  }));
+  unwrap(replies.trySend({
+    kind: 'stopped', generation: 1, message: 'stopped'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(state.get().connections[0].status, 'LSP: stopped');
+  strictEqual(state.get().documents.length, 0);
+  strictEqual(state.get().connections[0].ready, false);
+  // Polling with the same open file must leave the inbox empty.
+  pollLanguage(workspace, problems, state, messages, updates);
+  let empty = false;
+
+  match (channel.tryReceive()) {
+    Err(_) => {
+      empty = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(empty, true);
+  const context: LanguageToolContext = {
+    root: '/project', generation: 1, status: '', problems: [], allowRead: true, allowRestart: true
+  };
+  const payload = '{"root":"/project","server":"tsrust","generation":1,"allowControl":true}';
+  let denied = false;
+
+  match (invokeLanguageTool(
+    context,
+    messages,
+    'start_language_service',
+    payload,
+    workspace,
+    state
+  )) {
+    Err(_) => {
+      denied = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(denied, true);
+  context.allowControl = true;
+  let stale = false;
+
+  match (invokeLanguageTool(
+    context,
+    messages,
+    'start_language_service',
+    '{"root":"/project","server":"tsrust","generation":0}',
+    workspace,
+    state
+  )) {
+    Err(_) => {
+      stale = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(stale, true);
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'start_language_service',
+    payload,
+    workspace,
+    state
+  ));
+  strictEqual(unwrap(channel.tryReceive()).kind, 'start');
+  unwrap(replies.trySend({
+    kind: 'ready', generation: 1, message: 'obsolete'
+  }));
+  unwrap(replies.trySend({
+    kind: 'starting', generation: 2, message: 'starting'
+  }));
+  unwrap(replies.trySend({
+    kind: 'ready', generation: 2, message: 'ready'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(state.get().connections[0].ready, true);
+  strictEqual(state.get().connections[0].generation, 2);
+  unwrap(channel.tryReceive());
+  // A full inbox cannot change connection state or pretend control succeeded.
+  unwrap(messages.trySend({
+    kind: 'document', generation: 2
+  }));
+  const full = state.get();
+  let blocked = false;
+
+  match (requestLanguageControl(full, messages, 'tsrust', 2, 'stop')) {
+    Err(_) => {
+      blocked = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(blocked, true);
+  strictEqual(full.connections[0].ready, true);
+  strictEqual(full.connections[0].transitioning ?? false, false);
+  unwrap(channel.tryReceive());
+  unwrap(invokeLanguageTool(
+    context,
+    messages,
+    'stop_language_service',
+    '{"root":"/project","server":"tsrust","generation":2}',
+    workspace,
+    state
+  ));
+  const stopped = unwrap(channel.tryReceive());
+  strictEqual(stopped.kind, 'stop');
+  strictEqual(stopped.server, 'tsrust');
+  strictEqual(stopped.generation, 2);
+  strictEqual(state.get().connections[0].ready, false);
+  strictEqual(workspace.get().active, '/project/main.tsr');
 });
 
 
