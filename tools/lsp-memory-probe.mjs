@@ -8,7 +8,9 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 assert.ok(['win32', 'darwin'].includes(process.platform), 'Supported counters: Windows and macOS.');
-assert.ok(process.argv.slice(2).every(arg => arg === '--soak'), 'Usage: node tools/lsp-memory-probe.mjs [--soak]');
+assert.ok(process.argv.slice(2).every(arg => ['--soak', '--studio'].includes(arg)), 'Usage: node tools/lsp-memory-probe.mjs [--soak | --studio]');
+const studio = process.argv.includes('--studio');
+assert.ok(!studio || !process.argv.includes('--soak'), 'Run the bounded Studio probe separately from the synthetic soak.');
 const soakMs = process.argv.includes('--soak') ? 30 * 60 * 1000 : 0;
 const limitMs = soakMs ? soakMs + 60000 : 120000;
 const target = path.resolve('target');
@@ -19,6 +21,8 @@ const started = Date.now();
 const samples = [];
 const waiting = new Map();
 const diagnostics = new Map();
+const interactions = [];
+const sources = [];
 let sequence = 0, pending = Buffer.alloc(0), stderr = '', failure;
 child.stderr.on('data', value => { stderr += value; });
 child.on('error', error => { failure = error; });
@@ -103,48 +107,98 @@ const monitor = setInterval(() => {
     try { sample(); } catch (error) { failure = error; child.kill(); }
 }, 2000);
 const uri = name => pathToFileURL(path.join(root, name)).href;
-try {
-    await writeFile(path.join(root, 'library.tsr'), 'export function value():int{return 7;}\n');
-    await request('initialize', {capabilities: {}, rootUri: uri(''), initializationOptions: {debounceMs: 0}});
+async function probeStudio() {
+    const workspace = path.resolve('apps/studio');
+    const file = path.join(workspace, 'src/services/lsp/controller.tsr');
+    const original = readFileSync(file, 'utf8');
+    const document = pathToFileURL(file).href;
+    sources.push({path: file, sha256: createHash('sha256').update(original).digest('hex')});
+    const position = (text, needle, inside) => {
+        const offset = text.indexOf(needle);
+        assert.ok(offset >= 0, `Probe source no longer contains ${needle}`);
+        const prefix = text.slice(0, offset + inside);
+        const lines = prefix.split('\n');
+        return {line: lines.length - 1, character: lines.at(-1).length};
+    };
+    await request('initialize', {capabilities: {}, rootUri: pathToFileURL(workspace).href, initializationOptions: {debounceMs: 200}});
     send('initialized', {});
     sample();
-    const source = 'import {value} from "./library.tsr";\nfunction main(){const result=value();}\n';
-    for (let cycle = 0; cycle < 12 || Date.now() - started < soakMs; cycle++) {
+    for (let revision = 1; revision <= 4; revision++) {
+        // Only this private LSP process sees the edits; workspace files and owner buffers stay untouched.
+        const text = '\n'.repeat(revision - 1) + original;
+        send(revision === 1 ? 'textDocument/didOpen' : 'textDocument/didChange', revision === 1
+            ? {textDocument: {uri: document, languageId: 'tsrust', version: revision, text}}
+            : {textDocument: {uri: document, version: revision}, contentChanges: [{text}]});
+        for (const warm of [false, true]) {
+            for (const [method, needle, inside] of [
+                ['hover', 'const files = workspace.get()', 'const files = workspace.'.length + 1],
+                ['completion', 'const files = workspace.get()', 'const files = workspace.'.length],
+                ['signatureHelp', 'const files = workspace.get()', 'const files = workspace.get('.length],
+            ]) {
+                const started = performance.now();
+                const result = await request('textDocument/' + method, {textDocument: {uri: document}, position: position(text, needle, inside)});
+                const elapsedMs = performance.now() - started;
+                const encoded = JSON.stringify(result);
+                interactions.push({revision, warm, method, elapsedMs, bytes: Buffer.byteLength(encoded), sha256: createHash('sha256').update(encoded).digest('hex')});
+                console.log(JSON.stringify(interactions.at(-1)));
+                if (method === 'hover') assert.ok(JSON.stringify(result).includes('get'), JSON.stringify(result));
+                if (method === 'completion') assert.ok((result.items ?? result).some(item => item.label.startsWith('get')), JSON.stringify(result));
+                if (method === 'signatureHelp') assert.ok(result?.signatures?.length > 0, JSON.stringify(result));
+                if (failure) throw failure;
+            }
+        }
+        sample();
+    }
+    send('textDocument/didClose', {textDocument: {uri: document}});
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    sample();
+}
+try {
+    if (studio) {
+        await probeStudio();
+    } else {
         await writeFile(path.join(root, 'library.tsr'), 'export function value():int{return 7;}\n');
-        send('workspace/didChangeWatchedFiles', {changes: [{uri: uri('library.tsr'), type: 2}]});
-        const opened = [];
-        let lastHover;
-        for (let index = 0; index < 24; index++) {
-            const name = `entry${index}.tsr`;
-            await writeFile(path.join(root, name), source);
-            opened.push(name);
-            send('textDocument/didOpen', {textDocument: {uri: uri(name), languageId: 'tsrust', version: 1, text: source}});
-            const edits = await request('textDocument/formatting', {textDocument: {uri: uri(name)}, options: {tabSize: 4, insertSpaces: true}});
-            const text = edits[0]?.newText || source;
-            send('textDocument/didChange', {textDocument: {uri: uri(name), version: 2}, contentChanges: [{text}]});
-            assert.deepEqual(await request('textDocument/formatting', {textDocument: {uri: uri(name)}, options: {tabSize: 4, insertSpaces: true}}), []);
-            const line = text.split('\n').findIndex(value => value.includes('value();'));
-            const character = text.split('\n')[line].indexOf('value();') + 2;
-            lastHover = {textDocument: {uri: uri(name)}, position: {line, character}};
-            const hover = await request('textDocument/hover', lastHover);
-            assert.ok(JSON.stringify(hover).includes('int'), JSON.stringify(hover));
-            // Distinct large unrelated revisions expose snapshots retaining all open buffers.
-            const unrelated = uri('unrelated.tsr');
-            const large = `// revision ${cycle}:${index} ${'x'.repeat(512 * 1024)}\nfunction unrelated() {}\n`;
-            send(index ? 'textDocument/didChange' : 'textDocument/didOpen', index
-                ? {textDocument: {uri: unrelated, version: index + 1}, contentChanges: [{text: large}]}
-                : {textDocument: {uri: unrelated, languageId: 'tsrust', version: 1, text: large}});
+        await request('initialize', {capabilities: {}, rootUri: uri(''), initializationOptions: {debounceMs: 0}});
+        send('initialized', {});
+        sample();
+        const source = 'import {value} from "./library.tsr";\nfunction main(){const result=value();}\n';
+        for (let cycle = 0; cycle < 12 || Date.now() - started < soakMs; cycle++) {
+            await writeFile(path.join(root, 'library.tsr'), 'export function value():int{return 7;}\n');
+            send('workspace/didChangeWatchedFiles', {changes: [{uri: uri('library.tsr'), type: 2}]});
+            const opened = [];
+            let lastHover;
+            for (let index = 0; index < 24; index++) {
+                const name = `entry${index}.tsr`;
+                await writeFile(path.join(root, name), source);
+                opened.push(name);
+                send('textDocument/didOpen', {textDocument: {uri: uri(name), languageId: 'tsrust', version: 1, text: source}});
+                const edits = await request('textDocument/formatting', {textDocument: {uri: uri(name)}, options: {tabSize: 4, insertSpaces: true}});
+                const text = edits[0]?.newText || source;
+                send('textDocument/didChange', {textDocument: {uri: uri(name), version: 2}, contentChanges: [{text}]});
+                assert.deepEqual(await request('textDocument/formatting', {textDocument: {uri: uri(name)}, options: {tabSize: 4, insertSpaces: true}}), []);
+                const line = text.split('\n').findIndex(value => value.includes('value();'));
+                const character = text.split('\n')[line].indexOf('value();') + 2;
+                lastHover = {textDocument: {uri: uri(name)}, position: {line, character}};
+                const hover = await request('textDocument/hover', lastHover);
+                assert.ok(JSON.stringify(hover).includes('int'), JSON.stringify(hover));
+                // Distinct large unrelated revisions expose snapshots retaining all open buffers.
+                const unrelated = uri('unrelated.tsr');
+                const large = `// revision ${cycle}:${index} ${'x'.repeat(512 * 1024)}\nfunction unrelated() {}\n`;
+                send(index ? 'textDocument/didChange' : 'textDocument/didOpen', index
+                    ? {textDocument: {uri: unrelated, version: index + 1}, contentChanges: [{text: large}]}
+                    : {textDocument: {uri: unrelated, languageId: 'tsrust', version: 1, text: large}});
+                if (failure) throw failure;
+            }
+            await writeFile(path.join(root, 'library.tsr'), 'export function value():string{return "changed";}\n');
+            send('workspace/didChangeWatchedFiles', {changes: [{uri: uri('library.tsr'), type: 2}]});
+            assert.ok(JSON.stringify(await request('textDocument/hover', lastHover)).includes('string'), 'Dependency edit must invalidate imported help');
+            const counters = await request('tsrust/counters', null);
+            for (const name of ['staleAnswers', 'emptyKnownReceiver', 'nonMemberAfterSeparator']) assert.equal(counters[name], 0, JSON.stringify(counters));
+            for (const name of [...opened, 'unrelated.tsr']) send('textDocument/didClose', {textDocument: {uri: uri(name)}});
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            sample();
             if (failure) throw failure;
         }
-        await writeFile(path.join(root, 'library.tsr'), 'export function value():string{return "changed";}\n');
-        send('workspace/didChangeWatchedFiles', {changes: [{uri: uri('library.tsr'), type: 2}]});
-        assert.ok(JSON.stringify(await request('textDocument/hover', lastHover)).includes('string'), 'Dependency edit must invalidate imported help');
-        const counters = await request('tsrust/counters', null);
-        for (const name of ['staleAnswers', 'emptyKnownReceiver', 'nonMemberAfterSeparator']) assert.equal(counters[name], 0, JSON.stringify(counters));
-        for (const name of [...opened, 'unrelated.tsr']) send('textDocument/didClose', {textDocument: {uri: uri(name)}});
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        sample();
-        if (failure) throw failure;
     }
     await request('shutdown', null);
     send('exit', null);
@@ -157,8 +211,8 @@ try {
     clearInterval(monitor);
     clearTimeout(timeout);
     child.kill();
-    const evidence = {server, serverSha256: createHash('sha256').update(readFileSync(server)).digest('hex'), platform: process.platform, soakMs, elapsedMs: Date.now() - started, requests: sequence, samples, diagnosticDocuments: diagnostics.size, stderr, error: failure?.stack || null};
-    await writeFile(path.join(target, 'lsp-memory-probe.json'), JSON.stringify(evidence, null, 2));
+    const evidence = {server, serverSha256: createHash('sha256').update(readFileSync(server)).digest('hex'), platform: process.platform, studio, sources, interactions, soakMs, elapsedMs: Date.now() - started, requests: sequence, samples, diagnosticDocuments: diagnostics.size, stderr, error: failure?.stack || null};
+    await writeFile(path.join(target, studio ? 'lsp-studio-probe.json' : 'lsp-memory-probe.json'), JSON.stringify(evidence, null, 2));
     assert.ok(root.startsWith(target + path.sep) && path.basename(root).startsWith('lsp-memory-probe-'));
     await rm(root, {recursive: true, force: true});
 }

@@ -28,6 +28,11 @@ use lsp_types::{Position, Range, Location, Uri};
 use serde_json::{Value, json};
 use tsrust_compiler::Span;
 
+#[cfg(test)]
+std::thread_local! {
+    pub(crate) static MEMBER_REPAIR_ATTEMPTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 fn imported_location(uri: &str, range: Range) -> Location {
     Location::new(uri.parse().expect("validated file or compiler-owned import URI"), range)
 }
@@ -3243,6 +3248,14 @@ impl SourceIndex {
             })
     }
     pub fn request(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
+        self.request_with_repair(method, params, uri, true)
+    }
+
+    pub(crate) fn request_declarations(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
+        self.request_with_repair(method, params, uri, false)
+    }
+
+    fn request_with_repair(&self, method: &str, params: &Value, uri: &str, repair: bool) -> Result<Value, String> {
         if method == "textDocument/documentSymbol" {
             return Ok(self.document_outline());
         }
@@ -3316,7 +3329,7 @@ impl SourceIndex {
         }
         if method == "textDocument/completion" {
             // Recover the checked receiver before considering tolerant members.
-            if !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
+            if repair && !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
                 return Ok(repaired);
             }
             return Ok(self.completion(offset));

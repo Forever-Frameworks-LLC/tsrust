@@ -6,6 +6,18 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+Interactive completion refinement, November12: declarations-only project replies
+now bypass single-document compiler cursor repair, preserving incomplete marking
+and the ordinary checked/recovery path. A bounded real-Studio-source probe performs
+hover/completion/signature requests across four private unsaved revisions, records
+response hashes and process memory, and enforces the existing time/memory stops.
+All24responses matched exactly before/after; observed warm completion requests
+changed from380.7–394.7ms to1.7–2.0ms in that probe. These are diagnostic observations,
+not controlled benchmark medians or native end-to-end acceptance. First hover after
+an edit still takes about1.2s, with std:ui declaration indexing the main traced cost.
+Long-running memory stability, native completion/snippet MAT and8GiB editor-plus-AI
+qualification remain open. Exact focused checks and live session in agent-progress.
+
 Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
 connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
 Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,

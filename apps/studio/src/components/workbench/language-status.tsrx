@@ -25,14 +25,21 @@ function selectedConnection(workspace: ReadOnly<Workspace>, state: ReadOnly<Lang
 
 function ConnectionMenu(connection: ReadOnly<LanguageConnection>, state: Signal<LanguageState>, restarts: Sender<LanguageMessage>): Node {
   const server = clone(connection.server);
-  const generation = connection.generation;
+  const labelServer = clone(server);
+  const label = computed<string>(() => {
+    const current = connectionFor(state.get(), labelServer);
+    return labelServer + ': ' + translate(current?.status ?? 'LSP: idle') + ' — ' + translate(current?.requested === true ? 'Restart language service' : 'Start language service');
+  });
   return (
     <MenuItem
-      label={server + ': ' + translate(connection.status) + ' — ' + translate(connection.requested ? 'Restart language service' : 'Start language service')}
+      label={label.get()}
       onSelect={() => {
         const next = state.get();
+        const current = connectionFor(next, server);
 
-        match (requestLanguageRestart(next, restarts, clone(server), generation)) {
+        if (current === undefined) return;
+
+        match (requestLanguageRestart(next, restarts, clone(server), current.generation)) {
           Ok(_) => {
             state.set(next);
           },

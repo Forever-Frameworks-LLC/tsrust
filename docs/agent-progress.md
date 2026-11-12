@@ -8,6 +8,61 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Interactive declaration completion — current section, November12.
+Previous goal turn made progress: built/checkpointed hover border4af5317a and left
+supervisor69762 / PTY64634 running. Bounded2s sample of live LSP69968 at~64s age
+found protocol thread waiting in select, analysis worker checking bodies and
+declaration worker idle; footprint212.7MiB/peak213.1MiB. This is a startup observation,
+not evidence of leak elimination. Traces /tmp/studio-language-continuation-*.
+
+Added --studio to the existing tools/lsp-memory-probe.mjs. It initializes a separate
+real stdio server on apps/studio, reads controller.tsr, issues hover/completion/
+signature requests across4private whitespace revisions, records source/response
+hashes, request costs and process counters, and closes/exits/cleans temporary data.
+Never writes the actual project or owner buffers. Existing120s/1GiB footprint/
+512MiB growth/256MiB swapped/20%free stops retained; --studio and --soak exclusive.
+
+Found a concrete protocol-thread cost: ProjectIndex::declarations avoided its own
+project repair, but called SourceIndex::request, which still attempted checked
+single-document member repair on every completion. Added explicit declaration
+request path that bypasses that repair. Ordinary unchecked/checked recovery stays
+intact; declaration completion remains isIncomplete:true. Extended existing
+declaration witness with a test-only thread-local attempt counter to prove no
+repair is entered there and ordinary requests still enter it.
+
+Passed declaration witness1/1 in0.03s (setup16.51s), blocked-analysis foreground
+protocol witness1/1 in0.01s (setup21.01s). Logs /tmp/studio-declaration-{repair,foreground}-test.log.
+Repeated real-source probe before/after: all24response hashes identical. Observed
+warm completion380.66–394.66ms before,1.70–2.01ms after; warm hover1.72–2.04ms before,
+1.71–1.97ms after. Four private revisions only; diagnostic observations, not a quiet-
+machine benchmark or end-to-end native latency claim. First hover after edits still
+~1.2s; timing trace attributes825–856ms to rebuilding std:ui SourceIndex declarations.
+After-probe peak213.1MiB over7.38s is not long-running memory qualification. Logs
+/tmp/studio-language-output-{before,after}.log; current disposable structured result
+target/lsp-studio-probe.json. Independent exact-hash comparison passed24/24.
+
+LSP build19.11s, final refresh3.48s, atomically installed/hash-verified
+725bb47c3ee099562782be890b31f4c7cbd71026f634182f1f00c49410013e17.
+CLI remains fc348fd5a250a1a0745f43aa071b1ca3a4892ce1d6286c261889fd978799ad6f.
+Native status-menu inspection found another bug: label remained starting/idle while
+tooltip showed connected, and captured generation0 would reject restart. Fixed
+per-server labels with computed current state and resolve generation at click time;
+AI restart still requires explicit exact generation. Native rebuild passed184727ms
+(check96744.4ms,emit3972.7ms,runtime-prepare8598.5ms,runtime hit,native/link29451.7ms).
+Current app75287, supervisor69762 / PTY64634 stays running; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794484683288229000-0/Tsrust Studio.app.
+Native MAT passed both menu entries showing connected, Tsrust restart75297->75343
+while Go75300 stayed running,11tabs/owner-active image-actions/sole protected draft
+hash unchanged. No document editing or saves. CUA completionPreview targets app75287;
+phase completed: Verified isolated language service restart. Native typing/snippet
+acceptance remains unrun. Final whole formatter passed0files/0snippets/0fingerprints;
+node --check and diff-check passed. No broader regressions or benchmark matrix.
+Before checkpoint, lock-safe cleanup removed6obsolete native cache payloads,
+retaining3latest-used programs/runtimes and2complete runtime build payloads.
+Shared Cargo target and active Go fixture remain intact.
+Next investigate immutable bundled std:ui declaration-index reuse, preserving current
+graph import linking/freshness and checked recovery; no arbitrary cache/memory cap.
+
 Owner hover refinement, November12: HoverPopover now explicitly draws a1px
 theme.border outline. Applied only to symbol hover; diagnostic severity outlines
 are unchanged. The existing popover_style supplies a translucent shadow ring,

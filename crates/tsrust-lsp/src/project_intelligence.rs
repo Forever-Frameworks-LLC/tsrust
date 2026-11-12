@@ -281,7 +281,12 @@ impl ProjectIndex {
         {
             return Some(Ok(items));
         }
-        Some(index.request(method, params, uri).map(|mut answer| {
+        let answer = if self.declarations_only {
+            index.request_declarations(method, params, uri)
+        } else {
+            index.request(method, params, uri)
+        };
+        Some(answer.map(|mut answer| {
             self.rust_locations(&mut answer);
             if self.declarations_only && method == "textDocument/completion" && answer.is_array() {
                 serde_json::json!({"isIncomplete":true,"items":answer})
@@ -386,10 +391,15 @@ mod declaration_only_tests {
         assert!(hover.to_string().contains("Render a row"), "{hover}");
         let signatures = ask("textDocument/signatureHelp", source.rfind("render(").unwrap()+7);
         assert!(signatures.to_string().contains("Row"), "{signatures}");
+        let repairs = crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get());
         let completion = ask("textDocument/completion", source.rfind("row.").unwrap()+4);
         assert_eq!(completion["isIncomplete"], true);
         assert!(completion["items"].as_array().unwrap().iter().any(|item|item["label"]=="value"), "{completion}");
         assert!(index.indices.values().all(|index| !index.checked()));
+        assert_eq!(crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get()), repairs, "declaration reads must not run cursor repair on the protocol thread");
+        let source_index = index.indices.get(&id).unwrap();
+        source_index.request("textDocument/completion", &serde_json::json!({"position":{"line":0,"character":source.rfind("row.").unwrap()+4}}), &uri).unwrap();
+        assert!(crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get()) > repairs, "ordinary unchecked requests retain cursor repair");
     }
 }
 
