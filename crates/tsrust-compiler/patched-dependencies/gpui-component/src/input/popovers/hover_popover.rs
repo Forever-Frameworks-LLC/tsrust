@@ -8,7 +8,7 @@ use gpui::{
 };
 
 use crate::{
-    StyledExt, ThemeStyled as _,
+    ActiveTheme as _, StyledExt, ThemeStyled as _,
     input::{EditorState, popovers::render_markdown},
 };
 
@@ -61,6 +61,8 @@ impl Render for HoverPopover {
             self.symbol_range.clone(),
             move |window, cx| render_markdown("message", contents.clone(), font_size, window, cx),
         )
+        .border_1()
+        .border_color(cx.theme().border)
         .into_any_element()
     }
 }

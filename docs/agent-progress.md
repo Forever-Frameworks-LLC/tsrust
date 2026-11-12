@@ -8,6 +8,23 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Owner hover refinement, November12: HoverPopover now explicitly draws a1px
+theme.border outline. Applied only to symbol hover; diagnostic severity outlines
+are unchanged. The existing popover_style supplies a translucent shadow ring,
+not a border, and the hover's shadow_md overrides that ring. Full formatter
+passed0files/0snippets/0fingerprints; diff-check passed. CLI build passed2m30s,
+atomically installed and independently hash-verified:
+fc348fd5a250a1a0745f43aa071b1ca3a4892ce1d6286c261889fd978799ad6f.
+Authorized supervisor57441 stopped; new supervisor69762 / PTY64634 remains running,
+log /tmp/studio-hover-border-dev.log. Native build passed335331ms, including
+runtime-build+publish217691.7ms, check89628.9ms and emit3770.4ms. App69964 started
+from /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794483787742101000-0/Tsrust Studio.app.
+Popup visual acceptance remains pending owner MAT; no automated focus changes.
+Protected project-check draft hash remains
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+11tabs and owner-active image-actions preserved before restart. No new tests for
+this border-only presentation change; native build validates changed Rust code.
+
 Owner status-bar refinement, November12: replaced the persistent LSP connection
 text with a compact Language services icon. Connection detail remains in its
 tooltip; diagnostics and per-server start/restart actions remain in the same menu.
