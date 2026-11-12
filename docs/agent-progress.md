@@ -41,9 +41,14 @@ record (now clone that owned ID), and indexed Sender's borrowed async temporary
 
 Whole-project formatter passed3files,0documentation snippets,0fingerprints changed;
 diff-check passed. No SDK rebuild/install, new dependencies, push or release.
-Live supervisor42993 / PTY86030 confirmed alive via write_stdin this turn. Last-good
-app43189/LSP43190 stays open while dev source rebuild is pending. Dev reported source
-changed during dependency capture and retry after formatting, not app failure.
+Live supervisor42993 / PTY86030 confirmed alive via write_stdin this turn. Final
+process inspection finds exactly one preview, now app49373/LSP49378, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42993-1794477578225468000-0/Tsrust Studio.app.
+Earlier app43189/LSP43190 has exited through automatic dev replacement. Latest
+registry source rebuild remains pending; no native registry acceptance claimed.
+Dev reported source changed during dependency capture and retry after formatting,
+not app failure. No test gopls or test tsrust-lsp child remains. Refresh CUA bindings
+to the exact new bundle before the next native check.
 No Go UI/native registry acceptance claimed, and no new latency/memory measurement.
 NEXT concrete work: use the registry from trusted global settings and per-server
 controller states, associate documents declaratively, route native and guarded AI
