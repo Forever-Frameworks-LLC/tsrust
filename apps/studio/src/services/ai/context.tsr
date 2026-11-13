@@ -581,7 +581,35 @@ export function editorContext(
     const symbols = promptSymbols(lookup);
     const unresolved = hasReferences ? new Set<string>() : recallTerms(lookup);
 
-    if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
+    const visible = new Set<string>();
+    const mentionedNames = new Map<string, int>();
+    const qualified = new Set<string>();
+    const qualifiedNames = new Set<string>();
+
+    for (const directory of tree.directories) {
+      for (const file of directory.children) {
+        if (file.directory || !file.path.startsWith(prefix)) continue;
+        visible.add(clone(file.path));
+
+        if (mentionsPath(prompt, file.name)) {
+          const count = mentionedNames.get(file.name) ?? 0;
+          mentionedNames.set(clone(file.name), count + 1);
+        }
+
+        const path = file.path.slice(prefix.length);
+
+        if ((path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path)) {
+          qualified.add(clone(file.path));
+          qualifiedNames.add(clone(file.name));
+        }
+      }
+    }
+
+    const shadowedActive = active !== undefined && qualifiedNames.has(active.name) && !qualified.has(active.document.path) && !mentionedNames.has(active.name);
+
+    if (shadowedActive) result = '';
+
+    if (!shadowedActive && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
       const bodies: string[] = [];
 
       const target = outline?.query.document;
@@ -610,7 +638,7 @@ export function editorContext(
       }
     }
 
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, symbols, workspace.root) : new Map<string, ImportBinding[]>();
+    const imported = !shadowedActive && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, symbols, workspace.root) : new Map<string, ImportBinding[]>();
 
     for (const bindings of imported.values()) {
       for (const binding of bindings) unresolved.delete(binding.local);
@@ -619,22 +647,7 @@ export function editorContext(
 
     const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)"));
     const indexedPaths = new Set<string>();
-    const visible = new Set<string>();
     const pending: ImportedCall[] = [];
-    const mentionedNames = new Map<string, int>();
-
-    for (const directory of tree.directories) {
-      for (const file of directory.children) {
-        if (!file.directory && file.path.startsWith(prefix)) visible.add(clone(file.path));
-
-        if (!file.directory && file.path.startsWith(prefix) && mentionsPath(prompt, file.name)) {
-          const count = mentionedNames.get(file.name) ?? 0;
-          mentionedNames.set(clone(file.name), count + 1);
-        }
-      }
-    }
-
-
 
     for (const directory of tree.directories) {
       for (const file of directory.children) {
@@ -642,7 +655,8 @@ export function editorContext(
         const path = file.path.slice(prefix.length);
 
         const nameCount = mentionedNames.get(file.name) ?? 0;
-        const referenced = imported.has(file.path) || nameCount === 1 || (path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path);
+        const otherCopy = qualifiedNames.has(file.name) && !qualified.has(file.path) && nameCount === 0;
+        const referenced = imported.has(file.path) || nameCount === 1 || qualified.has(file.path);
 
         if (nameCount > 1) {
 
@@ -651,7 +665,9 @@ export function editorContext(
 
         const names: string[] = [];
 
-        if (unresolved.size > 0 && file.path !== workspace.active && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
+        if (otherCopy && index.has(file.path)) indexedPaths.add(clone(file.path));
+
+        if (!otherCopy && unresolved.size > 0 && file.path !== workspace.active && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
           indexedPaths.add(clone(file.path));
 
           for (const name of indexedFunctions(workspace, file.path, prefix, declarations, index)) {

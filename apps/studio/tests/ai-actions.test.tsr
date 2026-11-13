@@ -1,4 +1,4 @@
-import { FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
+import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
 import {
   recallTerms,
   turnMentions,
@@ -1082,4 +1082,54 @@ test('overflow retains a named historical source when the follow-up has no curre
   messages[2].content = 'new source\n\nWhat does serviceFee() return now?';
   messages[2].workspaceEnd = 10;
   strictEqual(withoutEarlierWorkspace(messages, terms)[0].content, 'Inspect this file.');
+});
+
+test('qualified chat paths exclude homonymous active and indexed definitions', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-qualified-'));
+
+  try {
+    unwrap(mkdirAll(root + '/lib'));
+    unwrap(writeTextFile(root + '/quote.tsr', 'export function handlingFee() { return 999; }'));
+    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return 73; }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const question = 'What does handlingFee() return in lib/quote.tsr?';
+    const closed = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      question,
+      false,
+      false,
+      index
+    );
+    strictEqual(closed.excerpt.includes('return 73'), true);
+    strictEqual(closed.excerpt.includes('return 999'), false);
+    unwrap(openFile(workspace, root + '/quote.tsr'));
+    const opened = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      question,
+      false,
+      false,
+      index
+    );
+    strictEqual(opened.excerpt.includes('return 999'), false);
+    strictEqual(opened.excerpt.includes('return 73'), true);
+    strictEqual(opened.candidates.length, 0);
+    const ambiguous = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain quote.tsr',
+      false,
+      false,
+      index
+    );
+    strictEqual(ambiguous.candidates.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
 });

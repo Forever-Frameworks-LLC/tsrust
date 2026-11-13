@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat disambiguates same-named files by relative path
+
+A qualified workspace path now suppresses competing implicit active-file
+and indexed excerpts with the same basename. A bare ambiguous basename
+still asks for clarification. All 25 AI action cases passed (46.46 s build).
+The qualified local 1.5B evaluation opened answer.tsr returning 51, asked
+about answer() in lib/answer.tsr, and verified that the prompt contained 73,
+excluded the conflicting definition, and produced exactly 73. This verifies
+one file-resolution scenario. Desktop chat interaction was not repeated.
+
 ## Executable mode in hunk review
 
 Unstaging a deleted executable via its hunk previously recreated the index

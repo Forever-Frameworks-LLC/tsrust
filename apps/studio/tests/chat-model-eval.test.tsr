@@ -50,7 +50,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch'].includes(workspaceEval)) test(workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified'].includes(workspaceEval)) test(workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -75,6 +75,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch'].includes
     } else if (workspaceEval === 'helpers') unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + baseCharge(); }\nfunction baseCharge(): int { return 7; }\nfunction unrelated(): int { return 999; }'));
     else if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
     const workspace = unwrap(openWorkspace(folder));
+
+    if (workspaceEval === 'qualified') unwrap(openFile(workspace, folder + '/answer.tsr'));
 
     if (workspaceEval === 'batch') {
       unwrap(openFile(workspace, folder + '/answer.tsr'));
@@ -113,6 +115,15 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch'].includes
         reviewChatEdit(host.state, opened, journal, batch, true);
         strictEqual(opened.get().files[0].document.text, batch.files[0].after);
         strictEqual(opened.get().files[1].document.text, batch.files[1].after);
+        return;
+      }
+
+      if (workspaceEval === 'qualified') {
+        const answer = await ask(host, updates, 'What does answer() in lib/answer.tsr return? Reply with the integer alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        strictEqual(excerpt.includes('return 51'), false);
+        strictEqual(excerpt.includes('return 73'), true);
+        strictEqual(answer.trim(), '73');
         return;
       }
 
