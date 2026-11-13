@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev rebuild visibility and matched diagnostic observation
+
+The native watcher reports the entry being checked before dispatching the frontend
+request and reports application compilation/linking when it actually runs. The
+existing process-boundary watcher test passed, including initial failure, saved
+edit, cache reuse, last-good preservation and cleanup (4.18 s execution, 21.82 s
+setup). Whole-project formatter: 0 files, snippets or fingerprints. Logs:
+`/tmp/studio-rebuild-status-tests.log`, `/tmp/studio-rebuild-status-format.log`.
+
+A standalone check of Studio's chat-panel.tsrx and its imports took 39.71 s at
+6cfc5731 and 42.13 s with the installed f0063276 CLI. Both exited 0 with identical
+stdout and empty stderr. Source fingerprint matched across both checks. An earlier
+comparison was discarded when a concurrent owner save changed the source. This
+single pair during live development does not establish a speedup, and it does not
+measure the whole Studio watcher, linker or restart. The running supervisor 1088
+and preview 4521 were verified; the new status messages require a newer supervisor.
+
 ## Studio rebuild analysis — borrowed exception-region inputs
 
 The Studio save profile showed repeated partial error-contract analysis. The checker

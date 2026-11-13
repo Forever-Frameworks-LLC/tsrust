@@ -94,6 +94,7 @@ mod platform {
         let inputs=expected.as_ref().map_err(Clone::clone)?;
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
+        report(Status::Info,format_args!("Checking {}…", project.entry.strip_prefix(root).unwrap_or(&project.entry).display()));
         let (reply,response)=mpsc::channel();
         let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
         loop {
@@ -173,6 +174,7 @@ mod platform {
             }
             if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.
+            report(Status::Info,"Compiling and linking the application…");
             let errors=files.0.join("backend.stderr");
             let mut command=crate::backend_command();prepared.link(&mut command)?;
             command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)

@@ -92,6 +92,8 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     assert!(!lines.iter().any(|line|line.contains("Started program")));
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
     wait(&rx,&mut lines,"first-version");wait(&rx,&mut lines,"Started program");let old=pid(&lines);
+    assert!(lines.iter().filter(|line|line.contains("[dev] Checking ")).count()>=2,"both initial and saved inputs should report checking: {lines:?}");
+    assert!(lines.iter().any(|line|line.contains("Compiling and linking the application")), "{lines:?}");
     fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('unrelated edit',()=>{strictEqual(2,2);});")).unwrap();
     wait(&rx,&mut lines,"Application unchanged; kept running.");
     assert_eq!(pid(&lines),old,"test-only edits must retain the live program");
