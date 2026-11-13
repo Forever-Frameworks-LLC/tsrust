@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat discovery of symbol-named workspace modules
+
+For explicit identifiers without a resolved import, Studio uses the explorer
+tree to find matching .tsr/.tsrx stems, ignoring case, underscores and hyphens.
+It reads a candidate under the existing workspace read grant and includes an
+exact simple function declaration and body. The focused chat witness asks
+about deliveryFee() without an import or filename, retrieves its return 63
+from unopened delivery-fee.tsr and excludes the unrelated neighbor and a
+comment-only match. Explicit import resolution takes precedence. This lookup
+still misses functions in arbitrarily named files and is not a maintained
+workspace-wide semantic index.
+
 ## Offline retrieval of example setup
 
 Studio's bundled index now includes top-level state and test hooks preceding
