@@ -4,8 +4,14 @@ import { isAbsolute, separator } from 'std:path';
 import { stat } from 'std:fs';
 import { run } from 'std:process';
 
-export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>): Task<Result<string, string>> {
-  const args = ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false'];
+function workspaceFile(path: ReadOnly<string>): boolean {
+  const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
+  return path !== '' && !isAbsolute(path) && !parts.some((part) => part === '' || part === '.' || part === '..');
+}
+
+export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>, file: string = ''): Task<Result<string, string>> {
+  if (file !== '' && (!workspaceFile(file) || (mode !== 'working' && mode !== 'staged'))) return Err('Choose a file inside the workspace.');
+  const args = ['--literal-pathspecs', '--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false'];
 
   if (mode === 'status') {
     for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
@@ -19,7 +25,7 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
     if (mode === 'staged') args.push('--cached');
   } else return Err('Unknown source control view.');
   args.push('--');
-  args.push('.');
+  args.push(file === '' ? '.' : file);
 
   return await gitOutput(root, args);
 }
@@ -91,12 +97,17 @@ export interface GitRequest {
   path?: string;
   hunk?: string;
   patch?: string;
+  viewFile?: string;
 }
 
 export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
   const action = request.action;
 
-  if (action === undefined) return await readGitView(root, request.mode);
+  const viewFile = clone(request.viewFile) ?? '';
+
+  if (viewFile !== '' && (!workspaceFile(viewFile) || (request.mode !== 'working' && request.mode !== 'staged'))) return Err('Choose a file inside the workspace.');
+
+  if (action === undefined) return await readGitView(root, request.mode, clone(viewFile));
 
   if (action === 'stage-hunk' || action === 'unstage-hunk') {
     const reverse = action === 'unstage-hunk';
@@ -104,7 +115,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
     if (request.mode !== (reverse ? 'staged' : 'working')) return Err('Unknown source control action.');
     let diff = '';
 
-    match (await readGitView(root, request.mode)) {
+    match (await readGitView(root, request.mode, clone(viewFile))) {
       Ok(text) => {
         diff = text;
       },
@@ -164,7 +175,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
     match (await gitOutput(top, args, indexedPatch)) {
       Ok(_) => {
-        return await readGitView(root, request.mode);
+        return await readGitView(root, request.mode, clone(viewFile));
       },
       Err(reason) => {
         return Err(reason);
@@ -174,9 +185,8 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
   if (action !== 'stage' && action !== 'unstage') return Err('Unknown source control action.');
   const path = request.path ?? '';
-  const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
 
-  if (path === '' || isAbsolute(path) || parts.some((part) => part === '' || part === '.' || part === '..')) return Err('Choose a file inside the workspace.');
+  if (!workspaceFile(path)) return Err('Choose a file inside the workspace.');
 
   match (stat(root + separator() + path)) {
     Ok(info) => {
@@ -203,7 +213,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
       return Err(error);
     },
     Ok(_) => {
-      return await readGitView(root, request.mode);
+      return await readGitView(root, request.mode, clone(viewFile));
     }
   }
 }

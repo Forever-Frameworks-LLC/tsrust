@@ -26,7 +26,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
   const files = signal<string[]>([]);
   const chosen = signal('');
   const selection = computed<string>(() => {
-    if (mode.get() === 'status' && chosen.get() !== '') return chosen.get();
+    if (['status', 'working', 'staged'].includes(mode.get()) && chosen.get() !== '') return chosen.get();
     const state = workspace.get();
     const prefix = state.root.endsWith(separator()) ? clone(state.root) : state.root + separator();
     return state.active.startsWith(prefix) ? state.active.slice(prefix.length) : '';
@@ -102,7 +102,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           }}
         />
       </View>
-      <View hidden={mode.get() !== 'status' || files.get().length === 0}>
+      <View hidden={mode.get() !== 'status' || shown.get() !== 'status' || busy.get() || files.get().length === 0}>
         <Select
           items={files.get()}
           value={chosen.get()}
@@ -115,6 +115,11 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
             chosen.set(clone(path));
           }}
         />
+      </View>
+      <View hidden={chosen.get() === '' || (mode.get() !== 'working' && mode.get() !== 'staged')}>
+        <Text>
+          {chosen.get()}
+        </Text>
       </View>
       <View hidden={shown.get() !== mode.get() || hunks.get().length === 0}>
         <Select
@@ -196,6 +201,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
             });
 
             if (request.mode === '') request.mode = mode.get();
+
+            if ((request.mode === 'working' || request.mode === 'staged') && chosen.get() !== '') request.viewFile = chosen.get();
 
             match (requests.trySend(request)) {
               Ok(_) => {

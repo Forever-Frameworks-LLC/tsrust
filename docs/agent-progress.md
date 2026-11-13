@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Selected file in Source Control diff views
+
+Choosing a changed path in Status carries it into Working diff and Staged
+diff. Both views show the path, read its literal Git pathspec and use the
+same scope for hunk validation and refresh. Clearing the Status picker
+restores the workspace-wide diff. The focused Git suite passed 6/6 (2.88 s
+build), including a bracket filename, staged deletion in a nested repository,
+outside-path rejection and stale hunk rejection. Native interaction remains
+unverified.
+
 ## Studio runtime cache reuse across compiler-owned Cargo overrides
 
 Of 16 retained Studio runtime identities, 13 matched byte for byte except

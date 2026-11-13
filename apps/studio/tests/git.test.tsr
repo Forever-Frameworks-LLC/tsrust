@@ -50,6 +50,11 @@ test('source control reads status and separate staged and working diffs scoped t
     }));
     strictEqual(afterStage.includes('A  [x].txt'), true);
     strictEqual(afterStage.includes('?? x.txt'), true);
+    const filtered = unwrap(await gitRequest(sub, {
+      mode: 'staged', viewFile: clone(literal)
+    }));
+    strictEqual(filtered.includes('+one file'), true);
+    strictEqual(filtered.includes('ré view.txt'), false);
     const afterUndo = unwrap(await gitRequest(sub, {
       mode: 'status', action: 'unstage', path: literal
     }));
@@ -97,6 +102,18 @@ test('source control reads status and separate staged and working diffs scoped t
       mode: 'staged', action: 'stage', path: 'ré view.txt'
     }));
     strictEqual(removed.includes('deleted file mode'), true);
+    const deleted = unwrap(await readGitView(sub, 'staged', 'ré view.txt'));
+    strictEqual(deleted.includes('deleted file mode'), true);
+
+    match (await readGitView(sub, 'working', '../outside.txt')) {
+      Ok(_) => {
+        throw 'Outside diff target accepted';
+      },
+      Err(error) => {
+        strictEqual(error !== '', true);
+      }
+    }
+
     strictEqual(unwrap(await changedFiles(sub)).includes('ré view.txt'), true);
     const restored = unwrap(await gitRequest(sub, {
       mode: 'status', action: 'unstage', path: 'ré view.txt'
@@ -174,7 +191,7 @@ test('stage and unstage one reviewed hunk in a nested workspace', async () => {
     strictEqual(choices.length, 2);
     const last = choices[1];
     const request: GitRequest = {
-      mode: 'working', action: 'stage-hunk', hunk: clone(last.label), patch: last.header + working.slice(last.start, last.end)
+      mode: 'working', action: 'stage-hunk', viewFile: 'file.txt', hunk: clone(last.label), patch: last.header + working.slice(last.start, last.end)
     };
     unwrap(writeTextFile(file, edited.replace('LAST', 'changed again')));
 
