@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Default imports and extensionless chat retrieval
+
+Relative imports in the active draft now support default and combined bindings.
+Extensionless targets use the compiler candidate order: .tsr, .tsrx, index.tsr,
+index.tsrx. The retrieval result supplies the local spelling of simple default
+function signatures and preserves the original source. Richer signatures fall
+back to the binding label. Compiler path aliases and project-wide symbol lookup
+remain open.
+
+In the extensionless default-import variant of the live caller repair, the model
+twice selected the wrong argument order (the first response also included no-op
+replacements). With the signature rendered using the caller's local name and the
+original code attached, it produced shelfCharge(fragile, units). Review, save and
+four native behavior checks passed in 3.88 s. Together with AI action coverage,
+19/19 tests passed in 3.92 s. The opt-in workspace evaluation retains both named
+(mode 1) and default (mode default) variants. This is a comparison on one task.
+
 ## Live two-file caller repair
 
 Studio resolves a named relative import from the active draft when its local

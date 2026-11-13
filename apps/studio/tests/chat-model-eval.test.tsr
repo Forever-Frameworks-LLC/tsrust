@@ -158,14 +158,18 @@ if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat re
   }
 });
 
-if (unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === '1') test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
   if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
   const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
-  const caller = "import { shelfCharge } from './policy.tsr';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
-  const policy = 'export function shelfCharge(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
+  const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
+  const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
+  const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", "import { shelfCharge } from './policy.tsr'");
+  const implementation = 'export default function storageFee(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
+
+  const policy = defaultImport ? clone(implementation) : implementation.replace('default function storageFee', 'function shelfCharge');
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));

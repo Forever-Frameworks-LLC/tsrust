@@ -6,7 +6,7 @@ import {
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { compile } from 'std:regex';
-import { basename, dirname, join, separator } from 'std:path';
+import { basename, dirname, extname, join, separator } from 'std:path';
 
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
@@ -189,10 +189,10 @@ export interface EditorContextResult {
 }
 
 // Match relative named import declarations before reading a file from the workspace tree.
-function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Set<string> {
-  const paths = new Set<string>();
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Map<string, string> {
+  const paths = new Map<string, string>();
   const bytes = unwrap(fromUtf8(source));
-  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*\\{([^{};]+)\\}\\s*from\\s*['\"](\\.\\.?/[^'\"\\r\\n]+)['\"]"));
+  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"](\\.\\.?/[^'\"\\r\\n]+)['\"]"));
 
   for (const found of imports.capturesAll(source)) {
     const names = found.groups[0];
@@ -201,18 +201,36 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
     if (names === undefined || specifier === undefined) continue;
     const bindings = unwrap(toUtf8(unwrap(view(bytes, names.start, names.end))));
 
-    for (const binding of bindings.split(',')) {
+    const defaultName = bindings.trim().startsWith('{') ? '' : bindings.split(',')[0].trim();
+
+    for (const binding of bindings.replace('{', '').replace('}', '').split(',')) {
       const parts = binding.trim().split(' as ');
       const name = parts[parts.length - 1].trim();
 
       if (name === '' || !mentionsPath(prompt, name)) continue;
       const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
 
-      match (canonicalize(join(dirname(path), relative))) {
-        Ok(real) => {
-          paths.add(real);
-        },
-        Err(_) => {}
+      const base = join(dirname(path), relative);
+      const candidates = extname(relative) === '' ? [base + '.tsr', base + '.tsrx', join(base, 'index.tsr'), join(base, 'index.tsrx')] : [clone(base)];
+
+      for (const candidate of candidates) {
+        match (stat(candidate)) {
+          Ok(info) => {
+            if (!info.isFile) continue;
+
+            match (canonicalize(candidate)) {
+              Ok(real) => {
+                paths.set(real, name === defaultName ? clone(name) : '');
+              },
+              Err(_) => {}
+            }
+
+            break;
+          },
+          Err(error) => {
+            if (error.code !== 'not-found') break;
+          }
+        }
       }
 
       break;
@@ -244,7 +262,7 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Set<string>();
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Map<string, string>();
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {
@@ -274,7 +292,22 @@ export function editorContext(
         if ((file.path !== workspace.active || active?.kind !== 'text') && referenced && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
-              result += '\n\nReferenced workspace file: ' + path + '\n' + excerpt;
+              const binding = clone(imported.get(file.path)) ?? '';
+              let signature = '';
+
+              if (binding !== '') {
+                const declaration = unwrap(compile('(?m)^\\s*export\\s+default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(\\s*(?:<[^>]*>)?\\s*\\([^()]*\\)\\s*(?::[^{};]+)?)')).captures(excerpt);
+
+                if (declaration !== undefined) {
+                  const parameters = declaration.groups[0];
+
+                  if (parameters !== undefined) signature = 'Local signature: ' + binding + unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(excerpt)), parameters.start, parameters.end)))).trim() + '\n';
+                }
+
+                if (signature === '') signature = 'The local name ' + binding + ' refers to the default export below.\n';
+              }
+
+              result += '\n\nReferenced workspace file: ' + path + '\n' + signature + excerpt;
             },
             Err(_) => {
               unavailable.push(clone(path));
