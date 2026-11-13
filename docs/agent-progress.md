@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Local inline arithmetic completion evaluation
+
+Ran the installed 1.5B and 3B Q4_K_M models sequentially through Studio's actual `complete-code` host. Both received the prefix `function remaining(limit: int, used: int): int {\n  const available = limit - used;\n  return ` followed by the suffix `;\n}\n// remaining(4, 7) returns X. remaining(7, 4) returns 3.\n`, first with X=0, then X=-3. All four insertions stopped at EOS with maxTokens=0. Each was compiled unchanged and exercised via `tsrust test` with withheld pairs (2,7), (9,5), (6,6). Both models passed the zero-floor contract. For the signed contract the 1.5B clamped -5 to 0 and the 3B returned its absolute value, 5. Peak host RSS observed at half-second intervals was 1,215,424 KiB and 1,554,464 KiB respectively. Two prompts and one run per model do not establish comparative accuracy. Owner settings were untouched.
+
 ## Inline completions across block comments in the desktop editor
 
 Two isolated `.tsr` workspaces exercised the current Studio binary on macOS. Typing on an interior line of a multiline comment showed zero completion controls after two seconds and never started the model host. Tab inserted two spaces and saving preserved the closing delimiter on the following line. In code after `/* selected value */`, the editor buffer still read `return ;` before Tab. With the configured local model, Tab changed it to `return second;` and Save produced the exact expected file. These fixtures disabled format-on-save and check-on-save in temporary settings. Both fixture windows closed independently of the dev session.
