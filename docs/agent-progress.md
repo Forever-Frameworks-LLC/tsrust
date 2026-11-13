@@ -1,8 +1,133 @@
 # Tsrust continuation
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
+B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full Studio goal is owner-paused for thread transfer; required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
+
+## Thread transfer — 2026-11-12, authoritative restart instructions
+
+The owner requested a complete handoff to a fresh ChatGPT/Codex thread to reduce
+client memory pressure. The reduction is not measured. Keep this file as the only
+handoff; do not create source snapshots, archives or a second handoff document.
+
+- Continue the FULL Tsrust Studio goal, not an MVP or only the last chat slice.
+  Original mandate: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29fb58a3/pasted-text-1.txt.
+  Read that attachment, root/apps/studio AGENTS.md, local tsrust-development,
+  Ponytail and Caveman skills, docs/development-workflow.md, and the Studio plan.
+  Source app is apps/studio, macOS first, 8GiB minimum full offline editor/agent.
+  All application/orchestration code remains .tsr/.tsrx; native libraries use
+  checked Tsrust bindings. No hidden cloud fallback or external model server.
+- Repository /Users/seancotter/Desktop/dev/learning/tsrust; branch codex/gpui-ui.
+  Latest source checkpoint4a892a1c; worktree was CLEAN when preparing transfer.
+  Previous accepted checkpointsfeb9fa82/c68528df remain valid. No push/tag/release.
+  One writer only: the owner PAUSED this old goal for transfer. Keep it paused
+  while the new chat works. The full goal is incomplete, not achieved.
+- Latest owner question: why a configured output limit? Answered candidly that
+  the current32-token limit is a hardcoded initial-inference admission limit,
+  not a real Studio preference or the model's limit. Promised to replace it with
+  a normal response budget. NO OUTPUT-BUDGET IMPLEMENTATION HAS STARTED. This is
+  the immediate next coherent feature, alongside the measured memory work below.
+- Next executable implementation: trace all32-token defaults in
+  src/services/ai/actions.tsr and services/ai/session.tsr, ModelRequest protocol,
+  model-host worker, and crates/tsrust-compiler/src/stdlib/ai/llama_admission.rs.
+  Replace repeated full-prefix detokenization with an incremental UTF-8 decoder
+  BEFORE raising the native cap. Handle byte-split Unicode, malformed/truncated
+  sequences, EOS, cancellation/backpressure, bounded output frames and stop reason.
+  Use a normal default and validated persisted AI response-budget setting in the
+  existing categorized Settings window, through its shared guarded settings route.
+  Remove duplicate hardcoded generation values; retain finite native/context/time
+  safeguards with truthful errors. Do not merely raise32 and call it done.
+- Primary local API source for that work: pinned llama-cpp-2=0.1.161 in
+  ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/llama-cpp-2-0.1.161/src/vocab.rs:
+  token_to_piece/token_to_piece_into(special,lstrip) expose token bytes;
+  model.rs has n_ctx_train(). Preserve tokenizer agreement and native ownership.
+  Model-host llama.bindings.json reads llama_admission.rs directly; verify which
+  consumers need rebuilding rather than rebuilding the entire SDK by habit.
+  The unrelated Candle admission primitive remains a separate proof; don't
+  change its contract accidentally. Current Llama limits:2048prompt tokens,
+  65536prompt UTF-8 bytes,32output tokens; context allocation fixed2080.
+- Do not replay inference unchanged: the latest bounded UI request delivered
+  exact “Ready.” but global swap-growth/critical-pressure stop FAILED. Full8GiB,
+  model quality, tools and useful coding-agent operation are NOT qualified.
+  Read precise passed/failed evidence below and preserve it. Profile allocations
+  and quiet/active analysis conditions before another resource-qualified run.
+- Dev is already running. ONE supervisor66933/PTY53832, cwd apps/studio,
+  log/tmp/studio-chat-real-dev.log. Real host override:
+  /Users/seancotter/Desktop/dev/learning/tsrust/target/studio-model-host.
+  Current verified app70214, LSP70219, resident model70263 (owner used chat after
+  the guarded test; do NOT stop/replay it merely to reproduce the earlier test).
+  Exact app bundle:
+  /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-66933-1794529343016316000-0/Tsrust Studio.app.
+  Rediscover PIDs/paths before acting; never getApp an obsolete bundle, which can
+  launch a duplicate. Keep one working independent preview open.
+- Last CUA was read-only verification of that exact current app:13tabs,
+  active src/lib/ai/prompts.tsr,3unsaved owner drafts(main.tsrx,editor.tsrx,
+  services/ai/actions.tsr), All Chats visible with2conversations. Owner is using
+  the app concurrently; preserve their newer edits/chats. Never restore earlier
+  synthetic drafts/messages or save/discard owner buffers. Recovery journal:
+  ~/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+  Theme Alduin/base font11/zoom-1. Chat history is workspace-hashed under
+  ~/.tsrust/studio/chats/. Settings ~/.tsrust/studio/tsrust_studio.config.json.
+- Last CUA phase completed “Verified running handoff preview.” New CUA session
+  must initialize/read documentation; after compaction use rewriteDocumentation
+  first. UI actions only via CUA, no AppleScript. Current owner changes may reject
+  an action; requery state and never overwrite their active field.
+- Current SDK pair: CLI7b5e97055c303c0c4dfa66c6d70fb0c1342044f22e76a77afca436e7f18de8f8;
+  LSP89051e62168607cad2f4a783fc0321c9be359a77cdd4ac63588b2a00c40268ff.
+  Real model-host1b23f85dc409be87d9bd82fddd45a1cd015aad81cd8419742e3b02543a004f27.
+  Synthetic transport fixture source is retained in tests/fixtures/model-ui-host.tsr;
+  its binary was removed and normal preview now uses the REAL host. Never leave
+  a fixture override in the owner's final preview or call it model acceptance.
+- Current source checkpoint includes the plain worker-error cause/message unwrap.
+  Focused changed-case1/1 passed,1.20ms execution. Dev reload completed in424187ms,
+  reported check188437.8ms/emit5650.9ms/runtime-prepare11397.8ms/runtime hit/
+  native+link38326.9ms. Counters do not explain the entire wall time; don't invent
+  an attribution. It is now loaded in app70214, no pending source build at transfer.
+- Profiling, no further workload replay: existing LSP sample
+  /tmp/studio-chat-lsp.sample at19:17:47:276.8MiB footprint/365.1MiB peak, diagnostic
+  worker in graph/recursive analysis. Its total-stack table (line3712) also shows
+  native_view_recursive::Shapes::matches and repeated shape refresh at expression
+  finish, layout validation and error-effect traversal. Another compiler sample
+  /tmp/studio-dev-build.sample showed region_caller_error_effects repeatedly
+  annotating all functions. These are hotspots, not proven leaks or benchmarks.
+  Existing Shapes cache deliberately detects in-place record/union/scoped-family
+  mutation; preserve its regression tests. Do NOT replace it with length-only
+  cache validation or arbitrary skipped checks. No compiler optimization edited yet.
+- Warm-reload sample /tmp/studio-chat-pending-build.sample caught runtime prepare
+  unpacking native dependency bundles despite a later runtime-cache hit. Trace
+  src/cli/runtime_build.rs + native_dependency_bundle.rs before optimizing IO;
+  preserve artifact checksums, symlink/path safety, Windows import libraries and
+  offline guarantees. Again, investigation only, no cache implementation change.
+- Existing-model READ-ONLY vmmap summary /tmp/studio-live-model-vmmap.txt sampled
+  previous owner-respawned PID70055 at19:22:15:footprint102.0MiB/peak222.8MiB,
+  mapped-file resident896.0MiB, malloc allocated98.9MiB,98.8MiB writable swapped.
+  RSS alone therefore overstates private allocation; this does not explain the
+  global critical-pressure event or qualify GPU/combined-editor memory. No new
+  inference was launched for this observation. PID70055 later ended in dev reload;
+  current owner model70263 is different. Do not kill unrelated/user-owned processes.
+- Preserve workflow: one Cargo target at /repo/target,CARGO_INCREMENTAL=0,
+  CARGO_BUILD_JOBS=1, CMAKE_BUILD_PARALLEL_LEVEL=1 for native engine. Native preview
+  launches require desktop-capable escalated shell and env -u CODEX_TOOL_CALL_ID;
+  sandbox NSPasteboard/XPC failures are not solved with plist permissions.
+  Restart permission is standing; preserve drafts, stop old supervisor first.
+  Atomic SDK installs copy to sibling then os.replace, never overwrite live inode.
+- Whole-project formatter before source checkpoints:
+  env -u CODEX_TOOL_CALL_ID TSRUST=/repo/target/debug/tsrust node tools/format-project.mjs.
+  Await completion before editing. Last pass1file,0documentation snippets and0
+  benchmark fingerprints; locale checker2catalogs/480keys passed. Focused chat7/7,
+  branch11/11 and all prior accepted subsets stay passed: do not rerun full matrices
+  or the already tested model just because the thread changed. Add focused witnesses
+  during coherent implementation, then batch affected acceptance and human MAT.
+- Broad remaining product scope stays in docs/plans/tsrust-studio.md and original
+  attachment: responsive hover/completion/signatures/snippets and cross-language
+  extension-ready LSP; full guarded local AI agent/proposed diffs and shared action
+  parity; context/skills/images with real capabilities; Git/debug/extensions; model
+  evaluation/specialization and actual quantized quality/resource acceptance; cloud
+  APIs/external agents; complete polished configurable editor then packaging.
+  Existing editor/save/recovery/terminal/search/settings/layout fixes must survive.
+  No filler controls or fake successful features. Use std:ui/GPUI Kit, native
+  editor conventions and organized .tsr/.tsrx components. Settings only in Settings.
+  No public release, push, signing, publication or hidden cloud fallback authorized.
 
 ## Current continuation — 2026-11-08
 
@@ -18,7 +143,7 @@ single title-bar AI toggle. Real file/skill context and eventually image/tool
 controls are desired, but no nonfunctional filler. Current text-only engine cannot
 consume images; do not pretend it can. Full agent/tool integration remains scope.
 
-Chat section — source based on feb9fa82/c68528df, local checkpoint pending:
+Chat section — source checkpoint4a892a1c, based on feb9fa82/c68528df:
 - Implemented avatar-free alternating messages, one title-bar bot toggle, no
   redundant AI Chat/X or manual model lifecycle/settings/trash composer controls.
   All Chats/New/open/delete-confirmation use shared executable guarded actions.
@@ -46,8 +171,7 @@ Chat section — source based on feb9fa82/c68528df, local checkpoint pending:
   This is a bounded delivery observation, not an8GiB/quality acceptance claim.
 - The forced stop exposed raw {cause,code} worker JSON in the notice. ModelFailure
   now unwraps cause/message into plain text. Focused changed-case test1/1 passed,1.20ms execution,
-  log/tmp/studio-chat-error-test.log; dev is rebuilding this UI-only
-  service fix. No model replay needed for error formatting. Whole-project formatter
+  log/tmp/studio-chat-error-test.log; dev loaded this UI-only service fix in app70214. No model replay needed for error formatting. Whole-project formatter
   after fix passed1file,0documentation/benchmark fingerprint changes.
 - Shared ListItem value-key identity fix: branch::tests11/11 passed,5.03s setup,
   <.01s tests, including removal/reorder/duplicate-key callback witness. ListItem
@@ -85,8 +209,8 @@ Chat section — source based on feb9fa82/c68528df, local checkpoint pending:
   analysis and model allocation before another inference; graduate32-token admission
   with an incremental decoder, then real guarded agent tool/proposal loop. Current
   engine remains2048prompt/32output tokens, text only; no fake vision/tool buttons.
-- CUA phase completed “Verified real local chat response.” New CUA phase should
-  inspect the plain-error reload and confirm13tabs/3drafts; don't replay inference.
+- Final CUA phase completed “Verified running handoff preview.” App70214 loaded
+  the plain-error fix;13tabs/3drafts preserved. No inference replay.
 
 Current accepted Studio section — November12, source checkpoint feb9fa82:
 - Footer Format/Check now open Document/Project menus using the SAME command IDs
