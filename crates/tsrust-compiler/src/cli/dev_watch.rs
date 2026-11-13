@@ -9,7 +9,18 @@ impl PartialEq for Contents {
 }
 impl Eq for Contents {}
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>}
+pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>,pub application_paths:Option<Arc<std::collections::BTreeSet<PathBuf>>>}
+impl Inputs {
+ pub fn only_unused_sources_changed(&self,old:&Self)->bool {
+  let Some(paths)=&self.application_paths else{return false;};
+  if self.application_paths!=old.application_paths || self.resolutions!=old.resolutions
+   || self.failures!=old.failures || self.files.len()!=old.files.len() {return false;}
+  self.files.iter().all(|(path,bytes)|{
+   let Some(prior)=old.files.get(path) else{return false;};
+   prior==bytes || (!paths.contains(path) && matches!(path.extension().and_then(|ext|ext.to_str()),Some("tsr"|"tsrx")))
+  })
+ }
+}
 impl std::ops::Deref for Inputs {type Target=BTreeMap<PathBuf,Contents>;fn deref(&self)->&Self::Target{&self.files}}
 pub(crate) type Fingerprint=Result<Inputs,String>;
 #[cfg(unix)] use std::os::unix::fs::MetadataExt;

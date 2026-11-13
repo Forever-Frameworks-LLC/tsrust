@@ -110,7 +110,7 @@ mod platform {
             std::thread::sleep(Duration::from_millis(20));
         }
         let mut last_input_check=Instant::now();
-        let frontend=loop {
+        let (frontend,reused_frontend)=loop {
             if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
                 if &watcher.snapshot(root)!=expected {return Ok(None);}
@@ -124,7 +124,8 @@ mod platform {
             }
         };
         if &watcher.snapshot(root)!=expected {return Ok(None);}
-        if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
+        if verbose && reused_frontend {eprintln!("[build] Reused checked application.");}
+        else if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
         let backend_started=Instant::now();
         let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
@@ -187,7 +188,7 @@ mod platform {
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
             if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root){let _=cache.try_publish(&binary);}
         }
-        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
+        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",if reused_frontend{0.0}else{frontend.check.as_secs_f64()*1000.0},if reused_frontend{0.0}else{frontend.emit.as_secs_f64()*1000.0},backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         #[cfg(target_os="macos")]
         let binary=if frontend.features.contains(&"ui"){crate::app_package_cli::development_bundle(project,&binary)?}else{binary};
         let identity=ApplicationIdentity {

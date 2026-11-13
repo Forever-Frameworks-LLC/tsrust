@@ -10,7 +10,7 @@ struct Provider {
 }
 impl Provider {
  fn new(files:BTreeMap<PathBuf,Contents>)->Self{
-  Self{invalid:Cell::new(false),inputs:RefCell::new(Inputs{files,failures:BTreeMap::new(),resolutions:BTreeMap::new()}),observed:RefCell::default(),aliases:RefCell::default()}
+  Self{invalid:Cell::new(false),inputs:RefCell::new(Inputs{files,failures:BTreeMap::new(),resolutions:BTreeMap::new(),application_paths:None}),observed:RefCell::default(),aliases:RefCell::default()}
  }
  fn observe(&self,path:&Path)->Option<Stamp>{
   let stamp=Stamp::read(path).ok();
@@ -62,7 +62,11 @@ pub(crate) fn capture(root:&Path,files:BTreeMap<PathBuf,Contents>)->Result<(Inpu
  if let Some(entry)=entry {
   // Header loading records dependency identities even when checking will fail.
   // The ordinary frontend owns the diagnostic; capture must retain its inputs.
-  let _=tsrust_compiler::project::load_project_headers(&provider,entry.to_str().ok_or("Source path must be valid UTF-8.")?);
+  if let Ok(graph)=tsrust_compiler::project::load_project_headers(&provider,entry.to_str().ok_or("Source path must be valid UTF-8.")?) {
+   let mut paths:std::collections::BTreeSet<_>=graph.modules.into_keys().map(|id|PathBuf::from(id.0)).collect();
+   paths.extend(provider.observed.borrow().keys().cloned());
+   provider.inputs.borrow_mut().application_paths=Some(paths.into());
+  }
  }
  if provider.invalid.get(){return Err("Dependency changed during capture; retrying".into());}
  for(path,stamp)in provider.observed.borrow().iter(){if Stamp::read(path).ok()!=*stamp{return Err(format!("{} changed during dependency capture",path.display()));}}

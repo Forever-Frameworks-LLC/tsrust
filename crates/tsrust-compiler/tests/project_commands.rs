@@ -96,6 +96,7 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     assert!(lines.iter().any(|line|line.contains("Compiling and linking the application")), "{lines:?}");
     fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('unrelated edit',()=>{strictEqual(2,2);});")).unwrap();
     wait(&rx,&mut lines,"Application unchanged; kept running.");
+    assert!(lines.iter().any(|line|line.contains("Reused checked application.")),"unimported test edits should skip frontend checking: {lines:?}");
     assert_eq!(pid(&lines),old,"test-only edits must retain the live program");
     assert_eq!(unsafe {kill(old,0)},0,"unchanged program was stopped");
     assert_eq!(lines.iter().filter(|line|line.contains("Started program")).count(),1);

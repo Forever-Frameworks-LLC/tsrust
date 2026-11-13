@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Unimported source edits in dev
+
+The frontend worker retains its last successful Rust output. It reuses that
+output when only the contents of existing unimported .tsr/.tsrx files changed
+and capture still proves the same application paths, resolutions and failures.
+New or removed files, configuration changes and changed dependencies still go
+through normal checking. Downstream native dependency and application identity
+checks remain active. The process-boundary test observed reuse on a saved
+test file, retained the live PID, and subsequently rejected a broken import and
+restarted on a repaired dependency. Two watcher tests passed in 3.47 s, three
+alias/data tests in 3.05 s and seven snapshot tests in 0.03 s. Logs under
+/tmp/studio-unused-{final-check,aliases,snapshot,format}.log. Supervisor 36374
+and Studio 41211 were verified live on the existing toolchain. No live latency
+measurement for this change. Imported Studio styles still require checking.
+
 ## Chat layout and code wrapping
 
 Studio overrides MessageScroller's native 12px horizontal row padding with

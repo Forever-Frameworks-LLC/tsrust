@@ -2,7 +2,7 @@
 use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,Instant}};
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
-pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
+pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<(std::sync::Arc<Output>,bool),String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
 /// request, including imported dependencies outside the ordinary watch tree.
 pub(crate) struct Snapshot {pub root:PathBuf,pub files:crate::dev_watch::Inputs}
@@ -57,8 +57,17 @@ impl Worker {
 }
 fn run(requests:Receiver<Request>) {
  let mut session=ProjectSession::default();
+ let mut previous:Option<(crate::dev_watch::Inputs,std::sync::Arc<Output>)>=None;
  for request in requests {
-  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources));
+  if let Some((inputs,output))=&previous && request.sources.files.only_unused_sources_changed(inputs) {
+   let _=request.reply.send(Ok((output.clone(),true)));continue;
+  }
+  previous=None;
+  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources)).map(|output|{
+   let output=std::sync::Arc::new(output);
+   previous=Some((request.sources.files,output.clone()));
+   (output,false)
+  });
   let _=request.reply.send(result);
  }
 }
