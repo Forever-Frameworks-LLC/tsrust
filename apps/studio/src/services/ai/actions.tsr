@@ -545,25 +545,22 @@ export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<
   });
   const next = state.get();
 
-  if (next.phase === 'stopped' || (next.phase === 'starting' && next.pending === undefined) || next.phase === 'inline') {
+  if (next.phase === 'stopped' || next.phase === 'ready' || (next.phase === 'starting' && next.pending === undefined) || next.phase === 'inline') {
     const previous = next.queuedInline;
 
     if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});
-    next.queuedInline = request;
+    next.queuedInline = clone(request);
 
     if (next.phase === 'inline') {
       if (next.inlineCancel === undefined) next.inlineCancel = 'pending';
       sendInlineCancel(next, commands);
-    }
+    } else if (next.phase === 'ready') dispatchInline(next, commands, request);
 
-    state.set(next);
-  } else if (next.phase === 'ready') {
-    startInline(next, commands, request);
     state.set(next);
   } else answerEditorLanguage(request.id, 'null', (_delivery) => {});
 }
 
-function startInline(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>, request: InlineRequest): void {
+function dispatchInline(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>, request: InlineRequest): boolean {
   match (commands.trySend({
     kind: 'complete-code', id: 'inline:' + request.id.toString(), prompt: request.prefix, suffix: request.suffix, maxTokens: 0
   })) {
@@ -571,10 +568,14 @@ function startInline(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequ
       next.inlineRequest = request.id;
       next.phase = 'inline';
     },
-    Err(_) => {
+    Err(error) => {
+      if (error.code === 'full') return false;
       answerEditorLanguage(request.id, 'null', (_delivery) => {});
     }
   }
+
+  next.queuedInline = undefined;
+  return true;
 }
 
 function sendInlineCancel(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>): void {
@@ -710,6 +711,8 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
     changed = true;
   }
 
+  let waitingForCapacity = false;
+
   if (next.phase === 'stopped' && next.queuedInline !== undefined && context.allowInference) {
     match (startRequest(context)) {
       Ok(start) => {
@@ -718,21 +721,24 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
             next.phase = 'starting';
             changed = true;
           },
-          Err(_) => {}
+          Err(error) => {
+            waitingForCapacity = error.code === 'full';
+          }
         }
       },
       Err(_) => {}
     }
   }
 
-  if (!['inline', 'starting'].includes(next.phase) && next.queuedInline !== undefined) {
+  if (next.phase === 'ready' && next.queuedInline !== undefined && next.pending === undefined && context.allowInference) {
+    const queued = clone(next.queuedInline);
+
+    if (queued !== undefined && dispatchInline(next, context.commands, queued)) changed = true;
+  } else if (!waitingForCapacity && !['inline', 'starting'].includes(next.phase) && next.queuedInline !== undefined) {
     const queued = clone(next.queuedInline);
     next.queuedInline = undefined;
 
-    if (queued !== undefined) {
-      if (next.phase === 'ready') startInline(next, context.commands, queued);
-      else answerEditorLanguage(queued.id, 'null', (_delivery) => {});
-    }
+    if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
 
     changed = true;
   }

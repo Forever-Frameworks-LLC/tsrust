@@ -124,6 +124,36 @@ test('typing code starts the configured host and retains the latest caret throug
   strictEqual(unwrap(commands.tryReceive()).id, 'inline:22');
 });
 
+test('a full command queue retains only the latest inline request at startup and after readiness', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(1);
+  const sender = commands.sender();
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  const updates = new Channel<ModelUpdate>(1);
+  unwrap(sender.trySend({
+    kind: 'cancel', id: 'old', prompt: '', maxTokens: 0
+  }));
+  requestInline(state, sender, '{"id":31,"prefix":"a","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(state.get().queuedInline?.id, 31);
+  strictEqual(unwrap(commands.tryReceive()).id, 'old');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().queuedInline?.id, 31);
+  requestInline(state, sender, '{"id":32,"prefix":"b","suffix":"!"}');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  pollModel(host, updates);
+  const latest = unwrap(commands.tryReceive());
+  strictEqual(latest.id, 'inline:32');
+  strictEqual(latest.suffix, '!');
+  strictEqual(state.get().queuedInline === undefined, true);
+});
+
 test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
   const ready = initialAiState();
   ready.phase = 'ready';
