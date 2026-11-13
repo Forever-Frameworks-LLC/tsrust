@@ -6,6 +6,17 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+After owner visual review, the sidebar uses a single commit row, filenames
+first and editor zoom for change text. File staging stays on its row. The
+split diff wraps at the pane width, hides its redundant file header, and
+places hunk actions in a menu alongside Close diff. Native controls carry
+hover help. In the running Studio dev window, selecting chat-panel.tsrx
+opened the diff. At window widths 1120 and 850, its measured bounds were
+822 and 614 logical pixels wide, starting one pixel after the sidebar list.
+Restored the original window size. Hovering Close diff exposed its help and
+a tooltip surface. macOS denied pixel capture, so paint-level inspection
+remains pending. No owner change was staged in this check.
+
 Source Control shares the navigation area with Files and Search. Git's
 NUL-delimited status supplies separate Changes, Staged changes and Merge
 changes groups. Selecting a path opens a syntax-highlighted split Diff in

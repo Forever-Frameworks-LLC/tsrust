@@ -1,9 +1,11 @@
 import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
-import { join, extname } from 'std:path';
+import { join, extname, basename } from 'std:path';
 import {
   Button,
   CodeEditor,
+  DropdownMenu,
+  MenuItem,
   Diff,
   Input,
   List,
@@ -27,15 +29,15 @@ import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr
 import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
 import { resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
-function ChangeRow(row: ReadOnly<GitChange>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
+function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
   const file = clone(row.path);
   const staged = row.mode === 'staged';
   return (
     <ListItem value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
-      <Text className="grow truncate">
-        {clone(row.path)}
+      <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
+        {basename(row.path)}
       </Text>
-      <Text>
+      <Text className={'shrink-0 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
         {clone(row.status)}
       </Text>
       <ListItemSuffix>
@@ -45,6 +47,7 @@ function ChangeRow(row: ReadOnly<GitChange>, pending: Signal<GitRequest>, busy: 
             size="xsmall"
             variant="ghost"
             disabled={busy.get() || pending.get().mode !== ''}
+            tooltip={staged ? translate('Unstage file') : translate('Stage file')}
             aria-label={staged ? translate('Unstage file') : translate('Stage file')}
             onPress={() => {
               pending.set({
@@ -68,7 +71,6 @@ function pickChange(
   errorText: Signal<string>,
   output: Signal<string>,
   hunks: Signal<DiffHunk[]>,
-  hunk: Signal<string>,
   pending: Signal<GitRequest>,
   busy: Signal<boolean>
 ): void {
@@ -79,7 +81,6 @@ function pickChange(
   selected.set(clone(row));
   output.set('');
   hunks.set([]);
-  hunk.set('');
   errorText.set('');
 
   if (row.mode === 'conflicts') {
@@ -106,6 +107,7 @@ function pickChange(
 function ChangeGroup(
   kind: string,
   title: string,
+  font: Signal<int>,
   workspace: Signal<Workspace>,
   recovery: Signal<Recovery>,
   viewing: Signal<boolean>,
@@ -114,14 +116,13 @@ function ChangeGroup(
   errorText: Signal<string>,
   output: Signal<string>,
   hunks: Signal<DiffHunk[]>,
-  hunk: Signal<string>,
   pending: Signal<GitRequest>,
   busy: Signal<boolean>
 ): Node {
   const groupKind = clone(kind);
   return (
     <View hidden={!changes.get().some((item: ReadOnly<GitChange>) => item.mode === kind)} className="flex-col grow min-h-0">
-      <Text className="px-2 py-1 font-semibold">
+      <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
         {title}
       </Text>
       <List
@@ -138,13 +139,12 @@ function ChangeGroup(
             errorText.handle(),
             output.handle(),
             hunks.handle(),
-            hunk.handle(),
             pending.handle(),
             busy.handle()
           );
         }}
       >
-        {...changes.get().filter((item: ReadOnly<GitChange>) => item.mode === groupKind).map((row: ReadOnly<GitChange>) => ChangeRow(row, pending.handle(), busy.handle()))}
+        {...changes.get().filter((item: ReadOnly<GitChange>) => item.mode === groupKind).map((row: ReadOnly<GitChange>) => ChangeRow(row, font.handle(), pending.handle(), busy.handle()))}
       </List>
     </View>
   );
@@ -153,6 +153,7 @@ function ChangeGroup(
 export function GitPanel(
   workspace: Signal<Workspace>,
   recovery: Signal<Recovery>,
+  font: Signal<int>,
   active: Signal<string>,
   visible: Signal<boolean>,
   viewing: Signal<boolean>,
@@ -165,7 +166,6 @@ export function GitPanel(
   theirs: Signal<string>,
   busy: Signal<boolean>,
   pending: Signal<GitRequest>,
-  hunk: Signal<string>,
   hunks: Signal<DiffHunk[]>
 ): Node {
   const changes = signal<GitChange[]>([]);
@@ -179,15 +179,35 @@ export function GitPanel(
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
-  const sidebar: Node = <View className="size-full flex-col min-h-0">
-    <View className="flex-row items-center px-2">
-      <Text className="grow">
-        {t('Source Control')}
-      </Text>
+  const sidebar: Node = <View className="size-full flex-col min-h-0 min-w-0 overflow-hidden">
+    <View className="flex-row items-center min-w-0 shrink-0 px-1 gap-1">
+      <Input
+        className={'grow min-w-0 text-[' + font.get().toString() + 'px]'}
+        value={messageText.get()}
+        placeholder={message('Commit message')}
+        aria-label={accessibleName('Commit message')}
+        onChange={(event) => {
+          messageText.set(clone(event.target.value));
+        }}
+      />
+      <Button
+        icon="check"
+        size="xsmall"
+        variant="ghost"
+        tooltip={message('Commit staged changes')}
+        aria-label={accessibleName('Commit staged changes')}
+        disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
+        onPress={() => {
+          pending.set({
+            mode: 'status', action: 'commit-staged', message: messageText.get()
+          });
+        }}
+      />
       <Button
         icon="history"
         variant="ghost"
         size="xsmall"
+        tooltip={message('History')}
         aria-label={accessibleName('History')}
         disabled={locked.get()}
         onPress={() => {
@@ -202,6 +222,7 @@ export function GitPanel(
         icon="refresh-cw"
         variant="ghost"
         size="xsmall"
+        tooltip={message('Refresh source control')}
         aria-label={accessibleName('Refresh source control')}
         disabled={locked.get()}
         onPress={() => {
@@ -211,25 +232,6 @@ export function GitPanel(
         }}
       />
     </View>
-    <Input
-      value={messageText.get()}
-      placeholder={message('Commit message')}
-      aria-label={accessibleName('Commit message')}
-      onChange={(event) => {
-        messageText.set(clone(event.target.value));
-      }}
-    />
-    <Button
-      size="small"
-      disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
-      onPress={() => {
-        pending.set({
-          mode: 'status', action: 'commit-staged', message: messageText.get()
-        });
-      }}
-    >
-      {t('Commit staged changes')}
-    </Button>
     <View hidden={!history.get()}>
       <Select
         items={commits.get()}
@@ -241,7 +243,6 @@ export function GitPanel(
               path: clone(value), mode: 'commit', status: ''
             });
             output.set('');
-            hunk.set('');
             viewing.set(true);
             pending.set({
               mode: 'commit', commit: value.split(' ')[0]
@@ -263,6 +264,7 @@ export function GitPanel(
     {ChangeGroup(
       'conflicts',
       translate('Merge changes'),
+      font.handle(),
       workspace.handle(),
       recovery.handle(),
       viewing.handle(),
@@ -271,13 +273,13 @@ export function GitPanel(
       errorText.handle(),
       output.handle(),
       hunks.handle(),
-      hunk.handle(),
       pending.handle(),
       busy.handle()
     )}
     {ChangeGroup(
       'staged',
       translate('Staged changes'),
+      font.handle(),
       workspace.handle(),
       recovery.handle(),
       viewing.handle(),
@@ -286,13 +288,13 @@ export function GitPanel(
       errorText.handle(),
       output.handle(),
       hunks.handle(),
-      hunk.handle(),
       pending.handle(),
       busy.handle()
     )}
     {ChangeGroup(
       'working',
       translate('Changes'),
+      font.handle(),
       workspace.handle(),
       recovery.handle(),
       viewing.handle(),
@@ -301,7 +303,6 @@ export function GitPanel(
       errorText.handle(),
       output.handle(),
       hunks.handle(),
-      hunk.handle(),
       pending.handle(),
       busy.handle()
     )}
@@ -325,7 +326,7 @@ export function GitPanel(
                 else {viewing.set(false);selected.set({mode:'',path:'',status:''});}
               }
             } else if (reply.mode === 'history') commits.set(reply.text.split('\n').filter((line) => line !== ''));
-            else {ours.set(reply.ours ?? '');theirs.set(reply.theirs ?? '');hunks.set(diffHunks(reply.text));output.set(clone(reply.text));hunk.set('');if (req.action !== undefined) pending.set({mode:'status'});}
+            else {ours.set(reply.ours ?? '');theirs.set(reply.theirs ?? '');hunks.set(diffHunks(reply.text));output.set(clone(reply.text));if (req.action !== undefined) pending.set({mode:'status'});}
           }, Err(reason) => {if (reason.code !== 'empty') {busy.set(false); errorText.set(reason.code);}}
         }
       } else {
@@ -357,6 +358,24 @@ function resolveDraft(
   }
 }
 
+function HunkAction(item: ReadOnly<DiffHunk>, selected: Signal<GitChange>, output: Signal<string>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
+  const label = clone(item.label);
+  return (
+    <MenuItem
+      label={label.slice(label.indexOf('  @@ ') + 2)}
+      onSelect={() => {
+        if (busy.get() || pending.get().mode !== '') return;
+        const patch = output.get();
+        const current = diffHunks(patch).find((entry: ReadOnly<DiffHunk>) => entry.label === label);
+
+        if (current !== undefined) pending.set({
+          mode: selected.get().mode, action: selected.get().mode === 'staged' ? 'unstage-hunk' : 'stage-hunk', viewFile: selected.get().path, hunk: clone(label), patch: current.header + patch.slice(current.start, current.end)
+        });
+      }}
+    />
+  );
+}
+
 export function GitEditor(
   workspace: Signal<Workspace>,
   recovery: Signal<Recovery>,
@@ -369,8 +388,7 @@ export function GitEditor(
   theirs: Signal<string>,
   busy: Signal<boolean>,
   errorText: Signal<string>,
-  hunks: Signal<DiffHunk[]>,
-  hunk: Signal<string>
+  hunks: Signal<DiffHunk[]>
 ): Node {
   const pathSelection = selected.handle();
   const path = computed<string>(() => join(workspace.get().root, pathSelection.get().path));
@@ -381,13 +399,13 @@ export function GitEditor(
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
-  const editor: Node = <View className="size-full flex-col min-h-0">
-    <View className="flex-row items-center px-2">
-      <Text className="grow truncate">
-        {selected.get().path}
+  const editor: Node = <View className="size-full flex-col min-w-0 min-h-0 overflow-hidden">
+    <View className="w-full shrink-0 flex-row items-center min-w-0 px-2 border-b">
+      <Text className={'grow min-w-0 truncate font-mono text-[' + font.get().toString() + 'px]'}>
+        {basename(selected.get().path)}
       </Text>
-      <View hidden={selected.get().mode === 'commit'}>
-        <Button size="small" disabled={locked.get()} onPress={() => {
+      <View hidden={selected.get().mode !== 'conflicts'}>
+        <Button icon="check" size="xsmall" variant="ghost" tooltip={message('Stage resolution')} aria-label={accessibleName('Stage resolution')} disabled={locked.get()} onPress={() => {
         if (selected.get().mode === 'conflicts') {
           const next = workspace.get();
           const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
@@ -401,48 +419,34 @@ export function GitEditor(
           }
         }
         pending.set({mode:'status',action:selected.get().mode === 'staged' ? 'unstage' : 'stage',path:selected.get().path});
-      }}>{selected.get().mode === 'staged' ? t('Unstage file') : selected.get().mode === 'conflicts' ? t('Stage resolution') : t('Stage file')}</Button>
+      }} />
+      </View>
+      <View hidden={hunks.get().length === 0 || !['working', 'staged'].includes(selected.get().mode)}>
+        <DropdownMenu fontSize={font.get()}>
+          <Button icon="ellipsis" variant="ghost" size="xsmall" disabled={locked.get()} tooltip={selected.get().mode === 'staged' ? translate('Unstage hunk') : translate('Stage hunk')} aria-label={selected.get().mode === 'staged' ? translate('Unstage hunk') : translate('Stage hunk')} />
+          {...hunks.get().map((item: ReadOnly<DiffHunk>) => HunkAction(item, selected.handle(), output.handle(), pending.handle(), busy.handle()))}
+        </DropdownMenu>
       </View>
       <Button
         icon="x"
         size="xsmall"
         variant="ghost"
+        tooltip={message('Close diff')}
         aria-label={accessibleName('Close diff')}
         onPress={() => {
           viewing.set(false);
         }}
       />
     </View>
-    <View hidden={hunks.get().length === 0 || !['working', 'staged'].includes(selected.get().mode)} className="flex-row">
-      <Select
-        items={hunks.get().map((item: ReadOnly<DiffHunk>) => clone(item.label))}
-        value={hunk.get()}
-        placeholder={message('Choose a diff hunk')}
-        onChange={(value) => {
-          hunk.set(clone(value));
-        }}
-      />
-      <Button
-        size="small"
-        disabled={locked.get() || hunk.get() === ''}
-        onPress={() => {
-          const item = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
-
-          if (item !== undefined) pending.set({
-            mode: selected.get().mode, action: selected.get().mode === 'staged' ? 'unstage-hunk' : 'stage-hunk', viewFile: selected.get().path, hunk: hunk.get(), patch: item.header + output.get().slice(item.start, item.end)
-          });
-        }}
-      >
-        {selected.get().mode === 'staged' ? t('Unstage hunk') : t('Stage hunk')}
-      </Button>
-    </View>
     <View hidden={selected.get().mode !== 'conflicts'} className="flex-col grow min-h-0">
-      <View className="grow min-h-0">
-        <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
+      <View className="w-full grow min-w-0 min-h-0 overflow-hidden">
+        <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
       </View>
       <View className="flex-row">
         <Button
+          variant="ghost"
           size="small"
+          tooltip={message('Accept current')}
           onPress={() => {
             resolveDraft(
               'current',
@@ -457,7 +461,9 @@ export function GitEditor(
           {t('Accept current')}
         </Button>
         <Button
+          variant="ghost"
           size="small"
+          tooltip={message('Accept incoming')}
           onPress={() => {
             resolveDraft(
               'incoming',
@@ -472,7 +478,9 @@ export function GitEditor(
           {t('Accept incoming')}
         </Button>
         <Button
+          variant="ghost"
           size="small"
+          tooltip={message('Accept both')}
           onPress={() => {
             resolveDraft(
               'both',
@@ -497,8 +505,8 @@ export function GitEditor(
         }}
       />
     </View>
-    <View hidden={selected.get().mode === 'conflicts'} className="grow min-h-0">
-      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full" />
+    <View hidden={selected.get().mode === 'conflicts'} className="w-full grow min-w-0 min-h-0 overflow-hidden">
+      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full" />
     </View>
   </View>;
   return editor;

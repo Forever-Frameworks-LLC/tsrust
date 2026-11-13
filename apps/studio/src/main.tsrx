@@ -288,10 +288,10 @@ function App(
   const gitBusy = signal(false);
   const gitError = signal('');
   const gitHunks = signal<DiffHunk[]>([]);
-  const gitHunk = signal('');
   const gitSidebar = GitPanel(
     workspace,
     recovery,
+    font,
     mode,
     sidebar,
     viewingDiff,
@@ -304,7 +304,6 @@ function App(
     gitTheirs.handle(),
     gitBusy.handle(),
     gitPending.handle(),
-    gitHunk.handle(),
     gitHunks.handle()
   );
   const gitEditor = GitEditor(
@@ -319,8 +318,7 @@ function App(
     gitTheirs.handle(),
     gitBusy.handle(),
     gitError.handle(),
-    gitHunks.handle(),
-    gitHunk.handle()
+    gitHunks.handle()
   );
   const editingArea = <View className="size-full flex-col min-h-0">
     <View hidden={viewingDiff.get() && mode.get() === 'git'} className="size-full">
