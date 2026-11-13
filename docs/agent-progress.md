@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Submodule conflict inspection
+
+A native Git fixture merges divergent mode-160000 index entries with no local submodule objects. From a nested workspace, Studio listed the unresolved path and returned the exact base, current and incoming commit IDs in stage order. Git's unmerged index records matched byte-for-byte before and after inspection. All 13 Studio Git cases passed in 1.562 seconds of execution. This covers the Git service on macOS. Desktop selection and resolution of a checked-out submodule remain open. The dev watcher retained the running app after the test-only edit.
+
 ## History patch boundaries and native cache housekeeping
 
 The diff viewer now finds a Git file header only at the start of a line. An indented patch example inside a commit message previously matched its substring search and could become a spurious file section. Tests cover a message without a patch, the same message followed by a real Unicode-path patch and direct working-tree patch input. All 12 Git tests passed in 1.659 seconds of execution. Project formatting passed.

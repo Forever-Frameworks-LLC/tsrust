@@ -407,6 +407,39 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
   }
 });
 
+test('submodule conflicts show both commit pointers without fetching objects or changing the index', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-submodule-conflict-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main', '--object-format=sha1']), true);
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+      const id = (branch === 'base' ? '1' : branch === 'topic' ? '2' : '3').repeat(40);
+      strictEqual(await repoGit(root, ['update-index', '--add', '--cacheinfo', '160000,' + id + ',project/library']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    const indexArgs = ['ls-files', '--unmerged', '-z'];
+    const before = unwrap(toUtf8(unwrap(await run('git', clone(indexArgs), {
+      cwd: clone(root)
+    })).stdout));
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'library\n');
+    const preview = unwrap(await readGitView(sub, 'conflicts', 'library'));
+    strictEqual(preview, ':1:library\nSubproject commit ' + '1'.repeat(40) + '\n\n:2:library\nSubproject commit ' + '3'.repeat(40) + '\n\n:3:library\nSubproject commit ' + '2'.repeat(40));
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', indexArgs, {
+      cwd: clone(root)
+    })).stdout)), before);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('inspect binary modify/delete conflicts on either side without altering the index', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-binary-conflict-'));
 
