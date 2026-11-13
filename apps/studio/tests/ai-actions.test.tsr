@@ -128,9 +128,6 @@ test('sending loads automatically and delivers a queued response to its exact co
   send(host, 'Hello');
   strictEqual(unwrap(requests.tryReceive()).kind, 'start');
   strictEqual(host.state.get().phase, 'starting');
-  const changed = settings.get();
-  changed.aiResponseTokens = 2048;
-  settings.set(changed);
   const request = clone(host.state.get().active);
   const chat = clone(host.state.get().history.active);
   unwrap(replies.trySend({
@@ -139,7 +136,7 @@ test('sending loads automatically and delivers a queued response to its exact co
   pollModel(host, updates);
   const generation = unwrap(requests.tryReceive());
   strictEqual(generation.kind, 'generate');
-  strictEqual(generation.maxTokens, 1024);
+  strictEqual(generation.maxTokens, 0);
   strictEqual(generation.id, request);
   strictEqual(generation.messages?.length ?? 0, 1);
   strictEqual(host.state.get().phase, 'generating');
@@ -149,6 +146,11 @@ test('sending loads automatically and delivers a queued response to its exact co
   unwrap(replies.trySend({
     kind: 'complete', id: 'stale', text: 'wrong', error: ''
   }));
+  unwrap(replies.trySend({
+    kind: 'compacted', id: clone(request), text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().notice.includes('Earlier turns'), true);
   unwrap(replies.trySend({
     kind: 'prefix', id: clone(request), text: 'Hi 🦀', error: ''
   }));
@@ -464,14 +466,14 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     if (messages === undefined) throw 'missing generation';
     strictEqual(messages[0].content.includes('Last Find References results for helperValue:\ncaller.tsr:1:5  helperValue("keep  spaces");'), true);
     strictEqual(messages[0].content.includes('unrelated caller detail'), false);
-    strictEqual(messages[0].content.includes('Active editor file: main.tsr'), true);
-    strictEqual(messages[0].content.includes('unsaved fact'), true);
+    strictEqual(messages[0].content.includes('Active editor file: main.tsr'), false);
+    strictEqual(messages[0].content.includes('unsaved fact'), false);
     strictEqual(messages[0].content.includes('Referenced workspace file: lib/helper.tsr'), true);
     strictEqual(messages[0].content.includes('root duplicate content'), false);
     strictEqual(messages[0].content.includes('nested duplicate content'), false);
-    strictEqual(messages[0].content.includes('tail'), false);
+    strictEqual(messages[0].content.includes('tail'), true);
     strictEqual(messages[0].content.includes('unopened content'), true);
-    strictEqual(messages[0].content.includes('large file tail'), false);
+    strictEqual(messages[0].content.includes('large file tail'), true);
     strictEqual(messages[0].content.includes('unrelated suffix'), false);
     strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helperValue() in helper.tsr');
     const updates = new Channel<ModelUpdate>(4);
@@ -661,7 +663,7 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
   }
 });
 
-test('a long chat retains its transcript and sends only whole recent turns within the framed byte limit', () => {
+test('a long chat retains its transcript and sends all complete turns beyond the old frame limit', () => {
   const requests = new Channel<ModelRequest>(2);
   const initial = initialAiState();
   initial.phase = 'ready';
@@ -683,13 +685,13 @@ test('a long chat retains its transcript and sends only whole recent turns withi
   send(host, 'Follow up');
   const generation = unwrap(requests.tryReceive());
   const messages = generation.messages ?? [];
-  strictEqual(messages.length, 3);
-  strictEqual(messages[0].content, 'Keep this question');
-  strictEqual(messages[1].content, 'Keep this answer');
-  strictEqual(messages[2].content, 'Follow up');
+  strictEqual(messages.length, 5);
+  strictEqual(messages[2].content, 'Keep this question');
+  strictEqual(messages[3].content, 'Keep this answer');
+  strictEqual(messages[4].content, 'Follow up');
   strictEqual(state.get().history.chats[0].messages.length, 6);
   strictEqual(state.get().history.chats[0].messages[0].text.length, 132000);
-  strictEqual(state.get().notice.includes('Earlier turns'), true);
+  strictEqual(state.get().notice.includes('Earlier turns'), false);
   const frame: ModelRequest = {
     kind: 'generate', id: 'boundary', prompt: '', maxTokens: 1, messages: [{
       role: 'user', content: ''
@@ -708,6 +710,17 @@ test('a long chat retains its transcript and sends only whole recent turns withi
   const editMessages = editFrame.messages ?? [];
   strictEqual(editMessages[0].content, 'Original question');
   strictEqual(editMessages[2].content, 'File and edit instructions');
+  const repeatFrame = clone(frame);
+  unwrap(fitGeneration(repeatFrame, [{
+    role: 'user', request: 'a', text: 'First', workspaceExcerpt: 'source snapshot'
+  }, {
+    role: 'assistant', request: 'a', text: 'Answer'
+  }, {
+    role: 'user', request: 'b', text: 'Follow up', workspaceExcerpt: 'source snapshot'
+  }], true));
+  const compact = repeatFrame.messages ?? [];
+  strictEqual(compact[0].content, 'First');
+  strictEqual(compact[2].content.includes('source snapshot'), true);
   const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
   const exact = 'x'.repeat(capacity);
   strictEqual(unwrap(fitGeneration(frame, [{
@@ -716,7 +729,7 @@ test('a long chat retains its transcript and sends only whole recent turns withi
   strictEqual(JSON.stringify(frame).length + 1, 128 * 1024);
   strictEqual(denied(fitGeneration(frame, [{
     role: 'user', request: 'boundary', text: exact + '!'
-  }], false)), true);
+  }], false)), false);
 });
 
 test('only a matching generation rejection ends the request and allows a retry', () => {

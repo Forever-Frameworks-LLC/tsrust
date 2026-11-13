@@ -1,8 +1,5 @@
 import {
-  Bytes,
   fromUtf8,
-  length,
-  at,
   toUtf8,
   view
 } from 'std:bytes';
@@ -15,7 +12,7 @@ import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
 import { diagnosticPath } from '../../lib/language/diagnostics.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { Workspace, readPrefix } from '../../lib/workspace/workspace.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
 
 // Only trusted picker results may extend a read beyond the bound workspace.
@@ -47,34 +44,26 @@ export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<strin
     let text = '';
 
     if (opened !== undefined) {
-      if (opened.kind !== 'text' && opened.kind !== 'image') return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+      if (opened.kind !== 'text' && opened.kind !== 'image') return Err('Choose a UTF-8 text file for context.');
 
       if (opened.kind === 'image') return Err('The selected model accepts text context. Image attachments need a vision model.');
       text = clone(opened.document.text);
-    } else match (readTextFile(resolved, 32768)) {
+    } else match (readTextFile(resolved)) {
       Ok(source) => {
         text = clone(source);
       },
       Err(_) => {
-        return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+        return Err('Choose a UTF-8 text file for context.');
       }
     }
 
-    if (text.includes('\0') || length(unwrap(fromUtf8(text))) > 32768) return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+    if (text.includes('\0')) return Err('Choose a UTF-8 text file for context.');
     return Ok({
       id: chatIdentity(), kind: clone(kind), path: clone(resolved), label: kind === 'skill' ? basename(dirname(resolved)) : basename(resolved), text
     });
   } catch (_) {
     return Err('Could not read the selected chat context file.');
   }
-}
-
-function contextExcerpt(bytes: ReadOnly<Bytes>): string {
-  const count = length(bytes);
-  let end = count < 2048 ? count : 2048;
-
-  while (end < count && unwrap(at(bytes, end)) >= 128 && unwrap(at(bytes, end)) < 192) end -= 1;
-  return unwrap(toUtf8(unwrap(view(bytes, 0, end)))) + (end < count ? '\n…' : '');
 }
 
 function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>): Result<string, string> {
@@ -85,12 +74,12 @@ function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, pr
 
     if (opened !== undefined) {
       if (opened.kind !== 'text') return Err('Expected text file');
-      excerpt = contextExcerpt(unwrap(fromUtf8(opened.document.text)));
+      excerpt = clone(opened.document.text);
     } else {
       const resolved = unwrap(canonicalize(path));
 
       if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return Err('Unavailable file');
-      excerpt = contextExcerpt(readPrefix(resolved, 2049));
+      excerpt = unwrap(readTextFile(resolved));
     }
 
     if (excerpt.includes('\0')) return Err('Expected text file');
@@ -118,17 +107,16 @@ function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean
   return false;
 }
 
-// Cache bounded source reads for this request only. Recheck stale locations against the current text.
+// Cache source reads for this request only. Recheck stale locations against the current text.
 function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, hit: ReadOnly<ReferenceLocation>, symbol: ReadOnly<string>, cache: Mutable<Map<string, string[]>>): string {
   if (!cache.has(path)) {
-    if (cache.size >= 4) return '';
     const file = workspace.files.find((entry) => entry.document.path === path);
     let source = '';
 
     if (file !== undefined) {
-      if (file.kind === 'text' && file.document.text.length <= 65536) source = clone(file.document.text);
+      if (file.kind === 'text') source = clone(file.document.text);
     } else if (unwrap(stat(path)).isFile) {
-      match (readTextFile(path, 65536)) {
+      match (readTextFile(path)) {
         Ok(text) => {
           source = text;
         },
@@ -142,7 +130,7 @@ function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, h
   const lines = cache.get(path);
   const index = hit.range.start.line;
 
-  if (lines === undefined || index >= lines.length || lines[index].length > 512) return '';
+  if (lines === undefined || index >= lines.length) return '';
   const line = lines[index];
 
   if (referenceSymbol(line, {
@@ -165,7 +153,7 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
   const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
   const cache = new Map<string, string[]>();
   const rows: string[] = [];
-  let bytes = 0;
+
 
   try {
     if (!unwrap(canonicalize(query.path)).startsWith(prefix)) return '';
@@ -173,10 +161,10 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
     return '';
   }
 
-  for (let index = 0; index < result.locations.length && index < 48; index += 1) {
+  for (let index = 0; index < result.locations.length; index += 1) {
     const hit = result.locations[index];
 
-    if (rows.length >= 12) break;
+
 
     try {
       const path = unwrap(canonicalize(diagnosticPath(hit.uri)));
@@ -185,8 +173,8 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
       const snippet = referenceLine(workspace, path, hit, symbol, cache);
       const row = path.slice(prefix.length) + ':' + (hit.range.start.line + 1).toString() + ':' + (hit.range.start.character + 1).toString() + (snippet === '' ? '' : '  ' + snippet);
 
-      if (bytes + row.length + 1 > 1024 || rows.includes(row)) continue;
-      bytes += row.length + 1;
+      if (rows.includes(row)) continue;
+
       rows.push(row);
     } catch (_) {}
   }
@@ -200,18 +188,27 @@ export interface EditorContextResult {
   unavailable: string[];
 }
 
-export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>, editing: boolean): EditorContextResult {
+export function editorContext(
+  workspace: ReadOnly<Workspace>,
+  tree: ReadOnly<DirectoryTree> | undefined,
+  attached: ReadOnly<ContextFragment[]>,
+  prompt: ReadOnly<string>,
+  editing: boolean,
+  hasReferences: boolean
+): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
   const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
   let result = '';
   const active = workspace.files.find((file) => file.document.path === workspace.active);
 
-  if (!editing && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active)) {
-    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + contextExcerpt(unwrap(fromUtf8(active.document.text)));
+  if (!editing && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && (!hasReferences || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length))) && !attached.some((fragment) => fragment.path === workspace.active)) {
+    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + active.document.text;
   }
 
   if (tree !== undefined && tree.root === workspace.root) {
+    const question = prompt.toLowerCase();
+    const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
     const mentionedNames = new Map<string, int>();
 
@@ -224,9 +221,7 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
       }
     }
 
-    let size = 0;
-    let named = 0;
-    let ambiguousBytes = 0;
+
 
     for (const directory of tree.directories) {
       for (const file of directory.children) {
@@ -236,12 +231,12 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
         const nameCount = mentionedNames.get(file.name) ?? 0;
         const referenced = nameCount === 1 || (path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path);
 
-        if (nameCount > 1 && ambiguous.length < 12 && ambiguousBytes + path.length + 3 <= 1024) {
-          ambiguousBytes += path.length + 3;
+        if (nameCount > 1) {
+
           ambiguous.push('./' + path);
         }
 
-        if (named < 2 && (file.path !== workspace.active || active?.kind !== 'text') && referenced && !attached.some((fragment) => fragment.path === file.path)) {
+        if ((file.path !== workspace.active || active?.kind !== 'text') && referenced && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
               result += '\n\nReferenced workspace file: ' + path + '\n' + excerpt;
@@ -251,17 +246,17 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
             }
           }
 
-          named += 1;
+
         }
 
-        if (editing || paths.length >= 24 || size + path.length + 1 > 1024) continue;
-        size += path.length + 1;
+        if (editing || !listFiles) continue;
+
         paths.push(path);
       }
     }
 
 
-    if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files (sample):\n' + paths.join('\n');
+    if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files:\n' + paths.join('\n');
   }
 
   return {

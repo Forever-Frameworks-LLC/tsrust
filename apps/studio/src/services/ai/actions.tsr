@@ -1,4 +1,3 @@
-import { fromUtf8, length } from 'std:bytes';
 import { Sender, Channel } from 'std:futures';
 import { Signal, translate } from 'std:ui';
 
@@ -103,7 +102,7 @@ export function modelTools(): EditorTool[] {
   return [{
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
-    name: 'local_model_send', description: 'Send in the explicit selected conversation. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string","maxLength":65536},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+    name: 'local_model_send', description: 'Send in the explicit selected conversation. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
     name: 'local_model_cancel', description: 'Cancel the explicit active request, including automatic model startup. Rejects stale identities. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
   }, {
@@ -111,7 +110,7 @@ export function modelTools(): EditorTool[] {
   }, {
     name: 'local_model_stop', description: 'Cancel generation and unload the owned local model. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{}}'
   }, {
-    name: 'chat_set_draft', description: 'Update the explicit selected conversation draft without sending. Requires host control permission.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string","maxLength":65536},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+    name: 'chat_set_draft', description: 'Update the explicit selected conversation draft without sending. Requires host control permission.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
     name: 'chat_attach_context', description: 'Attach a bounded UTF-8 file or SKILL.md snapshot to the explicit current draft. Reads unsaved open text when available. Requires host read/control grants and a bound workspace; outside paths additionally require a trusted picker grant. Does not change workspace files.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"},"path":{"type":"string"},"kind":{"enum":["file","skill"]}},"required":["chat","path","kind"]}'
   }, {
@@ -176,7 +175,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
   try {
     const args = JSON.parse<Arguments>(payload, {
-      maxBytes: 512 * 1024, maxDepth: 4, maxEntries: 8, maxNodes: 16
+      maxBytes: payload.length, maxDepth: 4, maxEntries: 8, maxNodes: 16
     });
 
     if (name === 'local_model_read') {
@@ -231,7 +230,6 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       } else if (name === 'chat_set_draft') {
         if (args.chat !== next.history.active) return Err('The selected conversation changed before sending.');
 
-        if (length(unwrap(fromUtf8(args.prompt ?? ''))) > 65536) return Err('This message is too large. Shorten it before sending.');
         setChatDraft(next.history, args.prompt ?? '');
       } else if (name === 'chat_new') {
         createChat(next.history);
@@ -282,7 +280,6 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (prompt.trim() === '') return Err('Enter a message before sending.');
 
-      if (length(unwrap(fromUtf8(prompt))) > 65536) return Err('This message is too large. Shorten it before sending.');
 
       if (next.history.active === '') createChat(next.history);
       const index = next.history.chats.findIndex((chat) => chat.id === next.history.active);
@@ -297,11 +294,19 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
       const attachments = draftContext(next.history);
       const editing = prompt.toLowerCase().startsWith('edit: ');
-      const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt, editing) : {
+      const references = context.references;
+      const snippets = canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '';
+      const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(
+        workspace.get(),
+        tree === undefined ? undefined : tree.get(),
+        attachments,
+        prompt,
+        editing,
+        snippets !== ''
+      ) : {
         excerpt: '', candidates: [], unavailable: []
       };
-      const references = context.references;
-      const excerpt = grounding.excerpt + (canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '');
+      const excerpt = grounding.excerpt + snippets;
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
       });
@@ -322,7 +327,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       }
 
       const generation: ModelRequest = {
-        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens
+        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: 0
       };
 
       let reply = '';
@@ -350,9 +355,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         Err(error) => {
           return Err(error);
         },
-        Ok(shortened) => {
-          if (shortened) next.notice = 'Earlier turns were omitted from this model request. The full conversation remains in chat.';
-        }
+        Ok(_) => {}
       }
 
       if (next.phase === 'stopped') match (startRequest(context)) {
@@ -456,6 +459,8 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
           next.editTarget = undefined;
           next.phase = 'stopped';
           save = true;
+        } else if (update.kind === 'compacted' && update.id === next.active && update.id !== '') {
+          next.notice = 'Earlier turns were omitted from this model request. The full conversation remains in chat.';
         } else if (update.id === next.active && update.id !== '') {
           const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
 

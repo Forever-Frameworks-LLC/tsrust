@@ -470,7 +470,7 @@
   "Chat history is unavailable. New messages will remain in this window until it is fixed.": "Chat history is unavailable. New messages will remain in this window until it is fixed.",
   "Chats": "Chats",
   "Choose a SKILL.md file for skill context.": "Choose a SKILL.md file for skill context.",
-  "Choose a UTF-8 text file smaller than 32 KiB for context.": "Choose a UTF-8 text file smaller than 32 KiB for context.",
+  "Choose a UTF-8 text file for context.": "Choose a UTF-8 text file for context.",
   "Choose a model and tokenizer in Application → Settings → AI before sending.": "Choose a model and tokenizer in Application → Settings → AI before sending.",
   "Choose a regular text file.": "Choose a regular text file.",
   "Choose from disk…": "Choose from disk…",
@@ -489,7 +489,7 @@
   "Remove context": "Remove context",
   "Responding…": "Responding…",
   "Response interrupted when Studio closed.": "Response interrupted when Studio closed.",
-  "Response reached the current local output limit.": "Response reached the current local output limit.",
+  "Generation reached its available token limit.": "Generation reached its available token limit.",
   "Response stopped.": "Response stopped.",
   "Search context files": "Search context files",
   "Send message": "Send message",
@@ -515,8 +515,6 @@
   "The message and context are too large for the selected model. Shorten them and try again.": "The message and context are too large for the selected model. Shorten them and try again.",
   "This message is too large. Shorten it before sending.": "This message is too large. Shorten it before sending.",
   "Enter a message before sending.": "Enter a message before sending.",
-  "Response token budget": "Response token budget",
-  "Maximum tokens per response (1–4096). New requests use this budget; context, output-byte and time limits still apply.": "Maximum tokens per response (1–4096). New requests use this budget; context, output-byte and time limits still apply.",
   "aiResponseTokens must be between 1 and 4096.": "aiResponseTokens must be between 1 and 4096.",
   "An explicit response token budget is required.": "An explicit response token budget is required."
 }

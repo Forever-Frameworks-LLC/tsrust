@@ -470,7 +470,7 @@
   "Chat history is unavailable. New messages will remain in this window until it is fixed.": "O histórico está indisponível. As novas mensagens ficarão nesta janela até o problema ser resolvido.",
   "Chats": "Conversas",
   "Choose a SKILL.md file for skill context.": "Escolha um arquivo SKILL.md para adicionar instruções.",
-  "Choose a UTF-8 text file smaller than 32 KiB for context.": "Escolha um arquivo de texto UTF-8 menor que 32 KiB como contexto.",
+  "Choose a UTF-8 text file for context.": "Escolha um arquivo de texto UTF-8 como contexto.",
   "Choose a model and tokenizer in Application → Settings → AI before sending.": "Escolha um modelo e um tokenizador em Aplicativo → Configurações → IA antes de enviar.",
   "Choose a regular text file.": "Escolha um arquivo de texto comum.",
   "Choose from disk…": "Escolher no disco…",
@@ -489,7 +489,7 @@
   "Remove context": "Remover contexto",
   "Responding…": "Respondendo…",
   "Response interrupted when Studio closed.": "A resposta foi interrompida quando o Studio fechou.",
-  "Response reached the current local output limit.": "A resposta atingiu o limite atual de saída local.",
+  "Generation reached its available token limit.": "A geração atingiu o limite de tokens disponíveis.",
   "Response stopped.": "Resposta interrompida.",
   "Search context files": "Buscar arquivos de contexto",
   "Send message": "Enviar mensagem",
@@ -515,8 +515,6 @@
   "The message and context are too large for the selected model. Shorten them and try again.": "A mensagem e o contexto são grandes demais para o modelo selecionado. Reduza-os e tente novamente.",
   "This message is too large. Shorten it before sending.": "A mensagem é grande demais. Reduza-a antes de enviar.",
   "Enter a message before sending.": "Digite uma mensagem antes de enviar.",
-  "Response token budget": "Limite de tokens por resposta",
-  "Maximum tokens per response (1–4096). New requests use this budget; context, output-byte and time limits still apply.": "Máximo de tokens por resposta (1–4096). Novas solicitações usam este limite; os limites de contexto, bytes de saída e tempo continuam válidos.",
   "aiResponseTokens must be between 1 and 4096.": "aiResponseTokens deve estar entre 1 e 4096.",
   "An explicit response token budget is required.": "É necessário um limite explícito de tokens por resposta."
 }

@@ -109,7 +109,7 @@ function ChatMessageView(entry: ReadOnly<AiMessage>, state: Signal<AiState>, fon
         </View>
         <View hidden={sent || limited.get() !== true}>
           <Text className="text-muted-foreground">
-            {t('Response reached the current local output limit.')}
+            {t('Generation reached its available token limit.')}
           </Text>
         </View>
       </View>

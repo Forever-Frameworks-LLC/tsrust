@@ -4,6 +4,34 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Model limits and context selection
+
+Studio now passes zero for generation budget, meaning use the trained model
+window until EOS or cancellation. The native engine prefills in batches, with no
+Studio prompt-byte, 2048-token input, output-byte, 4096-token output or elapsed
+generation limit. The request/response pipes accept full lines. Legacy saved
+response budgets are ignored. References supply matching lines, named files and
+edit targets retain exact text, and duplicate workspace excerpts occur only at
+their latest relevant turn. A file-list question includes workspace paths.
+When the templated conversation exceeds the real tokenizer window, the host
+selects a suffix of complete turns and notifies Studio. An oversized current turn
+still reports a model-context error. No summary of discarded turns is generated.
+
+Local Qwen2.5-Coder-1.5B GGUF reported 32768 context tokens. With 2200 repeated
+irrelevant comment words before increment(n), it answered 9 then 9 (expected
+9 then 10); sampled peak host RSS 2092320 KiB. Removing those words in the
+matched input yielded 9 then 10, peak 1799728 KiB. All four replies stopped
+at EOS. These are individual runs; the comparison used manual input compaction.
+A separate real host request with 35000 repeated words in an earlier turn emitted
+compacted and returned 57 from the final turn at EOS. Peak sampled RSS 1171472
+KiB. An over-window turn cannot establish quality on complex workspace edits.
+Storage, host frames and explicit attachments no longer use the old size quotas.
+Five Studio suites passed 29/29 in 610.75 ms before the final compaction pass,
+the final chat/action and real-pipe suites passed 18/18 in 44.92 ms, the
+built host protocol check passed in 19.67 ms, and the native output/backpressure
+control passed in 0.26 s. Persistent SQLite
+retrieval and autonomous workspace symbol lookup remain outstanding.
+
 ## Chat retrieval from editor references
 
 A prompt naming the symbol from a completed Find References query now receives

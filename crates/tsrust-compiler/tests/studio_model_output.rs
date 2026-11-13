@@ -4,7 +4,7 @@ mod support;
 #[test]
 fn incremental_model_output_and_backpressure() {
     let source = include_str!("../src/stdlib/ai/llama_admission.rs");
-    let start = source.find("const MAX_OUTPUT_TOKENS:").unwrap();
+    let start = source.find("#[derive(Default)]").unwrap();
     let end = source.find("fn request_tokens(").unwrap();
     let directory = support::TempDirectory::new();
     let input = directory.0.join("output.rs");
@@ -36,7 +36,7 @@ mod output_tests {
     }
 
     #[test]
-    fn malformed_truncated_and_oversized_output_fail() {
+    fn reject_invalid_utf8_and_accept_large_output() {
         for bytes in [&[0xff][..], &[0xc0, 0x80][..], &[0xed, 0xa0, 0x80][..]] {
             assert!(OutputDecoder::default().push(bytes).is_err());
         }
@@ -44,9 +44,8 @@ mod output_tests {
         decoder.push(&[0xf0, 0x9f]).unwrap();
         assert!(decoder.finish().is_err());
         let mut decoder = OutputDecoder::default();
-        decoder.push(&vec![b'a'; MAX_OUTPUT_BYTES]).unwrap();
-        assert!(decoder.push(b"b").is_err());
-        assert_eq!(decoder.finish().unwrap().len(), MAX_OUTPUT_BYTES);
+        decoder.push(&vec![b'a'; 65536]).unwrap();
+        assert_eq!(decoder.finish().unwrap().len(), 65536);
         assert_eq!(OutputDecoder::default().finish().unwrap(), "");
     }
 
@@ -69,8 +68,8 @@ mod output_tests {
 
     #[test]
     fn response_budget_bounds() {
-        for budget in [1, 32, 1024, 4096] { validate_budget(budget).unwrap(); }
-        for budget in [-1, 0, 4097, i64::MAX] { assert!(validate_budget(budget).is_err()); }
+        for budget in [0, 1, 32, 4097, i64::MAX] { validate_budget(budget).unwrap(); }
+        assert!(validate_budget(-1).is_err());
     }
 }
 "#;

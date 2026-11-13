@@ -688,6 +688,13 @@ selection. Preserve significant whitespace and exact edit anchors. Evaluate
 against held-out tasks that require finding the right files, following references,
 making a reviewed change, and passing the compiler and relevant tests.
 
+Use the selected model's tokenizer and trained window for context decisions.
+Keep current edit source exact, prefer reference lines for symbol questions, and
+compact repeated context before omitting older complete turns. Evaluate SQLite
+retrieval over shipped Tsrust and GPUI documentation, examples and tests. Keep
+evaluation fixtures and their derivatives outside that corpus. Compare task
+accuracy, token use, latency and memory on the same small model before scaling.
+
 1. Build versioned evaluation tasks from compiler contracts, API docs, checked
    examples, real application tasks and known failures. Split by task lineage and
    source families before deriving training samples, keeping held-out evaluation

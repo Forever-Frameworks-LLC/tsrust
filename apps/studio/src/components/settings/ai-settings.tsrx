@@ -1,7 +1,5 @@
-import { toInt } from 'std:numeric';
 import {
   Node,
-  NumberInput,
   Signal,
   Input,
   InputGroup,
@@ -50,34 +48,12 @@ function ArtifactPath(session: SettingsSession, model: boolean, font: Signal<int
 }
 
 export function AiSettings(session: ReadOnly<SettingsSession>, font: Signal<int>): Node {
-  const budgetSession = settingsSessionHandles(session);
+
   return (
     <SettingsPage title={message('AI')} icon="sparkles" resettable={false}>
       <SettingsGroup title={message('Local model')}>
         {ArtifactPath(settingsSessionHandles(session), true, font)}
         {ArtifactPath(settingsSessionHandles(session), false, font)}
-        <SettingItem title={message('Response token budget')} description={message('Maximum tokens per response (1–4096). New requests use this budget; context, output-byte and time limits still apply.')}>
-          <NumberInput
-            value={Number(session.draft.get().aiResponseTokens)}
-            min={1}
-            max={4096}
-            step={1}
-            size="small"
-            className="w-28"
-            accessibilityLabel={message('Response token budget')}
-            onValidate={(candidate) => Number.isInteger(Number(candidate))}
-            onChange={(value) => {
-              match (toInt(value)) {
-                Ok(tokens) => {
-                  const config = budgetSession.draft.get();
-                  config.aiResponseTokens = tokens;
-                  commitSettings(budgetSession, config);
-                },
-                Err(_) => {}
-              }
-            }}
-          />
-        </SettingItem>
       </SettingsGroup>
     </SettingsPage>
   );

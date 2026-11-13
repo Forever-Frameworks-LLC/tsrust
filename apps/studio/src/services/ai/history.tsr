@@ -1,4 +1,4 @@
-import { fromUtf8, toHex, length } from 'std:bytes';
+import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
 import { homeDir } from 'std:env';
 import { mkdirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
@@ -34,7 +34,7 @@ export function restoreChats(root: ReadOnly<string>): RestoredChats {
     const hash = unwrap(toHex(sha256(unwrap(fromUtf8(root)))));
     result.store.path = join(folder, hash + '.json');
 
-    match (readTextFile(result.store.path, 8 * 1024 * 1024)) {
+    match (readTextFile(result.store.path)) {
       Ok(text) => {
         match (parseHistory(text, root)) {
           Ok(history) => {
@@ -72,7 +72,6 @@ export function persistChats(history: ReadOnly<ChatHistory>, store: Mutable<Chat
 
   if (text === store.baseline) return Ok();
 
-  if (length(unwrap(fromUtf8(text))) > 8 * 1024 * 1024) return Err('Chat history exceeds its storage limit. Remove old chats before saving more.');
   const expected = store.baseline === '' ? undefined : clone(store.baseline);
 
   match (writeTextFileAtomic(store.path, text, expected)) {

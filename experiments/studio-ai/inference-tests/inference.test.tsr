@@ -27,14 +27,14 @@ function resource(name: string): string {
 }
 
 test('invalid generation limits reject before reading local resources', () => {
-  for (const count of [0, -1, 4097]) {
+  for (const count of [-1, -2]) {
     const worker = unwrap(spawn((task) => qwen_generate(task, '/missing/model', '/missing/tokenizer', 'test', count)));
     let rejected = false;
 
     match (unwrap(worker.join())) {
       Ok(_) => {},
       Err(error) => {
-        rejected = error === 'max_tokens must be 1..=4096';
+        rejected = error === 'max_tokens must be nonnegative (zero uses model context)';
       }
     }
 
@@ -62,12 +62,12 @@ test('resident model handles independent requests without loading twice', () => 
     const model = unwrap(qwen_load(task, modelPath, tokenizerPath));
     const first = unwrap(qwen_generate_loaded(task, model, chatPrompt('Reply with only the result of 2 + 3.'), 32));
 
-    match (qwen_generate_loaded(task, model, 'test', 0)) {
+    match (qwen_generate_loaded(task, model, 'test', -1)) {
       Ok(_) => {
         throw 'invalid request succeeded';
       },
       Err(error) => {
-        strictEqual(error, 'max_tokens must be 1..=4096');
+        strictEqual(error, 'max_tokens must be nonnegative (zero uses model context)');
       }
     }
 
@@ -135,8 +135,8 @@ test('streaming model returns prefixes, recovers cancellation and joins on drop'
       const cancelled = unwrap(qwen_stream_finish(stream));
       strictEqual(cancelled.error, 'cancelled');
       strictEqual(cancelled.generation.kind, 'none');
-      const invalid = drain(unwrap(qwen_stream_start(cancelled.model, 'test', 0)));
-      strictEqual(invalid.error, 'max_tokens must be 1..=4096');
+      const invalid = drain(unwrap(qwen_stream_start(cancelled.model, 'test', -1)));
+      strictEqual(invalid.error, 'max_tokens must be nonnegative (zero uses model context)');
       const second = drain(unwrap(qwen_stream_start(invalid.model, chatPrompt('Reply with only the result of 3 + 4.'), 32)));
       strictEqual(second.error, '');
       strictEqual(second.generation.kind, 'some');

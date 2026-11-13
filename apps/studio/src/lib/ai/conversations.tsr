@@ -88,7 +88,7 @@ export function setChatDraft(history: Mutable<ChatHistory>, text: string): void 
 export function parseHistory(text: ReadOnly<string>, root: ReadOnly<string>): Result<ChatHistory, string> {
   try {
     const history = JSON.parse<ChatHistory>(text, {
-      maxBytes: 8 * 1024 * 1024, maxDepth: 16, maxEntries: 100000, maxNodes: 300000
+      maxBytes: text.length, maxDepth: 16, maxEntries: text.length, maxNodes: text.length
     });
 
     if (history.schemaVersion !== 1 || history.root !== root) return Err('Chat history belongs to another workspace or version.');

@@ -1,4 +1,3 @@
-import { fromUtf8, length } from 'std:bytes';
 import { stdin, readLineStdin } from 'std:io';
 import { Channel, spawn } from 'std:threads';
 
@@ -16,7 +15,6 @@ function main(): void {
       const update: ModelUpdate = unwrap(updates.receive());
       const frame = JSON.stringify(update);
 
-      if (length(unwrap(fromUtf8(frame))) > 128 * 1024) throw 'Model response exceeds 128 KiB.';
       console.log(frame);
     }
   }));
@@ -24,11 +22,11 @@ function main(): void {
 
   try {
     while (true) {
-      const line = unwrap(readLineStdin(input, 128 * 1024));
+      const line = unwrap(readLineStdin(input));
 
       if (line === undefined) break;
       const request = JSON.parse<ModelRequest>(line, {
-        maxBytes: 128 * 1024, maxDepth: 16, maxEntries: 10000, maxNodes: 20000
+        maxBytes: line.length, maxDepth: 16, maxEntries: line.length, maxNodes: line.length
       });
       unwrap(commands.send(request));
     }

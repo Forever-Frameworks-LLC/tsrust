@@ -27,10 +27,6 @@ fn check_cancel(task: &TaskContext) -> Result<(), String> {
     if task.cancellation_requested() { Err("cancelled".into()) } else { Ok(()) }
 }
 
-const MAX_OUTPUT_TOKENS: i64 = 4096;
-// A 16 KiB UTF-8 prefix fits the 128 KiB JSON frame even with control-byte escaping.
-const MAX_OUTPUT_BYTES: usize = 16 * 1024;
-
 #[derive(Default)]
 struct OutputDecoder {
     text: String,
@@ -39,9 +35,6 @@ struct OutputDecoder {
 
 impl OutputDecoder {
     fn push(&mut self, bytes: &[u8]) -> Result<bool, String> {
-        if self.text.len() + self.pending.len() + bytes.len() > MAX_OUTPUT_BYTES {
-            return Err("generated output exceeds 16384 UTF-8 bytes".into());
-        }
         self.pending.extend_from_slice(bytes);
         let valid = match std::str::from_utf8(&self.pending) {
             Ok(text) => text.len(),
@@ -60,8 +53,8 @@ impl OutputDecoder {
 }
 
 fn validate_budget(max_tokens: i64) -> Result<(), String> {
-    if !(1..=MAX_OUTPUT_TOKENS).contains(&max_tokens) {
-        return Err("max_tokens must be 1..=4096".into());
+    if max_tokens < 0 {
+        return Err("max_tokens must be nonnegative (zero uses model context)".into());
     }
     Ok(())
 }
@@ -80,9 +73,8 @@ fn publish_prefix(sender: &mpsc::SyncSender<String>, bytes: &[u8], check: &dyn F
 
 fn request_tokens(tokenizer: &Tokenizer, prompt: &str, max_tokens: i64) -> Result<Vec<u32>, String> {
     validate_budget(max_tokens)?;
-    if prompt.len() > 65536 { return Err("admission prompt exceeds 65536 UTF-8 bytes".into()); }
     let expected = tokenizer.encode(prompt, true).map_err(|error| error.to_string())?;
-    if expected.get_ids().is_empty() || expected.get_ids().len() > 2048 { return Err("admission context must be 1..=2048 tokens".into()); }
+    if expected.get_ids().is_empty() { return Err("prompt produced no tokens".into()); }
     Ok(expected.get_ids().to_vec())
 }
 
@@ -106,11 +98,16 @@ pub fn qwen_load(task: &TaskContext, model_path: &str, tokenizer_path: &str) -> 
     load_model(task, model_path, tokenizer)
 }
 
+/// Whether the templated prompt leaves room for generation in this model's trained context.
+pub fn qwen_prompt_fits(model: &QwenModel, prompt: &str) -> Result<bool, String> {
+    let encoded = model.tokenizer.encode(prompt, true).map_err(|error| error.to_string())?;
+    Ok(encoded.get_ids().len() < model.model.n_ctx_train() as usize)
+}
+
 /// Generate from an already loaded model without loading the model or tokenizer again.
 /// Each call has a fresh context, strict tokenizer agreement and no conversation state.
 /// Exclusive borrowing serializes context creation, which the pinned SDK cannot safely parallelize.
-/// Limits: 1..=2048 prompt tokens, 65536 prompt bytes, 1..=4096 output tokens,
-/// 16384 output bytes and 180 seconds. Prompt plus budget must fit the trained context.
+/// Zero requests all remaining trained context. Positive budgets are optional for engine callers.
 /// Returns buffered text/counts/stop reason; cancellation returns an error without partial text.
 pub fn qwen_generate_loaded(task: &TaskContext, model: &mut QwenModel, prompt: &str, max_tokens: i64) -> Result<Generation, String> {
     check_cancel(task)?;
@@ -124,7 +121,6 @@ pub fn qwen_generate(task: &TaskContext, model_path: &str, tokenizer_path: &str,
     check_cancel(task)?;
     // Reject cheap invalid requests before touching either artifact, preserving the original contract.
     validate_budget(max_tokens)?;
-    if prompt.len() > 65536 { return Err("admission prompt exceeds 65536 UTF-8 bytes".into()); }
     let tokenizer = Tokenizer::from_file(tokenizer_path).map_err(|error| error.to_string())?;
     let expected = request_tokens(&tokenizer, prompt, max_tokens)?;
     let mut model = load_model(task, model_path, tokenizer)?;
@@ -140,24 +136,24 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
     if tokens.len() != expected.len() || tokens.iter().zip(expected).any(|(token, expected)| token.0 < 0 || token.0 as u32 != *expected) {
         return Err("embedded and external tokenizer IDs differ".into());
     }
-    let context_tokens = tokens.len() as u32 + max_tokens as u32;
-    if context_tokens > model.n_ctx_train() { return Err("prompt plus response budget exceeds the model context".into()); }
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(180);
-    let check_outer = check;
-    let check = || {
-        check_outer()?;
-        if std::time::Instant::now() >= deadline { return Err("generation exceeded its 180-second deadline".into()); }
-        Ok(())
-    };
+    let input = u32::try_from(tokens.len()).map_err(|_| "prompt exceeds model context")?;
+    let remaining = model.n_ctx_train().checked_sub(input).filter(|n| *n > 0)
+        .ok_or_else(|| format!("prompt has {input} tokens, model context is {}", model.n_ctx_train()))?;
+    let max_tokens = if max_tokens == 0 { remaining } else { remaining.min(u32::try_from(max_tokens).unwrap_or(u32::MAX)) };
+    let context_tokens = input + max_tokens;
     let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(context_tokens))
         .with_n_batch(2048).with_n_ubatch(128).with_n_threads(2).with_n_threads_batch(2);
     let mut context = model.new_context(backend, params).map_err(|error| error.to_string())?;
     let mut batch = LlamaBatch::new(2048, 1);
-    for (position, token) in tokens.iter().enumerate() {
-        batch.add(*token, position as i32, &[0], position + 1 == tokens.len()).map_err(|error| error.to_string())?;
+    for (chunk_index, chunk) in tokens.chunks(2048).enumerate() {
+        check()?;
+        batch.clear();
+        for (offset, token) in chunk.iter().enumerate() {
+            let position = chunk_index * 2048 + offset;
+            batch.add(*token, position as i32, &[0], position + 1 == tokens.len()).map_err(|error| error.to_string())?;
+        }
+        context.decode(&mut batch).map_err(|error| error.to_string())?;
     }
-    check()?;
-    context.decode(&mut batch).map_err(|error| error.to_string())?;
     let mut sampler = LlamaSampler::greedy();
     let mut generated = 0usize;
     let mut decoder = OutputDecoder::default();

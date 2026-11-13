@@ -2,37 +2,31 @@ import { AiMessage, messageContent } from './conversations.tsr';
 import { ChatMessage } from './prompts.tsr';
 import { ModelRequest } from './protocol.tsr';
 
-// Walk backwards so history older than the frame never needs rendering.
+// Replace only the newest edit turn and exclude incomplete exchanges.
 export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<AiMessage[]>, includeWorkspace: boolean, editPrompt?: string): Result<boolean, string> {
-  request.messages = [];
-  let bytes = JSON.stringify(request).length + 1;
-  const recent: ChatMessage[] = [];
-  let keep = 0;
-  let shortened = false;
+  const messages: ChatMessage[] = [];
+  const seen = new Set<string>();
+  const lastUser = history.findLastIndex((entry) => entry.role === 'user' && entry.status !== 'rejected');
 
   for (let index = history.length - 1; index >= 0; index -= 1) {
     const entry = history[index];
 
     if (entry.text === '' || entry.status === 'rejected' || (entry.role === 'user' && entry.status !== undefined && entry.status !== 'complete')) continue;
-    const content = recent.length === 0 && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace);
-    const message: ChatMessage = {
+
+    const excerpt = entry.workspaceExcerpt ?? '';
+    const editing = editPrompt !== undefined && index === lastUser;
+    const content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace && !seen.has(excerpt));
+
+    if (includeWorkspace && excerpt !== '' && !editing) seen.add(clone(excerpt));
+    messages.push({
       role: clone(entry.role), content
-    };
-    bytes += JSON.stringify(message).length + (recent.length === 0 ? 0 : 1);
-
-    if (bytes > 128 * 1024) {
-      shortened = true;
-      break;
-    }
-
-    recent.push(message);
-
-    if (entry.role === 'user') keep = recent.length;
+    });
   }
 
-  if (keep === 0) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
-  const messages = recent.slice(0, keep);
   messages.reverse();
-  request.messages = messages;
-  return Ok(shortened || recent.length > keep);
+  const first = messages.findIndex((message) => message.role === 'user');
+
+  if (first < 0) return Err('A user message is required.');
+  request.messages = first === 0 ? messages : messages.slice(first);
+  return Ok(false);
 }

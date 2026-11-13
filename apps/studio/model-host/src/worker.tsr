@@ -5,6 +5,7 @@ import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 import {
   QwenModel,
   qwen_load,
+  qwen_prompt_fits,
   qwen_stream_start,
   qwen_stream_next,
   qwen_stream_cancel,
@@ -30,7 +31,33 @@ function publish(
 }
 
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
-  const prompt = request.messages === undefined ? chatPrompt(request.prompt) : conversationPrompt(request.messages);
+  const messages = request.messages;
+  let prompt = messages === undefined ? chatPrompt(request.prompt) : conversationPrompt(messages);
+
+  if (messages !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
+    const starts: int[] = [];
+
+    for (let index = 0; index < messages.length; index += 1) {
+      if (messages[index].role === 'user') starts.push(index);
+    }
+    // Find the longest whole-turn suffix that leaves room for output.
+    let low = 1;
+    let high = starts.length;
+
+    while (low < high) {
+      const middle = low + (high - low) / 2;
+      const candidate = conversationPrompt(messages.slice(starts[middle]));
+
+      if (unwrap(qwen_prompt_fits(model, candidate))) high = middle;
+      else low = middle + 1;
+    }
+
+    if (low < starts.length) {
+      prompt = conversationPrompt(messages.slice(starts[low]));
+      publish(updates, 'compacted', clone(request.id));
+    }
+  }
+
   const stream = unwrap(qwen_stream_start(model, prompt, request.maxTokens));
   let stopping = false;
 

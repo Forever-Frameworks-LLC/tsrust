@@ -9,73 +9,40 @@ import {
   writeAll,
   flush
 } from 'std:io';
-import { toInt } from 'std:numeric';
 import { spawn } from 'std:process';
-import { monotonicNow } from 'std:time';
 
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 
 async function writeRequest(writer: Mutable<Writer>, request: ReadOnly<ModelRequest>): Task<void> {
   const bytes = unwrap(fromUtf8(JSON.stringify(request) + '\n'));
 
-  if (length(bytes) > 128 * 1024) throw 'Model request exceeds 128 KiB.';
   unwrap(await writeAll(writer, bytes));
   unwrap(await flush(writer));
 }
 
 async function forward(writer: Writer, first: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>): Task<void> {
-  let busy = true;
-  let active = '';
-  let deadline = monotonicNow() + 180000;
-  await writeRequest(writer, first).timeout(5000);
+  await writeRequest(writer, first);
 
   while (true) {
-    let request: ModelRequest = {
-      kind: '', id: '', prompt: '', maxTokens: 0
-    };
-
-    if (busy) {
-      const remaining = unwrap(toInt(Math.ceil(deadline - monotonicNow())));
-
-      if (remaining < 1) throw 'The local model exceeded its 180-second deadline.';
-      request = await requests.receive().timeout(remaining);
-    } else request = await requests.receive();
-
-    if (request.kind === '__settled') {
-      if (request.id === active) busy = false;
-      continue;
-    }
+    const request = await requests.receive();
 
     if (request.kind === 'shutdown') return;
-
-    if (request.kind === 'generate') {
-      active = clone(request.id);
-      busy = true;
-      deadline = monotonicNow() + 180000;
-    }
-
-    await writeRequest(writer, request).timeout(5000);
+    await writeRequest(writer, request);
   }
 }
 
-async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>, controls: Sender<ModelRequest>): Task<void> {
-  const input = unwrap(lines(reader, 128 * 1024));
+async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>): Task<void> {
+  const input = unwrap(lines(reader));
 
   while (true) {
     const line = unwrap(await readLine(input));
 
     if (line === undefined) throw 'The local model process closed its output.';
     const update = JSON.parse<ModelUpdate>(line, {
-      maxBytes: 128 * 1024, maxDepth: 8, maxEntries: 16, maxNodes: 32
+      maxBytes: line.length, maxDepth: 8, maxEntries: 16, maxNodes: 32
     });
 
-    if (!['ready', 'prefix', 'complete', 'cancelled', 'error', 'stopped', 'rejected'].includes(update.kind)) throw 'Invalid model host response.';
-
-    if (update.kind === 'ready' || update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error' || update.kind === 'rejected') {
-      await controls.send({
-        kind: '__settled', id: clone(update.id), prompt: '', maxTokens: 0
-      });
-    }
+    if (!['ready', 'compacted', 'prefix', 'complete', 'cancelled', 'error', 'stopped', 'rejected'].includes(update.kind)) throw 'Invalid model host response.';
 
     if (update.kind === 'stopped') return;
     await updates.send(update);
@@ -101,7 +68,7 @@ async function connected(program: ReadOnly<string>, first: ModelRequest, request
     const diagnostics = drain(errors).start();
 
     try {
-      await race([forward(input, first, requests), receive(output, updates, requests.sender())]);
+      await race([forward(input, first, requests), receive(output, updates)]);
     } finally {
       diagnostics.cancel();
 
