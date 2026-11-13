@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Follow constants from a named workspace function
+
+Named non-active file context indexes top-level value offsets once per selected
+source and follows referenced const initializers transitively. Referenced
+mutable values, classes, enums and unsupported constant shapes keep the file
+intact. The action fixture retained a helper and two linked constants (one
+Unicode name), omitting an unrelated constant and function. The qualified
+1.5B evaluation resolved a helper returning a constant and answered 73, 84
+and 96 over three turns. All 26 focused cases passed (60.96 s build). Peak
+sampled model-host RSS was 2,068,864 KiB across 12 observations; this is
+process RSS, not a measurement of the complete Studio session.
+
 ## Function questions in a named workspace file
 
 For a named non-active file, a question about an indexed function selects

@@ -1090,7 +1090,7 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
   try {
     unwrap(mkdirAll(root + '/lib'));
     unwrap(writeTextFile(root + '/quote.tsr', 'export function handlingFee() { return 999; }'));
-    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return fee(); }\nfunction fee() { return 73; }\nfunction unrelated() { return 400; }'));
+    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return fee(); }\nfunction fee() { return réglage; }\nconst réglage = baseFee + 1;\nconst baseFee = 72;\nconst unrelatedValue = 25;\nfunction unrelated() { return 400; }'));
     const workspace = unwrap(openWorkspace(root));
     const tree = unwrap(scanTree(clone(workspace.root), false));
     const index = new Map<string, FileDeclarations>();
@@ -1105,6 +1105,7 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
       index
     );
     strictEqual(closed.excerpt.includes('return fee()'), true);
+    strictEqual(closed.excerpt.includes('const réglage = baseFee + 1;'), true);
     strictEqual(closed.excerpt.includes('unrelated'), false);
     const full = editorContext(
       workspace,
@@ -1116,7 +1117,7 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
       index
     );
     strictEqual(full.excerpt.includes('unrelated'), true);
-    strictEqual(closed.excerpt.includes('return 73'), true);
+    strictEqual(closed.excerpt.includes('baseFee = 72'), true);
     strictEqual(closed.excerpt.includes('return 999'), false);
     unwrap(openFile(workspace, root + '/quote.tsr'));
     const opened = editorContext(
@@ -1129,7 +1130,7 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
       index
     );
     strictEqual(opened.excerpt.includes('return 999'), false);
-    strictEqual(opened.excerpt.includes('return 73'), true);
+    strictEqual(opened.excerpt.includes('baseFee = 72'), true);
     strictEqual(opened.candidates.length, 0);
     unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return 84; }'));
     const follow = editorContext(

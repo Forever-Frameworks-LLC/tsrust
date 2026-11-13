@@ -399,8 +399,26 @@ function constantExcerpt(source: ReadOnly<string>, name: ReadOnly<string>, atSta
   return '';
 }
 
+// Record top-level value declarations once so helper initializers can be followed on demand.
+function valueOffsets(source: ReadOnly<string>): Map<string, int> {
+  const values = new Map<string, int>();
+  const bytes = unwrap(fromUtf8(source));
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b(?:export\\s+)?(?:const|let|class|enum)\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|[{}]"));
+  let depth = 0;
+
+  for (const token of tokens.capturesAll(source)) {
+    const name = token.groups[0];
+
+    if (name !== undefined && depth === 0) values.set(unwrap(toUtf8(unwrap(view(bytes, name.start, name.end)))), token.match.start);
+    else if (source.startsWith('{', token.match.start)) depth += 1;
+    else if (source.startsWith('}', token.match.start)) depth -= 1;
+  }
+
+  return values;
+}
+
 // Extend selected bodies with bare calls to functions declared in the same source.
-function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>, outline: ReadOnly<Map<string, DocumentSymbol>> = new Map<string, DocumentSymbol>(), lines: ReadOnly<string[]> = []): Set<string> {
+function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>, outline: ReadOnly<Map<string, DocumentSymbol>> = new Map<string, DocumentSymbol>(), lines: ReadOnly<string[]> = [], values: ReadOnly<Map<string, int>> = new Map<string, int>()): Set<string> {
   const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)(\\s*\\()?"));
   const visited = new Set<string>();
   const external = new Set<string>();
@@ -417,14 +435,16 @@ function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>
 
       const symbol = outline.get(name);
 
-      if (symbol === undefined && token.groups[2] === undefined) {
+      const offset = values.get(name);
+
+      if (offset === undefined && symbol === undefined && token.groups[2] === undefined) {
         external.add(clone(name));
         continue;
       }
 
       if (visited.has(name)) continue;
       visited.add(clone(name));
-      const definition = symbol === undefined ? functionExcerpt(source, name, true) : outlineBody(lines, symbol);
+      const definition = offset !== undefined ? constantExcerpt(source.slice(offset), name, true) : symbol === undefined ? functionExcerpt(source, name, true) : outlineBody(lines, symbol);
 
       if (definition === '') external.add(clone(name));
       else if (!snippets.includes(definition)) snippets.push(definition);
@@ -742,9 +762,10 @@ export function editorContext(
 
               if (referenced || snippets.length > 0) {
                 if (!whole && snippets.length > 0) {
-                  const dependencies = includeLocalCalls(excerpt, snippets);
-                  // Without an outline a local value may be needed to interpret the selected body.
-                  if (explicitFile && unwrap(compile('(?m)^\\s*(?:export\\s+)?(?:const|let|class|enum)\\s+')).isMatch(excerpt)) whole = true;
+                  const values = explicitFile ? valueOffsets(excerpt) : new Map<string, int>();
+                  const dependencies = includeLocalCalls(excerpt, snippets, new Map<string, DocumentSymbol>(), [], values);
+
+                  if (Array.from(dependencies).some((name) => values.has(name)) || (values.size > 0 && snippets.some((snippet) => snippet.includes('${')))) whole = true;
                   else queueImportedCalls(excerpt, file.path, workspace.root, dependencies, pending);
                 }
 

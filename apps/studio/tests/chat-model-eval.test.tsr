@@ -77,7 +77,7 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
     const workspace = unwrap(openWorkspace(folder));
 
     if (workspaceEval === 'qualified') {
-      unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return base(); }\nfunction base(): int { return 73; }\nfunction unrelated(): int { return 420; }'));
+      unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return base(); }\nfunction base(): int { return fee; }\nconst fee = 73;\nconst unused = 52;\nfunction unrelated(): int { return 420; }'));
       unwrap(openFile(workspace, folder + '/answer.tsr'));
     }
 
@@ -125,7 +125,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
         const answer = await ask(host, updates, 'What does answer() in lib/answer.tsr return? Reply with the integer alone.');
         const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
         strictEqual(excerpt.includes('return 51'), false);
-        strictEqual(excerpt.includes('return 73'), true);
+        strictEqual(excerpt.includes('const fee = 73;'), true);
+        strictEqual(excerpt.includes('unused'), false);
         strictEqual(excerpt.includes('unrelated'), false);
         strictEqual(excerpt.includes('return base()'), true);
         strictEqual(answer.trim(), '73');
