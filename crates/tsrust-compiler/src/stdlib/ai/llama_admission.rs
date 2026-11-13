@@ -144,13 +144,15 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
     // Reserve a small continuation first. Replay the exact prefix only when it outgrows the KV cache.
     let mut capacity = context_tokens.min(input.saturating_add(256));
     let mut history = tokens;
+    // Replays use the same bounded chunks as prefill; short completions need a smaller compute graph.
+    let batch_tokens = input.clamp(1, 2048);
     let make_context = |capacity: u32| {
         let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(capacity))
-            .with_n_batch(2048).with_n_ubatch(128).with_n_threads(2).with_n_threads_batch(2);
+            .with_n_batch(batch_tokens).with_n_ubatch(batch_tokens.min(128)).with_n_threads(2).with_n_threads_batch(2);
         model.new_context(backend, params).map_err(|error| error.to_string())
     };
     let mut context = make_context(capacity)?;
-    let mut batch = LlamaBatch::new(2048, 1);
+    let mut batch = LlamaBatch::new(batch_tokens as usize, 1);
     let mut decoded = 0usize;
     let mut sampler = LlamaSampler::greedy();
     let mut generated = 0usize;
@@ -168,7 +170,7 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
         while decoded < history.len() {
             check()?;
             batch.clear();
-            let end = (decoded + 2048).min(history.len());
+            let end = (decoded + batch_tokens as usize).min(history.len());
             for (position, token) in (decoded..end).zip(&history[decoded..end]) {
                 batch.add(*token, position as i32, &[0], position + 1 == history.len()).map_err(|error| error.to_string())?;
             }
