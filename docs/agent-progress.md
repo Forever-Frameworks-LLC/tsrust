@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dependencies of outline-selected functions
+
+Chat now consults the same current top-level document outline while walking
+dependencies of selected bodies. Generic helper implementations and simple
+module constant initializers can be included even when the question names
+only the caller. Constant extraction starts at the located declaration and
+uses the existing delimiter-aware initializer scanner. In the live worker
+test, the unsaved identity<T> snippet included chooseValue<T>, DEFAULT_CODE
+and its dependency BASE_CODE, and omitted main and UNRELATED. All 35
+language-service and AI action tests passed after 65.10 s setup/build.
+Dependency identification within a body still uses lexical matching;
+scope-shadowed names and model answer quality were not established here.
+
 ## Automatic active-draft outlines for chat
 
 The Studio language ticker requests a document outline for the active

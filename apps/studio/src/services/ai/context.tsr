@@ -375,13 +375,20 @@ function exportedExcerpt(source: ReadOnly<string>, name: ReadOnly<string>): stri
   const body = functionExcerpt(source, name);
 
   if (body !== '' || name === 'default') return body;
-  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*?\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bexport\\s+const\\s+" + escape(name) + "\\s*[:=]|[(){}\\[\\];]"));
+  return constantExcerpt(source, name, false);
+}
+
+function constantExcerpt(source: ReadOnly<string>, name: ReadOnly<string>, atStart: boolean): string {
+  const prefix = atStart ? '(?:export\\s+)?' : 'export\\s+';
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*?\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b" + prefix + "const\\s+" + escape(name) + "\\s*[:=]|[(){}\\[\\];]"));
   let start = -1;
   let depth = 0;
 
   for (const token of tokens.findAll(source)) {
     if (start < 0) {
-      if (source.startsWith('export', token.start)) start = token.start;
+      if (atStart && token.start !== 0) return '';
+
+      if (source.startsWith('export', token.start) || (atStart && source.startsWith('const', token.start))) start = token.start;
     } else if (source.startsWith(';', token.start) && depth === 0) {
       return unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(source)), start, token.end))));
     } else if (['(', '{', '['].some((mark) => source.startsWith(mark, token.start))) depth += 1;
@@ -392,7 +399,7 @@ function exportedExcerpt(source: ReadOnly<string>, name: ReadOnly<string>): stri
 }
 
 // Extend selected bodies with bare calls to functions declared in the same source.
-function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>): Set<string> {
+function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>, outline: ReadOnly<Map<string, DocumentSymbol>> = new Map<string, DocumentSymbol>(), lines: ReadOnly<string[]> = []): Set<string> {
   const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)(\\s*\\()?"));
   const visited = new Set<string>();
   const external = new Set<string>();
@@ -407,14 +414,16 @@ function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>
       if (group === undefined || token.groups[0] !== undefined) continue;
       const name = unwrap(toUtf8(unwrap(view(bytes, group.start, group.end))));
 
-      if (token.groups[2] === undefined) {
+      const symbol = outline.get(name);
+
+      if (symbol === undefined && token.groups[2] === undefined) {
         external.add(clone(name));
         continue;
       }
 
       if (visited.has(name)) continue;
       visited.add(clone(name));
-      const definition = functionExcerpt(source, name, true);
+      const definition = symbol === undefined ? functionExcerpt(source, name, true) : outlineBody(lines, symbol);
 
       if (definition === '') external.add(clone(name));
       else if (!snippets.includes(definition)) snippets.push(definition);
@@ -502,31 +511,45 @@ interface DocumentSymbol {
   selectionRange: DiagnosticRange;
 }
 
-function outlineBodies(source: ReadOnly<string>, result: ReadOnly<string>, names: ReadOnly<Set<string>>): Map<string, string> {
-  const bodies = new Map<string, string>();
+function outlineSymbols(result: ReadOnly<string>): Map<string, DocumentSymbol> {
+  const index = new Map<string, DocumentSymbol>();
 
   try {
-    const symbols = JSON.parse<DocumentSymbol[]>(result);
-    const lines = source.split('\n');
-
-    for (const symbol of symbols) {
-      if (symbol.kind !== 12 || !names.has(symbol.name)) continue;
-      const range = symbol.range;
-      const name = symbol.selectionRange.start;
-
-      if (range.start.line < 0 || range.end.line >= lines.length || range.end.line < range.start.line || name.line < range.start.line || name.line > range.end.line || referenceSymbol(lines[name.line], {
-        line: 0, character: name.character
-      }, true) !== symbol.name) continue;
-      const first = diagnosticColumn(lines[range.start.line], range.start.character) - 1;
-      const last = diagnosticColumn(lines[range.end.line], range.end.character) - 1;
-      const parts = lines.slice(range.start.line, range.end.line + 1);
-      parts[parts.length - 1] = Array.from(parts[parts.length - 1]).slice(0, last).join('');
-      parts[0] = Array.from(parts[0]).slice(first).join('');
-      bodies.set(clone(symbol.name), parts.join('\n'));
+    for (const symbol of JSON.parse<DocumentSymbol[]>(result)) {
+      if (symbol.kind === 12 || symbol.kind === 13) index.set(clone(symbol.name), clone(symbol));
     }
   } catch (_) {}
 
-  return bodies;
+  return index;
+}
+
+function outlineBody(lines: ReadOnly<string[]>, symbol: ReadOnly<DocumentSymbol>): string {
+  try {
+    const range = symbol.range;
+    const name = symbol.selectionRange.start;
+
+    if (range.start.line < 0 || range.end.line >= lines.length || range.end.line < range.start.line || name.line < range.start.line || name.line > range.end.line || referenceSymbol(lines[name.line], {
+      line: 0, character: name.character
+    }, true) !== symbol.name) return '';
+
+    if (symbol.kind === 13) {
+      const column = diagnosticColumn(lines[name.line], name.character) - 1;
+      const before = Array.from(lines[name.line]).slice(0, column).join('').trimStart();
+
+      if (!unwrap(compile('^(?:export\\s+)?const\\s+$')).isMatch(before)) return '';
+      const source = lines.slice(name.line).join('\n').trimStart();
+      return constantExcerpt(source, symbol.name, true);
+    }
+
+    const first = diagnosticColumn(lines[range.start.line], range.start.character) - 1;
+    const last = diagnosticColumn(lines[range.end.line], range.end.character) - 1;
+    const parts = lines.slice(range.start.line, range.end.line + 1);
+    parts[parts.length - 1] = Array.from(parts[parts.length - 1]).slice(0, last).join('');
+    parts[0] = Array.from(parts[0]).slice(first).join('');
+    return parts.join('\n');
+  } catch (_) {
+    return '';
+  }
 }
 
 export function editorContext(
@@ -562,10 +585,16 @@ export function editorContext(
       const bodies: string[] = [];
 
       const target = outline?.query.document;
-      const located = outline !== undefined && target !== undefined && outline.error === '' && target.path === active.document.path && target.session === active.document.session && target.revision === active.document.revision && unresolved.size > 0 ? outlineBodies(active.document.text, outline.result, unresolved) : new Map<string, string>();
+      const located = outline !== undefined && target !== undefined && outline.error === '' && target.path === active.document.path && target.session === active.document.session && target.revision === active.document.revision && unresolved.size > 0 ? outlineSymbols(outline.result) : new Map<string, DocumentSymbol>();
+      const lines = located.size === 0 ? [] : active.document.text.split('\n');
+      let selectedOutline = false;
 
       for (const name of Array.from(unresolved)) {
-        const body = clone(located.get(name)) ?? functionExcerpt(active.document.text, name, true, true);
+        const symbol = located.get(name);
+        const selected = symbol === undefined ? '' : outlineBody(lines, symbol);
+
+        if (selected !== '') selectedOutline = true;
+        const body = selected === '' ? functionExcerpt(active.document.text, name, true, true) : selected;
 
         if (body !== '') {
           bodies.push(body);
@@ -574,9 +603,9 @@ export function editorContext(
       }
 
       if (bodies.length > 0) {
-        for (const name of includeLocalCalls(active.document.text, bodies)) symbols.add(clone(name));
+        for (const name of includeLocalCalls(active.document.text, bodies, located, lines)) symbols.add(clone(name));
 
-        if (located.size > 0 && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
+        if (selectedOutline && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
 
       }
     }

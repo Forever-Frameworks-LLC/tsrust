@@ -268,7 +268,7 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
 
     const active = unwrap(openWorkspace(clone(root)));
     unwrap(openFile(active, clone(document.path)));
-    edit(active.files[0].document, 'function identity<T>(value: T): T {\n  return value;\n}\nfunction main() {}');
+    edit(active.files[0].document, 'function identity<T>(value: T): T {\n  return chooseValue(value, DEFAULT_CODE);\n}\nconst BASE_CODE = 13;\nconst DEFAULT_CODE: int = BASE_CODE + 1;\nfunction chooseValue<T>(value: T, code: int): T { return value; }\nconst UNRELATED = 999;\nfunction main() {}');
     const open = signal(active);
     const outlines = signal(createLanguageState());
     const connected = outlines.get();
@@ -313,7 +313,11 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
       '',
       clone(completed[0])
     ).excerpt;
-    strictEqual(excerpt.includes('function identity<T>(value: T): T {\n  return value;\n}'), true);
+    strictEqual(excerpt.includes('function identity<T>(value: T): T {\n  return chooseValue(value, DEFAULT_CODE);\n}'), true);
+    strictEqual(excerpt.includes('const DEFAULT_CODE: int = BASE_CODE + 1;'), true);
+    strictEqual(excerpt.includes('const BASE_CODE = 13;'), true);
+    strictEqual(excerpt.includes('function chooseValue<T>(value: T, code: int): T { return value; }'), true);
+    strictEqual(excerpt.includes('UNRELATED'), false);
     strictEqual(excerpt.includes('function main()'), false);
     const newer = open.get();
     edit(newer.files[0].document, 'function identity<T>(value: T): T { return value; }\nfunction nextDraft() {}');
