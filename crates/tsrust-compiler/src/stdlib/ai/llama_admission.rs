@@ -141,19 +141,17 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
         .ok_or_else(|| format!("prompt has {input} tokens, model context is {}", model.n_ctx_train()))?;
     let max_tokens = if max_tokens == 0 { remaining } else { remaining.min(u32::try_from(max_tokens).unwrap_or(u32::MAX)) };
     let context_tokens = input + max_tokens;
-    let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(context_tokens))
-        .with_n_batch(2048).with_n_ubatch(128).with_n_threads(2).with_n_threads_batch(2);
-    let mut context = model.new_context(backend, params).map_err(|error| error.to_string())?;
+    // Reserve a small continuation first. Replay the exact prefix only when it outgrows the KV cache.
+    let mut capacity = context_tokens.min(input.saturating_add(256));
+    let mut history = tokens;
+    let make_context = |capacity: u32| {
+        let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(capacity))
+            .with_n_batch(2048).with_n_ubatch(128).with_n_threads(2).with_n_threads_batch(2);
+        model.new_context(backend, params).map_err(|error| error.to_string())
+    };
+    let mut context = make_context(capacity)?;
     let mut batch = LlamaBatch::new(2048, 1);
-    for (chunk_index, chunk) in tokens.chunks(2048).enumerate() {
-        check()?;
-        batch.clear();
-        for (offset, token) in chunk.iter().enumerate() {
-            let position = chunk_index * 2048 + offset;
-            batch.add(*token, position as i32, &[0], position + 1 == tokens.len()).map_err(|error| error.to_string())?;
-        }
-        context.decode(&mut batch).map_err(|error| error.to_string())?;
-    }
+    let mut decoded = 0usize;
     let mut sampler = LlamaSampler::greedy();
     let mut generated = 0usize;
     let mut decoder = OutputDecoder::default();
@@ -161,6 +159,22 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
     let mut stop = "length";
     for _ in 0..max_tokens {
         check()?;
+        if history.len() > capacity as usize {
+            drop(context);
+            capacity = context_tokens.min(capacity.saturating_mul(2));
+            context = make_context(capacity)?;
+            decoded = 0;
+        }
+        while decoded < history.len() {
+            check()?;
+            batch.clear();
+            let end = (decoded + 2048).min(history.len());
+            for (position, token) in (decoded..end).zip(&history[decoded..end]) {
+                batch.add(*token, position as i32, &[0], position + 1 == history.len()).map_err(|error| error.to_string())?;
+            }
+            context.decode(&mut batch).map_err(|error| error.to_string())?;
+            decoded = end;
+        }
         let token = sampler.sample(&context, batch.n_tokens() - 1);
         sampler.accept(token);
         if vocab.is_eog(token) { stop = "eos"; break; }
@@ -170,14 +184,11 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
         if decoder.push(&piece)? {
             if let Some(publish) = publish.as_mut() { publish(decoder.text.as_bytes(), &check)?; }
         }
-        if generated == max_tokens as usize { break; }
-        batch.clear();
-        batch.add(token, (tokens.len() + generated - 1) as i32, &[0], true).map_err(|error| error.to_string())?;
-        context.decode(&mut batch).map_err(|error| error.to_string())?;
+        history.push(token);
     }
     check()?;
     let text = decoder.finish()?;
-    Ok(Generation { text, input_tokens: tokens.len() as i64, output_tokens: generated as i64, stop: stop.into() })
+    Ok(Generation { text, input_tokens: i64::from(input), output_tokens: generated as i64, stop: stop.into() })
 }
 
 /// In-flight native token evaluation. Owns the model until qwen_stream_finish returns it.

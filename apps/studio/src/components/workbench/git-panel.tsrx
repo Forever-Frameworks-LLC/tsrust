@@ -1,3 +1,4 @@
+import { searchPageCount } from '../../lib/explorer/search.tsr';
 import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
 import { join, extname } from 'std:path';
@@ -15,7 +16,9 @@ import {
   ListItem,
   ListItemSuffix,
   Node,
-  Select,
+  Tabs,
+  Tab,
+  Pagination,
   Signal,
   Text,
   Ticker,
@@ -33,11 +36,28 @@ import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr
 import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
 import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
-function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
+function CommitRow(line: ReadOnly<string>, selected: Signal<GitChange>): Node {
+  const label = clone(line);
+  const style = computed<string>(() => 'px-2 border-b border-border' + (selected.get().mode === 'commit' && selected.get().path === label ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  return (
+    <ListItem className={style.get()} value={clone(line)} accessibilityLabel={clone(line)}>
+      <Tooltip text={clone(line)} className="grow min-w-0">
+        <Text className="truncate">
+          {clone(line)}
+        </Text>
+      </Tooltip>
+    </ListItem>
+  );
+}
+
+function ChangeRow(row: ReadOnly<GitChange>, selected: Signal<GitChange>, font: Signal<int>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
   const file = clone(row.path);
+  const mode = clone(row.mode);
+  const selectedPath = clone(file);
+  const rowStyle = computed<string>(() => 'px-2 py-[6px] rounded-none border-b border-border hover:bg-accent' + (selected.get().mode === mode && selected.get().path === selectedPath ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
   const staged = row.mode === 'staged';
   return (
-    <ListItem className="px-2 py-[6px] rounded-sm hover:bg-accent" value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+    <ListItem className={rowStyle.get()} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
       <Tooltip text={clone(row.path)} className="grow min-w-0">
         <View className="flex-row items-center gap-2 w-full min-w-0">
           <Icon name="file" className="size-4 shrink-0 text-muted-foreground" />
@@ -156,7 +176,7 @@ function ChangeGroup(
           );
         }}
       >
-        {...changes.get().filter((item: ReadOnly<GitChange>) => item.mode === groupKind).map((row: ReadOnly<GitChange>) => ChangeRow(row, font.handle(), pending.handle(), busy.handle()))}
+        {...changes.get().filter((item: ReadOnly<GitChange>) => item.mode === groupKind).map((row: ReadOnly<GitChange>) => ChangeRow(row, selected.handle(), font.handle(), pending.handle(), busy.handle()))}
       </List>
     </View>
   );
@@ -188,15 +208,38 @@ export function GitPanel(
   });
   const commits = signal<string[]>([]);
   const history = signal(false);
+  const query = signal('');
+  const page = signal<int>(1);
+  const matches = signal<string[]>([]);
+  const pages = computed<int>(() => searchPageCount(matches.get().length));
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
-  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
+  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 gap-2 text-[' + font.get().toString() + 'px]');
   const sidebar: Node = <View className={panelClass.get()}>
-    <View className="shrink-0 h-8 min-w-0">
-      <InputGroup size="small" className="w-full h-full min-w-0">
+    <Tabs
+      variant="underline"
+      size="small"
+      value={history.get() ? 'history' : 'changes'}
+      onChange={(value) => {
+        if (locked.get()) return;
+        history.set(value === 'history');
+
+        if (history.get()) {
+          page.set(1);
+          pending.set({
+            mode: 'history'
+          });
+        }
+      }}
+    >
+      <Tab value="changes" label={message('Changes')} />
+      <Tab value="history" label={message('History')} />
+    </Tabs>
+    <View hidden={history.get()} className="shrink-0 h-8 min-w-0">
+      <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border-0 border-b border-border">
         <Input
-          className={'text-[' + font.get().toString() + 'px]'}
+          className={'px-2 text-[' + font.get().toString() + 'px]'}
           value={messageText.get()}
           placeholder={message('Commit message')}
           aria-label={accessibleName('Commit message')}
@@ -217,19 +260,6 @@ export function GitPanel(
             }}
           />
           <InputGroupButton
-            icon="history"
-            tooltip={message('History')}
-            accessibilityLabel={message('History')}
-            disabled={locked.get()}
-            onClick={() => {
-              history.set(!history.get());
-
-              if (history.get()) pending.set({
-                mode: 'history'
-              });
-            }}
-          />
-          <InputGroupButton
             icon="refresh-cw"
             tooltip={message('Refresh source control')}
             accessibilityLabel={message('Refresh source control')}
@@ -243,80 +273,105 @@ export function GitPanel(
         </InputGroupAddon>
       </InputGroup>
     </View>
-    <View hidden={!history.get()}>
-      <Select
-        items={commits.get()}
-        value={selected.get().mode === 'commit' ? selected.get().path : ''}
-        placeholder={message('Choose a commit')}
-        onChange={(value) => {
-          if (!locked.get() && value !== '') {
-            selected.set({
-              path: clone(value), mode: 'commit', status: ''
-            });
-            output.set('');
-            viewing.set(true);
-            pending.set({
-              mode: 'commit', commit: value.split(' ')[0]
-            });
-          }
+    <View hidden={!history.get()} className="grow flex-col min-h-0 gap-2">
+      <Input
+        size="small"
+        className="w-full px-2 rounded-none border-0 border-b border-border"
+        placeholder={message('Search commits')}
+        aria-label={accessibleName('Search commits')}
+        value={query.get()}
+        onChange={(event) => {
+          query.set(clone(event.target.value));
+          matches.set(commits.get().filter((line: ReadOnly<string>) => line.toLowerCase().includes(query.get().trim().toLowerCase())));
+          page.set(1);
         }}
       />
+      <List
+        className="grow min-h-0"
+        size="small"
+        onConfirm={(value) => {
+          if (locked.get() || value === '') return;
+          selected.set({
+            path: clone(value), mode: 'commit', status: ''
+          });
+          output.set('');
+          viewing.set(true);
+          pending.set({
+            mode: 'commit', commit: value.split(' ')[0]
+          });
+        }}
+      >
+        {...matches.get().slice((page.get() - 1) * 50, page.get() * 50).map((line: ReadOnly<string>) => CommitRow(line, selected.handle()))}
+      </List>
+      <View hidden={pages.get() <= 1}>
+        <Pagination
+          size="small"
+          compact={true}
+          page={page.get()}
+          total={pages.get() > 0 ? pages.get() : 1}
+          onChange={(value) => {
+            page.set(value);
+          }}
+        />
+      </View>
     </View>
     <View hidden={errorText.get() === ''}>
       <Text className="px-2 text-destructive">
         {errorText.get()}
       </Text>
     </View>
-    <View hidden={!loaded.get() || changes.get().length > 0 || errorText.get() !== ''}>
-      <Text>
-        {t('No changes in this view.')}
-      </Text>
+    <View hidden={history.get()} className="grow flex-col min-h-0">
+      <View hidden={!loaded.get() || changes.get().length > 0 || errorText.get() !== ''}>
+        <Text>
+          {t('No changes in this view.')}
+        </Text>
+      </View>
+      {ChangeGroup(
+        'conflicts',
+        translate('Merge changes'),
+        font.handle(),
+        workspace.handle(),
+        recovery.handle(),
+        viewing.handle(),
+        changes.handle(),
+        selected.handle(),
+        errorText.handle(),
+        output.handle(),
+        hunks.handle(),
+        pending.handle(),
+        busy.handle()
+      )}
+      {ChangeGroup(
+        'staged',
+        translate('Staged changes'),
+        font.handle(),
+        workspace.handle(),
+        recovery.handle(),
+        viewing.handle(),
+        changes.handle(),
+        selected.handle(),
+        errorText.handle(),
+        output.handle(),
+        hunks.handle(),
+        pending.handle(),
+        busy.handle()
+      )}
+      {ChangeGroup(
+        'working',
+        translate('Changes'),
+        font.handle(),
+        workspace.handle(),
+        recovery.handle(),
+        viewing.handle(),
+        changes.handle(),
+        selected.handle(),
+        errorText.handle(),
+        output.handle(),
+        hunks.handle(),
+        pending.handle(),
+        busy.handle()
+      )}
     </View>
-    {ChangeGroup(
-      'conflicts',
-      translate('Merge changes'),
-      font.handle(),
-      workspace.handle(),
-      recovery.handle(),
-      viewing.handle(),
-      changes.handle(),
-      selected.handle(),
-      errorText.handle(),
-      output.handle(),
-      hunks.handle(),
-      pending.handle(),
-      busy.handle()
-    )}
-    {ChangeGroup(
-      'staged',
-      translate('Staged changes'),
-      font.handle(),
-      workspace.handle(),
-      recovery.handle(),
-      viewing.handle(),
-      changes.handle(),
-      selected.handle(),
-      errorText.handle(),
-      output.handle(),
-      hunks.handle(),
-      pending.handle(),
-      busy.handle()
-    )}
-    {ChangeGroup(
-      'working',
-      translate('Changes'),
-      font.handle(),
-      workspace.handle(),
-      recovery.handle(),
-      viewing.handle(),
-      changes.handle(),
-      selected.handle(),
-      errorText.handle(),
-      output.handle(),
-      hunks.handle(),
-      pending.handle(),
-      busy.handle()
-    )}
     <Ticker interval={150} running={busy.get() || (active.get() === 'git' && visible.get() && pending.get().mode !== '')} onTick={(_frame) => {
       if (busy.get()) {
         match (replies.tryReceive()) {
@@ -336,7 +391,7 @@ export function GitPanel(
                 if (index >= 0) {selected.set(clone(rows[index]));pending.set({mode:clone(rows[index].mode),viewFile:clone(rows[index].path)});}
                 else {viewing.set(false);selected.set({mode:'',path:'',status:''});}
               }
-            } else if (reply.mode === 'history') commits.set(reply.text.split('\n').filter((line) => line !== ''));
+            } else if (reply.mode === 'history') { commits.set(reply.text.split('\n').filter((line: ReadOnly<string>) => line !== '')); matches.set(commits.get().filter((line: ReadOnly<string>) => line.toLowerCase().includes(query.get().trim().toLowerCase()))); page.set(1); }
             else {ours.set(reply.ours ?? '');theirs.set(reply.theirs ?? '');hunks.set(diffHunks(reply.text));output.set(clone(reply.text));if (req.action !== undefined) pending.set({mode:'status'});}
           }, Err(reason) => {if (reason.code !== 'empty') {busy.set(false); errorText.set(reason.code);}}
         }

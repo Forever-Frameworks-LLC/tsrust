@@ -1,7 +1,9 @@
+#[cfg(any(feature = "tree-sitter", not(feature = "syntect")))]
 use std::rc::Rc;
 
 #[cfg(feature = "tree-sitter")]
 use gpui_base::input::Rope;
+#[cfg(any(feature = "tree-sitter", not(feature = "syntect")))]
 use gpui_base::input::SyntaxContextProvider;
 
 /// A syntax-context provider for `language`, or `None` when no grammar is
@@ -15,8 +17,11 @@ pub(crate) fn syntax_context_provider(language: &str) -> Option<Rc<dyn SyntaxCon
         .map(|provider| Rc::new(provider) as Rc<dyn SyntaxContextProvider>)
 }
 
-/// No tree-sitter support: no provider, engine falls back to heuristics.
-#[cfg(not(feature = "tree-sitter"))]
+/// Use the same grammar as the Syntect editor highlighter.
+#[cfg(all(feature = "syntect", not(feature = "tree-sitter")))]
+pub(crate) use crate::highlighter::syntect_context as syntax_context_provider;
+
+#[cfg(not(any(feature = "tree-sitter", feature = "syntect")))]
 pub(crate) fn syntax_context_provider(_language: &str) -> Option<Rc<dyn SyntaxContextProvider>> {
     None
 }

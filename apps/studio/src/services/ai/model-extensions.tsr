@@ -1,0 +1,121 @@
+import {
+  stat,
+  openFile,
+  read,
+  close,
+  createTempDir,
+  removeDirAll,
+  mkdirAll,
+  rename
+} from 'std:fs';
+import { length, toHex, toUtf8 } from 'std:bytes';
+import { createHasher } from 'std:crypto';
+import { run } from 'std:process';
+import { dirname, join } from 'std:path';
+import { Channel, Sender } from 'std:futures';
+import { configPath } from '../../lib/settings/settings.tsr';
+
+export interface ModelExtension {
+  name: string;
+  filename: string;
+  revision: string;
+  tokenizerRevision: string;
+  checksum: string;
+}
+
+export function modelExtensions(): ModelExtension[] {
+  return [{
+    name: 'Qwen2.5-Coder-1.5B-Instruct', filename: 'qwen2.5-coder-1.5b-instruct-q4_k_m.gguf', revision: 'f86cb2c1fa58255f8052cc32aeede1b7482d4361', tokenizerRevision: '2e1fd397ee46e1388853d2af2c993145b0f1098a', checksum: 'cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046'
+  }, {
+    name: 'Qwen2.5-Coder-3B-Instruct', filename: 'qwen2.5-coder-3b-instruct-q4_k_m.gguf', revision: 'f74adce6aa16316c625447af059dbebe4983757c', tokenizerRevision: '488639f1ff808d1d3d0ba301aef8c11461451ec5', checksum: '724fb256bec1ff062b2f65e4569e871ad2e95ab2a3989723d1769c54294730b7'
+  }];
+}
+
+export function modelFolder(model: ReadOnly<ModelExtension>): string {
+  return join(dirname(unwrap(configPath())), 'models', model.name);
+}
+
+export function installedModel(model: ReadOnly<ModelExtension>): boolean {
+  for (const file of [clone(model.filename), 'tokenizer.json']) {
+    match (stat(join(modelFolder(model), file))) {
+      Ok(info) => {
+        if (!info.isFile) return false;
+      },
+      Err(_) => {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function artifactChecksum(path: ReadOnly<string>): string {
+  const file = unwrap(openFile(path, {
+    read: true
+  }));
+  const hash = createHasher('sha256');
+
+  try {
+    while (true) {
+      const chunk = unwrap(read(file, 1024 * 1024));
+
+      if (length(chunk) === 0) break;
+      hash.update(chunk);
+    }
+  } finally {
+    unwrap(close(file));
+  }
+
+  return unwrap(toHex(hash.finalize()));
+}
+
+async function installModel(name: string): Task<string> {
+  const model = modelExtensions().find((item) => item.name === name);
+
+  if (model === undefined) return 'Unknown model.';
+
+  if (installedModel(model)) return '';
+  const folder = modelFolder(model);
+  unwrap(mkdirAll(dirname(folder)));
+  const temp = unwrap(createTempDir(dirname(folder), 'download-'));
+
+  try {
+    for (const file of [clone(model.filename), 'tokenizer.json']) {
+      const tokenizer = file === 'tokenizer.json';
+      const url = 'https://huggingface.co/Qwen/' + model.name + (tokenizer ? '/resolve/' + model.tokenizerRevision : '-GGUF/resolve/' + model.revision) + '/' + file;
+      const target = join(temp, file);
+      const result = unwrap(await run('curl', ['--disable', '--fail', '--silent', '--show-error', '--location', '--proto', '=https', '--proto-redir', '=https', '--output', clone(target), url]));
+
+      if (!result.status.success) return unwrap(toUtf8(result.stderr));
+
+      if (artifactChecksum(target) !== (tokenizer ? 'c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539' : model.checksum)) return 'Model download checksum mismatch.';
+    }
+
+    if (!installedModel(model)) unwrap(rename(temp, folder));
+    return '';
+  } finally {
+    match (stat(temp)) {
+      Ok(_) => {
+        unwrap(removeDirAll(temp));
+      },
+      Err(_) => {}
+    }
+  }
+}
+
+export async function modelDownloads(requests: Channel<string>, replies: Sender<string>): Task<void> {
+  while (true) {
+    const name = await requests.receive();
+    let error = '';
+
+    try {
+      error = await installModel(name);
+    } catch (reason) {
+      if (typeof reason === 'string') error = reason;
+      else error = clone(reason.message);
+    }
+
+    await replies.send(error);
+  }
+}

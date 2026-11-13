@@ -13,7 +13,7 @@
 edition = "2024"
 name = "gpui-base"
 version = "0.9.0"
-build = false
+build = "build.rs"
 exclude = ["examples/"]
 publish = true
 autolib = false

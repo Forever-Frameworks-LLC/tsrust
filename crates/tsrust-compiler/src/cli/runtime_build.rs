@@ -142,6 +142,7 @@ impl Prepared {
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
   if gpui{
+   command.env("TSRUST_GPUI_PATCH_REVISION",&gpui_patch);
    // GPUI programs add opt-in Kit features only for the components they use.
    let mut features=vec![if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}];
    if runtime.contains("// tsrust-ui-highlight-selected\n"){features.push("gpui-highlight");}

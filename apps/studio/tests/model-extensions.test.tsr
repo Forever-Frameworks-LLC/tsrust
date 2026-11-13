@@ -1,0 +1,45 @@
+import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { get } from 'std:env';
+import { Channel } from 'std:futures';
+import { sha256 } from 'std:crypto';
+import { fromUtf8, toHex } from 'std:bytes';
+import { strictEqual, test } from 'std:testing';
+import { artifactChecksum, modelDownloads, installedModel, modelExtensions } from '../src/services/ai/model-extensions.tsr';
+
+test('model artifact verification streams through more than one block', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-model-checksum-'));
+
+  try {
+    const text = 'a'.repeat(1024 * 1024) + 'b';
+    const path = folder + '/weights';
+    unwrap(writeTextFile(path, text));
+    strictEqual(artifactChecksum(path), unwrap(toHex(sha256(unwrap(fromUtf8(text))))));
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('model extension worker rejects unlisted requests and installs a selected pinned model', async () => {
+  const requests = new Channel<string>(1);
+  const sender = requests.sender();
+  const replies = new Channel<string>(1);
+  const worker = modelDownloads(requests, replies.sender()).start();
+
+  try {
+    await sender.send('../unlisted');
+    strictEqual(await replies.receive(), 'Unknown model.');
+
+    if (unwrap(get('TSRUST_TEST_INSTALL_CODER_3B')) === '1') {
+      const model = modelExtensions()[1];
+      await sender.send(clone(model.name));
+      strictEqual(await replies.receive(), '');
+      strictEqual(installedModel(model), true);
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});

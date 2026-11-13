@@ -151,6 +151,7 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
   const searchRequests = new Channel<ContentSearchRequest>(1);
   const searchReplies = new Channel<ContentSearchReply>(1);
   const gitReplies = new Channel<GitReply>(1);
+  const downloadReplies = new Channel<string>(1);
   const worker = studioWorkers(
     clone(root),
     configured,
@@ -167,7 +168,9 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     searchReplies.sender(),
     new Channel<int>(1),
     new Channel<GitRequest>(1),
-    gitReplies.sender()
+    gitReplies.sender(),
+    new Channel<string>(1),
+    downloadReplies.sender()
   ).start();
 
   try {

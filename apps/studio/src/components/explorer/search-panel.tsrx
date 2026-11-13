@@ -27,8 +27,17 @@ import { Workspace } from '../../lib/workspace/workspace.tsr';
 
 import { ContentSearchRequest, ContentSearchReply } from '../../services/content-search.tsr';
 
-function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
-  const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-3 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]');
+function ResultRow(
+  hit: ReadOnly<SearchHit>,
+  root: string,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  font: Signal<int>,
+  selected: Signal<string>
+): Node {
+  const key = clone(hit.path) + ':' + hit.offset.toString();
+  const rowKey = clone(key);
+  const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-2 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]' + (selected.get() === rowKey ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
   const parts = searchPreview(hit);
   const location = hit.path.slice(root.length + 1) + ':' + hit.line.toString();
   const label = clone(location) + ' ' + parts.map((part) => clone(part.text)).join('');
@@ -44,7 +53,9 @@ function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Wor
         aria-label={label}
         onPress={() => {
           match (openSearchResult(context, target)) {
-            Ok(_) => {},
+            Ok(_) => {
+              selected.set(clone(key));
+            },
             Err(message) => {
               const next = workspace.get();
               next.error = clone(message);
@@ -167,9 +178,10 @@ export function ContentSearch(
   cancellations: Sender<int>,
   replies: Channel<ContentSearchReply>
 ): Node {
+  const selected = signal('');
   const sender = requests.sender();
-  const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
-  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
+  const fontClass = computed<string>(() => 'px-2 text-[' + font.get().toString() + 'px]');
+  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 gap-2 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
     query: '', regex: false, sensitive: false, hits: [], page: 1, error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
   });
@@ -197,7 +209,7 @@ export function ContentSearch(
         }}
       />
       <View className="shrink-0 h-8 min-w-0">
-        <InputGroup size="small" className="w-full h-full min-w-0">
+        <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border-0 border-b border-border">
           <Input
             id="content-search"
             value={search.get().query}
@@ -206,6 +218,7 @@ export function ContentSearch(
             className={fontClass.get()}
             onChange={(event) => {
               const next = search.get();
+              selected.set('');
               next.query = clone(event.target.value);
               search.set(next);
               submitContentSearch(search, false);
@@ -261,7 +274,14 @@ export function ContentSearch(
         </Text>
       </View>
       <View className="flex-col grow min-h-0 overflow-y-auto">
-        {...searchPage(search.get().hits, search.get().page).map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery, font))}
+        {...searchPage(search.get().hits, search.get().page).map((hit: ReadOnly<SearchHit>) => ResultRow(
+          hit,
+          workspace.get().root,
+          workspace,
+          recovery,
+          font,
+          selected.handle()
+        ))}
       </View>
       <View hidden={pages.get() <= 1} className="flex-row shrink-0 items-center">
         <Text className="grow px-1">

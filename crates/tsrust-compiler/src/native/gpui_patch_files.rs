@@ -9,6 +9,7 @@ const GPUI_FILES:&[(&str,&[u8])]=&[
     ("TSRUST-PATCH.md",include_bytes!("../../patched-dependencies/gpui-base/TSRUST-PATCH.md")),
     ("benches/motion.rs",include_bytes!("../../patched-dependencies/gpui-base/benches/motion.rs")),
     ("benches/text_view_scroll.rs",include_bytes!("../../patched-dependencies/gpui-base/benches/text_view_scroll.rs")),
+    ("build.rs",include_bytes!("../../patched-dependencies/gpui-base/build.rs")),
     ("src/a11y_disabled.rs",include_bytes!("../../patched-dependencies/gpui-base/src/a11y_disabled.rs")),
     ("src/accordion.rs",include_bytes!("../../patched-dependencies/gpui-base/src/accordion.rs")),
     ("src/actions.rs",include_bytes!("../../patched-dependencies/gpui-base/src/actions.rs")),

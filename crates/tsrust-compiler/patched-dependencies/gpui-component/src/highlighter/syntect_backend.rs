@@ -3,7 +3,7 @@
 //! The lighter of the two highlighters: about two hundred languages for a few
 //! megabytes, where the full tree-sitter set costs tens. It is regex-based and
 //! line-oriented, so there is no syntax tree behind it — folding is by braces
-//! and editing decisions use the default `Code` context. An application that
+//! and editing decisions use TextMate scopes. An application that
 //! needs a structural editor enables `tree-sitter` instead.
 //!
 //! Syntect names what it matched with TextMate scopes (`keyword.control.rust`,
@@ -18,7 +18,7 @@ use std::{
 use gpui::{HighlightStyle, SharedString, Task};
 use gpui_base::input::{
     EditorState, FoldRange, HighlightStyleResolver, InputEdit, InputHighlighter,
-    InputHighlighterFactory,
+    InputHighlighterFactory, RopeExt, SyntaxContext, SyntaxContextProvider,
 };
 use ropey::Rope;
 use syntect::{
@@ -46,6 +46,57 @@ pub(crate) fn input_highlighter_factory() -> InputHighlighterFactory {
         find_syntax(language)
             .map(|syntax| Box::new(SyntectInputHighlighter::new(language, syntax)) as _)
     })
+}
+
+pub(crate) fn syntect_context(language: &str) -> Option<Rc<dyn SyntaxContextProvider>> {
+    Some(Rc::new(InsertionContext {
+        syntax: find_syntax(language)?,
+        prefix: RefCell::new(None),
+    }))
+}
+
+struct InsertionContext {
+    syntax: &'static SyntaxReference,
+    // Typing on the same line reuses the parser state from its beginning.
+    prefix: RefCell<Option<(Rope, usize, ParseState, ScopeStack)>>,
+}
+
+impl SyntaxContextProvider for InsertionContext {
+    fn context_at(&self, text: &Rope, offset: usize) -> SyntaxContext {
+        let point = text.offset_to_point(offset);
+        let start = text.line_start_offset(point.row);
+        let mut cache = self.prefix.borrow_mut();
+        let (from, mut parser, mut scopes) = match cache.as_ref() {
+            Some((old, end, parser, scopes)) if *end <= start && old.slice(..*end) == text.slice(..*end) => {
+                (*end, parser.clone(), scopes.clone())
+            }
+            _ => (0, ParseState::new(self.syntax), ScopeStack::new()),
+        };
+        if from != start {
+            let prefix = text.slice(from..start).to_string();
+            for line in LinesWithEndings::from(&prefix) {
+                let Ok(ops) = parser.parse_line(line, &SYNTAXES) else { return SyntaxContext::Code };
+                for (_, op) in ops { let _ = scopes.apply(&op); }
+            }
+        }
+        *cache = Some((text.clone(), start, parser.clone(), scopes.clone()));
+        // Ask which scope an inserted identifier would occupy. A caret after
+        // a block closer is code, while one at the end of a line comment is not.
+        let mut line = text.slice_line(point.row).to_string();
+        line.insert(point.column, 'x');
+        let Ok(ops) = parser.parse_line(&line, &SYNTAXES) else { return SyntaxContext::Code };
+        for (at, op) in ops {
+            if at > point.column { break; }
+            let _ = scopes.apply(&op);
+        }
+        for scope in scopes.scopes.iter().rev() {
+            let name = scope.build_string();
+            if name.starts_with("comment.") { return SyntaxContext::Comment; }
+            if name.starts_with("string.") { return SyntaxContext::String; }
+            if name.starts_with("source.") { break; }
+        }
+        SyntaxContext::Code
+    }
 }
 
 /// Styles for one code block of a text view, or nothing for a language
@@ -683,6 +734,18 @@ mod tests {
             "plain text is not highlighted"
         );
         assert!(find_syntax("no-such-language").is_none());
+    }
+
+    #[test]
+    fn insertion_context_distinguishes_comments_strings_and_code() {
+        let provider = syntect_context("tsr").unwrap();
+        let text = Rope::from("let url = \"https://local\"; // note\n/* two\nlines */ code");
+        let end = Rope::from("function pick(first: string, second: string): string { return; }\n// pick returns the second string. describes\n");
+        assert_eq!(provider.context_at(&end, end.len()-1), SyntaxContext::Comment);
+        for (before, expected) in [("//local", SyntaxContext::String), ("// note", SyntaxContext::Comment), ("lines", SyntaxContext::Comment), ("lines */", SyntaxContext::Code)] {
+            let offset = text.to_string().find(before).unwrap() + before.len();
+            assert_eq!(provider.context_at(&text, offset), expected);
+        }
     }
 
     #[test]

@@ -104,6 +104,26 @@ test('inline inference uses both sides of the caret and cancels by editor reques
   strictEqual(state.get().history.chats.length, 0);
 });
 
+test('typing code starts the configured host and retains the latest caret through startup', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const sender = commands.sender();
+  const updates = new Channel<ModelUpdate>(2);
+  const config = signal(modelConfig());
+  const host = context(state, config, commands);
+  requestInline(state, sender, '{"id":21,"prefix":"old","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  requestInline(state, sender, '{"id":22,"prefix":"new","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:22');
+});
+
 test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
   const ready = initialAiState();
   ready.phase = 'ready';

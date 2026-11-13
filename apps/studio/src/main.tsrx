@@ -1,3 +1,4 @@
+import { ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
@@ -85,6 +86,8 @@ function App(
   searchReplies: Channel<ContentSearchReply>,
   gitRequests: Sender<GitRequest>,
   gitReplies: Channel<GitReply>,
+  downloads: Sender<string>,
+  downloadReplies: Channel<string>,
   initialConfig: StudioConfig,
   settingsError: string
 ): Node {
@@ -209,6 +212,7 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
+    ModelExtensions(settings, aiState, modelRequests.sender(), downloads, downloadReplies),
     font
   );
   const formatBusy = signal(false);
@@ -425,7 +429,7 @@ function App(
       icon="blocks"
       variant="ghost"
       selected={panel.get() === 'extensions'}
-      tooltip={message("Extensions (planned)")}
+      tooltip={message("Extensions")}
       aria-label={accessibleName("Extensions")}
       onPress={() => {
         panel.set(panel.get() === 'extensions' ? '' : 'extensions');
@@ -436,7 +440,7 @@ function App(
     <View className="flex-col size-full bg-background text-foreground">
       <Ticker
         interval={(aiState.get().phase === 'generating' || aiState.get().phase === 'inline') ? 50 : aiState.get().phase === 'ready' ? 1000 : 150}
-        running={aiState.get().phase !== 'stopped'}
+        running={aiState.get().phase !== 'stopped' || aiState.get().queuedInline !== undefined}
         onTick={(_frame) => {
           pollModel(aiContext, modelUpdates);
         }}
@@ -554,6 +558,10 @@ async function main(): Task<void> {
   const gitReplies = new Channel<GitReply>(1);
   const gitSender = gitReplies.sender();
   const searchSender = searchReplies.sender();
+  const downloadChannel = new Channel<string>(1);
+  const downloadSender = downloadChannel.sender();
+  const downloadReplies = new Channel<string>(1);
+  const downloadResults = downloadReplies.sender();
   const view = App(
     clone(path),
     requests,
@@ -570,6 +578,8 @@ async function main(): Task<void> {
     searchReplies,
     gitRequests.sender(),
     gitReplies,
+    downloadSender,
+    downloadReplies,
     clone(startupConfig),
     startupError
   );
@@ -591,6 +601,8 @@ async function main(): Task<void> {
     cancellations,
     gitRequests,
     gitSender,
+    downloadChannel,
+    downloadResults,
     startupConfig.languageServers
   ).start();
 
@@ -602,6 +614,7 @@ async function main(): Task<void> {
   } finally {
 
     workers.cancel();
+
 
     try {
       await workers;

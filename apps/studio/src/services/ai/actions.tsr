@@ -144,7 +144,7 @@ function startRequest(context: ReadOnly<AiContext>): Result<ModelRequest, string
   if (!context.allowControl) return Err('The host has not permitted model lifecycle actions.');
   const config = context.settings.get();
 
-  if (config.aiModelPath === '' || config.aiTokenizerPath === '') return Err('Choose a model and tokenizer in Application → Settings → AI before sending.');
+  if (config.aiModelPath === '' || config.aiTokenizerPath === '') return Err('Select a model in Extensions before sending.');
   return Ok({
     kind: 'start', id: '', prompt: '', maxTokens: 0, modelPath: clone(config.aiModelPath), tokenizerPath: clone(config.aiTokenizerPath)
   });
@@ -545,14 +545,17 @@ export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<
   });
   const next = state.get();
 
-  if (next.phase === 'inline') {
+  if (next.phase === 'stopped' || (next.phase === 'starting' && next.pending === undefined) || next.phase === 'inline') {
     const previous = next.queuedInline;
 
     if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});
     next.queuedInline = request;
 
-    if (next.inlineCancel === undefined) next.inlineCancel = 'pending';
-    sendInlineCancel(next, commands);
+    if (next.phase === 'inline') {
+      if (next.inlineCancel === undefined) next.inlineCancel = 'pending';
+      sendInlineCancel(next, commands);
+    }
+
     state.set(next);
   } else if (next.phase === 'ready') {
     startInline(next, commands, request);
@@ -648,6 +651,10 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
           }
 
           next.editTarget = undefined;
+          const queued = next.queuedInline;
+
+          if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+          next.queuedInline = undefined;
           next.phase = 'stopped';
           save = true;
         } else if (update.kind === 'compacted' && update.id === next.active && update.id !== '') {
@@ -703,7 +710,22 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
     changed = true;
   }
 
-  if (next.phase !== 'inline' && next.queuedInline !== undefined) {
+  if (next.phase === 'stopped' && next.queuedInline !== undefined && context.allowInference) {
+    match (startRequest(context)) {
+      Ok(start) => {
+        match (context.commands.trySend(start)) {
+          Ok(_) => {
+            next.phase = 'starting';
+            changed = true;
+          },
+          Err(_) => {}
+        }
+      },
+      Err(_) => {}
+    }
+  }
+
+  if (!['inline', 'starting'].includes(next.phase) && next.queuedInline !== undefined) {
     const queued = clone(next.queuedInline);
     next.queuedInline = undefined;
 

@@ -1,3 +1,7 @@
+// Cargo shares artifacts across generated workspaces with the same relative paths.
+// Record the embedded patch revision in rustc dep-info for freshness checks.
+const _: Option<&str> = option_env!("TSRUST_GPUI_PATCH_REVISION");
+
 #[cfg(feature = "gpui-fast")]
 extern crate gpui_fast as gpui;
 

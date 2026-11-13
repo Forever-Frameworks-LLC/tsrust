@@ -17,7 +17,7 @@ pub(crate) use input_adapter::input_highlighter_factory;
 #[cfg(all(feature = "syntect", not(feature = "tree-sitter")))]
 mod syntect_backend;
 #[cfg(all(feature = "syntect", not(feature = "tree-sitter")))]
-pub(crate) use syntect_backend::{highlight_code, input_highlighter_factory};
+pub(crate) use syntect_backend::{highlight_code, input_highlighter_factory, syntect_context};
 
 #[cfg(not(any(feature = "tree-sitter", feature = "syntect")))]
 pub(crate) fn input_highlighter_factory() -> gpui_base::input::InputHighlighterFactory {
