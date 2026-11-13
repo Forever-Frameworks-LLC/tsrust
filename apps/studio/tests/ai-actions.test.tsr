@@ -767,14 +767,14 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
   try {
     unwrap(writeTextFile(folder + '/main.tsr', ''));
     unwrap(writeTextFile(folder + '/tsrust.config.json', '{"schemaVersion":1,"name":"example","paths":{"@prices":"./fees","@*":"./unused/*","@/tie/*rs":"./*rs","@/tie/*ers":"./*ers","@/*":"./unused/*","@/cost/*.js":"./*"}}'));
-    unwrap(writeTextFile(folder + '/fees.tsr', 'export function fee() { return 91; }'));
+    unwrap(writeTextFile(folder + '/fees.tsr', 'const localFee = 91;\nexport function fee() { return localFee; }\nconst discardedFee = 7301;'));
     unwrap(writeTextFile(folder + '/helpers.tsr', 'export function policyExtra() { return 444; }\nexport function policy() { return 37; }'));
     unwrap(writeTextFile(folder + '/unused.tsr', 'never include this source'));
     unwrap(mkdirAll(folder + '/rules'));
     unwrap(writeTextFile(folder + '/rules/index.tsrx', "// export default function bogus() { return 1; }\nexport default function chosen() { const closing = '}'; /* { */ if (true) { return 42; } return 0; }\nexport function chosenExtra() { return 88; }\nexport function unrelated() { return 777; }"));
     unwrap(writeTextFile(folder + '/pricing-policy.tsr', 'import { surcharge // } as phantom\n as tax } from "./factors";\nexport function handlingFee() { /* ignoredHelper() */ return rate()+tax(); }\nfunction rate() { return base(); }\nfunction base() { if (false) return rate(); return 81; }\nfunction ignoredHelper() { return 580; }'));
     unwrap(writeTextFile(folder + '/factors.tsr', 'import { BASE as baseAmount } from "./prices";\nexport function surcharge() { const rate = baseAmount; return 541; }\nexport function unusedFactor() { return 542; }'));
-    unwrap(writeTextFile(folder + '/prices.tsr', '/* export const BASE = 1234; */\nexport const BASE: int = 37;\nexport const OTHER = 9988;'));
+    unwrap(writeTextFile(folder + '/prices.tsr', '/* export const BASE = 1234; */\nexport const BASE: int = floorPrice;\nconst floorPrice = 37;\nexport const OTHER = 9988;'));
     unwrap(writeTextFile(folder + '/delivery-fee.tsr', 'export function deliveryFee() { return 63; }\nexport function unrelated() { return 555; }'));
     unwrap(writeTextFile(folder + '/compute.tsr', 'export function compute() { return 998; }'));
     unwrap(writeTextFile(folder + '/delivery_fee.tsr', '// function deliveryFee() { return 666; }'));
@@ -802,14 +802,16 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     strictEqual(messages[0].content.includes('costAlias refers to policy'), true);
     strictEqual(messages[0].content.includes('ambiguousCost refers to policy'), false);
     strictEqual(messages[0].content.includes('Referenced workspace file: fees.tsr'), true);
-    strictEqual(messages[0].content.includes('return 91;'), true);
+    strictEqual(messages[0].content.includes('const localFee = 91;'), true);
+    strictEqual(messages[0].content.includes('discardedFee'), false);
     strictEqual(messages[0].content.includes('Referenced workspace file: pricing-policy.tsr'), true);
     strictEqual(messages[0].content.includes('Referenced workspace file: delivery-fee.tsr'), true);
     strictEqual(messages[0].content.includes('return 63;'), true);
     strictEqual(messages[0].content.includes('return 81;'), true);
     strictEqual(messages[0].content.includes('Referenced workspace file: factors.tsr\nLocal name: tax refers to surcharge.'), true);
     strictEqual(messages[0].content.includes('return 541;'), true);
-    strictEqual(messages[0].content.includes('Local name: baseAmount refers to BASE.\nexport const BASE: int = 37;'), true);
+    strictEqual(messages[0].content.includes('Local name: baseAmount refers to BASE.\nexport const BASE: int = floorPrice;'), true);
+    strictEqual(messages[0].content.includes('const floorPrice = 37;'), true);
     strictEqual(messages[0].content.includes('9988'), false);
     strictEqual(messages[0].content.includes('1234'), false);
     strictEqual(messages[0].content.includes('return 542;'), false);

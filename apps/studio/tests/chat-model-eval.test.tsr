@@ -68,7 +68,7 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
     } else if (workspaceEval === 'constant') {
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge; }'));
-      unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export const baseCharge: int = 7;\nexport const unrelated: int = 999;'));
+      unwrap(writeTextFile(folder + '/lib/rates.tsr', 'const minimum: int = 7;\nexport const baseCharge: int = minimum;\nexport const unrelated: int = 999;'));
     } else if (workspaceEval === 'imports') {
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge(); }'));
       unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
@@ -152,7 +152,9 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
         strictEqual(excerpt.includes('lib/pricing-policy.tsr'), true);
 
         if (workspaceEval === 'imports' || workspaceEval === 'constant') strictEqual(excerpt.includes('lib/rates.tsr'), true);
-        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = 7;' : workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = minimum;' : workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+
+        if (workspaceEval === 'constant') strictEqual(excerpt.includes('const minimum: int = 7;'), true);
 
         if (workspaceEval === 'active') strictEqual(excerpt.includes('Local name: charge refers to baseCharge.'), true);
         strictEqual(excerpt.includes('999'), false);

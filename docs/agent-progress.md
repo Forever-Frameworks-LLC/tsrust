@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Imported snippets retain local constant dependencies
+
+Direct imports, indexed workspace functions and transitive imports now share
+the named-file dependency expansion. The focused action fixture follows an
+alias to an exported constant backed by a local constant, and excludes
+unused neighbors. In the Studio 1.5B evaluation the model used an imported
+base charge backed by a local minimum of 7. It answered 12 for handlingFee(5)
+and 19 when asked to pass its previous answer back into the same function.
+All 26 focused cases passed after 53.41 s build. Peak sampled model host RSS
+was 2,049,968 KiB. The watcher encountered ENOSPC in rustc. Removing 95 old
+generated Studio runtime caches while retaining the newest 16 restored
+34 GiB available; cache growth across future builds is still possible.
+
 ## Follow constants from a named workspace function
 
 Named non-active file context indexes top-level value offsets once per selected

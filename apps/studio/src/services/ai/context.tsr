@@ -474,6 +474,16 @@ function queueImportedCalls(source: ReadOnly<string>, path: ReadOnly<string>, ro
   }
 }
 
+function includeWorkspaceDependencies(source: ReadOnly<string>, path: ReadOnly<string>, root: ReadOnly<string>, snippets: Mutable<string[]>, pending: Mutable<ImportedCall[]>): void {
+  const values = valueOffsets(source);
+  const dependencies = includeLocalCalls(source, snippets, new Map<string, DocumentSymbol>(), [], values);
+  queueImportedCalls(source, path, root, dependencies, pending);
+
+  if (Array.from(dependencies).some((name) => values.has(name)) || (values.size > 0 && snippets.some((snippet) => snippet.includes('${')))) {
+    snippets.splice(0, snippets.length, clone(source));
+  }
+}
+
 export interface FileDeclarations {
   path: string;
   stamp: string;
@@ -761,13 +771,7 @@ export function editorContext(
               }
 
               if (referenced || snippets.length > 0) {
-                if (!whole && snippets.length > 0) {
-                  const values = explicitFile ? valueOffsets(excerpt) : new Map<string, int>();
-                  const dependencies = includeLocalCalls(excerpt, snippets, new Map<string, DocumentSymbol>(), [], values);
-
-                  if (Array.from(dependencies).some((name) => values.has(name)) || (values.size > 0 && snippets.some((snippet) => snippet.includes('${')))) whole = true;
-                  else queueImportedCalls(excerpt, file.path, workspace.root, dependencies, pending);
-                }
+                if (!whole && snippets.length > 0) includeWorkspaceDependencies(excerpt, file.path, workspace.root, snippets, pending);
 
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
                 result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
@@ -799,8 +803,7 @@ export function editorContext(
 
           if (definition === '') continue;
           const parts = [definition];
-          const next = includeLocalCalls(source, parts);
-          queueImportedCalls(source, call.path, workspace.root, next, pending);
+          includeWorkspaceDependencies(source, call.path, workspace.root, parts, pending);
           const alias = call.binding.local === call.binding.exported ? '' : 'Local name: ' + call.binding.local + ' refers to ' + call.binding.exported + '.\n';
           result += '\n\nReferenced workspace file: ' + call.path.slice(prefix.length) + '\n' + alias + parts.join('\n');
         },
