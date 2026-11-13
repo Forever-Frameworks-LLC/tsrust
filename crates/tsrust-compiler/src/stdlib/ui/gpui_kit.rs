@@ -3991,7 +3991,15 @@ impl Render for ImageViewport {
         let ImageSource::Resource(resource)=source else {unreachable!("image path is a resource")};
         let zoom=self.props.get("zoom").and_then(|value|value.parse::<f32>().ok()).unwrap_or(0.);
         let mut ready=false;
-        let body=match self.asset.resolve(&path,||window.use_asset::<ImgResourceLoader>(&resource,cx)) {
+        let body=match self.asset.resolve(&path,|| {
+            #[cfg(target_os="macos")]
+            if let gpui_kit::gpui::Resource::Path(file)=&resource {
+                if file.extension().is_some_and(|ext|ext.eq_ignore_ascii_case("avif")) {
+                    return window.use_asset::<image_asset::AvifLoader>(file,cx);
+                }
+            }
+            window.use_asset::<ImgResourceLoader>(&resource,cx)
+        }) {
             Some(Ok(image)) if self.viewport.width>px(0.) && self.viewport.height>px(0.) => {
                 ready=true;
                 let natural=image.size(0);

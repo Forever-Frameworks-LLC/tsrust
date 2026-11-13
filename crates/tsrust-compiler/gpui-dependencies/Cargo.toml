@@ -80,10 +80,14 @@ kurbo = { version = "=0.13.1", optional = true }
 svgtypes = { version = "=0.16.1", optional = true }
 sys-locale = { version = "=0.3.2", optional = true }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSBitmapImageRep", "NSImageRep"], optional = true }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSData"], optional = true }
+
 [features]
 # std:gpui only: the Node model (crates/tsrust-ui) and the GPUI Kit renderer.
 ui = ["dep:url", "dep:kurbo", "dep:svgtypes", "dep:color", "dep:sys-locale", "dep:sha2"]
-gpui = ["ui", "dep:gpui-kit", "dep:chrono", "dep:regex"]
+gpui = ["dep:objc2-app-kit", "dep:objc2-foundation", "ui", "dep:gpui-kit", "dep:chrono", "dep:regex"]
 # Native terminal emulation and PTY lifecycle; unused UI/backend programs do not select it.
 terminal = ["dep:alacritty_terminal", "dep:async-channel", "dep:nix", "nix/signal", "nix/process", "nix/term"]
 gpui-terminal = ["gpui", "terminal"]

@@ -29,6 +29,30 @@ impl ImageAsset {
     }
 }
 
+#[cfg(target_os = "macos")]
+pub(super) struct AvifLoader;
+
+#[cfg(target_os = "macos")]
+impl gpui_kit::gpui::Asset for AvifLoader {
+    type Source = std::sync::Arc<std::path::Path>;
+    type Output = Result<Arc<RenderImage>, ImageCacheError>;
+
+    fn load(path: Self::Source, cx: &mut gpui_kit::gpui::App) -> impl Future<Output = Self::Output> + Send + 'static {
+        let renderer = cx.svg_renderer();
+        async move {
+            use gpui_kit::gpui::{Image, ImageFormat};
+            use objc2_app_kit::NSBitmapImageRep;
+            use objc2_foundation::NSData;
+
+            let bytes = std::fs::read(path)?;
+            let bitmap = NSBitmapImageRep::imageRepWithData(&NSData::with_bytes(&bytes))
+                .and_then(|rep| rep.TIFFRepresentation())
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidData, "Could not decode AVIF"))?;
+            Image::from_bytes(ImageFormat::Tiff, bitmap.to_vec()).to_image_data(renderer).map_err(Into::into)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

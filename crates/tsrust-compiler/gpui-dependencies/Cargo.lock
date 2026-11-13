@@ -7993,6 +7993,8 @@ dependencies = [
  "matchit",
  "memchr",
  "nix",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
  "percent-encoding",
  "pin-project-lite",
  "rand 0.10.3",
