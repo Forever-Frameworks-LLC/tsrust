@@ -144,7 +144,22 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
     if (reverse) args.push('--reverse');
 
-    match (await gitOutput(top, args, patch)) {
+    // Git searches from the destination line. Earlier, omitted hunks did not shift this index.
+    const body = diff.slice(hunk.start, hunk.end);
+    const boundary = body.indexOf(' @@');
+    const ranges = body.slice(3, boundary).split(' ');
+    const before = ranges[0].slice(1).split(',');
+    const after = ranges[1].slice(1).split(',');
+    let indexedPatch = patch;
+
+    if (before[0] !== '0' && after[0] !== '0') {
+      const start = reverse ? clone(after[0]) : clone(before[0]);
+      before[0] = clone(start);
+      after[0] = clone(start);
+      indexedPatch = hunk.header + '@@ -' + before.join(',') + ' +' + after.join(',') + body.slice(boundary);
+    }
+
+    match (await gitOutput(top, args, indexedPatch)) {
       Ok(_) => {
         return await readGitView(root, request.mode);
       },

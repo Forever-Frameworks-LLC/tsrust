@@ -1,3 +1,4 @@
+import { toUtf8 } from 'std:bytes';
 import { createTempDir, mkdirAll, removeFile, removeDirAll, writeTextFile } from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
@@ -197,6 +198,45 @@ test('stage and unstage one reviewed hunk in a nested workspace', async () => {
       mode: 'staged', action: 'unstage-hunk', hunk: clone(only.label), patch: only.header + staged.slice(only.start, only.end)
     })), '');
     strictEqual(unwrap(await readGitView(sub, 'working')), working);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('partial staging targets the reviewed occurrence after earlier line insertions', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-offset-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const block = 'a\nb\nc\nvalue\nd\ne\nf\ng\n';
+    const source = 'head\n' + 'gap\n'.repeat(12) + block.repeat(4) + 'end\n';
+    const changed = source.replace(block, block.replace('value', 'updated'));
+    const insertion = 'new\n'.repeat(8);
+    unwrap(writeTextFile(root + '/sample', source));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'base']), true);
+    unwrap(writeTextFile(root + '/sample', insertion + changed));
+    const diff = unwrap(await readGitView(root, 'working'));
+    const hunks = diffHunks(diff);
+    strictEqual(hunks.length, 2);
+    const selected = hunks[1];
+    unwrap(await gitRequest(root, {
+      mode: 'working', action: 'stage-hunk', hunk: clone(selected.label), patch: selected.header + diff.slice(selected.start, selected.end)
+    }));
+    const index = unwrap(await run('git', ['show', ':sample'], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(index.stdout)), changed);
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    const staged = unwrap(await readGitView(root, 'staged'));
+    const undo = diffHunks(staged)[1];
+    unwrap(await gitRequest(root, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(undo.label), patch: undo.header + staged.slice(undo.start, undo.end)
+    }));
+    const restored = unwrap(await run('git', ['show', ':sample'], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(restored.stdout)), insertion + source);
   } finally {
     unwrap(removeDirAll(root));
   }

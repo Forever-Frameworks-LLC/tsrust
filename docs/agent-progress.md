@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Repeated context in partial staging
+
+A real repository reproduced a wrong-occurrence edit. An earlier unselected
+insertion shifted the selected hunk's destination by exactly one repeated
+block. Studio now anchors a standalone patch to the index-side start after
+validating the reviewed bytes. Reverse apply uses the staged side's start.
+The regression compares full index blobs for both operations. It failed on
+the previous checkpoint and all five Git tests passed after the fix (2.51 s
+build). The test exercises Git through the Studio service, without GUI input.
+
 ## Stage and unstage individual Git hunks
 
 The hunk picker now offers Stage hunk in Working diff and Unstage hunk in
