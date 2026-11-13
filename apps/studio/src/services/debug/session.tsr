@@ -9,6 +9,7 @@ export interface DebugCommand {
   action: string;
   program?: string;
   stopOnEntry?: boolean;
+  functionBreakpoint?: string;
 }
 
 export interface DebugOutput {
@@ -33,7 +34,8 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     if (writer === undefined || reader === undefined) throw 'Missing adapter pipes.';
     await writeFrame(writer, '{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"lldb","clientID":"tsrust-studio","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true}}');
 
-    let seq = 4;
+    const breakpoint = (command.functionBreakpoint ?? '').trim();
+    let seq = 5;
     let disconnectRequest = 0;
     let stackRequest = 0;
     let thread = 0;
@@ -45,13 +47,24 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
       if (reply.success === false && reply.command !== 'stackTrace') throw reply.message ?? 'Debug request failed.';
 
       if (reply.command === 'initialize') {
+        if (breakpoint !== '' && reply.body?.supportsFunctionBreakpoints !== true) throw 'Adapter does not support function breakpoints.';
         await writeFrame(writer, JSON.stringify({
           seq: 2, type: 'request', command: 'launch', arguments: {
             program: clone(command.program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
           }
         }));
-      } else if (reply.event === 'initialized') {
-        await writeFrame(writer, '{"seq":3,"type":"request","command":"configurationDone","arguments":{}}');
+      } else if (reply.event === 'initialized' && breakpoint !== '') {
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
+      } else if (reply.event === 'initialized' || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 3)) {
+        if (reply.command === 'setFunctionBreakpoints') {
+          const points = clone(reply.body?.breakpoints) ?? [];
+          const verified = points.length === 1 && points[0].verified;
+          await output.send({
+            text: (verified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
+          });
+        }
+
+        await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
       } else if (reply.event === 'stopped') {
         thread = reply.body?.threadId ?? 0;
 

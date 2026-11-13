@@ -21,6 +21,7 @@ export interface StudioConfig {
   panelPosition: string;
   chatPosition: string;
   locale: string;
+  inlineCompletions: boolean;
   fileIcons: boolean;
   searchIncludeIgnored: boolean;
   treeIncludeIgnored: boolean;
@@ -46,6 +47,7 @@ interface StoredConfig {
   panelPosition?: string;
   chatPosition?: string;
   locale?: string;
+  inlineCompletions?: boolean;
   fileIcons?: boolean;
   searchIncludeIgnored?: boolean;
   treeIncludeIgnored?: boolean;
@@ -63,7 +65,7 @@ interface StoredConfig {
 
 export function defaultConfig(): StudioConfig {
   return {
-    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en', fileIcons: true, searchIncludeIgnored: false, treeIncludeIgnored: true, formatOnSave: false, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, languageServers: [], aiModelPath: '', aiTokenizerPath: '', format: defaultFormatting()
+    schemaVersion: 1, theme: 'Studio Dark', fontSize: 14, navigationSide: 'left', activityBarSide: 'left', panelPosition: 'bottom', chatPosition: 'right', locale: 'en', inlineCompletions: true, fileIcons: true, searchIncludeIgnored: false, treeIncludeIgnored: true, formatOnSave: false, checkOnSave: false, formatOnFocusChange: false, checkOnFocusChange: false, languageServers: [], aiModelPath: '', aiTokenizerPath: '', format: defaultFormatting()
   };
 }
 
@@ -77,7 +79,7 @@ export function parseConfig(text: ReadOnly<string>): Result<StudioConfig, string
 
     if (!themeNames.includes(config.theme)) return Err('Choose a theme from the installed Studio catalog.');
     const resolved: StudioConfig = {
-      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en', fileIcons: config.fileIcons ?? true, searchIncludeIgnored: config.searchIncludeIgnored ?? false, treeIncludeIgnored: config.treeIncludeIgnored ?? true, formatOnSave: config.formatOnSave ?? false, checkOnSave: config.checkOnSave ?? false, formatOnFocusChange: config.formatOnFocusChange ?? false, checkOnFocusChange: config.checkOnFocusChange ?? false, languageServers: clone(config.languageServers) ?? [], priorLocalModel: config.priorLocalModel, priorLocalTokenizer: config.priorLocalTokenizer, aiModelPath: config.aiModelPath ?? '', aiTokenizerPath: config.aiTokenizerPath ?? '', format: defaultFormatting()
+      schemaVersion: config.schemaVersion, theme: config.theme, fontSize: config.fontSize, navigationSide: config.navigationSide ?? 'left', activityBarSide: config.activityBarSide ?? 'left', panelPosition: config.panelPosition ?? 'bottom', chatPosition: config.chatPosition ?? 'right', locale: config.locale ?? 'en', inlineCompletions: config.inlineCompletions ?? true, fileIcons: config.fileIcons ?? true, searchIncludeIgnored: config.searchIncludeIgnored ?? false, treeIncludeIgnored: config.treeIncludeIgnored ?? true, formatOnSave: config.formatOnSave ?? false, checkOnSave: config.checkOnSave ?? false, formatOnFocusChange: config.formatOnFocusChange ?? false, checkOnFocusChange: config.checkOnFocusChange ?? false, languageServers: clone(config.languageServers) ?? [], priorLocalModel: config.priorLocalModel, priorLocalTokenizer: config.priorLocalTokenizer, aiModelPath: config.aiModelPath ?? '', aiTokenizerPath: config.aiTokenizerPath ?? '', format: defaultFormatting()
     };
 
     match (validateLanguageServers(studioServers('tsrust', resolved.languageServers))) {
@@ -171,5 +173,5 @@ export function saveConfig(path: ReadOnly<string>, text: ReadOnly<string>, expec
 
 
 export function formatConfig(config: ReadOnly<StudioConfig>): string {
-  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "searchIncludeIgnored": ' + JSON.stringify(config.searchIncludeIgnored), '  "treeIncludeIgnored": ' + JSON.stringify(config.treeIncludeIgnored), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "languageServers": ' + JSON.stringify(config.languageServers), (config.priorLocalModel === undefined ? '' : '  "priorLocalModel": ' + JSON.stringify(config.priorLocalModel) + ',\n') + (config.priorLocalTokenizer === undefined ? '' : '  "priorLocalTokenizer": ' + JSON.stringify(config.priorLocalTokenizer) + ',\n') + '  "aiModelPath": ' + JSON.stringify(config.aiModelPath), '  "aiTokenizerPath": ' + JSON.stringify(config.aiTokenizerPath), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + ',\n    "argumentWrapThreshold": ' + config.format.argumentWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
+  return '{\n' + ['  "schemaVersion": ' + config.schemaVersion.toString(), '  "theme": ' + JSON.stringify(config.theme), '  "fontSize": ' + config.fontSize.toString(), '  "locale": ' + JSON.stringify(config.locale), '  "navigationSide": ' + JSON.stringify(config.navigationSide), '  "activityBarSide": ' + JSON.stringify(config.activityBarSide), '  "panelPosition": ' + JSON.stringify(config.panelPosition), '  "chatPosition": ' + JSON.stringify(config.chatPosition), '  "inlineCompletions": ' + JSON.stringify(config.inlineCompletions), '  "fileIcons": ' + JSON.stringify(config.fileIcons), '  "searchIncludeIgnored": ' + JSON.stringify(config.searchIncludeIgnored), '  "treeIncludeIgnored": ' + JSON.stringify(config.treeIncludeIgnored), '  "formatOnSave": ' + JSON.stringify(config.formatOnSave), '  "checkOnSave": ' + JSON.stringify(config.checkOnSave), '  "formatOnFocusChange": ' + JSON.stringify(config.formatOnFocusChange), '  "checkOnFocusChange": ' + JSON.stringify(config.checkOnFocusChange), '  "languageServers": ' + JSON.stringify(config.languageServers), (config.priorLocalModel === undefined ? '' : '  "priorLocalModel": ' + JSON.stringify(config.priorLocalModel) + ',\n') + (config.priorLocalTokenizer === undefined ? '' : '  "priorLocalTokenizer": ' + JSON.stringify(config.priorLocalTokenizer) + ',\n') + '  "aiModelPath": ' + JSON.stringify(config.aiModelPath), '  "aiTokenizerPath": ' + JSON.stringify(config.aiTokenizerPath), '  "format": {\n    "indentWidth": ' + config.format.indentWidth.toString() + ',\n    "jsxReturnParentheses": ' + JSON.stringify(config.format.jsxReturnParentheses) + ',\n    "jsxChildrenOnNewLines": ' + JSON.stringify(config.format.jsxChildrenOnNewLines) + ',\n    "blankLinesAroundBlocks": ' + JSON.stringify(config.format.blankLinesAroundBlocks) + ',\n    "organizeImports": ' + JSON.stringify(config.format.organizeImports) + ',\n    "importWrapThreshold": ' + config.format.importWrapThreshold.toString() + ',\n    "argumentWrapThreshold": ' + config.format.argumentWrapThreshold.toString() + '\n  }'].join(',\n') + '\n}\n';
 }

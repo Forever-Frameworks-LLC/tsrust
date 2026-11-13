@@ -1,7 +1,7 @@
 import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
 import { get } from 'std:env';
 import { signal } from 'std:ui';
-import { selectPanel } from '../src/components/workbench/panels.tsrx';
+import { toggleExtensions } from '../src/components/workbench/model-extensions.tsrx';
 import { Channel } from 'std:futures';
 import { sha256 } from 'std:crypto';
 import { fromUtf8, toHex } from 'std:bytes';
@@ -48,15 +48,18 @@ test('reopening Extensions discovers model files added after startup', () => {
     config.aiModelPath = folder + '/custom.gguf';
     config.aiTokenizerPath = folder + '/tokenizer.json';
     const settings = signal(config);
-    const panel = signal('');
+    const mode = signal('files');
+    const sidebar = signal(true);
     const paths = signal<string[]>([]);
-    selectPanel(panel, settings, paths, 'extensions');
+    toggleExtensions(sidebar, mode, settings, paths);
     strictEqual(paths.get().includes(folder + '/custom.gguf'), false);
-    selectPanel(panel, settings, paths, 'output');
+    toggleExtensions(sidebar, mode, settings, paths);
+    strictEqual(sidebar.get(), false);
     unwrap(writeTextFile(folder + '/custom.gguf', 'weights'));
     unwrap(writeTextFile(folder + '/tokenizer.json', 'tokenizer'));
-    selectPanel(panel, settings, paths, 'extensions');
-    strictEqual(panel.get(), 'extensions');
+    toggleExtensions(sidebar, mode, settings, paths);
+    strictEqual(mode.get(), 'extensions');
+    strictEqual(sidebar.get(), true);
     strictEqual(paths.get().includes(folder + '/custom.gguf'), true);
   } finally {
     unwrap(removeDirAll(folder));

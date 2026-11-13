@@ -2461,6 +2461,9 @@ impl<M: InputModeKind> InputBaseState<M> {
                     self.replace_text_in_range_silent(None, &new_line_text, window, cx);
                     self.pause_blink_cursor(cx);
                 }
+                if self.is_editable() {
+                    M::on_newline_inserted(self, window, cx);
+                }
             }
         } else {
             // Single line input or submit-on-enter: just emit the event

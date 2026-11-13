@@ -42,6 +42,7 @@ import {
   requestInline,
   cancelInline,
   pollModel,
+  syncInlinePreference,
   AiContext,
   AiState
 } from '../src/services/ai/actions.tsr';
@@ -77,6 +78,34 @@ function send(context: ReadOnly<AiContext>, prompt: string): void {
     chat: context.state.get().history.active, prompt
   })));
 }
+
+test('inline preference warms once before typing, preserves active chat and releases idle model', () => {
+  const config = modelConfig();
+  const settings = signal(config);
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const host = context(state, settings, commands);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  syncInlinePreference(host);
+  const next = state.get();
+  next.phase = 'generating';
+  next.active = 'chat';
+  state.set(next);
+  const off = settings.get();
+  off.inlineCompletions = false;
+  settings.set(unwrap(parseConfig(formatConfig(off))));
+  syncInlinePreference(host);
+  strictEqual(state.get().phase, 'generating');
+  requestInline(state, host.commands, '{"id":31,"prefix":"a","suffix":";"}');
+  strictEqual(state.get().queuedInline === undefined, true);
+  const idle = state.get();
+  idle.phase = 'ready';
+  idle.active = '';
+  state.set(idle);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'shutdown');
+});
 
 test('inline inference uses both sides of the caret and cancels by editor request id', () => {
   const ready = initialAiState();
@@ -913,8 +942,17 @@ test('edit requests include only versioned diagnostics for the current target dr
     const host = context(state, settings, requests);
     host.workspace = signal(model);
     host.problems = signal<Problem[]>([issue, stale, other, unverified]);
-    send(host, 'Edit: Fix the active error.');
-    const messages = unwrap(requests.tryReceive()).messages ?? [];
+    send(host, 'Can you not insert that console log?');
+    const request = unwrap(requests.tryReceive());
+    const messages = request.messages ?? [];
+    strictEqual(state.get().editTarget !== undefined, true);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: 'I already inserted the console log.', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    strictEqual(state.get().review === undefined, true);
+    strictEqual(state.get().history.chats[0].messages[1].text, 'No edit was proposed.');
     const text = messages[0].content;
     strictEqual(text.includes('main.tsr:1:27 [error unknown-name] Unknown name shipping.'), true);
     strictEqual(text.includes('different revision') || text.includes('another file') || text.includes('unversioned report'), false);
@@ -1032,7 +1070,7 @@ test('one attached edit target stays bound to its captured file when another tab
     unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
       chat: '', kind: 'skill', path: root + '/SKILL.md'
     })));
-    send(host, 'Edit files: Change file 0.');
+    send(host, 'Please update the attached file.');
     const request = unwrap(requests.tryReceive());
     {
       const prompt = request.messages?.[0].content ?? '';

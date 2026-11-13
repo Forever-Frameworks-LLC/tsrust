@@ -2,6 +2,8 @@ import { Channel } from 'std:futures';
 import {
   Button,
   CodeEditor,
+  Input,
+  Text,
   Node,
   Signal,
   Ticker,
@@ -11,10 +13,17 @@ import {
   signal,
   t
 } from 'std:ui';
-import { message } from '../../lib/localization.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 import { DebugCommand, DebugOutput } from '../../services/debug/session.tsr';
 
-function DebugControl(requests: ReadOnly<Channel<DebugCommand>>, stopped: Signal<boolean>, output: Signal<string>, action: string, label: string): Node {
+function DebugControl(
+  requests: ReadOnly<Channel<DebugCommand>>,
+  stopped: Signal<boolean>,
+  output: Signal<string>,
+  action: string,
+  label: string,
+  font: Signal<int>
+): Node {
   const sender = requests.sender();
   return (
     <Button
@@ -33,22 +42,23 @@ function DebugControl(requests: ReadOnly<Channel<DebugCommand>>, stopped: Signal
         }
       }}
     >
-      {t(label)}
+      <Text className={'text-[' + font.get().toString() + 'px]'}>
+        {t(label)}
+      </Text>
     </Button>
   );
 }
 
-export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies: Channel<DebugOutput>, font: Signal<int>): Node {
+export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies: Channel<DebugOutput>, font: Signal<int>, output: Signal<string>, panel: Signal<string>): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
+  const breakpoint = signal('');
   const stopped = signal(false);
   const chosen = signal('');
   const running = signal(false);
-  const output = signal('');
-  const style = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
   return (
     <View className="flex-col size-full min-h-0">
-      <View className="flex-row items-center shrink-0">
+      <View className="flex-col w-full min-w-0 items-start gap-1 px-2 py-1">
         <Button
           icon="play"
           variant="ghost"
@@ -63,7 +73,9 @@ export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies:
             });
           }}
         >
-          {t('Launch executable…')}
+          <Text className={'text-[' + font.get().toString() + 'px]'}>
+            {t('Launch executable…')}
+          </Text>
         </Button>
         <Button
           selected={stopOnEntry.get()}
@@ -74,21 +86,54 @@ export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies:
             stopOnEntry.set(!stopOnEntry.get());
           }}
         >
-          {t('Stop on entry')}
+          <Text className={'text-[' + font.get().toString() + 'px]'}>
+            {t('Stop on entry')}
+          </Text>
         </Button>
-        <View hidden={!stopped.get()} className="flex-row">
-          {DebugControl(requests, stopped, output, 'continue', 'Continue')}
-          {DebugControl(requests, stopped, output, 'next', 'Step instruction')}
-          {DebugControl(requests, stopped, output, 'stop', 'Stop debugging')}
+        <View hidden={running.get()} className="w-full min-w-0">
+          <Input
+            className={'px-2 text-[' + font.get().toString() + 'px]'}
+            value={breakpoint.get()}
+            placeholder={message('Function breakpoint')}
+            aria-label={accessibleName('Function breakpoint')}
+            onChange={(event) => {
+              breakpoint.set(clone(event.target.value));
+            }}
+          />
+        </View>
+        <View hidden={!stopped.get()} className="flex-col items-start">
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'continue',
+            'Continue',
+            font
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'next',
+            'Step instruction',
+            font
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stop',
+            'Stop debugging',
+            font
+          )}
         </View>
       </View>
-      <CodeEditor value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />
       <Ticker interval={50} running={running.get() || chosen.get() !== ''} onTick={(_frame) => {
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get()})) {
-            Ok(_) => { output.set(path + '\n'); running.set(true); },
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get()})) {
+            Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
             Err(error) => { output.set(clone(error.code)); return; }
           }
         }
@@ -97,6 +142,15 @@ export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies:
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />
+    </View>
+  );
+}
+
+export function DebugConsole(output: Signal<string>, font: Signal<int>): Node {
+  const style = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
+  return (
+    <View className="flex-col size-full min-h-0">
+      <CodeEditor value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />
     </View>
   );
 }

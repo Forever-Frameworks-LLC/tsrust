@@ -116,6 +116,14 @@ impl InputModeKind for EditorMode {
         state.handle_signature_help_trigger(text, window, cx);
     }
 
+    fn on_newline_inserted(
+        state: &mut InputBaseState<Self>,
+        window: &mut Window,
+        cx: &mut gpui::Context<InputBaseState<Self>>,
+    ) {
+        state.schedule_inline_completion(window, cx);
+    }
+
     fn clear_inline_completion(
         state: &mut InputBaseState<Self>,
         cx: &mut gpui::Context<InputBaseState<Self>>,

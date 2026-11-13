@@ -1,6 +1,7 @@
-import { DebugConsole } from './components/tasks/debug-console.tsrx';
+import { DebugConsole, DebugSidebar } from './components/tasks/debug-console.tsrx';
 import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
-import { ModelExtensions } from './components/workbench/model-extensions.tsrx';
+import { modelExtensions } from './services/ai/model-extensions.tsr';
+import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
@@ -42,11 +43,11 @@ import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.ts
 import { Chrome } from './components/workbench/chrome.tsrx';
 import { LanguageStatus } from './components/workbench/language-status.tsrx';
 import { Region } from './components/workbench/layout.tsrx';
-import { Panels, selectPanel } from './components/workbench/panels.tsrx';
+import { Panels } from './components/workbench/panels.tsrx';
 import { ChatPanel } from './components/ai/chat-panel.tsrx';
 import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
 import { FileDeclarations } from './services/ai/context.tsr';
-import { AiContext, initialAiState, pollModel } from './services/ai/actions.tsr';
+import { AiContext, initialAiState, syncInlinePreference, pollModel } from './services/ai/actions.tsr';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
 import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
@@ -186,10 +187,22 @@ function App(
     languageState,
     languageMessages.sender()
   );
-  const panelView = Panels(
-    panel,
+  const selectedExtension = signal(clone(modelExtensions()[0].name));
+  const extensionBrowser = ExtensionBrowser(selectedExtension, font, modelPaths);
+  const extensionDetail = ModelExtensions(
     settings,
     modelPaths,
+    aiState,
+    modelRequests.sender(),
+    downloads,
+    selectedExtension,
+    font,
+    downloadReplies
+  );
+  const debugOutput = signal('');
+  const debugSidebar = DebugSidebar(debugRequests, debugResults, font, debugOutput, panel);
+  const panelView = Panels(
+    panel,
     CheckPanel(
       requests.sender(),
       results,
@@ -219,15 +232,7 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
-    DebugConsole(debugRequests, debugResults, font),
-    ModelExtensions(
-      settings,
-      modelPaths,
-      aiState,
-      modelRequests.sender(),
-      downloads,
-      downloadReplies
-    ),
+    DebugConsole(debugOutput, font),
     font
   );
   const formatBusy = signal(false);
@@ -341,8 +346,11 @@ function App(
     gitHunks.handle()
   );
   const editingArea = <View className="size-full flex-col min-h-0">
-    <View hidden={viewingDiff.get() && mode.get() === 'git'} className="size-full">
+    <View hidden={mode.get() === 'extensions' || (viewingDiff.get() && mode.get() === 'git')} className="size-full">
       {editor}
+    </View>
+    <View hidden={mode.get() !== 'extensions'} className="size-full min-h-0">
+      {extensionDetail}
     </View>
     <View hidden={!viewingDiff.get() || mode.get() !== 'git'} className="size-full">
       {gitEditor}
@@ -365,6 +373,12 @@ function App(
     160
   );
   const explorer = <View className="flex-col size-full min-h-0">
+    <View hidden={mode.get() !== 'debug'} className="flex-col size-full min-h-0">
+      {debugSidebar}
+    </View>
+    <View hidden={mode.get() !== 'extensions'} className="flex-col size-full min-h-0">
+      {extensionBrowser}
+    </View>
     <View hidden={mode.get() !== 'git'} className="flex-col size-full min-h-0">
       {gitSidebar}
     </View>
@@ -433,21 +447,22 @@ function App(
     <Button
       icon="bug"
       variant="ghost"
-      selected={panel.get() === 'debug'}
+      selected={sidebar.get() && mode.get() === 'debug'}
       tooltip={message("Run and Debug")}
       aria-label={accessibleName("Run and Debug")}
       onPress={() => {
-        panel.set(panel.get() === 'debug' ? '' : 'debug');
+        sidebar.set(mode.get() !== 'debug' || !sidebar.get());
+        mode.set('debug');
       }}
     />
     <Button
       icon="blocks"
       variant="ghost"
-      selected={panel.get() === 'extensions'}
+      selected={sidebar.get() && mode.get() === 'extensions'}
       tooltip={message("Extensions")}
       aria-label={accessibleName("Extensions")}
       onPress={() => {
-        selectPanel(panel, settings, modelPaths, panel.get() === 'extensions' ? '' : 'extensions');
+        toggleExtensions(sidebar, mode, settings, modelPaths);
       }}
     />
   </View>;
@@ -455,8 +470,9 @@ function App(
     <View className="flex-col size-full bg-background text-foreground">
       <Ticker
         interval={(aiState.get().phase === 'generating' || aiState.get().phase === 'inline') ? 50 : aiState.get().phase === 'ready' ? 1000 : 150}
-        running={aiState.get().phase !== 'stopped' || aiState.get().queuedInline !== undefined}
+        running={aiState.get().phase !== 'stopped' || aiState.get().queuedInline !== undefined || (aiState.get().inlineDisabled ?? false) === settings.get().inlineCompletions || (settings.get().inlineCompletions && settings.get().aiModelPath !== '' && aiState.get().warmModel !== settings.get().aiModelPath)}
         onTick={(_frame) => {
+          syncInlinePreference(aiContext);
           pollModel(aiContext, modelUpdates);
         }}
       />

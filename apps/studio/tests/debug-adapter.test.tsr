@@ -276,6 +276,11 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           if (update.finished) throw 'Target exited before the expected stop: ' + update.text;
 
           if (update.stopped === true) {
+            if (action === 'next') {
+              strictEqual(update.text.includes('Stopped: breakpoint'), true);
+              strictEqual(update.text.includes('#0 main'), true);
+            }
+
             strictEqual(update.text.includes('\n#0 '), true);
             strictEqual(update.text.includes('0x'), true);
 
@@ -293,7 +298,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           strictEqual(stopped.includes('Debug session stopped.'), true);
           strictEqual(stopped.includes('Studio debugger fixture'), false);
           await commands.send({
-            action: 'launch', program: clone(program), stopOnEntry: true
+            action: 'launch', program: clone(program), functionBreakpoint: ' main '
           });
         }
       }

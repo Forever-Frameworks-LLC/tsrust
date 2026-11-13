@@ -95,6 +95,9 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
   const fontSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
+  const inlineSession: SettingsSession = {
+    path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
+  };
   const iconsSession: SettingsSession = {
     path: clone(path), draft, text, baseline, present, ready, notice, raw, font, settings, workspace
   };
@@ -244,6 +247,17 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                       },
                       Err(_) => {}
                     }
+                  }}
+                />
+              </SettingItem>
+              <SettingItem title={message("AI inline completions")} description={message("Keep the selected model loaded for suggestions while typing.")}>
+                <Switch
+                  checked={draft.get().inlineCompletions}
+                  accessibilityLabel={message("AI inline completions")}
+                  onChange={(enabled) => {
+                    const config = draft.get();
+                    config.inlineCompletions = enabled;
+                    commitSettings(inlineSession, config);
                   }}
                 />
               </SettingItem>

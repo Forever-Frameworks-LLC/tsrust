@@ -28,7 +28,26 @@ import { ChatStore, persistChats } from './history.tsr';
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
 import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 
+function requestsEdit(prompt: ReadOnly<string>): boolean {
+  let instruction = prompt.trim().toLowerCase();
+
+  for (const prefix of ['can you ', 'could you ', 'would you ']) {
+    if (instruction.startsWith(prefix)) {
+      instruction = instruction.slice(prefix.length);
+      break;
+    }
+  }
+
+  if (instruction.startsWith('please ')) instruction = instruction.slice(7);
+
+  if (instruction.startsWith('not insert that ') && instruction.endsWith('?')) return true;
+  return ['add ', 'insert ', 'replace ', 'remove ', 'rename ', 'change ', 'update ', 'fix ', 'refactor ', 'implement ', 'delete '].some((verb) => instruction.startsWith(verb));
+}
+
 export interface AiState {
+  warmModel?: string;
+  inlineDisabled?: boolean;
+  releaseInline?: boolean;
   inlineRequest?: int;
   queuedInline?: InlineRequest;
   inlineCancel?: string;
@@ -312,8 +331,11 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const tree = context.projectTree;
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
       const attachments = draftContext(next.history);
-      const batch = prompt.toLowerCase().startsWith('edit files: ');
-      const editing = batch || prompt.toLowerCase().startsWith('edit: ');
+      const explicitBatch = prompt.toLowerCase().startsWith('edit files: ');
+      const explicitEdit = prompt.toLowerCase().startsWith('edit: ');
+      const editing = explicitBatch || explicitEdit || requestsEdit(prompt);
+      const batch = explicitBatch || (editing && !explicitEdit && attachments.some((item) => item.kind === 'file'));
+      const task = explicitBatch ? prompt.slice('Edit files: '.length) : explicitEdit ? prompt.slice(6) : clone(prompt);
       const references = context.references;
       const snippets = canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '';
       const storeIndex = context.declarations;
@@ -441,7 +463,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           };
           const skills = attachments.filter((item) => item.kind === 'skill');
           const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
-          editPrompt = sources.join('\n\n') + skillContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + prompt.slice('Edit files: '.length) + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
+          editPrompt = sources.join('\n\n') + skillContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
         } else {
           const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
 
@@ -451,7 +473,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           };
           const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
           const delegation = prompt.toLowerCase().includes('delegate to the imported') ? ' Delegate the entire operation to the requested function. Return its result directly.' : '';
-          editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + delegation + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+          editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + task + delegation + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
         }
       }
 
@@ -587,7 +609,7 @@ export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<
   });
   const next = state.get();
 
-  if (next.pending === undefined && ['stopped', 'ready', 'starting', 'inline'].includes(next.phase)) {
+  if (!next.inlineDisabled && next.pending === undefined && ['stopped', 'ready', 'starting', 'inline'].includes(next.phase)) {
     const previous = next.queuedInline;
 
     if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});
@@ -647,6 +669,63 @@ export function cancelInline(state: Signal<AiState>, commands: ReadOnly<Sender<M
   state.set(next);
 }
 
+export function syncInlinePreference(context: ReadOnly<AiContext>): void {
+  const config = context.settings.get();
+  const next = context.state.get();
+
+  if (!config.inlineCompletions) {
+    if (!next.inlineDisabled) {
+      next.inlineDisabled = true;
+      next.releaseInline = next.warmModel !== undefined || next.phase === 'inline';
+      next.warmModel = undefined;
+      const queued = next.queuedInline;
+
+      if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+      next.queuedInline = undefined;
+
+      if (next.phase === 'inline' && next.inlineCancel === undefined) next.inlineCancel = 'pending';
+      context.state.set(next);
+    }
+
+    if (next.releaseInline && next.active === '' && next.pending === undefined && next.phase === 'ready') {
+      match (context.commands.trySend({
+        kind: 'shutdown', id: '', prompt: '', maxTokens: 0
+      })) {
+        Ok(_) => {
+          next.phase = 'stopping';
+          next.releaseInline = false;
+          context.state.set(next);
+        },
+        Err(_) => {}
+      }
+    }
+
+    return;
+  }
+
+  if (next.inlineDisabled) {
+    next.inlineDisabled = false;
+    next.releaseInline = false;
+    context.state.set(next);
+  }
+
+  if (!context.allowInference || !context.allowControl || config.aiModelPath === '' || next.warmModel === config.aiModelPath || next.phase !== 'stopped') return;
+
+  match (startRequest(context)) {
+    Ok(start) => {
+      match (context.commands.trySend(start)) {
+        Ok(_) => {
+          next.phase = 'starting';
+          next.warmModel = clone(config.aiModelPath);
+          context.state.set(next);
+        },
+        Err(_) => {}
+      }
+    },
+    Err(_) => {}
+  }
+}
+
 export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>): void {
   const next = context.state.get();
   let changed = false;
@@ -669,7 +748,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
 
         if (inline !== undefined && (update.id === 'inline:' + inline.toString() || update.kind === 'stopped')) {
           if (update.kind === 'prefix' || update.kind === 'compacted') continue;
-          answerEditorLanguage(inline, update.kind === 'complete' && next.inlineCancel === undefined && next.phase === 'inline' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
+          answerEditorLanguage(inline, update.kind === 'complete' && !next.inlineDisabled && next.inlineCancel === undefined && next.phase === 'inline' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
           next.inlineRequest = undefined;
           next.inlineCancel = undefined;
 
@@ -716,12 +795,15 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
             if (message >= 0) {
               next.history.chats[chat].revision += 1;
 
-              if (update.kind === 'prefix' || update.kind === 'complete') next.history.chats[chat].messages[message].text = clone(update.text);
+              if (next.editTarget === undefined && (update.kind === 'prefix' || update.kind === 'complete')) next.history.chats[chat].messages[message].text = clone(update.text);
 
-              if (update.kind === 'complete' && next.editTarget !== undefined && update.stop !== 'length') {
-                match (batchProposal(next.editTarget, update.text)) {
+              if (update.kind === 'complete' && next.editTarget !== undefined) {
+                next.history.chats[chat].messages[message].text = translate('No edit was proposed.');
+
+                if (update.stop !== 'length') match (batchProposal(next.editTarget, update.text)) {
                   Ok(proposal) => {
                     next.review = proposal;
+                    next.history.chats[chat].messages[message].text = translate('Review the proposed changes.');
                   },
                   Err(error) => {
                     next.notice = error;

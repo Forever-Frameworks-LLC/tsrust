@@ -240,15 +240,11 @@ impl InputBaseState<EditorMode> {
             return;
         };
 
+        self.schedule_inline_completion(window, cx);
         if self.syntax_context_at(self.cursor()) == crate::input::SyntaxContext::Comment {
-            self.clear_inline_completion(cx);
             self.hide_context_menu(cx);
             return;
         }
-
-        // Always schedule inline completion (debounced).
-        // It will check if menu is open before showing the suggestion.
-        self.schedule_inline_completion(window, cx);
 
         let new_offset = self.cursor();
         // Measure the inserted text in the current document. The replaced range
@@ -489,7 +485,7 @@ impl InputBaseState<EditorMode> {
             // Now fetch the inline completion after the debounce period
             let task = editor.update_in(cx, |editor, window, cx| {
                 // Check if cursor has moved during debounce
-                if editor.syntax_context_at(offset) == crate::input::SyntaxContext::Comment || editor.cursor() != offset || editor.document_revision != revision
+                if editor.cursor() != offset || editor.document_revision != revision
                     || !editor.focus_handle.is_focused(window) || editor.disabled || editor.readonly
                     || editor.ime_marked_range.is_some() || !editor.selections.is_single()
                     || !editor.active_selection().is_empty() {

@@ -11,18 +11,8 @@ import {
 
 import { accessibleName, message } from '../../lib/localization.tsr';
 
-import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { availableModelPaths } from '../../services/ai/model-extensions.tsr';
-
-export function selectPanel(panel: Signal<string>, settings: Signal<StudioConfig>, modelPaths: Signal<string[]>, value: ReadOnly<string>): void {
-  if (value === 'extensions') modelPaths.set(availableModelPaths(settings.get()));
-  panel.set(clone(value));
-}
-
 export function Panels(
   panel: Signal<string>,
-  settings: Signal<StudioConfig>,
-  modelPaths: Signal<string[]>,
   output: Node,
   terminal: Node,
   terminalActions: Node,
@@ -30,7 +20,6 @@ export function Panels(
   problemsActions: Node,
   references: Node,
   debug: Node,
-  extensions: Node,
   font: Signal<int>
 ): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
@@ -44,7 +33,7 @@ export function Panels(
           size="small"
           className={tabsClass.get()}
           onChange={(value) => {
-            selectPanel(panel, settings, modelPaths, value);
+            panel.set(clone(value));
           }}
         >
           <Tab value="terminal" label={message("Terminal")} />
@@ -52,7 +41,6 @@ export function Panels(
           <Tab value="references" label={message("References")} />
           <Tab value="output" label={message("Output")} />
           <Tab value="debug" label={message("Debug Console")} />
-          <Tab value="extensions" label={message("Extensions")} />
           <TabsSuffix>
             <View className="flex-row items-center pr-1.5">
               <View hidden={panel.get() !== 'terminal'}>
@@ -90,9 +78,6 @@ export function Panels(
         </View>
         <View hidden={panel.get() !== 'debug'} className="size-full min-h-0">
           {debug}
-        </View>
-        <View hidden={panel.get() !== 'extensions'} className="size-full min-h-0">
-          {extensions}
         </View>
       </View>
     </View>

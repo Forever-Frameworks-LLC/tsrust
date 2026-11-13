@@ -293,6 +293,13 @@ pub trait InputModeKind: sealed::Sealed + Sized + 'static {
     ) {
     }
 
+    fn on_newline_inserted(
+        _state: &mut InputBaseState<Self>,
+        _window: &mut Window,
+        _cx: &mut gpui::Context<InputBaseState<Self>>,
+    ) {
+    }
+
     /// Drops any inline completion after the text or cursor moved.
     fn clear_inline_completion(
         _state: &mut InputBaseState<Self>,

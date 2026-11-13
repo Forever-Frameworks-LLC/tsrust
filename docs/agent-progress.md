@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
+
+Composer Send now recognizes common direct edit requests. It captures attached workspace files or the active text draft and validates anchored replacements before displaying review. Chat displays a Studio-generated proposal status. Invalid model prose cannot report a successful edit through this route. Legacy explicit edit prefixes remain supported. In an isolated native Studio with a seeded prior exchange suggesting a startup log, the real 1.5B Q4 model received “Can you not insert that console log?” through the composer. Review and Apply to draft inserted exactly one console.log('Yo ho yo ho') before openWindow(). Other draft and disk contents stayed intact. Model-host RSS after generation was 1,239,696 KiB (single observation).
+
+Inline completions now have a persisted Settings switch. An isolated real host was ready before any typing and received both sides of the caret after Return under a comment. Tab inserted the result. Comment typing also requested inline generation, with ordinary symbol completion suppressed. Model quality remains uneven: the 1.5B produced extra unrelated code and a duplicate closing brace on the newline probe.
+
+Extensions now uses a searchable sidebar and a selected model detail in the main area. Native accessibility replay selected Qwen 7B Q5 at configured sizes 12 and 20, verified its Download action and absence of a duplicate selector. The same sidebar row grew from 25 to 33 logical pixels in height. Screen capture was unavailable, so exact glyph sizes were not measured. Run and Debug exposes launch and a native function breakpoint in its sidebar. Source gutter breakpoints and cross-platform debugger acceptance are pending.
+
+Focused AI and extension suites passed 45/45. Two debugger cases failed in a sandboxed run with default tool resolution; rerunning the seven debugger cases with explicit release compiler, Xcode LLDB and native launch permissions passed 7/7 (4.59 s execution). The dev supervisor picked up the chat change and started the rebuilt Studio.
+
 ## Native debugger transport
 
 A public Studio test builds tests/fixtures/debug-target.tsr into a temporary native executable and launches it under the Xcode LLDB debug adapter using Studio's existing Content-Length stdio transport. Verified initialize capabilities, correlated launch and configurationDone responses, stdout “Studio debugger fixture”, exit code zero and terminated event. Ran from apps/studio with TSRUST pointing to the release compiler and LLDB_DAP to Xcode’s lldb-dap. Suite passed (409.66 ms including cached fixture build and adapter execution). The test reaps its adapter and removes the fixture directory. This establishes the protocol and process boundary. The debugger panel, breakpoints, stepping and generated source maps remain open.
