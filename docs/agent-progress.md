@@ -54,6 +54,18 @@ The focused service regression passed in 3.41 s across both existing samples
 and the real dirty expression, with no partial inline responses. The tested
 host is installed for the dev session.
 
+A live rapid-typing fixture reproduced a lost inline suggestion on the previous
+build. A test host delayed the cancelled request by 1.2 seconds, then returned
+a stale success. The old app sent no replacement and Tab inserted indentation.
+Studio now keeps the latest debounced request until the previous one finishes,
+retries cancellation when its channel is full, and dismisses superseded replies.
+The same fixture against the rebuilt executable observed inline:1 replaced by
+inline:2. The real model answered the replacement. Tab and Save produced exactly
+return second; with the rest of the fixture unchanged. The 29 AI-action cases
+passed in 203 ms, including cancellation with a full channel, two queued edits,
+stale success and dismissal. The fixture exited and the dev watcher restarted
+Studio as PID 89547 in apps/studio.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered

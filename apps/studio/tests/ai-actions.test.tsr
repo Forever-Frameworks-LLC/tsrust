@@ -104,6 +104,52 @@ test('inline inference uses both sides of the caret and cancels by editor reques
   strictEqual(state.get().history.chats.length, 0);
 });
 
+test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(1);
+  const sender = commands.sender();
+  const host = context(state, signal(modelConfig()), commands);
+  const updates = new Channel<ModelUpdate>(4);
+  requestInline(state, sender, '{"id":10,"prefix":"old","suffix":";"}');
+  cancelInline(state, sender, 10);
+  requestInline(state, sender, '{"id":11,"prefix":"intermediate","suffix":";"}');
+  requestInline(state, sender, '{"id":12,"prefix":"latest","suffix":"!"}');
+  cancelInline(state, sender, 11);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:10');
+  pollModel(host, updates);
+  const cancel = unwrap(commands.tryReceive());
+  strictEqual(cancel.kind, 'cancel');
+  strictEqual(cancel.id, 'inline:10');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: 'inline:10', text: 'obsolete', error: ''
+  }));
+  pollModel(host, updates);
+  const newest = unwrap(commands.tryReceive());
+  strictEqual(newest.id, 'inline:12');
+  strictEqual(newest.prompt, 'latest');
+  strictEqual(newest.suffix, '!');
+  requestInline(state, sender, '{"id":13,"prefix":"dismissed","suffix":";"}');
+  cancelInline(state, sender, 13);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:12');
+  unwrap(updates.sender().trySend({
+    kind: 'cancelled', id: 'inline:12', text: '', error: 'cancelled'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().history.chats.length, 0);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      strictEqual(true, false);
+    },
+    Err(error) => {
+      strictEqual(error.code, 'empty');
+    }
+  }
+});
+
 test('Unicode composer input and first-message titles preserve scalar boundaries', () => {
   strictEqual(contextTrigger('日本語🦀'), '');
   strictEqual(contextTrigger('🦀@'), '');

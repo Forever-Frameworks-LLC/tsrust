@@ -30,6 +30,8 @@ import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 
 export interface AiState {
   inlineRequest?: int;
+  queuedInline?: InlineRequest;
+  inlineCancel?: string;
   editTarget?: EditBatch;
   review?: EditBatch;
   undoEdit?: EditBatch;
@@ -543,32 +545,60 @@ export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<
   });
   const next = state.get();
 
-  if (next.phase === 'ready') {
+  if (next.phase === 'inline') {
+    const previous = next.queuedInline;
+
+    if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});
+    next.queuedInline = request;
+
+    if (next.inlineCancel === undefined) next.inlineCancel = 'pending';
+    sendInlineCancel(next, commands);
+    state.set(next);
+  } else if (next.phase === 'ready') {
+    startInline(next, commands, request);
+    state.set(next);
+  } else answerEditorLanguage(request.id, 'null', (_delivery) => {});
+}
+
+function startInline(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>, request: InlineRequest): void {
+  match (commands.trySend({
+    kind: 'complete-code', id: 'inline:' + request.id.toString(), prompt: request.prefix, suffix: request.suffix, maxTokens: 0
+  })) {
+    Ok(_) => {
+      next.inlineRequest = request.id;
+      next.phase = 'inline';
+    },
+    Err(_) => {
+      answerEditorLanguage(request.id, 'null', (_delivery) => {});
+    }
+  }
+}
+
+function sendInlineCancel(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>): void {
+  const active = next.inlineRequest;
+
+  if (next.inlineCancel === 'pending' && active !== undefined) {
     match (commands.trySend({
-      kind: 'complete-code', id: 'inline:' + request.id.toString(), prompt: request.prefix, suffix: request.suffix, maxTokens: 0
+      kind: 'cancel', id: 'inline:' + active.toString(), prompt: '', maxTokens: 0
     })) {
       Ok(_) => {
-        next.inlineRequest = request.id;
-        next.phase = 'inline';
-        state.set(next);
-        return;
+        next.inlineCancel = 'sent';
       },
       Err(_) => {}
     }
   }
-
-  answerEditorLanguage(request.id, 'null', (_delivery) => {});
 }
 
 export function cancelInline(state: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, id: int): void {
-  if (state.get().inlineRequest === id) {
-    match (commands.trySend({
-      kind: 'cancel', id: 'inline:' + id.toString(), prompt: '', maxTokens: 0
-    })) {
-      Ok(_) => {},
-      Err(_) => {}
-    }
-  }
+  const next = state.get();
+
+  if (next.queuedInline?.id === id) {
+    next.queuedInline = undefined;
+  } else if (next.inlineRequest === id && next.inlineCancel === undefined) {
+    next.inlineCancel = 'pending';
+    sendInlineCancel(next, commands);
+  } else return;
+  state.set(next);
 }
 
 export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>): void {
@@ -588,8 +618,9 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
 
         if (inline !== undefined && (update.id === 'inline:' + inline.toString() || update.kind === 'stopped')) {
           if (update.kind === 'prefix' || update.kind === 'compacted') continue;
-          answerEditorLanguage(inline, update.kind === 'complete' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
+          answerEditorLanguage(inline, update.kind === 'complete' && next.inlineCancel === undefined && next.phase === 'inline' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
           next.inlineRequest = undefined;
+          next.inlineCancel = undefined;
 
           if (next.phase === 'inline') next.phase = 'ready';
 
@@ -665,6 +696,23 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
         } else if (update.kind === 'error') next.notice = modelNotice(update.error);
       }
     }
+  }
+
+  if (next.inlineCancel === 'pending') {
+    sendInlineCancel(next, context.commands);
+    changed = true;
+  }
+
+  if (next.phase !== 'inline' && next.queuedInline !== undefined) {
+    const queued = clone(next.queuedInline);
+    next.queuedInline = undefined;
+
+    if (queued !== undefined) {
+      if (next.phase === 'ready') startInline(next, context.commands, queued);
+      else answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+    }
+
+    changed = true;
   }
 
   if (next.phase === 'ready' && next.pending !== undefined) {
