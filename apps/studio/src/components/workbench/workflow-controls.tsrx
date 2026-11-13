@@ -37,12 +37,14 @@ import { runProjectTask } from '../../services/project-tasks.tsr';
 import { SaveActionContext, queueSaves, unsavedTargets } from '../../services/save-actions.tsr';
 import { beginCheck } from '../tasks/check-panel.tsrx';
 
-function requestSaveAll(workspace: Signal<Workspace>, queue: Signal<QueuedFormatting[]>): void {
+function requestSave(workspace: Signal<Workspace>, queue: Signal<QueuedFormatting[]>, all: boolean): void {
   const context: SaveActionContext = {
     workspace, queue, allowSave: true
   };
 
-  match (queueSaves(context, unsavedTargets(context.workspace.get()))) {
+  const targets = unsavedTargets(context.workspace.get(), !all);
+
+  match (queueSaves(context, targets)) {
     Ok(_) => {},
     Err(error) => {
       const next = context.workspace.get();
@@ -233,10 +235,16 @@ export function WorkflowControls(
         }}
       />
       <Shortcut
+        command="save-document"
+        onTrigger={() => {
+          requestSave(workspace, focusQueue, false);
+        }}
+      />
+      <Shortcut
         command="save-all"
         keys="secondary-s"
         onTrigger={() => {
-          requestSaveAll(workspace, focusQueue);
+          requestSave(workspace, focusQueue, true);
         }}
       />
       <Shortcut

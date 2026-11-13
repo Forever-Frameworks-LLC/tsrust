@@ -208,7 +208,7 @@ overrides and guarded UI/AI formatting actions share these rules.
 To request a change to the active text file, start a chat message with
 `Edit: `, followed by the change you want. Studio shows the proposed
 replacement in a diff. **Apply to draft** updates the open buffer. **Reject**
-discards the proposal. Save the draft separately when ready.
+discards the proposal. Select the edited tab and choose **File → Save** to write only that draft.
 
 Attach workspace text files and start the message with `Edit files: `.
 Review the diffs together. Applying opens previously unopened targets as drafts.

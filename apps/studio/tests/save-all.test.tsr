@@ -41,6 +41,9 @@ test('Save All queues mixed text files, preserves explicit revisions, and contin
     };
     const targets = unsavedTargets(context.workspace.get());
     strictEqual(targets.length, 2);
+    const selected = unsavedTargets(context.workspace.get(), true);
+    strictEqual(selected.length, 1);
+    strictEqual(selected[0].path, json);
     const payload = JSON.stringify({
       targets: clone(targets)
     });
@@ -68,6 +71,7 @@ test('Save All queues mixed text files, preserves explicit revisions, and contin
     strictEqual(dirty(next.files[1].document), false);
     strictEqual(next.files[0].document.saveConflict !== undefined, true);
     strictEqual(next.active, json);
+    strictEqual(unsavedTargets(next, true).length, 0);
     edit(next.files[1].document, 'newer');
     strictEqual(rejected(saveTarget(next, targets[1])), true);
     strictEqual(unwrap(readTextFile(json, 1024)), '{"saved":true}');

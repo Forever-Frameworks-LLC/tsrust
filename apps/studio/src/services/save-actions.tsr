@@ -16,10 +16,10 @@ interface SaveArguments {
   targets: FormattingTarget[];
 }
 
-export function unsavedTargets(workspace: ReadOnly<Workspace>): FormattingTarget[] {
+export function unsavedTargets(workspace: ReadOnly<Workspace>, activeOnly: boolean = false): FormattingTarget[] {
   const targets: FormattingTarget[] = [];
 
-  for (const file of workspace.files) if (file.kind === 'text' && dirty(file.document)) targets.push({
+  for (const file of workspace.files) if ((!activeOnly || file.document.path === workspace.active) && file.kind === 'text' && dirty(file.document)) targets.push({
     path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
   });
   return targets;

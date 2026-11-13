@@ -13,6 +13,8 @@ export interface PaletteCommand {
 export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<string>): PaletteCommand[] {
   const filter = (query.startsWith('>') ? query.slice(1) : query).trim().toLowerCase();
   const rows: PaletteCommand[] = [{
+    id: 'save-document', label: translate('Save'), disabled: !workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text' && dirty(file.document))
+  }, {
     id: 'save-all', label: translate('Save All'), disabled: !workspace.files.some((file) => dirty(file.document))
   }, {
     id: 'save-copy', label: translate('Save a Copy…'), disabled: !workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text')

@@ -68,6 +68,7 @@ export function Chrome(
         </AppMenu>
         <AppMenu label={message("File")}>
           <MenuItem command="find-file" label={message("Find project file")} />
+          <MenuItem command="save-document" label={message("Save")} disabled={unsavedTargets(workspace.get(), true).length === 0} />
           <MenuItem command="save-all" label={message("Save All")} disabled={unsavedTargets(workspace.get()).length === 0} />
           <MenuItem command="save-copy" label={message("Save a Copy…")} disabled={!canCopy.get()} />
           <MenuItem command="close-tab" label={message("Close Editor")} />
