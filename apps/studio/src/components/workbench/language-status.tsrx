@@ -96,7 +96,14 @@ export function LanguageStatus(
       <Ticker
         interval={150}
         onTick={(_frame) => {
-          pollLanguage(workspace, problems, state, messages, updates);
+          pollLanguage(
+            workspace,
+            problems,
+            state,
+            messages,
+            updates,
+            true
+          );
         }}
       />
     </View>

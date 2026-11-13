@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Automatic active-draft outlines for chat
+
+The Studio language ticker requests a document outline for the active
+Tsrust or Tsrx draft. The controller keeps one internal outline result and
+uses normal pending-query cancellation and revision invalidation. Chat
+uses matching top-level function ranges for explicitly named symbols when
+the open file, session and revision agree. It extracts UTF-16 ranges from
+the live draft and also follows local calls and imports through the existing
+retrieval path. Explicit whole-file requests keep their full source.
+
+The real Studio worker test exercised automatic scheduling, receipt, range
+extraction for identity<T> and stale-draft fallback. All 35 language-service
+and AI action cases passed (63.37 s setup/build). The Studio entry point
+passed its source check. Supervisor 36374 remained running. This run verified
+context construction; model inference and UI observation were not repeated.
+
 ## Compiler-backed document outline read
 
 Studio exposes language_document_symbols through its guarded language tool

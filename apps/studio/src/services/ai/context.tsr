@@ -19,7 +19,8 @@ import {
 import { functionExcerpt, recallTerms } from '../../lib/ai/prompts.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
-import { diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
+import { LanguageReadResult } from '../lsp/controller.tsr';
+import { DiagnosticRange, diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
@@ -494,6 +495,40 @@ function indexedFunctions(workspace: ReadOnly<Workspace>, path: ReadOnly<string>
   }
 }
 
+interface DocumentSymbol {
+  name: string;
+  kind: int;
+  range: DiagnosticRange;
+  selectionRange: DiagnosticRange;
+}
+
+function outlineBodies(source: ReadOnly<string>, result: ReadOnly<string>, names: ReadOnly<Set<string>>): Map<string, string> {
+  const bodies = new Map<string, string>();
+
+  try {
+    const symbols = JSON.parse<DocumentSymbol[]>(result);
+    const lines = source.split('\n');
+
+    for (const symbol of symbols) {
+      if (symbol.kind !== 12 || !names.has(symbol.name)) continue;
+      const range = symbol.range;
+      const name = symbol.selectionRange.start;
+
+      if (range.start.line < 0 || range.end.line >= lines.length || range.end.line < range.start.line || name.line < range.start.line || name.line > range.end.line || referenceSymbol(lines[name.line], {
+        line: 0, character: name.character
+      }, true) !== symbol.name) continue;
+      const first = diagnosticColumn(lines[range.start.line], range.start.character) - 1;
+      const last = diagnosticColumn(lines[range.end.line], range.end.character) - 1;
+      const parts = lines.slice(range.start.line, range.end.line + 1);
+      parts[parts.length - 1] = Array.from(parts[parts.length - 1]).slice(0, last).join('');
+      parts[0] = Array.from(parts[0]).slice(first).join('');
+      bodies.set(clone(symbol.name), parts.join('\n'));
+    }
+  } catch (_) {}
+
+  return bodies;
+}
+
 export function editorContext(
   workspace: ReadOnly<Workspace>,
   tree: ReadOnly<DirectoryTree> | undefined,
@@ -502,7 +537,8 @@ export function editorContext(
   editing: boolean,
   hasReferences: boolean,
   index: Mutable<Map<string, FileDeclarations>>,
-  previousQuestion: ReadOnly<string> = ''
+  previousQuestion: ReadOnly<string> = '',
+  outline?: LanguageReadResult
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -525,8 +561,11 @@ export function editorContext(
     if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
       const bodies: string[] = [];
 
+      const target = outline?.query.document;
+      const located = outline !== undefined && target !== undefined && outline.error === '' && target.path === active.document.path && target.session === active.document.session && target.revision === active.document.revision && unresolved.size > 0 ? outlineBodies(active.document.text, outline.result, unresolved) : new Map<string, string>();
+
       for (const name of Array.from(unresolved)) {
-        const body = functionExcerpt(active.document.text, name, true, true);
+        const body = clone(located.get(name)) ?? functionExcerpt(active.document.text, name, true, true);
 
         if (body !== '') {
           bodies.push(body);
@@ -536,6 +575,9 @@ export function editorContext(
 
       if (bodies.length > 0) {
         for (const name of includeLocalCalls(active.document.text, bodies)) symbols.add(clone(name));
+
+        if (located.size > 0 && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
+
       }
     }
 

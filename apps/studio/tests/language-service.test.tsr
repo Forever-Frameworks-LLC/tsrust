@@ -28,7 +28,8 @@ import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { referenceContext } from '../src/services/ai/context.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
+import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
@@ -265,17 +266,68 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
       strictEqual(context.includes('greet("🦀", 2)'), true);
     }
 
-    document.version += 1;
-    document.revision += 1;
-    document.text = 'function identity<T>(value: T): T {\n  return value;\n}\nfunction main() {}';
-    await requests.send({
-      kind: 'query', generation: ready.generation, document: clone(document), query: {
-        id: 'outline', method: 'textDocument/documentSymbol', document: languageIdentity(document), position: {
-          line: 0, character: 0
-        }
-      }
-    });
+    const active = unwrap(openWorkspace(clone(root)));
+    unwrap(openFile(active, clone(document.path)));
+    edit(active.files[0].document, 'function identity<T>(value: T): T {\n  return value;\n}\nfunction main() {}');
+    const open = signal(active);
+    const outlines = signal(createLanguageState());
+    const connected = outlines.get();
+    connected.connections[0].ready = true;
+    connected.connections[0].requested = true;
+    connected.connections[0].generation = ready.generation;
+    connected.version = document.version;
+    outlines.set(connected);
+    const responses = new Channel<LanguageUpdate>(2);
+    const problems = signal<Problem[]>([]);
+    pollLanguage(
+      open,
+      problems,
+      outlines,
+      requests,
+      responses,
+      true
+    );
     const outline = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(outline.query?.id ?? '', 'chat:outline');
+    unwrap(responses.sender().trySend(clone(outline)));
+    pollLanguage(
+      open,
+      problems,
+      outlines,
+      requests,
+      responses,
+      true
+    );
+    const completed = outlines.get().readResults;
+    strictEqual(completed.length, 1);
+    const index = new Map<string, FileDeclarations>();
+    const tree = unwrap(scanTree(clone(root), false));
+    const excerpt = editorContext(
+      open.get(),
+      clone(tree),
+      [],
+      'Explain identity()',
+      false,
+      false,
+      index,
+      '',
+      clone(completed[0])
+    ).excerpt;
+    strictEqual(excerpt.includes('function identity<T>(value: T): T {\n  return value;\n}'), true);
+    strictEqual(excerpt.includes('function main()'), false);
+    const newer = open.get();
+    edit(newer.files[0].document, 'function identity<T>(value: T): T { return value; }\nfunction nextDraft() {}');
+    strictEqual(editorContext(
+      newer,
+      tree,
+      [],
+      'Explain identity()',
+      false,
+      false,
+      index,
+      '',
+      clone(completed[0])
+    ).excerpt.includes('function nextDraft()'), true);
     const symbols = JSON.parse<OutlineSymbol[]>(outline.result ?? 'null');
     const identity = symbols.find((symbol) => symbol.name === 'identity');
 

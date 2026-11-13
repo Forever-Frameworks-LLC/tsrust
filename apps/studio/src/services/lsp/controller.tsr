@@ -51,12 +51,21 @@ export function connectionFor(state: ReadOnly<LanguageState>, server: ReadOnly<s
   return clone(connection);
 }
 
-export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Problem[]>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, updates: Mutable<Channel<LanguageUpdate>>): void {
+export function pollLanguage(
+  workspace: Signal<Workspace>,
+  problems: Signal<Problem[]>,
+  state: Signal<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  updates: Mutable<Channel<LanguageUpdate>>,
+  prepareChatOutline: boolean = false
+): void {
   const next = state.get();
   let current = problems.get();
   let stateChanged = false;
   let problemsChanged = false;
-  const files = workspace.get().files;
+  const model = workspace.get();
+  const activePath = clone(model.active);
+  const files = model.files;
 
   for (let count = 0; count < 8; count += 1) {
     match (updates.tryReceive()) {
@@ -277,6 +286,35 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
       },
       Err(_) => {
         break;
+      }
+    }
+  }
+
+  if (prepareChatOutline) {
+    const active = files.find((file) => file.document.path === activePath && file.kind === 'text');
+
+    if (next.readResults.some((result) => result.query.id === 'chat:outline' && result.query.document.path !== activePath)) {
+      next.readResults = next.readResults.filter((result) => result.query.id !== 'chat:outline');
+      stateChanged = true;
+    }
+
+    if (active !== undefined && (active.document.path.endsWith('.tsr') || active.document.path.endsWith('.tsrx')) && !next.queries.some((query) => query.id === 'chat:outline') && !next.readResults.some((result) => result.query.id === 'chat:outline')) {
+      match (queueLanguageRead(
+        workspace.get(),
+        next,
+        messages,
+        'chat:outline',
+        {
+          path: clone(active.document.path), session: clone(active.document.session), revision: active.document.revision, method: 'textDocument/documentSymbol', position: {
+            line: 0, character: 0
+          }
+        },
+        undefined
+      )) {
+        Ok(_) => {
+          stateChanged = true;
+        },
+        Err(_) => {}
       }
     }
   }

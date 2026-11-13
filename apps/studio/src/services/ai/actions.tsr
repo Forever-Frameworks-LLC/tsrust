@@ -17,6 +17,7 @@ import {
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { FileDeclarations, EditorContextResult, editorContext, readContext, referenceContext } from './context.tsr';
@@ -48,6 +49,7 @@ export interface AiContext {
   allowDelete?: boolean;
   workspace?: Signal<Workspace>;
   references?: Signal<LanguageReferences>;
+  language?: Signal<LanguageState>;
   declarations?: Signal<FileDeclarations[]>;
   projectTree?: Signal<DirectoryTree>;
   allowedContextPaths?: string[];
@@ -76,7 +78,7 @@ export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: bool
   const store = context.store;
   const workspace = context.workspace;
   return {
-    declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+    language: context.language?.handle(), declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
   };
 }
 
@@ -323,6 +325,10 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         }
       }
 
+      let outline: LanguageReadResult | undefined = undefined;
+      const language = context.language;
+
+      if (canReadWorkspace && language !== undefined) outline = clone(language.get().readResults.find((result) => result.query.id === 'chat:outline'));
       const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(
         workspace.get(),
         tree === undefined ? undefined : tree.get(),
@@ -331,7 +337,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         editing,
         snippets !== '',
         declarations,
-        previousQuestion
+        previousQuestion,
+        outline
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };
