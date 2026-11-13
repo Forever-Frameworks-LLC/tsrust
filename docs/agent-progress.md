@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Named import source excerpts
+
+Chat resolves a named function import by its exported spelling and includes
+its local alias alongside the extracted definition. The same scanner serves
+default and named functions. Explicit file requests, several requested
+bindings from one module, and unmatched declarations retain complete source.
+
+The unsaved alias regression selected policy for compute and excluded
+policyExtra. The live 1.5B named-import caller repair excluded unrelatedRule,
+preserved the policy source, and passed four native behavior checks. Two
+focused suites passed 20/20 in 4473.93 ms. No general workspace symbol index
+or transitive dependency retrieval is implied by this case.
+
 ## Default import source excerpts
 
 Symbol-only requests for a simple default-imported function now carry its

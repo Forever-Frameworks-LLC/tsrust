@@ -173,7 +173,7 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));
-    const file = policy + (defaultImport ? 'export function unrelatedRule(): int { return 999; }\n' : '');
+    const file = policy + 'export function unrelatedRule(): int { return 999; }\n';
     unwrap(writeTextFile(folder + '/policy.tsr', file));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/quote.tsr'));
