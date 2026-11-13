@@ -432,7 +432,9 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           next.editTarget = {
             files: targets
           };
-          editPrompt = sources.join('\n\n') + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + prompt.slice('Edit files: '.length) + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
+          const skills = attachments.filter((item) => item.kind === 'skill');
+          const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
+          editPrompt = sources.join('\n\n') + skillContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + prompt.slice('Edit files: '.length) + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
         } else {
           const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
 

@@ -996,8 +996,18 @@ test('one attached edit target stays bound to its captured file when another tab
     unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
       chat: '', kind: 'file', path: root + '/attached.tsr'
     })));
+    unwrap(writeTextFile(root + '/SKILL.md', 'Use the revised spelling.'));
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'skill', path: root + '/SKILL.md'
+    })));
     send(host, 'Edit files: Change file 0.');
     const request = unwrap(requests.tryReceive());
+    {
+      const prompt = request.messages?.[0].content ?? '';
+      strictEqual(prompt.includes('Use the revised spelling.'), true);
+      strictEqual(prompt.includes('File 1:'), false);
+    }
+
     const updates = new Channel<ModelUpdate>(1);
     unwrap(updates.sender().trySend({
       kind: 'complete', id: request.id, text: '[{"file":0,"before":"same text","after":"updated"}]', stop: 'eos', error: ''
