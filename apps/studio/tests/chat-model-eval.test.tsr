@@ -98,6 +98,18 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
       strictEqual(insertion.before, '');
       strictEqual(insertion.after.trim(), 'export const answer = 27;');
       strictEqual(unwrap(readTextFile(folder + '/empty.tsr')), '');
+      reviewChatEdit(host.state, opened, recovery, insertion, false);
+      const pairSource = 'export const low = 2;\nexport const fixed = 50;\nexport const high = 8;\n';
+      unwrap(writeTextFile(folder + '/pair.tsr', pairSource));
+      const pair = opened.get();
+      unwrap(openFile(pair, folder + '/pair.tsr'));
+      opened.set(pair);
+      await ask(host, updates, 'Edit: Change low from 2 to 3 and high from 8 to 9. Keep fixed and preserve formatting.');
+      const combined = host.state.get().review;
+
+      if (combined === undefined) throw 'Missing combined proposal: ' + host.state.get().notice;
+      strictEqual(combined.after, 'export const low = 3;\nexport const fixed = 50;\nexport const high = 9;\n');
+      strictEqual(unwrap(readTextFile(folder + '/pair.tsr')), combined.before);
     } finally {
       worker.cancel();
 

@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Multiple replacements in one chat edit
+
+The edit parser accepts the previous single replacement and a JSON array.
+Each passage must match uniquely in the captured original draft. The review
+combines disjoint matches in source order; an overlapping or missing passage
+rejects the whole proposal. The AI action suite and configured 1.5B model
+evaluation passed 14/14 in 5.315 s. The model changed two constants in one
+file and preserved an intervening declaration and formatting exactly. The
+parser fixture exercised reverse-order replacements whose outputs are also
+inputs, plus overlap and partial-match failure. Multi-file edits remain open.
+
 ## Chat edits for an empty active draft
 
 An empty before string identifies an insertion only when the captured draft

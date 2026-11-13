@@ -1,7 +1,14 @@
+import { JsonLimits } from 'std:json';
 import { ProposedEdit } from '../workspace/documents.tsr';
 
 interface Replacement {
   before: string;
+  after: string;
+}
+
+interface LocatedReplacement {
+  start: int;
+  end: int;
   after: string;
 }
 
@@ -11,14 +18,39 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
     let body = response.trim();
 
     if (body.startsWith('```json\n') && body.endsWith('\n```')) body = body.slice(8, -4);
-    const change = JSON.parse<Replacement>(body, {
-      maxBytes: 128 * 1024, maxDepth: 3, maxEntries: 2, maxNodes: 4
-    });
-    const start = snapshot.before.indexOf(change.before);
+    const limits: JsonLimits = {
+      maxBytes: 128 * 1024, maxDepth: 4, maxEntries: 256, maxNodes: 1024
+    };
+    const changes = body.startsWith('[') ? JSON.parse<Replacement[]>(body, limits) : [JSON.parse<Replacement>(body, limits)];
 
-    if ((change.before === '' && snapshot.before !== '') || change.before === change.after || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+    if (changes.length === 0) return Err('The model did not return a valid edit proposal.');
+    const edits: LocatedReplacement[] = [];
+
+    for (const change of changes) {
+      const start = snapshot.before.indexOf(change.before);
+
+      if ((change.before === '' && snapshot.before !== '') || change.before === change.after || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+      edits.push({
+        start, end: start + change.before.length, after: clone(change.after)
+      });
+    }
+
+    edits.sort((a, b) => a.start - b.start);
+    const parts: string[] = [];
+    let end = 0;
+    let previous = -1;
+
+    for (const item of edits) {
+      if (item.start < end || item.start === previous) return Err('The proposed changes overlap in the original file.');
+      parts.push(snapshot.before.slice(end, item.start));
+      parts.push(clone(item.after));
+      previous = item.start;
+      end = item.end;
+    }
+
+    parts.push(snapshot.before.slice(end));
     const result = clone(snapshot);
-    result.after = snapshot.before.slice(0, start) + change.after + snapshot.before.slice(start + change.before.length);
+    result.after = parts.join('');
     return Ok(result);
   } catch (_) {
     return Err('The model did not return a valid edit proposal.');

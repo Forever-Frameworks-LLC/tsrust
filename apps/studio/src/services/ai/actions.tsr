@@ -316,7 +316,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         if (file === undefined) return Err('Open a text file to propose an edit.');
         next.editTarget = propose(file.document, '');
         const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
-        messages[messages.length - 1].content = 'Propose one edit to the active file. Return only a JSON object with string fields "before" and "after". ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+        messages[messages.length - 1].content = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Match each against the original file. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
       }
 
       const generation: ModelRequest = {
