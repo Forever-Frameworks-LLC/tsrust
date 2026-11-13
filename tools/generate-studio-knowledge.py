@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "apps/studio/src/assets/knowledge"
 GUIDES = ["docs/guides/ui", *[f"website/src/content/docs/{area}" for area in ("language", "learn", "library", "start", "tools")]]
 GPUI = [f"crates/tsrust-compiler/patched-dependencies/{crate}/src" for crate in ("gpui-base", "gpui-component")]
-SOURCES = [*GPUI, "examples", *GUIDES, "crates/tsrust-compiler/tests/fixtures"]
+TESTS = ["crates/tsrust-compiler/tests/fixtures", "apps/studio/tests", "apps/studio/model-host/tests"]
+SOURCES = [*GPUI, "examples", *GUIDES, *TESTS]
 
 
 def passages(path, text):
@@ -85,7 +86,9 @@ def main():
                 continue
             if path.suffix == ".rs" and not any(name.startswith(root + "/") for root in GPUI):
                 continue
-            if name.startswith("crates/") and path.suffix != ".rs" and not name.endswith(".test.tsr"):
+            if name == "apps/studio/tests/knowledge.test.tsr":
+                continue  # Retrieval assertions contain expected answers and must not be searchable.
+            if any(name.startswith(root + "/") for root in TESTS) and not name.endswith(".test.tsr"):
                 continue
             if path.suffix == ".md" and not any(name.startswith(guide + "/") for guide in GUIDES):
                 continue

@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Bundled Studio test examples
+
+Extended the offline FTS5 corpus with Studio application and model-host test suites. Excluded the retrieval oracle itself so expected search answers cannot become search hits. The rebuilt database has 1,733 passages across 335 files, including 184 passages across 30 Studio files. The native retrieval suite passed against the embedded asset, including prior language, SQLite and GPUI cases. In an isolated Studio window using 1.5B, a natural-language question about the active terminal after removing the third session retrieved apps/studio/tests/terminal-sessions.test.tsr:16. The persisted source excerpt included the real session transitions. The answer correctly identified 'second', with extra prose. The dev watcher rebuilt and launched PID 33952. This verifies one grounded answer and does not establish general coding accuracy.
+
 ## Closed-file constants in Studio chat
 
 Workspace declaration lookup now includes top-level constants in closed Tsrust files. A native AI action test asks about an exported constant, verifies that the model context contains the defining initializer and its private base constant, excludes the unrelated function, and separately verifies that a local variable inside that function cannot be selected as a workspace declaration. The full AI action suite passed 35/35. This is source retrieval acceptance, not a model-generated answer score.

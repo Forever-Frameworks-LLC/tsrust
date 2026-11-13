@@ -34,6 +34,9 @@ test('offline reference retrieval opens the shipped index and returns attributab
     strictEqual(rope.includes('gpui-base/src/input/base/rope_ext.rs:'), true);
     strictEqual(rope.includes('GPUI native Rust documentation:'), true);
     strictEqual(rope.includes('assert_eq!(rope.line_start_offset(1), 6);'), true);
+    const terminals = unwrap(searchKnowledge('Tsrust terminal sessions terminalExited', clone(folder)));
+    strictEqual(terminals.includes('apps/studio/tests/terminal-sessions.test.tsr:16'), true);
+    strictEqual(terminals.includes("terminalExited(state, 'third', true);"), true);
     const linker = unwrap(searchKnowledge('Tsrust repair missing native linker', clone(folder)));
     strictEqual(linker.includes('website/src/content/docs/tools/rust-setup.md:'), true);
     strictEqual(linker.includes('tsrust doctor --native'), true);
