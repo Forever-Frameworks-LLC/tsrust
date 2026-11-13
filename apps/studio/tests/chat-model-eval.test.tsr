@@ -125,7 +125,7 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
   }
 });
 
-if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat reads a retrieved SQLite example and explains its observable result', async () => {
+if (['1', 'pair'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) ?? '')) test('local chat answers from bundled reference examples', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
@@ -141,11 +141,26 @@ if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat re
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
-      const answer = await ask(host, updates, 'In the bundled SQLite rollback example, how many rows remain after the exception? Reply with just the number.');
-      const first = host.state.get().history.chats[0].messages[0];
-      strictEqual((first.workspaceExcerpt ?? '').includes('examples/sqlite/rollback.tsr:'), true);
+      const pair = unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === 'pair';
+      const answer = await ask(host, updates, pair ? 'In the GPUI examples ClearableGroup and MessageScroller, what input ID is focused after Clear and what label jumps to the latest message? Give the two exact strings.' : 'In the bundled SQLite rollback example, how many rows remain after the exception? Reply with just the number.');
+      const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
       console.log(answer);
-      strictEqual(answer.trim(), '0');
+
+      if (pair) {
+        strictEqual(excerpt.includes('InputGroup.tsrx:'), true);
+        strictEqual(excerpt.includes('MessageScroller.tsrx:'), true);
+        strictEqual(excerpt.includes('jumpLabel="Latest"'), true);
+        strictEqual(answer.includes('group-search'), true);
+
+        if (!answer.includes('Latest')) {
+          const followUp = await ask(host, updates, 'What is the exact value of the jumpLabel property in that retrieved example? Reply with the value alone.');
+          console.log(followUp);
+          strictEqual(followUp.trim(), 'Latest');
+        }
+      } else {
+        strictEqual(excerpt.includes('examples/sqlite/rollback.tsr:'), true);
+        strictEqual(answer.trim(), '0');
+      }
     } finally {
       worker.cancel();
 

@@ -9,7 +9,8 @@ import {
   writeFile
 } from 'std:fs';
 import { join } from 'std:path';
-import { compile } from 'std:regex';
+import { compile, escape } from 'std:regex';
+import { recallTerms } from '../../lib/ai/prompts.tsr';
 import { open } from 'std:sqlite';
 
 import encoded from '../../assets/knowledge/passages.txt';
@@ -65,19 +66,37 @@ export function searchKnowledge(prompt: ReadOnly<string>, folder?: string): Resu
     if (folder === undefined && home === undefined) return Err('Studio knowledge cache is unavailable.');
     const path = databasePath(folder ?? join(home ?? '', '.tsrust', 'studio', 'knowledge'));
     const db = unwrap(open(path));
-    let passage = '';
+    const passages: string[] = [];
+    let covered = '';
     {
       const statement = unwrap(db.prepare('SELECT path,line,body FROM passages WHERE passages MATCH ?1 ORDER BY bm25(passages,6,5,4,1,0),rowid LIMIT 1'));
-      const rows = unwrap(statement.query([terms.join(' OR ')]));
+      const queries = [terms.join(' OR ')];
+      const symbols = recallTerms(prompt);
 
-      if (rows.length > 0) {
+      for (const symbol of symbols) {
+        if (!['sqlite', 'tsrust', 'gpui', 'tsrx'].includes(symbol.toLowerCase())) queries.push(clone(symbol));
+      }
+
+      for (let index = 0; index < queries.length; index += 1) {
+        const query = queries[index];
+
+        if (index > 0 && unwrap(compile('(?:^|[^\\p{L}\\p{N}_$])' + escape(query) + '(?:$|[^\\p{L}\\p{N}_$])')).isMatch(covered)) continue;
+        const rows = unwrap(statement.query([index === 0 ? clone(query) : '"' + query + '"']));
+
+        if (rows.length === 0) continue;
         const row = rows[0];
-        passage = 'Bundled Tsrust reference: ' + unwrap(row.text('path')) + ':' + unwrap(row.int('line')).toString() + '\n' + unwrap(row.text('body'));
+        const body = unwrap(row.text('body'));
+        const passage = 'Bundled Tsrust reference: ' + unwrap(row.text('path')) + ':' + unwrap(row.int('line')).toString() + '\n' + body;
+
+        if (!passages.includes(passage)) {
+          passages.push(passage);
+          covered += '\n' + body;
+        }
       }
     }
 
     unwrap(db.close());
-    return Ok(passage);
+    return Ok(passages.join('\n\n'));
   } catch (error) {
     return Err('Could not search the bundled Tsrust references: ' + error.message);
   }

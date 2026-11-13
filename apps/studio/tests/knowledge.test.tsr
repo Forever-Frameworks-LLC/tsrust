@@ -15,6 +15,11 @@ test('offline reference retrieval opens the shipped index and returns attributab
     const group = unwrap(searchKnowledge('GPUI ClearableGroup', clone(folder)));
     strictEqual(group.includes('InputGroup.tsrx:'), true);
     strictEqual(group.includes('controlInput'), true);
+    const pair = unwrap(searchKnowledge('GPUI ClearableGroup and MessageScroller', clone(folder)));
+    strictEqual(pair.includes('InputGroup.tsrx:'), true);
+    strictEqual(pair.includes('MessageScroller.tsrx:'), true);
+    strictEqual(pair.split('Bundled Tsrust reference:').length, 3);
+    strictEqual(unwrap(searchKnowledge('GPUI ClearableGroup and ClearableGroup', clone(folder))), group);
     const guide = unwrap(searchKnowledge('GPUI controlled uncontrolled switch', clone(folder)));
     strictEqual(guide.includes('docs/guides/ui/03-state.md:'), true);
     strictEqual(guide.includes('defaultChecked'), true);

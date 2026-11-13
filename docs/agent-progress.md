@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Bundled retrieval for multi-symbol questions
+
+The bundled FTS query now supplements its best matching passage with a
+ranked result for each explicit code identifier missing from selected bodies.
+Already covered identifiers skip a query. Duplicate passages are sent once.
+The SQLite regression retrieved both ClearableGroup and MessageScroller from
+distinct files and preserved single-result behavior for a repeated identifier
+(67.10 ms). No corpus regeneration was needed.
+
+The opt-in pair evaluation confirmed both files and jumpLabel="Latest" in
+the outgoing Studio chat context. The 1.5B model supplied group-search on the
+first turn but omitted the exact second value. Asked specifically for the
+jumpLabel in the same conversation, it answered Latest (3887.20 ms for the
+two-turn test). Single-turn exact-answer acceptance failed. General
+multi-symbol accuracy and workspace semantic indexing remain open.
+
 ## Reference freshness in chat requests
 
 Native editor symbol queries now record the originating document session and
