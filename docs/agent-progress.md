@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Reference freshness in chat requests
+
+Native editor symbol queries now record the originating document session and
+revision. Chat omits that reference snapshot after the source changes or
+closes. For each candidate location it verifies the exact symbol starts at
+the reported UTF-16 offset in current text. Stale or unreadable hits no
+longer contribute bare coordinates. Existing unversioned reference queries
+still receive target checks; the references panel itself is unchanged.
+
+The native AI and navigation suites passed 24/24 in 59.84 ms, including an
+unsaved target shift and a source revision changing with identical spelling.
+An unchanged spelling at the same location in a different target scope
+still requires a fresh language-server query to establish semantic identity.
+
 ## Chat composer focus edge
 
 The native InputGroup applies a four-sided external child ring after its style

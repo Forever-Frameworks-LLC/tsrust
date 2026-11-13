@@ -135,7 +135,7 @@ function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, h
 
   if (referenceSymbol(line, {
     line: 0, character: hit.range.start.character
-  }) !== symbol) return '';
+  }, true) !== symbol) return '';
   return line.trim();
 }
 
@@ -145,6 +145,14 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
   const query = result.query;
 
   if (result.root !== root || result.pending === true || (result.error ?? '') !== '' || query === undefined || query.kind === 'file' || query.symbol === '') return '';
+
+  if (query.session !== undefined || query.revision !== undefined) {
+    const path = clone(query.path);
+    const source = workspace.files.find((file) => file.document.path === path);
+
+    if (source === undefined || source.document.session !== query.session || source.document.revision !== query.revision) return '';
+  }
+
   const symbol = clone(query.symbol);
   const identifiers = unwrap(compile('[\\p{L}\\p{N}_$]+'));
   const bytesPrompt = unwrap(fromUtf8(prompt));
@@ -171,7 +179,9 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
 
       if (!path.startsWith(prefix) || hit.range.start.line < 0 || hit.range.start.character < 0) continue;
       const snippet = referenceLine(workspace, path, hit, symbol, cache);
-      const row = path.slice(prefix.length) + ':' + (hit.range.start.line + 1).toString() + ':' + (hit.range.start.character + 1).toString() + (snippet === '' ? '' : '  ' + snippet);
+
+      if (snippet === '') continue;
+      const row = path.slice(prefix.length) + ':' + (hit.range.start.line + 1).toString() + ':' + (hit.range.start.character + 1).toString() + '  ' + snippet;
 
       if (rows.includes(row)) continue;
 

@@ -446,7 +446,7 @@ export function requestNativeLanguage(
         if (request.method === 'textDocument/references') {
           if (references !== undefined) references.set({
             root: clone(current.root), locations: [], query: {
-              path: clone(path), position: clone(request.params.position), symbol: referenceSymbol(request.text, request.params.position)
+              path: clone(path), session: clone(file.document.session), revision: file.document.revision, position: clone(request.params.position), symbol: referenceSymbol(request.text, request.params.position)
             }
           });
 

@@ -9,6 +9,8 @@ export interface ReferenceLocation {
 }
 
 export interface ReferenceQuery {
+  session?: string;
+  revision?: int;
   kind?: string;
   id?: string;
   path: string;
@@ -37,7 +39,7 @@ export function referenceLabel(root: ReadOnly<string>, location: ReadOnly<Refere
   return path + ':' + (location.range.start.line + 1).toString() + ':' + (location.range.start.character + 1).toString();
 }
 
-export function referenceSymbol(text: ReadOnly<string>, position: ReadOnly<DiagnosticPosition>): string {
+export function referenceSymbol(text: ReadOnly<string>, position: ReadOnly<DiagnosticPosition>, atStart: boolean = false): string {
   try {
     const lines = text.split('\n');
 
@@ -49,7 +51,7 @@ export function referenceSymbol(text: ReadOnly<string>, position: ReadOnly<Diagn
     const pattern = unwrap(compile('[\\p{L}\\p{N}_$]+'));
 
     for (const found of pattern.findAll(line)) {
-      if (found.start <= offset && offset <= found.end) return unwrap(toUtf8(unwrap(view(bytes, found.start, found.end))));
+      if (atStart ? found.start === offset : found.start <= offset && offset <= found.end) return unwrap(toUtf8(unwrap(view(bytes, found.start, found.end))));
     }
   } catch (_) {}
 

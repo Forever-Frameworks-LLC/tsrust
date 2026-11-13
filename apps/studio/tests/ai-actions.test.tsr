@@ -1,3 +1,4 @@
+import { referenceContext } from '../src/services/ai/context.tsr';
 import { recallTerms, turnMentions, excerptTurn, ChatMessage } from '../src/lib/ai/prompts.tsr';
 import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
 import { LanguageReferences } from '../src/lib/language/references.tsr';
@@ -8,6 +9,7 @@ import { replacementProposal } from '../src/lib/ai/edits.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { edit, propose } from '../src/lib/workspace/documents.tsr';
 import {
+  canonicalize,
   createTempDir,
   removeDirAll,
   removeFile,
@@ -423,6 +425,46 @@ test('file and skill context use guarded snapshots, including unsaved editor tex
   } finally {
     removeDirAll(folder);
     removeDirAll(outside);
+  }
+});
+
+test('reference context discards stale source revisions and mismatched target offsets', () => {
+  const folder = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-reference-revision-'))));
+
+  try {
+    const path = folder + '/source.tsr';
+    const target = folder + '/target.tsr';
+    unwrap(writeTextFile(path, 'const sampleValue = 2;'));
+    unwrap(writeTextFile(target, 'sampleValue();'));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, path));
+    unwrap(openFile(workspace, target));
+    const sourceIndex = workspace.files.findIndex((file) => file.document.path === path);
+    const index = workspace.files.findIndex((file) => file.document.path === target);
+    const point: DiagnosticPosition = {
+      line: 0, character: 0
+    };
+    const snapshot: LanguageReferences = {
+      root: clone(workspace.root), query: {
+        path, symbol: 'sampleValue', position: {
+          line: 0, character: 6
+        }, session: clone(workspace.files[sourceIndex].document.session), revision: workspace.files[sourceIndex].document.revision
+      }, locations: [{
+        uri: documentUri(target), range: {
+          start: clone(point), end: {
+            line: 0, character: 11
+          }
+        }
+      }]
+    };
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue').includes('target.tsr:1:1'), true);
+    edit(workspace.files[index].document, ' sampleValue();');
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue'), '');
+    edit(workspace.files[index].document, 'sampleValue();');
+    edit(workspace.files[sourceIndex].document, 'const sampleValue = 3;');
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue'), '');
+  } finally {
+    unwrap(removeDirAll(folder));
   }
 });
 
