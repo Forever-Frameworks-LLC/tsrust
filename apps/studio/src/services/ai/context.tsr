@@ -577,6 +577,7 @@ export function editorContext(
 
   if (tree !== undefined && tree.root === workspace.root) {
     const question = prompt.toLowerCase();
+    const keepWholeFile = editing || ['whole file', 'entire file', 'full file', 'full source', 'arquivo inteiro', 'arquivo completo'].some((phrase) => question.includes(phrase));
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
     const lookup = previousQuestion === '' ? clone(prompt) : prompt + '\n' + previousQuestion;
@@ -702,7 +703,8 @@ export function editorContext(
               const bindings = imported.get(file.path);
               let signature = '';
               const snippets: string[] = [];
-              let whole = nameCount > 0 || mentionsPath(prompt, path) || mentionsPath(prompt, './' + path);
+              const explicitFile = nameCount > 0 || qualified.has(file.path);
+              let whole = explicitFile && (keepWholeFile || names.length === 0);
 
               if (bindings !== undefined) for (const binding of bindings) {
                 const selected = whole ? '' : exportedExcerpt(excerpt, binding.exported);
@@ -730,14 +732,22 @@ export function editorContext(
 
               if (!whole) {
                 for (const term of names) {
-                  const selected = functionExcerpt(excerpt, term, true);
+                  const selected = functionExcerpt(excerpt, term, true, true);
+
+                  if (explicitFile && selected === '') whole = true;
 
                   if (selected !== '' && !snippets.includes(selected)) snippets.push(selected);
                 }
               }
 
               if (referenced || snippets.length > 0) {
-                if (!whole && snippets.length > 0) queueImportedCalls(excerpt, file.path, workspace.root, includeLocalCalls(excerpt, snippets), pending);
+                if (!whole && snippets.length > 0) {
+                  const dependencies = includeLocalCalls(excerpt, snippets);
+                  // Without an outline a local value may be needed to interpret the selected body.
+                  if (explicitFile && unwrap(compile('(?m)^\\s*(?:export\\s+)?(?:const|let|class|enum)\\s+')).isMatch(excerpt)) whole = true;
+                  else queueImportedCalls(excerpt, file.path, workspace.root, dependencies, pending);
+                }
+
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
                 result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
               }

@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Function questions in a named workspace file
+
+For a named non-active file, a question about an indexed function selects
+its body and follows local helper calls. Edit and explicit whole-file
+requests retain the source. Files with detected value, class or enum
+declarations conservatively retain full source. The action test checks
+both the reduced excerpt and the whole-file override. In the qualified
+three-turn Studio evaluation the actual 1.5B model answered 73 through
+a helper, then 84 and 96 after disk edits. Its first prompt excluded an
+unrelated function returning 420 and a same-name active file returning 51.
+All 26 focused cases passed, with 50.90 s build. This run did not measure RSS.
+
 ## Repeated same-function follow-ups
 
 For qualified-file questions Studio stores the resolved relative paths and

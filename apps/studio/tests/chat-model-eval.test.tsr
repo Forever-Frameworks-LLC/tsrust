@@ -76,7 +76,10 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
     else if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
     const workspace = unwrap(openWorkspace(folder));
 
-    if (workspaceEval === 'qualified') unwrap(openFile(workspace, folder + '/answer.tsr'));
+    if (workspaceEval === 'qualified') {
+      unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return base(); }\nfunction base(): int { return 73; }\nfunction unrelated(): int { return 420; }'));
+      unwrap(openFile(workspace, folder + '/answer.tsr'));
+    }
 
     if (workspaceEval === 'batch') {
       unwrap(openFile(workspace, folder + '/answer.tsr'));
@@ -123,6 +126,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
         const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
         strictEqual(excerpt.includes('return 51'), false);
         strictEqual(excerpt.includes('return 73'), true);
+        strictEqual(excerpt.includes('unrelated'), false);
+        strictEqual(excerpt.includes('return base()'), true);
         strictEqual(answer.trim(), '73');
         unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 84; }'));
         const second = await ask(host, updates, 'I updated the file. What does the same function return now? Reply with the integer alone.');
