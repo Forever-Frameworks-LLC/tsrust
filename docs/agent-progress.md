@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Leaf expression analysis during Studio checks
+
+Leaf expressions now record their own failure and return it directly without a
+separate finish operation. Checking a leaf root needs no work-stack allocation.
+Empty bodies return immediately. Deep-expression traversal still uses a heap
+stack; child evaluation and failure payload order are unchanged. All 54 focused
+error-effect cases passed in 0.91 s (build 4m44s). Final whole-project formatter
+reported zero changes. Logs /tmp/studio-leaf-tests.log and /tmp/studio-leaf-format.log.
+
+Before/after optimized CLI checks returned byte-identical output for chat-panel
+(100358 bytes, 17.15/15.45 s) and Studio main (318227 bytes, 140.59/84.98 s).
+The earlier full-entry check overlapped compiler builds, so the full timing
+difference cannot be attributed to this edit. Logs /tmp/studio-leaf-{before,after}.time
+and /tmp/studio-full-effect-{before,after}.time. The optimized CLI/LSP on disk
+include the change. Supervisor 36374 retains its prior executable and preview
+37080; no live-rebuild speedup claimed for this change.
+
 ## Live rebuild after the owner quit Studio
 
 The owner quit preview 4521 while supervisor 1088 was rebuilding. Its final

@@ -6,16 +6,20 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
         Visit(&'a mut Expr),
         Finish { may_fail: &'a mut bool, own: FailureSet, start: usize, reverse: bool },
     }
-    let mut pending = vec![Work::Visit(root)];
+    let mut pending = Vec::new();
+    let mut current = Some(Work::Visit(root));
     let mut results: Vec<FailureSet> = Vec::new();
-    while let Some(work) = pending.pop() {
+    while let Some(work) = current.take().or_else(|| pending.pop()) {
         match work {
             Work::Finish { may_fail, mut own, start, reverse } => {
                 // List folds historically prepend each child's alternatives. Preserve
                 // that payload order as well as left-to-right point annotation.
-                if reverse { for child in results.drain(start..).rev() { own |= child; } }
-                else { for child in results.drain(start..) { own |= child; } }
+                if start < results.len() {
+                    if reverse { for child in results.drain(start..).rev() { own |= child; } }
+                    else { for child in results.drain(start..) { own |= child; } }
+                }
                 *may_fail = own.may_fail();
+                if pending.is_empty() { return own; }
                 // Parents only union child failures. An infallible child needs no result slot.
                 if *may_fail { results.push(own); }
             }
@@ -24,7 +28,6 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                 value.own_may_fail = own.may_fail();
                 value.effects_checked = true;
                 let reverse = matches!(&value.kind, ExprKind::SpreadCall(_) | ExprKind::Array(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..) | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Template(_) | ExprKind::Sequence(_) | ExprKind::Record(_));
-                pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
                 let children = pending.len();
                 match &mut value.kind {
                     ExprKind::SpreadCall(plan) => pending.extend(plan.expressions_mut().map(Work::Visit)),
@@ -40,16 +43,23 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                     ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().map(Work::Visit)),
                     ExprKind::Record(fields) => pending.extend(fields.iter_mut().map(|(_, value)| Work::Visit(value))),
                     // Creating a closure does not execute its source body.
-                    ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {}
+                    ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {
+                        value.may_fail = value.own_may_fail;
+                        if pending.is_empty() { return own; }
+                        if value.may_fail { results.push(own); }
+                        continue;
+                    }
                 }
+                pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
                 pending[children..].reverse();
             }
         }
     }
-    results.pop().unwrap_or_default()
+    unreachable!("root expression finishes before its work stack empties")
 }
 
 pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureSet {
+    if root.is_empty() { return FailureSet::default(); }
     enum Work<'a> {
         Body(&'a mut [Stmt]),
         Statement(&'a mut Stmt),
