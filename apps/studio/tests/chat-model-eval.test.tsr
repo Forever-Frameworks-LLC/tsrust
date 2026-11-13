@@ -125,7 +125,7 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
   }
 });
 
-if (['1', 'pair'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) ?? '')) test('local chat answers from bundled reference examples', async () => {
+if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) ?? '')) test('local chat answers from bundled reference examples', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
@@ -141,6 +141,19 @@ if (['1', 'pair'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) ?? ''
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
+      if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === 'strings') {
+        const first = await ask(host, updates, 'Tsrust strings: choose the right position unit. Which unit does length use? Give the unit alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        console.log(first);
+        strictEqual(excerpt.includes('website/src/content/docs/language/strings.md:'), true);
+        const value = 'A😀B';
+        const followUp = await ask(host, updates, 'Using that rule, what is "A😀B".length? Reply with the integer alone.');
+        console.log(followUp);
+        strictEqual(first.toLowerCase().includes('byte'), true);
+        strictEqual(followUp.trim(), value.length.toString());
+        return;
+      }
+
       const pair = unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === 'pair';
       const answer = await ask(host, updates, pair ? 'In the GPUI examples ClearableGroup and MessageScroller, what input ID is focused after Clear and what label jumps to the latest message? Give the two exact strings.' : 'In the bundled SQLite rollback example, how many rows remain after the exception? Reply with just the number.');
       const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';

@@ -101,7 +101,7 @@ function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = 
 
 export function modelTools(): EditorTool[] {
   return [{
-    name: 'search_tsrust_knowledge', description: 'Search shipped Tsrust examples, runtime tests and GPUI guides. Returns the best matching passage with its repository path and line.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"]}'
+    name: 'search_tsrust_knowledge', description: 'Search offline Tsrust examples, runtime tests, language and tooling guides, and GPUI guides. Returns ranked source passages with repository paths and lines, including additional matches for requested code identifiers.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"]}'
   }, {
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {

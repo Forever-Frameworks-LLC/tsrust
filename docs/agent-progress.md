@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Public strings guide in a two-turn local chat
+
+In the strings variant of TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL, Studio attached
+the public strings guide and the 1.5B model correctly identified UTF-8 bytes
+as the length unit. Asked to apply that rule to "A😀B" in the same chat, it
+answered 10. The native Tsrust expression returned 6. The follow-up oracle
+failed in 3262.08 ms; this case remains opt-in and red. An earlier dispatch
+ran the existing SQLite scenario, which is excluded from strings evidence.
+The registered knowledge tool description now covers public guides and
+multi-passage retrieval. AI action regression 20/20 in 51.38 ms.
+
 ## Current public guides in offline retrieval
 
 The bundled corpus includes the tracked website language, learn, library,
