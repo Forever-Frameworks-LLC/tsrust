@@ -90,6 +90,14 @@ exec "$REAL_RUSTUP" "$@"
  fs::write(&hold,"").unwrap();write("stale-candidate");let pids=wait_text(&marker," ");
  assert_eq!(fs::read_to_string(&kind).unwrap().contains("--crate-type=rlib"),runtime);
  assert_eq!(unsafe{kill(old,0)},0,"last good program stopped during build");
+ // Unimported test creation, edits and deletion must leave the exact compiler alive.
+ let unrelated=root.join("tests/independent.test.tsr");
+ let compiler:i32=pids.split_whitespace().next().unwrap().parse().unwrap();
+ for source in [Some("first"),Some("second"),None] {
+  if let Some(source)=source {fs::write(&unrelated,source).unwrap();}else{fs::remove_file(&unrelated).unwrap();}
+  std::thread::sleep(Duration::from_millis(350));
+  assert_eq!(unsafe{kill(compiler,0)},0,"unrelated source superseded the active compilation");
+ }
  fs::remove_file(&hold).unwrap();write("newest-version");let text=wait_text(&log,"newest-version");
  assert!(text.contains("runtime=miss") && text.contains("runtime=hit"),"{text}");
  assert!(!text.contains("stale-candidate"),"stale executable ran: {text}");

@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev builds survive unrelated source changes
+
+In-flight frontend checks, runtime/backend work and launch validation now
+compare the captured application inputs before superseding a build. Creation,
+edits and deletion of unimported .tsr/.tsrx files can reuse a checked result
+when the dependency closure, resolutions, failures and non-source inputs agree.
+The public native and runtime cancellation tests each held the backend, added,
+edited and deleted an unimported test, verified the compiler PID stayed live,
+then changed an application dependency and verified replacement and cleanup.
+Both passed in 8.93 s after 16.57 s build. Existing dev restart, failure, undo
+and interrupt coverage passed in 3.72 s after 1.13 s build. The release CLI
+rebuilt in 24.42 s. The existing supervisor (36374) was retained and still
+runs the previous executable image. Genuine Studio source check time was
+not optimized or remeasured by this change.
+
 ## Imported constants in chat context
 
 Workspace retrieval follows imported identifiers used as values in selected

@@ -14,11 +14,10 @@ impl Inputs {
  pub fn only_unused_sources_changed(&self,old:&Self)->bool {
   let Some(paths)=&self.application_paths else{return false;};
   if self.application_paths!=old.application_paths || self.resolutions!=old.resolutions
-   || self.failures!=old.failures || self.files.len()!=old.files.len() {return false;}
-  self.files.iter().all(|(path,bytes)|{
-   let Some(prior)=old.files.get(path) else{return false;};
-   prior==bytes || (!paths.contains(path) && matches!(path.extension().and_then(|ext|ext.to_str()),Some("tsr"|"tsrx")))
-  })
+   || self.failures!=old.failures {return false;}
+  let unused=|path:&Path| !paths.contains(path) && matches!(path.extension().and_then(|ext|ext.to_str()),Some("tsr"|"tsrx"));
+  self.files.iter().all(|(path,bytes)|old.files.get(path)==Some(bytes)||unused(path))
+   && old.files.keys().all(|path|self.files.contains_key(path)||unused(path))
  }
 }
 impl std::ops::Deref for Inputs {type Target=BTreeMap<PathBuf,Contents>;fn deref(&self)->&Self::Target{&self.files}}
@@ -79,6 +78,11 @@ impl Watcher {
         }
         let result=self.read_snapshot(root);
         self.previous=Some(result.clone());result
+    }
+    // Only application-affecting edits should supersede an in-flight build.
+    pub(crate) fn still_current(&mut self,root:&Path,expected:&Fingerprint)->bool {
+        let current=self.snapshot(root);
+        current==*expected || matches!((&current,expected),(Ok(new),Ok(old)) if new.only_unused_sources_changed(old))
     }
     fn read_snapshot(&mut self,root:&Path)->Fingerprint {
         #[cfg(test)] {self.scans+=1;}

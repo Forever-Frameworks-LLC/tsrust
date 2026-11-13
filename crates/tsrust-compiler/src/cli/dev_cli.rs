@@ -82,7 +82,7 @@ mod platform {
         loop {
             if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if &watcher.snapshot(root)!=expected{return Ok(None);}
+                if !watcher.still_current(root,expected){return Ok(None);}
                 last_input_check=Instant::now();
             }
             if let Some(status)=process.child.try_wait().map_err(|e|e.to_string())? {process.stop();return Ok(Some(status));}
@@ -101,7 +101,7 @@ mod platform {
         let cancel=CancelCheck(Default::default());
         let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply,cancelled:cancel.0.clone()};
         loop {
-            if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
+            if STOP.load(Ordering::Relaxed) || !watcher.still_current(root,expected) {return Ok(None);}
             match worker.requests.try_send(request) {
                 Ok(())=>break,
                 Err(TrySendError::Full(pending))=>request=pending,
@@ -113,17 +113,17 @@ mod platform {
         let (frontend,reused_frontend)=loop {
             if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if &watcher.snapshot(root)!=expected {return Ok(None);}
+                if !watcher.still_current(root,expected) {return Ok(None);}
                 last_input_check=Instant::now();
             }
             match response.recv_timeout(Duration::from_millis(20)) {
                 Ok(Ok(output))=>break output,
-                Ok(Err(error))=>{if &watcher.snapshot(root)!=expected{return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
+                Ok(Err(error))=>{if !watcher.still_current(root,expected){return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
                 Err(RecvTimeoutError::Disconnected)=>return Err("Frontend worker stopped".into()),
                 Err(RecvTimeoutError::Timeout)=>{},
             }
         };
-        if &watcher.snapshot(root)!=expected {return Ok(None);}
+        if !watcher.still_current(root,expected) {return Ok(None);}
         if verbose && reused_frontend {eprintln!("[build] Reused checked application.");}
         else if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
@@ -161,7 +161,7 @@ mod platform {
                 while !prepared.acquire_target(false)? {
                     if STOP.load(Ordering::Relaxed){return Ok(None);}
                     if last_input_check.elapsed()>=Duration::from_millis(100){
-                        if &watcher.snapshot(root)!=expected{return Ok(None);}
+                        if !watcher.still_current(root,expected){return Ok(None);}
                         last_input_check=Instant::now();
                     }
                     std::thread::sleep(Duration::from_millis(20));
@@ -272,7 +272,7 @@ mod platform {
                 previous=Some(input.clone());
                 let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
-                    Ok(Some(build)) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
+                    Ok(Some(build)) if !STOP.load(Ordering::Relaxed) && watcher.still_current(&root,&input)=>{
                         report(Status::Success,format_args!("{} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0));built_once=true;
                         if let Some(active)=&mut running {
                             if active.build.identity.same_application(&build.identity) && active.process.child.try_wait().map_err(|error|error.to_string())?.is_none() {
