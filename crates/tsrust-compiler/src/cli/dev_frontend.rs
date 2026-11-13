@@ -49,7 +49,8 @@ impl SourceProvider for Snapshot {
 pub(crate) struct Worker {pub requests:SyncSender<Request>}
 impl Worker {
  pub fn new()->Result<Self,String> {
-  let (requests,rx)=mpsc::sync_channel::<Request>(1);
+  // Keep the pending snapshot in the watcher, where a newer save can replace it.
+  let (requests,rx)=mpsc::sync_channel::<Request>(0);
   std::thread::Builder::new().name("dev-frontend".into()).spawn(move||run(rx)).map_err(|e|e.to_string())?;
   Ok(Self{requests})
  }

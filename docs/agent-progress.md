@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev watcher under successive saves
+
+The persistent frontend now accepts a snapshot only when ready to check it.
+While a check runs, the watcher can replace its pending snapshot on another
+save. Previously, one additional superseded revision could queue behind the
+active check and consume a full linked-project check. An already-running check
+still runs to completion. Two public watcher process tests passed (3.43 s
+execution, 15.86 s build), including last-good recovery, restart, unchanged
+application retention, cache reuse and cleanup. Whole-project format zero
+changes. Logs /tmp/studio-dev-coalesce-check.log and /tmp/studio-dev-coalesce-format.log.
+
+A live one-second sample of the original supervisor 1088 found its frontend
+in linked-project analysis, footprint 479.6 MiB, peak 629.8 MiB
+(/tmp/studio-dev-followup.sample). The existing preview was retained through
+a capture retry. This change has not been installed into that watcher. No
+latency improvement has been measured on Studio.
+
 ## Model host pipe lifetime and recovery
 
 Studio now keeps receiving protocol updates after a host closes stderr. A
