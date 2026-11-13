@@ -134,7 +134,10 @@ impl Pagination {
             .with_size(self.size)
             .disabled(target_page.is_none())
             .tooltip(label.clone())
-            .when(icon_only, |this| this.icon(icon.clone()).accessibility_label(label.to_string()))
+            .when(icon_only, |this| {
+                this.icon(icon.clone())
+                    .accessibility_label(label.to_string())
+            })
             .when(!icon_only, |this| {
                 this.child(
                     h_flex()
@@ -225,35 +228,45 @@ impl RenderOnce for Pagination {
                             })
                             .into_any_element()
                     }
-                    PageItem::Ellipsis(range) => Button::new(SharedString::from(format!(
-                        "ellipsis-{}-{}",
-                        range.start, range.end
-                    )))
-                    .ghost()
-                    .with_size(self.size)
-                    .compact()
-                    .disabled(self.disabled)
-                    .icon(IconName::Ellipsis)
-                    .dropdown_menu({
-                        let state = item_state.clone();
-                        move |mut menu, _, _| {
-                            for page in ellipsis_menu_pages(range.clone(), current_page) {
-                                menu = menu.item(
-                                    PopupMenuItem::new(format!("{}", page))
-                                        .checked(page == current_page)
-                                        .on_click({
-                                            let state = state.clone();
-                                            move |_, window, cx| {
-                                                state.request_page(page, window, cx);
-                                            }
-                                        }),
-                                )
-                            }
+                    PageItem::Ellipsis(range) => {
+                        let pages = ellipsis_menu_pages(range.clone(), current_page);
+                        let label = t!(
+                            "Pagination.page_range",
+                            first = pages.start,
+                            last = pages.end - 1
+                        );
+                        Button::new(SharedString::from(format!(
+                            "ellipsis-{}-{}",
+                            range.start, range.end
+                        )))
+                        .ghost()
+                        .with_size(self.size)
+                        .compact()
+                        .disabled(self.disabled)
+                        .icon(IconName::Ellipsis)
+                        .accessibility_label(label.to_string())
+                        .tooltip(label)
+                        .dropdown_menu({
+                            let state = item_state.clone();
+                            move |mut menu, _, _| {
+                                for page in pages.clone() {
+                                    menu = menu.item(
+                                        PopupMenuItem::new(format!("{}", page))
+                                            .checked(page == current_page)
+                                            .on_click({
+                                                let state = state.clone();
+                                                move |_, window, cx| {
+                                                    state.request_page(page, window, cx);
+                                                }
+                                            }),
+                                    )
+                                }
 
-                            menu.min_w(px(55.)).max_h(px(240.)).scrollable(true)
-                        }
-                    })
-                    .into_any_element(),
+                                menu.min_w(px(55.)).max_h(px(240.)).scrollable(true)
+                            }
+                        })
+                        .into_any_element()
+                    }
                 })
             })
             .child(self.render_nav_button(&state, false))

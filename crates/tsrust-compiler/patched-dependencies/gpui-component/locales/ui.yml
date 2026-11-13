@@ -505,6 +505,13 @@ Settings:
     zh-TW: 全部重設
     it: Resetta Tutto
 Pagination:
+  page_range:
+    en: "Pages %{first}–%{last}"
+    pt-BR: "Páginas %{first}–%{last}"
+    ru: "Страницы %{first}–%{last}"
+    zh-CN: "第 %{first} 至 %{last} 页"
+    zh-HK: "第 %{first} 至 %{last} 頁"
+    zh-TW: "第 %{first} 至 %{last} 頁"
   previous:
     en: Previous
     pt-BR: "Anterior"

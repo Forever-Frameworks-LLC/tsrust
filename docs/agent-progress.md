@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Accessible pagination menus
+
+The two ellipsis buttons now have localized accessible names and hover text identifying the pages available in each menu. In a rebuilt Studio window with a temporary 451-commit repository, page 5 exposed “Pages 2–3” and “Pages 7–9”. The latter accepted native focus. Return opened the menu and Down followed by Return selected page 7. The resulting pager showed 6, 7 and 8. This verifies the macOS English path.
+
+A separate two-second sample of the live Studio language server found the worker in workspace compiler diagnostics in every sample while the main thread waited. At sampling time the process was consuming about one core, eight minutes after startup. Frequency and cause of repeated checks are still unverified.
+
 ## History typography, search focus and numbered sidebar pagination
 
 The History search uses the same full-width 32-pixel input group as the Changes and search fields. History tabs, input and row labels use the Studio font setting. The field group's resting border is transparent and its focus edge uses the theme ring. File picker focus uses the theme ring inside the query frame. Git and search rows use the command picker's accent and foreground selection colors. Native list selection respects the row style.
