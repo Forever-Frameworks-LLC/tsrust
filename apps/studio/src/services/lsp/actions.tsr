@@ -207,6 +207,8 @@ export function languageReadTools(): EditorTool[] {
   }, {
     name: 'language_references', description: 'Queue all LSP reference locations for an explicit current document and UTF-16 position. includeDeclaration defaults to true. Requires host read permission. Read with language_read_result; presenting or opening results requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
+    name: 'language_document_symbols', description: 'Read the language server outline for the current document revision, including declaration ranges. Supply the root, request id and document identity. Read the queued response with language_read_result.', inputSchema: clone(schema)
+  }, {
     name: 'language_definition', description: 'Queue LSP definition locations for an explicit current document and UTF-16 position. Requires host read permission. Read with language_read_result; opening a returned location requires a separate navigation grant. Does not change focus or files.', inputSchema: clone(readSchema)
   }, {
     name: 'language_signature_help', description: 'Queue read-only call signatures and active-parameter documentation for an explicit current document and zero-based UTF-16 position. Requires host read permission. Use language_read_result or language_cancel_read; never changes editor focus or files.', inputSchema: clone(readSchema)
@@ -245,8 +247,8 @@ export function invokeLanguageRead(
     const id = 'agent:' + args.id;
     const next = state.get();
 
-    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition' || name === 'language_references' || name === 'language_file_references') {
-      const position = name === 'language_file_references' ? {
+    if (name === 'language_hover' || name === 'language_completion' || name === 'language_signature_help' || name === 'language_definition' || name === 'language_references' || name === 'language_file_references' || name === 'language_document_symbols') {
+      const position = name === 'language_file_references' || name === 'language_document_symbols' ? {
         line: 0, character: 0
       }
 
@@ -259,7 +261,7 @@ export function invokeLanguageRead(
         requests,
         clone(id),
         {
-          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_file_references' ? 'tsrust/fileReferences' : name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : name === 'language_references' ? 'textDocument/references' : 'textDocument/signatureHelp', position: clone(position), includeDeclaration: args.includeDeclaration
+          path: clone(args.path), session: clone(args.session), revision: args.revision, method: name === 'language_document_symbols' ? 'textDocument/documentSymbol' : name === 'language_file_references' ? 'tsrust/fileReferences' : name === 'language_hover' ? 'textDocument/hover' : name === 'language_completion' ? 'textDocument/completion' : name === 'language_definition' ? 'textDocument/definition' : name === 'language_references' ? 'textDocument/references' : 'textDocument/signatureHelp', position: clone(position), includeDeclaration: args.includeDeclaration
         },
         undefined
       ));

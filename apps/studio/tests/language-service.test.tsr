@@ -12,6 +12,7 @@ import { GitReply } from '../src/services/git.tsr';
 import { ContentSearchRequest, ContentSearchReply } from '../src/services/content-search.tsr';
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import {
+  DiagnosticRange,
   LanguageDocument,
   LanguageIdentity,
   PublishedDiagnostics,
@@ -112,6 +113,12 @@ test('LSP diagnostics translate UTF-16 and reject mismatched document versions',
   report.version = undefined;
   strictEqual(documentProblems(document, report).length, 0);
 });
+
+interface OutlineSymbol {
+  name: string;
+  range: DiagnosticRange;
+  selectionRange: DiagnosticRange;
+}
 
 async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
   while (true) {
@@ -257,6 +264,25 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
       strictEqual(context.includes('console.log(name);'), includeDeclaration);
       strictEqual(context.includes('greet("🦀", 2)'), true);
     }
+
+    document.version += 1;
+    document.revision += 1;
+    document.text = 'function identity<T>(value: T): T {\n  return value;\n}\nfunction main() {}';
+    await requests.send({
+      kind: 'query', generation: ready.generation, document: clone(document), query: {
+        id: 'outline', method: 'textDocument/documentSymbol', document: languageIdentity(document), position: {
+          line: 0, character: 0
+        }
+      }
+    });
+    const outline = await nextUpdate(updates, 'query').timeout(10000);
+    const symbols = JSON.parse<OutlineSymbol[]>(outline.result ?? 'null');
+    const identity = symbols.find((symbol) => symbol.name === 'identity');
+
+    if (identity === undefined) throw 'Missing generic function in unsaved outline.';
+    strictEqual(identity.selectionRange.start.character, 9);
+    strictEqual(identity.range.end.line, 2);
+    strictEqual(identity.range.end.character, 1);
 
     const panelPath = join(root, 'panel.tsrx');
     const panelText = 'function panel(value: int): int { return value; }\nfunction main(){panel(1); }\n';
@@ -772,6 +798,27 @@ test('AI language reads share the live request route without focus changes or mo
   )), '{"cancelled":true}');
   strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
   strictEqual(state.get().queries.length, 0);
+  const outlinePayload = JSON.stringify({
+    root: '/project', id: 'outline', path: clone(document.path), session: clone(document.session), revision: document.revision
+  });
+  strictEqual(unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_document_symbols',
+    outlinePayload,
+    workspace,
+    state
+  )), '{"queued":true}');
+  strictEqual(unwrap(channel.tryReceive()).query?.method ?? '', 'textDocument/documentSymbol');
+  unwrap(invokeLanguageTool(
+    context,
+    sender,
+    'language_cancel_read',
+    outlinePayload,
+    workspace,
+    state
+  ));
+  strictEqual(unwrap(channel.tryReceive()).kind, 'cancel');
   const referencePayload = JSON.stringify({
     root: '/project', id: 'references', path: clone(document.path), session: clone(document.session), revision: document.revision, position: {
       line: 0, character: 1

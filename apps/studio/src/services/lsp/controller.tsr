@@ -337,7 +337,7 @@ export function queueLanguageRead(
 
   if (connection === undefined || !connection.ready) return Err('Language service is not connected.');
 
-  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references' && !fileReferences) return Err('Unsupported language read.');
+  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references' && request.method !== 'textDocument/documentSymbol' && !fileReferences) return Err('Unsupported language read.');
 
   if (request.position.line < 0 || request.position.character < 0) return Err('Invalid language position.');
   const file = workspace.files.find((file) => file.document.path === request.path && file.document.session === request.session && file.document.revision === request.revision);

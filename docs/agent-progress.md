@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Compiler-backed document outline read
+
+Studio exposes language_document_symbols through its guarded language tool
+dispatcher. The live worker requests textDocument/documentSymbol for the
+synchronized revision, advertises hierarchical symbol support and omits the
+cursor position on the wire. Existing result consumption, cancellation,
+workspace identity and stale-read handling apply. The real Studio worker
+received the name selection at column 9 and the full extent ending at line
+2, column 1 for an unsaved multiline generic identity<T> function. All 14
+language-service tests passed after 24.99 s setup/build. Automatic use of
+the outline by the local chat prompt builder is still pending.
+
 ## Function bodies from language-server reference locations
 
 When a chat question matches the last Find References symbol, a declaration

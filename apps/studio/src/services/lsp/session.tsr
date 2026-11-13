@@ -164,7 +164,7 @@ function responseFor(body: ReadOnly<string>, envelope: ReadOnly<Envelope>): stri
 
 async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<string> {
   const uri = JSON.stringify(documentUri(root));
-  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"definition":{"linkSupport":true},"publishDiagnostics":{"versionSupport":true},"signatureHelp":{"signatureInformation":{"documentationFormat":["markdown","plaintext"],"parameterInformation":{"labelOffsetSupport":true},"activeParameterSupport":true}},"hover":{"contentFormat":["markdown","plaintext"]},"completion":{"completionItem":{"snippetSupport":true,"documentationFormat":["markdown","plaintext"]}}}}}}');
+  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"documentSymbol":{"hierarchicalDocumentSymbolSupport":true},"definition":{"linkSupport":true},"publishDiagnostics":{"versionSupport":true},"signatureHelp":{"signatureInformation":{"documentationFormat":["markdown","plaintext"],"parameterInformation":{"labelOffsetSupport":true},"activeParameterSupport":true}},"hover":{"contentFormat":["markdown","plaintext"]},"completion":{"completionItem":{"snippetSupport":true,"documentationFormat":["markdown","plaintext"]}}}}}}');
 
   while (true) {
     const message = await messages.receive();
@@ -356,7 +356,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
           const identity = clone(query.document);
           const queryId = clone(query.id);
           const current = query.method === 'tsrust/fileReferences' || documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
-          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references' || query.method === 'tsrust/fileReferences';
+          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references' || query.method === 'textDocument/documentSymbol' || query.method === 'tsrust/fileReferences';
 
           if (current && allowed && queries.length < 32 && !queries.some((entry) => entry.id === queryId)) {
             queries.push(clone(query));
@@ -369,7 +369,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
               jsonrpc: '2.0', id: 'studio:' + query.id, method: clone(query.method), params: {
                 textDocument: {
                   uri: documentUri(identity.path)
-                }, position: clone(query.position), context
+                }, position: query.method === 'textDocument/documentSymbol' ? undefined : clone(query.position), context
               }
             }));
           } else {
