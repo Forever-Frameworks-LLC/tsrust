@@ -489,7 +489,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
           next.phase = 'stopped';
           save = true;
         } else if (update.kind === 'compacted' && update.id === next.active && update.id !== '') {
-          next.notice = 'Earlier turns were omitted from this model request. The full conversation remains in chat.';
+          next.notice = 'Context was shortened to fit this model request. The full conversation remains in chat.';
         } else if (update.id === next.active && update.id !== '') {
           const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
 

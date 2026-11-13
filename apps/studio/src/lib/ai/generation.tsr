@@ -17,7 +17,8 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
 
     const excerpt = entry.workspaceExcerpt ?? '';
     const editing = editPrompt !== undefined && index === lastUser;
-    let content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace && !seen.has(excerpt));
+    const attachWorkspace = includeWorkspace && !editing && excerpt !== '' && !seen.has(excerpt);
+    let content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, attachWorkspace);
 
     if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
 
@@ -35,7 +36,7 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
 
     if (includeWorkspace && excerpt !== '' && !editing) seen.add(clone(excerpt));
     messages.push({
-      role: clone(entry.role), content
+      role: clone(entry.role), content, workspaceEnd: index === lastUser ? request.workspaceEnd : attachWorkspace ? excerpt.length : undefined
     });
   }
 

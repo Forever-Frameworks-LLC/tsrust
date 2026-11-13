@@ -1,5 +1,12 @@
 import { FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
-import { recallTerms, turnMentions, excerptTurn, excerptWorkspace, ChatMessage } from '../src/lib/ai/prompts.tsr';
+import {
+  recallTerms,
+  turnMentions,
+  excerptTurn,
+  excerptWorkspace,
+  replaceWorkspace,
+  ChatMessage
+} from '../src/lib/ai/prompts.tsr';
 import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
 import { LanguageReferences } from '../src/lib/language/references.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
@@ -153,7 +160,7 @@ test('sending loads automatically and delivers a queued response to its exact co
     kind: 'compacted', id: clone(request), text: '', error: ''
   }));
   pollModel(host, updates);
-  strictEqual(host.state.get().notice.includes('Earlier turns'), true);
+  strictEqual(host.state.get().notice.includes('Context was shortened'), true);
   unwrap(replies.trySend({
     kind: 'prefix', id: clone(request), text: 'Hi 🦀', error: ''
   }));
@@ -813,7 +820,7 @@ test('a long chat retains its transcript and sends all complete turns beyond the
   strictEqual(messages[4].content, 'Follow up');
   strictEqual(state.get().history.chats[0].messages.length, 6);
   strictEqual(state.get().history.chats[0].messages[0].text.length, 132000);
-  strictEqual(state.get().notice.includes('Earlier turns'), false);
+  strictEqual(state.get().notice.includes('Context was shortened'), false);
   const frame: ModelRequest = {
     kind: 'generate', id: 'boundary', prompt: '', maxTokens: 1, messages: [{
       role: 'user', content: ''
@@ -842,9 +849,22 @@ test('a long chat retains its transcript and sends all complete turns beyond the
   }], true));
   const compact = repeatFrame.messages ?? [];
   strictEqual(compact[0].content, 'First');
+  strictEqual(compact[0].workspaceEnd === undefined, true);
+  strictEqual(compact[2].workspaceEnd ?? -1, 'source snapshot'.length);
   strictEqual(compact[2].content.includes('source snapshot'), true);
   strictEqual(repeatFrame.workspaceEnd ?? -1, 'source snapshot'.length);
   strictEqual(compact[2].content, 'source snapshot\n\nFollow up');
+  const changedFrame = clone(frame);
+  unwrap(fitGeneration(changedFrame, [{
+    role: 'user', request: 'a', text: 'First', workspaceExcerpt: 'old source'
+  }, {
+    role: 'assistant', request: 'a', text: 'Answer'
+  }, {
+    role: 'user', request: 'b', text: 'Follow up', workspaceExcerpt: 'changed source'
+  }], true));
+  const distinct = changedFrame.messages ?? [];
+  strictEqual(distinct[0].workspaceEnd ?? -1, 'old source'.length);
+  strictEqual(distinct[0].content.slice((distinct[0].workspaceEnd ?? 0) + 2), 'First');
   strictEqual(editFrame.workspaceStart === undefined, true);
   const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
   const exact = 'x'.repeat(capacity);
@@ -917,6 +937,11 @@ test('workspace overflow keeps selected context and source attribution', () => {
   const snapshot = content.slice(prefix.length);
   const suffix = '\n\n' + prefix + 'Keep this user-selected text';
   strictEqual(excerptWorkspace(snapshot + suffix, 0, recallTerms('caféFee()'), true, snapshot.length), '[Workspace excerpt]\nReferenced workspace file: rules.tsr\nconst caféFee = 73;' + suffix);
+  const omitted = '[Automatic workspace context omitted]';
+  strictEqual(replaceWorkspace(content, prefix.length, undefined, omitted), prefix + omitted);
+  strictEqual(replaceWorkspace(snapshot + suffix, 0, snapshot.length, omitted), omitted + suffix);
+  strictEqual(replaceWorkspace(content, 0, undefined, omitted), '');
+  strictEqual(replaceWorkspace(snapshot + suffix, 0, snapshot.length + 1, omitted), '');
   const body = 'function caféFee() {\n  // }\n  return 73;\n}';
   const source = prefix + 'Active editor file: main.tsr\n' + body + '\nfunction unrelated() {}';
   strictEqual(excerptWorkspace(source, prefix.length, recallTerms('caféFee()'), true), prefix + '[Workspace excerpt]\nActive editor file: main.tsr\n' + body);

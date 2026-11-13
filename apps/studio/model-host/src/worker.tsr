@@ -7,6 +7,7 @@ import {
   recallTerms,
   turnMentions,
   excerptTurn,
+  replaceWorkspace,
   excerptWorkspace
 } from '../../src/lib/ai/prompts.tsr';
 import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
@@ -57,7 +58,13 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
       const terms = recallTerms(request.prompt);
       let shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, true, request.workspaceEnd);
 
-      if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, false, request.workspaceEnd);
+      if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) {
+        shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, false, request.workspaceEnd);
+
+        if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) shorter = '';
+      }
+
+      if (shorter === '') shorter = replaceWorkspace(messages[latest].content, boundary ?? 0, request.workspaceEnd, '[Automatic workspace context omitted]');
 
       if (shorter !== '') {
         messages[latest].content = shorter;
@@ -117,15 +124,21 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
 
       // A follow-up can depend on the last answer even when its source-heavy question has fallen out.
       if (terms.size === 0 && latest === messages.length - 1 && low === starts.length - 1 && low > 0 && starts[low] - starts[low - 1] === 2 && messages[starts[low] - 1].role === 'assistant') {
+        const earlier = messages[starts[low - 1]];
+        const end = earlier.workspaceEnd;
+        const question = end !== undefined && end > 0 && earlier.content.startsWith('\n\n', end) ? earlier.content.slice(end + 2) : '';
         const previous: ChatMessage = {
-          role: 'user', content: '[Earlier question omitted]'
+          role: 'user', content: question === '' ? '[Earlier question omitted]' : question
         };
         const exchange = [previous, clone(messages[latest - 1])].concat(retained);
-        const withAnswer = conversationPrompt(exchange);
+        let withAnswer = conversationPrompt(exchange);
 
-        if (unwrap(qwen_prompt_fits(model, withAnswer))) {
-          prompt = withAnswer;
+        if (exchange[0].content !== '[Earlier question omitted]' && !unwrap(qwen_prompt_fits(model, withAnswer))) {
+          exchange[0].content = '[Earlier question omitted]';
+          withAnswer = conversationPrompt(exchange);
         }
+
+        if (unwrap(qwen_prompt_fits(model, withAnswer))) prompt = withAnswer;
       }
 
       publish(updates, 'compacted', clone(request.id));

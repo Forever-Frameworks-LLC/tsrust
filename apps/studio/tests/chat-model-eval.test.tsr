@@ -342,7 +342,7 @@ if (['1', 'excerpt', 'reply', 'followup'].includes(recallEval)) test('local chat
   try {
     const answer = await ask(host, updates, followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
     strictEqual(answer.trim(), followup ? '42' : '73');
-    strictEqual(host.state.get().notice.includes('Earlier turns'), true);
+    strictEqual(host.state.get().notice.includes('Context was shortened'), true);
     strictEqual(host.state.get().history.chats[0].messages.length, 6);
   } finally {
     worker.cancel();

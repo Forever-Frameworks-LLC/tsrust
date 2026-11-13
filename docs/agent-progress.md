@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Oversized automatic context on prose questions
+
+When the latest turn overflows and identifier-based snippets cannot fit or
+find a match, the host can omit the marked automatic workspace portion and
+keep the original question and explicit attachments. It emits a marker for
+the model. Older user messages now carry their own optional workspace
+boundary, allowing a recent question, attachments and answer to be recovered
+together on a prose follow-up. Edit turns still carry no elidable source
+boundary. The Studio notice now describes context shortening in both locales.
+
+All 21 AI action tests passed (32.31 s build). The direct 1.5B Metal check
+compared identical questions with and without 35000 unrelated words.
+Both returned 56 from explicit code, and both incorrectly returned 61 for
+“Add two to your previous answer” (expected 58). Only the oversized requests
+emitted compaction. Four requests plus model load took 4.73 s, maximum RSS
+2198798336 bytes, peak footprint 1177684392 bytes. This is a model quality
+failure even in the uncompressed control. No model arithmetic fix is claimed.
+
 ## Studio frontend check latency
 
 The release CLI checked apps/studio/src/main.tsrx with --diagnostics-only

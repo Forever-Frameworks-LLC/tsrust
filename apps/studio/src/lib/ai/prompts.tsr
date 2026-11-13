@@ -9,6 +9,7 @@ export function chatPrompt(message: ReadOnly<string>): string {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  workspaceEnd?: int;
 }
 
 export function conversationPrompt(messages: ReadOnly<ChatMessage[]>): string {
@@ -113,13 +114,18 @@ export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<str
   return '';
 }
 
-// Only automatically attached workspace text can be excerpted on the newest turn.
+function validWorkspace(content: ReadOnly<string>, start: int, end: int | undefined): boolean {
+  return end === undefined ? start >= 2 && start < content.length && content.startsWith('\n\n', start - 2) : end > 0 && end < content.length && content.startsWith('\n\n', end);
+}
+
+// Retain the user's question and explicit attachments when replacing automatic context.
+export function replaceWorkspace(content: ReadOnly<string>, start: int, end: int | undefined, replacement: ReadOnly<string>): string {
+  if (!validWorkspace(content, start, end)) return '';
+  return end === undefined ? content.slice(0, start) + replacement : replacement + content.slice(end);
+}
+
 export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false, end?: int): string {
-  if (end !== undefined && (end <= 0 || end >= content.length || !content.startsWith('\n\n', end))) return '';
-
-  if (end === undefined && (start < 2 || start >= content.length || !content.startsWith('\n\n', start - 2))) return '';
-
-  if (terms.size === 0) return '';
+  if (terms.size === 0 || !validWorkspace(content, start, end)) return '';
   const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
   const selected: string[] = [];
   let heading = '';
@@ -171,5 +177,5 @@ export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: R
 
   if (selected.length === 0) return '';
   const excerpt = '[Workspace excerpt]\n' + selected.join('\n');
-  return end === undefined ? content.slice(0, start) + excerpt : excerpt + content.slice(end);
+  return replaceWorkspace(content, start, end, excerpt);
 }
