@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Same-name functions in workspace chat
+
+A simple top-level function found in the active draft resolves that name for
+the implicit workspace search. Other names still use the index, and explicit
+file selection remains independent. The declaration scanner counts brace
+depth while skipping strings and comments, so a nested declaration cannot
+suppress an unrelated module's indexed definition. The action suite passed
+21/21 (33.65 s build) with both top-level and nested collisions. The active
+draft two-turn 1.5B evaluation passed (40.05 s build): a second module's
+handlingFee returning 999 was excluded, and the model answered 12 then 19.
+Sampled peak host RSS 2018.20 MiB, system swap delta 55.81 MiB, maximum
+pressure level 2. This is lexical recognition of simple function declarations,
+not a compiler symbol-identity index.
+
 ## Unsaved active function dependencies across chat turns
 
 For a named function in the active draft, retrieval follows its local helper

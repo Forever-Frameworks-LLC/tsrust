@@ -515,10 +515,13 @@ export function editorContext(
     if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
       const bodies: string[] = [];
 
-      for (const name of unresolved) {
-        const body = functionExcerpt(active.document.text, name, true);
+      for (const name of Array.from(unresolved)) {
+        const body = functionExcerpt(active.document.text, name, true, true);
 
-        if (body !== '') bodies.push(body);
+        if (body !== '') {
+          bodies.push(body);
+          unresolved.delete(name);
+        }
       }
 
       if (bodies.length > 0) {

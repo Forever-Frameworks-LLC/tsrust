@@ -64,6 +64,7 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
 
     if (workspaceEval === 'active') {
       unwrap(writeTextFile(folder + '/quote.tsr', 'export function handlingFee(units: int): int { return units; }'));
+      unwrap(writeTextFile(folder + '/legacy.tsr', 'export function handlingFee(units: int): int { return 999; }'));
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
     } else if (workspaceEval === 'constant') {
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge; }'));
@@ -103,7 +104,12 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
         const second = await ask(host, updates, 'Pass your previous answer to the same function. What does it return now? Reply with the integer alone.');
         console.log(second);
 
-        if (workspaceEval === 'active') strictEqual((host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '').includes('export function baseCharge(): int { return 7; }'), true);
+        if (workspaceEval === 'active') {
+          const followup = host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '';
+          strictEqual(followup.includes('export function baseCharge(): int { return 7; }'), true);
+          strictEqual(followup.includes('legacy.tsr'), false);
+        }
+
         strictEqual(first.trim(), '12');
         strictEqual(second.trim(), '19');
         return;

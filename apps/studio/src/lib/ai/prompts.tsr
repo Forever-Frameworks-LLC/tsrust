@@ -84,7 +84,7 @@ function mentions(content: ReadOnly<string>, terms: ReadOnly<Set<string>>, ident
 }
 
 // Only narrow a simple function when its complete body can be located.
-export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>, local: boolean = false): string {
+export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>, local: boolean = false, topLevelOnly: boolean = false): string {
   const bytes = unwrap(fromUtf8(source));
   const declaration = exported === 'default' ? 'default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*' : '(?:async\\s+)?function\\s+' + escape(exported);
   const prefix = local ? '(?:export\\s+)?' : 'export\\s+';
@@ -96,7 +96,9 @@ export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<str
     const declarationStart = source.startsWith('export', token.start) || (local && (source.startsWith('function', token.start) || source.startsWith('async', token.start)));
 
     if (start < 0) {
-      if (declarationStart) {
+      if (topLevelOnly && (source.startsWith('{', token.start) || (declarationStart && depth > 0))) depth += 1;
+      else if (topLevelOnly && source.startsWith('}', token.start) && depth > 0) depth -= 1;
+      else if (declarationStart) {
         start = token.start;
         depth = 1;
       }
