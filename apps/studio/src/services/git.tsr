@@ -285,7 +285,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
     const id = request.commit ?? '';
 
     if (action !== undefined || !unwrap(compile('^[0-9a-f]{4,64}$')).isMatch(id)) return Err('Choose a commit from history.');
-    return await gitOutput(root, ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false', 'show', '--relative', '--no-ext-diff', '--no-textconv', '--no-show-signature', '--format=fuller', '--patch', id + '^{commit}', '--', '.']);
+    return await gitOutput(root, ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false', 'show', '--diff-merges=first-parent', '--src-prefix=a/', '--dst-prefix=b/', '--relative', '--no-ext-diff', '--no-textconv', '--no-show-signature', '--format=fuller', '--patch', id + '^{commit}', '--', '.']);
   }
 
   const viewFile = clone(request.viewFile) ?? '';

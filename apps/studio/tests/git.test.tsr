@@ -390,6 +390,17 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
       mode: 'conflicts', action: 'stage', path: 'ré view.txt'
     })), '');
     strictEqual(unwrap(await readGitView(root, 'conflicts')), 'outside.txt\n');
+    unwrap(writeTextFile(root + '/outside.txt', 'outside resolution\n'));
+    strictEqual(await repoGit(root, ['add', 'outside.txt']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'resolved merge']), true);
+    const history = unwrap(await readGitView(sub, 'history'));
+    strictEqual(history.split('\n')[0].includes('resolved merge'), true);
+    const patch = unwrap(await gitRequest(sub, {
+      mode: 'commit', commit: history.split(' ')[0]
+    }));
+    strictEqual(patch.includes('diff --git a/ré view.txt b/ré view.txt'), true);
+    strictEqual(patch.includes('\n-main\n+resolved\n'), true);
+    strictEqual(patch.includes('outside.txt'), false);
   } finally {
     unwrap(removeDirAll(root));
   }
