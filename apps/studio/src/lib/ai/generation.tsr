@@ -30,6 +30,7 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
     let content = clone(entry.text);
 
     if (editing && editPrompt !== undefined) content = clone(editPrompt);
+    // Selected file and skill snapshots require the current workspace read grant too.
     else if (includeWorkspace) content = messageContent(entry, attachWorkspace);
 
     if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
