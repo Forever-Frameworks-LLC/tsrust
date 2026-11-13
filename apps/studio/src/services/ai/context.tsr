@@ -19,7 +19,7 @@ import {
 import { functionExcerpt, recallTerms } from '../../lib/ai/prompts.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
-import { diagnosticPath } from '../../lib/language/diagnostics.tsr';
+import { diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
@@ -145,6 +145,16 @@ function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, h
   if (referenceSymbol(line, {
     line: 0, character: hit.range.start.character
   }, true) !== symbol) return '';
+  // Expand only a declaration whose name begins at the server's exact location.
+  const before = Array.from(line).slice(0, diagnosticColumn(line, hit.range.start.character) - 1).join('').trimStart();
+
+  if (unwrap(compile('^(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?function\\s+$')).isMatch(before)) {
+    const source = lines.slice(index).join('\n').trimStart();
+    const body = functionExcerpt(source, before.includes('default') ? 'default' : symbol, true, false, true).trimEnd();
+
+    if (body !== '') return body;
+  }
+
   return line.trim();
 }
 

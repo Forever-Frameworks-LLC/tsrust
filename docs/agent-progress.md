@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Function bodies from language-server reference locations
+
+When a chat question matches the last Find References symbol, a declaration
+hit can now include the complete simple function at that exact location,
+including unsaved edits. Usage hits keep their original single-line excerpts.
+Unsupported signatures retain the located line; the scanner cannot substitute
+a later definition. The AI actions suite passed 21/21 (32.34 s build).
+The real Studio language worker queried tsrust-lsp with includeDeclaration
+both off and on for an unsaved multiline greet implementation. Chat context
+included the call in both cases and console.log(name) only in the latter.
+The focused process-boundary test passed (25.11 s build). This reads the
+existing references result; automatic definition requests remain open.
+
 ## Same-name functions in workspace chat
 
 A simple top-level function found in the active draft resolves that name for

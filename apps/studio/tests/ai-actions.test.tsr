@@ -465,6 +465,14 @@ test('reference context discards stale source revisions and mismatched target of
       }]
     };
     strictEqual(referenceContext(workspace, snapshot, 'sampleValue').includes('target.tsr:1:1'), true);
+    edit(workspace.files[index].document, 'function sampleValue() {\n  return 73; // }\n}\nfunction unrelated() { return 999; }');
+    const declaration = clone(snapshot);
+    declaration.locations[0].range.start.character = 9;
+    const excerpt = referenceContext(workspace, declaration, 'What does sampleValue() return?');
+    strictEqual(excerpt.includes('target.tsr:1:10  function sampleValue() {\n  return 73; // }\n}'), true);
+    strictEqual(excerpt.includes('999'), false);
+    edit(workspace.files[index].document, 'function sampleValue<T>(t: T) { return t; }\nfunction sampleValue() { return 999; }');
+    strictEqual(referenceContext(workspace, declaration, 'sampleValue').includes('999'), false);
     edit(workspace.files[index].document, ' sampleValue();');
     strictEqual(referenceContext(workspace, snapshot, 'sampleValue'), '');
     edit(workspace.files[index].document, 'sampleValue();');

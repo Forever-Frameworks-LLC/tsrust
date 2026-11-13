@@ -27,7 +27,9 @@ import { createDocument } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { referenceContext } from '../src/services/ai/context.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
 import {
   LanguageState,
@@ -202,14 +204,14 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     strictEqual((completions.result ?? '').includes('log'), true);
     document.revision = 3;
     document.version = 3;
-    document.text = 'function greet(name: string, count: int): void {}\nfunction main() { greet("🦀", 2); }\n';
+    document.text = 'function greet(name: string, count: int): void {\n  console.log(name);\n}\nfunction main() { greet("🦀", 2); }\n';
     await requests.send({
       kind: 'document', generation: ready.generation, document: clone(document)
     });
     await requests.send({
       kind: 'query', generation: ready.generation, query: {
         id: 'signature-one', method: 'textDocument/signatureHelp', document: languageIdentity(document), position: {
-          line: 1, character: 30
+          line: 3, character: 30
         }
       }
     });
@@ -220,7 +222,7 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     await requests.send({
       kind: 'query', generation: ready.generation, query: {
         id: 'definition-one', method: 'textDocument/definition', document: languageIdentity(document), position: {
-          line: 1, character: 19
+          line: 3, character: 19
         }
       }
     });
@@ -233,7 +235,7 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
       await requests.send({
         kind: 'query', generation: ready.generation, query: {
           id: 'references', method: 'textDocument/references', document: languageIdentity(document), position: {
-            line: 1, character: 19
+            line: 3, character: 19
           }, includeDeclaration
         }
       });
@@ -242,6 +244,18 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
       strictEqual(locations.length, includeDeclaration ? 2 : 1);
       strictEqual(locations.every((location) => location.uri === documentUri(document.path)), true);
       strictEqual(locations.some((location) => location.range.start.line === 0), includeDeclaration);
+      const draft = unwrap(openWorkspace(clone(root)));
+      unwrap(openFile(draft, clone(document.path)));
+      edit(draft.files[0].document, clone(document.text));
+      const context = referenceContext(draft, {
+        root: clone(root), query: {
+          path: clone(document.path), position: {
+            line: 3, character: 19
+          }, symbol: 'greet', session: clone(draft.files[0].document.session), revision: draft.files[0].document.revision
+        }, locations
+      }, 'Explain greet()');
+      strictEqual(context.includes('console.log(name);'), includeDeclaration);
+      strictEqual(context.includes('greet("🦀", 2)'), true);
     }
 
     const panelPath = join(root, 'panel.tsrx');
