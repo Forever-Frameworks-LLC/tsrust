@@ -13,6 +13,10 @@ import { basename, extname, separator } from 'std:path';
 
 import { Document, createDocument, dirty } from './documents.tsr';
 
+export function maxEditableBytes(): int {
+  return 4 * 1024 * 1024;
+}
+
 export interface ImageScroll {
   x: number;
   y: number;
@@ -122,8 +126,8 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
     let previewBytes: int | undefined = undefined;
 
     if (!image) {
-      const large = info.size > 4 * 1024 * 1024;
-      const bytes = large ? readPrefix(resolved) : unwrap(readFile(resolved, 4 * 1024 * 1024));
+      const large = info.size > maxEditableBytes();
+      const bytes = large ? readPrefix(resolved) : unwrap(readFile(resolved, maxEditableBytes()));
 
       if (large) kind = 'bytes';
       else match (toUtf8(bytes)) {

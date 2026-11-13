@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Protect read-only previews during project formatting
+
+Reproduced the previous CLI rewriting closed .tsr files with NUL bytes in a
+comment or string. Studio now supplies its 4 MiB editor limit to the formatter.
+The opt-in --text-files-up-to disk mode reads at most the limit plus one byte
+and skips invalid UTF-8, NUL-containing and oversized sources. Skips are
+reported separately from writes. Single-file writes with progress now report
+completion too. CLI regression passed in 0.80 s (3m12s setup). Studio formatting
+suite 7/7 in 117.58 ms includes open draft preservation, an editable closed
+file, and exact preservation of binary and oversized files in the same task.
+Ordinary CLI invocations without this option retain their input size policy.
+
 ## Check Document target and output
 
 Ran the Studio terminal's CLI arguments against src/lib/ai/conversations.tsr.

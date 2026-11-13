@@ -11,6 +11,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
     let mut write = false;
     let mut color = "auto".to_owned();
     let mut progress = false;
+    let mut text_limit: Option<usize> = None;
     let mut stdin_path = None;
     let mut options = tsrust_compiler::FormatOptions::default();
     while let Some(arg) = args.next() {
@@ -18,6 +19,11 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
             "--progress" if !progress => progress = true,
             "--stdin-filepath" if stdin_path.is_none() => {
                 stdin_path = Some(PathBuf::from(args.next().ok_or("--stdin-filepath requires a source path")?));
+            }
+            "--text-files-up-to" if text_limit.is_none() => {
+                let value = args.next().ok_or("--text-files-up-to requires a positive byte limit")?;
+                text_limit = Some(value.parse::<usize>().ok().filter(|limit| *limit > 0 && *limit < usize::MAX)
+                    .ok_or("--text-files-up-to requires a positive byte limit")?);
             }
             "--options" => {
                 let value = args.next().ok_or("--options requires a JSON object")?;
@@ -43,6 +49,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
     }
     let cwd = env::current_dir().map_err(|error| error.to_string())?;
     if let Some(path) = stdin_path {
+        if text_limit.is_some() { return Err("--text-files-up-to applies only to disk files".into()); }
         if !inputs.is_empty() || check || write { return Err("--stdin-filepath cannot be combined with paths, --check or --write".into()); }
         let path = if path.is_absolute() { path } else { cwd.join(path) };
         let options = tsrust_compiler::FormatOptions::for_path(&path, &options)?;
@@ -66,6 +73,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
     if progress { eprintln!("{}", super::styled(&format!("Formatting {} source files…", files.len()), "1;36", color)); }
     let mut changed = 0;
     let mut written = 0;
+    let mut skipped = 0;
     let mut failed = false;
     for path in &files {
         let display = path
@@ -73,8 +81,12 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
             .unwrap_or(path)
             .display()
             .to_string();
-        let source = match fs::read_to_string(path) {
-            Ok(source) => source,
+        let source = match read_source(path, text_limit) {
+            Ok(Some(source)) => source,
+            Ok(None) => {
+                skipped += 1;
+                continue;
+            }
             Err(error) => {
                 eprintln!("{display}: {error}");
                 failed = true;
@@ -109,7 +121,10 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
             print!("{formatted}");
         }
     }
-    if batch {
+    if skipped > 0 {
+        eprintln!("Skipped {skipped} binary or oversized source {}.", if skipped == 1 { "file" } else { "files" });
+    }
+    if batch || (write && progress) {
         let stdout_color = super::color_enabled(std::io::stdout().is_terminal());
         if check && changed > 0 {
             let message = format!("{changed} {} need formatting.", if changed == 1 { "file" } else { "files" });
@@ -120,4 +135,14 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
         }
     }
     Ok(u8::from(failed || check && changed > 0))
+}
+
+fn read_source(path: &std::path::Path, text_limit: Option<usize>) -> std::io::Result<Option<String>> {
+    let Some(limit) = text_limit else { return fs::read_to_string(path).map(Some) };
+    let file = fs::File::open(path)?;
+    if file.metadata()?.len() > limit as u64 { return Ok(None); }
+    let mut bytes = Vec::new();
+    file.take(limit as u64 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > limit || bytes.contains(&0) { return Ok(None); }
+    Ok(String::from_utf8(bytes).ok())
 }

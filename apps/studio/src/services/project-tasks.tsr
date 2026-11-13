@@ -5,7 +5,7 @@ import { FormattingOptions } from '../lib/settings/formatting.tsr';
 import { StudioConfig } from '../lib/settings/settings.tsr';
 import { QueuedFormatting, enqueueFormatting, activeSourceDocument, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { TerminalWorkspace, addTerminal } from '../lib/workspace/terminals.tsr';
-import { Workspace, projectFiles } from '../lib/workspace/workspace.tsr';
+import { Workspace, projectFiles, maxEditableBytes } from '../lib/workspace/workspace.tsr';
 
 export interface ProjectTask {
   kind: string;
@@ -60,7 +60,7 @@ export function prepareProjectTask(
     },
     Ok(files) => {
       const unopened = files.filter((file) => canFormat(file.path) && !workspace.files.some((open) => open.document.path === file.path));
-      const args: string[] = unopened.length === 0 ? [] : ['format', '--write', '--options', JSON.stringify(options), '--color=always', '--progress'];
+      const args: string[] = unopened.length === 0 ? [] : ['format', '--write', '--text-files-up-to', maxEditableBytes().toString(), '--options', JSON.stringify(options), '--color=always', '--progress'];
 
       for (const file of unopened) args.push(clone(file.path));
       return Ok({

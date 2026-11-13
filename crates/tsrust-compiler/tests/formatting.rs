@@ -544,3 +544,19 @@ fn import_comment_wrapping_is_stable() {
         assert_eq!(format(&result).unwrap(), result, "{result}");
     }
 }
+
+#[test]
+fn bounded_project_format_preserves_binary_and_oversized_sources() {
+    let dir = support::TempDirectory::new();
+    let source = b"const n=1;";
+    let limit = source.len().to_string();
+    let excluded: &[(&str, &[u8])] = &[("nul.tsr", b"//\0a"), ("invalid.tsr", &[0xff]), ("large.tsr", b"const nn=1;")];
+    std::fs::write(dir.0.join("main.tsr"), source).unwrap();
+    for (name, bytes) in excluded { std::fs::write(dir.0.join(name), bytes).unwrap(); }
+    let output = support::run(support::cli().args(["format", "--write", "--text-files-up-to", &limit]).arg(&dir.0), 10);
+    support::success(&output);
+    assert_eq!(output.stdout, b"Formatted 1 file.\n");
+    assert_eq!(output.stderr, b"Skipped 3 binary or oversized source files.\n");
+    assert_eq!(std::fs::read(dir.0.join("main.tsr")).unwrap(), b"const n = 1;\n");
+    for (name, bytes) in excluded { assert_eq!(std::fs::read(dir.0.join(name)).unwrap(), *bytes); }
+}

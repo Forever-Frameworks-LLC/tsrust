@@ -286,6 +286,12 @@ test('project formatting preserves open drafts while selecting unopened disk sou
     unwrap(writeTextFile(generated, 'const generated=1;'));
     const closed = actual + '/src/closed.tsr';
     unwrap(writeTextFile(closed, 'const value=1;'));
+    const binary = actual + '/binary.tsr';
+    const large = actual + '/large.tsr';
+    const binarySource = '//binary\0payload\nconst x=1;';
+    const largeSource = '//' + 'x'.repeat(4 * 1024 * 1024) + '\nconst x=1;';
+    unwrap(writeTextFile(binary, binarySource));
+    unwrap(writeTextFile(large, largeSource));
     const task = unwrap(prepareProjectTask(
       state,
       'tsrust',
@@ -318,6 +324,8 @@ test('project formatting preserves open drafts while selecting unopened disk sou
     strictEqual(unwrap(readTextFile(state.active)), 'const disk=1;');
     strictEqual(unwrap(readTextFile(closed)), 'const value = 1;\n');
     strictEqual(unwrap(readTextFile(generated)), 'const generated=1;');
+    strictEqual(unwrap(readTextFile(binary)), binarySource);
+    strictEqual(unwrap(readTextFile(large, 5 * 1024 * 1024)) === largeSource, true);
   } finally {
     unwrap(removeDirAll(root));
   }

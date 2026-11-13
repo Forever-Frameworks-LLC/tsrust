@@ -70,7 +70,8 @@ Usage:
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
-  tsrust format [files/directories] [--check | --write]
+  tsrust format [files/directories] [--check | --write] [--text-files-up-to bytes]
+    Skip binary (invalid UTF-8 or NUL) and larger files when a byte limit is given
   tsrust format --stdin-filepath <source-path> [--options <JSON>]
   tsrust check|format [--progress]   Print a task-start message before processing
   tsrust check [files/directories] [--json] [--diagnostics-only]
