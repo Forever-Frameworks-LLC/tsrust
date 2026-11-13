@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## File picker result navigation
+
+The file picker and search_files use the same relative-path matching. The shared
+open action now requires a matching row in the currently open file picker. A
+hidden row, a closed picker, command mode or a deleted file leaves the workspace
+unchanged. Filesystem-root labels retain their first character. Explorer suite
+4/4 passed in 34.03 ms execution; navigation component check passed. Final
+whole-tree formatter reported zero changes. Logs /tmp/studio-visible-search-
+{final,ui,format-final}.log. Native picker interaction remains unverified here.
+
 ## Nested workspace project checks
 
 The structured saved-project check now passes the selected directory explicitly,

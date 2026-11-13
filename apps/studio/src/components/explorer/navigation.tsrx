@@ -14,7 +14,15 @@ import {
   translate
 } from 'std:ui';
 
-import { FileSearchState, SearchActionContext, showFileSearch, closeFileSearch, openFileSearchResult } from '../../lib/explorer/search-actions.tsr';
+import {
+  FileSearchState,
+  SearchActionContext,
+  fileMatches,
+  fileSearchLabel,
+  showFileSearch,
+  closeFileSearch,
+  openFileSearchResult
+} from '../../lib/explorer/search-actions.tsr';
 import { message } from '../../lib/localization.tsr';
 import { PaletteCommand, paletteCommands } from '../../lib/workspace/commands.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -55,7 +63,7 @@ function closePalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, 
 
 function FileSearchItem(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
   const path = clone(file.path);
-  const label = file.path.slice(root.length + 1);
+  const label = fileSearchLabel(root, file.path);
   return (
     <CommandItem value={path} label={label} icon="file" />
   );
@@ -69,12 +77,6 @@ function CommandItemRow(command: ReadOnly<PaletteCommand>): Node {
   return (
     <CommandItem value={value} command={id} label={label} disabled={disabled} icon="command" />
   );
-}
-
-function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
-  if (search.query.startsWith('>')) return [];
-  const query = search.query.toLowerCase();
-  return search.files.filter((file) => file.path.slice(search.root.length + 1).toLowerCase().includes(query));
 }
 
 interface LanguagePaletteAction {

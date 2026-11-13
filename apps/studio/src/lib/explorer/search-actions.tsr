@@ -1,4 +1,5 @@
 import { fromUtf8, length, view, toUtf8 } from 'std:bytes';
+import { separator } from 'std:path';
 import { Signal, controlInput } from 'std:ui';
 
 import { LanguageReferences } from '../language/references.tsr';
@@ -29,6 +30,20 @@ export interface FileSearchState {
   open?: boolean;
 }
 
+export function fileSearchLabel(root: ReadOnly<string>, path: ReadOnly<string>): string {
+  return path.slice(root.endsWith(separator()) ? root.length : root.length + 1);
+}
+
+function matchesFile(root: ReadOnly<string>, file: ReadOnly<Entry>, normalized: ReadOnly<string>): boolean {
+  return fileSearchLabel(root, file.path).toLowerCase().includes(normalized);
+}
+
+export function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
+  if (search.query.startsWith('>')) return [];
+  const normalized = search.query.toLowerCase();
+  return search.files.filter((file) => matchesFile(search.root, file, normalized));
+}
+
 export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query: ReadOnly<string>): Result<Entry[], string> {
   if (context.allowRead !== true || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('Workspace search is not permitted for this task.');
 
@@ -41,7 +56,7 @@ export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly
     },
     Ok(files) => {
       const normalized = query.toLowerCase();
-      return Ok(files.filter((file) => file.path.slice(root.length + 1).toLowerCase().includes(normalized)));
+      return Ok(files.filter((file) => matchesFile(root, file, normalized)));
     }
   }
 }
@@ -102,7 +117,11 @@ export function openFileSearchResult(context: ReadOnly<SearchActionContext>, roo
   if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
   const search = context.fileSearch;
 
-  if (search === undefined || search.get().root !== root || !search.get().files.some((file) => file.path === path)) return Err('This file search result is no longer available.');
+  if (search === undefined) return Err('This file search result is no longer available.');
+  const snapshot = search.get();
+  const normalized = snapshot.query.toLowerCase();
+
+  if (snapshot.open !== true || snapshot.root !== root || normalized.startsWith('>') || !snapshot.files.some((file) => file.path === path && matchesFile(root, file, normalized))) return Err('This file search result is no longer available.');
   const next = context.workspace.get();
 
   match (openFile(next, path)) {

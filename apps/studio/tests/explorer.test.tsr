@@ -7,10 +7,11 @@ import {
   readTextFile,
   writeTextFile
 } from 'std:fs';
+import { separator } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
-import { SearchActionContext, FileSearchState } from '../src/lib/explorer/search-actions.tsr';
+import { SearchActionContext, FileSearchState, fileSearchLabel } from '../src/lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
 import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
 import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
@@ -190,6 +191,10 @@ test('filename search shares explicit read presentation and open actions without
     const target = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é-main.tsr'
     });
+    strictEqual(fileSearchLabel(separator(), separator() + 'first.tsr'), 'first.tsr');
+    deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'
+    }));
     context.allowNavigation = false;
     deniedFileSearch(context, 'open_file_search_result', target);
     strictEqual(context.workspace.get().files.length, 0);
@@ -198,6 +203,7 @@ test('filename search shares explicit read presentation and open actions without
     unwrap(invokeEditorTool(context, 'open_file_search_result', target));
     strictEqual(context.workspace.get().active.endsWith('/src/é-main.tsr'), true);
     strictEqual(context.fileSearch?.get().open ?? false, false);
+    deniedFileSearch(context, 'open_file_search_result', target);
     const next = context.workspace.get();
     next.files[0].document.text = 'unsaved draft';
     next.files[0].document.revision += 1;
@@ -216,12 +222,16 @@ test('filename search shares explicit read presentation and open actions without
     strictEqual(commands.includes('toggle-terminal'), true);
     strictEqual(commands.includes('save-all'), false);
     unwrap(invokeEditorTool(context, 'show_command_palette', commandQuery));
+    deniedFileSearch(context, 'open_file_search_result', target);
     strictEqual(context.fileSearch?.get().query ?? '', '>terminal');
     strictEqual(context.fileSearch?.get().open ?? false, true);
     unwrap(invokeEditorTool(context, 'close_command_palette', JSON.stringify({
       root: clone(context.allowedRoot ?? '')
     })));
     strictEqual(context.fileSearch?.get().open ?? true, false);
+    unwrap(invokeEditorTool(context, 'show_file_search', JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), query: 'other.txt'
+    })));
     unwrap(removeFile((context.allowedRoot ?? '') + '/other.txt'));
     deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'
