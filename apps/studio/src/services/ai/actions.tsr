@@ -372,7 +372,10 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
             const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
 
             if (chat >= 0) for (let message = 0; message < next.history.chats[chat].messages.length; message += 1) {
-              if (next.history.chats[chat].messages[message].request === next.active && next.history.chats[chat].messages[message].status === 'pending') next.history.chats[chat].messages[message].status = 'interrupted';
+              if (next.history.chats[chat].messages[message].request === next.active && next.history.chats[chat].messages[message].status === 'pending') {
+                next.history.chats[chat].messages[message].status = 'interrupted';
+                next.history.chats[chat].revision += 1;
+              }
             }
 
             next.active = '';
@@ -399,7 +402,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
           }
 
           if (['complete', 'cancelled', 'error'].includes(update.kind)) {
-            next.phase = 'ready';
+            if (next.phase !== 'stopping') next.phase = 'ready';
             next.active = '';
             next.targetChat = '';
             save = true;

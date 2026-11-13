@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Final model reply during shutdown
+
+A completion, cancellation or generation error received after Stop now settles
+the active reply while keeping new sends disabled until the host reports stopped.
+A host exit during a pending reply advances the conversation revision when it
+marks that reply interrupted. Shared AI action suite 9/9 passed in 32.81 ms,
+including a restarted conversation whose next request contains its previous
+answer. Whole-project formatter final pass reported zero changes. Logs
+/tmp/studio-stop-race-tests.log and /tmp/studio-stop-race-format-final.log.
+Verified supervisor 1088 and preview 4521 alive. Validation used synthetic
+channel updates. Desktop shutdown timing and integrated memory remain open.
+
 ## Dev watcher under successive saves
 
 The persistent frontend now accepts a snapshot only when ready to check it.

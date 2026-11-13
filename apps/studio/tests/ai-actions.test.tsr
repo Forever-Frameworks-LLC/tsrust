@@ -107,6 +107,53 @@ test('sending loads automatically and delivers a queued response to its exact co
   }))), true);
 });
 
+test('a final reply during shutdown is retained while new sends wait for the host to stop', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'First question');
+  unwrap(requests.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const generation = unwrap(requests.tryReceive());
+  unwrap(invokeModelTool(host, 'local_model_stop', '{}'));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: generation.id, text: 'First answer', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().phase, 'stopping');
+  const chat = host.state.get().history.active;
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', JSON.stringify({
+    chat, prompt: 'Too early'
+  }))), true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  send(host, 'Explain your answer');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const followup = unwrap(requests.tryReceive());
+  const messages = followup.messages ?? [];
+  strictEqual(messages.length, 3);
+  strictEqual(messages[1].content, 'First answer');
+  const revision = host.state.get().history.chats[0].revision;
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.chats[0].messages[3].status, 'interrupted');
+  strictEqual(host.state.get().history.chats[0].revision, revision + 1);
+});
+
 test('cancelled startup restores the exact prompt and preserves newer chat selection', () => {
   const requests = new Channel<ModelRequest>(4);
   const updates = new Channel<ModelUpdate>(4);
