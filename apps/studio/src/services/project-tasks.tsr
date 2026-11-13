@@ -1,8 +1,9 @@
+import { canonicalize, stat } from 'std:fs';
 import { Signal, useId, controlTerminal } from 'std:ui';
 
 import { FormattingOptions } from '../lib/settings/formatting.tsr';
 import { StudioConfig } from '../lib/settings/settings.tsr';
-import { QueuedFormatting, enqueueFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
+import { QueuedFormatting, enqueueFormatting, activeSourceDocument, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { TerminalWorkspace, addTerminal } from '../lib/workspace/terminals.tsr';
 import { Workspace, projectFiles } from '../lib/workspace/workspace.tsr';
 
@@ -19,14 +20,25 @@ export function prepareProjectTask(
   kind: string,
   options: ReadOnly<FormattingOptions>,
   allowCheck: boolean,
-  allowWrite: boolean
+  allowWrite: boolean,
+  terminalOutput: boolean = true
 ): Result<ProjectTask, string> {
   if (kind === 'check-document') {
     if (!allowCheck) return Err('Project checking is not permitted by the host.');
 
-    if (!canFormat(workspace.active)) return Err('Checking supports saved .tsr and .tsrx documents.');
+    if (!activeSourceDocument(workspace)) return Err('Checking supports saved .tsr and .tsrx documents.');
+
+    try {
+      if (unwrap(canonicalize(workspace.active)) !== workspace.active || !unwrap(stat(workspace.active)).isFile) return Err('The saved document is no longer available at this path.');
+    } catch (_) {
+      return Err('The saved document is no longer available at this path.');
+    }
+
+    const args = ['check', clone(workspace.active), '--diagnostics-only', terminalOutput ? '--color=always' : '--color=never'];
+
+    if (terminalOutput) args.push('--progress');
     return Ok({
-      kind, title: 'Check document (saved)', program, args: ['check', clone(workspace.active), '--diagnostics-only', '--color=always', '--progress']
+      kind, title: 'Check document (saved)', program, args
     });
   }
 

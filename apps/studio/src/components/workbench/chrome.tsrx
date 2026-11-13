@@ -18,7 +18,7 @@ import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace, saveDraftCopy } from '../../lib/workspace/document-actions.tsr';
-import { canFormat, FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
+import { activeSourceDocument, FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
 import { zoomWorkspace } from '../../lib/workspace/zoom.tsr';
@@ -70,12 +70,12 @@ export function Chrome(
         </AppMenu>
         <AppMenu label={message("Edit")}>
           <MenuItem command="show-commands" label={message("Command Palette")} />
-          <MenuItem command="format-document" label={message("Format document")} disabled={!canFormat(workspace.get().active)} />
+          <MenuItem command="format-document" label={message("Format document")} disabled={!activeSourceDocument(workspace.get())} />
         </AppMenu>
         <AppMenu label={message("Project")}>
           <MenuItem command="refresh-explorer" label={message("Refresh Explorer")} />
           <MenuItem command="format-project" label={message("Format project")} />
-          <MenuItem command="check-document" label={message("Check document")} disabled={!canFormat(workspace.get().active)} />
+          <MenuItem command="check-document" label={message("Check document")} disabled={!activeSourceDocument(workspace.get())} />
           <MenuItem command="check-project" label={message("Check project")} />
         </AppMenu>
       </AppMenuBar>

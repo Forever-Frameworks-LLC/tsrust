@@ -70,6 +70,7 @@
   "The home directory is unavailable. Draft recovery is disabled.": "The home directory is unavailable. Draft recovery is disabled.",
   "Choose a project directory.": "Choose a project directory.",
   "This file is outside the open project directory.": "This file is outside the open project directory.",
+  "The saved document is no longer available at this path.": "The saved document is no longer available at this path.",
   "Choose a regular file.": "Choose a regular file.",
   "This file is not open.": "This file is not open.",
   "Save or discard the unsaved changes before closing.": "Save or discard the unsaved changes before closing.",

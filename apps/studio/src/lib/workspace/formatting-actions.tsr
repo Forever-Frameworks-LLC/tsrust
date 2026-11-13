@@ -61,6 +61,10 @@ export function canFormat(path: ReadOnly<string>): boolean {
   return extension === '.tsr' || extension === '.tsrx';
 }
 
+export function activeSourceDocument(workspace: ReadOnly<Workspace>): boolean {
+  return canFormat(workspace.active) && workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text');
+}
+
 // The host grants effects; the explicit document identity survives tab switches.
 export function prepareFormatting(workspace: ReadOnly<Workspace>, policy: ReadOnly<EditorPolicy>, authority: ReadOnly<FormattingAuthority>, target: ReadOnly<FormattingTarget>, mode: string): Result<FormattingRequest, string> {
   if (!authority.allowPropose || (mode !== 'proposal' && !authority.allowApply) || (mode === 'save' && !authority.allowSave)) return Err('Formatting is not permitted by the host.');

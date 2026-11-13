@@ -4,6 +4,7 @@ import {
   mkdirAll,
   createTempDir,
   removeDirAll,
+  removeFile,
   writeTextFile,
   readTextFile
 } from 'std:fs';
@@ -22,6 +23,7 @@ import {
   applyFormatting
 } from '../src/lib/workspace/formatting-actions.tsr';
 import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
+import { paletteCommands } from '../src/lib/workspace/commands.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { prepareProjectTask } from '../src/services/project-tasks.tsr';
 import { WorkflowToolContext, workflowTools, invokeWorkflowTool } from '../src/services/workflow-tools.tsr';
@@ -262,16 +264,6 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
     true,
     false
   ));
-  const documentState = workspace('/project', 'const value = 1;');
-  const documentTask = unwrap(prepareProjectTask(
-    documentState,
-    '/bin/tsrust',
-    'check-document',
-    options.format,
-    true,
-    false
-  ));
-  strictEqual(documentTask.args.join(' '), 'check /project/main.tsrx --diagnostics-only --color=always --progress');
   strictEqual(task.program, '/bin/tsrust');
   strictEqual(task.args.join(' '), 'check . --color=always --progress');
   const selected = unwrap(problemSelection('first\n日本 value', 2, 3));
@@ -326,6 +318,62 @@ test('project formatting preserves open drafts while selecting unopened disk sou
     strictEqual(unwrap(readTextFile(state.active)), 'const disk=1;');
     strictEqual(unwrap(readTextFile(closed)), 'const value = 1;\n');
     strictEqual(unwrap(readTextFile(generated)), 'const generated=1;');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+interface CheckOutput {
+  success: boolean;
+  stdout: string;
+  stderr: string;
+}
+
+test('check document runs concise diagnostics only on an open saved source file', async () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-document-check-'))));
+
+  try {
+    const state = workspace(clone(root), 'const values = [1, 2].map((value) => value + 1);');
+    unwrap(writeTextFile(state.active, state.files[0].document.text));
+    const context: WorkflowToolContext = {
+      workspace: clone(state), policy: policy(), program: unwrap(get('TSRUST')) ?? 'tsrust', formatAuthority: {
+        allowPropose: false, allowApply: false, allowSave: false
+      }, allowCheck: true
+    };
+    const payload = JSON.stringify({
+      path: clone(state.active), session: clone(state.files[0].document.session), revision: 0
+    });
+    const terminal = unwrap(prepareProjectTask(
+      state,
+      clone(context.program),
+      'check-document',
+      context.policy.format,
+      true,
+      false
+    ));
+    strictEqual(terminal.args.join(' '), 'check ' + state.active + ' --diagnostics-only --color=always --progress');
+    const checked = JSON.parse<CheckOutput>(unwrap(await invokeWorkflowTool(context, 'check_document', payload)));
+    strictEqual(checked.success, true, checked.stderr);
+    strictEqual(checked.stdout.trim(), 'Check passed.');
+    strictEqual(checked.stderr, '');
+    unwrap(writeTextFile(state.active, 'const wrong: int = "bad";'));
+    const broken = JSON.parse<CheckOutput>(unwrap(await invokeWorkflowTool(context, 'check_document', payload)));
+    strictEqual(broken.success, false);
+    strictEqual(broken.stderr.includes('main.tsrx'), true);
+    state.files[0].kind = 'binary';
+    strictEqual(paletteCommands(state, 'check-document')[0].disabled, true);
+    strictEqual(rejected(prepareProjectTask(
+      state,
+      clone(context.program),
+      'check-document',
+      context.policy.format,
+      true,
+      false
+    )), true);
+    unwrap(removeFile(state.active));
+    strictEqual(rejected(await invokeWorkflowTool(context, 'check_document', payload)), true);
+    unwrap(mkdirAll(state.active));
+    strictEqual(rejected(await invokeWorkflowTool(context, 'check_document', payload)), true);
   } finally {
     unwrap(removeDirAll(root));
   }

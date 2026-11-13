@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Check Document target and output
+
+Ran the Studio terminal's CLI arguments against src/lib/ai/conversations.tsr.
+It emitted one progress line and one success line. The shared workflow adapter
+now requests plain output for tool calls. File, status and palette document
+commands require an open text source. Before launching Check Document, Studio
+checks that the saved path still resolves to the original path and is a regular
+file. Removed files and paths replaced by directories fail before launching the
+CLI. Real-CLI coverage includes success with a closure, a saved type error,
+binary preview rejection and both filesystem replacements. Formatting/task
+suite 7/7 in 63.90 ms. Physical menu interaction has not been replayed.
+
 ## Individual unversioned language problems
 
 Unversioned publications for open files now retain each diagnostic message,

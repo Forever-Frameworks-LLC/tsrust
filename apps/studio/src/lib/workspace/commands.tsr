@@ -1,7 +1,7 @@
 import { translate } from 'std:ui';
 
 import { dirty } from './documents.tsr';
-import { canFormat } from './formatting-actions.tsr';
+import { activeSourceDocument } from './formatting-actions.tsr';
 import { Workspace } from './workspace.tsr';
 
 export interface PaletteCommand {
@@ -19,11 +19,11 @@ export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<
   }, {
     id: 'close-tab', label: translate('Close Editor'), disabled: workspace.active === ''
   }, {
-    id: 'format-document', label: translate('Format document'), disabled: !canFormat(workspace.active)
+    id: 'format-document', label: translate('Format document'), disabled: !activeSourceDocument(workspace)
   }, {
     id: 'format-project', label: translate('Format project'), disabled: false
   }, {
-    id: 'check-document', label: translate('Check document'), disabled: !canFormat(workspace.active)
+    id: 'check-document', label: translate('Check document'), disabled: !activeSourceDocument(workspace)
   }, {
     id: 'check-project', label: translate('Check project'), disabled: false
 

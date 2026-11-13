@@ -26,6 +26,7 @@ import {
   FormattingResult,
   prepareFormatting,
   applyFormatting,
+  activeSourceDocument,
   canFormat
 } from '../../lib/workspace/formatting-actions.tsr';
 import { Problem, operationProblem, replaceProblems } from '../../lib/workspace/problems.tsr';
@@ -165,7 +166,7 @@ export function WorkflowControls(
   font: Signal<int>
 ): Node {
   const saveCheckPending = signal(false);
-  const available = computed<boolean>(() => canFormat(workspace.get().active));
+  const available = computed<boolean>(() => activeSourceDocument(workspace.get()));
   const buttonRequests = requests.sender();
   const shortcutRequests = requests.sender();
   const buttonProgram = clone(program);

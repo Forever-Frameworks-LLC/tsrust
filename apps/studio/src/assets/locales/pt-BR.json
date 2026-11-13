@@ -70,6 +70,7 @@
   "The home directory is unavailable. Draft recovery is disabled.": "O diretório pessoal não está disponível. A recuperação de rascunhos está desativada.",
   "Choose a project directory.": "Escolha um diretório de projeto.",
   "This file is outside the open project directory.": "Este arquivo está fora do diretório do projeto aberto.",
+  "The saved document is no longer available at this path.": "O documento salvo não está mais disponível neste caminho.",
   "Choose a regular file.": "Escolha um arquivo comum.",
   "This file is not open.": "Este arquivo não está aberto.",
   "Save or discard the unsaved changes before closing.": "Salve ou descarte as alterações não salvas antes de fechar.",
