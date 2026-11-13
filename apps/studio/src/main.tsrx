@@ -290,7 +290,8 @@ function App(
     settings,
     filenameSearch,
     chat,
-    aiState
+    aiState,
+    aiStore
   );
   const editor = EditorWorkspace(
     workspace,
@@ -488,7 +489,7 @@ function App(
       />
       {referenceControls}
       {SaveConflicts(workspace, recovery, font)}
-      {ChatEditReview(aiState, workspace, recovery, font)}
+      {ChatEditReview(aiState, workspace, recovery, font, aiStore)}
       {chrome}
       {fileSearch}
       {refreshExplorer}

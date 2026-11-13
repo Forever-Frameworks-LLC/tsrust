@@ -109,7 +109,17 @@ export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: bool
 }
 
 function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = false): Result<void, string> {
-  const store = context.store;
+  return publishChat(context.state, next, {
+    store: context.store?.handle()
+  }, strict);
+}
+
+export interface ChatPersistence {
+  store?: Signal<ChatStore>;
+}
+
+export function publishChat(state: Signal<AiState>, next: AiState, persistence: ReadOnly<ChatPersistence>, strict: boolean = false): Result<void, string> {
+  const store = persistence.store;
 
   if (store !== undefined) {
     const journal = store.get();
@@ -125,7 +135,7 @@ function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = 
     store.set(journal);
   }
 
-  context.state.set(next);
+  state.set(next);
   return Ok();
 }
 
@@ -802,6 +812,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
 
                 if (update.stop !== 'length') match (batchProposal(next.editTarget, update.text)) {
                   Ok(proposal) => {
+                    proposal.request = clone(update.id);
                     next.review = proposal;
                     next.history.chats[chat].messages[message].text = translate('Review the proposed changes.');
                   },

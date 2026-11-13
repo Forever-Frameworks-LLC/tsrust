@@ -27,6 +27,7 @@ import { openPalette } from '../explorer/navigation.tsrx';
 import { showSettings } from '../settings/settings-window.tsrx';
 
 import { AiState } from '../../services/ai/actions.tsr';
+import { ChatStore } from '../../services/ai/history.tsr';
 import { undoChatEdit } from '../ai/edit-review.tsrx';
 
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
@@ -52,7 +53,8 @@ export function Chrome(
   settings: Signal<StudioConfig>,
   fileSearch: Signal<FileSearchState>,
   chat: Signal<boolean>,
-  ai: Signal<AiState>
+  ai: Signal<AiState>,
+  store: Signal<ChatStore>
 ): Node {
   const paletteClass = computed<string>(() => 'w-full max-w-[320px] h-6 px-3 gap-2 min-w-0 justify-start border border-border rounded-sm bg-background text-muted-foreground text-[' + font.get().toString() + 'px]');
   const canCopy = computed<boolean>(() => {
@@ -130,7 +132,9 @@ export function Chrome(
       <Shortcut
         command="undo-chat-edit"
         onTrigger={() => {
-          undoChatEdit(ai, workspace, recovery);
+          undoChatEdit(ai, workspace, recovery, {
+            store: store.handle()
+          });
         }}
       />
       <Shortcut

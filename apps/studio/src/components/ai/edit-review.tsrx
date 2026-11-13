@@ -16,7 +16,8 @@ import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
-import { AiState } from '../../services/ai/actions.tsr';
+import { ChatStore } from '../../services/ai/history.tsr';
+import { AiState, ChatPersistence, publishChat } from '../../services/ai/actions.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
 
 // Publish once after every edit has matched its captured document.
@@ -64,23 +65,45 @@ function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, ba
   };
 }
 
-export function undoChatEdit(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
+function recordOutcome(chat: Mutable<AiState>, batch: ReadOnly<EditBatch>, text: string): void {
+  if (batch.request === undefined) return;
+
+  for (let i = 0; i < chat.history.chats.length; i += 1) {
+    const message = chat.history.chats[i].messages.findIndex((item) => item.role === 'assistant' && item.request === batch.request);
+
+    if (message < 0) continue;
+    chat.history.chats[i].messages[message].text = text;
+    chat.history.chats[i].revision += 1;
+    return;
+  }
+}
+
+export function undoChatEdit(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, persistence: ReadOnly<ChatPersistence> = {}): void {
   const chat = state.get();
   const undo = chat.undoEdit;
 
   if (undo === undefined) return;
 
+  chat.undoEdit = undefined;
+
   if (applyBatch(workspace, recovery, undo) === undefined) {
     const next = workspace.get();
     next.error = translate('A target draft changed or closed. The chat edit could not be undone.');
     workspace.set(next);
-  }
+  } else recordOutcome(chat, undo, translate('Undid the chat edit in the draft.'));
 
-  chat.undoEdit = undefined;
-  state.set(chat);
+  unwrap(publishChat(state, chat, persistence));
 }
 
-export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, target: ReadOnly<EditBatch>, accept: boolean): void {
+export function reviewChatEdit(
+  state: Signal<AiState>,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  target: ReadOnly<EditBatch>,
+  accept: boolean,
+  persistence: ReadOnly<ChatPersistence> = {}
+
+): void {
   const chat = state.get();
   const proposal = chat.review;
 
@@ -90,8 +113,10 @@ export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspa
     if (proposal.stale === true) return;
     const inverse = applyBatch(workspace, recovery, proposal);
 
-    if (inverse !== undefined) chat.undoEdit = inverse;
-    else {
+    if (inverse !== undefined) {
+      inverse.request = clone(proposal.request);
+      chat.undoEdit = inverse;
+    } else {
       proposal.stale = true;
       chat.review = proposal;
       chat.notice = translate('The file changed. Request a new edit proposal.');
@@ -101,7 +126,8 @@ export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspa
   }
 
   chat.review = undefined;
-  state.set(chat);
+  recordOutcome(chat, proposal, translate(accept ? 'Applied the selected changes to the draft.' : 'Dismissed the edit proposal.'));
+  unwrap(publishChat(state, chat, persistence));
 }
 
 function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, multipleFiles: boolean): Node[] {
@@ -142,7 +168,14 @@ function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, m
   return controls;
 }
 
-function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
+function Review(
+  target: EditBatch,
+  state: Signal<AiState>,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  font: Signal<int>,
+  store: Signal<ChatStore>
+): Node {
   if (target.stale === true) {
     const close = clone(target);
     const dismiss = clone(target);
@@ -154,7 +187,17 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
         closeButton={false}
         title={message('The file changed. Request a new edit proposal.')}
         onOpenChange={(open) => {
-          if (!open) reviewChatEdit(state, workspace, recovery, dismiss, false);
+          if (!open) reviewChatEdit(
+            state,
+            workspace,
+            recovery,
+            dismiss,
+            false,
+            {
+              store: store.handle()
+            }
+
+          );
         }}
       >
         <DialogContent>
@@ -162,7 +205,17 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
             <Button
               aria-label={accessibleName('Close: The file changed. Request a new edit proposal.')}
               onPress={() => {
-                reviewChatEdit(state, workspace, recovery, close, false);
+                reviewChatEdit(
+                  state,
+                  workspace,
+                  recovery,
+                  close,
+                  false,
+                  {
+                    store: store.handle()
+                  }
+
+                );
               }}
             >
               {t('Close')}
@@ -200,7 +253,17 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
       width={1000}
       centered={true}
       onOpenChange={(open) => {
-        if (!open) reviewChatEdit(state, workspace, recovery, dismiss, false);
+        if (!open) reviewChatEdit(
+          state,
+          workspace,
+          recovery,
+          dismiss,
+          false,
+          {
+            store: store.handle()
+          }
+
+        );
       }}
     >
       <DialogContent>
@@ -211,7 +274,17 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
           <Button
             variant="ghost"
             onPress={() => {
-              reviewChatEdit(state, workspace, recovery, reject, false);
+              reviewChatEdit(
+                state,
+                workspace,
+                recovery,
+                reject,
+                false,
+                {
+                  store: store.handle()
+                }
+
+              );
             }}
           >
             {t('Reject')}
@@ -219,7 +292,17 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
           <Button
             disabled={empty}
             onPress={() => {
-              reviewChatEdit(state, workspace, recovery, accept, true);
+              reviewChatEdit(
+                state,
+                workspace,
+                recovery,
+                accept,
+                true,
+                {
+                  store: store.handle()
+                }
+
+              );
             }}
           >
             {t('Apply to draft')}
@@ -235,10 +318,17 @@ function pendingReview(state: ReadOnly<AiState>): EditBatch[] {
   return review === undefined ? [] : [clone(review)];
 }
 
-export function ChatEditReview(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
+export function ChatEditReview(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, store: Signal<ChatStore>): Node {
   return (
     <View className="absolute size-0">
-      {...pendingReview(state.get()).map((item: ReadOnly<EditBatch>) => Review(clone(item), state, workspace, recovery, font))}
+      {...pendingReview(state.get()).map((item: ReadOnly<EditBatch>) => Review(
+        clone(item),
+        state,
+        workspace,
+        recovery,
+        font,
+        store
+      ))}
     </View>
   );
 }
