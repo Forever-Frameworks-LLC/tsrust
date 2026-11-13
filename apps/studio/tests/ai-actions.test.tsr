@@ -16,7 +16,7 @@ import { Channel } from 'std:futures';
 import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
-import { Conversation, emptyHistory, parseHistory, chatDraft } from '../src/lib/ai/conversations.tsr';
+import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } from '../src/lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
@@ -52,6 +52,26 @@ function send(context: ReadOnly<AiContext>, prompt: string): void {
     chat: context.state.get().history.active, prompt
   })));
 }
+
+test('Unicode composer input and first-message titles preserve scalar boundaries', () => {
+  strictEqual(contextTrigger('日本語🦀'), '');
+  strictEqual(contextTrigger('🦀@'), '');
+  strictEqual(contextTrigger('界　@'), 'file');
+  strictEqual(contextTrigger('界\n/'), 'skill');
+  strictEqual(contextTrigger('/'), 'skill');
+  strictEqual(contextTrigger(''), '');
+  const requests = new Channel<ModelRequest>(4);
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  const title = 'x'.repeat(79) + '🦀';
+  const prompt = title + '界\nsecond line';
+  send(host, clone(prompt));
+  strictEqual(state.get().history.chats[0].title, title);
+  strictEqual(unwrap(requests.tryReceive()).prompt, prompt);
+});
 
 test('reading an explicit conversation leaves selection intact and excludes other drafts', () => {
   const requests = new Channel<ModelRequest>(4);

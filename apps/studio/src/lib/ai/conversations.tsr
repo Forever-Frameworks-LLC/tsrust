@@ -62,6 +62,14 @@ export function activeMessages(history: ReadOnly<ChatHistory>): AiMessage[] {
   return chat === undefined ? [] : clone(chat.messages);
 }
 
+export function contextTrigger(text: ReadOnly<string>): string {
+  const kind = text.endsWith('@') ? 'file' : text.endsWith('/') ? 'skill' : '';
+
+  if (kind === '' || text.length === 1) return kind;
+  const prefix = text.slice(0, -1);
+  return prefix.trimEnd().length < prefix.length ? kind : '';
+}
+
 export function chatDraft(history: ReadOnly<ChatHistory>): string {
   const chat = history.chats.find((chat) => chat.id === history.active);
   return chat === undefined ? clone(history.draft) : clone(chat.draft);

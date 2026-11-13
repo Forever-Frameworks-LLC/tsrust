@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Unicode chat typing and titles
+
+Chat titles take up to 80 Unicode scalar values from the first trimmed line.
+The composer checks for a trailing ASCII trigger before removing that trigger
+and checking its preceding whitespace. AI action tests passed 15/15 in
+31.21 ms, including a four-byte emoji across the prior byte cutoff, exact
+prompt delivery, Japanese text, Unicode whitespace and a newline. Native
+keyboard/IME composition and grapheme-cluster truncation were not tested.
+
 ## Cancellation during chat edit generation
 
 Once a cancellation or shutdown command enters the host queue, Studio drops

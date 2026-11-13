@@ -289,7 +289,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.active = chatIdentity();
       next.targetChat = clone(next.history.active);
 
-      if (next.history.chats[index].title === '') next.history.chats[index].title = prompt.trim().split('\n')[0].slice(0, 80);
+      if (next.history.chats[index].title === '') next.history.chats[index].title = Array.from(prompt.trim().split('\n')[0]).slice(0, 80).join('');
       const workspace = context.workspace;
       const tree = context.projectTree;
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;

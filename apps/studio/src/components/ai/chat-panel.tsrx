@@ -28,6 +28,7 @@ import {
   Conversation,
   ContextFragment,
   activeMessages,
+  contextTrigger,
   chatDraft,
   draftContext
 } from '../../lib/ai/conversations.tsr';
@@ -266,8 +267,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
               submitOnEnter={true}
               onChange={(event) => {
                 const text = clone(event.target.value);
-                const boundary = text.length === 1 || text.slice(-2, -1).trim() === '';
-                const kind = boundary && text.endsWith('@') ? 'file' : boundary && text.endsWith('/') ? 'skill' : '';
+                const kind = contextTrigger(text);
                 const prompt = kind === '' ? clone(text) : text.slice(0, -1);
 
                 if (perform(input, 'chat_set_draft', JSON.stringify({
