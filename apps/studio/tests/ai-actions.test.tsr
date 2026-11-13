@@ -1,3 +1,4 @@
+import { attachPickedContext } from '../src/components/ai/context-picker.tsrx';
 import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
 import {
   recallTerms,
@@ -597,6 +598,35 @@ test('chat storage round-trips Unicode and rejects external history conflicts', 
     history.draft = 'new value';
     strictEqual(denied(persistChats(history, store)), true);
     strictEqual(unwrap(readTextFile(store.path)), 'external bytes');
+  } finally {
+    removeDirAll(folder);
+  }
+});
+
+test('mixed picker results retain valid attachments and identify every rejected path', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-mixed-context-'));
+
+  try {
+    const model = unwrap(openWorkspace(clone(folder)));
+    const valid = folder + '/source.tsr';
+    const invalid = folder + '/binary';
+    const missing = folder + '/missing';
+    unwrap(writeTextFile(valid, 'const value = 1;'));
+    unwrap(writeTextFile(invalid, 'binary\0text'));
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const commands = new Channel<ModelRequest>(2);
+    const workspace = signal(model);
+    const host = context(state, settings, commands);
+    host.workspace = workspace.handle();
+    attachPickedContext(host, '', 'file', [clone(invalid), clone(missing), clone(valid)]);
+    const result = host.state.get();
+    strictEqual(result.notice.includes(invalid), true);
+    strictEqual(result.notice.includes(missing), true);
+    strictEqual(result.notice.includes(valid), false);
+    const attached = result.history.context ?? [];
+    strictEqual(attached.length, 1);
+    strictEqual(attached[0].text, 'const value = 1;');
   } finally {
     removeDirAll(folder);
   }

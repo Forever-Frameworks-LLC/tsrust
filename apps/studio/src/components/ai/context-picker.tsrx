@@ -23,7 +23,7 @@ import {
 import { fileSearchLabel, matchingFilePaths } from '../../lib/explorer/search-actions.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { Entry, projectFiles } from '../../lib/workspace/workspace.tsr';
-import { message } from '../../lib/localization.tsr';
+import { localizeError, message } from '../../lib/localization.tsr';
 import { AiContext, aiContextHandles, performModelAction } from '../../services/ai/actions.tsr';
 
 export interface ContextPickerState {
@@ -66,6 +66,28 @@ export function showContextPicker(context: ReadOnly<AiContext>, picker: Signal<C
     open: true, kind, query: '', chat: clone(context.state.get().history.active), root, files
   });
   controlInput('chat-context-search', 'focus');
+}
+
+export function attachPickedContext(scope: ReadOnly<AiContext>, chat: ReadOnly<string>, kind: ReadOnly<string>, paths: ReadOnly<string[]>): void {
+  const grant = aiContextHandles(scope);
+  grant.allowedContextPaths = clone(paths);
+
+  const notices: string[] = [];
+
+  for (const path of paths) {
+    performModelAction(grant, 'chat_attach_context', JSON.stringify({
+      chat: clone(chat), path: clone(path), kind: clone(kind)
+    }));
+    const notice = grant.state.get().notice;
+
+    if (notice !== '') notices.push(clone(path) + ' — ' + localizeError(notice));
+  }
+
+  if (notices.length > 0) {
+    const state = grant.state.get();
+    state.notice = notices.join('\n');
+    grant.state.set(state);
+  }
 }
 
 function ContextOption(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
@@ -138,15 +160,7 @@ export function ContextPicker(context: ReadOnly<AiContext>, picker: Signal<Conte
               const scope = aiContextHandles(choose);
               pickFilePaths((paths) => {
                 if (paths.length === 0) return;
-                const grant = aiContextHandles(scope);
-                grant.allowedContextPaths = clone(paths);
-
-                for (const path of paths) {
-                  performModelAction(grant, 'chat_attach_context', JSON.stringify({
-                    chat: clone(chat), path: clone(path), kind: clone(kind)
-                  }));
-                }
-
+                attachPickedContext(scope, chat, kind, paths);
                 const next = picker.get();
                 next.open = false;
                 picker.set(next);
