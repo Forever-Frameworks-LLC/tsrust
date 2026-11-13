@@ -1,7 +1,7 @@
-import { createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { createTempDir, mkdirAll, removeFile, removeDirAll, writeTextFile } from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
-import { gitRequest, readGitView } from '../src/services/git.tsr';
+import { changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
 
 test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-'));
@@ -85,6 +85,22 @@ test('source control reads status and separate staged and working diffs scoped t
       mode: 'working', action: 'unstage', path: 'ré view.txt'
     }));
     strictEqual(reset.includes('-staged line') && reset.includes('+working line'), true);
+    const odd = 'tab\tand\nnewline.txt';
+    unwrap(writeTextFile(sub + '/' + odd, 'untracked'));
+    unwrap(removeFile(sub + '/ré view.txt'));
+    const paths = unwrap(await changedFiles(sub));
+    strictEqual(paths.includes(odd), true);
+    strictEqual(paths.includes('ré view.txt'), true);
+    strictEqual(paths.includes('outside.txt'), false);
+    const removed = unwrap(await gitRequest(sub, {
+      mode: 'staged', action: 'stage', path: 'ré view.txt'
+    }));
+    strictEqual(removed.includes('deleted file mode'), true);
+    strictEqual(unwrap(await changedFiles(sub)).includes('ré view.txt'), true);
+    const restored = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'unstage', path: 'ré view.txt'
+    }));
+    strictEqual(restored.includes(' D '), true);
   } finally {
     unwrap(removeDirAll(root));
   }

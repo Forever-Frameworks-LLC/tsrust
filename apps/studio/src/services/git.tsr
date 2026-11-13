@@ -24,6 +24,26 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
   return await gitOutput(root, args);
 }
 
+// NUL-delimited names preserve whitespace and Git pathspec punctuation.
+export async function changedFiles(root: ReadOnly<string>): Task<Result<string[], string>> {
+  const names = new Set<string>();
+
+  for (const args of [['ls-files', '-z', '--modified', '--others', '--exclude-standard', '--', '.'], ['diff', '--cached', '--relative', '--name-only', '--no-renames', '-z', '--', '.']]) {
+    match (await gitOutput(root, clone(args))) {
+      Ok(text) => {
+        for (const path of text.split('\0')) if (path !== '') names.add(clone(path));
+      },
+      Err(error) => {
+        return Err(error);
+      }
+    }
+  }
+
+  const paths = Array.from(names);
+  paths.sort();
+  return Ok(paths);
+}
+
 export interface GitRequest {
   mode: string;
   action?: string;
@@ -46,7 +66,16 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
       if (!info.isFile) return Err('Choose a regular file.');
     },
     Err(error) => {
-      return Err(clone(error.message));
+      if (error.code !== 'not-found') return Err(clone(error.message));
+
+      match (await changedFiles(root)) {
+        Ok(paths) => {
+          if (!paths.includes(path) || paths.some((other) => other.startsWith(path + '/'))) return Err('Choose a file inside the workspace.');
+        },
+        Err(reason) => {
+          return Err(reason);
+        }
+      }
     }
   }
 
@@ -84,6 +113,7 @@ export interface GitReply {
   mode: string;
   text: string;
   failed: boolean;
+  files?: string[];
 }
 
 export async function gitWorker(root: string, requests: Channel<GitRequest>, replies: Sender<GitReply>): Task<void> {
@@ -93,8 +123,24 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
 
     match (await gitRequest(root, request)) {
       Ok(text) => {
+        let files: string[] = [];
+
+        if (mode === 'status') {
+          match (await changedFiles(root)) {
+            Ok(paths) => {
+              files = paths;
+            },
+            Err(error) => {
+              await replies.send({
+                mode, text: error, failed: true
+              });
+              continue;
+            }
+          }
+        }
+
         await replies.send({
-          mode, text, failed: false
+          mode, text, failed: false, files
         });
       },
       Err(error) => {

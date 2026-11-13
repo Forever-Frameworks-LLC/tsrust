@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Select changed paths for staging
+
+The Status tab now offers a searchable changed-file picker. Its selection
+takes precedence over the active editor only in Status. Clearing it restores
+active-file targeting. NUL-delimited Git output supplies workspace-relative
+staged, modified and untracked names. A missing path must match an actual
+change before Studio can stage or unstage it. Both real Git tests passed
+(3.02 s build), including unstaging a deleted Unicode file without restoring
+its disk contents, and preserving a filename containing both a tab and a
+newline in the picker data. Panel source and 540 translation keys checked.
+Native picker interaction and hunk staging remain open.
+
 ## Workspace merge conflicts
 
 Source Control lists unresolved Git paths in the Conflicts tab. Its stage

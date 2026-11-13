@@ -1,4 +1,7 @@
 {
+  "Choose a changed file": "Escolher um arquivo alterado",
+  "Stage selected or active file from disk": "Preparar o arquivo selecionado ou ativo do disco",
+  "Unstage selected or active file": "Retirar o arquivo selecionado ou ativo da preparação",
   "A user message is required.": "É necessária uma mensagem do usuário.",
   "Choose a file inside the workspace.": "Escolha um arquivo dentro do espaço de trabalho.",
   "Expected text file": "Era esperado um arquivo de texto",

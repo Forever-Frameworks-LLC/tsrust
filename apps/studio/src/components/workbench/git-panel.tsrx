@@ -4,6 +4,7 @@ import {
   CodeEditor,
   Node,
   Signal,
+  Select,
   Tab,
   Tabs,
   Text,
@@ -21,7 +22,10 @@ import { separator } from 'std:path';
 
 export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, requests: Sender<GitRequest>, replies: Channel<GitReply>, font: Signal<int>): Node {
   const mode = signal('status');
+  const files = signal<string[]>([]);
+  const chosen = signal('');
   const selection = computed<string>(() => {
+    if (mode.get() === 'status' && chosen.get() !== '') return chosen.get();
     const state = workspace.get();
     const prefix = state.root.endsWith(separator()) ? clone(state.root) : state.root + separator();
     return state.active.startsWith(prefix) ? state.active.slice(prefix.length) : '';
@@ -55,8 +59,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           variant="ghost"
           size="xsmall"
           disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
-          tooltip={message('Stage active file from disk')}
-          aria-label={accessibleName('Stage active file from disk')}
+          tooltip={message('Stage selected or active file from disk')}
+          aria-label={accessibleName('Stage selected or active file from disk')}
           onPress={() => {
             pending.set({
               mode: mode.get(), action: 'stage', path: selection.get()
@@ -68,8 +72,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           variant="ghost"
           size="xsmall"
           disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
-          tooltip={message('Unstage active file')}
-          aria-label={accessibleName('Unstage active file')}
+          tooltip={message('Unstage selected or active file')}
+          aria-label={accessibleName('Unstage selected or active file')}
           onPress={() => {
             pending.set({
               mode: mode.get(), action: 'unstage', path: selection.get()
@@ -85,6 +89,20 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           aria-label={accessibleName('Refresh source control')}
           onPress={() => {
             shown.set('');
+          }}
+        />
+      </View>
+      <View hidden={mode.get() !== 'status' || files.get().length === 0}>
+        <Select
+          items={files.get()}
+          value={chosen.get()}
+          searchable={true}
+          cleanable={true}
+          size="small"
+          placeholder={message('Choose a changed file')}
+          accessibilityLabel={message('Choose a changed file')}
+          onChange={(path) => {
+            chosen.set(clone(path));
           }}
         />
       </View>
@@ -106,6 +124,13 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           if (busy.get()) {
             match (replies.tryReceive()) {
               Ok(reply) => {
+                if (reply.mode === 'status') {
+                  const paths = reply.files ?? [];
+
+                  if (!paths.includes(chosen.get())) chosen.set('');
+                  files.set(paths);
+                }
+
                 output.set(reply.failed ? localizeError(reply.text) : reply.text);
                 failed.set(reply.failed);
                 shown.set(reply.mode);

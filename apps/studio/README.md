@@ -123,7 +123,8 @@ Source Control shows workspace status, working and staged diffs, and the current
 branch’s commit history for the open workspace. Conflicts lists unresolved
 paths. Open a listed file in the editor, resolve it, save, and stage it to
 remove it from the list.
-Use its plus and minus buttons to stage the active file from disk or unstage it.
+In Status, choose a changed file (including a deleted file), then use plus to
+stage it or minus to unstage it. Clearing the selection targets the active file.
 Unsaved editor changes stay in the draft.
 Problems lists source-labeled structured diagnostics and operation errors. Debug,
 AI Chat and Extensions still describe unfinished integrations.
