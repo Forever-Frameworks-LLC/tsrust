@@ -323,6 +323,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       let previousQuestion = '';
 
       let recentWorkspaceQuestion = false;
+      let hasPreviousAnswer = false;
 
       if (!editing) {
         const history = next.history.chats[index].messages;
@@ -332,6 +333,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           const answer = history[history.length - 1];
 
           if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') {
+            hasPreviousAnswer = true;
             recentWorkspaceQuestion = previous.workspaceExcerpt !== undefined;
 
             if (prompt.toLowerCase().includes('same function')) previousQuestion = clone(previous.functionLookup ?? previous.text);
@@ -353,7 +355,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         declarations,
         previousQuestion,
         outline,
-        recentWorkspaceQuestion
+        recentWorkspaceQuestion,
+        hasPreviousAnswer
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };

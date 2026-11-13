@@ -608,7 +608,8 @@ export function editorContext(
   index: Mutable<Map<string, FileDeclarations>>,
   previousQuestion: ReadOnly<string> = '',
   outline?: LanguageReadResult,
-  recentWorkspaceQuestion: boolean = false
+  recentWorkspaceQuestion: boolean = false,
+  hasPreviousAnswer: boolean = false
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -617,13 +618,18 @@ export function editorContext(
   let functionLookup: string | undefined = undefined;
   const active = workspace.files.find((file) => file.document.path === workspace.active);
 
-  if (!editing && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && (!hasReferences || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length))) && !attached.some((fragment) => fragment.path === workspace.active)) {
+  const question = prompt.toLowerCase();
+  const answerReference = (recentWorkspaceQuestion || hasPreviousAnswer) && ['previous answer', 'last answer', 'result you just gave', 'answer you just gave'].some((phrase) => question.includes(phrase));
+  const keepWholeFile = editing || ['whole file', 'entire file', 'full file', 'full source', 'arquivo inteiro', 'arquivo completo'].some((phrase) => question.includes(phrase));
+
+  const useActive = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active);
+  const wantsActive = keepWholeFile || question.includes('active file') || question.includes('active draft');
+
+  if (!editing && active !== undefined && useActive && ((!hasReferences && (!answerReference || wantsActive)) || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length)))) {
     result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + active.document.text;
   }
 
   if (tree !== undefined && tree.root === workspace.root) {
-    const question = prompt.toLowerCase();
-    const keepWholeFile = editing || ['whole file', 'entire file', 'full file', 'full source', 'arquivo inteiro', 'arquivo completo'].some((phrase) => question.includes(phrase));
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
     const lookup = previousQuestion === '' ? clone(prompt) : prompt + '\n' + previousQuestion;
@@ -702,7 +708,7 @@ export function editorContext(
       if (bodies.length > 0) {
         for (const name of includeLocalCalls(active.document.text, bodies, located, lines, values)) symbols.add(clone(name));
 
-        if (!keepWholeFile && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
+        if (!keepWholeFile && (result !== '' || (answerReference && useActive && !hasReferences)) && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
 
       }
     }

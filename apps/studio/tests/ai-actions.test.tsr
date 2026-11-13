@@ -1495,6 +1495,33 @@ test('active draft symbol lookup includes local dependencies before the outline 
     strictEqual(focused.excerpt.includes('base = 72'), true);
     strictEqual(focused.excerpt.includes('unrelated'), false);
     strictEqual(focused.excerpt.includes('999'), false);
+    const answerOnly = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Double the result you just gave.',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(answerOnly.excerpt, '');
+    const mixed = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Compare your previous answer with quote()',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(mixed.excerpt.includes('base = 72'), true);
+    strictEqual(mixed.excerpt.includes('unrelated'), false);
     const full = editorContext(
       workspace,
       tree,
