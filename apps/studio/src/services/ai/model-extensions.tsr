@@ -28,6 +28,8 @@ export function modelExtensions(): ModelExtension[] {
     name: 'Qwen2.5-Coder-1.5B-Instruct', filename: 'qwen2.5-coder-1.5b-instruct-q4_k_m.gguf', revision: 'f86cb2c1fa58255f8052cc32aeede1b7482d4361', tokenizerRevision: '2e1fd397ee46e1388853d2af2c993145b0f1098a', checksum: 'cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046'
   }, {
     name: 'Qwen2.5-Coder-3B-Instruct', filename: 'qwen2.5-coder-3b-instruct-q4_k_m.gguf', revision: 'f74adce6aa16316c625447af059dbebe4983757c', tokenizerRevision: '488639f1ff808d1d3d0ba301aef8c11461451ec5', checksum: '724fb256bec1ff062b2f65e4569e871ad2e95ab2a3989723d1769c54294730b7'
+  }, {
+    name: 'Qwen2.5-Coder-7B-Instruct', filename: 'qwen2.5-coder-7b-instruct-q4_k_m.gguf', revision: '13fb94bfda8c8cf22497dc57b78f391a9acb426a', tokenizerRevision: 'c03e6d358207e414f1eca0bb1891e29f1db0e242', checksum: '509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c'
   }];
 }
 

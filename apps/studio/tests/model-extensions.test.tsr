@@ -60,8 +60,11 @@ test('model extension worker rejects unlisted requests and installs a selected p
     await sender.send('../unlisted');
     strictEqual(await replies.receive(), 'Unknown model.');
 
-    if (unwrap(get('TSRUST_TEST_INSTALL_CODER_3B')) === '1') {
-      const model = modelExtensions()[1];
+    for (const size of ['3B', '7B']) {
+      if (unwrap(get('TSRUST_TEST_INSTALL_CODER_' + size)) !== '1') continue;
+      const model = modelExtensions().find((entry) => entry.name === 'Qwen2.5-Coder-' + size + '-Instruct');
+
+      if (model === undefined) throw 'Missing model extension.';
       await sender.send(clone(model.name));
       strictEqual(await replies.receive(), '');
       strictEqual(installedModel(model), true);
