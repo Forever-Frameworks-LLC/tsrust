@@ -309,7 +309,6 @@ function App(
   const gitEditor = GitEditor(
     workspace,
     recovery,
-    viewingDiff,
     font,
     gitSelection.handle(),
     gitPending.handle(),

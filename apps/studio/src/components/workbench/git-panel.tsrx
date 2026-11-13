@@ -408,7 +408,6 @@ function HunkActions(hunks: ReadOnly<DiffHunk[]>, output: ReadOnly<string>, sele
 export function GitEditor(
   workspace: Signal<Workspace>,
   recovery: Signal<Recovery>,
-  viewing: Signal<boolean>,
   font: Signal<int>,
   selected: Signal<GitChange>,
   pending: Signal<GitRequest>,
@@ -430,63 +429,6 @@ export function GitEditor(
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
   const editor: Node = <View className="size-full flex-col min-w-0 min-h-0 overflow-hidden">
-    <View className="w-full shrink-0 flex-row items-center min-w-0 px-2 border-b">
-      <Text className={'grow min-w-0 truncate font-mono text-[' + font.get().toString() + 'px]'}>
-        {basename(selected.get().path)}
-      </Text>
-      <View hidden={selected.get().mode !== 'conflicts'}>
-        <Button
-          icon="check"
-          size="xsmall"
-          variant="ghost"
-          tooltip={message('Stage resolution')}
-          aria-label={accessibleName('Stage resolution')}
-          disabled={locked.get()}
-          onPress={() => {
-            if (selected.get().mode === 'conflicts') {
-              const next = workspace.get();
-              const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
-
-              if (index >= 0) {
-                if (hasConflictStart(next.files[index].document.text)) {
-                  errorText.set(translate('Resolve conflict markers before staging.'));
-                  return;
-                }
-
-                const target: FormattingTarget = {
-                  path: clone(next.files[index].document.path), session: clone(next.files[index].document.session), revision: next.files[index].document.revision
-                };
-
-                match (saveTarget(next, target)) {
-                  Err(reason) => {
-                    errorText.set(reason);
-                    publishWorkspace(next, workspace, recovery);
-                    return;
-                  },
-                  Ok(_) => {}
-                }
-
-                publishWorkspace(next, workspace, recovery);
-              }
-            }
-
-            pending.set({
-              mode: 'status', action: selected.get().mode === 'staged' ? 'unstage' : 'stage', path: selected.get().path
-            });
-          }}
-        />
-      </View>
-      <Button
-        icon="x"
-        size="xsmall"
-        variant="ghost"
-        tooltip={message('Close diff')}
-        aria-label={accessibleName('Close diff')}
-        onPress={() => {
-          viewing.set(false);
-        }}
-      />
-    </View>
     <View hidden={selected.get().mode !== 'conflicts'} className="flex-col grow min-h-0">
       <View hidden={selected.get().status !== 'DU' && selected.get().status !== 'UD'} className="px-2 shrink-0">
         <Text className={'text-muted-foreground text-[' + font.get().toString() + 'px]'}>
@@ -557,6 +499,48 @@ export function GitEditor(
           className={'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]'}
           onChange={(event) => {
             updateDraft(workspace, recovery, path.get(), event);
+          }}
+        />
+      </View>
+      <View className="shrink-0 flex-row justify-end">
+        <Button
+          icon="check"
+          size="xsmall"
+          variant="ghost"
+          tooltip={message('Stage resolution')}
+          aria-label={accessibleName('Stage resolution')}
+          disabled={locked.get()}
+          onPress={() => {
+            if (selected.get().mode === 'conflicts') {
+              const next = workspace.get();
+              const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
+
+              if (index >= 0) {
+                if (hasConflictStart(next.files[index].document.text)) {
+                  errorText.set(translate('Resolve conflict markers before staging.'));
+                  return;
+                }
+
+                const target: FormattingTarget = {
+                  path: clone(next.files[index].document.path), session: clone(next.files[index].document.session), revision: next.files[index].document.revision
+                };
+
+                match (saveTarget(next, target)) {
+                  Err(reason) => {
+                    errorText.set(reason);
+                    publishWorkspace(next, workspace, recovery);
+                    return;
+                  },
+                  Ok(_) => {}
+                }
+
+                publishWorkspace(next, workspace, recovery);
+              }
+            }
+
+            pending.set({
+              mode: 'status', action: selected.get().mode === 'staged' ? 'unstage' : 'stage', path: selected.get().path
+            });
           }}
         />
       </View>

@@ -6,6 +6,12 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+Owner removed the diff viewer toolbar. Source Control opens ordinary diffs
+directly below the workbench title bar. The guarded Stage resolution control
+now sits below the merge result and appears only for conflicts. The live
+en.json diff measured 822-by-719 logical pixels at y=218; the prior toolbar
+layout started at y=239. The Close diff action was absent from the live window.
+
 Modify/delete conflict previews identify which side deleted the file. The
 merge result editor requires an open text document. Marker-choice buttons
 require an opening marker in that draft. The resolver and staging check
