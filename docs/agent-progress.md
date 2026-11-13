@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Development dependency capture
+
+Each snapshot now discovers aliases and validates the nearest configuration and
+UI lock once per importer directory. Every new capture resolves them afresh.
+Repeated observations of an external file with different stamps invalidate the
+capture even when the provider already holds its original bytes. The prior
+implementation could overwrite the original stamp and accept those stale bytes.
+
+Six frozen-snapshot cases passed (0.04 s), three public watcher cases passed
+(3.21 s, build 14.89 s), and the new mid-capture external-edit regression passed
+(under 0.01 s, build 8.46 s). Logs /tmp/studio-capture-snapshot-check.log,
+/tmp/studio-capture-alias-check.log and /tmp/studio-capture-race-check.log.
+Supervisor 1088 and preview 4521 remained alive. This change has no measured
+end-to-end rebuild timing and is not installed in that supervisor.
+
 ## Read a conversation without selecting it
 
 The registered local_model_read action accepts an optional chat ID. An explicit
