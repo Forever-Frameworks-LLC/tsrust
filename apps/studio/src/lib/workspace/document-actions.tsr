@@ -25,7 +25,7 @@ export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recov
   const next = workspace.get();
   const index = next.files.findIndex((file) => file.document.path === path);
 
-  if (index < 0) return;
+  if (index < 0 || next.files[index].kind !== 'text') return;
   edit(next.files[index].document, clone(text));
   next.error = '';
   publishWorkspace(next, workspace, recovery);

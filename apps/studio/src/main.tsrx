@@ -229,7 +229,7 @@ function App(
     const state = workspace.get();
 
     for (const file of state.files) {
-      if (file.document.path === state.active) return (file.kind === 'image' ? translate('Image') : extname(file.document.path).slice(1) + ' • UTF-8') + (dirty(file.document) ? ' • ' + translate('Unsaved') : '');
+      if (file.document.path === state.active) return (file.kind === 'image' ? translate('Image') : file.kind === 'binary' ? translate('Binary') : file.kind === 'bytes' ? translate('Byte preview') : extname(file.document.path).slice(1) + ' • UTF-8') + (dirty(file.document) ? ' • ' + translate('Unsaved') : '');
     }
 
     return translate('No file open');

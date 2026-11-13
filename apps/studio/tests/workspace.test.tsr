@@ -1,5 +1,6 @@
+import { fromHex } from 'std:bytes';
 import { tempDir } from 'std:env';
-import { createTempDir, mkdirAll, writeTextFile, removeDirAll } from 'std:fs';
+import { createTempDir, mkdirAll, writeFile, writeTextFile, removeDirAll } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 
 import { edit, propose, apply, markSaved } from '../src/lib/workspace/documents.tsr';
@@ -164,6 +165,36 @@ test('moving tabs preserves active session and draft contents', () => {
     strictEqual(workspace.files[0].document.text, 'draft 🦀');
     moveFile(workspace, 'not-open', 1);
     strictEqual(workspace.files.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('binary and oversized files open as bounded byte previews', () => {
+  const root = unwrap(createTempDir(unwrap(tempDir()), 'studio-byte-preview-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+
+    for (const hex of ['ff80', '410042']) {
+      const path = root + '/' + hex + '.dat';
+      unwrap(writeFile(path, unwrap(fromHex(hex))));
+      unwrap(openFile(workspace, path));
+      const file = workspace.files[workspace.files.length - 1];
+      strictEqual(file.kind, 'binary');
+      strictEqual(file.document.text, '');
+      strictEqual(file.byteSize, hex === 'ff80' ? 2 : 3);
+      strictEqual(file.binaryPreview, hex === 'ff80' ? 'ff 80' : '41 00 42');
+    }
+
+    const large = root + '/large.txt';
+    unwrap(writeTextFile(large, 'x'.repeat(4194305)));
+    unwrap(openFile(workspace, large));
+    strictEqual(workspace.files[2].kind, 'bytes');
+    strictEqual(workspace.files[2].byteSize, 4194305);
+    strictEqual(workspace.files[2].previewBytes, 256);
+    strictEqual(workspace.files[2].binaryPreview?.split('\n').length, 16);
+    strictEqual(workspace.files[2].document.text, '');
   } finally {
     unwrap(removeDirAll(root));
   }

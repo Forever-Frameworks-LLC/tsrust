@@ -1,4 +1,14 @@
-import { canonicalize, stat, readDir, readTextFile, walkDir } from 'std:fs';
+import { Bytes, length, toUtf8, view, toHex } from 'std:bytes';
+import {
+  canonicalize,
+  stat,
+  readDir,
+  open,
+  read,
+  close,
+  readFile,
+  walkDir
+} from 'std:fs';
 import { basename, extname, separator } from 'std:path';
 
 import { Document, createDocument, dirty } from './documents.tsr';
@@ -13,6 +23,9 @@ export interface OpenFile {
   document: Document;
   name: string;
   kind: string;
+  binaryPreview?: string;
+  byteSize?: int;
+  previewBytes?: int;
   imageZoom?: number;
   imageEffectiveZoom?: number;
   imageScroll?: ImageScroll;
@@ -73,6 +86,16 @@ export function selectFile(workspace: Mutable<Workspace>, path: string): boolean
   return true;
 }
 
+function readPrefix(path: ReadOnly<string>): Bytes {
+  const file = unwrap(open(path));
+
+  try {
+    return unwrap(read(file, 256));
+  } finally {
+    unwrap(close(file));
+  }
+}
+
 export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>): Result<void, string> {
   try {
     const resolved = unwrap(canonicalize(path));
@@ -86,11 +109,51 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
       return Ok();
     }
 
-    if (!unwrap(stat(resolved)).isFile) return Err('Choose a regular file.');
+    const info = unwrap(stat(resolved));
+
+    if (!info.isFile) return Err('Choose a regular file.');
     // shortcut: initial text reads are bounded to 4 MiB; add a streaming document path for large-file editing.
     const extension = extname(resolved).toLowerCase();
     const image = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
-    const text = image ? '' : unwrap(readTextFile(resolved, 4 * 1024 * 1024));
+    let text = '';
+    let kind = image ? 'image' : 'text';
+    let binaryPreview: string | undefined = undefined;
+    let byteSize: int | undefined = undefined;
+    let previewBytes: int | undefined = undefined;
+
+    if (!image) {
+      const large = info.size > 4 * 1024 * 1024;
+      const bytes = large ? readPrefix(resolved) : unwrap(readFile(resolved, 4 * 1024 * 1024));
+
+      if (large) kind = 'bytes';
+      else match (toUtf8(bytes)) {
+        Ok(decoded) => {
+          if (decoded.includes('\0')) kind = 'binary';
+          else text = decoded;
+        },
+        Err(_) => {
+          kind = 'binary';
+        }
+      }
+
+      if (kind !== 'text') {
+        const count = length(bytes);
+        byteSize = large ? info.size : count;
+        const shown = count < 256 ? count : 256;
+        previewBytes = shown;
+        const hex = unwrap(toHex(unwrap(view(bytes, 0, shown))));
+        const rows: string[] = [];
+
+        for (let start = 0; start < hex.length; start += 32) {
+          const cells: string[] = [];
+
+          for (let index = start; index < start + 32 && index < hex.length; index += 2) cells.push(hex.slice(index, index + 2));
+          rows.push(cells.join(' '));
+        }
+
+        binaryPreview = rows.join('\n');
+      }
+    }
 
     match (createDocument(clone(resolved), text)) {
       Err(message) => {
@@ -98,7 +161,7 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
       },
       Ok(document) => {
         workspace.files.push({
-          document, name: basename(resolved), kind: image ? 'image' : 'text'
+          document, name: basename(resolved), kind, binaryPreview, byteSize, previewBytes
         });
       }
     }

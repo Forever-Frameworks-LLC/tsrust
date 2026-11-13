@@ -113,6 +113,11 @@ export function searchSnapshotContents(
 
               match (readTextFile(file.path, 4 * 1024 * 1024)) {
                 Ok(value) => {
+                  if (value.includes('\0')) {
+                    skipped += 1;
+                    continue;
+                  }
+
                   text = value;
                 },
                 Err(_) => {

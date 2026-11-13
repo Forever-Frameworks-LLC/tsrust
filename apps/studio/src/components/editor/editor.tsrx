@@ -4,6 +4,8 @@ import {
   View,
   Button,
   CodeEditor,
+  Text,
+  translateWith,
   Markdown,
   DockPanel,
   Node,
@@ -63,6 +65,24 @@ export function FilePanel(
   const preview = signal(false);
   const markdown = extname(path).toLowerCase() === '.md';
   const editorClass = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
+
+  if (file.kind === 'binary' || file.kind === 'bytes') {
+    const previewText = clone(file.binaryPreview ?? '');
+    const count = file.byteSize ?? 0;
+    const shown = file.previewBytes ?? 0;
+    return (
+      <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}>
+        <View id={clone(file.document.session)} className="flex-col size-full min-w-0 min-h-0">
+          <Text className="px-2 py-1 text-muted-foreground">
+            {translateWith('binaryPreviewSize', {
+              count, shown
+            })}
+          </Text>
+          <CodeEditor value={previewText} readOnly={true} softWrap={false} appearance={false} bordered={false} className={editorClass.get()} accessibilityLabel={message("Hexadecimal preview")} />
+        </View>
+      </DockPanel>
+    );
+  }
 
   if (file.kind === 'image') {
     return (

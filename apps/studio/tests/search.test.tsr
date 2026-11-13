@@ -98,6 +98,8 @@ test('content search supports literal, case and regex matching with UTF-8 line o
     edit(workspace.files[0].document, 'unsaved needle');
     strictEqual(unwrap(searchContents(workspace, 'needle', false, true)).hits.length, 1);
     strictEqual(unwrap(searchContents(workspace, 'Alpha', false, true)).hits.length, 0);
+    unwrap(writeTextFile(root + '/binary.dat', 'needle\0data'));
+    strictEqual(unwrap(searchContents(workspace, 'data', false, true)).hits.length, 0);
     unwrap(writeTextFile(root + '/image.png', 'not UTF-8 image content'));
     unwrap(openFile(workspace, root + '/image.png'));
     strictEqual(workspace.files[1].kind, 'image');

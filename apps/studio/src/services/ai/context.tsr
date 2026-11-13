@@ -36,7 +36,9 @@ export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<strin
     let text = '';
 
     if (opened !== undefined) {
-      if (opened.kind !== 'text') return Err('The selected model accepts text context. Image attachments need a vision model.');
+      if (opened.kind !== 'text' && opened.kind !== 'image') return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+
+      if (opened.kind === 'image') return Err('The selected model accepts text context. Image attachments need a vision model.');
       text = clone(opened.document.text);
     } else match (readTextFile(resolved, 32768)) {
       Ok(source) => {
@@ -47,7 +49,7 @@ export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<strin
       }
     }
 
-    if (length(unwrap(fromUtf8(text))) > 32768) return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+    if (text.includes('\0') || length(unwrap(fromUtf8(text))) > 32768) return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
     return Ok({
       id: chatIdentity(), kind: clone(kind), path: clone(resolved), label: kind === 'skill' ? basename(dirname(resolved)) : basename(resolved), text
     });

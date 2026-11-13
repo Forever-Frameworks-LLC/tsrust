@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Binary and large-file previews
+
+Opening a non-image file containing invalid UTF-8 or NUL bytes now presents a
+read-only hex view with the file size and preview byte count. Non-image files
+over the 4 MiB editing limit read at most 256 bytes. Existing image handling
+and ordinary UTF-8 editing remain in place. Workspace/document suites passed
+7/7 in 31.94 ms; search/chat suites passed 14/14 in 47.88 ms. The fixtures
+covered two binary encodings, a 4 MiB + 1 byte text file and exclusion of
+embedded NUL data from content search. Editor check and both locale catalogs
+passed. Supervisor 36374 rebuilt in 125341 ms and launched preview 79756.
+Logs /tmp/studio-byte-preview-{tests,consumers,editor-final,format-final}.log.
+Native visual appearance and hex selection/copy have not been observed.
+
 ## Stale diagnostic coordinates
 
 Terminal links, Problems rows and the registered open_problem action now reject
