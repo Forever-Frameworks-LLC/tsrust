@@ -866,6 +866,12 @@ test('attached workspace edits review and apply as one draft transaction', () =>
     if (batch === undefined) throw 'Missing edit targets.';
     const reply = '[{"file":1,"before":"second","after":"SECOND"},{"file":0,"before":"first","after":"FIRST"}]';
     strictEqual(denied(batchProposal(batch, reply.replace('"file":1', '"file":0'))), true);
+    const one = unwrap(batchProposal(batch, '[{"file":1,"before":"second","after":"SECOND"}]'));
+    strictEqual(one.files.length, 1);
+    strictEqual(one.files[0].path, root + '/second.tsr');
+    strictEqual(one.files[0].after, 'SECOND');
+    strictEqual(denied(batchProposal(batch, '[]')), true);
+    strictEqual(denied(batchProposal(batch, '[{"file":2,"before":"second","after":"SECOND"}]')), true);
     const updates = new Channel<ModelUpdate>(1);
     unwrap(updates.sender().trySend({
       kind: 'complete', id: request.id, text: reply, stop: 'eos', error: ''

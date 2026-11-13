@@ -68,6 +68,64 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
+if (workspaceEval === 'reference-draft') test('local chat edits one of two attached drafts using the other as an unsaved reference', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const folder = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-reference-edit-'))));
+
+  try {
+    const reference = folder + '/defaults.tsr';
+    const target = folder + '/settings.tsr';
+    const original = 'export const timeout: int = 10;';
+    unwrap(writeTextFile(reference, 'export const defaultTimeout: int = 25;'));
+    unwrap(writeTextFile(target, original));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, reference));
+    edit(workspace.files[0].document, 'export const defaultTimeout: int = 47;');
+    unwrap(openFile(workspace, target));
+    const opened = signal(workspace);
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: opened.handle(), state: signal(initialAiState(emptyHistory(clone(opened.get().root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+        chat: '', path: clone(reference), kind: 'file'
+      })));
+      unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+        chat: '', path: clone(target), kind: 'file'
+      })));
+      const reply = await ask(host, updates, 'Edit files: Only change file 1. Set its timeout to the numeric value of defaultTimeout from file 0. Keep the existing declaration. File 0 is reference only.');
+      console.log(reply);
+      const review = host.state.get().review;
+
+      if (review === undefined) throw 'Missing review: ' + host.state.get().notice;
+      strictEqual(review.files.length, 1);
+      strictEqual(review.files[0].path, target);
+      strictEqual(review.files[0].after, original.replace('10', '47'));
+      reviewChatEdit(host.state, opened, signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      }), review, true);
+      strictEqual(opened.get().files[1].document.text, review.files[0].after);
+      strictEqual(opened.get().files[0].document.text, 'export const defaultTimeout: int = 47;');
+      strictEqual(unwrap(readTextFile(reference)), 'export const defaultTimeout: int = 25;');
+      strictEqual(unwrap(readTextFile(target)), original);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
 if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified', 'prose'].includes(workspaceEval)) test(workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
