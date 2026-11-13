@@ -14,7 +14,21 @@ interface AdapterReply {
   body?: AdapterBody;
 }
 
+interface DebugFrame {
+  id: int;
+  name: string;
+}
+
+interface DebugBreakpoint {
+  verified: boolean;
+}
+
 interface AdapterBody {
+  supportsFunctionBreakpoints?: boolean;
+  breakpoints?: DebugBreakpoint[];
+  stackFrames?: DebugFrame[];
+  reason?: string;
+  threadId?: int;
   supportsConfigurationDoneRequest?: boolean;
   exitCode?: int;
   category?: string;
@@ -38,11 +52,13 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
     }));
     let launched = false;
     let configured = false;
+    let thread = 0;
+    let resumed = false;
     let output = '';
     let exited = false;
     let terminated = false;
 
-    while (!launched || !configured || !exited || !terminated) {
+    while (!launched || !configured || !resumed || !exited || !terminated) {
       const frame = await readFrame(reader).timeout(10000);
       const reply = JSON.parse<AdapterReply>(frame);
 
@@ -52,6 +68,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
         if (reply.command === 'initialize') {
           strictEqual(reply.request_seq, 1);
           strictEqual(reply.body?.supportsConfigurationDoneRequest, true);
+          strictEqual(reply.body?.supportsFunctionBreakpoints, true);
           await writeFrame(writer, JSON.stringify({
             seq: 2, type: 'request', command: 'launch', arguments: {
               program: clone(program)
@@ -60,12 +77,40 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
         } else if (reply.command === 'launch') {
           strictEqual(reply.request_seq, 2);
           launched = true;
-        } else if (reply.command === 'configurationDone') {
+        } else if (reply.command === 'setFunctionBreakpoints') {
           strictEqual(reply.request_seq, 3);
+          const points = clone(reply.body?.breakpoints) ?? [];
+          strictEqual(points.length, 1);
+          strictEqual(points[0].verified, true);
+          await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
+        } else if (reply.command === 'configurationDone') {
+          strictEqual(reply.request_seq, 4);
           configured = true;
+        } else if (reply.command === 'stackTrace') {
+          strictEqual(reply.request_seq, 5);
+          const frames = clone(reply.body?.stackFrames) ?? [];
+          strictEqual(frames.length > 0, true);
+          strictEqual(frames[0].name.includes('main'), true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 6, type: 'request', command: 'continue', arguments: {
+              threadId: thread
+            }
+          }));
+        } else if (reply.command === 'continue') {
+          strictEqual(reply.request_seq, 6);
+          resumed = true;
         }
       } else if (reply.event === 'initialized') {
-        await writeFrame(writer, '{"seq":3,"type":"request","command":"configurationDone","arguments":{}}');
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":"main"}]}}');
+      } else if (reply.event === 'stopped') {
+        strictEqual(reply.body?.reason, 'breakpoint');
+        thread = reply.body?.threadId ?? 0;
+        strictEqual(thread > 0, true);
+        await writeFrame(writer, JSON.stringify({
+          seq: 5, type: 'request', command: 'stackTrace', arguments: {
+            threadId: thread
+          }
+        }));
       } else if (reply.event === 'output' && reply.body?.category === 'stdout') {
         output += reply.body?.output ?? '';
       } else if (reply.event === 'exited') {
@@ -84,7 +129,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
   }
 }
 
-test('LLDB adapter launches a compiled Tsrust program and reports its stdout and exit', async () => {
+test('LLDB stops at native main, reads the stack and resumes a compiled Tsrust program', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
 
   try {
