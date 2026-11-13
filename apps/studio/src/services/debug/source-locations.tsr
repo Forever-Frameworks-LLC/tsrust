@@ -3,7 +3,7 @@ import { basename, dirname } from 'std:path';
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
 
-interface OriginalPosition {
+export interface OriginalPosition {
   path: string;
   line: int;
   column: int;
@@ -11,8 +11,8 @@ interface OriginalPosition {
 
 // Index only the generated line immediately following a compiler marker pair.
 // An adjacent function or generated cleanup instruction may have no original statement.
-export function debugLocations(program: ReadOnly<string>, path: ReadOnly<string>): Map<int, string> {
-  const locations = new Map<int, string>();
+export function debugLocations(program: ReadOnly<string>, path: ReadOnly<string>): Map<int, OriginalPosition> {
+  const locations = new Map<int, OriginalPosition>();
   const name = basename(path);
 
   if (name.length !== 75 || !name.startsWith('program_') || !name.endsWith('.rs')) return locations;
@@ -32,7 +32,7 @@ export function debugLocations(program: ReadOnly<string>, path: ReadOnly<string>
       if (!lines[i].startsWith(prefix) || !lines[i + 1].startsWith('// tsrust-source ')) continue;
       const position = JSON.parse<OriginalPosition>(lines[i].slice(prefix.length));
 
-      if (position.line > 0 && position.column > 0 && position.path !== '') locations.set(i + 3, position.path + ':' + position.line.toString() + ':' + position.column.toString());
+      if (position.line > 0 && position.column > 0 && position.path !== '') locations.set(i + 3, position);
     }
   } catch (_) {}
 

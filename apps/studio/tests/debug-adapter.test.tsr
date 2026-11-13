@@ -333,7 +333,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       let line = 0;
 
       for (const entry of debugLocations(program, unit).entries()) {
-        if (entry[1] === expected) line = entry[0];
+        if (entry[1].path === source && entry[1].line === 11 && entry[1].column === 3) line = entry[0];
       }
 
       strictEqual(line > 0, true);
@@ -352,6 +352,9 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
         if (reply.stopped === true) {
           strictEqual(reply.text.includes(expected), true);
+          strictEqual(reply.location?.path, clone(source));
+          strictEqual(reply.location?.line, 11);
+          strictEqual(reply.location?.column, 3);
           stops += 1;
           await commands.send({
             action: 'continue'

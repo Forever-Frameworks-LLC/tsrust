@@ -200,7 +200,17 @@ function App(
     downloadReplies
   );
   const debugOutput = signal('');
-  const debugSidebar = DebugSidebar(debugRequests, debugResults, font, debugOutput, panel);
+  const debugSidebar = DebugSidebar(
+    debugRequests,
+    debugResults,
+    font,
+    debugOutput,
+    panel,
+    {
+      workspace: workspace.handle(), recovery: recovery.handle(), allowedRoot: clone(workspace.get().root), allowNavigation: true, focusEditor: true
+    }
+
+  );
   const panelView = Panels(
     panel,
     CheckPanel(

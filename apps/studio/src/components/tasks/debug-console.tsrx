@@ -16,6 +16,10 @@ import {
 import { message, accessibleName } from '../../lib/localization.tsr';
 import { DebugCommand, DebugOutput } from '../../services/debug/session.tsr';
 
+import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { openLanguageLocation } from '../../lib/language/navigation.tsr';
+import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
+
 function DebugControl(
   requests: ReadOnly<Channel<DebugCommand>>,
   stopped: Signal<boolean>,
@@ -49,7 +53,14 @@ function DebugControl(
   );
 }
 
-export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies: Channel<DebugOutput>, font: Signal<int>, output: Signal<string>, panel: Signal<string>): Node {
+export function DebugSidebar(
+  requests: ReadOnly<Channel<DebugCommand>>,
+  replies: Channel<DebugOutput>,
+  font: Signal<int>,
+  output: Signal<string>,
+  panel: Signal<string>,
+  navigation: SearchActionContext
+): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
   const breakpoint = signal('');
@@ -155,7 +166,19 @@ export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies:
           }
         }
         match (replies.tryReceive()) {
-          Ok(reply) => { output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
+          Ok(reply) => {
+            const location = reply.location;
+            if (location !== undefined) {
+              const point: DiagnosticPosition = {line: location.line - 1, character: location.column - 1};
+              match (openLanguageLocation(navigation, {
+                root: clone(navigation.allowedRoot ?? ''), uri: documentUri(location.path),
+                selection: {start: clone(point), end: point}
+              })) {
+                Ok(_) => {},
+                Err(error) => { output.set(output.get() + error + '\n'); }
+              }
+            }
+            output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />
