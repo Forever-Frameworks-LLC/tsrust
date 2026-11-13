@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Unreadable files in chat
+
+If named entries in the explorer snapshot cannot supply text, Studio replies
+locally with the affected relative paths. A named open text buffer supplies its
+current draft even when its backing file has disappeared. The chat and
+localization suites passed 13/13 in 22.84 ms. A single test covered a binary
+active tab, a deleted unopened file, an empty model queue, and a subsequent
+request containing the unsaved draft from a different deleted file. Paths
+absent from the explorer snapshot are outside this check.
+
 ## Real local chat clarification
 
 The configured local 1.5B model initially guessed 1 when two different

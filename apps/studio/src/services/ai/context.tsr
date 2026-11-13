@@ -76,13 +76,19 @@ function contextExcerpt(bytes: ReadOnly<Bytes>): string {
 
 function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>): Result<string, string> {
   try {
-    const resolved = unwrap(canonicalize(path));
+    if (!path.startsWith(prefix)) return Err('Unavailable file');
+    const opened = workspace.files.find((file) => file.document.path === path);
+    let excerpt = '';
 
-    if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return Err('Unavailable file');
-    const opened = workspace.files.find((file) => file.document.path === resolved);
+    if (opened !== undefined) {
+      if (opened.kind !== 'text') return Err('Expected text file');
+      excerpt = contextExcerpt(unwrap(fromUtf8(opened.document.text)));
+    } else {
+      const resolved = unwrap(canonicalize(path));
 
-    if (opened !== undefined && opened.kind !== 'text') return Err('Expected text file');
-    const excerpt = opened === undefined ? contextExcerpt(readPrefix(resolved, 2049)) : contextExcerpt(unwrap(fromUtf8(opened.document.text)));
+      if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return Err('Unavailable file');
+      excerpt = contextExcerpt(readPrefix(resolved, 2049));
+    }
 
     if (excerpt.includes('\0')) return Err('Expected text file');
     return Ok(excerpt);
@@ -112,10 +118,12 @@ function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean
 export interface EditorContextResult {
   excerpt: string;
   candidates: string[];
+  unavailable: string[];
 }
 
 export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>): EditorContextResult {
   const ambiguous: string[] = [];
+  const unavailable: string[] = [];
   const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
   let result = '';
   const active = workspace.files.find((file) => file.document.path === workspace.active);
@@ -154,14 +162,17 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
           ambiguous.push('./' + path);
         }
 
-        if (named < 2 && file.path !== workspace.active && referenced && !attached.some((fragment) => fragment.path === file.path)) {
+        if (named < 2 && (file.path !== workspace.active || active?.kind !== 'text') && referenced && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
               result += '\n\nReferenced workspace file: ' + path + '\n' + excerpt;
-              named += 1;
             },
-            Err(_) => {}
+            Err(_) => {
+              unavailable.push(clone(path));
+            }
           }
+
+          named += 1;
         }
 
         if (paths.length >= 24 || size + path.length + 1 > 1024) continue;
@@ -175,6 +186,6 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
   }
 
   return {
-    excerpt: result, candidates: ambiguous
+    excerpt: result, candidates: ambiguous, unavailable
   };
 }

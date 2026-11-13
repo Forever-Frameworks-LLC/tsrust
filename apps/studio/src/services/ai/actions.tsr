@@ -290,7 +290,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
       const attachments = draftContext(next.history);
       const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt) : {
-        excerpt: '', candidates: []
+        excerpt: '', candidates: [], unavailable: []
       };
       const excerpt = grounding.excerpt;
       next.history.chats[index].messages.push({
@@ -304,15 +304,20 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       };
 
       if (length(unwrap(fromUtf8(JSON.stringify(generation)))) > 128 * 1024) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
+      let reply = '';
+
+      if (grounding.candidates.length > 0) reply = translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n');
+
+      if (grounding.unavailable.length > 0) reply += (reply === '' ? '' : '\n\n') + translate('Studio could not read text from these files.') + '\n\n' + grounding.unavailable.join('\n\n');
       next.history.chats[index].messages.push({
-        role: 'assistant', text: grounding.candidates.length === 0 ? '' : translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n'), request: clone(next.active), status: grounding.candidates.length === 0 ? 'pending' : 'complete'
+        role: 'assistant', text: clone(reply), request: clone(next.active), status: reply === '' ? 'pending' : 'complete'
       });
       next.history.chats[index].draft = '';
       next.history.chats[index].context = [];
       next.history.chats[index].revision += 1;
       next.history.draft = '';
 
-      if (grounding.candidates.length > 0) {
+      if (reply !== '') {
         next.active = '';
         next.targetChat = '';
         unwrap(publish(context, next));
