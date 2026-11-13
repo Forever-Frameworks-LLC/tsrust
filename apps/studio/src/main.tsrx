@@ -232,7 +232,7 @@ function App(
     font
   );
   const aiContext: AiContext = {
-    projectTree, state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
+    references: references.handle(), projectTree, state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
   };
   const chatView = ChatPanel(aiContext, font, aiState);
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');

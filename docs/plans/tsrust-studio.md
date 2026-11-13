@@ -681,6 +681,13 @@ models and exposes the necessary generation primitives.
 
 ### Local model research, specialization and distribution
 
+Owner priority, November 13: make the small offline model accurate on moderately
+complex workspace tasks before considering Tsrust specialization. Prioritize a
+maintained semantic index, compiler/editor references, and token-efficient source
+selection. Preserve significant whitespace and exact edit anchors. Evaluate
+against held-out tasks that require finding the right files, following references,
+making a reviewed change, and passing the compiler and relevant tests.
+
 1. Build versioned evaluation tasks from compiler contracts, API docs, checked
    examples, real application tasks and known failures. Split by task lineage and
    source families before deriving training samples, keeping held-out evaluation

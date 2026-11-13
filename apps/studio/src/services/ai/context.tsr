@@ -8,9 +8,12 @@ import {
 } from 'std:bytes';
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
+import { compile } from 'std:regex';
 import { basename, dirname, join, separator } from 'std:path';
 
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
+import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
+import { diagnosticPath } from '../../lib/language/diagnostics.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { Workspace, readPrefix } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
@@ -113,6 +116,82 @@ function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean
   }
 
   return false;
+}
+
+// Cache bounded source reads for this request only. Recheck stale locations against the current text.
+function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, hit: ReadOnly<ReferenceLocation>, symbol: ReadOnly<string>, cache: Mutable<Map<string, string[]>>): string {
+  if (!cache.has(path)) {
+    if (cache.size >= 4) return '';
+    const file = workspace.files.find((entry) => entry.document.path === path);
+    let source = '';
+
+    if (file !== undefined) {
+      if (file.kind === 'text' && file.document.text.length <= 65536) source = clone(file.document.text);
+    } else if (unwrap(stat(path)).isFile) {
+      match (readTextFile(path, 65536)) {
+        Ok(text) => {
+          source = text;
+        },
+        Err(_) => {}
+      }
+    }
+
+    cache.set(clone(path), source.includes('\0') ? [] : source.split('\n'));
+  }
+
+  const lines = cache.get(path);
+  const index = hit.range.start.line;
+
+  if (lines === undefined || index >= lines.length || lines[index].length > 512) return '';
+  const line = lines[index];
+
+  if (referenceSymbol(line, {
+    line: 0, character: hit.range.start.character
+  }) !== symbol) return '';
+  return line.trim();
+}
+
+// A references result is a snapshot of a language-server query, not a fresh search.
+export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnly<LanguageReferences>, prompt: ReadOnly<string>): string {
+  const root = workspace.root;
+  const query = result.query;
+
+  if (result.root !== root || result.pending === true || (result.error ?? '') !== '' || query === undefined || query.kind === 'file' || query.symbol === '') return '';
+  const symbol = clone(query.symbol);
+  const identifiers = unwrap(compile('[\\p{L}\\p{N}_$]+'));
+  const bytesPrompt = unwrap(fromUtf8(prompt));
+
+  if (!identifiers.findAll(prompt).some((token) => unwrap(toUtf8(unwrap(view(bytesPrompt, token.start, token.end)))) === symbol)) return '';
+  const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
+  const cache = new Map<string, string[]>();
+  const rows: string[] = [];
+  let bytes = 0;
+
+  try {
+    if (!unwrap(canonicalize(query.path)).startsWith(prefix)) return '';
+  } catch (_) {
+    return '';
+  }
+
+  for (let index = 0; index < result.locations.length && index < 48; index += 1) {
+    const hit = result.locations[index];
+
+    if (rows.length >= 12) break;
+
+    try {
+      const path = unwrap(canonicalize(diagnosticPath(hit.uri)));
+
+      if (!path.startsWith(prefix) || hit.range.start.line < 0 || hit.range.start.character < 0) continue;
+      const snippet = referenceLine(workspace, path, hit, symbol, cache);
+      const row = path.slice(prefix.length) + ':' + (hit.range.start.line + 1).toString() + ':' + (hit.range.start.character + 1).toString() + (snippet === '' ? '' : '  ' + snippet);
+
+      if (bytes + row.length + 1 > 1024 || rows.includes(row)) continue;
+      bytes += row.length + 1;
+      rows.push(row);
+    } catch (_) {}
+  }
+
+  return rows.length === 0 ? '' : '\n\nLast Find References results for ' + query.symbol + ':\n' + rows.join('\n');
 }
 
 export interface EditorContextResult {

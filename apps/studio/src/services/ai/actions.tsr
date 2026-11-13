@@ -17,8 +17,9 @@ import {
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageReferences } from '../../lib/language/references.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { EditorContextResult, editorContext, readContext } from './context.tsr';
+import { EditorContextResult, editorContext, readContext, referenceContext } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
@@ -46,6 +47,7 @@ export interface AiContext {
   allowInference: boolean;
   allowDelete?: boolean;
   workspace?: Signal<Workspace>;
+  references?: Signal<LanguageReferences>;
   projectTree?: Signal<DirectoryTree>;
   allowedContextPaths?: string[];
 }
@@ -67,11 +69,12 @@ export function initialAiState(history: ChatHistory = emptyHistory(), notice: st
 }
 
 export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: boolean = false): AiContext {
+  const references = context.references;
   const tree = context.projectTree;
   const store = context.store;
   const workspace = context.workspace;
   return {
-    projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+    references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
   };
 }
 
@@ -297,7 +300,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt, editing) : {
         excerpt: '', candidates: [], unavailable: []
       };
-      const excerpt = grounding.excerpt;
+      const references = context.references;
+      const excerpt = grounding.excerpt + (canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '');
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
       });

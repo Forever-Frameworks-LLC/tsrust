@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat retrieval from editor references
+
+A prompt naming the symbol from a completed Find References query now receives
+bounded workspace-relative locations. Up to four source files provide matching
+lines, preferring open drafts. Only external line whitespace is trimmed. The AI
+action suite passed 17/17 in 44.43 ms, including literal spaces, a separate
+caller file, unrelated lines, follow-up history and read permission. This
+uses the most recent editor query. Autonomous lookup, a maintained workspace
+symbol index, tokenizer-budget selection and held-out task accuracy are pending.
+
 ## Source Control panel
 
 Studio reads workspace-scoped Git status, working diff and staged diff in a
