@@ -173,7 +173,8 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));
-    unwrap(writeTextFile(folder + '/policy.tsr', policy));
+    const file = policy + (defaultImport ? 'export function unrelatedRule(): int { return 999; }\n' : '');
+    unwrap(writeTextFile(folder + '/policy.tsr', file));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/quote.tsr'));
     const opened = signal(clone(workspace));
@@ -188,6 +189,7 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
       const answer = await ask(host, updates, 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
       console.log(answer);
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
+      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes('unrelatedRule'), false);
       const proposal = host.state.get().review;
 
       if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
@@ -200,7 +202,7 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
       const changed = opened.get();
       strictEqual(unwrap(readTextFile(folder + '/quote.tsr')), caller);
       unwrap(saveDocument(changed.files[0].document));
-      strictEqual(unwrap(readTextFile(folder + '/policy.tsr')), policy);
+      strictEqual(unwrap(readTextFile(folder + '/policy.tsr')), file);
     } finally {
       worker.cancel();
 

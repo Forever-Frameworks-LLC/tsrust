@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Default import source excerpts
+
+Symbol-only requests for a simple default-imported function now carry its
+declaration and body plus the local signature. The scanner skips comments and
+quoted strings when balancing braces. Explicit filename requests, mixed named
+and default symbol requests, and unrecognized signatures retain full source.
+This is lexical extraction. Transitive helper definitions and general
+compiler-backed symbol indexing remain open.
+
+The local 1.5B caller-repair case verified the outgoing context included the
+full target function and excluded an unrelated export. The reviewed caller
+used shelfCharge(fragile, units), passed four native behavior checks, and
+left the policy file intact. Both focused suites passed 20/20 in 4126.79 ms
+with TSRUST_STUDIO_RUN_WORKSPACE_EVAL=default.
+
 ## Recall when the answer omits the symbol
 
 When a historical question mentioning the requested identifier must be

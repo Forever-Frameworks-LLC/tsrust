@@ -627,7 +627,7 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     unwrap(writeTextFile(folder + '/helpers.tsr', 'export function policy() { return 37; }'));
     unwrap(writeTextFile(folder + '/unused.tsr', 'never include this source'));
     unwrap(mkdirAll(folder + '/rules'));
-    unwrap(writeTextFile(folder + '/rules/index.tsrx', 'export default function chosen() { return 42; }'));
+    unwrap(writeTextFile(folder + '/rules/index.tsrx', "// export default function bogus() { return 1; }\nexport default function chosen() { const closing = '}'; /* { */ if (true) { return 42; } return 0; }\nexport function unrelated() { return 777; }"));
     unwrap(writeTextFile(folder + '/helpers.tsrx', 'lower priority candidate'));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/main.tsr'));
@@ -645,6 +645,9 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     strictEqual(messages[0].content.includes('return 37;'), true);
     strictEqual(messages[0].content.includes('never include this source'), false);
     strictEqual(messages[0].content.includes('Referenced workspace file: rules/index.tsrx\nLocal signature: rules()'), true);
+    strictEqual(messages[0].content.includes('return 0; }'), true);
+    strictEqual(messages[0].content.includes('return 777;'), false);
+    strictEqual(messages[0].content.includes('function bogus'), false);
     strictEqual(messages[0].content.includes('lower priority candidate'), false);
   } finally {
     unwrap(removeDirAll(folder));
