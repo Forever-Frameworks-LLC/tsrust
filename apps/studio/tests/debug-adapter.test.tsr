@@ -1,0 +1,100 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, removeDirAll } from 'std:fs';
+import { run, spawn } from 'std:process';
+import { strictEqual, test } from 'std:testing';
+
+import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
+
+interface AdapterReply {
+  type: string;
+  command?: string;
+  event?: string;
+  request_seq?: int;
+  success?: boolean;
+  body?: AdapterBody;
+}
+
+interface AdapterBody {
+  supportsConfigurationDoneRequest?: boolean;
+  exitCode?: int;
+  category?: string;
+  output?: string;
+}
+
+async function runDebugTarget(adapter: string, program: string): Task<void> {
+  const child = unwrap(spawn(adapter, [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
+  }));
+
+  try {
+    const writer = child.takeStdin();
+    const reader = child.takeStdout();
+
+    if (writer === undefined || reader === undefined) throw 'Missing adapter pipes.';
+    await writeFrame(writer, JSON.stringify({
+      seq: 1, type: 'request', command: 'initialize', arguments: {
+        clientID: 'tsrust-studio', adapterID: 'lldb', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true
+      }
+    }));
+    let launched = false;
+    let configured = false;
+    let output = '';
+    let exited = false;
+    let terminated = false;
+
+    while (!launched || !configured || !exited || !terminated) {
+      const frame = await readFrame(reader).timeout(10000);
+      const reply = JSON.parse<AdapterReply>(frame);
+
+      if (reply.type === 'response') {
+        if (reply.success !== true) throw frame;
+
+        if (reply.command === 'initialize') {
+          strictEqual(reply.request_seq, 1);
+          strictEqual(reply.body?.supportsConfigurationDoneRequest, true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 2, type: 'request', command: 'launch', arguments: {
+              program: clone(program)
+            }
+          }));
+        } else if (reply.command === 'launch') {
+          strictEqual(reply.request_seq, 2);
+          launched = true;
+        } else if (reply.command === 'configurationDone') {
+          strictEqual(reply.request_seq, 3);
+          configured = true;
+        }
+      } else if (reply.event === 'initialized') {
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"configurationDone","arguments":{}}');
+      } else if (reply.event === 'output' && reply.body?.category === 'stdout') {
+        output += reply.body?.output ?? '';
+      } else if (reply.event === 'exited') {
+        strictEqual(reply.body?.exitCode, 0);
+        exited = true;
+      } else if (reply.event === 'terminated') terminated = true;
+    }
+
+    strictEqual(output.trim(), 'Studio debugger fixture');
+  } finally {
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    unwrap(await child.wait());
+  }
+}
+
+test('LLDB adapter launches a compiled Tsrust program and reports its stdout and exit', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
+
+  try {
+    const program = folder + '/debug-target';
+    const source = unwrap(canonicalize('tests/fixtures/debug-target.tsr'));
+    const compiler = unwrap(get('TSRUST')) ?? 'tsrust';
+    const build = unwrap(await run(compiler, ['build', source, '-o', clone(program)], {}));
+    strictEqual(build.status.success, true);
+    await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', program).timeout(30000);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

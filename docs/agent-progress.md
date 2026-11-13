@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Native debugger transport
+
+A public Studio test builds tests/fixtures/debug-target.tsr into a temporary native executable and launches it under the Xcode LLDB debug adapter using Studio's existing Content-Length stdio transport. Verified initialize capabilities, correlated launch and configurationDone responses, stdout “Studio debugger fixture”, exit code zero and terminated event. Ran from apps/studio with TSRUST pointing to the release compiler and LLDB_DAP to Xcode’s lldb-dap. Suite passed (409.66 ms including cached fixture build and adapter execution). The test reaps its adapter and removes the fixture directory. This establishes the protocol and process boundary. The debugger panel, breakpoints, stepping and generated source maps remain open.
+
 ## Image preview zoom accessibility
 
 On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
