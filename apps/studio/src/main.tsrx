@@ -55,6 +55,7 @@ import { openWorkspace } from './lib/workspace/workspace.tsr';
 import { zoomFontSize } from './lib/workspace/zoom.tsr';
 import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
+import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
 import { studioServers } from './lib/language/servers.tsr';
@@ -74,6 +75,8 @@ function App(
   languageUpdates: Channel<LanguageUpdate>,
   modelRequests: ReadOnly<Channel<ModelRequest>>,
   modelUpdates: Channel<ModelUpdate>,
+  searchRequests: ReadOnly<Channel<ContentSearchRequest>>,
+  searchReplies: Channel<ContentSearchReply>,
   initialConfig: StudioConfig,
   settingsError: string
 ): Node {
@@ -137,7 +140,14 @@ function App(
     settings,
     explorerRevision
   );
-  const contentSearch = ContentSearch(workspace, recovery, font, settings);
+  const contentSearch = ContentSearch(
+    workspace,
+    recovery,
+    font,
+    settings,
+    searchRequests,
+    searchReplies
+  );
   const initialTerminals = emptyTerminals();
   unwrap(addTerminal(initialTerminals, useId()));
   const terminals = signal(initialTerminals);
@@ -463,6 +473,9 @@ async function main(): Task<void> {
   const modelRequests = new Channel<ModelRequest>(8);
   const modelUpdates = new Channel<ModelUpdate>(8);
   const modelReplies = modelUpdates.sender();
+  const searchRequests = new Channel<ContentSearchRequest>(1);
+  const searchReplies = new Channel<ContentSearchReply>(1);
+  const searchSender = searchReplies.sender();
   const view = App(
     clone(path),
     requests,
@@ -474,6 +487,8 @@ async function main(): Task<void> {
     languageUpdates,
     modelRequests,
     modelUpdates,
+    searchRequests,
+    searchReplies,
     clone(startupConfig),
     startupError
   );
@@ -490,6 +505,8 @@ async function main(): Task<void> {
     modelProgram,
     modelRequests,
     modelReplies,
+    searchRequests,
+    searchSender,
     startupConfig.languageServers
   ).start();
 

@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Background content search
+
+Studio's content-search panel submits Enter, button and filter requests to a
+bounded background service. The panel keeps one scan in flight and only the
+latest pending submission. Editing the query invalidates the prior generation.
+The worker uses the same matching and ignore rules as the registered search
+tool and reads open drafts from the submitted workspace snapshot. The shared
+service group owns worker shutdown. Search suite 4/4 in 35.94 ms and language
+service suite 14/14 in 494.88 ms passed. Panel type check, locale check and
+whole-tree formatting passed. Supervisor 36374 rebuilt in 142162 ms and started
+preview 63162. Logs /tmp/studio-worker-{search-test,language-test,search-panel,
+search-format-final}.log. In-flight filesystem scans currently run to completion;
+interactive Enter, cancellation latency and large-workspace memory remain open.
+
 ## Content-search result freshness
 
 The shared UI and editor tool navigation action verifies the full preview line,

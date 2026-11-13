@@ -1,0 +1,47 @@
+import { Channel, Sender } from 'std:futures';
+
+import { SearchResults, searchContents } from '../lib/explorer/search.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+
+export interface ContentSearchRequest {
+  generation: int;
+  workspace: Workspace;
+  query: string;
+  regex: boolean;
+  sensitive: boolean;
+  includeIgnored: boolean;
+}
+
+export interface ContentSearchReply {
+  generation: int;
+  result: SearchResults;
+  error: string;
+}
+
+function runSearch(request: ReadOnly<ContentSearchRequest>): ContentSearchReply {
+  match (searchContents(request.workspace, clone(request.query), request.regex, request.sensitive, request.includeIgnored)) {
+    Ok(result) => {
+      return {
+        generation: request.generation, result, error: ''
+      };
+    },
+    Err(error) => {
+      return {
+        generation: request.generation, result: {
+          hits: [], skipped: 0
+        }, error
+      };
+    }
+  }
+}
+
+export async function contentSearchWorker(requests: Channel<ContentSearchRequest>, replies: Sender<ContentSearchReply>): Task<void> {
+  while (true) {
+    try {
+      const request = await requests.receive();
+      await replies.send(runSearch(request));
+    } catch (_) {
+      return;
+    }
+  }
+}

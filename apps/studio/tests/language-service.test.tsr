@@ -7,6 +7,8 @@ import { dirname, join } from 'std:path';
 import { test, strictEqual, startOutputCapture, finishOutputCapture } from 'std:testing';
 import { signal } from 'std:ui';
 
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { ContentSearchRequest, ContentSearchReply } from '../src/services/content-search.tsr';
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import {
   LanguageDocument,
@@ -133,6 +135,10 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
   const checkResults = new Channel<CheckResult>(1);
   const formats = new Channel<FormattingRequest>(1);
   const formatResults = new Channel<FormattingResult>(1);
+  const modelRequests = new Channel<ModelRequest>(1);
+  const modelUpdates = new Channel<ModelUpdate>(1);
+  const searchRequests = new Channel<ContentSearchRequest>(1);
+  const searchReplies = new Channel<ContentSearchReply>(1);
   const worker = studioWorkers(
     clone(root),
     configured,
@@ -141,7 +147,12 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     formats,
     formatResults.sender(),
     messages,
-    replies
+    replies,
+    '',
+    modelRequests,
+    modelUpdates.sender(),
+    searchRequests,
+    searchReplies.sender()
   ).start();
 
   try {

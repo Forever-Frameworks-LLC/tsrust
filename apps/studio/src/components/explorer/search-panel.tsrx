@@ -1,4 +1,6 @@
+import { Channel, Sender } from 'std:futures';
 import {
+  Ticker,
   View,
   Text,
   Input,
@@ -13,13 +15,15 @@ import {
   translateWith
 } from 'std:ui';
 
-import { SearchActionContext, runContentSearch, openSearchResult } from '../../lib/explorer/search-actions.tsr';
+import { SearchActionContext, openSearchResult } from '../../lib/explorer/search-actions.tsr';
 import { SearchHit, searchPreview } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+
+import { ContentSearchRequest, ContentSearchReply } from '../../services/content-search.tsr';
 
 function ResultRow(hit: ReadOnly<SearchHit>, root: string, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
   const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-3 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]');
@@ -72,36 +76,76 @@ interface ContentSearchState {
   error: string;
   skipped: int;
   searched: boolean;
+  generation: int;
+  pending: boolean;
+  running: boolean;
 }
 
-function submitContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, settings: Signal<StudioConfig>, search: Signal<ContentSearchState>): void {
+function submitContentSearch(search: Signal<ContentSearchState>): void {
   const next = search.get();
-  const context: SearchActionContext = {
-    workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot: clone(workspace.get().root)
-  };
-
-  match (runContentSearch(context, clone(next.query), next.regex, next.sensitive, settings.get().searchIncludeIgnored)) {
-    Ok(result) => {
-      next.hits = result.hits;
-      next.skipped = result.skipped;
-      next.error = '';
-    },
-    Err(error) => {
-      next.hits = [];
-      next.skipped = 0;
-      next.error = error;
-    }
-  }
-
-  next.searched = next.query !== '';
+  next.generation += 1;
+  next.pending = next.query !== '';
+  next.searched = false;
+  next.hits = [];
+  next.error = '';
   search.set(next);
 }
 
-export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>, settings: Signal<StudioConfig>): Node {
+function pollContentSearch(workspace: Signal<Workspace>, settings: Signal<StudioConfig>, search: Signal<ContentSearchState>, requests: ReadOnly<Sender<ContentSearchRequest>>, replies: Mutable<Channel<ContentSearchReply>>): void {
+  const next = search.get();
+
+  if (next.running) {
+    match (replies.tryReceive()) {
+      Ok(reply) => {
+        next.running = false;
+
+        if (next.generation === reply.generation) {
+          next.hits = reply.result.hits;
+          next.skipped = reply.result.skipped;
+          next.error = reply.error;
+          next.searched = true;
+        }
+      },
+      Err(error) => {
+        if (error.code === 'empty') return;
+        next.running = false;
+        next.pending = false;
+        next.error = clone(error.code);
+      }
+    }
+  }
+
+  if (next.pending) {
+    next.pending = false;
+
+    match (requests.trySend({
+      generation: next.generation, workspace: workspace.get(), query: clone(next.query), regex: next.regex, sensitive: next.sensitive, includeIgnored: settings.get().searchIncludeIgnored
+    })) {
+      Ok(_) => {
+        next.running = true;
+      },
+      Err(error) => {
+        next.error = clone(error.code);
+      }
+    }
+  }
+
+  search.set(next);
+}
+
+export function ContentSearch(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  font: Signal<int>,
+  settings: Signal<StudioConfig>,
+  requests: ReadOnly<Channel<ContentSearchRequest>>,
+  replies: Channel<ContentSearchReply>
+): Node {
+  const sender = requests.sender();
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
-    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false
+    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false
   });
   const summary = computed<string>(() => translateWith('matchingLines', {
     count: search.get().hits.length
@@ -110,6 +154,13 @@ export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Rec
   }) : ''));
   return (
     <View className={panelClass.get()}>
+      <Ticker
+        interval={50}
+        running={search.get().pending || search.get().running}
+        onTick={(_frame) => {
+          pollContentSearch(workspace, settings, search, sender, replies);
+        }}
+      />
       <View className="shrink-0 h-8 min-w-0">
         <InputGroup size="small" className="w-full h-full min-w-0">
           <Input
@@ -121,13 +172,15 @@ export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Rec
             onChange={(event) => {
               const next = search.get();
               next.query = clone(event.target.value);
+              next.generation += 1;
+              next.pending = false;
               next.searched = false;
               next.hits = [];
               next.error = '';
               search.set(next);
             }}
             onSubmit={(_secondary) => {
-              submitContentSearch(workspace, recovery, settings, search);
+              submitContentSearch(search);
             }}
           />
           <InputGroupAddon align="inline-end">
@@ -140,7 +193,7 @@ export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Rec
                 const next = search.get();
                 next.sensitive = !next.sensitive;
                 search.set(next);
-                submitContentSearch(workspace, recovery, settings, search);
+                submitContentSearch(search);
               }}
             />
             <InputGroupButton
@@ -152,15 +205,16 @@ export function ContentSearch(workspace: Signal<Workspace>, recovery: Signal<Rec
                 const next = search.get();
                 next.regex = !next.regex;
                 search.set(next);
-                submitContentSearch(workspace, recovery, settings, search);
+                submitContentSearch(search);
               }}
             />
             <InputGroupButton
               icon="search"
+              loading={search.get().running || search.get().pending}
               tooltip={message("Run content search")}
               accessibilityLabel={message("Run content search")}
               onClick={() => {
-                submitContentSearch(workspace, recovery, settings, search);
+                submitContentSearch(search);
               }}
             />
           </InputGroupAddon>

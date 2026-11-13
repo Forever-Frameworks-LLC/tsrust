@@ -4,6 +4,7 @@ import { ModelRequest, ModelUpdate } from '../lib/ai/protocol.tsr';
 import { LanguageServer, studioServers } from '../lib/language/servers.tsr';
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
 import { modelService } from './ai/session.tsr';
+import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from './content-search.tsr';
 import { formattingWorker } from './formatting.tsr';
 import { languageServices } from './lsp/registry.tsr';
 import { LanguageMessage, LanguageUpdate } from './lsp/session.tsr';
@@ -22,6 +23,8 @@ export async function studioWorkers(
   modelProgram: string,
   modelRequests: Channel<ModelRequest>,
   modelUpdates: Sender<ModelUpdate>,
+  searchRequests: Channel<ContentSearchRequest>,
+  searchReplies: Sender<ContentSearchReply>,
   servers: LanguageServer[] = []
 ): Task<void> {
   const languageRoot = clone(root);
@@ -30,5 +33,6 @@ export async function studioWorkers(
   const checker = projectCheckWorker(root, checkProgram, requests, replies).start();
   const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
   const model = modelService(modelProgram, modelRequests, modelUpdates).start();
-  await all([language, checker, formatter, model]);
+  const search = contentSearchWorker(searchRequests, searchReplies).start();
+  await all([language, checker, formatter, model, search]);
 }
