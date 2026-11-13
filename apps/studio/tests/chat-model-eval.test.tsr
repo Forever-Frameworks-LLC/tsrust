@@ -291,16 +291,17 @@ if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EV
   }
 });
 
-if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
   if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
   const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
+  const usage = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'usage';
   const reordered = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'reordered';
   const feedback = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'feedback';
   const dataflow = feedback || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
-  const combined = dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
+  const combined = usage || dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
   const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
   const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
   const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", combined ? "import { shelfCharge, billableUnits } from './policy.tsr'" : "import { shelfCharge } from './policy.tsr'");
@@ -311,6 +312,8 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered'].includes(u
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));
+
+    if (usage) unwrap(writeTextFile(folder + '/invoice.tsr', "import { shelfCharge, billableUnits, unrelatedRule as unusedPolicy } from './policy.tsr';\nexport function invoiceTotal(count: int, delicate: boolean, shipping: int): int {\n  return shipping + shelfCharge(delicate, billableUnits(count));\n}\n"));
     const adjustment = 'export function billableUnits(units: int): int { return units <= 0 ? 0 : units + 2; }';
     const file = policy + (combined ? adjustment + '\n' : '') + 'export function unrelatedRule(): int { return 999; }\n';
     unwrap(writeTextFile(folder + '/policy.tsr', file));
@@ -325,17 +328,19 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered'].includes(u
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
-      const answer = await ask(host, updates, dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
+      const answer = await ask(host, updates, usage ? 'Edit: Fix quote to calculate the storage charge using the same policy as invoice.tsr. Exclude shipping. Preserve the public signature and all other code.' : dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
       console.log(answer);
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
-      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes('unrelatedRule'), false);
+      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(usage ? 'function unrelatedRule' : 'unrelatedRule'), false);
+
+      if (usage) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes('shipping + shelfCharge(delicate, billableUnits(count))'), true);
 
       if (combined) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(adjustment), true);
       const proposal = host.state.get().review;
 
       if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
       // Run only reviewed, side-effect-free caller bodies. The native cases decide correctness.
-      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return billableUnits(units) + shelfCharge(fragile, units);'] : [reordered ? 'return shelfCharge(units, fragile);' : 'return shelfCharge(fragile, units);'];
+      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return units - billableUnits(units);', 'return billableUnits(units) + shelfCharge(fragile, units);'] : [reordered ? 'return shelfCharge(units, fragile);' : 'return shelfCharge(fragile, units);'];
 
       const after = clone(proposal.files[0].after);
 

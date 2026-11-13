@@ -307,7 +307,7 @@ function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: R
 }
 
 // Match relative named import declarations before reading a file from the workspace tree.
-function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols: ReadOnly<Set<string>>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols: ReadOnly<Set<string>>, root: ReadOnly<string>, usedInFile: boolean = false): Map<string, ImportBinding[]> {
   const paths = new Map<string, ImportBinding[]>();
   const bytes = unwrap(fromUtf8(source));
   const ignored = "//[^\\r\\n]*|/\\*.*?\\*/";
@@ -316,6 +316,8 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols
   const names = "\\{(?:" + ignored + "|[^/{};])*\\}";
   const imports = unwrap(compile("(?s)" + ignored + "|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\b" + gap + "((" + identifier + ")?" + gap + "(?:," + gap + ")?(?:" + names + ")?)" + gap + "from\\b" + gap + "['\"]([^'\"\\r\\n]+)['\"]"));
   const members = unwrap(compile("(?s)" + ignored + "|(" + identifier + ")(?:" + gap + "\\bas\\b" + gap + "(" + identifier + "))?"));
+
+  const used = usedInFile ? promptSymbols(imports.replaceAll(source, ' ')) : clone(symbols);
 
   for (const found of imports.capturesAll(source)) {
     const bindings = found.groups[0];
@@ -334,7 +336,7 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols
       const declared = unwrap(toUtf8(unwrap(view(localBytes, exported.start, exported.end))));
       const name = alias === undefined ? clone(declared) : unwrap(toUtf8(unwrap(view(localBytes, alias.start, alias.end))));
 
-      if (!symbols.has(name)) continue;
+      if (!used.has(name)) continue;
       const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
       const base = importBase(path, relative, root);
 
@@ -459,9 +461,16 @@ interface ImportedCall {
   binding: ImportBinding;
 }
 
-function queueImportedCalls(source: ReadOnly<string>, path: ReadOnly<string>, root: ReadOnly<string>, calls: ReadOnly<Set<string>>, pending: Mutable<ImportedCall[]>): void {
-  if (calls.size === 0) return;
-  const imports = promptImports(source, path, calls, root);
+function queueImportedCalls(
+  source: ReadOnly<string>,
+  path: ReadOnly<string>,
+  root: ReadOnly<string>,
+  calls: ReadOnly<Set<string>>,
+  pending: Mutable<ImportedCall[]>,
+  usedInFile: boolean = false
+): void {
+  if (calls.size === 0 && !usedInFile) return;
+  const imports = promptImports(source, path, calls, root, usedInFile);
 
   for (const target of imports.keys()) {
     const bindings = imports.get(target);
@@ -771,6 +780,15 @@ export function editorContext(
               }
 
               if (referenced || snippets.length > 0) {
+                if (editing && explicitFile && whole) queueImportedCalls(
+                  excerpt,
+                  file.path,
+                  workspace.root,
+                  new Set<string>(),
+                  pending,
+                  true
+                );
+
                 if (!whole && snippets.length > 0) includeWorkspaceDependencies(excerpt, file.path, workspace.root, snippets, pending);
 
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');

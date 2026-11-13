@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Referenced project examples supply imported definitions during edits
+
+An edit request naming a sibling source file now retrieves definitions for
+local imports used in that file. The action witness follows an alias through
+a helper and a constant while excluding an unused import. The opt-in
+workspace evaluation `usage` supplies an invoice caller and both imported
+policy functions, with a distractor export omitted. All 25 action cases
+passed. The 1.5B quality case failed: the model proposed `units - shipping`
+although the target has no shipping parameter. The review harness stopped
+before applying or running it. Peak sampled host RSS was 2,088,512 KiB
+across 16 observations. A separate signatures-only trial dropped one of the
+required calls; that context change was discarded. Neither trial passes
+two-function composition acceptance.
+
 ## Local model delegates a caller across parameter-order variants
 
 The reordered workspace evaluation uses the same task and caller but changes

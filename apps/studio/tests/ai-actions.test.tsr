@@ -1095,10 +1095,24 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
     unwrap(mkdirAll(root + '/lib'));
     unwrap(writeTextFile(root + '/quote.tsr', 'export function handlingFee() { return 999; }'));
     unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return fee(); }\nfunction fee() { return réglage; }\nconst réglage = baseFee + 1;\nconst baseFee = 72;\nconst unrelatedValue = 25;\nfunction unrelated() { return 400; }'));
+    unwrap(writeTextFile(root + '/example.tsr', 'import { handlingFee as cost, unrelated as skip } from "./lib/quote";\nexport function total() { return cost(); }'));
     const workspace = unwrap(openWorkspace(root));
     const tree = unwrap(scanTree(clone(workspace.root), false));
     const index = new Map<string, FileDeclarations>();
     const question = 'What does handlingFee() return in lib/quote.tsr?';
+    const edit = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Edit: Follow example.tsr',
+      true,
+      false,
+      index
+    );
+    strictEqual(edit.excerpt.includes('export function total()'), true);
+    strictEqual(edit.excerpt.includes('Local name: cost refers to handlingFee.'), true);
+    strictEqual(edit.excerpt.includes('const baseFee = 72'), true);
+    strictEqual(edit.excerpt.includes('return 400'), false);
     const closed = editorContext(
       workspace,
       clone(tree),
