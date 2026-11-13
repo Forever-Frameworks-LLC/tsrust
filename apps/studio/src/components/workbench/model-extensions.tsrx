@@ -138,14 +138,14 @@ export function ModelExtensions(settings: Signal<StudioConfig>, ai: Signal<AiSta
 
 function ModelRow(model: ReadOnly<ModelExtension>, paths: Signal<string[]>, pending: Signal<string>, error: Signal<string>, downloads: Sender<string>): Node {
   const name = clone(model.name);
-  const file = clone(model.filename);
-  const installed = computed<boolean>(() => paths.get().some((path: ReadOnly<string>) => basename(path) === file));
+  const file = join(modelFolder(model), model.filename);
+  const installed = computed<boolean>(() => paths.get().includes(file));
   const statusName = clone(name);
   const status = computed<string>(() => pending.get() === statusName ? translate('Downloading') : installed.get() ? translate('Installed') : translate('Download'));
   return (
     <View className="flex-row items-center gap-2 min-w-0 px-2">
       <Text className="grow min-w-0 truncate">
-        {clone(name)}
+        {model.filename.slice(0, -5)}
       </Text>
       <Button
         variant="ghost"

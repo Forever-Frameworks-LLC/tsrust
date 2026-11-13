@@ -5,6 +5,7 @@ import { sha256 } from 'std:crypto';
 import { fromUtf8, toHex } from 'std:bytes';
 import { strictEqual, test } from 'std:testing';
 import {
+  modelFolder,
   modelTokenizer,
   availableModelPaths,
   artifactChecksum,
@@ -37,6 +38,19 @@ test('model selector excludes a missing model or tokenizer and keeps a working c
   }
 });
 
+test('7B quantizations install independently with the same tokenizer', () => {
+  const models = modelExtensions();
+  const q4 = models.filter((entry) => entry.name === 'Qwen2.5-Coder-7B-Instruct');
+  const q5 = models.filter((entry) => entry.name === 'Qwen2.5-Coder-7B-Instruct Q5_K_M');
+
+  strictEqual(q4.length, 1);
+  strictEqual(q5.length, 1);
+  strictEqual(modelFolder(q4[0]) !== modelFolder(q5[0]), true);
+  strictEqual(q5[0].repository ?? '', q4[0].name);
+  strictEqual(q5[0].tokenizerRevision, q4[0].tokenizerRevision);
+  strictEqual(q5[0].checksum !== q4[0].checksum, true);
+});
+
 test('model artifact verification streams through more than one block', () => {
   const folder = unwrap(createTempDir(undefined, 'studio-model-checksum-'));
 
@@ -60,9 +74,10 @@ test('model extension worker rejects unlisted requests and installs a selected p
     await sender.send('../unlisted');
     strictEqual(await replies.receive(), 'Unknown model.');
 
-    for (const size of ['3B', '7B']) {
+    for (const size of ['3B', '7B', '7B_Q5']) {
       if (unwrap(get('TSRUST_TEST_INSTALL_CODER_' + size)) !== '1') continue;
-      const model = modelExtensions().find((entry) => entry.name === 'Qwen2.5-Coder-' + size + '-Instruct');
+      const name = size === '7B_Q5' ? 'Qwen2.5-Coder-7B-Instruct Q5_K_M' : 'Qwen2.5-Coder-' + size + '-Instruct';
+      const model = modelExtensions().find((entry) => entry.name === name);
 
       if (model === undefined) throw 'Missing model extension.';
       await sender.send(clone(model.name));
