@@ -997,6 +997,7 @@ times, source/binary identities and limits are in the current section of
 [the continuation record](../agent-progress.md). No inference was replayed.
 
 The new Settings control's live MAT remains pending after computer-use tools became
-unavailable. Compiler/LSP traversal allocations and runtime-cache extraction remain
-open performance work. The earlier critical-pressure failure is still failed;
+unavailable. Compiler/LSP expression traversal now avoids its temporary output vector; focused
+error-effect, task, deep-walk and native exception/thread regressions pass. Runtime-cache
+extraction and measured whole-machine performance remain open work. The earlier critical-pressure failure is still failed;
 long-response quality, combined-editor memory and full8GiB qualification remain open.

@@ -499,16 +499,16 @@ pub(crate) fn defer_unreferenced_error_definitions(program:&mut CheckedProgram) 
     for id in candidates.difference(&required) {program.functions[*id].template=true;}
 }
 
-pub(crate) fn checked_expressions(function:&CheckedFunction)->Vec<&Expr> {
+pub(crate) fn checked_expressions(function:&CheckedFunction)->impl Iterator<Item=&Expr> {
     walk_checked_expressions(&function.body,function.bindings.iter().filter_map(|binding|binding.initializer.as_deref()))
 }
-pub(crate) fn body_expressions(body:&[Stmt])->Vec<&Expr> {
+pub(crate) fn body_expressions(body:&[Stmt])->impl Iterator<Item=&Expr> {
     walk_checked_expressions(body,std::iter::empty())
 }
-fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=&'a Expr>)->Vec<&'a Expr> {
+fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=&'a Expr>)->impl Iterator<Item=&'a Expr> {
         enum Node<'n>{Statement(&'n Stmt),Expression(&'n Expr)}
-        let mut output=Vec::new();
         let mut pending=body.iter().map(Node::Statement).chain(initializers.map(Node::Expression)).collect::<Vec<_>>();
+        std::iter::from_fn(move || {
         while let Some(node)=pending.pop() {
             match node {
                 Node::Statement(statement)=>{
@@ -531,7 +531,6 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                     }
                 }
                 Node::Expression(value)=>{
-                    output.push(value);
                     match &value.kind {
                         ExprKind::Match { body, .. } => pending.extend(body.iter().map(Node::Statement)),
                         ExprKind::SpreadCall(plan)=>pending.extend(plan.expressions().map(Node::Expression)),
@@ -546,10 +545,12 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                         // Source closure bodies execute in their own invocation context.
                         ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>{}
                     }
+                    return Some(value);
                 }
             }
         }
-    output
+        None
+        })
 }
 /// Resolve a checked call graph with callback contracts supplied by specialization.
 /// Missing declarations remain opaque; supplied contracts are not inferred from types.
@@ -1598,4 +1599,27 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod expression_walk_tests {
+    use super::*;
+
+    #[test]
+    fn expression_iterator_preserves_reverse_siblings_and_initializer_order() {
+        let source = "function main(){foo(1, bar(2, 3)); baz(4);}";
+        let program = crate::syntax::parse(source).unwrap();
+        let body = &program.functions[0].body;
+        let texts = |expressions: Vec<&Expr>| expressions.into_iter()
+            .map(|value| &source[value.span.start..value.span.end]).collect::<Vec<_>>();
+        let expected = vec!["baz(4)", "4", "baz", "foo(1, bar(2, 3))", "bar(2, 3)", "3", "2", "bar", "1", "foo"];
+        assert_eq!(texts(body_expressions(body).collect()), expected);
+        let StmtKind::Expr(initializer) = &body[1].kind else { panic!("expression"); };
+        let mut with_initializer = vec!["baz(4)", "4", "baz"];
+        with_initializer.extend(expected);
+        assert_eq!(texts(walk_checked_expressions(body, std::iter::once(initializer)).collect()), with_initializer);
+        let mut iterator = body_expressions(body);
+        assert_eq!(iterator.next().unwrap().span, initializer.span);
+        assert_eq!(texts(iterator.take(2).collect()), vec!["4", "baz"]);
+    }
 }

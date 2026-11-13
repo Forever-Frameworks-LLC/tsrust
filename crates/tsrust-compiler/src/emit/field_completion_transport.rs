@@ -149,7 +149,7 @@ impl Emitter<'_> {
         // With no field transfer in the throwing body, original storage remains
         // initialized at catch entry. Body transfers need precise error payloads.
         if !allow_catch_transfers && catch.is_some() && let Some(start)=region.body.first() {
-            let end=crate::error_effects::body_expressions(&region.body).iter().map(|value|value.span.end).chain(region.body.iter().map(|statement|statement.span.end)).max().unwrap_or(start.span.end);
+            let end=crate::error_effects::body_expressions(&region.body).map(|value|value.span.end).chain(region.body.iter().map(|statement|statement.span.end)).max().unwrap_or(start.span.end);
             if fun.storage_exits.expression_points().filter(|point|point.0>=start.span.start && point.1<=end).any(|point|
                 body_places.iter().any(|place|fun.storage_exits.transfer_at_expression(point,place.binding,&place.fields).is_some())) {return None;}
         }

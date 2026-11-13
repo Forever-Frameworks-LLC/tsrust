@@ -356,7 +356,7 @@ impl Tracker<'_> {
         let old=Self::take(state,&destination);self.warn(old,target.span);Self::transfer(state,&temporary,&destination);
     }
     fn function(&mut self,function:&CheckedFunction,captures:&[Capture],parameters:Option<&[usize]>,invocation:Mode) {
-        if function.bindings.iter().all(|binding|self.program.task_paths(binding.ty).is_empty()) && crate::error_effects::checked_expressions(function).iter().all(|value|value.ty.is_none_or(|ty|self.program.task_paths(ty).is_empty())) {return;}
+        if function.bindings.iter().all(|binding|self.program.task_paths(binding.ty).is_empty()) && crate::error_effects::checked_expressions(function).all(|value|value.ty.is_none_or(|ty|self.program.task_paths(ty).is_empty())) {return;}
         let mut state=State::new();
         for(id,binding)in function.bindings.iter().enumerate() {
             // Closure binding vectors also contain unused lexical projections, not parameters.

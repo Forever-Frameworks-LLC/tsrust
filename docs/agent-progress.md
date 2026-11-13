@@ -4,6 +4,74 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full Studio goal is owner-paused for thread transfer; required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Current continuation — November 12, compiler traversal storage
+
+Response-budget implementation is checkpoint `1be743f6`. Its focused evidence
+below remains valid. The old goal remains paused; this is the direct continuation.
+
+The compiler expression walker now yields an iterative traversal instead of
+retaining a second vector containing every expression. Regional error analysis,
+callback contracts, task predicates and emitter queries use that shared iterator.
+The thread validator and finally-slot analysis explicitly collect when they need
+repeated passes. Existing child order, initializer order, source-closure boundaries
+and complete traversals are preserved; no shape-cache invalidation checks changed.
+
+Focused evidence from the current compiler source:
+- Error-effect suite: 53/53 passed, 0.87 seconds execution; 3m51s setup/build.
+  Includes the new exact node-order/initializer/partial-iteration witness and
+  existing deep-region, callback, catch-payload and error-transport controls.
+  `/tmp/studio-analysis-memory-tests.log`.
+- Same fresh library binary, task diagnostics: 11/11 passed, 0.22 seconds;
+  deep ownership walks: 2/2 passed, reported under 0.01 seconds.
+  `/tmp/studio-analysis-task-tests.log`, `/tmp/studio-analysis-deep-tests.log`.
+- Native exception-region suite: 3/3 passed, 0.86 seconds; native thread suite:
+  4/4 passed, 1.21 seconds. Combined Cargo setup/build: 2m28s.
+  `/tmp/studio-analysis-native-tests.log`. No full compiler/LSP matrix replay.
+- Whole-project formatter: 0 files, 0 documentation snippets, 0 fingerprints;
+  `/tmp/studio-analysis-format.log`. Performance and whole-machine memory gains
+  have not been measured. The fix removes temporary storage, not repeated global
+  annotation or the need to detect in-place shape changes.
+
+A one-second sample of old installed CLI supervisor 86834 at 19:45:46 observed
+298.6 MiB footprint/395.5 MiB peak and repeated shape comparisons in expression
+finishing. `/tmp/studio-response-dev.sample`. This is diagnostic evidence, not a
+quiet benchmark, a leak claim, or 8 GiB acceptance. No inference was launched.
+
+Supervisor 86834 was stopped deliberately after its native build revealed the
+restart omitted `CARGO_TARGET_DIR`. Its child 88919 exited. The accidental nested
+Cargo target was created at 19:47:41 in this session; no files predated it and
+`lsof` found no open files. Removed only that closed target: 170 files,
+69,466,740 logical bytes. This is not a measured free-space or memory improvement.
+Source workspaces, the shared target, owner drafts and recovery data were preserved.
+
+Corrected detached supervisor 89257 now runs app 93314 and fresh LSP 93363, with
+explicit repository `CARGO_TARGET_DIR`, incremental off, jobs=1 and the real host
+override. Verified one supervisor/app/LSP and no resident model process. Log:
+`/tmp/studio-response-dev.log`. Current bundle:
+`/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-89257-1794531135507992000-0/Tsrust Studio.app`.
+Native preview build passed in 377408 ms; check 165758.3 ms, emit 5804.0 ms,
+runtime prepare 6702.6 ms, runtime build/publish 174409.9 ms, native/link
+204923.8 ms. These counters overlap; do not sum them or invent an attribution.
+No second supervisor is authorized or needed.
+CLI/LSP pair build passed in 2m46s (`/tmp/studio-analysis-sdk-build.log`) and was
+atomically installed. CLI SHA256:
+`ba8f13e9d3b8e2f95fc6ebfec8a0728455e03107215a6c0e99f1e212dbae8ed8`;
+LSP SHA256:
+`5bdaae629cdeaf319c2d93664b7ebf8fdd1d535e0c84da51c3a608a82988520f`.
+The supervisor still maps its earlier CLI inode; app 93314 started the fresh
+installed LSP. No further restart is required for this source checkpoint.
+
+Fresh active-analysis LSP sample at 19:56:32: footprint/peak 268.1 MiB;
+`/tmp/studio-analysis-lsp.sample`. The sampled stack still contains regional error
+analysis, expression-effect traversal work-vector growth and FailureSet joins.
+This is not a matched quiet comparison against the earlier 276.8/365.1 MiB sample,
+so no memory reduction or latency improvement is claimed. Next profiling should
+separate those allocations and repeated annotation from shape-cache validation.
+Computer-use tools remain unavailable; Settings MAT and visible recovery verification
+remain pending. Next resource work must retain failed pressure evidence and profile
+quiet/active language analysis before any new model qualification run. Runtime-cache
+extraction and repeated global annotation remain open; do not weaken checks to hide them.
+
 ## Current continuation — November 12, response budget and memory work
 
 This section supersedes the transfer's immediate-next-step and process identities;

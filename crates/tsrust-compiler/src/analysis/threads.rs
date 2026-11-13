@@ -210,7 +210,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                 return Err(Diagnostic::new("thread-lifecycle", format!("Thread-bearing parameter {:?} of {:?} must consume and settle or transfer its owner.",binding.name,function.name), binding.declaration_span.unwrap_or_default()));
             }
         }
-        let expressions = crate::error_effects::checked_expressions(function);
+        let expressions = crate::error_effects::checked_expressions(function).collect::<Vec<_>>();
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];

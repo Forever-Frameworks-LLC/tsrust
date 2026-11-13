@@ -265,7 +265,7 @@ pub(crate) fn needs_exception_transport(program:&CheckedProgram)->bool {
         std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))))
         .filter(|function|!function.template)
         .any(|function|crate::analysis::has_exception_syntax(&function.body)
-            || crate::error_effects::checked_expressions(function).iter().any(|expression|(matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) || matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:cache" && crate::native_bindings::BINDINGS[id].name=="__create"))))
+            || crate::error_effects::checked_expressions(function).any(|expression|(matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) || matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:cache" && crate::native_bindings::BINDINGS[id].name=="__create"))))
 }
 
 pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),crate::Diagnostic> {
@@ -3972,7 +3972,7 @@ impl Emitter<'_> {
         let _controls=self.control_targets.callable_boundary();
         let pending=self.completion_body_frame(fun,body,id,error_name,contract,runtime,true);
         let normal=if fun.result==Type::Void {"Ok(())"}else{"unreachable!(\"checked non-void callable cannot fall through\")"};
-        let suite_scope=crate::error_effects::checked_expressions(fun).iter().any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"invokeSuite"|"beginSuite"|"beginFile")));
+        let suite_scope=crate::error_effects::checked_expressions(fun).any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"invokeSuite"|"beginSuite"|"beginFile")));
         let result = format!("{{ match {pending} {{ TsrCompletion::Normal(())=>{normal}, TsrCompletion::Return(value)=>Ok(value), TsrCompletion::Throw(error)=>Err(error), TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"checked control cannot escape its callable\") }} }}");
         // A program owner initializes its registry inside this body. Only
         // borrowed invocation inputs exist before the body starts and can be
