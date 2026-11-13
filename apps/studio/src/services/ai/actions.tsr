@@ -17,6 +17,7 @@ import {
 } from '../../lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
@@ -51,6 +52,7 @@ export interface AiContext {
   allowDelete?: boolean;
   workspace?: Signal<Workspace>;
   references?: Signal<LanguageReferences>;
+  problems?: Signal<Problem[]>;
   language?: Signal<LanguageState>;
   declarations?: Signal<FileDeclarations[]>;
   projectTree?: Signal<DirectoryTree>;
@@ -80,7 +82,7 @@ export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: bool
   const store = context.store;
   const workspace = context.workspace;
   return {
-    language: context.language?.handle(), declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+    problems: context.problems?.handle(), language: context.language?.handle(), declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
   };
 }
 
@@ -348,6 +350,31 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (canReadWorkspace && storeIndex !== undefined) storeIndex.set(Array.from(declarations.values()));
       let excerpt = grounding.excerpt + snippets;
+
+      const problems = context.problems;
+
+      if (editing && canReadWorkspace && workspace !== undefined && problems !== undefined) {
+        const current = workspace.get();
+        const diagnostics: string[] = [];
+        const prefix = current.root.endsWith(separator()) ? clone(current.root) : current.root + separator();
+        const reported = problems.get();
+
+        for (const file of current.files) {
+          const doc = file.document;
+
+          if (file.kind !== 'text' || !doc.path.startsWith(prefix)) continue;
+
+          if (batch ? !attachments.some((item) => item.kind === 'file' && item.path === doc.path) : doc.path !== current.active) continue;
+
+          for (const problem of reported) {
+            if (problem.path === doc.path && problem.session === doc.session && problem.revision === doc.revision && problem.unversioned !== true && problem.source.startsWith('lsp:')) {
+              diagnostics.push(doc.path.slice(prefix.length) + ':' + problem.line.toString() + ':' + problem.column.toString() + ' [' + problem.severity + ' ' + problem.code + '] ' + problem.message);
+            }
+          }
+        }
+
+        if (diagnostics.length > 0) excerpt += (excerpt === '' ? '' : '\n\n') + 'Current editor diagnostics:\n' + diagnostics.join('\n');
+      }
 
       if (canReadWorkspace && knowledgeQuestion(prompt) && grounding.candidates.length === 0 && grounding.unavailable.length === 0) {
         match (searchKnowledge(prompt)) {

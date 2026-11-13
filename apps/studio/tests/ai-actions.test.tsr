@@ -14,6 +14,7 @@ import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { scanTree } from '../src/lib/explorer/tree.tsr';
 import { reviewChatEdit, undoChatEdit } from '../src/components/ai/edit-review.tsrx';
 import { replacementProposal, batchProposal } from '../src/lib/ai/edits.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { edit, propose } from '../src/lib/workspace/documents.tsr';
 import {
@@ -613,6 +614,45 @@ test('named binary and removed files produce a local reply without starting the 
 
     if (messages === undefined) throw 'missing draft context';
     strictEqual(messages[messages.length - 1].content.includes('in-memory draft'), true);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('edit requests include only versioned diagnostics for the current target draft', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-diagnostics-'));
+
+  try {
+    const model = unwrap(openWorkspace(folder));
+    const path = model.root + '/main.tsr';
+    unwrap(writeTextFile(path, 'function total() { return shipping; }'));
+    unwrap(openFile(model, path));
+    const doc = model.files[0].document;
+    const issue: Problem = {
+      source: 'lsp:tsrust', path, session: clone(doc.session), revision: doc.revision, severity: 'error', code: 'unknown-name', line: 1, column: 27, message: 'Unknown name shipping.'
+    };
+    const stale = clone(issue);
+    stale.revision = doc.revision + 1;
+    stale.message = 'different revision';
+    const other = clone(issue);
+    other.path = folder + '/other.tsr';
+    other.message = 'another file';
+    const unverified = clone(issue);
+    unverified.unversioned = true;
+    unverified.message = 'unversioned report';
+    const requests = new Channel<ModelRequest>(2);
+    const ready = initialAiState(emptyHistory(clone(model.root)));
+    ready.phase = 'ready';
+    const settings = signal(modelConfig());
+    const state = signal(ready);
+    const host = context(state, settings, requests);
+    host.workspace = signal(model);
+    host.problems = signal<Problem[]>([issue, stale, other, unverified]);
+    send(host, 'Edit: Fix the active error.');
+    const messages = unwrap(requests.tryReceive()).messages ?? [];
+    const text = messages[0].content;
+    strictEqual(text.includes('main.tsr:1:27 [error unknown-name] Unknown name shipping.'), true);
+    strictEqual(text.includes('different revision') || text.includes('another file') || text.includes('unversioned report'), false);
   } finally {
     unwrap(removeDirAll(folder));
   }

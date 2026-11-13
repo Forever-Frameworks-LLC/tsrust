@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Current editor diagnostics in chat edits
+
+Studio passes language-service diagnostics into edit prompts for the active
+draft or explicitly attached batch targets. Each report must match the file,
+session and revision and have verified positions. The outgoing prompt test
+checked a diagnostic with its relative path, location, severity, code and
+message, and excluded stale, unversioned and unrelated reports. The live
+language-service fixture diagnosed an unsaved buffer and cleared its report
+after correction. Updated its Git worker channel to the current request
+type. All 40 cases passed after 74.15 s build. The watcher launched Studio
+PID 70197. Model repair quality with this additional context is unmeasured.
+
 ## Referenced project examples supply imported definitions during edits
 
 An edit request naming a sibling source file now retrieves definitions for
