@@ -1,5 +1,7 @@
 import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
 import { get } from 'std:env';
+import { signal } from 'std:ui';
+import { selectPanel } from '../src/components/workbench/panels.tsrx';
 import { Channel } from 'std:futures';
 import { sha256 } from 'std:crypto';
 import { fromUtf8, toHex } from 'std:bytes';
@@ -33,6 +35,29 @@ test('model selector excludes a missing model or tokenizer and keeps a working c
     const available = availableModelPaths(config);
     strictEqual(available.includes(config.aiModelPath), true);
     strictEqual(available.includes(folder + '/missing.gguf'), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('reopening Extensions discovers model files added after startup', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-selector-refresh-'));
+
+  try {
+    const config = defaultConfig();
+    config.aiModelPath = folder + '/custom.gguf';
+    config.aiTokenizerPath = folder + '/tokenizer.json';
+    const settings = signal(config);
+    const panel = signal('');
+    const paths = signal<string[]>([]);
+    selectPanel(panel, settings, paths, 'extensions');
+    strictEqual(paths.get().includes(folder + '/custom.gguf'), false);
+    selectPanel(panel, settings, paths, 'output');
+    unwrap(writeTextFile(folder + '/custom.gguf', 'weights'));
+    unwrap(writeTextFile(folder + '/tokenizer.json', 'tokenizer'));
+    selectPanel(panel, settings, paths, 'extensions');
+    strictEqual(panel.get(), 'extensions');
+    strictEqual(paths.get().includes(folder + '/custom.gguf'), true);
   } finally {
     unwrap(removeDirAll(folder));
   }

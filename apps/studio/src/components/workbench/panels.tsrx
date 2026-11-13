@@ -13,8 +13,18 @@ import {
 
 import { accessibleName, message } from '../../lib/localization.tsr';
 
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { availableModelPaths } from '../../services/ai/model-extensions.tsr';
+
+export function selectPanel(panel: Signal<string>, settings: Signal<StudioConfig>, modelPaths: Signal<string[]>, value: ReadOnly<string>): void {
+  if (value === 'extensions') modelPaths.set(availableModelPaths(settings.get()));
+  panel.set(clone(value));
+}
+
 export function Panels(
   panel: Signal<string>,
+  settings: Signal<StudioConfig>,
+  modelPaths: Signal<string[]>,
   output: Node,
   terminal: Node,
   terminalActions: Node,
@@ -35,7 +45,7 @@ export function Panels(
           size="small"
           className={tabsClass.get()}
           onChange={(value) => {
-            panel.set(clone(value));
+            selectPanel(panel, settings, modelPaths, value);
           }}
         >
           <Tab value="terminal" label={message("Terminal")} />

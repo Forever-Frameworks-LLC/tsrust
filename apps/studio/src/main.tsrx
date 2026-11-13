@@ -40,7 +40,7 @@ import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.ts
 import { Chrome } from './components/workbench/chrome.tsrx';
 import { LanguageStatus } from './components/workbench/language-status.tsrx';
 import { Region } from './components/workbench/layout.tsrx';
-import { Panels } from './components/workbench/panels.tsrx';
+import { Panels, selectPanel } from './components/workbench/panels.tsrx';
 import { ChatPanel } from './components/ai/chat-panel.tsrx';
 import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
 import { FileDeclarations } from './services/ai/context.tsr';
@@ -134,6 +134,7 @@ function App(
   font.set(zoomFontSize(initialConfig.fontSize, workspace.get().zoomLevel));
   useTheme(clone(initialConfig.theme));
   const settings = signal(initialConfig);
+  const modelPaths = signal<string[]>([]);
 
   if (settingsError !== '') {
     const next = workspace.get();
@@ -183,6 +184,8 @@ function App(
   );
   const panelView = Panels(
     panel,
+    settings,
+    modelPaths,
     CheckPanel(
       requests.sender(),
       results,
@@ -212,7 +215,14 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
-    ModelExtensions(settings, aiState, modelRequests.sender(), downloads, downloadReplies),
+    ModelExtensions(
+      settings,
+      modelPaths,
+      aiState,
+      modelRequests.sender(),
+      downloads,
+      downloadReplies
+    ),
     font
   );
   const formatBusy = signal(false);
@@ -432,7 +442,7 @@ function App(
       tooltip={message("Extensions")}
       aria-label={accessibleName("Extensions")}
       onPress={() => {
-        panel.set(panel.get() === 'extensions' ? '' : 'extensions');
+        selectPanel(panel, settings, modelPaths, panel.get() === 'extensions' ? '' : 'extensions');
       }}
     />
   </View>;

@@ -27,8 +27,14 @@ import { AiState } from '../../services/ai/actions.tsr';
 import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { ModelExtension, modelExtensions, availableModelPaths, modelTokenizer, modelFolder } from '../../services/ai/model-extensions.tsr';
 
-export function ModelExtensions(settings: Signal<StudioConfig>, ai: Signal<AiState>, commands: Sender<ModelRequest>, downloads: Sender<string>, replies: Channel<string>): Node {
-  const paths = signal(availableModelPaths(settings.get()));
+export function ModelExtensions(
+  settings: Signal<StudioConfig>,
+  paths: Signal<string[]>,
+  ai: Signal<AiState>,
+  commands: Sender<ModelRequest>,
+  downloads: Sender<string>,
+  replies: Channel<string>
+): Node {
   const pending = signal('');
   const error = signal('');
   const rows: Node[] = [];
