@@ -1,4 +1,13 @@
-import { createTempDir, writeTextFile, readTextFile, removeDirAll, removeFile } from 'std:fs';
+import { fromHex, toHex } from 'std:bytes';
+import {
+  readFile,
+  writeFile,
+  createTempDir,
+  writeTextFile,
+  readTextFile,
+  removeDirAll,
+  removeFile
+} from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 
 import { edit, dirty } from '../src/lib/workspace/documents.tsr';
@@ -137,6 +146,61 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
 
     strictEqual(invalid.files.length, 0);
     strictEqual(unwrap(readTextFile(root + '/invalid.json')), invalidText);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('recovery opens journaled text drafts after disk files become binary, oversized or missing', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-replaced-drafts-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const journal = root + '/journal.json';
+    const recovery = unwrap(restoreRecovery(workspace, clone(journal)));
+    const paths = [root + '/binary.dat', root + '/removed.txt', root + '/large.txt'];
+
+    for (const path of paths) {
+      unwrap(writeTextFile(path, 'original'));
+      unwrap(openFile(workspace, path));
+      edit(workspace.files[workspace.files.length - 1].document, 'unsaved 日本語');
+    }
+
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeFile(paths[0], unwrap(fromHex('00ff'))));
+    unwrap(writeTextFile(paths[2], 'x'.repeat(4194305)));
+    unwrap(removeFile(paths[1]));
+    const restored = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(restored, journal));
+    strictEqual(restored.files.length, 3);
+
+    for (let index = 0; index < restored.files.length; index += 1) {
+      strictEqual(restored.files[index].document.path, workspace.files[index].document.path);
+      strictEqual(restored.files[index].kind, 'text');
+      strictEqual(restored.files[index].document.text, 'unsaved 日本語');
+      strictEqual(restored.files[index].document.savedText, 'original');
+
+      match (saveDocument(restored.files[index].document)) {
+        Ok(_) => {
+          throw 'Recovery replaced external file contents';
+        },
+        Err(error) => {
+          strictEqual(error.code, 'conflict');
+        }
+      }
+    }
+
+    match (readFile(paths[1])) {
+      Ok(_) => {
+        throw 'Recovery recreated a deleted file';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
+
+    strictEqual(unwrap(toHex(unwrap(readFile(paths[0])))), '00ff');
+    strictEqual(unwrap(readTextFile(paths[2])).length, 4194305);
   } finally {
     unwrap(removeDirAll(root));
   }

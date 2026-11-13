@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Recovery after external file replacement or deletion
+
+A real-filesystem regression reproduced an entire journal failing to restore
+when a dirty text file became binary. Recovery now restores journaled text and
+its saved comparison baseline for binary and oversized replacements. A removed
+file with an existing canonical parent can return as an unsaved buffer at its
+original tab position. Recovery does not create the missing file. Ordinary save
+reports a conflict in all three cases and preserves disk contents. The regression
+checks order, draft text, baseline, save conflicts and the replacement bytes.
+Recovery/storage suites 7/7 in 73.62 ms execution. Whole-tree formatting passed.
+Logs /tmp/studio-replaced-recovery-{before,order,format-final}.log. Native
+restart with owner drafts was not exercised.
+
 ## Binary and large-file previews
 
 Opening a non-image file containing invalid UTF-8 or NUL bytes now presents a

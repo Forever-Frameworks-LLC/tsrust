@@ -1,10 +1,17 @@
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
 import { homeDir } from 'std:env';
-import { readTextFile, writeTextFileAtomic, mkdirAll, stat } from 'std:fs';
-import { join, separator } from 'std:path';
+import {
+  readTextFile,
+  writeTextFileAtomic,
+  mkdirAll,
+  stat,
+  lstat,
+  canonicalize
+} from 'std:fs';
+import { basename, dirname, join, separator } from 'std:path';
 
-import { dirty, edit } from './documents.tsr';
+import { createDocument, dirty, edit } from './documents.tsr';
 import { Workspace, openFile, selectFile } from './workspace.tsr';
 
 interface Draft {
@@ -44,6 +51,28 @@ export function recoveryPath(root: ReadOnly<string>): Result<string, string> {
   }
 }
 
+function openRecoveredDraft(workspace: Mutable<Workspace>, draft: ReadOnly<Draft>): void {
+  if (selectFile(workspace, clone(draft.path))) return;
+
+  match (lstat(draft.path)) {
+    Ok(_) => {
+      unwrap(openFile(workspace, draft.path));
+    },
+    Err(error) => {
+      if (error.code !== 'not-found') throw clone(error.message);
+      // Only restore an absent leaf under its original canonical parent.
+      const parent = unwrap(canonicalize(dirname(draft.path)));
+      const name = basename(draft.path);
+
+      if (name === '.' || name === '..' || join(parent, name) !== draft.path || !unwrap(stat(parent)).isDirectory) throw 'Invalid recovery document.';
+      workspace.files.push({
+        name, kind: 'text', document: unwrap(createDocument(clone(draft.path), clone(draft.savedText)))
+      });
+      workspace.active = clone(draft.path);
+    }
+  }
+}
+
 // Validate the complete journal before changing any open buffers.
 export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Result<Recovery, string> {
   let baseline = '';
@@ -69,17 +98,22 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     if (zoom < -40 || zoom > 40) return Err('Invalid recovery document.');
     const next = clone(workspace);
     const opened = journal.opened;
+    const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
 
     if (opened !== undefined) {
-      const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
-
       for (const file of opened) {
         if (!file.startsWith(prefix)) return Err('This file is outside the open project directory.');
-        // Deleted clean files need no recovery; dirty files are still required below.
+        // Restore missing dirty tabs in their saved positions.
         match (stat(file)) {
           Ok(_) => {},
           Err(error) => {
-            if (error.code === 'not-found') continue;
+            if (error.code === 'not-found') {
+              const draft = journal.drafts.find((entry) => entry.path === file);
+
+              if (draft !== undefined) openRecoveredDraft(next, draft);
+              continue;
+            }
+
             return Err(clone(error.message));
           }
         }
@@ -89,10 +123,21 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     }
 
     for (const draft of journal.drafts) {
-      unwrap(openFile(next, draft.path));
+      if (!draft.path.startsWith(prefix)) return Err('This file is outside the open project directory.');
+
+      openRecoveredDraft(next, draft);
       const index = next.files.findIndex((file) => file.document.path === draft.path);
 
-      if (index < 0 || next.files[index].kind !== 'text') return Err('Invalid recovery document.');
+      if (index < 0 || next.files[index].kind === 'image') return Err('Invalid recovery document.');
+
+      // A journaled text buffer can outlive the disk version that determined its viewer.
+      if (next.files[index].kind !== 'text') {
+        next.files[index].kind = 'text';
+        next.files[index].binaryPreview = undefined;
+        next.files[index].byteSize = undefined;
+        next.files[index].previewBytes = undefined;
+      }
+
       edit(next.files[index].document, clone(draft.text));
       next.files[index].document.savedText = clone(draft.savedText);
       next.files[index].document.durabilityPending = draft.durabilityPending;
