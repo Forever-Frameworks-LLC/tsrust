@@ -18,7 +18,7 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
     for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
   } else if (mode === 'conflicts') {
     if (file !== '') {
-      const sections: string[] = [];
+      const sections = new Map<string, string>();
 
       match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(file)])) {
         Err(reason) => {
@@ -33,13 +33,13 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
             const heading = ':' + fields[2] + ':' + file;
 
             if (fields[0] === '160000') {
-              sections.push(heading + '\nSubproject commit ' + fields[1]);
+              sections.set(clone(fields[2]), heading + '\nSubproject commit ' + fields[1]);
               continue;
             }
 
             match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
               Ok(content) => {
-                sections.push(heading + '\n' + content);
+                sections.set(clone(fields[2]), heading + '\n' + content);
               },
               Err(reason) => {
                 return Err(reason);
@@ -49,7 +49,8 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
         }
       }
 
-      return Ok(sections.join('\n\n'));
+      if (sections.size === 0) return Ok('');
+      return Ok(['1', '2', '3'].map((stage) => clone(sections.get(stage)) ?? ':' + stage + ':' + file + '\n(absent)').join('\n\n'));
     }
 
     for (const arg of ['diff', '--relative', '--name-only', '--diff-filter=U', '--no-ext-diff']) args.push(clone(arg));
@@ -302,12 +303,12 @@ async function gitOutput(root: ReadOnly<string>, args: string[], input: string =
         if (blob) {
           match (toUtf8(output.stdout)) {
             Ok(text) => {
-              return Ok(text.includes('\0') ? 'Binary blob' : text);
+              if (!text.includes('\0')) return Ok(text);
             },
-            Err(_) => {
-              return Ok('Binary blob');
-            }
+            Err(_) => {}
           }
+
+          return Ok('Binary blob (' + length(output.stdout).toString() + ' bytes)');
         }
 
         return Ok(unwrap(toUtf8(output.stdout)));

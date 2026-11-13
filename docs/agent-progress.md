@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Binary and modify/delete conflict previews
+
+Conflict previews render the base, ours and theirs stages in order, with an
+explicit absent marker when a stage is missing. Binary versions display
+their byte length. A real merge produced two binary modify/delete conflicts,
+with opposite sides deleting. The fixture verified the stages for both
+files, exercised both NUL-containing and invalid UTF-8 content, and compared
+Git's complete staged-entry listing before and after inspection. All seven
+Git cases passed. The desktop picker and submodule cases remain unverified.
+
 ## Inspect unresolved Git index stages
 
 The Conflicts tab lists unresolved paths in the workspace and provides a

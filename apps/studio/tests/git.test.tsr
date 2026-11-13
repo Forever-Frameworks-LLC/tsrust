@@ -1,5 +1,12 @@
-import { toUtf8 } from 'std:bytes';
-import { createTempDir, mkdirAll, removeFile, removeDirAll, writeTextFile } from 'std:fs';
+import { fromHex, toUtf8 } from 'std:bytes';
+import {
+  createTempDir,
+  mkdirAll,
+  removeFile,
+  removeDirAll,
+  writeFile,
+  writeTextFile
+} from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import { GitRequest, diffHunks, changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
@@ -193,6 +200,51 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
       mode: 'conflicts', action: 'stage', path: 'ré view.txt'
     })), '');
     strictEqual(unwrap(await readGitView(root, 'conflicts')), 'outside.txt\n');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('inspect binary modify/delete conflicts on either side without altering the index', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-binary-conflict-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main']), true);
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+
+      for (const file of ['topic', 'main']) {
+        const path = root + '/' + file;
+
+        if (branch === file) unwrap(removeFile(path));
+        else unwrap(writeFile(path, unwrap(fromHex(branch === 'base' ? '0041' : 'ffab12'))));
+      }
+
+      strictEqual(await repoGit(root, ['add', '-A']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    const indexArgs = ['ls-files', '--stage', '-z'];
+    const before = unwrap(toUtf8(unwrap(await run('git', clone(indexArgs), {
+      cwd: clone(root)
+    })).stdout));
+
+    for (const file of ['topic', 'main']) {
+      const preview = unwrap(await readGitView(root, 'conflicts', clone(file)));
+      const missing = file === 'main' ? '2' : '3';
+      const surviving = file === 'main' ? '3' : '2';
+      strictEqual(preview.includes(':1:' + file + '\nBinary blob (2 bytes)'), true);
+      strictEqual(preview.includes(':' + missing + ':' + file + '\n(absent)'), true);
+      strictEqual(preview.includes(':' + surviving + ':' + file + '\nBinary blob (3 bytes)'), true);
+    }
+
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', indexArgs, {
+      cwd: clone(root)
+    })).stdout)), before);
   } finally {
     unwrap(removeDirAll(root));
   }
