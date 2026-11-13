@@ -97,6 +97,23 @@ test('source control reads status and separate staged and working diffs scoped t
     const history = unwrap(await readGitView(sub, 'history'));
     strictEqual(history.includes('baseline'), true);
     strictEqual(history.includes('outside only'), false);
+    const detail = unwrap(await gitRequest(sub, {
+      mode: 'commit', commit: history.split(' ')[0]
+    }));
+    strictEqual(detail.includes('baseline') && detail.includes('+staged line'), true);
+    strictEqual(detail.includes('outside.txt') || detail.includes('working line'), false);
+
+    match (await gitRequest(sub, {
+      mode: 'commit', commit: '--all'
+    })) {
+      Ok(_) => {
+        throw 'Invalid commit accepted';
+      },
+      Err(reason) => {
+        strictEqual(reason !== '', true);
+      }
+    }
+
     unwrap(await gitRequest(sub, {
       mode: 'status', action: 'stage', path: 'ré view.txt'
     }));

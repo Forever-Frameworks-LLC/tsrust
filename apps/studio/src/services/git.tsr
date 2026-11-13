@@ -2,6 +2,7 @@ import { fromUtf8, length, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { isAbsolute, separator } from 'std:path';
 import { lstat, stat } from 'std:fs';
+import { compile } from 'std:regex';
 import { run } from 'std:process';
 
 function workspaceFile(path: ReadOnly<string>): boolean {
@@ -124,10 +125,18 @@ export interface GitRequest {
   hunk?: string;
   patch?: string;
   viewFile?: string;
+  commit?: string;
 }
 
 export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
   const action = request.action;
+
+  if (request.mode === 'commit') {
+    const id = request.commit ?? '';
+
+    if (action !== undefined || !unwrap(compile('^[0-9a-f]{4,64}$')).isMatch(id)) return Err('Choose a commit from history.');
+    return await gitOutput(root, ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false', 'show', '--relative', '--no-ext-diff', '--no-textconv', '--no-show-signature', '--format=fuller', '--patch', id + '^{commit}', '--', '.']);
+  }
 
   const viewFile = clone(request.viewFile) ?? '';
 

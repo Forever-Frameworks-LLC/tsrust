@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Inspect a commit from workspace history
+
+The History tab now has a searchable commit picker. Selecting a row requests
+Git's author, commit dates, message and workspace-relative patch on the Git
+worker. Clearing the picker returns to the history list. Stage and unstage
+controls are disabled in History. The six-case Git suite passed after 3.91 s
+build. A nested workspace fixture read a historical addition, excluded a
+sibling outside the workspace and the current working edit, and rejected an
+option in place of a commit ID. Native picker interaction remains unverified.
+
 ## Review an untracked file before staging
 
 Working diff now shows Git's new-file patch for a selected untracked file.
