@@ -4,6 +4,26 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Compound overflow and diagnostic-assisted repair
+
+The host now uses extracted historical definitions in its whole-turn fit search
+when stripping workspace snapshots alone cannot fit the conversation. A live
+1.5B recall test includes a 35,000-line historical file followed by a separate
+35,000-word irrelevant exchange. It returned 73 for the old function, reported
+compaction, and preserved all six transcript messages. A separate dependent
+follow-up returned 42. Across the mixed recall and first verified diagnostic
+run, peak sampled model-host RSS was 2,137,056 KiB (35 observations).
+
+The paired caller-repair fixture gets the undefined shipping diagnostic from
+the real Studio language worker in both runs. It checks the report's document
+identity and verifies its inclusion or exclusion in the outgoing context.
+Without the diagnostic the model repaired the argument and passed all four
+native assertions. With the diagnostic appended after the task, the model
+repeated the broken line and review rejected the no-op. Moving the task after
+the diagnostic also failed and that prompt change was discarded. All 26 AI
+action cases and mixed-source recall passed in that run (54.82 s build).
+Diagnostic-assisted repair remains a failing opt-in quality witness.
+
 ## Current editor diagnostics in chat edits
 
 Studio passes language-service diagnostics into edit prompts for the active

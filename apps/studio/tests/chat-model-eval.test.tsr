@@ -1,6 +1,9 @@
 import { toUtf8 } from 'std:bytes';
 import { run } from 'std:process';
-import { edit } from '../src/lib/workspace/documents.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { studioServers } from '../src/lib/language/servers.tsr';
+import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
+import { Document, edit } from '../src/lib/workspace/documents.tsr';
 import { saveDocument } from '../src/lib/workspace/storage.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
@@ -291,7 +294,49 @@ if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EV
   }
 });
 
-if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+async function callerDiagnostics(root: string, compiler: string, document: ReadOnly<Document>): Task<Problem[]> {
+  const commands = new Channel<LanguageMessage>(4);
+  const requests = commands.sender();
+  const events = new Channel<LanguageUpdate>(8);
+  const servers = studioServers(compiler, []);
+  const worker = languageWorker(root, clone(servers[0]), commands, events.sender()).start();
+
+  try {
+    while (true) {
+      const event = await events.receive().timeout(20000);
+
+      if (event.kind === 'failed') throw event.message;
+
+      if (event.kind === 'ready') await requests.send({
+        kind: 'document', generation: event.generation, document: {
+          path: clone(document.path), text: clone(document.text), session: clone(document.session), revision: document.revision, version: 1
+        }
+      });
+
+      if (event.kind === 'diagnostics') {
+        const identity = event.document;
+
+        if (identity === undefined || identity.path !== document.path || identity.session !== document.session || identity.revision !== document.revision || identity.version !== 1) throw 'Unexpected diagnostic document identity.';
+        const rows = event.problems ?? [];
+
+        for (let index = 0; index < rows.length; index += 1) {
+          rows[index].session = clone(identity.session);
+          rows[index].revision = identity.revision;
+        }
+
+        return rows;
+      }
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+}
+
+if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage', 'diagnostic', 'diagnostic-control'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
@@ -303,7 +348,10 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].i
   const dataflow = feedback || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
   const combined = usage || dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
   const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
-  const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
+  const mode = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '';
+  const broken = mode === 'diagnostic' || mode === 'diagnostic-control';
+  const oldBody = broken ? 'return shelfCharge(fragile, shipping);' : 'return units;';
+  const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  " + oldBody + "\n}\n";
   const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", combined ? "import { shelfCharge, billableUnits } from './policy.tsr'" : "import { shelfCharge } from './policy.tsr'");
   const implementation = 'export default function storageFee(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
 
@@ -322,14 +370,20 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].i
     const opened = signal(clone(workspace));
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
+    const reports = broken ? await callerDiagnostics(clone(workspace.root), clone(compiler), workspace.files[0].document) : [];
+    const issue = reports.find((row) => row.message.includes('shipping'));
+
+    if (broken && issue === undefined) throw 'Language service did not diagnose shipping: ' + JSON.stringify(reports);
     const host: AiContext = {
-      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+      problems: signal<Problem[]>(mode === 'diagnostic' ? clone(reports) : []), workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
     };
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
-      const answer = await ask(host, updates, usage ? 'Edit: Fix quote to calculate the storage charge using the same policy as invoice.tsr. Exclude shipping. Preserve the public signature and all other code.' : dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
+      const answer = await ask(host, updates, broken ? 'Edit: Fix the error in the shelfCharge call in quote. Preserve the public signature and existing pricing behavior.' : usage ? 'Edit: Fix quote to calculate the storage charge using the same policy as invoice.tsr. Exclude shipping. Preserve the public signature and all other code.' : dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
       console.log(answer);
+
+      if (issue !== undefined) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(issue.message), mode === 'diagnostic');
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(usage ? 'function unrelatedRule' : 'unrelatedRule'), false);
 
@@ -344,7 +398,7 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].i
 
       const after = clone(proposal.files[0].after);
 
-      if (!reviewed.some((body) => after === caller.replace('return units;', body))) throw 'Unreviewed generated caller body.';
+      if (!reviewed.some((body) => after === caller.replace(oldBody, body))) throw 'Unreviewed generated caller body.';
       const recovery = signal<Recovery>({
         path: folder + '/journal.json', baseline: '', ready: true
       });
@@ -397,13 +451,14 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage'].i
 
 const recallEval = unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) ?? '';
 
-if (['1', 'excerpt', 'reply', 'followup', 'historical-source'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
+if (['1', 'excerpt', 'reply', 'followup', 'historical-source', 'mixed-source'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
   const workspace = unwrap(openWorkspace('.'));
   const history = emptyHistory(clone(workspace.root));
-  const historical = recallEval === 'historical-source';
+  const mixed = recallEval === 'mixed-source';
+  const historical = mixed || recallEval === 'historical-source';
   const reply = recallEval === 'reply';
   const followup = recallEval === 'followup';
   history.active = 'recall';
@@ -425,6 +480,15 @@ if (['1', 'excerpt', 'reply', 'followup', 'historical-source'].includes(recallEv
     }, {
       role: 'assistant', request: 'one', text: 'OK'
     }];
+
+    if (mixed) {
+      history.chats[0].messages.push({
+        role: 'user', request: 'two', text: ' unrelated'.repeat(35000)
+      });
+      history.chats[0].messages.push({
+        role: 'assistant', request: 'two', text: 'Acknowledged.'
+      });
+    }
   }
 
   const requests = new Channel<ModelRequest>(8);
@@ -438,7 +502,7 @@ if (['1', 'excerpt', 'reply', 'followup', 'historical-source'].includes(recallEv
     const answer = await ask(host, updates, historical ? 'In the earlier file, what did serviceFee() return? Reply with only the number.' : followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
     strictEqual(answer.trim(), followup ? '42' : '73');
     strictEqual(host.state.get().notice.includes('Context was shortened'), true);
-    strictEqual(host.state.get().history.chats[0].messages.length, historical ? 4 : 6);
+    strictEqual(host.state.get().history.chats[0].messages.length, historical && !mixed ? 4 : 6);
   } finally {
     worker.cancel();
 

@@ -41,10 +41,11 @@ function publish(
 }
 
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
-  let messages = request.messages;
-  let prompt = messages === undefined ? chatPrompt(request.prompt) : conversationPrompt(messages);
+  const transcript = request.messages;
+  let prompt = transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
 
-  if (messages !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
+  if (transcript !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
+    let messages: ChatMessage[] = transcript;
     const starts: int[] = [];
 
     for (let index = 0; index < messages.length; index += 1) {
@@ -75,29 +76,28 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
       }
     }
 
-    let compactHistory: ChatMessage[] = [];
-
     if (low !== 0) {
       const terms = recallTerms(request.prompt);
       let compact = withoutEarlierWorkspace(messages, terms);
 
       if (compact.length > 0) {
-        let fits = unwrap(qwen_prompt_fits(model, conversationPrompt(compact)));
+        // Keep extracted definitions available when an unrelated turn must also be dropped.
+        if (unwrap(qwen_prompt_fits(model, conversationPrompt(compact)))) low = 0;
+        else if (latest >= 0 && messages[latest].workspaceEnd === undefined && terms.size > 0) {
+          const dialogue = withoutEarlierWorkspace(messages);
 
-        if (!fits && latest >= 0 && messages[latest].workspaceEnd === undefined && terms.size > 0) {
-          compact = withoutEarlierWorkspace(messages);
-          fits = unwrap(qwen_prompt_fits(model, conversationPrompt(compact)));
+          if (unwrap(qwen_prompt_fits(model, conversationPrompt(dialogue)))) {
+            compact = dialogue;
+            low = 0;
+          }
         }
 
-        if (fits) {
-          compactHistory = compact;
-          low = 0;
-        }
+        messages = compact;
       }
     }
 
     // Find the longest whole-turn suffix that leaves room for output.
-    let high = compactHistory.length > 0 ? 0 : starts.length;
+    let high = low === 0 ? 0 : starts.length;
 
     while (low < high) {
       const middle = low + (high - low) / 2;
@@ -108,7 +108,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     }
 
     if (low < starts.length) {
-      let retained = compactHistory.length > 0 ? compactHistory : messages.slice(starts[low]);
+      let retained = messages.slice(starts[low]);
       prompt = conversationPrompt(retained);
       const question = request.prompt === '' ? clone(messages[starts[starts.length - 1]].content) : clone(request.prompt);
       const terms = recallTerms(question);
@@ -149,7 +149,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
       if (terms.size === 0 && latest === messages.length - 1 && low === starts.length - 1 && low > 0 && starts[low] - starts[low - 1] === 2 && messages[starts[low] - 1].role === 'assistant') {
         const earlier = messages[starts[low - 1]];
         const end = earlier.workspaceEnd;
-        const question = end !== undefined && end > 0 && earlier.content.startsWith('\n\n', end) ? earlier.content.slice(end + 2) : '';
+        const question = end !== undefined && end > 0 && earlier.content.startsWith('\n\n', end) ? earlier.content.slice(end + 2) : clone(earlier.content);
         const previous: ChatMessage = {
           role: 'user', content: question === '' ? '[Earlier question omitted]' : question
         };
