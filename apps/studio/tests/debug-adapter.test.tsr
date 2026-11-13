@@ -276,7 +276,10 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           if (update.finished) throw 'Target exited before the expected stop: ' + update.text;
 
           if (update.stopped === true) {
-            if (action === 'continue') strictEqual(update.text.includes('step'), true);
+            strictEqual(update.text.includes('\n#0 '), true);
+            strictEqual(update.text.includes('0x'), true);
+
+            if (action === 'continue') strictEqual(update.text.includes('Stopped: step'), true);
             break;
           }
         }
