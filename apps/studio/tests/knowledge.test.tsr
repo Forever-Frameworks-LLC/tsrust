@@ -1,0 +1,26 @@
+import { createTempDir, removeDirAll } from 'std:fs';
+import { strictEqual, test } from 'std:testing';
+import { knowledgeQuestion, searchKnowledge } from '../src/services/ai/knowledge.tsr';
+
+test('offline reference retrieval opens the shipped index and returns attributable code', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-knowledge-'));
+
+  try {
+    const question = 'Show a SQLite rollback example';
+    strictEqual(knowledgeQuestion(question), true);
+    const first = unwrap(searchKnowledge(question, clone(folder)));
+    strictEqual(first.includes('examples/sqlite/rollback.tsr:'), true);
+    strictEqual(first.includes('db.begin()'), true);
+    strictEqual(unwrap(searchKnowledge(question, clone(folder))), first);
+    const group = unwrap(searchKnowledge('GPUI ClearableGroup', clone(folder)));
+    strictEqual(group.includes('InputGroup.tsrx:'), true);
+    strictEqual(group.includes('controlInput'), true);
+    const guide = unwrap(searchKnowledge('GPUI controlled uncontrolled switch', clone(folder)));
+    strictEqual(guide.includes('docs/guides/ui/03-state.md:'), true);
+    strictEqual(guide.includes('defaultChecked'), true);
+    strictEqual(unwrap(searchKnowledge('zzznosuchidentifier', clone(folder))), '');
+    strictEqual(knowledgeQuestion('What did I just ask?'), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Bundled SQLite retrieval
+
+Studio now embeds a prebuilt SQLite FTS5 corpus with 1,027 source passages from
+239 tracked Tsrust example, compiler runtime-test and GPUI guide files. The
+generator excludes Studio and its model evaluations. Two regenerations produced
+identical bytes. Search returns the top BM25 passage with its original path and
+line. Chat automatically searches for Tsrust, GPUI, TSRX, SQLite and std: prompts
+in a bound workspace with a read grant. The explicit search_tsrust_knowledge
+action accepts other queries. The database is installed locally on first use.
+Regenerate with python3 tools/generate-studio-knowledge.py after corpus changes.
+
+The native retrieval and chat-action suites passed 18/18 in 59.99 ms, checking
+rollback, the GPUI ClearableGroup and the controlled/uncontrolled switch guide.
+A live 1.5B chat retrieved the rollback source in an empty workspace and answered
+0 rows after the exception. This example contains its own expected result.
+Held-out multi-file task quality and workspace semantic discovery remain open.
+
 ## Model limits and context selection
 
 Studio now passes zero for generation budget, meaning use the trained model

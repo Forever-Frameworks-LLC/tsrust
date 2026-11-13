@@ -690,8 +690,8 @@ making a reviewed change, and passing the compiler and relevant tests.
 
 Use the selected model's tokenizer and trained window for context decisions.
 Keep current edit source exact, prefer reference lines for symbol questions, and
-compact repeated context before omitting older complete turns. Evaluate SQLite
-retrieval over shipped Tsrust and GPUI documentation, examples and tests. Keep
+compact repeated context before omitting older complete turns. SQLite FTS5 retrieval now ships with Tsrust examples, runtime-test passages
+and GPUI guides, with path and line attribution. Evaluate ranking and task accuracy. Keep
 evaluation fixtures and their derivatives outside that corpus. Compare task
 accuracy, token use, latency and memory on the same small model before scaling.
 

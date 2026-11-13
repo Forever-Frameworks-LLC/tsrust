@@ -2,6 +2,7 @@ import { Sender, Channel } from 'std:futures';
 import { Signal, translate } from 'std:ui';
 
 import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { knowledgeQuestion, searchKnowledge } from './knowledge.tsr';
 import { fitGeneration } from '../../lib/ai/generation.tsr';
 import {
   ChatHistory,
@@ -100,6 +101,8 @@ function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = 
 
 export function modelTools(): EditorTool[] {
   return [{
+    name: 'search_tsrust_knowledge', description: 'Search shipped Tsrust examples, runtime tests and GPUI guides. Returns the best matching passage with its repository path and line.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"]}'
+  }, {
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
     name: 'local_model_send', description: 'Send in the explicit selected conversation. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
@@ -177,6 +180,11 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
     const args = JSON.parse<Arguments>(payload, {
       maxBytes: payload.length, maxDepth: 4, maxEntries: 8, maxNodes: 16
     });
+
+    if (name === 'search_tsrust_knowledge') {
+      if (!context.allowRead) return Err('The host has not permitted reading reference material.');
+      return searchKnowledge(args.prompt ?? '');
+    }
 
     if (name === 'local_model_read') {
       if (!context.allowRead) return Err('The host has not permitted reading this conversation.');
@@ -306,7 +314,19 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };
-      const excerpt = grounding.excerpt + snippets;
+      let excerpt = grounding.excerpt + snippets;
+
+      if (canReadWorkspace && knowledgeQuestion(prompt) && grounding.candidates.length === 0 && grounding.unavailable.length === 0) {
+        match (searchKnowledge(prompt)) {
+          Ok(passage) => {
+            if (passage !== '') excerpt += (excerpt === '' ? '' : '\n\n') + passage;
+          },
+          Err(error) => {
+            next.notice = error;
+          }
+        }
+      }
+
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
       });

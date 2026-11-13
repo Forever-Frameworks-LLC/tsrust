@@ -121,3 +121,36 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
     unwrap(removeDirAll(folder));
   }
 });
+
+if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat reads a retrieved SQLite example and explains its observable result', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const folder = unwrap(createTempDir(undefined, 'studio-knowledge-eval-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(folder));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: signal(clone(workspace)), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      const answer = await ask(host, updates, 'In the bundled SQLite rollback example, how many rows remain after the exception? Reply with just the number.');
+      const first = host.state.get().history.chats[0].messages[0];
+      strictEqual((first.workspaceExcerpt ?? '').includes('examples/sqlite/rollback.tsr:'), true);
+      console.log(answer);
+      strictEqual(answer.trim(), '0');
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

@@ -1,0 +1,84 @@
+import { fromBase64, fromUtf8, toUtf8, view } from 'std:bytes';
+import { homeDir } from 'std:env';
+import {
+  createTempDir,
+  mkdirAll,
+  removeDirAll,
+  rename,
+  stat,
+  writeFile
+} from 'std:fs';
+import { join } from 'std:path';
+import { compile } from 'std:regex';
+import { open } from 'std:sqlite';
+
+import encoded from '../../assets/knowledge/passages.txt';
+import manifest from '../../assets/knowledge/manifest.json';
+
+function databasePath(folder: ReadOnly<string>): string {
+  const path = join(folder, manifest.sha256 + '.sqlite');
+
+  match (stat(path)) {
+    Ok(info) => {
+      if (info.isFile && info.size === manifest.size) return path;
+    },
+    Err(_) => {}
+  }
+
+  unwrap(mkdirAll(folder));
+  const temporary = unwrap(createTempDir(folder, 'install-'));
+
+  try {
+    const file = join(temporary, 'passages.sqlite');
+    unwrap(writeFile(file, unwrap(fromBase64(encoded))));
+    unwrap(rename(file, path));
+  } finally {
+    unwrap(removeDirAll(temporary));
+  }
+
+  return path;
+}
+
+export function knowledgeQuestion(prompt: ReadOnly<string>): boolean {
+  const text = prompt.toLowerCase();
+  return ['tsrust', 'gpui', 'std:', 'sqlite', 'tsrx'].some((term) => text.includes(term));
+}
+
+export function searchKnowledge(prompt: ReadOnly<string>, folder?: string): Result<string, string> {
+  try {
+    const bytes = unwrap(fromUtf8(prompt.toLowerCase()));
+    const words = unwrap(compile('[a-z][a-z0-9_]*'));
+    const terms: string[] = [];
+
+    for (const token of words.findAll(prompt.toLowerCase())) {
+      const word = unwrap(toUtf8(unwrap(view(bytes, token.start, token.end))));
+
+      if (word.length <= 1 || ['the', 'how', 'does', 'show', 'example', 'examples', 'can', 'use', 'using', 'for', 'with', 'from', 'what', 'tsrust', 'gpui', 'std', 'please', 'and', 'that', 'this', 'are', 'code', 'edit', 'you', 'write', 'into', 'make', 'would', 'should', 'could', 'give', 'of', 'to', 'an', 'in', 'is', 'do', 'me', 'my'].includes(word)) continue;
+      const term = '"' + word + '"';
+
+      if (!terms.includes(term)) terms.push(term);
+    }
+
+    if (terms.length === 0) return Ok('');
+    const home = unwrap(homeDir());
+
+    if (folder === undefined && home === undefined) return Err('Studio knowledge cache is unavailable.');
+    const path = databasePath(folder ?? join(home ?? '', '.tsrust', 'studio', 'knowledge'));
+    const db = unwrap(open(path));
+    let passage = '';
+    {
+      const statement = unwrap(db.prepare('SELECT path,line,body FROM passages WHERE passages MATCH ?1 ORDER BY bm25(passages,6,5,4,1,0),rowid LIMIT 1'));
+      const rows = unwrap(statement.query([terms.join(' OR ')]));
+
+      if (rows.length > 0) {
+        const row = rows[0];
+        passage = 'Bundled Tsrust reference: ' + unwrap(row.text('path')) + ':' + unwrap(row.int('line')).toString() + '\n' + unwrap(row.text('body'));
+      }
+    }
+
+    unwrap(db.close());
+    return Ok(passage);
+  } catch (error) {
+    return Err('Could not search the bundled Tsrust references: ' + error.message);
+  }
+}
