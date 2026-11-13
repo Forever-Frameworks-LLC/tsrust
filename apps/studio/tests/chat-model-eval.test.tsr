@@ -1,5 +1,6 @@
 import { toUtf8 } from 'std:bytes';
 import { run } from 'std:process';
+import { edit } from '../src/lib/workspace/documents.tsr';
 import { saveDocument } from '../src/lib/workspace/storage.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
@@ -49,7 +50,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (['1', 'index', 'helpers', 'imports', 'constant'].includes(workspaceEval)) test(workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspaceEval)) test(workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -61,7 +62,10 @@ if (['1', 'index', 'helpers', 'imports', 'constant'].includes(workspaceEval)) te
     unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
     const indexCase = workspaceEval !== '1';
 
-    if (workspaceEval === 'constant') {
+    if (workspaceEval === 'active') {
+      unwrap(writeTextFile(folder + '/quote.tsr', 'export function handlingFee(units: int): int { return units; }'));
+      unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
+    } else if (workspaceEval === 'constant') {
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge; }'));
       unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export const baseCharge: int = 7;\nexport const unrelated: int = 999;'));
     } else if (workspaceEval === 'imports') {
@@ -70,6 +74,12 @@ if (['1', 'index', 'helpers', 'imports', 'constant'].includes(workspaceEval)) te
     } else if (workspaceEval === 'helpers') unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + baseCharge(); }\nfunction baseCharge(): int { return 7; }\nfunction unrelated(): int { return 999; }'));
     else if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
     const workspace = unwrap(openWorkspace(folder));
+
+    if (workspaceEval === 'active') {
+      unwrap(openFile(workspace, folder + '/quote.tsr'));
+      edit(workspace.files[0].document, 'import { baseCharge as charge } from "./lib/pricing-policy";\nexport function handlingFee(units: int): int { return units + fixedPart(); }\nfunction fixedPart(): int { return charge(); }');
+    }
+
     const opened = signal(clone(workspace));
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
@@ -87,9 +97,13 @@ if (['1', 'index', 'helpers', 'imports', 'constant'].includes(workspaceEval)) te
 
         if (workspaceEval === 'imports' || workspaceEval === 'constant') strictEqual(excerpt.includes('lib/rates.tsr'), true);
         strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = 7;' : workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+
+        if (workspaceEval === 'active') strictEqual(excerpt.includes('Local name: charge refers to baseCharge.'), true);
         strictEqual(excerpt.includes('999'), false);
         const second = await ask(host, updates, 'Pass your previous answer to the same function. What does it return now? Reply with the integer alone.');
         console.log(second);
+
+        if (workspaceEval === 'active') strictEqual((host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '').includes('export function baseCharge(): int { return 7; }'), true);
         strictEqual(first.trim(), '12');
         strictEqual(second.trim(), '19');
         return;

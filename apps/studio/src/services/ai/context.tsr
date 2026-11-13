@@ -491,7 +491,8 @@ export function editorContext(
   prompt: ReadOnly<string>,
   editing: boolean,
   hasReferences: boolean,
-  index: Mutable<Map<string, FileDeclarations>>
+  index: Mutable<Map<string, FileDeclarations>>,
+  previousQuestion: ReadOnly<string> = ''
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -507,8 +508,25 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, promptSymbols(prompt), workspace.root) : new Map<string, ImportBinding[]>();
-    const unresolved = hasReferences ? new Set<string>() : recallTerms(prompt);
+    const lookup = previousQuestion === '' ? clone(prompt) : prompt + '\n' + previousQuestion;
+    const symbols = promptSymbols(lookup);
+    const unresolved = hasReferences ? new Set<string>() : recallTerms(lookup);
+
+    if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
+      const bodies: string[] = [];
+
+      for (const name of unresolved) {
+        const body = functionExcerpt(active.document.text, name, true);
+
+        if (body !== '') bodies.push(body);
+      }
+
+      if (bodies.length > 0) {
+        for (const name of includeLocalCalls(active.document.text, bodies)) symbols.add(clone(name));
+      }
+    }
+
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, symbols, workspace.root) : new Map<string, ImportBinding[]>();
 
     for (const bindings of imported.values()) {
       for (const binding of bindings) unresolved.delete(binding.local);

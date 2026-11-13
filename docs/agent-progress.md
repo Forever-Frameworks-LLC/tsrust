@@ -4,6 +4,26 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Unsaved active function dependencies across chat turns
+
+For a named function in the active draft, retrieval follows its local helper
+calls and resolves identifiers from those bodies through the draft's imports.
+A follow-up explicitly mentioning “same function” uses identifiers from the
+immediately preceding completed question to repeat lookup against current
+sources. A “previous answer” prompt can pair the previous exchange with that
+fresh excerpt. Existing whole-file and explicit attachment behavior is retained.
+
+The AI actions suite passed 21/21 (34.51 s build), checking that a caller
+through a local helper brings in an aliased imported definition and excludes
+its neighboring export. TSRUST_STUDIO_RUN_MODEL_EVAL=active used an unsaved
+handlingFee implementation, a local fixedPart helper and baseCharge imported
+as charge from a second file. The local 1.5B host answered 12 for input 5
+and 19 when asked to use the previous answer. Before follow-up retrieval
+was changed the same questions produced 12 and 17. Final evaluation passed
+1/1 (43.26 s build). Sampling observed peak host RSS 2005.44 MiB, system
+swap usage up to 131.81 MiB above baseline and peak pressure level 2.
+These are lexical lookups and one tested follow-up phrasing.
+
 ## Oversized automatic context on prose questions
 
 When the latest turn overflows and identifier-based snippets cannot fit or

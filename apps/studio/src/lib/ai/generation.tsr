@@ -23,13 +23,13 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
     if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
 
     // An explicit reference to the last answer can use that exchange as its working context.
-    if (index === lastUser && index >= 2 && includeWorkspace && !editing && excerpt === '' && entry.text.toLowerCase().includes('previous answer')) {
+    if (index === lastUser && index >= 2 && includeWorkspace && !editing && entry.text.toLowerCase().includes('previous answer')) {
       const question = history[index - 2];
       const answer = history[index - 1];
-      const source = question.workspaceExcerpt ?? '';
+      const source = excerpt === '' ? (question.workspaceExcerpt ?? '') : excerpt;
 
       if (source !== '' && question.role === 'user' && answer.role === 'assistant' && question.request === answer.request && answer.status === 'complete') {
-        content = source + '\n\nPrevious question: ' + question.text + '\nPrevious answer: ' + answer.text + '\n\n' + content;
+        content = source + '\n\nPrevious question: ' + question.text + '\nPrevious answer: ' + answer.text + '\n\n' + messageContent(entry, false);
         request.workspaceEnd = source.length;
       }
     }

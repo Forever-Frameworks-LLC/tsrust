@@ -310,6 +310,19 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const declarations = new Map<string, FileDeclarations>();
 
       if (canReadWorkspace && storeIndex !== undefined) for (const file of storeIndex.get()) declarations.set(clone(file.path), clone(file));
+      let previousQuestion = '';
+
+      if (!editing && prompt.toLowerCase().includes('same function')) {
+        const history = next.history.chats[index].messages;
+
+        if (history.length >= 2) {
+          const previous = history[history.length - 2];
+          const answer = history[history.length - 1];
+
+          if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') previousQuestion = clone(previous.text);
+        }
+      }
+
       const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(
         workspace.get(),
         tree === undefined ? undefined : tree.get(),
@@ -317,7 +330,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         prompt,
         editing,
         snippets !== '',
-        declarations
+        declarations,
+        previousQuestion
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };

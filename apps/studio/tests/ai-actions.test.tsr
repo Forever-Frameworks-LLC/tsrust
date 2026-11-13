@@ -686,9 +686,10 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     unwrap(writeTextFile(folder + '/compute.tsr', 'export function compute() { return 998; }'));
     unwrap(writeTextFile(folder + '/delivery_fee.tsr', '// function deliveryFee() { return 666; }'));
     unwrap(writeTextFile(folder + '/helpers.tsrx', 'lower priority candidate'));
+    unwrap(writeTextFile(folder + '/schedule.tsr', 'export function hours() { return 17; }\nexport function secret() { return 606; }'));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/main.tsr'));
-    edit(workspace.files[0].document, "/* import { compute } from './unused.tsr'; */\nimport {\n  policy /* } as fakeName */ as\n compute,\n} /* select */ from './helpers';\nimport rules, { chosenExtra as alternate } from './rules';\nimport { fee } from '@prices';\nimport { policy as costAlias } from '@/cost/helpers.js';\nimport { policy as ambiguousCost } from '@/tie/helpers';");
+    edit(workspace.files[0].document, "/* import { compute } from './unused.tsr'; */\nimport {\n  policy /* } as fakeName */ as\n compute,\n} /* select */ from './helpers';\nimport rules, { chosenExtra as alternate } from './rules';\nimport { fee } from '@prices';\nimport { policy as costAlias } from '@/cost/helpers.js';\nimport { policy as ambiguousCost } from '@/tie/helpers';\nimport { hours as duty } from './schedule';\nfunction dayTotal() { return dayHours(); }\nfunction dayHours() { return duty(); }");
     const requests = new Channel<ModelRequest>(2);
     const ready = initialAiState(emptyHistory(clone(workspace.root)));
     ready.phase = 'ready';
@@ -738,9 +739,11 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     retry.workspace = host.workspace;
     retry.projectTree = host.projectTree;
     retry.declarations = declarations.handle();
-    send(retry, 'What does packingFee() return?');
+    send(retry, 'What do packingFee() and dayTotal() return?');
     const refreshed = unwrap(requests.tryReceive()).messages ?? [];
     strictEqual(refreshed[0].content.includes('return 507;'), true);
+    strictEqual(refreshed[0].content.includes('Referenced workspace file: schedule.tsr\nLocal name: duty refers to hours.\nexport function hours() { return 17; }'), true);
+    strictEqual(refreshed[0].content.includes('return 606;'), false);
     strictEqual(declarations.get().some((file) => file.names.includes('handlingFee')), false);
   } finally {
     unwrap(removeDirAll(folder));
