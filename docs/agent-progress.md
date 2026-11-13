@@ -4,6 +4,33 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Source-control sidebar and editor comparison
+
+Source Control shares the navigation area with Files and Search. Git's
+NUL-delimited status supplies separate Changes, Staged changes and Merge
+changes groups. Selecting a path opens a syntax-highlighted split Diff in
+the editor area. File and hunk staging, unstaging, history and staged commits
+use the Git worker. Nested workspaces reject a commit when sibling paths are
+staged outside the displayed project. Text conflicts compare the two index
+stages and expose an editable, recoverable result with current/incoming/both
+actions for the first marker block. Stage resolution goes through guarded
+document saving. Ten Git service and merge tests passed, including partial
+staging, CRLF diff3 markers, actual conflicted index stages from a nested
+workspace, and preservation of unstaged content during commit. The dev window
+exposed the sidebar controls and a native change list. A temporary test
+window accidentally opened the repository root because Studio indexed argv
+as though it included the executable. That process was terminated; the
+sole dev window's cwd was confirmed as apps/studio. Startup now uses the
+first user argument for an explicit workspace path. After rebuild, clicking
+the changed en.json row in the running Studio window opened its editor diff
+and exposed Stage file, Stage hunk and Close diff. PID 27629 ran in apps/studio.
+
+Separate model check: with the owner's four arithmetic prompts, the 1.5B host
+returned 81, 162, 62, then interpreted the correction as a further subtraction
+and returned -38. Full history was passed each time; all responses reached EOS.
+Peak host RSS was 2,187,329,536 bytes. This differs from the owner's third-turn
+failure and does not demonstrate reliable conversational reference tracking.
+
 ## Dev cache lookup allocation
 
 A cache hit used to read the full identity file into a second buffer. The

@@ -1,269 +1,505 @@
+import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
+import { join, extname } from 'std:path';
 import {
   Button,
   CodeEditor,
+  Diff,
+  Input,
+  List,
+  ListItem,
+  ListItemSuffix,
   Node,
-  Signal,
   Select,
-  Tab,
-  Tabs,
+  Signal,
   Text,
   Ticker,
   View,
   computed,
   signal,
-  translate,
-  t
+  t,
+  translate
 } from 'std:ui';
-import { accessibleName, localizeError, message } from '../../lib/localization.tsr';
-import { GitRequest, GitReply, DiffHunk, diffHunks } from '../../services/git.tsr';
+import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
+import { DiffHunk, GitChange, GitReply, GitRequest, diffHunks } from '../../services/git.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr';
+import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
+import { resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { separator } from 'std:path';
+function ChangeRow(row: ReadOnly<GitChange>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
+  const file = clone(row.path);
+  const staged = row.mode === 'staged';
+  return (
+    <ListItem value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+      <Text className="grow truncate">
+        {clone(row.path)}
+      </Text>
+      <Text>
+        {clone(row.status)}
+      </Text>
+      <ListItemSuffix>
+        <View hidden={row.mode === 'conflicts'}>
+          <Button
+            icon={staged ? 'minus' : 'plus'}
+            size="xsmall"
+            variant="ghost"
+            disabled={busy.get() || pending.get().mode !== ''}
+            aria-label={staged ? translate('Unstage file') : translate('Stage file')}
+            onPress={() => {
+              pending.set({
+                mode: 'status', action: staged ? 'unstage' : 'stage', path: clone(file)
+              });
+            }}
+          />
+        </View>
+      </ListItemSuffix>
+    </ListItem>
+  );
+}
 
-export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, requests: Sender<GitRequest>, replies: Channel<GitReply>, font: Signal<int>): Node {
-  const mode = signal('status');
-  const commits = signal<string[]>([]);
-  const commit = signal('');
-  const view = computed<string>(() => mode.get() === 'history' && commit.get() !== '' ? 'commit' : mode.get());
-  const files = signal<string[]>([]);
-  const conflicts = signal<string[]>([]);
-  const conflict = signal('');
-  const chosen = signal('');
-  const selection = computed<string>(() => {
-    if (mode.get() === 'conflicts') return conflict.get();
+function pickChange(
+  key: string,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  viewing: Signal<boolean>,
+  changes: Signal<GitChange[]>,
+  selected: Signal<GitChange>,
+  errorText: Signal<string>,
+  output: Signal<string>,
+  hunks: Signal<DiffHunk[]>,
+  hunk: Signal<string>,
+  pending: Signal<GitRequest>,
+  busy: Signal<boolean>
+): void {
+  if (busy.get() || pending.get().mode !== '') return;
+  const row = changes.get().find((item: ReadOnly<GitChange>) => item.mode + '/' + item.path === key);
 
-    if (['status', 'working', 'staged'].includes(mode.get()) && chosen.get() !== '') return chosen.get();
-    const state = workspace.get();
-    const prefix = state.root.endsWith(separator()) ? clone(state.root) : state.root + separator();
-    return state.active.startsWith(prefix) ? state.active.slice(prefix.length) : '';
+  if (row === undefined) return;
+  selected.set(clone(row));
+  output.set('');
+  hunks.set([]);
+  hunk.set('');
+  errorText.set('');
+
+  if (row.mode === 'conflicts') {
+    const next = workspace.get();
+
+    const filePath = join(next.root, row.path);
+
+    match (openFile(next, filePath)) {
+      Err(reason) => {
+        errorText.set(reason);
+      },
+      Ok(_) => {}
+    }
+
+    publishWorkspace(next, workspace, recovery);
+  }
+
+  pending.set({
+    mode: clone(row.mode), viewFile: clone(row.path)
   });
-  const pending = signal<GitRequest>({
+  viewing.set(true);
+}
+
+function ChangeGroup(
+  kind: string,
+  title: string,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  viewing: Signal<boolean>,
+  changes: Signal<GitChange[]>,
+  selected: Signal<GitChange>,
+  errorText: Signal<string>,
+  output: Signal<string>,
+  hunks: Signal<DiffHunk[]>,
+  hunk: Signal<string>,
+  pending: Signal<GitRequest>,
+  busy: Signal<boolean>
+): Node {
+  const groupKind = clone(kind);
+  return (
+    <View hidden={!changes.get().some((item: ReadOnly<GitChange>) => item.mode === kind)} className="flex-col grow min-h-0">
+      <Text className="px-2 py-1 font-semibold">
+        {title}
+      </Text>
+      <List
+        className="grow min-h-0"
+        size="small"
+        onConfirm={(key) => {
+          pickChange(
+            clone(key),
+            workspace.handle(),
+            recovery.handle(),
+            viewing.handle(),
+            changes.handle(),
+            selected.handle(),
+            errorText.handle(),
+            output.handle(),
+            hunks.handle(),
+            hunk.handle(),
+            pending.handle(),
+            busy.handle()
+          );
+        }}
+      >
+        {...changes.get().filter((item: ReadOnly<GitChange>) => item.mode === groupKind).map((row: ReadOnly<GitChange>) => ChangeRow(row, pending.handle(), busy.handle()))}
+      </List>
+    </View>
+  );
+}
+
+export function GitPanel(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  active: Signal<string>,
+  visible: Signal<boolean>,
+  viewing: Signal<boolean>,
+  requests: Sender<GitRequest>,
+  replies: Channel<GitReply>,
+  selected: Signal<GitChange>,
+  errorText: Signal<string>,
+  output: Signal<string>,
+  ours: Signal<string>,
+  theirs: Signal<string>,
+  busy: Signal<boolean>,
+  pending: Signal<GitRequest>,
+  hunk: Signal<string>,
+  hunks: Signal<DiffHunk[]>
+): Node {
+  const changes = signal<GitChange[]>([]);
+  const messageText = signal('');
+  const loaded = signal(false);
+  const sent = signal<GitRequest>({
     mode: ''
   });
-  const shown = signal('');
-  const busy = signal(false);
-  const output = signal('');
-  const hunks = signal<DiffHunk[]>([]);
-  const hunk = signal('');
-  const displayed = computed<string>(() => {
-    if (shown.get() !== view.get()) return '';
+  const commits = signal<string[]>([]);
+  const history = signal(false);
+  const checkingBusy = busy.handle();
+  const checkingPending = pending.handle();
+  const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
+  const sidebar: Node = <View className="size-full flex-col min-h-0">
+    <View className="flex-row items-center px-2">
+      <Text className="grow">
+        {t('Source Control')}
+      </Text>
+      <Button
+        icon="history"
+        variant="ghost"
+        size="xsmall"
+        aria-label={accessibleName('History')}
+        disabled={locked.get()}
+        onPress={() => {
+          history.set(!history.get());
 
-    if (hunk.get() === '') return output.get();
-    const selected = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
-    return selected === undefined ? output.get() : output.get().slice(selected.start, selected.end);
-  });
-  const failed = signal(false);
-  const style = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
-  return (
-    <View className="flex-col size-full min-h-0">
-      <View className="flex-row items-center">
-        <Tabs
-          size="small"
-          value={mode.get()}
-          onChange={(value) => {
-            commit.set('');
-            mode.set(clone(value));
-          }}
-        >
-          <Tab value="status" label={message('Status')} />
-          <Tab value="working" label={message('Working diff')} />
-          <Tab value="staged" label={message('Staged diff')} />
-          <Tab value="conflicts" label={message('Conflicts')} />
-          <Tab value="history" label={message('History')} />
-        </Tabs>
-        <Button
-          icon="plus"
-          variant="ghost"
-          size="xsmall"
-          disabled={busy.get() || pending.get().mode !== '' || mode.get() === 'history' || selection.get() === '' || hunk.get() !== ''}
-          tooltip={message('Stage selected or active file from disk')}
-          aria-label={accessibleName('Stage selected or active file from disk')}
-          onPress={() => {
+          if (history.get()) pending.set({
+            mode: 'history'
+          });
+        }}
+      />
+      <Button
+        icon="refresh-cw"
+        variant="ghost"
+        size="xsmall"
+        aria-label={accessibleName('Refresh source control')}
+        disabled={locked.get()}
+        onPress={() => {
+          pending.set({
+            mode: 'status'
+          });
+        }}
+      />
+    </View>
+    <Input
+      value={messageText.get()}
+      placeholder={message('Commit message')}
+      aria-label={accessibleName('Commit message')}
+      onChange={(event) => {
+        messageText.set(clone(event.target.value));
+      }}
+    />
+    <Button
+      size="small"
+      disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
+      onPress={() => {
+        pending.set({
+          mode: 'status', action: 'commit-staged', message: messageText.get()
+        });
+      }}
+    >
+      {t('Commit staged changes')}
+    </Button>
+    <View hidden={!history.get()}>
+      <Select
+        items={commits.get()}
+        value={selected.get().mode === 'commit' ? selected.get().path : ''}
+        placeholder={message('Choose a commit')}
+        onChange={(value) => {
+          if (!locked.get() && value !== '') {
+            selected.set({
+              path: clone(value), mode: 'commit', status: ''
+            });
+            output.set('');
+            hunk.set('');
+            viewing.set(true);
             pending.set({
-              mode: mode.get(), action: 'stage', path: selection.get()
+              mode: 'commit', commit: value.split(' ')[0]
             });
-          }}
-        />
-        <Button
-          icon="minus"
-          variant="ghost"
-          size="xsmall"
-          disabled={busy.get() || pending.get().mode !== '' || mode.get() === 'history' || selection.get() === '' || hunk.get() !== ''}
-          tooltip={message('Unstage selected or active file')}
-          aria-label={accessibleName('Unstage selected or active file')}
-          onPress={() => {
-            pending.set({
-              mode: mode.get(), action: 'unstage', path: selection.get()
-            });
-          }}
-        />
-        <Button
-          icon="refresh-cw"
-          variant="ghost"
-          size="xsmall"
-          disabled={busy.get() || pending.get().mode !== ''}
-          tooltip={message('Refresh source control')}
-          aria-label={accessibleName('Refresh source control')}
-          onPress={() => {
-            shown.set('');
-          }}
-        />
-      </View>
-      <View hidden={mode.get() !== 'history' || commits.get().length === 0 || busy.get() || shown.get() !== view.get()}>
-        <Select
-          items={commits.get()}
-          value={commit.get()}
-          searchable={true}
-          cleanable={true}
-          size="small"
-          placeholder={message('Choose a commit')}
-          accessibilityLabel={message('Choose a commit')}
-          onChange={(label) => {
-            commit.set(clone(label));
-            shown.set('');
-          }}
-        />
-      </View>
-      <View hidden={!['status', 'conflicts'].includes(mode.get()) || shown.get() !== mode.get() || busy.get() || (mode.get() === 'conflicts' ? conflicts.get() : files.get()).length === 0}>
-        <Select
-          items={mode.get() === 'conflicts' ? conflicts.get() : files.get()}
-          value={mode.get() === 'conflicts' ? conflict.get() : chosen.get()}
-          searchable={true}
-          cleanable={true}
-          size="small"
-          placeholder={message('Choose a changed file')}
-          accessibilityLabel={message('Choose a changed file')}
-          onChange={(path) => {
-            if (mode.get() === 'conflicts') {
-              conflict.set(clone(path));
-              shown.set('');
-            } else chosen.set(clone(path));
-          }}
-        />
-      </View>
-      <View hidden={chosen.get() === '' || !['working', 'staged'].includes(mode.get())}>
-        <Text>
-          {chosen.get()}
-        </Text>
-      </View>
-      <View hidden={conflict.get() === '' || mode.get() !== 'conflicts'}>
-        <Text>
-          {t('Index stages: 1 = base, 2 = ours, 3 = theirs')}
-        </Text>
-      </View>
-      <View hidden={shown.get() !== view.get() || hunks.get().length === 0}>
-        <Select
-          items={hunks.get().map((entry: ReadOnly<DiffHunk>) => clone(entry.label))}
-          value={hunk.get()}
-          searchable={true}
-          cleanable={true}
-          size="small"
-          placeholder={message('Choose a diff hunk')}
-          accessibilityLabel={message('Choose a diff hunk')}
-          onChange={(label) => {
-            hunk.set(clone(label));
-          }}
-        />
-      </View>
-      <View hidden={hunk.get() === '' || shown.get() !== view.get()}>
-        <Button
-          size="small"
-          disabled={busy.get() || pending.get().mode !== ''}
-          aria-label={mode.get() === 'working' ? translate('Stage hunk') : translate('Unstage hunk')}
-          onPress={() => {
-            const selected = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
-
-            if (selected !== undefined) pending.set({
-              mode: mode.get(), action: mode.get() === 'working' ? 'stage-hunk' : 'unstage-hunk', hunk: hunk.get(), patch: selected.header + displayed.get()
-            });
-          }}
-        >
-          {mode.get() === 'working' ? t('Stage hunk') : t('Unstage hunk')}
-        </Button>
-      </View>
-      <View hidden={shown.get() === view.get()}>
-        <Text>
-          {t('Reading repository…')}
-        </Text>
-      </View>
-      <View hidden={shown.get() !== view.get() || failed.get() || output.get() !== ''}>
-        <Text>
-          {mode.get() === 'history' ? t('No commits in this workspace.') : mode.get() === 'conflicts' ? t('No unresolved conflicts.') : t('No changes in this view.')}
-        </Text>
-      </View>
-      <CodeEditor value={displayed.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />
-      <Ticker
-        interval={150}
-        running={panel.get() === 'git' && (shown.get() !== view.get() || busy.get() || pending.get().mode !== '')}
-        onTick={(_frame) => {
-          if (busy.get()) {
-            match (replies.tryReceive()) {
-              Ok(reply) => {
-                if (reply.mode === 'history') commits.set(reply.failed ? [] : reply.text.split('\n').filter((line) => line !== ''));
-                if (reply.mode === 'conflicts') {
-                  const paths = clone(reply.files) ?? [];
-                  const cleared = !paths.includes(conflict.get()) && !reply.failed && conflict.get() !== '';
-                  conflicts.set(paths);
-                  if (cleared) {
-                    conflict.set('');
-                    shown.set('');
-                    busy.set(false);
-                    return;
-                  }
-                } else if (reply.mode === 'status') {
-                  const paths = clone(reply.files) ?? [];
-
-                  if (!paths.includes(chosen.get())) chosen.set('');
-                  files.set(paths);
-                }
-
-                hunk.set('');
-                hunks.set(!reply.failed && (reply.mode === 'working' || reply.mode === 'staged') ? diffHunks(reply.text) : []);
-                output.set(reply.failed ? localizeError(reply.text) : reply.text);
-                failed.set(reply.failed);
-                shown.set(reply.mode);
-                busy.set(false);
-              },
-              Err(error) => {
-                if (error.code !== 'empty') {
-                  hunk.set('');
-                  hunks.set([]);
-                  output.set(clone(error.code));
-                  failed.set(true);
-                  shown.set(clone(view.get()));
-                  busy.set(false);
-                }
-              }
-            }
-          } else {
-            const request = pending.get();
-            pending.set({
-              mode: ''
-            });
-
-            if (request.mode === '') request.mode = view.get();
-            if (request.mode === 'commit') request.commit = commit.get().split(' ')[0];
-
-            if (request.mode === 'conflicts' && conflict.get() !== '') request.viewFile = conflict.get();
-            if (['working', 'staged'].includes(request.mode) && chosen.get() !== '') request.viewFile = chosen.get();
-
-            match (requests.trySend(request)) {
-              Ok(_) => {
-                failed.set(false);
-                busy.set(true);
-              },
-              Err(error) => {
-                hunk.set('');
-                hunks.set([]);
-                output.set(clone(error.code));
-                failed.set(true);
-                shown.set(clone(view.get()));
-              }
-            }
           }
         }}
       />
     </View>
-  );
+    <View hidden={errorText.get() === ''}>
+      <Text className="px-2 text-destructive">
+        {errorText.get()}
+      </Text>
+    </View>
+    <View hidden={!loaded.get() || changes.get().length > 0 || errorText.get() !== ''}>
+      <Text>
+        {t('No changes in this view.')}
+      </Text>
+    </View>
+    {ChangeGroup(
+      'conflicts',
+      translate('Merge changes'),
+      workspace.handle(),
+      recovery.handle(),
+      viewing.handle(),
+      changes.handle(),
+      selected.handle(),
+      errorText.handle(),
+      output.handle(),
+      hunks.handle(),
+      hunk.handle(),
+      pending.handle(),
+      busy.handle()
+    )}
+    {ChangeGroup(
+      'staged',
+      translate('Staged changes'),
+      workspace.handle(),
+      recovery.handle(),
+      viewing.handle(),
+      changes.handle(),
+      selected.handle(),
+      errorText.handle(),
+      output.handle(),
+      hunks.handle(),
+      hunk.handle(),
+      pending.handle(),
+      busy.handle()
+    )}
+    {ChangeGroup(
+      'working',
+      translate('Changes'),
+      workspace.handle(),
+      recovery.handle(),
+      viewing.handle(),
+      changes.handle(),
+      selected.handle(),
+      errorText.handle(),
+      output.handle(),
+      hunks.handle(),
+      hunk.handle(),
+      pending.handle(),
+      busy.handle()
+    )}
+    <Ticker interval={150} running={busy.get() || (active.get() === 'git' && visible.get() && pending.get().mode !== '')} onTick={(_frame) => {
+      if (busy.get()) {
+        match (replies.tryReceive()) {
+          Ok(reply) => {
+            busy.set(false);
+            const req = sent.get();
+            if (reply.failed) { errorText.set(localizeError(reply.text)); return; }
+            errorText.set('');
+            if (req.action === 'commit-staged') messageText.set('');
+            if (reply.mode === 'status') {
+              const rows = reply.changes ?? [];
+              changes.set(clone(rows)); loaded.set(true);
+              const current = selected.get();
+              if (current.mode !== 'commit' && current.path !== '') {
+                let index = rows.findIndex((row: ReadOnly<GitChange>) => row.path === current.path && row.mode === current.mode);
+                if (index < 0) index = rows.findIndex((row: ReadOnly<GitChange>) => row.path === current.path);
+                if (index >= 0) {selected.set(clone(rows[index]));pending.set({mode:clone(rows[index].mode),viewFile:clone(rows[index].path)});}
+                else {viewing.set(false);selected.set({mode:'',path:'',status:''});}
+              }
+            } else if (reply.mode === 'history') commits.set(reply.text.split('\n').filter((line) => line !== ''));
+            else {ours.set(reply.ours ?? '');theirs.set(reply.theirs ?? '');hunks.set(diffHunks(reply.text));output.set(clone(reply.text));hunk.set('');if (req.action !== undefined) pending.set({mode:'status'});}
+          }, Err(reason) => {if (reason.code !== 'empty') {busy.set(false); errorText.set(reason.code);}}
+        }
+      } else {
+        const req = pending.get();
+        if (req.mode === '') return;
+        match (requests.trySend(clone(req))) { Ok(_) => {busy.set(true);sent.set(req);pending.set({mode:''});}, Err(reason) => {if (reason.code !== 'full') {errorText.set(reason.code);pending.set({mode:''});}} }
+      }
+    }} />
+  </View>;
+  return sidebar;
+}
+
+function resolveDraft(
+  side: string,
+  text: string,
+  path: string,
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  errorText: Signal<string>
+): void {
+  match (resolveFirstConflict(text, side)) {
+    Ok(text) => {
+      updateDraft(workspace, recovery, path, text);
+      errorText.set('');
+    },
+    Err(reason) => {
+      errorText.set(reason);
+    }
+  }
+}
+
+export function GitEditor(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  viewing: Signal<boolean>,
+  font: Signal<int>,
+  selected: Signal<GitChange>,
+  pending: Signal<GitRequest>,
+  output: Signal<string>,
+  ours: Signal<string>,
+  theirs: Signal<string>,
+  busy: Signal<boolean>,
+  errorText: Signal<string>,
+  hunks: Signal<DiffHunk[]>,
+  hunk: Signal<string>
+): Node {
+  const pathSelection = selected.handle();
+  const path = computed<string>(() => join(workspace.get().root, pathSelection.get().path));
+  const draft = computed<string>(() => {
+    const file = workspace.get().files.find((file: ReadOnly<OpenFile>) => file.document.path === path.get() && file.kind === 'text');
+    return file === undefined ? '' : clone(file.document.text);
+  });
+  const checkingBusy = busy.handle();
+  const checkingPending = pending.handle();
+  const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
+  const editor: Node = <View className="size-full flex-col min-h-0">
+    <View className="flex-row items-center px-2">
+      <Text className="grow truncate">
+        {selected.get().path}
+      </Text>
+      <View hidden={selected.get().mode === 'commit'}>
+        <Button size="small" disabled={locked.get()} onPress={() => {
+        if (selected.get().mode === 'conflicts') {
+          const next = workspace.get();
+          const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
+          if (index >= 0) {
+            if (next.files[index].document.text.split('\n').some((line) => line.startsWith('<<<<<<<'))) {errorText.set(translate('Resolve conflict markers before staging.'));return;}
+            const target: FormattingTarget = {path:clone(next.files[index].document.path),session:clone(next.files[index].document.session),revision:next.files[index].document.revision};
+            match (saveTarget(next,target)) {
+              Err(reason) => {errorText.set(reason);publishWorkspace(next,workspace,recovery);return;}, Ok(_) => {}
+            }
+            publishWorkspace(next,workspace,recovery);
+          }
+        }
+        pending.set({mode:'status',action:selected.get().mode === 'staged' ? 'unstage' : 'stage',path:selected.get().path});
+      }}>{selected.get().mode === 'staged' ? t('Unstage file') : selected.get().mode === 'conflicts' ? t('Stage resolution') : t('Stage file')}</Button>
+      </View>
+      <Button
+        icon="x"
+        size="xsmall"
+        variant="ghost"
+        aria-label={accessibleName('Close diff')}
+        onPress={() => {
+          viewing.set(false);
+        }}
+      />
+    </View>
+    <View hidden={hunks.get().length === 0 || !['working', 'staged'].includes(selected.get().mode)} className="flex-row">
+      <Select
+        items={hunks.get().map((item: ReadOnly<DiffHunk>) => clone(item.label))}
+        value={hunk.get()}
+        placeholder={message('Choose a diff hunk')}
+        onChange={(value) => {
+          hunk.set(clone(value));
+        }}
+      />
+      <Button
+        size="small"
+        disabled={locked.get() || hunk.get() === ''}
+        onPress={() => {
+          const item = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
+
+          if (item !== undefined) pending.set({
+            mode: selected.get().mode, action: selected.get().mode === 'staged' ? 'unstage-hunk' : 'stage-hunk', viewFile: selected.get().path, hunk: hunk.get(), patch: item.header + output.get().slice(item.start, item.end)
+          });
+        }}
+      >
+        {selected.get().mode === 'staged' ? t('Unstage hunk') : t('Stage hunk')}
+      </Button>
+    </View>
+    <View hidden={selected.get().mode !== 'conflicts'} className="flex-col grow min-h-0">
+      <View className="grow min-h-0">
+        <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
+      </View>
+      <View className="flex-row">
+        <Button
+          size="small"
+          onPress={() => {
+            resolveDraft(
+              'current',
+              draft.get(),
+              path.get(),
+              workspace.handle(),
+              recovery.handle(),
+              errorText.handle()
+            );
+          }}
+        >
+          {t('Accept current')}
+        </Button>
+        <Button
+          size="small"
+          onPress={() => {
+            resolveDraft(
+              'incoming',
+              draft.get(),
+              path.get(),
+              workspace.handle(),
+              recovery.handle(),
+              errorText.handle()
+            );
+          }}
+        >
+          {t('Accept incoming')}
+        </Button>
+        <Button
+          size="small"
+          onPress={() => {
+            resolveDraft(
+              'both',
+              draft.get(),
+              path.get(),
+              workspace.handle(),
+              recovery.handle(),
+              errorText.handle()
+            );
+          }}
+        >
+          {t('Accept both')}
+        </Button>
+      </View>
+      <CodeEditor
+        value={draft.get()}
+        language={extname(path.get()).slice(1)}
+        accessibilityLabel={message('Merge result')}
+        className="grow min-h-0"
+        onChange={(event) => {
+          updateDraft(workspace, recovery, path.get(), event);
+        }}
+      />
+    </View>
+    <View hidden={selected.get().mode === 'conflicts'} className="grow min-h-0">
+      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full" />
+    </View>
+  </View>;
+  return editor;
 }

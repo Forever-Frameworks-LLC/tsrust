@@ -8,6 +8,7 @@ import {
   writeTextFile
 } from 'std:fs';
 import { Channel } from 'std:futures';
+import { resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import {
@@ -19,6 +20,16 @@ import {
   gitRequest,
   readGitView
 } from '../src/services/git.tsr';
+
+test('merge choices preserve surrounding lines and resolve only the first block', () => {
+  const block = '<<<<<<< HEAD\r\nours\r\n||||||| base\r\nbase\r\n=======\r\ntheirs\r\n>>>>>>> topic\r\n';
+  const draft = 'prefix\r\n' + block + 'gap\r\n' + block;
+
+  for (const choice of ['current', 'incoming', 'both']) {
+    const expected = choice === 'current' ? 'ours' : choice === 'incoming' ? 'theirs' : 'ours\r\ntheirs';
+    strictEqual(unwrap(resolveFirstConflict(draft, choice)), 'prefix\r\n' + expected + '\r\ngap\r\n' + block);
+  }
+});
 
 test('opening source control reads status on the Studio worker', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-worker-'));
@@ -40,6 +51,7 @@ test('opening source control reads status on the Studio worker', async () => {
       const reply = await replies.receive().timeout(10000);
       strictEqual(reply.failed, false);
       strictEqual((reply.files ?? []).includes('pending.tsr'), true);
+      strictEqual((reply.changes ?? [])[0].mode, 'working');
       await sender.send({
         mode: 'working', viewFile: 'pending.tsr'
       });
@@ -59,6 +71,43 @@ test('opening source control reads status on the Studio worker', async () => {
         await worker;
       } catch (_) {}
     }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('sidebar commit uses the staged snapshot and protects staged sibling files', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-sidebar-commit-'));
+
+  try {
+    const sub = root + '/app';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    strictEqual(await repoGit(root, ['config', 'user.name', 'Studio test']), true);
+    strictEqual(await repoGit(root, ['config', 'user.email', 'studio@example.invalid']), true);
+    unwrap(writeTextFile(sub + '/inside', 'index'));
+    unwrap(writeTextFile(root + '/outside', 'sibling'));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'commit-staged', message: 'only app'
+    })) {
+      Ok(_) => {
+        throw 'Committed a sibling file';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('outside'), true);
+      }
+    }
+
+    strictEqual(await repoGit(root, ['rm', '--cached', 'outside']), true);
+    unwrap(writeTextFile(sub + '/inside', 'draft'));
+    unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'commit-staged', message: 'only app'
+    }));
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', ['show', 'HEAD:app/inside'], {
+      cwd: clone(root)
+    })).stdout)), 'index');
   } finally {
     unwrap(removeDirAll(root));
   }
@@ -240,6 +289,35 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
 
     strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
     strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
+    const requests = new Channel<GitRequest>(1);
+    const replies = new Channel<GitReply>(1);
+    const sender = requests.sender();
+    const worker = gitWorker(clone(sub), requests, replies.sender()).start();
+
+    try {
+      await sender.send({
+        mode: 'status'
+      });
+      const status = await replies.receive().timeout(10000);
+      const rows = status.changes ?? [];
+      strictEqual(rows.length, 1);
+      strictEqual(rows[0].path, 'ré view.txt');
+      strictEqual(rows[0].mode, 'conflicts');
+      await sender.send({
+        mode: 'conflicts', viewFile: clone(rows[0].path)
+      });
+      const reply = await replies.receive().timeout(10000);
+      strictEqual(reply.failed, false);
+      strictEqual(reply.ours, 'main\n');
+      strictEqual(reply.theirs, 'topic\n');
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+
     const stages = unwrap(await gitRequest(sub, {
       mode: 'conflicts', viewFile: 'ré view.txt'
     }));

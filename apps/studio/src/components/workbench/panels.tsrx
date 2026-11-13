@@ -21,7 +21,6 @@ export function Panels(
   problems: Node,
   problemsActions: Node,
   references: Node,
-  git: Node,
   font: Signal<int>
 ): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
@@ -43,7 +42,6 @@ export function Panels(
           <Tab value="references" label={message("References")} />
           <Tab value="output" label={message("Output")} />
           <Tab value="debug" label={message("Debug Console")} />
-          <Tab value="git" label={message("Source Control")} />
           <Tab value="extensions" label={message("Extensions")} />
           <TabsSuffix>
             <View className="flex-row items-center pr-1.5">
@@ -84,9 +82,6 @@ export function Panels(
           <Text>
             {t("Debugger integration is planned. No debug session is running.")}
           </Text>
-        </View>
-        <View hidden={panel.get() !== 'git'} className="size-full min-h-0">
-          {git}
         </View>
         <View hidden={panel.get() !== 'extensions'}>
           <Text>

@@ -59,8 +59,8 @@ import { zoomFontSize } from './lib/workspace/zoom.tsr';
 import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
 import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
-import { GitPanel } from './components/workbench/git-panel.tsrx';
-import { GitRequest, GitReply } from './services/git.tsr';
+import { GitPanel, GitEditor } from './components/workbench/git-panel.tsrx';
+import { DiffHunk, GitChange, GitRequest, GitReply } from './services/git.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
 import { studioServers } from './lib/language/servers.tsr';
@@ -209,7 +209,6 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
-    GitPanel(workspace.handle(), panel, gitRequests, gitReplies, font),
     font
   );
   const formatBusy = signal(false);
@@ -276,8 +275,63 @@ function App(
   const chatVisible = computed<boolean>(() => chat.get());
   const navigationPosition = computed<string>(() => settings.get().navigationSide);
   const navigationVisible = computed<boolean>(() => sidebar.get());
+  const viewingDiff = signal(false);
+  const gitSelection = signal<GitChange>({
+    path: '', mode: '', status: ''
+  });
+  const gitPending = signal<GitRequest>({
+    mode: 'status'
+  });
+  const gitOutput = signal('');
+  const gitOurs = signal('');
+  const gitTheirs = signal('');
+  const gitBusy = signal(false);
+  const gitError = signal('');
+  const gitHunks = signal<DiffHunk[]>([]);
+  const gitHunk = signal('');
+  const gitSidebar = GitPanel(
+    workspace,
+    recovery,
+    mode,
+    sidebar,
+    viewingDiff,
+    gitRequests,
+    gitReplies,
+    gitSelection.handle(),
+    gitError.handle(),
+    gitOutput.handle(),
+    gitOurs.handle(),
+    gitTheirs.handle(),
+    gitBusy.handle(),
+    gitPending.handle(),
+    gitHunk.handle(),
+    gitHunks.handle()
+  );
+  const gitEditor = GitEditor(
+    workspace,
+    recovery,
+    viewingDiff,
+    font,
+    gitSelection.handle(),
+    gitPending.handle(),
+    gitOutput.handle(),
+    gitOurs.handle(),
+    gitTheirs.handle(),
+    gitBusy.handle(),
+    gitError.handle(),
+    gitHunks.handle(),
+    gitHunk.handle()
+  );
+  const editingArea = <View className="size-full flex-col min-h-0">
+    <View hidden={viewingDiff.get() && mode.get() === 'git'} className="size-full">
+      {editor}
+    </View>
+    <View hidden={!viewingDiff.get() || mode.get() !== 'git'} className="size-full">
+      {gitEditor}
+    </View>
+  </View>;
   const panelArea = Region(
-    editor,
+    editingArea,
     panelView,
     panelPosition,
     panelVisible,
@@ -293,6 +347,9 @@ function App(
     160
   );
   const explorer = <View className="flex-col size-full min-h-0">
+    <View hidden={mode.get() !== 'git'} className="flex-col size-full min-h-0">
+      {gitSidebar}
+    </View>
     <View hidden={mode.get() !== 'files'} className="flex-col size-full min-h-0">
       {browser}
     </View>
@@ -347,11 +404,12 @@ function App(
     <Button
       icon="git-branch"
       variant="ghost"
-      selected={panel.get() === 'git'}
-      tooltip={message("Source Control (planned)")}
+      selected={sidebar.get() && mode.get() === 'git'}
+      tooltip={message("Source Control")}
       aria-label={accessibleName("Source Control")}
       onPress={() => {
-        panel.set(panel.get() === 'git' ? '' : 'git');
+        sidebar.set(mode.get() !== 'git' || !sidebar.get());
+        mode.set('git');
       }}
     />
     <Button
@@ -456,7 +514,7 @@ async function main(): Task<void> {
   registerThemes(communityThemes);
   useTheme('Studio Dark');
   const parameters = unwrap(args());
-  const path = unwrap(canonicalize(parameters.length > 1 ? clone(parameters[1]) : unwrap(currentDir())));
+  const path = unwrap(canonicalize(parameters.length > 0 ? clone(parameters[0]) : unwrap(currentDir())));
   const requests = new Channel<string>(1);
   const results = new Channel<CheckResult>(1);
   const replies = results.sender();

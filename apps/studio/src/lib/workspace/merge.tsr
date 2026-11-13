@@ -1,0 +1,45 @@
+// Resolve one complete Git marker block in the current draft, preserving line endings.
+export function resolveFirstConflict(text: ReadOnly<string>, side: ReadOnly<string>): Result<string, string> {
+  if (!['current', 'incoming', 'both'].includes(side)) return Err('Choose a conflict resolution.');
+  const lines = text.split('\n');
+  let start = -1;
+  let base = -1;
+  let middle = -1;
+  let width = 0;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trimEnd();
+
+    if (line.startsWith('<<<<<<<')) {
+      if (start >= 0) return Err('Edit incomplete conflict markers manually.');
+      const marker = line.split(' ')[0];
+
+      if (marker !== '<'.repeat(marker.length)) continue;
+      width = marker.length;
+      start = index;
+    } else if (start >= 0) {
+      const ancestor = '|'.repeat(width);
+      const end = '>'.repeat(width);
+
+      if (line === ancestor || line.startsWith(ancestor + ' ')) {
+        if (base >= 0 || middle >= 0) return Err('Edit incomplete conflict markers manually.');
+        base = index;
+      } else if (line === '='.repeat(width)) {
+        if (middle >= 0) return Err('Edit incomplete conflict markers manually.');
+        middle = index;
+      } else if (line === end || line.startsWith(end + ' ')) {
+        if (middle < 0) return Err('Edit incomplete conflict markers manually.');
+        const result = lines.slice(0, start);
+
+        if (side !== 'incoming') for (const row of lines.slice(start + 1, base < 0 ? middle : base)) result.push(clone(row));
+
+        if (side !== 'current') for (const row of lines.slice(middle + 1, index)) result.push(clone(row));
+
+        for (const row of lines.slice(index + 1)) result.push(clone(row));
+        return Ok(result.join('\n'));
+      }
+    }
+  }
+
+  return Err('No complete conflict markers found.');
+}

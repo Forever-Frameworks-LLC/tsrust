@@ -22,53 +22,14 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
     for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
   } else if (mode === 'conflicts') {
     if (file !== '') {
-      const sections = new Map<string, string>();
-
-      match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(file)])) {
-        Err(reason) => {
-          return Err(reason);
+      match (await conflictSections(clone(root), clone(file)).start()) {
+        Ok(sections) => {
+          return Ok(formatConflict(sections, file));
         },
-        Ok(entries) => {
-          for (const entry of entries.split('\0')) {
-            const tab = entry.indexOf('\t');
-
-            if (tab < 0 || entry.slice(tab + 1) !== file) continue;
-            const fields = entry.slice(0, tab).split(' ');
-            const heading = ':' + fields[2] + ':' + file;
-
-            if (fields[0] === '160000') {
-              sections.set(clone(fields[2]), heading + '\nSubproject commit ' + fields[1]);
-              continue;
-            }
-
-            match (await gitOutput(root, ['cat-file', '-s', clone(fields[1])])) {
-              Ok(result) => {
-                const size = result.trim();
-
-                if (Number(size) > Number(gitOutputBytes())) {
-                  sections.set(clone(fields[2]), heading + '\nPreview omitted (' + size + ' bytes)');
-                  continue;
-                }
-              },
-              Err(reason) => {
-                return Err(reason);
-              }
-            }
-
-            match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
-              Ok(content) => {
-                sections.set(clone(fields[2]), heading + '\n' + content);
-              },
-              Err(reason) => {
-                return Err(reason);
-              }
-            }
-          }
+        Err(error) => {
+          return Err(error);
         }
       }
-
-      if (sections.size === 0) return Ok('');
-      return Ok(['1', '2', '3'].map((stage) => clone(sections.get(stage)) ?? ':' + stage + ':' + file + '\n(absent)').join('\n\n'));
     }
 
     for (const arg of ['diff', '--relative', '--name-only', '--diff-filter=U', '--no-ext-diff']) args.push(clone(arg));
@@ -109,6 +70,61 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
   args.push(file === '' ? '.' : file);
 
   return await gitOutput(root, args);
+}
+
+function formatConflict(sections: ReadOnly<Map<string, string>>, file: ReadOnly<string>): string {
+  if (sections.size === 0) return '';
+  return ['1', '2', '3'].map((stage) => ':' + stage + ':' + file + '\n' + (clone(sections.get(stage)) ?? '(absent)')).join('\n\n');
+}
+
+async function conflictSections(root: string, file: string): Task<Result<Map<string, string>, string>> {
+  if (!workspaceFile(file)) return Err('Choose a file inside the workspace.');
+  const sections = new Map<string, string>();
+
+  match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(file)])) {
+    Err(reason) => {
+      return Err(reason);
+    },
+    Ok(entries) => {
+      for (const entry of entries.split('\0')) {
+        const tab = entry.indexOf('\t');
+
+        if (tab < 0 || entry.slice(tab + 1) !== file) continue;
+        const fields = entry.slice(0, tab).split(' ');
+
+
+        if (fields[0] === '160000') {
+          sections.set(clone(fields[2]), 'Subproject commit ' + fields[1]);
+          continue;
+        }
+
+        match (await gitOutput(root, ['cat-file', '-s', clone(fields[1])])) {
+          Ok(result) => {
+            const size = result.trim();
+
+            if (Number(size) > Number(gitOutputBytes())) {
+              sections.set(clone(fields[2]), 'Preview omitted (' + size + ' bytes)');
+              continue;
+            }
+          },
+          Err(reason) => {
+            return Err(reason);
+          }
+        }
+
+        match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
+          Ok(content) => {
+            sections.set(clone(fields[2]), content);
+          },
+          Err(reason) => {
+            return Err(reason);
+          }
+        }
+      }
+    }
+  }
+
+  return Ok(sections);
 }
 
 // NUL-delimited names preserve whitespace and Git pathspec punctuation.
@@ -180,10 +196,39 @@ export interface GitRequest {
   patch?: string;
   viewFile?: string;
   commit?: string;
+  message?: string;
 }
 
 export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
   const action = request.action;
+
+  if (action === 'commit-staged') {
+    const message = request.message ?? '';
+
+    if (message.trim() === '') return Err('Enter a commit message.');
+
+    match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+      Err(error) => {
+        return Err(error);
+      },
+      Ok(value) => {
+        const prefix = value.slice(0, -1);
+
+        if (prefix !== '') {
+          match (await gitOutput(root, ['diff', '--cached', '--no-relative', '--no-renames', '--name-only', '-z', '--', ':/'])) {
+            Err(error) => {
+              return Err(error);
+            },
+            Ok(names) => {
+              if (names.split('\0').some((name) => name !== '' && !name.startsWith(prefix))) return Err('Open the repository root to commit staged files outside this workspace.');
+            }
+          }
+        }
+      }
+    }
+
+    return await gitOutput(root, ['commit', '-m', clone(message)]);
+  }
 
   if (request.mode === 'commit') {
     const id = request.commit ?? '';
@@ -342,11 +387,63 @@ async function runGit(root: string, args: string[], input: string, diffExit: boo
   }
 }
 
+export interface GitChange {
+  path: string;
+  mode: string;
+  status: string;
+}
+
+async function repositoryChanges(root: string): Task<Result<GitChange[], string>> {
+  let prefix = '';
+
+  match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+    Ok(text) => {
+      prefix = text.slice(0, -1);
+    },
+    Err(error) => {
+      return Err(error);
+    }
+  }
+
+  const changes: GitChange[] = [];
+
+  match (await gitOutput(root, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all', '--', '.'])) {
+    Ok(text) => {
+      for (const row of text.split('\0')) {
+        if (row.length < 4 || !row.slice(3).startsWith(prefix)) continue;
+        const xy = row.slice(0, 2);
+        const path = row.slice(3 + prefix.length);
+
+        if (['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(xy)) changes.push({
+          path, mode: 'conflicts', status: xy
+        });
+        else {
+          if (xy !== '??' && xy.slice(0, 1) !== ' ') changes.push({
+            path: clone(path), mode: 'staged', status: xy.slice(0, 1)
+          });
+
+          if (xy.slice(1) !== ' ') changes.push({
+            path, mode: 'working', status: xy.slice(1)
+          });
+        }
+      }
+    },
+    Err(error) => {
+      return Err(error);
+    }
+  }
+
+  return Ok(changes);
+}
+
 export interface GitReply {
   mode: string;
   text: string;
   failed: boolean;
   files?: string[];
+  changes?: GitChange[];
+  ours?: string;
+  theirs?: string;
 }
 
 export async function gitWorker(root: string, requests: Channel<GitRequest>, replies: Sender<GitReply>): Task<void> {
@@ -354,9 +451,29 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
     const request = await requests.receive();
     const mode = clone(request.mode);
 
+    const conflictFile = clone(request.viewFile) ?? '';
+
+    if (mode === 'conflicts' && conflictFile !== '' && request.action === undefined) {
+      match (await conflictSections(clone(root), clone(conflictFile)).start()) {
+        Ok(sections) => {
+          await replies.send({
+            mode, failed: false, text: formatConflict(sections, conflictFile), ours: clone(sections.get('2')), theirs: clone(sections.get('3'))
+          });
+        },
+        Err(error) => {
+          await replies.send({
+            mode, failed: true, text: error
+          });
+        }
+      }
+
+      continue;
+    }
+
     match (await gitRequest(root, request)) {
       Ok(text) => {
         let files: string[] = [];
+        let changes: GitChange[] = [];
 
         if (mode === 'conflicts') {
           match (await gitOutput(root, ['diff', '--relative', '--name-only', '--diff-filter=U', '-z', '--', '.'])) {
@@ -373,9 +490,13 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
         }
 
         if (mode === 'status') {
-          match (await changedFiles(root)) {
-            Ok(paths) => {
-              files = paths;
+          match (await repositoryChanges(clone(root)).start()) {
+            Ok(rows) => {
+              changes = rows;
+              const unique = new Set<string>();
+
+              for (const row of changes) unique.add(clone(row.path));
+              files = Array.from(unique);
             },
             Err(error) => {
               await replies.send({
@@ -387,7 +508,7 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
         }
 
         await replies.send({
-          mode, text, failed: false, files
+          mode, text, failed: false, files, changes
         });
       },
       Err(error) => {
