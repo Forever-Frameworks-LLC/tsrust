@@ -120,3 +120,29 @@ fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
         assert_eq!(passages.iter().any(|(file, text)| file == &helper.canonicalize().unwrap() && text == "return"), linked);
     }
 }
+
+#[test]
+fn debug_build_keeps_the_compiled_source_for_each_executable_revision() {
+    let directory = support::TempDirectory::new();
+    let binary = format!("fixture{}", std::env::consts::EXE_SUFFIX);
+    let build = |value: i32| {
+        let entry = directory.source(&format!("function main() {{ console.log({value}); }}"));
+        let result = support::run(support::cli().current_dir(&directory.0)
+            .arg("build").arg(entry).args(["--debug", "-o"]).arg(&binary), 60);
+        support::success(&result);
+        let result = support::run(&mut std::process::Command::new(directory.0.join(&binary)), 10);
+        support::success(&result);
+        assert_eq!(String::from_utf8(result.stdout).unwrap().trim(), value.to_string());
+    };
+    let sources = || std::fs::read_dir(directory.0.join(format!("{binary}.tsrust-debug"))).unwrap()
+        .map(|entry| entry.unwrap().path()).collect::<Vec<_>>();
+    build(1);
+    let original = sources().pop().unwrap();
+    let contents = std::fs::read_to_string(&original).unwrap();
+    assert!(contents.contains("// tsrust-source "));
+    build(1);
+    assert_eq!(sources(), vec![original.clone()]);
+    build(2);
+    assert_eq!(sources().len(), 2);
+    assert_eq!(std::fs::read_to_string(original).unwrap(), contents);
+}

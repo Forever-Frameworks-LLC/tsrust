@@ -238,7 +238,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
     const program = folder + '/debug-target';
     const source = unwrap(canonicalize('tests/fixtures/debug-target.tsr'));
     const compiler = unwrap(get('TSRUST')) ?? 'tsrust';
-    const build = unwrap(await run(compiler, ['build', source, '-o', clone(program)], {}));
+    const build = unwrap(await run(clone(compiler), ['build', clone(source), '-o', clone(program)], {}));
     strictEqual(build.status.success, true);
     await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(program)).timeout(30000);
     const requests = new Channel<DebugCommand>(1);
@@ -322,6 +322,28 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       const succeeded = await consoleResult(output);
       strictEqual(succeeded.includes('Studio debugger fixture'), true);
       strictEqual(succeeded.includes('\nExit code 0\n'), true);
+
+      const symbols = unwrap(await run(compiler, ['build', source, '--debug', '-o', clone(program)], {}));
+      strictEqual(symbols.status.success, true);
+      await commands.send({
+        action: 'launch', program: clone(program), functionBreakpoint: 'program::main'
+      });
+
+      while (true) {
+        const reply = await output.receive().timeout(10000);
+
+        if (reply.finished) throw 'Missing debug build breakpoint: ' + reply.text;
+
+        if (reply.stopped === true) {
+          strictEqual(reply.text.includes('debug-target.tsrust-debug') && reply.text.includes('program_'), true);
+          break;
+        }
+      }
+
+      await commands.send({
+        action: 'continue'
+      });
+      strictEqual((await consoleResult(output)).includes('Exit code 0'), true);
     } finally {
       worker.cancel();
 

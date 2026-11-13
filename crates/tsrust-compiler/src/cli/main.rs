@@ -109,6 +109,7 @@ Options:
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
   --color auto|always|never  Color help, diagnostics, dev status and test reports
+  --debug                   build: retain mapped Rust source beside the executable and emit debugger symbols
   --source-locations        emit: annotate Rust statements with Tsrust file and byte range
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
@@ -238,6 +239,7 @@ fn run() -> Result<u8, String> {
     let mut release = false;
     let mut package = false;
     let mut source_locations = false;
+    let mut debug = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-o" | "--output" if output.is_none() => {
@@ -258,6 +260,7 @@ fn run() -> Result<u8, String> {
             }
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
+            "--debug" if command == "build" && !debug => debug = true,
             "--source-locations" if command == "emit" && !source_locations => source_locations = true,
             "--package" if !package => package = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
@@ -282,6 +285,7 @@ fn run() -> Result<u8, String> {
         .unwrap_or_else(|| source_path.clone())
         .display()
         .to_string();
+    if release && debug { return Err("--debug and --release select different build profiles".into()); }
     if release && command != "build" && command != "run" && command != "test" {
         return Err("--release applies only to build/run/test/dev".into());
     }
@@ -345,7 +349,7 @@ fn run() -> Result<u8, String> {
     }
     let check_elapsed=check_started.elapsed();
     let emit_started=std::time::Instant::now();
-    let (rust, native_features) = if source_locations {
+    let (rust, native_features) = if source_locations || debug {
         analysis.emit_rust_with_locations(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?)
     } else { analysis.emit_rust_with_native_features() };
     let emit_elapsed=emit_started.elapsed();
@@ -418,7 +422,8 @@ fn run() -> Result<u8, String> {
     cache_parts.push(runtime_build::profile_identity(&rust).as_bytes());
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
-    let reused = cache.copy_to(&executable);
+    // Debug symbols can include platform sidecars outside the executable cache.
+    let reused = !debug && cache.copy_to(&executable);
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {
@@ -431,6 +436,12 @@ fn run() -> Result<u8, String> {
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
         let mut command=backend_command();prepared.link(&mut command)?;
+        if debug {
+            prepared.application = retain_debug_source(&prepared.application, &executable)?;
+            command.args(["--crate-name", "program", "-g"]);
+            #[cfg(target_os = "macos")]
+            command.arg("-Csplit-debuginfo=packed");
+        }
         let result = command
             .arg("--edition=2024")
             .args([
@@ -457,7 +468,7 @@ fn run() -> Result<u8, String> {
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
         // Cache failure must not turn a successful native build into a failure.
-        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
+        if !debug && backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
     }
     if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});
@@ -501,6 +512,32 @@ fn run() -> Result<u8, String> {
     }
     println!("{} {}", styled("Built", "1;32", color_enabled(std::io::stdout().is_terminal())), executable.display());
     Ok(0)
+}
+
+/// Compile the exact post-runtime-split source from a stable path recorded in DWARF/PDB.
+fn retain_debug_source(application: &Path, executable: &Path) -> Result<PathBuf, String> {
+    use sha2::{Digest, Sha256};
+    let source = fs::read(application).map_err(|error| error.to_string())?;
+    let mut directory = executable.as_os_str().to_owned();
+    directory.push(".tsrust-debug");
+    let directory = PathBuf::from(directory);
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let digest: String = Sha256::digest(&source).iter().map(|byte| format!("{byte:02x}")).collect();
+    let path = directory.join(format!("program_{digest}.rs"));
+    if !path.exists() {
+        use std::io::Write;
+        let mut staged = tempfile::NamedTempFile::new_in(&directory).map_err(|e|e.to_string())?;
+        staged.write_all(&source).map_err(|e|e.to_string())?;
+        match staged.persist_noclobber(&path) {
+            Ok(_) => return Ok(path),
+            Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {},
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    if fs::read(&path).map_err(|e|e.to_string())? != source {
+        return Err(format!("Generated debugger source differs at {}", path.display()));
+    }
+    Ok(path)
 }
 
 fn backend_command() -> Command {
