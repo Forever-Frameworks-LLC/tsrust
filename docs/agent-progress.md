@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Local macOS bundle with the Studio inference host
+
+From apps/studio, `tsrust package --companion model-host` now builds the nested model-host project in release mode and places its executable at the sibling path used by Studio without an environment override. On macOS the helper is included before ZIP and DMG creation, and signed before the enclosing app when signing is requested. Three packaging CLI tests passed. The real unsigned arm64 Studio ZIP and DMG built locally under /tmp/studio-with-model-host and passed the generated SHA256SUMS check. The extracted application's Contents/MacOS directory contained the 63 MiB Studio executable and 15 MiB tsrust-studio-model-host. Running the public native host protocol test directly against that extracted executable passed both missing-model attempts, restart and clean pipe shutdown. This covers package contents and helper startup, not packaged-window inference, signed/notarized distribution or other operating systems. The dev preview remained running separately.
+
 ## Failed inference backend recovery
 
 The 9B Q4 Metal log reported that the failed backend needed recreation. Studio previously returned this model to the ready loop. The worker now releases it and emits stopped after publishing the request error for the pinned llama.cpp allocation/compute decode failures (-2/-3). The Studio controller enters stopping on that error, including inline errors, and displays a localized restart or model-selection notice. A fresh chat request after stopped issues a new start. All 34 AI action tests passed including separate error and stopped deliveries; the native host subprocess startup-failure/retry test passed with the rebuilt host. The dev watcher rebuilt and launched Studio (PID 18246). No live OOM induced for this change.

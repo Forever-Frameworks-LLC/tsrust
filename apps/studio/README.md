@@ -13,6 +13,9 @@ Clearing the launcher's `NO_COLOR` lets interactive shells detect their PTY's
 color support; terminal-specific user preferences still apply.
 Ordinary terminal launches can use the standard command above.
 
+On macOS, package Studio and its Metal inference host together from this directory with
+`tsrust package --companion model-host`. The bundled host runs beside the Studio executable.
+
 Use Edit → Format Document (Option+Shift+F), Project → Check Project
 (Cmd+Shift+B), or the compact braces/check controls in the status bar. File → Save All
 uses Cmd+S and saves every modified open text file, including non-active tabs.

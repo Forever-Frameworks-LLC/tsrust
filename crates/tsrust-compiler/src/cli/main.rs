@@ -59,7 +59,7 @@ Usage:
   tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
   tsrust new [name-or-path] [--ui | --app [--target backend]]
   tsrust ui list | ui add [Component...] [--all] [--force]
-  tsrust package <entry.tsrx> [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
+  tsrust package [entry.tsrx] [--companion PROJECT] [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>

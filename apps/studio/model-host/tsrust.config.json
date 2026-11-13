@@ -3,7 +3,7 @@
   "name": "studio-model-host",
   "build": {
     "entry": "src/main.tsr",
-    "output": "target/studio-model-host"
+    "output": "target/tsrust-studio-model-host"
   },
   "paths": {
     "@engine": "./llama.bindings.json"
