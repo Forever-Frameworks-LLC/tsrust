@@ -1,4 +1,6 @@
 {
+  "Stage active file from disk": "Stage active file from disk",
+  "Unstage active file": "Unstage active file",
   "Status": "Status",
   "Working diff": "Working diff",
   "Staged diff": "Staged diff",

@@ -14,10 +14,21 @@ import {
   t
 } from 'std:ui';
 import { accessibleName, message } from '../../lib/localization.tsr';
-import { GitReply } from '../../services/git.tsr';
+import { GitRequest, GitReply } from '../../services/git.tsr';
 
-export function GitPanel(panel: Signal<string>, requests: Sender<string>, replies: Channel<GitReply>, font: Signal<int>): Node {
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { separator } from 'std:path';
+
+export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, requests: Sender<GitRequest>, replies: Channel<GitReply>, font: Signal<int>): Node {
   const mode = signal('status');
+  const selection = computed<string>(() => {
+    const state = workspace.get();
+    const prefix = state.root.endsWith(separator()) ? clone(state.root) : state.root + separator();
+    return state.active.startsWith(prefix) ? state.active.slice(prefix.length) : '';
+  });
+  const pending = signal<GitRequest>({
+    mode: ''
+  });
   const shown = signal('');
   const busy = signal(false);
   const output = signal('');
@@ -38,10 +49,36 @@ export function GitPanel(panel: Signal<string>, requests: Sender<string>, replie
           <Tab value="staged" label={message('Staged diff')} />
         </Tabs>
         <Button
+          icon="plus"
+          variant="ghost"
+          size="xsmall"
+          disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
+          tooltip={message('Stage active file from disk')}
+          aria-label={accessibleName('Stage active file from disk')}
+          onPress={() => {
+            pending.set({
+              mode: mode.get(), action: 'stage', path: selection.get()
+            });
+          }}
+        />
+        <Button
+          icon="minus"
+          variant="ghost"
+          size="xsmall"
+          disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
+          tooltip={message('Unstage active file')}
+          aria-label={accessibleName('Unstage active file')}
+          onPress={() => {
+            pending.set({
+              mode: mode.get(), action: 'unstage', path: selection.get()
+            });
+          }}
+        />
+        <Button
           icon="refresh-cw"
           variant="ghost"
           size="xsmall"
-          disabled={busy.get()}
+          disabled={busy.get() || pending.get().mode !== ''}
           tooltip={message('Refresh source control')}
           aria-label={accessibleName('Refresh source control')}
           onPress={() => {
@@ -62,7 +99,7 @@ export function GitPanel(panel: Signal<string>, requests: Sender<string>, replie
       <CodeEditor value={shown.get() === mode.get() ? output.get() : ''} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />
       <Ticker
         interval={150}
-        running={panel.get() === 'git' && (shown.get() !== mode.get() || busy.get())}
+        running={panel.get() === 'git' && (shown.get() !== mode.get() || busy.get() || pending.get().mode !== '')}
         onTick={(_frame) => {
           if (busy.get()) {
             match (replies.tryReceive()) {
@@ -82,7 +119,14 @@ export function GitPanel(panel: Signal<string>, requests: Sender<string>, replie
               }
             }
           } else {
-            match (requests.trySend(clone(mode.get()))) {
+            const request = pending.get();
+            pending.set({
+              mode: ''
+            });
+
+            if (request.mode === '') request.mode = mode.get();
+
+            match (requests.trySend(request)) {
               Ok(_) => {
                 failed.set(false);
                 busy.set(true);

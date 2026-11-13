@@ -60,7 +60,7 @@ import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
 import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
 import { GitPanel } from './components/workbench/git-panel.tsrx';
-import { GitReply } from './services/git.tsr';
+import { GitRequest, GitReply } from './services/git.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
 import { studioServers } from './lib/language/servers.tsr';
@@ -83,7 +83,7 @@ function App(
   searchRequests: ReadOnly<Channel<ContentSearchRequest>>,
   cancellations: ReadOnly<Channel<int>>,
   searchReplies: Channel<ContentSearchReply>,
-  gitRequests: Sender<string>,
+  gitRequests: Sender<GitRequest>,
   gitReplies: Channel<GitReply>,
   initialConfig: StudioConfig,
   settingsError: string
@@ -209,7 +209,7 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
-    GitPanel(panel, gitRequests, gitReplies, font),
+    GitPanel(workspace.handle(), panel, gitRequests, gitReplies, font),
     font
   );
   const formatBusy = signal(false);
@@ -493,7 +493,7 @@ async function main(): Task<void> {
   const searchRequests = new Channel<ContentSearchRequest>(1);
   const searchReplies = new Channel<ContentSearchReply>(1);
   const cancellations = new Channel<int>(1);
-  const gitRequests = new Channel<string>(1);
+  const gitRequests = new Channel<GitRequest>(1);
   const gitReplies = new Channel<GitReply>(1);
   const gitSender = gitReplies.sender();
   const searchSender = searchReplies.sender();

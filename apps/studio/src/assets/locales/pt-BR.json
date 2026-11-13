@@ -1,4 +1,6 @@
 {
+  "Stage active file from disk": "Preparar arquivo ativo do disco",
+  "Unstage active file": "Retirar arquivo ativo da preparação",
   "Status": "Status",
   "Working diff": "Diferenças de trabalho",
   "Staged diff": "Diferenças preparadas",

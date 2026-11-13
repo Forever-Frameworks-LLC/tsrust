@@ -1,5 +1,7 @@
 import { toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
+import { isAbsolute, separator } from 'std:path';
+import { stat } from 'std:fs';
 import { run } from 'std:process';
 
 export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>): Task<Result<string, string>> {
@@ -15,6 +17,48 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
   args.push('--');
   args.push('.');
 
+  return await gitOutput(root, args);
+}
+
+export interface GitRequest {
+  mode: string;
+  action?: string;
+  path?: string;
+}
+
+export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
+  const action = request.action;
+
+  if (action === undefined) return await readGitView(root, request.mode);
+
+  if (action !== 'stage' && action !== 'unstage') return Err('Unknown source control action.');
+  const path = request.path ?? '';
+  const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
+
+  if (path === '' || isAbsolute(path) || parts.some((part) => part === '' || part === '.' || part === '..')) return Err('Choose a file inside the workspace.');
+
+  match (stat(root + separator() + path)) {
+    Ok(info) => {
+      if (!info.isFile) return Err('Choose a regular file.');
+    },
+    Err(error) => {
+      return Err(clone(error.message));
+    }
+  }
+
+  const args = ['--literal-pathspecs', action === 'stage' ? 'add' : 'reset', '--', clone(path)];
+
+  match (await gitOutput(root, args)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(_) => {
+      return await readGitView(root, request.mode);
+    }
+  }
+}
+
+async function gitOutput(root: ReadOnly<string>, args: string[]): Task<Result<string, string>> {
   match (await run('git', args, {
     cwd: clone(root), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
   })) {
@@ -38,11 +82,12 @@ export interface GitReply {
   failed: boolean;
 }
 
-export async function gitWorker(root: string, requests: Channel<string>, replies: Sender<GitReply>): Task<void> {
+export async function gitWorker(root: string, requests: Channel<GitRequest>, replies: Sender<GitReply>): Task<void> {
   while (true) {
-    const mode = await requests.receive();
+    const request = await requests.receive();
+    const mode = clone(request.mode);
 
-    match (await readGitView(root, mode)) {
+    match (await gitRequest(root, request)) {
       Ok(text) => {
         await replies.send({
           mode, text, failed: false

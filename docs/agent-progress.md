@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Stage and unstage the active file
+
+Source Control's plus and minus actions capture the active workspace-relative
+file, run Git on the worker, then refresh the selected view. Staging reads
+disk and unstaging affects only the index. The focused Git test passed after
+3.16 s build. Real repositories covered literal bracket filenames, a sibling
+file matching the wildcard, Unicode, a nested workspace, rejected outside
+paths, an unborn branch and unstaging after a commit while preserving working
+changes. The Studio entry source check passed. Change-list selection, deleted
+paths, hunk controls and desktop interaction remain open.
+
 ## Recalling code from earlier workspace snapshots
 
 When the latest question has no automatic workspace snapshot and names a code

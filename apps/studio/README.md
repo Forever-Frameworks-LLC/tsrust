@@ -119,8 +119,11 @@ In a live shell, hold Shift with those keys to scroll its normal screen.
 The action menu also interrupts the foreground job and restarts exited shells.
 The terminal viewport fills its region without an inset
 frame. Editor and panel tab labels follow configured text size and zoom.
+Source Control shows workspace status and separate working and staged diffs.
+Use its plus and minus buttons to stage the active file from disk or unstage it.
+Unsaved editor changes stay in the draft.
 Problems lists source-labeled structured diagnostics and operation errors. Debug,
-Source Control, AI Chat and Extensions still describe unfinished integrations.
+AI Chat and Extensions still describe unfinished integrations.
 LSP diagnostics remain pending the language-service connection.
 
 Native document tabs support reordering and split controls. Named Open tabs menus

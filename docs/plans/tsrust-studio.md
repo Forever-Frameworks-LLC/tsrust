@@ -7,7 +7,8 @@ See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
 Source Control displays workspace-scoped status, working diff and staged diff.
-Staging operations and hunk controls remain open.
+Active-file staging and unstaging use the saved file on disk. Change-list
+selection, deleted-file staging and hunk controls remain open.
 
 Single-file chat editing now reaches the native review dialog via an explicit
 Edit: request. The configured local model produced a unique replacement from

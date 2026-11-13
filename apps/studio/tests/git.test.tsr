@@ -1,7 +1,7 @@
 import { createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
-import { readGitView } from '../src/services/git.tsr';
+import { gitRequest, readGitView } from '../src/services/git.tsr';
 
 test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-'));
@@ -40,6 +40,43 @@ test('source control reads status and separate staged and working diffs scoped t
     const working = unwrap(await readGitView(sub, 'working'));
     strictEqual(working.includes('-staged line'), true);
     strictEqual(working.includes('+working line'), true);
+    const literal = '[x].txt';
+    unwrap(writeTextFile(sub + '/' + literal, 'one file'));
+    unwrap(writeTextFile(sub + '/x.txt', 'another file'));
+    const afterStage = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: clone(literal)
+    }));
+    strictEqual(afterStage.includes('A  [x].txt'), true);
+    strictEqual(afterStage.includes('?? x.txt'), true);
+    const afterUndo = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'unstage', path: literal
+    }));
+    strictEqual(afterUndo.includes('?? [x].txt'), true);
+    strictEqual(afterUndo.includes('AM '), true);
+
+    for (const path of ['.', '../outside.txt', clone(root)]) {
+      match (await gitRequest(sub, {
+        mode: 'status', action: 'stage', path: clone(path)
+      })) {
+        Ok(_) => {
+          throw 'Invalid staging target accepted';
+        },
+        Err(error) => {
+          strictEqual(error !== '', true);
+        }
+      }
+    }
+
+    strictEqual(unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'baseline'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'ré view.txt'
+    }));
+    const reset = unwrap(await gitRequest(sub, {
+      mode: 'working', action: 'unstage', path: 'ré view.txt'
+    }));
+    strictEqual(reset.includes('-staged line') && reset.includes('+working line'), true);
   } finally {
     unwrap(removeDirAll(root));
   }
