@@ -530,6 +530,7 @@
   "No matching context files": "No matching context files",
   "Preparing response…": "Preparing response…",
   "Ready": "Ready",
+  "Remove {path} from chat context": "Remove {path} from chat context",
   "Remove context": "Remove context",
   "Responding…": "Responding…",
   "Response interrupted when Studio closed.": "Response interrupted when Studio closed.",

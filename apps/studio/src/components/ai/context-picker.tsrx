@@ -1,5 +1,5 @@
 import { stat } from 'std:fs';
-import { join } from 'std:path';
+import { join, separator } from 'std:path';
 import {
   View,
   Text,
@@ -16,13 +16,14 @@ import {
   controlInput,
   pickFiles,
   translate,
+  translateWith,
   t
 } from 'std:ui';
 
 import { fileSearchLabel, matchingFilePaths } from '../../lib/explorer/search-actions.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { Entry, projectFiles } from '../../lib/workspace/workspace.tsr';
-import { message, accessibleName } from '../../lib/localization.tsr';
+import { message } from '../../lib/localization.tsr';
 import { AiContext, aiContextHandles, performModelAction } from '../../services/ai/actions.tsr';
 
 export interface ContextPickerState {
@@ -149,7 +150,13 @@ export function ContextChip(fragment: ReadOnly<ContextFragment>, context: ReadOn
   const remove = aiContextHandles(context);
   const chat = clone(context.state.get().history.active);
   const id = clone(fragment.id);
-  const label = clone(fragment.label);
+  const root = context.state.get().history.root;
+  const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
+  const path = root !== '' && fragment.path.startsWith(prefix) ? fileSearchLabel(root, fragment.path) : clone(fragment.path);
+  const label = fragment.kind === 'skill' ? clone(fragment.label) : clone(path);
+  const removeName = computed<string>(() => translateWith('Remove {path} from chat context', {
+    path: clone(path)
+  }));
   const key = 'context-' + chat + '-' + fragment.id;
   const style = computed<string>(() => 'flex-row items-center gap-1 min-w-0 max-w-[180px] text-[' + font.get().toString() + 'px]');
   return (
@@ -162,8 +169,8 @@ export function ContextChip(fragment: ReadOnly<ContextFragment>, context: ReadOn
           icon="x"
           variant="ghost"
           size="xsmall"
-          tooltip={message('Remove context')}
-          aria-label={accessibleName('Remove context')}
+          tooltip={removeName.get()}
+          aria-label={removeName.get()}
           onPress={() => {
             performModelAction(remove, 'chat_detach_context', JSON.stringify({
               chat: clone(chat), context: clone(id)

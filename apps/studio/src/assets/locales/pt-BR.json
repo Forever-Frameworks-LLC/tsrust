@@ -530,6 +530,7 @@
   "No matching context files": "Nenhum arquivo de contexto encontrado",
   "Preparing response…": "Preparando resposta…",
   "Ready": "Pronto",
+  "Remove {path} from chat context": "Remover {path} do contexto da conversa",
   "Remove context": "Remover contexto",
   "Responding…": "Respondendo…",
   "Response interrupted when Studio closed.": "A resposta foi interrompida quando o Studio fechou.",
