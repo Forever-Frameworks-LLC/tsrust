@@ -9,6 +9,7 @@ import {
 } from 'std:fs';
 import { Channel } from 'std:futures';
 import { hasConflictStart, resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
+import { platform } from 'std:os';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import {
@@ -273,6 +274,59 @@ async function repoGit(root: ReadOnly<string>, args: string[]): Task<boolean> {
     cwd: clone(root)
   })).status.success;
 }
+
+if (platform() !== 'win32') test('source control previews and stages directory and dangling links as link objects', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-links-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub + '/folder'));
+    unwrap(mkdirAll(root + '/sibling'));
+    unwrap(writeTextFile(root + '/sibling/sentinel', 'outside content'));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+
+    for (const target of ['../sibling', '../missing']) {
+      const file = 'ré view';
+      strictEqual(unwrap(await run('ln', ['-s', clone(target), clone(file)], {
+        cwd: clone(sub)
+      })).status.success, true);
+      strictEqual(unwrap(await changedFiles(sub)).includes(file), true);
+      const preview = unwrap(await readGitView(sub, 'working', clone(file)));
+      strictEqual(preview.includes('new file mode 120000') && preview.includes('+' + target), true);
+      const untouched = unwrap(await run('git', ['ls-files', '--stage'], {
+        cwd: clone(root)
+      }));
+      strictEqual(unwrap(toUtf8(untouched.stdout)), '');
+      unwrap(await gitRequest(sub, {
+        mode: 'status', action: 'stage', path: clone(file)
+      }));
+      const index = unwrap(await readGitView(sub, 'staged', clone(file)));
+      strictEqual(index.includes('new file mode 120000') && index.includes('+' + target), true);
+      const blob = unwrap(await run('git', ['show', ':project/' + file], {
+        cwd: clone(root)
+      }));
+      strictEqual(unwrap(toUtf8(blob.stdout)), target);
+      unwrap(await gitRequest(sub, {
+        mode: 'status', action: 'unstage', path: clone(file)
+      }));
+      strictEqual(unwrap(await readGitView(sub, 'staged')), '');
+      unwrap(removeFile(sub + '/' + file));
+    }
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'folder'
+    })) {
+      Ok(_) => {
+        throw 'Accepted a directory';
+      },
+      Err(error) => {
+        strictEqual(error, 'Choose a regular file.');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
 
 test('conflicts list only unresolved workspace paths until the saved resolution is staged', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-conflicts-'));

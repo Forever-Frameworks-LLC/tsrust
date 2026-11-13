@@ -1,7 +1,7 @@
 import { fromUtf8, length, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { isAbsolute, separator } from 'std:path';
-import { lstat, stat } from 'std:fs';
+import { createTempDir, lstat, removeDirAll } from 'std:fs';
 import { toInt } from 'std:numeric';
 import { compile } from 'std:regex';
 import { run } from 'std:process';
@@ -13,6 +13,47 @@ function gitOutputBytes(): int {
 function workspaceFile(path: ReadOnly<string>): boolean {
   const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
   return path !== '' && !isAbsolute(path) && !parts.some((part) => part === '' || part === '.' || part === '..');
+}
+
+// Git no-index treats links to directories as directories when paired with /dev/null.
+async function previewUntrackedLink(root: string, file: string, args: string[]): Task<Result<string, string>> {
+  match (createTempDir(undefined, 'studio-link-index-')) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(folder) => {
+      const index = folder + separator() + 'index';
+
+      try {
+        match (await runGit(
+          clone(root),
+          ['--literal-pathspecs', 'add', '--intent-to-add', '--', clone(file)],
+          '',
+          false,
+          false,
+          clone(index)
+        ).start()) {
+          Err(reason) => {
+            return Err(reason);
+          },
+          Ok(_) => {}
+        }
+
+        args.push('--');
+        args.push(file);
+        return await runGit(
+          root,
+          args,
+          '',
+          false,
+          false,
+          index
+        ).start();
+      } finally {
+        unwrap(removeDirAll(folder));
+      }
+    }
+  }
 }
 
 export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>, file: string = ''): Task<Result<string, string>> {
@@ -45,7 +86,9 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
           if (names === file + '\0') {
             match (lstat(root + separator() + file)) {
               Ok(info) => {
-                if (!info.isFile && !info.isSymlink) return Err('Choose a regular file.');
+                if (info.isSymlink) return await previewUntrackedLink(clone(root), clone(file), args).start();
+
+                if (!info.isFile) return Err('Choose a regular file.');
               },
               Err(error) => {
                 return Err(clone(error.message));
@@ -330,9 +373,9 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
   if (!workspaceFile(path)) return Err('Choose a file inside the workspace.');
 
-  match (stat(root + separator() + path)) {
+  match (lstat(root + separator() + path)) {
     Ok(info) => {
-      if (!info.isFile) return Err('Choose a regular file.');
+      if (!info.isFile && !info.isSymlink) return Err('Choose a regular file.');
     },
     Err(error) => {
       if (error.code !== 'not-found') return Err(clone(error.message));
@@ -365,9 +408,18 @@ async function gitOutput(root: ReadOnly<string>, args: string[], input: string =
   return await runGit(clone(root), args, input, diffExit, blob).start();
 }
 
-async function runGit(root: string, args: string[], input: string, diffExit: boolean, blob: boolean): Task<Result<string, string>> {
+async function runGit(
+  root: string,
+  args: string[],
+  input: string,
+  diffExit: boolean,
+  blob: boolean,
+  index: string = ''
+): Task<Result<string, string>> {
   match (await run('git', args, {
-    cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: gitOutputBytes()
+    env: index === '' ? [] : [{
+      name: 'GIT_INDEX_FILE', value: clone(index)
+    }], cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: gitOutputBytes()
   })) {
     Err(error) => {
       return Err(clone(error.message));

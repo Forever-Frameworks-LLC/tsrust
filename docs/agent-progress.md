@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Source Control symbolic links
+
+Stage and unstage now inspect the link itself. An untracked link to a directory exposed a separate Git no-index preview failure. Studio now previews untracked links with an isolated intent-to-add index. On macOS the regression checked directory and dangling targets with a non-ASCII link name, exact target blobs, mode 120000, a clean real index after preview, and unstaging. All 11 formatted Git cases passed in 1.72 seconds after a 7.45-second build. The native Stage file button in an isolated Studio workspace staged the link to a sibling directory and preserved its sentinel file.
+
 ## Sidebar row alignment and selection
 
 Changed-file paths now begin at the commit field's 8-pixel inset. The native list's confirmed checkmark follows the open file or commit alongside its selection background and leading border. The Changes, History and content-search panels no longer insert gaps between their full-width sections. In the rebuilt Studio window both changed rows and an actual content-search result measured 248 logical pixels wide at the same horizontal origin. Both input fields began 8 pixels inside that edge. Clicking the first two changed rows opened the chat-panel and editor diffs in order.
