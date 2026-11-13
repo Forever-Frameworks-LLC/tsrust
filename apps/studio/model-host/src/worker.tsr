@@ -7,6 +7,7 @@ import {
   recallTerms,
   turnMentions,
   excerptTurn,
+  withoutEarlierWorkspace,
   replaceWorkspace,
   excerptWorkspace
 } from '../../src/lib/ai/prompts.tsr';
@@ -73,8 +74,24 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
         if (unwrap(qwen_prompt_fits(model, prompt))) low = 0;
       }
     }
+
+    let compactHistory: ChatMessage[] = [];
+
+    if (low !== 0) {
+      const compact = withoutEarlierWorkspace(messages);
+
+      if (compact.length > 0) {
+        const candidate = conversationPrompt(compact);
+
+        if (unwrap(qwen_prompt_fits(model, candidate))) {
+          compactHistory = compact;
+          low = 0;
+        }
+      }
+    }
+
     // Find the longest whole-turn suffix that leaves room for output.
-    let high = starts.length;
+    let high = compactHistory.length > 0 ? 0 : starts.length;
 
     while (low < high) {
       const middle = low + (high - low) / 2;
@@ -85,7 +102,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     }
 
     if (low < starts.length) {
-      let retained = messages.slice(starts[low]);
+      let retained = compactHistory.length > 0 ? compactHistory : messages.slice(starts[low]);
       prompt = conversationPrompt(retained);
       const question = request.prompt === '' ? clone(messages[starts[starts.length - 1]].content) : clone(request.prompt);
       const terms = recallTerms(question);

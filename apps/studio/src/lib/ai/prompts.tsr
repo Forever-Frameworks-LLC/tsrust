@@ -127,6 +127,27 @@ export function replaceWorkspace(content: ReadOnly<string>, start: int, end: int
   return end === undefined ? content.slice(0, start) + replacement : replacement + content.slice(end);
 }
 
+// Drop only superseded automatic context. Explicit attachments live after the boundary.
+export function withoutEarlierWorkspace(messages: ReadOnly<ChatMessage[]>): ChatMessage[] {
+  const latest = messages.findLastIndex((message) => message.role === 'user');
+  const compact: ChatMessage[] = [];
+  let changed = false;
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const entry = messages[index];
+    const end = entry.workspaceEnd;
+
+    if (index < latest && entry.role === 'user' && end !== undefined && validWorkspace(entry.content, 0, end)) {
+      compact.push({
+        role: 'user', content: entry.content.slice(end + 2)
+      });
+      changed = true;
+    } else compact.push(clone(entry));
+  }
+
+  return changed ? compact : [];
+}
+
 export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false, end?: int): string {
   if (terms.size === 0 || !validWorkspace(content, start, end)) return '';
   const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));

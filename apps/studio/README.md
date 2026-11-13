@@ -200,7 +200,8 @@ discards the proposal. Save the draft separately when ready.
 For a change across several files, open each workspace file, attach it to the
 chat, and start the message with `Edit files: `. Review the diffs together.
 Applying updates all target drafts together. If a target changed or closed,
-request a fresh proposal.
+request a fresh proposal. **Edit → Undo Last Chat Edit** restores the target
+drafts together while they still match the accepted edit.
 
 When a long chat exceeds the model’s context window, Studio selects context
 for the request and keeps the full transcript in chat.

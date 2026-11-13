@@ -256,7 +256,8 @@ function App(
     recovery,
     settings,
     filenameSearch,
-    chat
+    chat,
+    aiState
   );
   const editor = EditorWorkspace(
     workspace,

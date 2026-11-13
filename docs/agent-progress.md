@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Context compaction and multi-file undo
+
+On actual tokenizer overflow the host can now strip historical automatic
+workspace snapshots and retain all questions, answers and explicit attachments
+when that candidate fits. Stored transcripts and the current snapshot survive.
+The rebuilt local 1.5B host received 35,000 irrelevant source lines with a
+Rust arithmetic question, replied 42, then replied 43 when asked to add one
+to its previous result. Both requests reported compaction and EOS. Peak host
+RSS from getrusage was 2,228,895,744 bytes. This is one conversation.
+
+Edit → Undo Last Chat Edit restores all affected drafts together and rejects
+the operation when any target revision changed. All 23 AI action tests
+passed (45.09 s build), and Studio's main entry and host passed source checks.
+Native menu interaction remains unverified.
+
 ## Multi-file chat edit review
 
 Edit files: with at least two attached open workspace files captures each

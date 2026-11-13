@@ -30,6 +30,7 @@ import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 export interface AiState {
   editTarget?: EditBatch;
   review?: EditBatch;
+  undoEdit?: EditBatch;
   phase: string;
   active: string;
   targetChat: string;

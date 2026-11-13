@@ -11,13 +11,48 @@ import {
   t,
   translate
 } from 'std:ui';
-import { ProposedEdit, apply } from '../../lib/workspace/documents.tsr';
+import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { EditBatch } from '../../lib/ai/edits.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
 import { message } from '../../lib/localization.tsr';
+
+// Publish once after every edit has matched its captured document.
+function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, batch: ReadOnly<EditBatch>): EditBatch | undefined {
+  const next = workspace.get();
+  const files: ProposedEdit[] = [];
+
+  for (const edit of batch.files) {
+    const path = clone(edit.path);
+    const index = next.files.findIndex((file) => file.document.path === path && file.kind === 'text');
+
+    if (index < 0 || !apply(next.files[index].document, edit)) return undefined;
+    files.push(propose(next.files[index].document, clone(edit.before)));
+  }
+
+  publishWorkspace(next, workspace, recovery);
+  return {
+    files
+  };
+}
+
+export function undoChatEdit(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
+  const chat = state.get();
+  const undo = chat.undoEdit;
+
+  if (undo === undefined) return;
+
+  if (applyBatch(workspace, recovery, undo) === undefined) {
+    const next = workspace.get();
+    next.error = translate('A target draft changed or closed. The chat edit could not be undone.');
+    workspace.set(next);
+  }
+
+  chat.undoEdit = undefined;
+  state.set(chat);
+}
 
 export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, target: ReadOnly<EditBatch>, accept: boolean): void {
   const chat = state.get();
@@ -26,20 +61,9 @@ export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspa
   if (proposal === undefined || JSON.stringify(proposal) !== JSON.stringify(clone(target))) return;
 
   if (accept) {
-    const next = workspace.get();
-    let valid = true;
+    const inverse = applyBatch(workspace, recovery, proposal);
 
-    for (const edit of proposal.files) {
-      const path = clone(edit.path);
-      const index = next.files.findIndex((file) => file.document.path === path && file.kind === 'text');
-
-      if (index < 0 || !apply(next.files[index].document, edit)) {
-        valid = false;
-        break;
-      }
-    }
-
-    if (valid) publishWorkspace(next, workspace, recovery);
+    if (inverse !== undefined) chat.undoEdit = inverse;
     else chat.notice = translate('The file changed. Request a new edit proposal.');
   }
 

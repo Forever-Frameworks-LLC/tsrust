@@ -26,6 +26,9 @@ import { unsavedTargets } from '../../services/save-actions.tsr';
 import { openPalette } from '../explorer/navigation.tsrx';
 import { showSettings } from '../settings/settings-window.tsrx';
 
+import { AiState } from '../../services/ai/actions.tsr';
+import { undoChatEdit } from '../ai/edit-review.tsrx';
+
 export function closeTab(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: string): void {
   const next = workspace.get();
 
@@ -48,7 +51,8 @@ export function Chrome(
   recovery: Signal<Recovery>,
   settings: Signal<StudioConfig>,
   fileSearch: Signal<FileSearchState>,
-  chat: Signal<boolean>
+  chat: Signal<boolean>,
+  ai: Signal<AiState>
 ): Node {
   const paletteClass = computed<string>(() => 'w-full max-w-[320px] h-6 px-3 gap-2 min-w-0 justify-start border border-border rounded-sm bg-background text-muted-foreground text-[' + font.get().toString() + 'px]');
   const canCopy = computed<boolean>(() => {
@@ -70,6 +74,7 @@ export function Chrome(
         </AppMenu>
         <AppMenu label={message("Edit")}>
           <MenuItem command="show-commands" label={message("Command Palette")} />
+          <MenuItem command="undo-chat-edit" label={message("Undo Last Chat Edit")} disabled={ai.get().undoEdit === undefined} />
           <MenuItem command="format-document" label={message("Format document")} disabled={!activeSourceDocument(workspace.get())} />
         </AppMenu>
         <AppMenu label={message("Project")}>
@@ -121,6 +126,12 @@ export function Chrome(
           }}
         />
       </View>
+      <Shortcut
+        command="undo-chat-edit"
+        onTrigger={() => {
+          undoChatEdit(ai, workspace, recovery);
+        }}
+      />
       <Shortcut
         command="save-copy"
         onTrigger={() => {
