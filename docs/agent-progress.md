@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Offline knowledge cache repair
+
+Before reusing the installed corpus, Studio verifies its bytes against the
+bundled SHA-256 digest. A mismatch takes the existing temporary-file and
+rename installation path. The native SQLite regression overwrote its private
+cache with different bytes of exactly the expected length, then recovered
+the same rollback passage and passed the remaining retrieval cases in
+237.48 ms. Warm lookups now read and hash the 1744896-byte cache file.
+Desktop interaction latency has not been measured.
+
 ## Public strings guide in a two-turn local chat
 
 In the strings variant of TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL, Studio attached

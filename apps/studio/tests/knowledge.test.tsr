@@ -1,4 +1,5 @@
-import { createTempDir, removeDirAll } from 'std:fs';
+import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import manifest from '../src/assets/knowledge/manifest.json';
 import { strictEqual, test } from 'std:testing';
 import { knowledgeQuestion, searchKnowledge } from '../src/services/ai/knowledge.tsr';
 
@@ -11,6 +12,9 @@ test('offline reference retrieval opens the shipped index and returns attributab
     const first = unwrap(searchKnowledge(question, clone(folder)));
     strictEqual(first.includes('examples/sqlite/rollback.tsr:'), true);
     strictEqual(first.includes('db.begin()'), true);
+    strictEqual(unwrap(searchKnowledge(question, clone(folder))), first);
+    const cached = folder + '/' + manifest.sha256 + '.sqlite';
+    unwrap(writeTextFile(cached, 'x'.repeat(manifest.size)));
     strictEqual(unwrap(searchKnowledge(question, clone(folder))), first);
     const group = unwrap(searchKnowledge('GPUI ClearableGroup', clone(folder)));
     strictEqual(group.includes('InputGroup.tsrx:'), true);

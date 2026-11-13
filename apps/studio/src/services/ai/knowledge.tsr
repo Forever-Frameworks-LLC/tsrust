@@ -1,8 +1,10 @@
-import { fromBase64, fromUtf8, toUtf8, view } from 'std:bytes';
+import { fromBase64, fromUtf8, toHex, toUtf8, view } from 'std:bytes';
+import { sha256 } from 'std:crypto';
 import { homeDir } from 'std:env';
 import {
   createTempDir,
   mkdirAll,
+  readFile,
   removeDirAll,
   rename,
   stat,
@@ -21,7 +23,14 @@ function databasePath(folder: ReadOnly<string>): string {
 
   match (stat(path)) {
     Ok(info) => {
-      if (info.isFile && info.size === manifest.size) return path;
+      if (info.isFile && info.size === manifest.size) {
+        match (readFile(path, manifest.size)) {
+          Ok(bytes) => {
+            if (unwrap(toHex(sha256(bytes))) === manifest.sha256) return path;
+          },
+          Err(_) => {}
+        }
+      }
     },
     Err(_) => {}
   }
