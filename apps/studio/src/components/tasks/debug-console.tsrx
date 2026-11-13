@@ -1,3 +1,4 @@
+import { basename } from 'std:path';
 import { Channel } from 'std:futures';
 import {
   Button,
@@ -9,6 +10,7 @@ import {
   Ticker,
   View,
   computed,
+  readInput,
   pickFilePaths,
   signal,
   t
@@ -63,6 +65,10 @@ export function DebugSidebar(
 ): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
+  const workspace = navigation.workspace.handle();
+  const selectedWorkspace = workspace.handle();
+  const lineFile = signal('');
+  const lineNumber = signal(0);
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
@@ -102,6 +108,27 @@ export function DebugSidebar(
           <Text className={'text-[' + font.get().toString() + 'px]'}>
             {t('Stop on entry')}
           </Text>
+        </Button>
+        <Button variant="ghost" size="small"
+          disabled={running.get() || (workspace.get().active === '' && lineFile.get() === '')}
+          tooltip={message('Toggle source breakpoint at cursor')}
+          aria-label={accessibleName('Toggle source breakpoint at cursor')}
+          onPress={() => {
+            if (lineFile.get() !== '') {
+              lineFile.set('');
+              lineNumber.set(0);
+              return;
+            }
+            const path = clone(selectedWorkspace.get().active);
+            readInput(clone(path), (field) => {
+              if (!field.found) return;
+              const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
+              if (caret === undefined || field.value === undefined) return;
+              lineNumber.set(field.value.slice(0, caret).split('\n').length);
+              lineFile.set(clone(path));
+            });
+          }}>
+          <Text className={'text-[' + font.get().toString() + 'px]'}>{lineFile.get() === '' ? t('Break at cursor') : basename(lineFile.get()) + ':' + lineNumber.get().toString()}</Text>
         </Button>
         <View hidden={running.get()} className="w-full min-w-0">
           <Input
@@ -160,7 +187,7 @@ export function DebugSidebar(
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), watch: watch.get()})) {
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoint: lineFile.get() === '' ? undefined : lineFile.get(), breakpointLine: lineNumber.get(), watch: watch.get()})) {
             Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
             Err(error) => { output.set(clone(error.code)); return; }
           }

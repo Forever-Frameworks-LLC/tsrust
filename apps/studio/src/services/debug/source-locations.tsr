@@ -1,7 +1,17 @@
 import { canonicalize, readTextFile } from 'std:fs';
-import { basename, dirname } from 'std:path';
+import { basename, dirname, join } from 'std:path';
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
+
+import { artifactChecksum } from '../ai/model-extensions.tsr';
+
+export function executableDebugUnit(program: ReadOnly<string>): string {
+  const folder = program + '.tsrust-debug';
+  const name = unwrap(readTextFile(join(folder, artifactChecksum(program) + '.unit'), 75));
+
+  if (basename(name) !== name || name.length !== 75 || !name.startsWith('program_') || !name.endsWith('.rs')) throw 'Invalid debugger source unit.';
+  return join(folder, name);
+}
 
 export interface OriginalPosition {
   path: string;

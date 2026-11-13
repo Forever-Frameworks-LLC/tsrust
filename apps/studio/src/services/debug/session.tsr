@@ -1,10 +1,11 @@
+import { basename } from 'std:path';
 import { canonicalize } from 'std:fs';
 import { get } from 'std:env';
 import { Channel, Sender } from 'std:futures';
 import { spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
-import { OriginalPosition, debugLocations } from './source-locations.tsr';
+import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
 import { decodeAdapterReply } from './protocol.tsr';
 
 export interface DebugCommand {
@@ -78,8 +79,19 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
         const line = command.breakpointLine ?? 0;
 
         if (line < 1) throw 'Invalid source breakpoint line.';
-        await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(command.sourceBreakpoint ?? '') + '},"breakpoints":[{"line":' + line.toString() + '}]}}');
-      } else if ((reply.event === 'initialized' || reply.command === 'setBreakpoints') && breakpoint !== '') {
+        mappedUnit = executableDebugUnit(program);
+        positions = debugLocations(program, mappedUnit);
+        const generated: string[] = [];
+
+        for (const entry of positions.entries()) {
+          if (entry[1].path === command.sourceBreakpoint && entry[1].line === line) generated.push('{"line":' + entry[0].toString() + '}');
+        }
+
+        if (generated.length === 0) throw 'No executable statement at this source line in the selected build.';
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
+      } else if (reply.command === 'setBreakpoints' && reply.request_seq === 3 && !(clone(reply.body?.breakpoints) ?? []).some((point) => point.verified)) {
+        throw 'The debugger could not resolve this source breakpoint.';
+      } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '') {
         await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
       } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
         if (reply.command === 'setFunctionBreakpoints') {

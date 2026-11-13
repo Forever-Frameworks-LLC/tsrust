@@ -1,4 +1,6 @@
 {
+  "Break at cursor": "Parar no cursor",
+  "Toggle source breakpoint at cursor": "Alternar ponto de interrupção no cursor",
   "Watch value": "Valor observado",
   "Watch expression": "Expressão de observação",
   "No edit was proposed.": "Nenhuma alteração foi proposta.",

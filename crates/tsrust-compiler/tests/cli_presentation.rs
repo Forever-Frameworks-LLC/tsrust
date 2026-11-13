@@ -143,7 +143,7 @@ fn debug_build_keeps_the_compiled_source_for_each_executable_revision() {
         assert_eq!(String::from_utf8(result.stdout).unwrap().trim(), value.to_string());
     };
     let sources = || std::fs::read_dir(directory.0.join(format!("{binary}.tsrust-debug"))).unwrap()
-        .map(|entry| entry.unwrap().path()).collect::<Vec<_>>();
+        .map(|entry| entry.unwrap().path()).filter(|path|path.extension().is_some_and(|ext|ext=="rs")).collect::<Vec<_>>();
     build(1);
     let original = sources().pop().unwrap();
     let contents = std::fs::read_to_string(&original).unwrap();

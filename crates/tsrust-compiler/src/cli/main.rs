@@ -467,6 +467,7 @@ fn run() -> Result<u8, String> {
             };
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
+        if debug { record_debug_unit(&prepared.application, &executable).map_err(|e|e.to_string())?; }
         // Cache failure must not turn a successful native build into a failure.
         if !debug && backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
     }
@@ -538,6 +539,26 @@ fn retain_debug_source(application: &Path, executable: &Path) -> Result<PathBuf,
         return Err(format!("Generated debugger source differs at {}", path.display()));
     }
     Ok(path)
+}
+
+// Bind a completed executable to its retained unit even when the output path is rebuilt.
+fn record_debug_unit(unit: &Path, executable: &Path) -> std::io::Result<()> {
+    use sha2::{Digest, Sha256};
+    use std::io::{Read, Write};
+    let mut file = fs::File::open(executable)?;
+    let mut hash = Sha256::new();
+    let mut bytes = [0; 65536];
+    loop {
+        let count = file.read(&mut bytes)?;
+        if count == 0 { break; }
+        hash.update(&bytes[..count]);
+    }
+    let key: String = hash.finalize().iter().map(|byte| format!("{byte:02x}")).collect();
+    let directory = unit.parent().expect("debug unit directory");
+    let mut staged = tempfile::NamedTempFile::new_in(directory)?;
+    staged.write_all(unit.file_name().expect("debug unit name").as_encoded_bytes())?;
+    staged.persist(directory.join(format!("{key}.unit")))?;
+    Ok(())
 }
 
 fn backend_command() -> Command {

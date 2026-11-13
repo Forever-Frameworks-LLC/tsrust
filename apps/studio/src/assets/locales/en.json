@@ -1,4 +1,6 @@
 {
+  "Break at cursor": "Break at cursor",
+  "Toggle source breakpoint at cursor": "Toggle source breakpoint at cursor",
   "Watch value": "Watch value",
   "Watch expression": "Watch expression",
   "No edit was proposed.": "No edit was proposed.",
