@@ -6,6 +6,14 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+Two isolated text-conflict repositories exercised the native conflict editor
+from build 79964301. Accept incoming changed the merge-result buffer to
+`incoming\n` while the working file still contained Git conflict markers.
+Stage resolution then saved the result, cleared the unmerged entries and
+placed those exact bytes in the index. In a second run an external write
+between acceptance and staging survived the stage attempt, and Git continued
+to report UU. Both fixture windows closed. Dev app 61633 remained in apps/studio.
+
 Source Control now follows the sidebar content-search input and result-row
 styling. In the same running window both input groups occupied (351, 225)
 at 232 by 32 logical pixels. A changed-file row measured 232 by 53 and
