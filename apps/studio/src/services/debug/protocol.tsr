@@ -34,7 +34,14 @@ export interface DebugFrame {
 }
 
 export interface DebugBreakpoint {
+  id?: int;
   verified: boolean;
+  message?: string;
+  source?: DebugSource;
+  line?: int;
+  column?: int;
+  endLine?: int;
+  endColumn?: int;
 }
 
 export interface DebugScope {
@@ -54,6 +61,7 @@ export interface AdapterBody {
   variables?: DebugVariable[];
   supportsFunctionBreakpoints?: boolean;
   breakpoints?: DebugBreakpoint[];
+  breakpoint?: DebugBreakpoint;
   content?: string;
   mimeType?: string;
   threads?: DebugThread[];
@@ -78,7 +86,7 @@ export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
 
     if (event === '') throw 'Invalid debug adapter event.';
 
-    if (event !== 'stopped' && event !== 'output' && event !== 'exited') return {
+    if (event !== 'breakpoint' && event !== 'stopped' && event !== 'output' && event !== 'exited') return {
       type: 'event', event: clone(event)
     };
   } else {
@@ -86,7 +94,7 @@ export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
 
     if (envelope.type !== 'response' || command === '' || (envelope.request_seq ?? 0) <= 0 || envelope.success === undefined) throw 'Invalid debug adapter reply.';
 
-    if (envelope.success === true && !['initialize', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables'].includes(command)) {
+    if (envelope.success === true && !['initialize', 'setBreakpoints', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables'].includes(command)) {
       return {
         type: 'response', command: clone(command), request_seq: envelope.request_seq, success: true
       };
