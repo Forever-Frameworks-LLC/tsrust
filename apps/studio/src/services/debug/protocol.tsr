@@ -1,0 +1,64 @@
+export interface AdapterReply {
+  type: string;
+  command?: string;
+  event?: string;
+  request_seq?: int;
+  success?: boolean;
+  message?: string;
+  body?: AdapterBody;
+}
+
+export interface DebugFrame {
+  id: int;
+  name: string;
+  instructionPointerReference?: string;
+}
+
+export interface DebugBreakpoint {
+  verified: boolean;
+}
+
+export interface DebugScope {
+  name: string;
+  variablesReference: int;
+}
+
+export interface DebugVariable {
+  name: string;
+  value: string;
+  variablesReference: int;
+}
+
+export interface AdapterBody {
+  error?: AdapterError;
+  scopes?: DebugScope[];
+  variables?: DebugVariable[];
+  supportsFunctionBreakpoints?: boolean;
+  breakpoints?: DebugBreakpoint[];
+  stackFrames?: DebugFrame[];
+  reason?: string;
+  threadId?: int;
+  supportsConfigurationDoneRequest?: boolean;
+  exitCode?: int;
+  category?: string;
+  output?: string;
+}
+
+interface AdapterError {
+  format: string;
+}
+
+export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
+  const reply = JSON.parse<AdapterReply>(frame);
+
+  if (reply.type === 'event' && (reply.event ?? '') !== '') return reply;
+
+  if (reply.type !== 'response' || (reply.command ?? '') === '' || (reply.request_seq ?? 0) <= 0) throw 'Invalid debug adapter reply.';
+
+  if (reply.success !== true) {
+    const reason = reply.body?.error?.format ?? reply.message ?? 'Request failed.';
+    throw(reply.command ?? '') + ': ' + reason;
+  }
+
+  return reply;
+}

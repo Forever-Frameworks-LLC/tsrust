@@ -5,49 +5,7 @@ import { strictEqual, test } from 'std:testing';
 
 import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
 
-interface AdapterReply {
-  type: string;
-  command?: string;
-  event?: string;
-  request_seq?: int;
-  success?: boolean;
-  body?: AdapterBody;
-}
-
-interface DebugFrame {
-  id: int;
-  name: string;
-  instructionPointerReference?: string;
-}
-
-interface DebugBreakpoint {
-  verified: boolean;
-}
-
-interface DebugScope {
-  name: string;
-  variablesReference: int;
-}
-
-interface DebugVariable {
-  name: string;
-  value: string;
-  variablesReference: int;
-}
-
-interface AdapterBody {
-  scopes?: DebugScope[];
-  variables?: DebugVariable[];
-  supportsFunctionBreakpoints?: boolean;
-  breakpoints?: DebugBreakpoint[];
-  stackFrames?: DebugFrame[];
-  reason?: string;
-  threadId?: int;
-  supportsConfigurationDoneRequest?: boolean;
-  exitCode?: int;
-  category?: string;
-  output?: string;
-}
+import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
 
 async function runDebugTarget(adapter: string, program: string): Task<void> {
   const child = unwrap(spawn(adapter, [], {
@@ -77,11 +35,9 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
 
     while (!launched || !configured || !stepAcknowledged || !resumed || !exited || !terminated) {
       const frame = await readFrame(reader).timeout(10000);
-      const reply = JSON.parse<AdapterReply>(frame);
+      const reply = decodeAdapterReply(frame);
 
       if (reply.type === 'response') {
-        if (reply.success !== true) throw frame;
-
         if (reply.command === 'initialize') {
           strictEqual(reply.request_seq, 1);
           strictEqual(reply.body?.supportsConfigurationDoneRequest, true);
@@ -212,6 +168,37 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
     const build = unwrap(await run(compiler, ['build', source, '-o', clone(program)], {}));
     strictEqual(build.status.success, true);
     await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', program).timeout(30000);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('debug adapter errors identify the command and adapter explanation', () => {
+  let detail = '';
+
+  try {
+    decodeAdapterReply('{"type":"response","request_seq":2,"command":"launch","success":false,"body":{"error":{"format":"Executable missing"}}}');
+  } catch (error) {
+    detail = JSON.stringify(error);
+  }
+
+  strictEqual(detail, JSON.stringify('launch: Executable missing'));
+});
+
+test('real adapter rejects a missing executable before the session runs', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-debug-missing-'));
+
+  try {
+    let failure = '';
+
+    try {
+      await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', folder + '/missing').timeout(30000);
+    } catch (error) {
+      failure = JSON.stringify(error);
+    }
+
+    strictEqual(failure.includes('"cause":"launch: '), true);
+    strictEqual(failure.includes(folder + '/missing'), true);
   } finally {
     unwrap(removeDirAll(folder));
   }
