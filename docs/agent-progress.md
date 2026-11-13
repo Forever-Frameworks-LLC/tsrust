@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Review an untracked file before staging
+
+Working diff now shows Git's new-file patch for a selected untracked file.
+Previewing leaves the index untouched. Reviewed additions use the existing
+hunk staging action and refresh to an empty working diff when fully staged.
+All six Git cases passed (3.22 s build). The nested workspace fixture
+covered a bracket filename beside its wildcard match, a literal dash and an
+ignored file. Native click-through and Windows execution remain unverified.
+
 ## Selected file in Source Control diff views
 
 Choosing a changed path in Status carries it into Working diff and Staged

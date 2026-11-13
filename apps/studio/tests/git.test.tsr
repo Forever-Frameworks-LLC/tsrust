@@ -45,6 +45,19 @@ test('source control reads status and separate staged and working diffs scoped t
     const literal = '[x].txt';
     unwrap(writeTextFile(sub + '/' + literal, 'one file'));
     unwrap(writeTextFile(sub + '/x.txt', 'another file'));
+    unwrap(writeTextFile(sub + '/.gitignore', 'hidden.txt\n'));
+    unwrap(writeTextFile(sub + '/hidden.txt', 'ignored content'));
+    strictEqual(unwrap(await readGitView(sub, 'working', 'hidden.txt')), '');
+    unwrap(writeTextFile(sub + '/-', 'literal dash'));
+    strictEqual(unwrap(await readGitView(sub, 'working', '-')).includes('+literal dash'), true);
+    const preview = unwrap(await readGitView(sub, 'working', clone(literal)));
+    strictEqual(preview.includes('new file mode') && preview.includes('+one file'), true);
+    strictEqual(preview.includes('another file'), false);
+    strictEqual(unwrap(await readGitView(sub, 'staged', clone(literal))), '');
+    const addition = diffHunks(preview)[0];
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'working', action: 'stage-hunk', viewFile: clone(literal), hunk: clone(addition.label), patch: addition.header + preview.slice(addition.start, addition.end)
+    })), '');
     const afterStage = unwrap(await gitRequest(sub, {
       mode: 'status', action: 'stage', path: clone(literal)
     }));
