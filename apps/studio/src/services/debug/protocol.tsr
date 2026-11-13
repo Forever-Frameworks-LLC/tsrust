@@ -16,9 +16,20 @@ export interface DebugThread {
   name: string;
 }
 
+export interface DebugSource {
+  name?: string;
+  path?: string;
+  sourceReference?: int;
+}
+
 export interface DebugFrame {
   id: int;
   name: string;
+  source?: DebugSource;
+  line: int;
+  column: int;
+  endLine?: int;
+  endColumn?: int;
   instructionPointerReference?: string;
 }
 
@@ -43,6 +54,8 @@ export interface AdapterBody {
   variables?: DebugVariable[];
   supportsFunctionBreakpoints?: boolean;
   breakpoints?: DebugBreakpoint[];
+  content?: string;
+  mimeType?: string;
   threads?: DebugThread[];
   stackFrames?: DebugFrame[];
   reason?: string;
@@ -73,7 +86,7 @@ export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
 
     if (envelope.type !== 'response' || command === '' || (envelope.request_seq ?? 0) <= 0 || envelope.success === undefined) throw 'Invalid debug adapter reply.';
 
-    if (envelope.success === true && !['initialize', 'setFunctionBreakpoints', 'threads', 'stackTrace', 'scopes', 'variables'].includes(command)) {
+    if (envelope.success === true && !['initialize', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables'].includes(command)) {
       return {
         type: 'response', command: clone(command), request_seq: envelope.request_seq, success: true
       };

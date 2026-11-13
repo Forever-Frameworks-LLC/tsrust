@@ -27,6 +27,8 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
     let thread = 0;
     let initialAddress = '';
     let steppedAddress = '';
+    let selectedFrame = 0;
+    let selectedLine = 0;
     let stepAcknowledged = false;
     let resumed = false;
     let output = '';
@@ -88,43 +90,59 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
             strictEqual(reply.request_seq, 8);
             strictEqual(address !== initialAddress, true);
             steppedAddress = clone(address);
+            selectedFrame = frames[0].id;
+            selectedLine = frames[0].line;
+            const source = frames[0].source;
+
+            if (source === undefined || (source.sourceReference ?? 0) <= 0) throw 'Native entry frame has no adapter source reference.';
             await writeFrame(writer, JSON.stringify({
-              seq: 9, type: 'request', command: 'scopes', arguments: {
-                frameId: frames[0].id
+              seq: 9, type: 'request', command: 'source', arguments: {
+                source: clone(source), sourceReference: source.sourceReference
               }
             }));
           }
-        } else if (reply.command === 'scopes') {
+        } else if (reply.command === 'source') {
           strictEqual(reply.request_seq, 9);
+          const content = reply.body?.content ?? '';
+          const lines = content.split('\n');
+          strictEqual(selectedLine > 0 && selectedLine <= lines.length, true);
+          strictEqual(lines[selectedLine - 1].trim() !== '', true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 10, type: 'request', command: 'scopes', arguments: {
+              frameId: selectedFrame
+            }
+          }));
+        } else if (reply.command === 'scopes') {
+          strictEqual(reply.request_seq, 10);
           const scopes = clone(reply.body?.scopes) ?? [];
           const registers = scopes.find((scope) => scope.name === 'Registers');
 
           if (registers === undefined || registers.variablesReference <= 0) throw 'Frame has no register scope.';
           await writeFrame(writer, JSON.stringify({
-            seq: 10, type: 'request', command: 'variables', arguments: {
+            seq: 11, type: 'request', command: 'variables', arguments: {
               variablesReference: registers.variablesReference
             }
           }));
         } else if (reply.command === 'variables') {
           const variables = clone(reply.body?.variables) ?? [];
 
-          if (reply.request_seq === 10) {
+          if (reply.request_seq === 11) {
             const group = variables.find((item) => item.name === 'General Purpose Registers');
 
             if (group === undefined || group.variablesReference <= 0) throw 'General purpose registers missing.';
             await writeFrame(writer, JSON.stringify({
-              seq: 11, type: 'request', command: 'variables', arguments: {
+              seq: 12, type: 'request', command: 'variables', arguments: {
                 variablesReference: group.variablesReference
               }
             }));
           } else {
-            strictEqual(reply.request_seq, 11);
+            strictEqual(reply.request_seq, 12);
             const pc = variables.find((item) => item.name === 'pc' || item.name === 'rip');
 
             if (pc === undefined || pc.value === '') throw 'Program counter missing.';
             strictEqual(parseInt(pc.value.split(' ')[0], 16), parseInt(steppedAddress, 16));
             await writeFrame(writer, JSON.stringify({
-              seq: 12, type: 'request', command: 'continue', arguments: {
+              seq: 13, type: 'request', command: 'continue', arguments: {
                 threadId: thread
               }
             }));
@@ -133,7 +151,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           strictEqual(reply.request_seq, 7);
           stepAcknowledged = true;
         } else if (reply.command === 'continue') {
-          strictEqual(reply.request_seq, 12);
+          strictEqual(reply.request_seq, 13);
           resumed = true;
         }
       } else if (reply.event === 'initialized') {
@@ -234,4 +252,18 @@ test('adapter extension bodies cannot break unrelated debugger events or acknowl
   }
 
   strictEqual(rejected, true);
+});
+
+test('stack frames preserve file ranges, adapter source handles and unavailable locations', () => {
+  const reply = decodeAdapterReply('{"type":"response","request_seq":4,"command":"stackTrace","success":true,"body":{"stackFrames":[' + '{"id":1,"name":"start","source":{"name":"main.tsr","path":"/workspace/main.tsr"},"line":8,"column":3,"endLine":8,"endColumn":12},' + '{"id":2,"name":"generated","source":{"name":"generated.rs","sourceReference":17},"line":20,"column":1},' + '{"id":3,"name":"runtime","line":0,"column":0}]}}');
+  const frames = clone(reply.body?.stackFrames) ?? [];
+  strictEqual(frames.length, 3);
+  strictEqual(frames[0].source?.path, '/workspace/main.tsr');
+  strictEqual(frames[0].line, 8);
+  strictEqual(frames[0].column, 3);
+  strictEqual(frames[0].endColumn, 12);
+  strictEqual(frames[1].source?.sourceReference, 17);
+  strictEqual(frames[1].source?.path, undefined);
+  strictEqual(frames[2].source === undefined, true);
+  strictEqual(frames[2].line, 0);
 });
