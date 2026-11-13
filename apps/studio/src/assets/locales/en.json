@@ -1,4 +1,7 @@
 {
+  "Line": "Line",
+  "Include change": "Include change",
+  "Exclude change": "Exclude change",
   "Model download checksum mismatch.": "Model download checksum mismatch.",
   "Model files are unavailable.": "Model files are unavailable.",
   "Unknown model.": "Unknown model.",

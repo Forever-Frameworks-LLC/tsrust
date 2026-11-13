@@ -1,15 +1,33 @@
 import { JsonLimits } from 'std:json';
-import { ProposedEdit } from '../workspace/documents.tsr';
+import { ProposedEdit, EditPassage } from '../workspace/documents.tsr';
 
 interface Replacement {
   before: string;
   after: string;
 }
 
-interface LocatedReplacement {
-  start: int;
-  end: int;
-  after: string;
+function selectedText(source: ReadOnly<string>, passages: ReadOnly<EditPassage[]>): string {
+  const parts: string[] = [];
+  let end = 0;
+
+  for (const passage of passages) {
+    if (!passage.included) continue;
+    parts.push(source.slice(end, passage.start));
+    parts.push(clone(passage.after));
+    end = passage.end;
+  }
+
+  parts.push(source.slice(end));
+  return parts.join('');
+}
+
+export function togglePassage(edit: Mutable<ProposedEdit>, index: int): void {
+  const passages = clone(edit.passages);
+
+  if (passages === undefined || index < 0 || index >= passages.length) return;
+  passages[index].included = !passages[index].included;
+  edit.after = selectedText(edit.before, passages);
+  edit.passages = passages;
 }
 
 // The model supplies text only. Studio owns the target, revision and original buffer.
@@ -24,7 +42,7 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
     const changes = body.startsWith('[') ? JSON.parse<Replacement[]>(body, limits) : [JSON.parse<Replacement>(body, limits)];
 
     if (changes.length === 0) return Err('The model did not return a valid edit proposal.');
-    const edits: LocatedReplacement[] = [];
+    const edits: EditPassage[] = [];
 
     for (const change of changes) {
       const start = snapshot.before.indexOf(change.before);
@@ -33,27 +51,24 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
 
       if (change.before === change.after) continue;
       edits.push({
-        start, end: start + change.before.length, after: clone(change.after)
+        start, end: start + change.before.length, after: clone(change.after), included: true
       });
     }
 
     if (edits.length === 0) return Err('The model did not return a valid edit proposal.');
     edits.sort((a, b) => a.start - b.start);
-    const parts: string[] = [];
     let end = 0;
     let previous = -1;
 
     for (const item of edits) {
       if (item.start < end || item.start === previous) return Err('The proposed changes overlap in the original file.');
-      parts.push(snapshot.before.slice(end, item.start));
-      parts.push(clone(item.after));
       previous = item.start;
       end = item.end;
     }
 
-    parts.push(snapshot.before.slice(end));
     const result = clone(snapshot);
-    result.after = parts.join('');
+    result.after = selectedText(snapshot.before, edits);
+    result.passages = edits;
     return Ok(result);
   } catch (_) {
     return Err('The model did not return a valid edit proposal.');

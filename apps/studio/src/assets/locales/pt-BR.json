@@ -1,4 +1,7 @@
 {
+  "Line": "Linha",
+  "Include change": "Incluir alteração",
+  "Exclude change": "Excluir alteração",
   "Model download checksum mismatch.": "A soma de verificação do modelo não corresponde.",
   "Model files are unavailable.": "Arquivos do modelo indisponíveis.",
   "Unknown model.": "Modelo desconhecido.",

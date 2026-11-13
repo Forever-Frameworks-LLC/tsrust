@@ -17,12 +17,20 @@ export interface Document {
   saveConflict?: SaveConflict;
 }
 
+export interface EditPassage {
+  start: int;
+  end: int;
+  after: string;
+  included: boolean;
+}
+
 export interface ProposedEdit {
   path: string;
   session: string;
   revision: int;
   before: string;
   after: string;
+  passages?: EditPassage[];
 }
 
 export function createDocument(path: string, text: string): Result<Document, string> {

@@ -15,7 +15,7 @@ import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr'
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { EditBatch } from '../../lib/ai/edits.tsr';
+import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
 import { message } from '../../lib/localization.tsr';
 
@@ -25,6 +25,7 @@ function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, ba
   const files: ProposedEdit[] = [];
 
   for (const edit of batch.files) {
+    if (edit.after === edit.before) continue;
     const path = clone(edit.path);
     const index = next.files.findIndex((file) => file.document.path === path && file.kind === 'text');
 
@@ -32,6 +33,7 @@ function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, ba
     files.push(propose(next.files[index].document, clone(edit.before)));
   }
 
+  if (files.length === 0) return undefined;
   publishWorkspace(next, workspace, recovery);
   return {
     files
@@ -71,7 +73,61 @@ export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspa
   state.set(chat);
 }
 
+function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, multipleFiles: boolean): Node[] {
+  const controls: Node[] = [];
+  const passages = clone(file.passages);
+
+  if (passages === undefined || (!multipleFiles && passages.length < 2)) return controls;
+
+  for (let index = 0; index < passages.length; index += 1) {
+    const passage = passages[index];
+    const line = file.before.slice(0, passage.start).split('\n').length;
+    const label = translate(passage.included ? 'Exclude change' : 'Include change') + ' · ' + translate('Line') + ' ' + line.toString();
+    const path = clone(file.path);
+    const captured = clone(file);
+    const position = index;
+    controls.push(
+      <Button
+        variant="ghost"
+        onPress={() => {
+          const chat = state.get();
+          const review = chat.review;
+
+          if (review === undefined) return;
+          const target = review.files.findIndex((item) => item.path === path);
+
+          if (target < 0 || JSON.stringify(review.files[target]) !== JSON.stringify(captured)) return;
+          togglePassage(review.files[target], position);
+          chat.review = review;
+          state.set(chat);
+        }}
+      >
+        {label}
+      </Button>
+    );
+  }
+
+  return controls;
+}
+
 function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
+  const multipleFiles = target.files.length > 1;
+  const empty = target.files.every((file) => file.before === file.after);
+  const rows: Node[] = [];
+
+  for (const file of target.files) {
+    const controls = PassageControls(file, state, multipleFiles);
+    rows.push(
+      <View className="flex-col h-[460px] shrink-0">
+        <Text>
+          {clone(file.path)}
+        </Text>
+        <Diff originalText={clone(file.before)} modifiedText={clone(file.after)} filePath={clone(file.path)} mode="split" fontSize={font.get()} className="grow min-h-0" />
+        {...controls}
+      </View>
+    );
+  }
+
   const accept = clone(target);
   const reject = clone(target);
   const dismiss = clone(target);
@@ -87,14 +143,7 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
     >
       <DialogContent>
         <View className="flex-col h-[480px] min-h-0 overflow-y-auto">
-          {...clone(target.files).map((file: ReadOnly<ProposedEdit>) => (
-            <View className="flex-col h-[460px] shrink-0">
-              <Text>
-                {clone(file.path)}
-              </Text>
-              <Diff originalText={clone(file.before)} modifiedText={clone(file.after)} filePath={clone(file.path)} mode="split" fontSize={font.get()} className="grow min-h-0" />
-            </View>
-          ))}
+          {...rows}
         </View>
         <DialogFooter>
           <Button
@@ -106,6 +155,7 @@ function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Wor
             {t('Reject')}
           </Button>
           <Button
+            disabled={empty}
             onPress={() => {
               reviewChatEdit(state, workspace, recovery, accept, true);
             }}
