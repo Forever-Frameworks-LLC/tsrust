@@ -106,8 +106,8 @@ export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
   const reply = JSON.parse<AdapterReply>(frame);
 
   if (reply.type === 'response' && reply.success === false) {
-    const reason = reply.body?.error?.format ?? reply.message ?? 'Request failed.';
-    throw(reply.command ?? '') + ': ' + reason;
+    const reason = clone(reply.body?.error?.format ?? reply.message ?? 'Request failed.');
+    reply.message = (reply.command ?? '') + ': ' + reason;
   }
 
   return reply;

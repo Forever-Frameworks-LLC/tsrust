@@ -40,7 +40,15 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
       const reply = decodeAdapterReply(frame);
 
       if (reply.type === 'response') {
-        if (reply.command === 'initialize') {
+        if (reply.success === false) {
+          if (reply.command !== 'evaluate' || reply.request_seq !== 14) throw reply.message ?? 'Debug request failed.';
+          strictEqual((reply.message ?? '').includes('studio_missing_watch'), true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 15, type: 'request', command: 'evaluate', arguments: {
+              expression: '$pc', context: 'watch', frameId: selectedFrame
+            }
+          }));
+        } else if (reply.command === 'initialize') {
           strictEqual(reply.request_seq, 1);
           strictEqual(reply.body?.supportsConfigurationDoneRequest, true);
           strictEqual(reply.body?.supportsFunctionBreakpoints, true);
@@ -150,16 +158,16 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
             strictEqual(parseInt(pc.value.split(' ')[0], 16), parseInt(steppedAddress, 16));
             await writeFrame(writer, JSON.stringify({
               seq: 14, type: 'request', command: 'evaluate', arguments: {
-                expression: '$pc', context: 'watch', frameId: selectedFrame
+                expression: 'studio_missing_watch', context: 'watch', frameId: selectedFrame
               }
             }));
           }
         } else if (reply.command === 'evaluate') {
-          strictEqual(reply.request_seq, 14);
+          strictEqual(reply.request_seq, 15);
           const result = reply.body?.result ?? '';
           strictEqual(parseInt(result.split(' ')[0], 16), parseInt(steppedAddress, 16));
           await writeFrame(writer, JSON.stringify({
-            seq: 15, type: 'request', command: 'continue', arguments: {
+            seq: 16, type: 'request', command: 'continue', arguments: {
               threadId: thread
             }
           }));
@@ -167,7 +175,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           strictEqual(reply.request_seq, 8);
           stepAcknowledged = true;
         } else if (reply.command === 'continue') {
-          strictEqual(reply.request_seq, 15);
+          strictEqual(reply.request_seq, 16);
           resumed = true;
         }
       } else if (reply.event === 'initialized') {
@@ -226,15 +234,10 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 });
 
 test('debug adapter errors identify the command and adapter explanation', () => {
-  let detail = '';
-
-  try {
-    decodeAdapterReply('{"type":"response","request_seq":2,"command":"launch","success":false,"body":{"error":{"format":"Executable missing"}}}');
-  } catch (error) {
-    detail = JSON.stringify(error);
-  }
-
-  strictEqual(detail, JSON.stringify('launch: Executable missing'));
+  const reply = decodeAdapterReply('{"type":"response","request_seq":2,"command":"launch","success":false,"body":{"error":{"format":"Executable missing"}}}');
+  strictEqual(reply.success, false);
+  strictEqual(reply.request_seq, 2);
+  strictEqual(reply.message, 'launch: Executable missing');
 });
 
 test('real adapter rejects a missing executable before the session runs', async () => {

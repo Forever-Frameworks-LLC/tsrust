@@ -26,6 +26,8 @@ Xcode LLDB returned a breakpoint ID with verified=false for line 2 of the compil
 
 Studio decodes DAP evaluate results and their child variable references. After stepping the real fixture, LLDB evaluated $pc in the selected frame with watch context. Its numeric value matched the stack instruction address. The target resumed and exited normally. All six debugger cases passed (553.23 ms execution). Watch UI and Tsrust expression translation remain open.
 
+The DAP decoder now returns failed requests with their request sequence, command and explanation. Malformed envelopes still throw. In a single stopped LLDB session the regression evaluated an unknown watch, checked that its error named the expression, evaluated $pc successfully in the same frame and then resumed to exit. Missing-executable launch still surfaced its path. Six debugger tests passed (1527.96 ms execution).
+
 ## Image preview zoom accessibility
 
 On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
