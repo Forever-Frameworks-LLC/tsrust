@@ -319,6 +319,30 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
   return paths;
 }
 
+// Extend selected bodies with bare calls to functions declared in the same source.
+function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>): void {
+  const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\("));
+  const visited = new Set<string>();
+
+  for (let i = 0; i < snippets.length; i += 1) {
+    const snippet = clone(snippets[i]);
+    const bytes = unwrap(fromUtf8(snippet));
+
+    for (const token of calls.capturesAll(snippet)) {
+      const group = token.groups[1];
+
+      if (group === undefined || token.groups[0] !== undefined) continue;
+      const name = unwrap(toUtf8(unwrap(view(bytes, group.start, group.end))));
+
+      if (visited.has(name)) continue;
+      visited.add(clone(name));
+      const definition = functionExcerpt(source, name, true);
+
+      if (definition !== '' && !snippets.includes(definition)) snippets.push(definition);
+    }
+  }
+}
+
 export interface FileDeclarations {
   path: string;
   stamp: string;
@@ -480,6 +504,7 @@ export function editorContext(
               }
 
               if (referenced || snippets.length > 0) {
+                if (!whole && snippets.length > 0) includeLocalCalls(excerpt, snippets);
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
                 result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
               }

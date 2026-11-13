@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Same-file helper retrieval and cross-function model evaluation
+
+Chat follows bare calls in selected function bodies to simple functions in the
+same file, including transitive calls. A visited-name set terminates cycles.
+The AI action suite passed 21/21, including a two-helper chain, a cycle and
+a call inside a comment that must not retrieve its unrelated definition.
+This lexical scan does not resolve shadowed bindings or imported helper calls.
+
+TSRUST_STUDIO_RUN_MODEL_EVAL=helpers supplied handlingFee(units) returning
+units + baseCharge() and baseCharge() returning 7. The host received the
+helper body and excluded the unrelated neighbor. Asked for handlingFee(5),
+the configured 1.5B model answered 14 instead of 12. Asked to reuse its
+previous answer, it returned 14 again (21 from its own input, 19 on the
+correct trajectory). The opt-in evaluation remains red. Maximum sampled
+host RSS was 2066224 KiB. The earlier index-only evaluation remains intact.
+
 ## Real model chat with an indexed workspace function
 
 TSRUST_STUDIO_RUN_MODEL_EVAL=index runs Studio chat against the configured

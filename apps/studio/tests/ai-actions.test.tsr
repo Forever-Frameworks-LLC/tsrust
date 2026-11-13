@@ -672,7 +672,7 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     unwrap(writeTextFile(folder + '/unused.tsr', 'never include this source'));
     unwrap(mkdirAll(folder + '/rules'));
     unwrap(writeTextFile(folder + '/rules/index.tsrx', "// export default function bogus() { return 1; }\nexport default function chosen() { const closing = '}'; /* { */ if (true) { return 42; } return 0; }\nexport function chosenExtra() { return 88; }\nexport function unrelated() { return 777; }"));
-    unwrap(writeTextFile(folder + '/pricing-policy.tsr', 'export function handlingFee() { return 81; }'));
+    unwrap(writeTextFile(folder + '/pricing-policy.tsr', 'export function handlingFee() { /* ignoredHelper() */ return rate(); }\nfunction rate() { return base(); }\nfunction base() { if (false) return rate(); return 81; }\nfunction ignoredHelper() { return 580; }'));
     unwrap(writeTextFile(folder + '/delivery-fee.tsr', 'export function deliveryFee() { return 63; }\nexport function unrelated() { return 555; }'));
     unwrap(writeTextFile(folder + '/compute.tsr', 'export function compute() { return 998; }'));
     unwrap(writeTextFile(folder + '/delivery_fee.tsr', '// function deliveryFee() { return 666; }'));
@@ -701,6 +701,8 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     strictEqual(messages[0].content.includes('Referenced workspace file: delivery-fee.tsr'), true);
     strictEqual(messages[0].content.includes('return 63;'), true);
     strictEqual(messages[0].content.includes('return 81;'), true);
+    strictEqual(messages[0].content.split('function rate()').length, 2);
+    strictEqual(messages[0].content.includes('return 580;'), false);
     strictEqual(declarations.get().some((file) => file.names.includes('handlingFee')), true);
     strictEqual(messages[0].content.includes('return 555;'), false);
     strictEqual(messages[0].content.includes('return 666;'), false);
