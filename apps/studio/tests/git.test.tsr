@@ -1,7 +1,7 @@
 import { createTempDir, mkdirAll, removeFile, removeDirAll, writeTextFile } from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
-import { diffHunks, changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
+import { GitRequest, diffHunks, changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
 
 test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-'));
@@ -152,4 +152,52 @@ test('diff hunk navigation preserves exact text and stops at the next file', () 
   strictEqual(diff.slice(hunks[1].start, hunks[1].end), second);
   strictEqual(diff.slice(hunks[2].start, hunks[2].end), first.trimEnd());
   strictEqual(hunks[0].label === hunks[2].label, false);
+});
+
+test('stage and unstage one reviewed hunk in a nested workspace', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-'));
+
+  try {
+    const sub = root + '/sub folder';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const original = 'first\n' + 'middle\n'.repeat(14) + 'last\n';
+    const file = sub + '/file.txt';
+    unwrap(writeTextFile(file, original));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'baseline']), true);
+    const edited = original.replace('first', 'FIRST').replace('last', 'LAST');
+    unwrap(writeTextFile(file, edited));
+    const working = unwrap(await readGitView(sub, 'working'));
+    const choices = diffHunks(working);
+    strictEqual(choices.length, 2);
+    const last = choices[1];
+    const request: GitRequest = {
+      mode: 'working', action: 'stage-hunk', hunk: clone(last.label), patch: last.header + working.slice(last.start, last.end)
+    };
+    unwrap(writeTextFile(file, edited.replace('LAST', 'changed again')));
+
+    match (await gitRequest(sub, request)) {
+      Ok(_) => {
+        throw 'Stale hunk accepted';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('Refresh'), true);
+      }
+    }
+
+    strictEqual(unwrap(await readGitView(sub, 'staged')), '');
+    unwrap(writeTextFile(file, edited));
+    const remaining = unwrap(await gitRequest(sub, request));
+    strictEqual(remaining.includes('+FIRST') && !remaining.includes('+LAST'), true);
+    const staged = unwrap(await readGitView(sub, 'staged'));
+    const only = diffHunks(staged)[0];
+    strictEqual(staged.includes('+LAST') && !staged.includes('+FIRST'), true);
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(only.label), patch: only.header + staged.slice(only.start, only.end)
+    })), '');
+    strictEqual(unwrap(await readGitView(sub, 'working')), working);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
 });

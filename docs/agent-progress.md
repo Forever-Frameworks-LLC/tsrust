@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Stage and unstage individual Git hunks
+
+The hunk picker now offers Stage hunk in Working diff and Unstage hunk in
+Staged diff. Studio compares the selected header and body to a fresh diff,
+then passes that matching patch to Git through stdin for an index-only apply
+or reverse apply. The views use explicit a/b prefixes, three context lines and
+separate deletion/addition diffs for renames. A real two-hunk file in a nested
+workspace with spaces proved a stale selection left the index untouched,
+staging the second hunk left the first unstaged, and unstaging returned the
+original working diff. Four Git tests and the panel source check passed.
+Desktop interaction and binary changes remain outside this hunk test.
+
 ## Inspect individual Git diff hunks
 
 Working diff and Staged diff now provide a searchable hunk picker with file

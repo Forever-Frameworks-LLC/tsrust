@@ -1,4 +1,4 @@
-import { toUtf8 } from 'std:bytes';
+import { fromUtf8, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { isAbsolute, separator } from 'std:path';
 import { stat } from 'std:fs';
@@ -14,7 +14,7 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
   } else if (mode === 'history') {
     for (const arg of ['log', '--ignore-missing', '--no-decorate', '--no-show-signature', '--format=%h  %as  %s', 'HEAD']) args.push(clone(arg));
   } else if (mode === 'working' || mode === 'staged') {
-    for (const arg of ['diff', '--relative', '--no-ext-diff', '--no-textconv']) args.push(clone(arg));
+    for (const arg of ['diff', '--relative', '--no-ext-diff', '--no-textconv', '--unified=3', '--no-renames', '--src-prefix=a/', '--dst-prefix=b/']) args.push(clone(arg));
 
     if (mode === 'staged') args.push('--cached');
   } else return Err('Unknown source control view.');
@@ -46,6 +46,7 @@ export async function changedFiles(root: ReadOnly<string>): Task<Result<string[]
 
 export interface DiffHunk {
   label: string;
+  header: string;
   start: int;
   end: int;
 }
@@ -53,6 +54,7 @@ export interface DiffHunk {
 export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
   const hunks: DiffHunk[] = [];
   let file = '';
+  let header = '';
   let offset = 0;
   let active = false;
 
@@ -60,11 +62,16 @@ export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
     if (line.startsWith('diff ')) {
       if (active) hunks[hunks.length - 1].end = offset;
       file = line.startsWith('diff --git ') ? line.slice(11) : '';
+      header = '';
       active = false;
+    } else if (!active && line.startsWith('--- ')) {
+      header = line + '\n';
+    } else if (!active && header !== '' && line.startsWith('+++ ')) {
+      header += line + '\n';
     } else if (file !== '' && line.startsWith('@@ ')) {
       if (active) hunks[hunks.length - 1].end = offset;
       hunks.push({
-        label: file + '  ' + line, start: offset, end: diff.length
+        label: file + '  ' + line, header: clone(header), start: offset, end: diff.length
       });
       active = true;
     }
@@ -79,12 +86,73 @@ export interface GitRequest {
   mode: string;
   action?: string;
   path?: string;
+  hunk?: string;
+  patch?: string;
 }
 
 export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
   const action = request.action;
 
   if (action === undefined) return await readGitView(root, request.mode);
+
+  if (action === 'stage-hunk' || action === 'unstage-hunk') {
+    const reverse = action === 'unstage-hunk';
+
+    if (request.mode !== (reverse ? 'staged' : 'working')) return Err('Unknown source control action.');
+    let diff = '';
+
+    match (await readGitView(root, request.mode)) {
+      Ok(text) => {
+        diff = text;
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    const label = request.hunk ?? '';
+    const hunk = diffHunks(diff).find((entry: ReadOnly<DiffHunk>) => entry.label === label);
+
+    if (hunk === undefined || hunk.header === '') return Err('The hunk changed. Refresh the diff.');
+    const patch = hunk.header + diff.slice(hunk.start, hunk.end);
+
+    if (patch !== (request.patch ?? '')) return Err('The hunk changed. Refresh the diff.');
+    let top = '';
+    let prefix = '';
+
+    match (await gitOutput(root, ['rev-parse', '--show-toplevel'])) {
+      Ok(text) => {
+        top = text.slice(0, -1);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+      Ok(text) => {
+        prefix = text.slice(0, -1);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    const args = ['apply', '--cached', '--whitespace=nowarn', '-p1'];
+
+    if (prefix !== '') args.push('--directory=' + prefix.slice(0, -1));
+
+    if (reverse) args.push('--reverse');
+
+    match (await gitOutput(top, args, patch)) {
+      Ok(_) => {
+        return await readGitView(root, request.mode);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+  }
 
   if (action !== 'stage' && action !== 'unstage') return Err('Unknown source control action.');
   const path = request.path ?? '';
@@ -122,9 +190,9 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
   }
 }
 
-async function gitOutput(root: ReadOnly<string>, args: string[]): Task<Result<string, string>> {
+async function gitOutput(root: ReadOnly<string>, args: string[], input: string = ''): Task<Result<string, string>> {
   match (await run('git', args, {
-    cwd: clone(root), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
+    cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
   })) {
     Err(error) => {
       return Err(clone(error.message));

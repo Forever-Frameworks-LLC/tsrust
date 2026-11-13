@@ -1,4 +1,7 @@
 {
+  "Stage hunk": "Preparar trecho",
+  "Unstage hunk": "Retirar trecho da preparação",
+  "The hunk changed. Refresh the diff.": "O trecho mudou. Atualize o diff.",
   "Choose a changed file": "Escolher um arquivo alterado",
   "Stage selected or active file from disk": "Preparar o arquivo selecionado ou ativo do disco",
   "Unstage selected or active file": "Retirar o arquivo selecionado ou ativo da preparação",

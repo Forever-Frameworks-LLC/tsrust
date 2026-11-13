@@ -1,4 +1,7 @@
 {
+  "Stage hunk": "Stage hunk",
+  "Unstage hunk": "Unstage hunk",
+  "The hunk changed. Refresh the diff.": "The hunk changed. Refresh the diff.",
   "Choose a changed file": "Choose a changed file",
   "Stage selected or active file from disk": "Stage selected or active file from disk",
   "Unstage selected or active file": "Unstage selected or active file",

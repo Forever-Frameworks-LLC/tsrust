@@ -12,6 +12,7 @@ import {
   View,
   computed,
   signal,
+  translate,
   t
 } from 'std:ui';
 import { accessibleName, localizeError, message } from '../../lib/localization.tsr';
@@ -128,6 +129,22 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
             hunk.set(clone(label));
           }}
         />
+      </View>
+      <View hidden={hunk.get() === '' || shown.get() !== mode.get()}>
+        <Button
+          size="small"
+          disabled={busy.get() || pending.get().mode !== ''}
+          aria-label={mode.get() === 'working' ? translate('Stage hunk') : translate('Unstage hunk')}
+          onPress={() => {
+            const selected = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
+
+            if (selected !== undefined) pending.set({
+              mode: mode.get(), action: mode.get() === 'working' ? 'stage-hunk' : 'unstage-hunk', hunk: hunk.get(), patch: selected.header + displayed.get()
+            });
+          }}
+        >
+          {mode.get() === 'working' ? t('Stage hunk') : t('Unstage hunk')}
+        </Button>
       </View>
       <View hidden={shown.get() === mode.get()}>
         <Text>
