@@ -28,7 +28,12 @@ window-scoped and cancel by identity. The editor checks focus, revision,
 selection and caret before showing the reply. Typing does not load a stopped
 model. Studio compiled and its AI actions suite passed 28/28 in 197 ms,
 including prefix/suffix routing and matching cancellation. Three native
-request-lifecycle tests passed. Interactive Tab acceptance remains pending.
+request-lifecycle tests passed. In a disposable Studio workspace, real chat
+loaded the 1.5B model and answered 81. Typing a space after return triggered
+a suggestion using the trailing comment requesting the second string. The
+accessible editor buffer contained no insertion until Tab, then contained
+return second;. Save wrote exactly those expected file bytes. The fixture
+closed. Supervisor 78503 and dev app 80549 remained live in apps/studio.
 
 ## Source-control sidebar and editor comparison
 
