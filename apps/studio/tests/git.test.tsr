@@ -1,7 +1,7 @@
 import { createTempDir, mkdirAll, removeFile, removeDirAll, writeTextFile } from 'std:fs';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
-import { changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
+import { diffHunks, changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
 
 test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-'));
@@ -140,4 +140,16 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
   } finally {
     unwrap(removeDirAll(root));
   }
+});
+
+test('diff hunk navigation preserves exact text and stops at the next file', () => {
+  const first = '@@ -1 +1 @@\n-old\n+🦀\n';
+  const second = '@@ -20 +20 @@ tail\n-déjà\n+after\n';
+  const diff = 'diff --git a/café b/café\n--- a/café\n+++ b/café\n' + first + second + 'diff --cc conflict\n@@@ combined @@@\n' + 'diff --git a/next b/next\n' + first.trimEnd();
+  const hunks = diffHunks(diff);
+  strictEqual(hunks.length, 3);
+  strictEqual(diff.slice(hunks[0].start, hunks[0].end), first);
+  strictEqual(diff.slice(hunks[1].start, hunks[1].end), second);
+  strictEqual(diff.slice(hunks[2].start, hunks[2].end), first.trimEnd());
+  strictEqual(hunks[0].label === hunks[2].label, false);
 });

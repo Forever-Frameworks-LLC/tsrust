@@ -16,6 +16,7 @@
   "Unstage active file": "Retirar arquivo ativo da preparação",
   "Conflicts": "Conflitos",
   "No unresolved conflicts.": "Nenhum conflito pendente.",
+  "Choose a diff hunk": "Escolher um trecho do diff",
   "History": "Histórico",
   "No commits in this workspace.": "Nenhum commit neste espaço de trabalho.",
   "Status": "Status",

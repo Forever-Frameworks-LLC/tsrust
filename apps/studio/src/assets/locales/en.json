@@ -16,6 +16,7 @@
   "Unstage active file": "Unstage active file",
   "Conflicts": "Conflicts",
   "No unresolved conflicts.": "No unresolved conflicts.",
+  "Choose a diff hunk": "Choose a diff hunk",
   "History": "History",
   "No commits in this workspace.": "No commits in this workspace.",
   "Status": "Status",

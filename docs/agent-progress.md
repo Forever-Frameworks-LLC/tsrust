@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Inspect individual Git diff hunks
+
+Working diff and Staged diff now provide a searchable hunk picker with file
+and line-range labels. Selecting a hunk exposes its exact diff text and
+disables whole-file mutations while focused. Clearing it restores the full
+diff. The three Git tests passed, including adjacent hunks, Unicode offsets,
+duplicate hunk ranges across files, combined-diff boundaries and a final
+line without a newline. The panel source checked and both locale catalogs
+passed (541 keys). Native interaction and individual hunk mutations remain open.
+
 ## Select changed paths for staging
 
 The Status tab now offers a searchable changed-file picker. Its selection

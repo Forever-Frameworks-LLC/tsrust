@@ -44,6 +44,37 @@ export async function changedFiles(root: ReadOnly<string>): Task<Result<string[]
   return Ok(paths);
 }
 
+export interface DiffHunk {
+  label: string;
+  start: int;
+  end: int;
+}
+
+export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
+  const hunks: DiffHunk[] = [];
+  let file = '';
+  let offset = 0;
+  let active = false;
+
+  for (const line of diff.split('\n')) {
+    if (line.startsWith('diff ')) {
+      if (active) hunks[hunks.length - 1].end = offset;
+      file = line.startsWith('diff --git ') ? line.slice(11) : '';
+      active = false;
+    } else if (file !== '' && line.startsWith('@@ ')) {
+      if (active) hunks[hunks.length - 1].end = offset;
+      hunks.push({
+        label: file + '  ' + line, start: offset, end: diff.length
+      });
+      active = true;
+    }
+
+    offset += line.length + 1;
+  }
+
+  return hunks;
+}
+
 export interface GitRequest {
   mode: string;
   action?: string;

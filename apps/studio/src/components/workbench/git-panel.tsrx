@@ -15,7 +15,7 @@ import {
   t
 } from 'std:ui';
 import { accessibleName, localizeError, message } from '../../lib/localization.tsr';
-import { GitRequest, GitReply } from '../../services/git.tsr';
+import { GitRequest, GitReply, DiffHunk, diffHunks } from '../../services/git.tsr';
 
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { separator } from 'std:path';
@@ -36,6 +36,15 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
   const shown = signal('');
   const busy = signal(false);
   const output = signal('');
+  const hunks = signal<DiffHunk[]>([]);
+  const hunk = signal('');
+  const displayed = computed<string>(() => {
+    if (shown.get() !== mode.get()) return '';
+
+    if (hunk.get() === '') return output.get();
+    const selected = hunks.get().find((entry: ReadOnly<DiffHunk>) => entry.label === hunk.get());
+    return selected === undefined ? output.get() : output.get().slice(selected.start, selected.end);
+  });
   const failed = signal(false);
   const style = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
   return (
@@ -58,7 +67,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           icon="plus"
           variant="ghost"
           size="xsmall"
-          disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
+          disabled={busy.get() || pending.get().mode !== '' || selection.get() === '' || hunk.get() !== ''}
           tooltip={message('Stage selected or active file from disk')}
           aria-label={accessibleName('Stage selected or active file from disk')}
           onPress={() => {
@@ -71,7 +80,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           icon="minus"
           variant="ghost"
           size="xsmall"
-          disabled={busy.get() || pending.get().mode !== '' || selection.get() === ''}
+          disabled={busy.get() || pending.get().mode !== '' || selection.get() === '' || hunk.get() !== ''}
           tooltip={message('Unstage selected or active file')}
           aria-label={accessibleName('Unstage selected or active file')}
           onPress={() => {
@@ -106,6 +115,20 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           }}
         />
       </View>
+      <View hidden={shown.get() !== mode.get() || hunks.get().length === 0}>
+        <Select
+          items={hunks.get().map((entry: ReadOnly<DiffHunk>) => clone(entry.label))}
+          value={hunk.get()}
+          searchable={true}
+          cleanable={true}
+          size="small"
+          placeholder={message('Choose a diff hunk')}
+          accessibilityLabel={message('Choose a diff hunk')}
+          onChange={(label) => {
+            hunk.set(clone(label));
+          }}
+        />
+      </View>
       <View hidden={shown.get() === mode.get()}>
         <Text>
           {t('Reading repository…')}
@@ -116,7 +139,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           {mode.get() === 'history' ? t('No commits in this workspace.') : mode.get() === 'conflicts' ? t('No unresolved conflicts.') : t('No changes in this view.')}
         </Text>
       </View>
-      <CodeEditor value={shown.get() === mode.get() ? output.get() : ''} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />
+      <CodeEditor value={displayed.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />
       <Ticker
         interval={150}
         running={panel.get() === 'git' && (shown.get() !== mode.get() || busy.get() || pending.get().mode !== '')}
@@ -131,6 +154,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
                   files.set(paths);
                 }
 
+                hunk.set('');
+                hunks.set(!reply.failed && (reply.mode === 'working' || reply.mode === 'staged') ? diffHunks(reply.text) : []);
                 output.set(reply.failed ? localizeError(reply.text) : reply.text);
                 failed.set(reply.failed);
                 shown.set(reply.mode);
@@ -138,6 +163,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
               },
               Err(error) => {
                 if (error.code !== 'empty') {
+                  hunk.set('');
+                  hunks.set([]);
                   output.set(clone(error.code));
                   failed.set(true);
                   shown.set(clone(mode.get()));
@@ -159,6 +186,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
                 busy.set(true);
               },
               Err(error) => {
+                hunk.set('');
+                hunks.set([]);
                 output.set(clone(error.code));
                 failed.set(true);
                 shown.set(clone(mode.get()));

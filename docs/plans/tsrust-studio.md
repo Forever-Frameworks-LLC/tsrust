@@ -9,7 +9,8 @@ identities, proof contracts, current checks and unresolved prerequisites.
 Source Control displays workspace-scoped status, working diff, staged diff and
 current-branch commit history. Conflicts lists workspace-relative unmerged paths.
 Status supports selecting changed files, including deleted paths, for staging
-and unstaging. Hunk controls remain open.
+and unstaging. Working and staged diffs support hunk navigation. Staging and
+unstaging individual hunks remain open.
 
 Single-file chat editing now reaches the native review dialog via an explicit
 Edit: request. The configured local model produced a unique replacement from

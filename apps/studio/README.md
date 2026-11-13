@@ -125,6 +125,8 @@ paths. Open a listed file in the editor, resolve it, save, and stage it to
 remove it from the list.
 In Status, choose a changed file (including a deleted file), then use plus to
 stage it or minus to unstage it. Clearing the selection targets the active file.
+In Working diff or Staged diff, choose a hunk to inspect its lines. Clear
+the selection to see the complete diff and use the whole-file actions.
 Unsaved editor changes stay in the draft.
 Problems lists source-labeled structured diagnostics and operation errors. Debug,
 AI Chat and Extensions still describe unfinished integrations.
