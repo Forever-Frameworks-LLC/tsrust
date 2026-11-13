@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Wildcard import mappings in workspace chat
+
+Chat decodes the nearest saved configuration's paths as string mappings.
+Exact names win, followed by the longest matching wildcard prefix. Suffixes
+must match and equal-priority wildcard matches are ambiguous. The outgoing
+request test resolves an unsaved import from @/cost/helpers.js through the
+more specific mapping, retains the existing exact import despite a matching
+wildcard, and omits a tied alias. All 21 AI action tests passed in 92.02 ms.
+This verifies request construction. The compiler and Studio still have
+separate resolver implementations.
+
 ## Grounded question order and previous-answer replay
 
 Ordinary grounded chat sends the retrieved source before the question. The

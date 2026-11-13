@@ -5,7 +5,7 @@ import {
 } from 'std:bytes';
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
-import { asString, get } from 'std:json';
+import { s } from 'std:schema';
 import { compile, Regex } from 'std:regex';
 import {
   basename,
@@ -219,9 +219,43 @@ interface ImportBinding {
   exported: string;
 }
 
-// Use an exact paths mapping from the nearest saved workspace configuration.
+// Apply the compiler's exact-first, longest-prefix path mapping rules.
+function mappedImport(mappings: ReadOnly<Map<string, string>>, specifier: ReadOnly<string>): string {
+  let exact = '';
+  let best = -1;
+  let selected = '';
+
+  for (const key of mappings.keys()) {
+    const target = clone(mappings.get(key)) ?? '';
+    const stars = key.split('*');
+    const parts = target.split('*');
+
+    if (key === '' || key.startsWith('.') || key.startsWith('/') || key.startsWith('std:') || stars.length > 2 || target === '' || isAbsolute(target) || parts.length !== stars.length) return '';
+
+    if (['\\', '\0', '\n', '\r'].some((invalid) => key.includes(invalid) || target.includes(invalid))) return '';
+
+    if (stars.length === 1) {
+      if (key === specifier) exact = clone(target);
+      continue;
+    }
+
+    const prefix = stars[0];
+    const suffix = stars[1];
+
+    if (!specifier.startsWith(prefix) || !specifier.endsWith(suffix) || specifier.length < prefix.length + suffix.length || prefix.length < best) continue;
+
+    if (prefix.length === best) selected = '';
+    else {
+      best = prefix.length;
+      selected = parts[0] + specifier.slice(prefix.length, specifier.length - suffix.length) + parts[1];
+    }
+  }
+
+  return exact === '' ? selected : exact;
+}
+
 function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: ReadOnly<string>): string {
-  if (specifier.includes('\\') || specifier.includes('\0') || isAbsolute(specifier) || specifier.startsWith('std:')) return '';
+  if (specifier === '' || specifier.includes('\n') || specifier.includes('\r') || specifier.includes('\\') || specifier.includes('\0') || isAbsolute(specifier) || specifier.startsWith('std:')) return '';
   let dir = dirname(path);
 
   if (specifier.startsWith('./') || specifier.startsWith('../')) return join(dir, specifier);
@@ -234,16 +268,15 @@ function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: R
       Ok(info) => {
         try {
           if (!info.isFile || !unwrap(canonicalize(config)).startsWith(prefix)) return '';
-          const settings = JSON.parse(unwrap(readTextFile(config)));
-          const mappings = unwrap(get(settings, 'paths'));
+          const schema = s.object({
+            paths: s.record(s.string())
+          }).strip();
+          const parsed = schema.safeParseJson(unwrap(readTextFile(config)));
 
-          if (mappings === undefined || specifier.includes('*')) return '';
-          const mapped = unwrap(get(mappings, specifier));
+          if (!parsed.success) return '';
+          const target = mappedImport(parsed.data.paths, specifier);
 
-          if (mapped === undefined) return '';
-          const target = String(unwrap(asString(mapped)));
-
-          if (target === '' || isAbsolute(target) || target.includes('*') || target.includes('\\') || target.includes('\0') || target.includes('\n') || target.includes('\r')) return '';
+          if (target === '') return '';
           return join(dir, target);
         } catch (_) {
           return '';
