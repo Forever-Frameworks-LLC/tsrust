@@ -59,6 +59,24 @@ function nearCursor(source: ReadOnly<string>, before: boolean): string {
   return before ? characters.slice(characters.length - keep).join('') : characters.slice(0, keep).join('');
 }
 
+// A generated copy of the suffix belongs to the buffer already. Match through
+// a complete line of code so a semicolon or a closing brace cannot end a request.
+function suffixAnchor(suffix: ReadOnly<string>): string {
+  let end = suffix.indexOf('\n');
+
+  while (end >= 0) {
+    const next = suffix.indexOf('\n', end + 1);
+
+    if (next < 0) break;
+    const line = suffix.slice(end + 1, next);
+
+    if (Array.from(line).some((ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_')) return suffix.slice(0, next + 1);
+    end = next;
+  }
+
+  return '';
+}
+
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
   const completion = request.kind === 'complete-code';
   const transcript = completion ? undefined : request.messages;
@@ -205,16 +223,24 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
 
   const stream = unwrap(qwen_stream_start(model, prompt, request.maxTokens));
   let stopping = false;
+  let cancelled = false;
+  let insertion: string | undefined = undefined;
+  const anchor = completion ? suffixAnchor(request.suffix ?? '') : '';
 
   while (true) {
-    if (cancellationRequested()) qwen_stream_cancel(stream);
+    if (cancellationRequested()) {
+      cancelled = true;
+      qwen_stream_cancel(stream);
+    }
 
     match (requests.tryReceive()) {
       Ok(control) => {
         if (control.kind === 'shutdown') {
           stopping = true;
+          cancelled = true;
           qwen_stream_cancel(stream);
         } else if (control.kind === 'cancel' && control.id === request.id) {
+          cancelled = true;
           qwen_stream_cancel(stream);
         } else {
           publish(updates, 'rejected', control.id, '', 'Another request is running or the cancellation target is stale.');
@@ -223,6 +249,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
       Err(error) => {
         if (error.code !== 'empty') {
           stopping = true;
+          cancelled = true;
           qwen_stream_cancel(stream);
         }
       }
@@ -230,7 +257,16 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
 
     const update = qwen_stream_next(stream);
 
-    if (update.changed) publish(updates, 'prefix', clone(request.id), update.text);
+    if (completion && update.changed && insertion === undefined && anchor !== '') {
+      const echoed = update.text.indexOf(anchor);
+
+      if (echoed >= 0) {
+        insertion = update.text.slice(0, echoed);
+        qwen_stream_cancel(stream);
+      }
+    }
+
+    if (!completion && update.changed) publish(updates, 'prefix', clone(request.id), update.text);
 
     if (update.finished) break;
   }
@@ -239,7 +275,16 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
 
   const result = finished.generation;
 
-  if (result.kind === 'some') {
+  if (!cancelled && insertion !== undefined && (result.kind === 'some' || finished.error === 'cancelled')) {
+    publish(
+      updates,
+      'complete',
+      request.id,
+      insertion,
+      '',
+      'suffix'
+    );
+  } else if (result.kind === 'some') {
     const some = result;
     const generation = some.value;
     publish(

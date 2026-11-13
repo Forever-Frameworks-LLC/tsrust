@@ -514,7 +514,7 @@ if (['1', 'excerpt', 'reply', 'followup', 'historical-source', 'mixed-source'].i
   }
 });
 
-if (workspaceEval === 'completion') test('local code completion changes with the suffix at the same cursor', async () => {
+if (workspaceEval === 'completion') test('local completion uses suffix context and stops before repeating existing code', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
@@ -546,7 +546,6 @@ if (workspaceEval === 'completion') test('local code completion changes with the
           continue;
         }
 
-        if (update.kind === 'prefix') continue;
         strictEqual(update.kind, 'complete');
         strictEqual(update.stop, 'eos');
         strictEqual(update.text, expected);
@@ -554,6 +553,19 @@ if (workspaceEval === 'completion') test('local code completion changes with the
         break;
       }
     }
+
+    const source = unwrap(readTextFile('src/lib/workspace/documents.tsr'));
+    const expected = 'document.durabilityPending';
+    const cursor = source.indexOf(' || ' + expected) + 4;
+    strictEqual(source.slice(cursor, cursor + expected.length), expected);
+    await commands.send({
+      kind: 'complete-code', id: 'dirty', maxTokens: 0, prompt: source.slice(0, cursor), suffix: source.slice(cursor + expected.length)
+    });
+    const filled = await updates.receive().timeout(180000);
+    strictEqual(filled.id, 'dirty');
+    strictEqual(filled.kind, 'complete');
+    strictEqual(filled.text, expected);
+    strictEqual(filled.stop, 'suffix');
   } finally {
     worker.cancel();
 

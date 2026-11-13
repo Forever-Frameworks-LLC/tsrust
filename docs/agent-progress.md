@@ -35,6 +35,25 @@ accessible editor buffer contained no insertion until Tab, then contained
 return second;. Save wrote exactly those expected file bytes. The fixture
 closed. Supervisor 78503 and dev app 80549 remained live in apps/studio.
 
+Five real Studio expressions were withheld from dirty, apply, searchPage,
+diagnosticColumn and markSaved. The local host ran greedy FIM with maxTokens=0.
+The measurement harness cancelled each request still running after 12 seconds.
+With whole files the original host exactly restored 1/5 expressions. For dirty,
+the model emitted the correct field then copied the suffix and continued.
+The host now stops when generated text repeats the existing suffix through a
+complete line with an identifier. It delivers only the insertion to Studio.
+The same whole-file cases then restored 2/5 exactly (dirty in 1.02 s, apply
+in 0.76 s). Pagination timed out, diagnosticColumn used a wrong UTF-16 width,
+and markSaved assigned the opposite durability flag and continued writing.
+Function-only context restored 0/5. Function plus selected local interface
+declarations (byte-helper import for diagnosticColumn) also restored 0/5.
+These are single-run reconstruction results on five holes, with no claim of
+general accuracy. Peak host RSS sampled every 0.5 s was 2,213,952 KiB across
+the revised runs; GPU allocations and combined Studio memory were not measured.
+The focused service regression passed in 3.41 s across both existing samples
+and the real dirty expression, with no partial inline responses. The tested
+host is installed for the dev session.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered
