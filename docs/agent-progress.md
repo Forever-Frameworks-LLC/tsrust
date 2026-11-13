@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Workspace chat import trivia
+
+Chat recognizes named aliases across whitespace, line comments and block
+comments in both active drafts and retrieved dependency modules. A brace or
+alias-like text inside a comment no longer terminates the binding list.
+The current compiler accepted the commented multiline import used in the
+chat regression. It rejected import * as with its expected module-syntax
+diagnostic; namespace imports are outside the current language grammar.
+The focused chat suite passed 21/21 in 85.21 ms, including the attributed
+caller and imported helper bodies. Scope remains lexical import lookup.
+
 ## Imported callees in chat context
 
 Selected function snippets now follow bare calls into workspace imports,

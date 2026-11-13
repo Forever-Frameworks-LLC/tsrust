@@ -298,24 +298,32 @@ function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: R
 function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols: ReadOnly<Set<string>>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
   const paths = new Map<string, ImportBinding[]>();
   const bytes = unwrap(fromUtf8(source));
-  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"]([^'\"\\r\\n]+)['\"]"));
+  const ignored = "//[^\\r\\n]*|/\\*.*?\\*/";
+  const gap = "(?:\\s|" + ignored + ")*";
+  const identifier = '[\\p{L}_$][\\p{L}\\p{N}_$]*';
+  const names = "\\{(?:" + ignored + "|[^/{};])*\\}";
+  const imports = unwrap(compile("(?s)" + ignored + "|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\b" + gap + "((" + identifier + ")?" + gap + "(?:," + gap + ")?(?:" + names + ")?)" + gap + "from\\b" + gap + "['\"]([^'\"\\r\\n]+)['\"]"));
+  const members = unwrap(compile("(?s)" + ignored + "|(" + identifier + ")(?:" + gap + "\\bas\\b" + gap + "(" + identifier + "))?"));
 
   for (const found of imports.capturesAll(source)) {
-    const names = found.groups[0];
-    const specifier = found.groups[1];
+    const bindings = found.groups[0];
+    const defaultName = found.groups[1];
+    const specifier = found.groups[2];
 
-    if (names === undefined || specifier === undefined) continue;
-    const bindings = unwrap(toUtf8(unwrap(view(bytes, names.start, names.end))));
+    if (bindings === undefined || specifier === undefined) continue;
+    const text = unwrap(toUtf8(unwrap(view(bytes, bindings.start, bindings.end))));
+    const localBytes = unwrap(fromUtf8(text));
 
-    const defaultName = bindings.trim().startsWith('{') ? '' : bindings.split(',')[0].trim();
+    for (const member of members.capturesAll(text)) {
+      const exported = member.groups[0];
+      const alias = member.groups[1];
 
-    for (const binding of bindings.replace('{', '').replace('}', '').split(',')) {
-      const parts = binding.trim().split(' as ');
-      const name = parts[parts.length - 1].trim();
+      if (exported === undefined) continue;
+      const declared = unwrap(toUtf8(unwrap(view(localBytes, exported.start, exported.end))));
+      const name = alias === undefined ? clone(declared) : unwrap(toUtf8(unwrap(view(localBytes, alias.start, alias.end))));
 
       if (!symbols.has(name)) continue;
       const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
-
       const base = importBase(path, relative, root);
 
       if (base === '') continue;
@@ -330,7 +338,7 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols
               Ok(real) => {
                 const selected: ImportBinding[] = clone(paths.get(real)) ?? [];
                 selected.push({
-                  local: clone(name), exported: name === defaultName ? 'default' : parts[0].trim()
+                  local: clone(name), exported: defaultName !== undefined && bindings.start + exported.start === defaultName.start ? 'default' : clone(declared)
                 });
                 paths.set(real, selected);
               },
