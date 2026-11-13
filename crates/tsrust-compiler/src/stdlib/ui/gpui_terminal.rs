@@ -138,9 +138,15 @@ impl TerminalView {
     fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
         let key = &event.keystroke;
         if !self.composition.is_empty() && !key.modifiers.control && !key.modifiers.platform {return;}
-        if key.modifiers.platform || (cfg!(windows) && key.modifiers.control && key.modifiers.shift) {
+        if key.modifiers.platform || (!cfg!(target_os = "macos") && key.modifiers.control && key.modifiers.shift && matches!(key.key.as_str(), "c" | "v")) {
             if key.key == "c" {self.copy(cx); cx.stop_propagation();}
             if key.key == "v" {if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {if let Err(error) = self.paste_text(&text, cx) {self.error = error; cx.notify();}} cx.stop_propagation();}
+            return;
+        }
+        if !key.modifiers.control && !key.modifiers.alt
+            && self.session.as_ref().is_some_and(|session| session.scroll_key(&key.key, key.modifiers.shift)) {
+            cx.stop_propagation();
+            cx.notify();
             return;
         }
         let modifier = 1 + usize::from(key.modifiers.shift) + 2 * usize::from(key.modifiers.alt) + 4 * usize::from(key.modifiers.control);

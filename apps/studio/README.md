@@ -112,8 +112,12 @@ current unconnected language-service state. Cmd+J and the terminal icon toggle t
 task/terminal panel at its configured location. The native terminal starts a shell
 in the workspace directory. New Terminal and Close share the panel header; the
 resizable right session list switches independent shells and closes individual
-sessions. Its action menu interrupts the foreground job, copies a selection or
-restarts an exited shell. The terminal viewport fills its region without an inset
+sessions. Its action menu can copy a selection or the retained output. Use
+Cmd+C on macOS or Ctrl+Shift+C on Linux and Windows to copy a selection.
+In completed tasks, Page Up, Page Down, Home and End navigate scrollback.
+In a live shell, hold Shift with those keys to scroll its normal screen.
+The action menu also interrupts the foreground job and restarts exited shells.
+The terminal viewport fills its region without an inset
 frame. Editor and panel tab labels follow configured text size and zoom.
 Problems lists source-labeled structured diagnostics and operation errors. Debug,
 Source Control, AI Chat and Extensions still describe unfinished integrations.

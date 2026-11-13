@@ -118,6 +118,23 @@ impl Session {
     pub fn set_colors(&self, foreground: u32, background: u32) { *self.proxy.colors.lock().unwrap() = palette(foreground, background); }
     pub fn colors(&self) -> [Rgb; 269] {*self.proxy.colors.lock().unwrap()}
 
+    /// Completed tasks keep a navigable grid even though the PTY no longer accepts keys.
+    pub fn scroll_key(&self, key: &str, shift: bool) -> bool {
+        use alacritty_terminal::{grid::Scroll, term::TermMode};
+        let direction = match key {
+            "pageup" => Scroll::PageUp,
+            "pagedown" => Scroll::PageDown,
+            "home" => Scroll::Top,
+            "end" => Scroll::Bottom,
+            _ => return false,
+        };
+        let exited = self.status().exited;
+        let mut term = self.terminal.lock();
+        if !exited && (!shift || term.mode().contains(TermMode::ALT_SCREEN)) {return false;}
+        term.scroll_display(direction);
+        true
+    }
+
     pub fn output(&self) -> String {
         use alacritty_terminal::index::{Column, Point};
         let term = self.terminal.lock();
@@ -198,6 +215,8 @@ mod tests {
             let term = session.terminal.lock();
             assert!(term.grid().display_iter().any(|cell| cell.c == 'P' && cell.fg == Color::Named(NamedColor::Red)));
         }
+        assert!(!session.scroll_key("pageup", false));
+        assert!(session.scroll_key("pageup", true));
         session.resize(size(100, 30)).unwrap();
         session.write(b"hello\n".to_vec()).unwrap();
         wait(&session, |session| session.status().exited);
@@ -214,14 +233,21 @@ mod tests {
 
     #[test]
     fn finished_output_keeps_scrollback_after_resize_and_selection() {
-        use alacritty_terminal::{grid::Scroll, index::{Column, Point, Side}, selection::{Selection, SelectionType}};
+        use alacritty_terminal::{index::{Column, Point, Side}, selection::{Selection, SelectionType}};
         let shell = tty::Shell::new("/bin/sh".into(), vec!["-c".into(), "printf 'first\nsecond\nthird\nfourth\n'".into()]);
         let session = Session::start(Path::new("/tmp"), Some(shell), size(30, 2), 100).unwrap();
         wait(&session, |session| session.status().exited);
         session.resize(size(30, 3)).unwrap();
+        assert!(session.scroll_key("home", false));
+        assert!(session.terminal.lock().grid().display_offset() > 0);
+        assert!(session.scroll_key("pagedown", false));
+        assert_eq!(session.terminal.lock().grid().display_offset(), 0);
+        assert!(session.scroll_key("pageup", false));
+        assert!(session.terminal.lock().grid().display_offset() > 0);
+        assert!(session.scroll_key("end", false));
+        assert_eq!(session.terminal.lock().grid().display_offset(), 0);
+        assert!(session.scroll_key("home", false));
         let mut term = session.terminal.lock();
-        term.scroll_display(Scroll::Top);
-        assert!(term.grid().display_offset() > 0);
         let first = term.topmost_line();
         let mut selection = Selection::new(SelectionType::Simple, Point::new(first, Column(0)), Side::Left);
         selection.update(Point::new(first, Column(4)), Side::Right);

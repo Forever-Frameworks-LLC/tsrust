@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Keyboard navigation in retained terminal output
+
+The native terminal handles Page Up/Down and Home/End locally after exit. In a
+live primary screen Shift with those keys scrolls history; ordinary keys and live
+alternate-screen applications retain PTY key delivery. Linux Ctrl+Shift+C/V now
+routes to the clipboard alongside the existing Windows and macOS bindings. Real
+PTY tests passed 3/3 in 0.03 s with live routing, exited history offsets, resize
+and selection. Rebuilt workspace compiler and linked a native arm64 Terminal
+consumer. Whole-project formatter zero changes. Logs /tmp/studio-terminal-key-
+{compiler,native,format}.log and /tmp/studio-terminal-scroll-keys.log. The live
+supervisor 36374 and preview 68305 still use their existing toolchain. Physical
+key events and clipboard contents were not verified.
+
 ## Cancelling content searches
 
 The search button becomes a stop control while a submission is pending or
