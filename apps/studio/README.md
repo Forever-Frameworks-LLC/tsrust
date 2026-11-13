@@ -197,5 +197,10 @@ To request a change to the active text file, start a chat message with
 replacement in a diff. **Apply to draft** updates the open buffer. **Reject**
 discards the proposal. Save the draft separately when ready.
 
-When a long chat exceeds the model host’s 128 KiB request limit, Studio sends
-the most recent complete turns that fit and keeps the full transcript in chat.
+For a change across several files, open each workspace file, attach it to the
+chat, and start the message with `Edit files: `. Review the diffs together.
+Applying updates all target drafts together. If a target changed or closed,
+request a fresh proposal.
+
+When a long chat exceeds the model’s context window, Studio selects context
+for the request and keeps the full transcript in chat.

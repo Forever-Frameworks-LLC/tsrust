@@ -12,7 +12,7 @@ import { LanguageReferences } from '../src/lib/language/references.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { scanTree } from '../src/lib/explorer/tree.tsr';
 import { reviewChatEdit } from '../src/components/ai/edit-review.tsrx';
-import { replacementProposal } from '../src/lib/ai/edits.tsr';
+import { replacementProposal, batchProposal } from '../src/lib/ai/edits.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { edit, propose } from '../src/lib/workspace/documents.tsr';
 import {
@@ -641,19 +641,29 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
       path: folder + '/journal.json', baseline: '', ready: true
     });
     const current = state.get();
-    current.review = clone(proposal);
+    current.review = {
+      files: [clone(proposal)]
+    };
     state.set(current);
-    reviewChatEdit(state, workspace, recovery, proposal, false);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, false);
     strictEqual(workspace.get().files[0].document.text, 'one one two');
-    reviewChatEdit(state, workspace, recovery, proposal, true);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, true);
     strictEqual(workspace.get().files[0].document.text, 'one one two');
     const again = state.get();
-    again.review = clone(proposal);
+    again.review = {
+      files: [clone(proposal)]
+    };
     state.set(again);
     const changed = workspace.get();
     edit(changed.files[0].document, 'owner draft');
     workspace.set(changed);
-    reviewChatEdit(state, workspace, recovery, proposal, true);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, true);
     strictEqual(workspace.get().files[0].document.text, 'owner draft');
     strictEqual(state.get().notice.includes('changed'), true);
     strictEqual(unwrap(readTextFile(path)), 'one one two');
@@ -666,13 +676,76 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
       before: '', after: clone(firstSource)
     })));
     const waiting = state.get();
-    waiting.review = clone(insertion);
+    waiting.review = {
+      files: [clone(insertion)]
+    };
     state.set(waiting);
-    reviewChatEdit(state, workspace, recovery, insertion, true);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(insertion)]
+    }, true);
     strictEqual(workspace.get().files[0].document.text, firstSource);
     strictEqual(unwrap(readTextFile(path)), 'one one two');
   } finally {
     unwrap(removeDirAll(folder));
+  }
+});
+
+test('attached workspace edits review and apply as one draft transaction', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-edit-batch-'))));
+
+  try {
+    const model = unwrap(openWorkspace(clone(root)));
+
+    for (const name of ['first', 'second']) {
+      const path = root + '/' + name + '.tsr';
+      unwrap(writeTextFile(path, name));
+      unwrap(openFile(model, path));
+    }
+
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+
+    for (const name of ['first', 'second']) unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/' + name + '.tsr'
+    })));
+    send(host, 'Edit files: Capitalize both words.');
+    const request = unwrap(requests.tryReceive());
+    strictEqual(request.messages?.[0].content.includes('Task: Capitalize both words.') ?? false, true);
+    const batch = state.get().editTarget;
+
+    if (batch === undefined) throw 'Missing edit targets.';
+    const reply = '[{"file":1,"before":"second","after":"SECOND"},{"file":0,"before":"first","after":"FIRST"}]';
+    strictEqual(denied(batchProposal(batch, reply.replace('"file":1', '"file":0'))), true);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: reply, stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing review.';
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    const stale = workspace.get();
+    edit(stale.files[1].document, 'owner draft');
+    const changed = signal(stale);
+    const staleState = signal(state.get());
+    reviewChatEdit(staleState, changed, recovery, review, true);
+    strictEqual(changed.get().files[0].document.text, 'first');
+    strictEqual(changed.get().files[1].document.text, 'owner draft');
+    reviewChatEdit(state, workspace, recovery, review, true);
+    strictEqual(workspace.get().files[0].document.text, 'FIRST');
+    strictEqual(workspace.get().files[1].document.text, 'SECOND');
+    strictEqual(unwrap(readTextFile(root + '/first.tsr')), 'first');
+    strictEqual(unwrap(readTextFile(root + '/second.tsr')), 'second');
+  } finally {
+    unwrap(removeDirAll(root));
   }
 });
 

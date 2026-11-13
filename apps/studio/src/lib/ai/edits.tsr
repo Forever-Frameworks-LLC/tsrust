@@ -56,3 +56,62 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
     return Err('The model did not return a valid edit proposal.');
   }
 }
+
+export interface EditBatch {
+  files: ProposedEdit[];
+}
+
+interface FileReplacement {
+  file: int;
+  before: string;
+  after: string;
+}
+
+export function batchProposal(target: ReadOnly<EditBatch>, response: ReadOnly<string>): Result<EditBatch, string> {
+  const files: ProposedEdit[] = [];
+
+  if (target.files.length === 1) {
+    match (replacementProposal(target.files[0], response)) {
+      Ok(edit) => {
+        files.push(edit);
+      },
+      Err(error) => {
+        return Err(clone(error));
+      }
+    }
+  } else try {
+    let body = response.trim();
+
+    if (body.startsWith('```json\n') && body.endsWith('\n```')) body = body.slice(8, -4);
+    const changes = JSON.parse<FileReplacement[]>(body, {
+      maxBytes: body.length, maxEntries: body.length, maxNodes: body.length, maxDepth: 4
+    });
+
+    if (changes.some((change) => change.file < 0 || change.file >= target.files.length)) return Err('The model did not return a valid edit proposal.');
+
+    for (let index = 0; index < target.files.length; index += 1) {
+      const replacements: Replacement[] = [];
+
+      for (const change of changes) {
+        if (change.file === index) replacements.push({
+          before: clone(change.before), after: clone(change.after)
+        });
+      }
+
+      match (replacementProposal(target.files[index], JSON.stringify(replacements))) {
+        Ok(edit) => {
+          files.push(edit);
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+  } catch (_) {
+    return Err('The model did not return a valid edit proposal.');
+  }
+
+  return Ok({
+    files
+  });
+}

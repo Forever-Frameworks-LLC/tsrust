@@ -1,3 +1,4 @@
+import { separator } from 'std:path';
 import { Sender, Channel } from 'std:futures';
 import { Signal, translate } from 'std:ui';
 
@@ -24,11 +25,11 @@ import { FileDeclarations, EditorContextResult, editorContext, readContext, refe
 import { ChatStore, persistChats } from './history.tsr';
 
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
-import { replacementProposal } from '../../lib/ai/edits.tsr';
+import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 
 export interface AiState {
-  editTarget?: ProposedEdit;
-  review?: ProposedEdit;
+  editTarget?: EditBatch;
+  review?: EditBatch;
   phase: string;
   active: string;
   targetChat: string;
@@ -109,7 +110,7 @@ export function modelTools(): EditorTool[] {
   }, {
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
-    name: 'local_model_send', description: 'Send in the explicit selected conversation. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft or Edit files: for attached open workspace drafts, followed by the change requested. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
     name: 'local_model_cancel', description: 'Cancel the explicit active request, including automatic model startup. Rejects stale identities. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
   }, {
@@ -305,7 +306,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const tree = context.projectTree;
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
       const attachments = draftContext(next.history);
-      const editing = prompt.toLowerCase().startsWith('edit: ');
+      const batch = prompt.toLowerCase().startsWith('edit files: ');
+      const editing = batch || prompt.toLowerCase().startsWith('edit: ');
       const references = context.references;
       const snippets = canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '';
       const storeIndex = context.declarations;
@@ -368,12 +370,38 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
         if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
         const current = workspace.get();
-        const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
 
-        if (file === undefined) return Err('Open a text file to propose an edit.');
-        next.editTarget = propose(file.document, '');
-        const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
-        editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+        if (batch) {
+          const targets: ProposedEdit[] = [];
+          const sources: string[] = [];
+
+          for (const attachment of attachments) {
+            if (attachment.kind !== 'file') continue;
+            const path = clone(attachment.path);
+            const file = current.files.find((entry) => entry.kind === 'text' && entry.document.path === path);
+
+            if (file === undefined || file.document.text !== attachment.text || !path.startsWith(current.root.endsWith(separator()) ? current.root : current.root + separator())) return Err('Attach current open workspace files to edit them together.');
+
+            if (targets.some((target) => target.path === path)) continue;
+            sources.push('File ' + targets.length.toString() + ': ' + path + '\n' + file.document.text);
+            targets.push(propose(file.document, ''));
+          }
+
+          if (targets.length < 2) return Err('Attach current open workspace files to edit them together.');
+          next.editTarget = {
+            files: targets
+          };
+          editPrompt = sources.join('\n\n') + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + prompt.slice('Edit files: '.length) + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
+        } else {
+          const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
+
+          if (file === undefined) return Err('Open a text file to propose an edit.');
+          next.editTarget = {
+            files: [propose(file.document, '')]
+          };
+          const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
+          editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+        }
       }
 
       const generation: ModelRequest = {
@@ -523,7 +551,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
               if (update.kind === 'prefix' || update.kind === 'complete') next.history.chats[chat].messages[message].text = clone(update.text);
 
               if (update.kind === 'complete' && next.editTarget !== undefined && update.stop !== 'length') {
-                match (replacementProposal(next.editTarget, update.text)) {
+                match (batchProposal(next.editTarget, update.text)) {
                   Ok(proposal) => {
                     next.review = proposal;
                   },

@@ -50,7 +50,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspaceEval)) test(workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch'].includes(workspaceEval)) test(workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -76,6 +76,11 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
     else if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
     const workspace = unwrap(openWorkspace(folder));
 
+    if (workspaceEval === 'batch') {
+      unwrap(openFile(workspace, folder + '/answer.tsr'));
+      unwrap(openFile(workspace, folder + '/lib/answer.tsr'));
+    }
+
     if (workspaceEval === 'active') {
       unwrap(openFile(workspace, folder + '/quote.tsr'));
       edit(workspace.files[0].document, 'import { baseCharge as charge } from "./lib/pricing-policy";\nexport function handlingFee(units: int): int { return units + fixedPart(); }\nfunction fixedPart(): int { return charge(); }');
@@ -90,6 +95,27 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
+      if (workspaceEval === 'batch') {
+        for (const path of ['answer.tsr', 'lib/answer.tsr']) unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+          chat: '', path: folder + '/' + path, kind: 'file'
+        })));
+        const reply = await ask(host, updates, 'Edit files: In file 0 change 51 to 52. In file 1 change 73 to 74.');
+        console.log(reply);
+        const batch = host.state.get().review;
+
+        if (batch === undefined) throw 'Missing multi-file proposal: ' + host.state.get().notice;
+        strictEqual(batch.files.length, 2);
+        strictEqual(batch.files[0].after, 'export function answer(): int { return 52; }');
+        strictEqual(batch.files[1].after, 'export function answer(): int { return 74; }');
+        const journal = signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        });
+        reviewChatEdit(host.state, opened, journal, batch, true);
+        strictEqual(opened.get().files[0].document.text, batch.files[0].after);
+        strictEqual(opened.get().files[1].document.text, batch.files[1].after);
+        return;
+      }
+
       if (indexCase) {
         const first = await ask(host, updates, 'What does handlingFee(5) return in this project? Reply with the integer alone.');
         const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
@@ -130,14 +156,14 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
       const proposal = host.state.get().review;
 
       if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
-      strictEqual(proposal.after.includes('return 84;'), true);
-      strictEqual(opened.get().files[0].document.text, proposal.before);
+      strictEqual(proposal.files[0].after.includes('return 84;'), true);
+      strictEqual(opened.get().files[0].document.text, proposal.files[0].before);
       const recovery = signal<Recovery>({
         path: folder + '/journal.json', baseline: '', ready: true
       });
       reviewChatEdit(host.state, opened, recovery, proposal, true);
-      strictEqual(opened.get().files[0].document.text, proposal.after);
-      strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), proposal.before);
+      strictEqual(opened.get().files[0].document.text, proposal.files[0].after);
+      strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), proposal.files[0].before);
       unwrap(writeTextFile(folder + '/empty.tsr', ''));
       const empty = opened.get();
       unwrap(openFile(empty, folder + '/empty.tsr'));
@@ -146,8 +172,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
       const insertion = host.state.get().review;
 
       if (insertion === undefined) throw 'Missing insertion proposal: ' + host.state.get().notice;
-      strictEqual(insertion.before, '');
-      strictEqual(insertion.after.trim(), 'export const answer = 27;');
+      strictEqual(insertion.files[0].before, '');
+      strictEqual(insertion.files[0].after.trim(), 'export const answer = 27;');
       strictEqual(unwrap(readTextFile(folder + '/empty.tsr')), '');
       reviewChatEdit(host.state, opened, recovery, insertion, false);
       const pairSource = 'export const low = 2;\nexport const fixed = 50;\nexport const high = 8;\n';
@@ -159,8 +185,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active'].includes(workspac
       const combined = host.state.get().review;
 
       if (combined === undefined) throw 'Missing combined proposal: ' + host.state.get().notice;
-      strictEqual(combined.after, 'export const low = 3;\nexport const fixed = 50;\nexport const high = 9;\n');
-      strictEqual(unwrap(readTextFile(folder + '/pair.tsr')), combined.before);
+      strictEqual(combined.files[0].after, 'export const low = 3;\nexport const fixed = 50;\nexport const high = 9;\n');
+      strictEqual(unwrap(readTextFile(folder + '/pair.tsr')), combined.files[0].before);
     } finally {
       worker.cancel();
 
@@ -278,7 +304,7 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
       // Run only reviewed, side-effect-free caller bodies. The native cases decide correctness.
       const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return billableUnits(units) + shelfCharge(fragile, units);'] : ['return shelfCharge(fragile, units);'];
 
-      const after = clone(proposal.after);
+      const after = clone(proposal.files[0].after);
 
       if (!reviewed.some((body) => after === caller.replace('return units;', body))) throw 'Unreviewed generated caller body.';
       const recovery = signal<Recovery>({
@@ -305,7 +331,7 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
         const revised = host.state.get().review;
 
         if (revised === undefined) throw 'Missing correction proposal.';
-        strictEqual(revised.after, caller.replace('return units;', 'return shelfCharge(fragile, billableUnits(units));'));
+        strictEqual(revised.files[0].after, caller.replace('return units;', 'return shelfCharge(fragile, billableUnits(units));'));
         const recovery = signal<Recovery>({
           path: folder + '/journal.json', baseline: '', ready: true
         });

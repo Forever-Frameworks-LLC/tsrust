@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Multi-file chat edit review
+
+Edit files: with at least two attached open workspace files captures each
+draft revision and supplies numbered edit targets. Studio validates every
+replacement against the original target, presents all diffs together and
+publishes one workspace and recovery update on acceptance. A stale second
+draft prevents the first change from being published. The action suite passed
+22/22, including owner-draft preservation, disk isolation and missing-target
+rejection. The Studio entry point passed its source check.
+
+The real local 1.5B model copied placeholder strings with the first prompt,
+then used an unexpected field name with a nested format. Studio rejected both.
+With flat file/before/after entries it correctly proposed 51 → 52 and 73 → 74
+in two files with the same basename. The opt-in batch evaluation checked
+both review proposals and both resulting drafts. Peak sampled host RSS was
+2028.12 MiB, peak system swap increase 0 MiB, peak pressure level 2.
+Native visual review and compound undo across files remain unverified.
+
 ## Dependencies of outline-selected functions
 
 Chat now consults the same current top-level document outline while walking
