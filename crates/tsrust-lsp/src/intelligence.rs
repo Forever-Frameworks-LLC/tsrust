@@ -1959,6 +1959,13 @@ impl SourceIndex {
             return if binding.name=="get"{payload.into()}else if binding.name=="handle"{receiver}else{"void".into()};
         }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
+        if receiver.starts_with("Task<") || receiver.starts_with("Job<") {
+            if let Some(entry) = self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
+                && let Some((_, result)) = entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): "))
+            {
+                return result.to_owned();
+            }
+        }
         if receiver=="string"&&method=="localeCompare"{return "int".into();}
 
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::network_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if tsrust_compiler::native_bindings::network_asynchronous(method){format!("Task<{result}>")}else{result};}

@@ -384,6 +384,24 @@ impl ProjectIndex {
 mod generic_prefix_recovery_tests {
     use super::*;
     #[test]
+    fn imported_task_start_preserves_job_cancel_hover() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-started-job-hover");
+        let entry = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dep = SourceId(root.join("workers.tsr").to_string_lossy().into_owned());
+        let text = "import {studioWorkers} from './workers.tsr';async function main():Task<void>{const workers=studioWorkers().start();try{}finally{workers.cancel();await workers;}}";
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(entry.clone(), 1, text.into());
+        workspace.open(dep, 1, "export async function studioWorkers():Task<void>{}".into());
+        let snapshot = workspace.snapshot();
+        let graph = tsrust_compiler::project::load_project_headers(&snapshot, &entry.0).unwrap();
+        let analysis = snapshot.check_with_diagnostics(&entry).unwrap();
+        for index in [ProjectIndex::declarations(&graph), ProjectIndex::checked(&analysis)] {
+            let params = serde_json::json!({"position":{"line":0,"character":text.find("cancel").unwrap()+1}});
+            let hover = index.request("textDocument/hover", &params, file_uri(&entry).unwrap().as_str()).unwrap().unwrap();
+            assert!(hover.to_string().contains("Requests cancellation of this job"), "{hover}");
+        }
+    }
+    #[test]
     fn completed_generic_call_hover_survives_a_broken_sibling_without_accepting_invalid_prefixes() {
         let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-generic-prefix-recovery");
         let id=SourceId(root.join("main.tsr").to_string_lossy().into_owned());

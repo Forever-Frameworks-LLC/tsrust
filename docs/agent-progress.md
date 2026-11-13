@@ -4,7 +4,13 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Hover on an inferred started job
+
+In the actual Studio `main.tsrx`, the prior release server reported `const workers` without a type and returned null on `workers.cancel()`, even though `studioWorkers(...).start()` had hover documentation. The server now uses Task and Job method catalog results when inferring a chained initializer. Both declaration-only and checked imported-task regression paths passed. Framed hover requests to the rebuilt server against Studio main returned `const workers: Job<void, E>`, `cancel(): boolean` with Job cancellation documentation, and the existing `start()` tooltip. The live Studio window reloaded the server through its Restart action. Earlier project-edit candidate checks also passed (five code action and four project action cases); validated memory change at `e6a762a3`.
+
 ## Local inline arithmetic completion evaluation
+
+Apple Foundation Models was available on this arm64 macOS 27.0.1 machine. Two fresh `LanguageModelSession`s used `SystemLanguageModel.default`, a cursor marker and an instruction to return only the expression. Both responses contained full return statements. Testing their logic as returned statements on (2,7), the floor response returned -5 (expected 0), and the signed response returned 5 (expected -5). This is an instruction-based comparison, not a native Qwen FIM interface or a Studio provider integration. System-wide model memory was not isolated.
 
 Candidate validation experiment: the current CLI formatter accepted all four assembled sources (whole and trimmed versions of the 3B overrun and the valid nested control), including the missing-brace case. The release CLI diagnostics distinguished the correct candidate in each pair. A separately launched release language server reproduced the same decisions using four successive versions of one unsaved `.test.tsr` document. The whole overrun reported `test-entry`, the trimmed overrun had no errors, the whole nested control had no errors, and the trimmed nested control reported a missing brace. The source path never existed on disk. This establishes a diagnostics oracle for these two cases only. Production ghost-text validation would need isolated speculative analysis that leaves the live document version and diagnostics intact. No production integration or workspace-scale latency result yet.
 
