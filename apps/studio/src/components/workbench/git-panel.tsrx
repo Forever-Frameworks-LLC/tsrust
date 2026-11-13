@@ -303,7 +303,7 @@ export function GitPanel(
       >
         {...matches.get().slice((page.get() - 1) * 50, page.get() * 50).map((line: ReadOnly<string>) => CommitRow(line, selected.handle(), font.handle()))}
       </List>
-      <View hidden={pages.get() <= 1} className="shrink-0 min-w-0 overflow-x-auto">
+      <View hidden={pages.get() <= 1} className="flex-row justify-center shrink-0 w-full min-w-0 overflow-x-auto">
         <Pagination
           size="xsmall"
           visiblePages={5}
@@ -597,7 +597,7 @@ export function GitEditor(
       </View>
     </View>
     <View hidden={selected.get().mode === 'conflicts'} className="w-full grow min-w-0 min-h-0 overflow-hidden">
-      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">
+      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={selected.get().mode === 'commit'} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">
         {...HunkActions(hunks.get(), output.get(), selected.get(), pending.handle(), busy.handle())}
       </Diff>
     </View>

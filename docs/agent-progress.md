@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Centered sidebar pagination and commit file sections
+
+History and content search center their numbered pager. Commit history uses the native split diff's per-file action bar with path, change counts and a disclosure. The live Studio watcher rebuilt and launched PID 79153. In its 248-pixel History sidebar, the midpoint between the outer paging buttons and the list midpoint both measured 467 logical pixels on screen. Opening a two-file commit exposed separate controls for `src/components/explorer/search-panel.tsrx` and `src/components/workbench/git-panel.tsrx`. Collapsing the first left the second expanded, and expanding the first restored its collapse control. Project formatting passed.
+
 ## Compiler shape-cache lookup during Studio checks
 
 Follow-up on `e2d961644`: the release diagnostics-only check of `apps/studio/src/main.tsrx` passed. Three two-second macOS samples taken across 49 seconds of the same check found `expression_effect` at the top of the compiler worker stack 106, 98 and 111 times respectively, with `own_expression_effect` next at 60, 44 and 56. Allocation and free also appeared in every sample. The reported peak compiler footprint was 358.2 MiB. The live editor's separate language server was idle at the process observation. Inspect repeated whole-function visits inside the regional contract fixed point before tuning individual expression allocations. These samples locate work; they do not measure its fraction of total rebuild time.

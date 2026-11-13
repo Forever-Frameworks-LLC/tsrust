@@ -283,7 +283,7 @@ export function ContentSearch(
           selected.handle()
         ))}
       </View>
-      <View hidden={pages.get() <= 1} className="shrink-0 min-w-0 overflow-x-auto">
+      <View hidden={pages.get() <= 1} className="flex-row justify-center shrink-0 w-full min-w-0 overflow-x-auto">
         <Pagination
           page={search.get().page}
           total={pages.get() > 0 ? pages.get() : 1}
