@@ -181,7 +181,7 @@ export function ContentSearch(
   const selected = signal('');
   const sender = requests.sender();
   const fontClass = computed<string>(() => 'px-2 text-[' + font.get().toString() + 'px]');
-  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 gap-2 text-[' + font.get().toString() + 'px]');
+  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
     query: '', regex: false, sensitive: false, hits: [], page: 1, error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
   });
@@ -263,12 +263,12 @@ export function ContentSearch(
           </InputGroupAddon>
         </InputGroup>
       </View>
-      <View hidden={!search.get().searched || search.get().error !== ''} className="shrink-0 px-1">
+      <View hidden={!search.get().searched || search.get().error !== ''} className="shrink-0 px-2">
         <Text>
           {summary.get()}
         </Text>
       </View>
-      <View hidden={search.get().error === ''} className="shrink-0 px-1">
+      <View hidden={search.get().error === ''} className="shrink-0 px-2">
         <Text className="text-destructive">
           {localizeError(search.get().error)}
         </Text>
@@ -284,7 +284,7 @@ export function ContentSearch(
         ))}
       </View>
       <View hidden={pages.get() <= 1} className="flex-row shrink-0 items-center">
-        <Text className="grow px-1">
+        <Text className="grow px-2">
           {translateWith('searchResultPage', {
             page: search.get().page, total: pages.get()
           })}

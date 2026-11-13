@@ -6,7 +6,6 @@ import {
   Button,
   CodeEditor,
   DiffGutterMarker,
-  Icon,
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
@@ -38,9 +37,10 @@ import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merg
 
 function CommitRow(line: ReadOnly<string>, selected: Signal<GitChange>): Node {
   const label = clone(line);
-  const style = computed<string>(() => 'px-2 border-b border-border' + (selected.get().mode === 'commit' && selected.get().path === label ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  const active = computed<boolean>(() => selected.get().mode === 'commit' && selected.get().path === label);
+  const style = computed<string>(() => 'px-2 border-b border-border' + (active.get() ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
   return (
-    <ListItem className={style.get()} value={clone(line)} accessibilityLabel={clone(line)}>
+    <ListItem confirmed={active.get()} className={style.get()} value={clone(line)} accessibilityLabel={clone(line)}>
       <Tooltip text={clone(line)} className="grow min-w-0">
         <Text className="truncate">
           {clone(line)}
@@ -54,17 +54,15 @@ function ChangeRow(row: ReadOnly<GitChange>, selected: Signal<GitChange>, font: 
   const file = clone(row.path);
   const mode = clone(row.mode);
   const selectedPath = clone(file);
-  const rowStyle = computed<string>(() => 'px-2 py-[6px] rounded-none border-b border-border hover:bg-accent' + (selected.get().mode === mode && selected.get().path === selectedPath ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  const active = computed<boolean>(() => selected.get().mode === mode && selected.get().path === selectedPath);
+  const rowStyle = computed<string>(() => 'px-2 py-[6px] rounded-none border-b border-border hover:bg-accent' + (active.get() ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
   const staged = row.mode === 'staged';
   return (
-    <ListItem className={rowStyle.get()} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+    <ListItem confirmed={active.get()} className={rowStyle.get()} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
       <Tooltip text={clone(row.path)} className="grow min-w-0">
-        <View className="flex-row items-center gap-2 w-full min-w-0">
-          <Icon name="file" className="size-4 shrink-0 text-muted-foreground" />
-          <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
-            {clone(row.path)}
-          </Text>
-        </View>
+        <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
+          {clone(row.path)}
+        </Text>
       </Tooltip>
       <ListItemSuffix>
         <Text className={'shrink-0 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
@@ -215,7 +213,7 @@ export function GitPanel(
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
-  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 gap-2 text-[' + font.get().toString() + 'px]');
+  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   const sidebar: Node = <View className={panelClass.get()}>
     <Tabs
       variant="underline"
@@ -273,7 +271,7 @@ export function GitPanel(
         </InputGroupAddon>
       </InputGroup>
     </View>
-    <View hidden={!history.get()} className="grow flex-col min-h-0 gap-2">
+    <View hidden={!history.get()} className="grow flex-col min-h-0">
       <Input
         size="small"
         className="w-full px-2 rounded-none border-0 border-b border-border"
