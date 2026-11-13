@@ -25,6 +25,7 @@ export interface EditPassage {
 }
 
 export interface ProposedEdit {
+  unopened?: boolean;
   path: string;
   session: string;
   revision: int;

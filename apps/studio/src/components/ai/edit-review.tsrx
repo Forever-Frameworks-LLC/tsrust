@@ -13,7 +13,7 @@ import {
 } from 'std:ui';
 import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
@@ -24,16 +24,40 @@ function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, ba
   const next = workspace.get();
   const files: ProposedEdit[] = [];
 
+  const active = clone(next.active);
+
   for (const edit of batch.files) {
     if (edit.after === edit.before) continue;
     const path = clone(edit.path);
+
+    if (edit.unopened === true) {
+      if (next.files.some((file) => file.document.path === path)) return undefined;
+
+      match (openFile(next, path)) {
+        Err(_) => {
+          return undefined;
+        },
+        Ok(_) => {}
+      }
+
+    }
+
     const index = next.files.findIndex((file) => file.document.path === path && file.kind === 'text');
 
-    if (index < 0 || !apply(next.files[index].document, edit)) return undefined;
+    if (index < 0) return undefined;
+
+    if (edit.unopened === true) {
+      const target = clone(edit);
+      target.session = clone(next.files[index].document.session);
+
+      if (!apply(next.files[index].document, target)) return undefined;
+    } else if (!apply(next.files[index].document, edit)) return undefined;
     files.push(propose(next.files[index].document, clone(edit.before)));
   }
 
   if (files.length === 0) return undefined;
+
+  if (active !== '') next.active = active;
   publishWorkspace(next, workspace, recovery);
   return {
     files

@@ -210,8 +210,8 @@ To request a change to the active text file, start a chat message with
 replacement in a diff. **Apply to draft** updates the open buffer. **Reject**
 discards the proposal. Save the draft separately when ready.
 
-For a change across several files, open each workspace file, attach it to the
-chat, and start the message with `Edit files: `. Review the diffs together.
+Attach workspace text files and start the message with `Edit files: `.
+Review the diffs together. Applying opens previously unopened targets as drafts.
 Applying updates all target drafts together. If a target changed or closed,
 request a fresh proposal. **Edit → Undo Last Chat Edit** restores the target
 drafts together while they still match the accepted edit.

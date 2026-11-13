@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Editing an attached, unopened workspace file
+
+`Edit files:` now accepts workspace text files directly from the attachment picker. A closed target is checked against its attachment snapshot without publishing a tab. Apply reads it again through the normal workspace opener and validates its contents before publishing the draft batch. Changed contents, an intervening open or a file outside the workspace cannot silently replace a draft. The AI action suite passed 38/38 (279.31 ms execution), including disk-change rejection, draft application and undo. Two native 1.5B Q4 trials attached a closed fees.tsr and a skill specifying 84. The target stayed closed through generation. Apply changed only its new draft from 72 to 84, and both disk files and the existing unsaved draft retained their exact contents. The UI selected the newly opened target in both runs, so the live focus-preservation assertion failed even though the action-level check preserved the previous selection. Post-reply host RSS samples were 1210416 and 1206992 KiB. The watcher recovered from ENOSPC after pruning seven superseded generated runtime entries under lock and launched PID 81945.
+
 ## Single attached file edit targeting
 
 Multi-file native undo verified in an isolated Studio window. From an empty chat, keyboard-selected two open files with different unsaved base constants (72 and 73). The resident 1.5B Q4 returned both requested indexed replacements (84 and 85). Apply to draft produced the exact expected pair in the recovery journal. Invoking Edit → Undo Last Chat Edit through the macOS menu restored both complete pre-edit draft texts and preserved the active tab. Disk contents matched their original bytes after Apply and Undo. Post-reply host RSS was 1218656 KiB. This closes the native menu gap recorded under “Multi-file chat edit review” for a successful two-file undo.

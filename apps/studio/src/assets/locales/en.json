@@ -53,7 +53,7 @@
   "Review the previous edit proposal first.": "Review the previous edit proposal first.",
   "Undo Last Chat Edit": "Undo Last Chat Edit",
   "A target draft changed or closed. The chat edit could not be undone.": "A target draft changed or closed. The chat edit could not be undone.",
-  "Attach current open workspace files to edit them together.": "Attach current open workspace files to edit them together.",
+  "Attach up-to-date workspace text files to edit them together.": "Attach up-to-date workspace text files to edit them together.",
   "Open a text file to propose an edit.": "Open a text file to propose an edit.",
   "The model did not return a valid edit proposal.": "The model did not return a valid edit proposal.",
   "The proposed change did not match one unique passage in the original file.": "The proposed change did not match one unique passage in the original file.",

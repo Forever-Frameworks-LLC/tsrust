@@ -18,7 +18,7 @@ import {
 import { ModelRequest, ModelUpdate, failedModelBackend } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Problem } from '../../lib/workspace/problems.tsr';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
@@ -116,7 +116,7 @@ export function modelTools(): EditorTool[] {
   }, {
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
-    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft or Edit files: for attached open workspace drafts, followed by the change requested. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft or Edit files: for attached workspace text files, followed by the change requested. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
     name: 'local_model_cancel', description: 'Cancel the explicit active request, including automatic model startup. Rejects stale identities. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
   }, {
@@ -419,16 +419,23 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           for (const attachment of attachments) {
             if (attachment.kind !== 'file') continue;
             const path = clone(attachment.path);
-            const file = current.files.find((entry) => entry.kind === 'text' && entry.document.path === path);
-
-            if (file === undefined || file.document.text !== attachment.text || !path.startsWith(current.root.endsWith(separator()) ? current.root : current.root + separator())) return Err('Attach current open workspace files to edit them together.');
 
             if (targets.some((target) => target.path === path)) continue;
+            const closed = !current.files.some((entry) => entry.document.path === path);
+
+            if (closed) unwrap(openFile(current, path));
+            const file = current.files.find((entry) => entry.kind === 'text' && entry.document.path === path);
+
+            if (file === undefined || file.document.text !== attachment.text || !path.startsWith(current.root.endsWith(separator()) ? current.root : current.root + separator())) return Err('Attach up-to-date workspace text files to edit them together.');
+
             sources.push('File ' + targets.length.toString() + ': ' + path + '\n' + file.document.text);
-            targets.push(propose(file.document, ''));
+            const target = propose(file.document, '');
+
+            if (closed) target.unopened = true;
+            targets.push(target);
           }
 
-          if (targets.length === 0) return Err('Attach current open workspace files to edit them together.');
+          if (targets.length === 0) return Err('Attach up-to-date workspace text files to edit them together.');
           next.editTarget = {
             files: targets
           };

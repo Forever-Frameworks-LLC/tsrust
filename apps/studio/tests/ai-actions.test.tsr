@@ -1030,6 +1030,55 @@ test('one attached edit target stays bound to its captured file when another tab
   }
 });
 
+test('unopened chat targets stay closed until review and reject changed disk contents', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-unopened-edit-'))));
+
+  try {
+    const path = root + '/closed.tsr';
+    const active = root + '/active.tsr';
+    unwrap(writeTextFile(path, 'original'));
+    unwrap(writeTextFile(active, 'active'));
+    const model = unwrap(openWorkspace(clone(root)));
+    unwrap(openFile(model, active));
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: clone(path)
+    })));
+    send(host, 'Edit files: Update the attached text.');
+    const target = state.get().editTarget;
+
+    if (target === undefined) throw 'Missing unopened target.';
+    strictEqual(workspace.get().files.length, 1);
+    const proposal = unwrap(batchProposal(target, '[{"file":0,"before":"original","after":"updated"}]'));
+    const pending = state.get();
+    pending.review = clone(proposal);
+    state.set(pending);
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    unwrap(writeTextFile(path, 'external change'));
+    const stale = signal(state.get());
+    reviewChatEdit(stale, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files.length, 1);
+    strictEqual(unwrap(readTextFile(path)), 'external change');
+    unwrap(writeTextFile(path, 'original'));
+    reviewChatEdit(state, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files[1].document.text, 'updated');
+    strictEqual(workspace.get().active, active);
+    strictEqual(unwrap(readTextFile(path)), 'original');
+    undoChatEdit(state, workspace, recovery);
+    strictEqual(workspace.get().files[1].document.text, 'original');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('attached workspace edits review and apply as one draft transaction', () => {
   const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-edit-batch-'))));
 
