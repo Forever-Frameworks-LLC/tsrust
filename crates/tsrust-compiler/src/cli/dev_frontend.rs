@@ -2,7 +2,7 @@
 use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,Instant}};
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
-pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>}
+pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
 /// request, including imported dependencies outside the ordinary watch tree.
 pub(crate) struct Snapshot {pub root:PathBuf,pub files:crate::dev_watch::Inputs}
@@ -57,7 +57,10 @@ impl Worker {
 }
 fn run(requests:Receiver<Request>) {
  let mut session=ProjectSession::default();
- for request in requests {let result=compile(&mut session,&request.entry,&request.sources);let _=request.reply.send(result);}
+ for request in requests {
+  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources));
+  let _=request.reply.send(result);
+ }
 }
 fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)->Result<Output,String>{
  let started=Instant::now();
@@ -80,6 +83,21 @@ mod tests {
  use super::*;
  fn write(path:&std::path::Path,text:&str) {
   let formatted=tsrust_compiler::format(text).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);std::fs::write(path,formatted).unwrap();
+ }
+ #[test]
+ fn cancelled_frontend_check_leaves_session_ready_for_the_latest_snapshot(){
+  let directory=crate::TempDirectory::new().unwrap();
+  let root=directory.0.canonicalize().unwrap();let entry=root.join("main.tsr");
+  std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
+  write(&entry,"import {value} from './dep';function main(){console.log(value());}");
+  write(&root.join("dep.tsr"),"export function value():int{return 1;}");
+  let mut watcher=crate::dev_watch::Watcher::default();let mut session=ProjectSession::default();
+  let first=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  let error=tsrust_compiler::project_session::with_cancellation(std::sync::Arc::new(true.into()),||compile(&mut session,&entry,&first)).err().expect("superseded check");
+  assert!(error.contains("check-cancelled"),"{error}");
+  write(&root.join("dep.tsr"),"export function value():int{return 2;}");
+  let latest=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  assert_eq!(compile(&mut session,&entry,&latest).unwrap().rust,compile(&mut ProjectSession::default(),&entry,&latest).unwrap().rust);
  }
  #[test]
  fn external_dependency_edits_keep_old_snapshots_frozen_and_refresh_new_ones(){

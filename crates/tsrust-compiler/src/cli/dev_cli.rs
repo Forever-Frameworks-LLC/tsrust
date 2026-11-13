@@ -96,7 +96,10 @@ mod platform {
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
         report(Status::Info,format_args!("Checking {}…", project.entry.strip_prefix(root).unwrap_or(&project.entry).display()));
         let (reply,response)=mpsc::channel();
-        let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
+        struct CancelCheck(std::sync::Arc<std::sync::atomic::AtomicBool>);
+        impl Drop for CancelCheck {fn drop(&mut self){self.0.store(true,Ordering::Relaxed);}}
+        let cancel=CancelCheck(Default::default());
+        let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply,cancelled:cancel.0.clone()};
         loop {
             if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
             match worker.requests.try_send(request) {

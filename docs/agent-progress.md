@@ -4,6 +4,32 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Live rebuild after the owner quit Studio
+
+The owner quit preview 4521 while supervisor 1088 was rebuilding. Its final
+replacement took 541735 ms and launched 36104. The frontend reported 185845 ms
+checking, 5511 ms emission and 34750 ms native/link. Earlier stacks showed
+the supervisor waiting to submit work while the worker analyzed a previous
+snapshot. The watcher now cancels superseded analysis at function boundaries.
+The next snapshot retains the pre-link syntax cache. Seven frontend cases
+passed (0.03 s, build 2m40s), including cancellation then comparison to fresh
+emission, and two public watcher cases passed (3.48 s, build 14.65 s).
+Whole-project formatting zero changes. Logs /tmp/studio-cancel-frontend-tests.log,
+/tmp/studio-cancel-watcher-tests.log and /tmp/studio-cancel-frontend-format.log.
+
+Built the optimized CLI/LSP pair in the shared target (6m45s one-time setup)
+and replaced supervisor 1088 with 36374 in apps/studio. Runtime host override
+preserved. TSRUST points at target/release/tsrust in the new supervisor;
+Studio uses its sibling LSP. A real padding save superseded the startup check
+and produced preview 36764 in 177672 ms (91.17 s check; runtime cache miss).
+Restoring the original padding produced preview 37080 in 127099 ms (99.14 s
+check, 1.35 s emission, 26.35 s native/link; runtime hit). Verified old PIDs
+exited, new watcher and child alive. No test style change remains. Logs
+/tmp/studio-optimized-dev.log and /tmp/studio-optimized-toolchain.log. These
+are development observations under different loads. The optimized watcher sample
+/tmp/studio-optimized-style.sample still showed expression-error traversal and
+allocator work. Fast style-only rebuilds and native visual verification remain open.
+
 ## Development dependency capture
 
 Each snapshot now discovers aliases and validates the nearest configuration and
