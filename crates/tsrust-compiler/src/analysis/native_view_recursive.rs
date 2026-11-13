@@ -6,6 +6,7 @@ use crate::native_return_borrows::BorrowAccess;
 pub(super) struct Shapes {
     pub(super) recursive: crate::recursive_view_shapes::Index,
     program_revision: std::cell::Cell<u64>,
+    union_revision: u64,
     native_types: Vec<Option<crate::native_signatures::NativeTypeId>>,
     incomplete: Vec<bool>,
     scoped_families: Vec<(usize,crate::native_view_callable_storage::Family)>,
@@ -19,6 +20,7 @@ impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
         Self {
             program_revision: std::cell::Cell::new(analyzer.program.revision),
+            union_revision: analyzer.unions.member_revision(),
             native_types:analyzer.program.records.iter().map(|record|record.native_type).collect(),
             incomplete:analyzer.program.records.iter().map(|record|record.fields.iter().any(|field|field.ty.is_none())).collect(),
             scoped_families:analyzer.callables.storage.scoped_native_families().map(|(id,family)|(id,family.clone())).collect(),
@@ -34,7 +36,7 @@ impl Shapes {
 
     fn matches(&self, analyzer:&Analyzer)->bool {
         self.fields.len()==analyzer.program.records.len()
-            && analyzer.unions.matches_members(&self.unions)
+            && analyzer.unions.member_revision() == self.union_revision
             && self.scoped_families.len()==analyzer.callables.storage.scoped_native_families().count()
             && self.scoped_families.iter().all(|(id,family)|analyzer.callables.storage.scoped_native_family(*id)==Some(family))
             && (self.program_revision.get() == analyzer.program.revision || self.matches_records(analyzer))

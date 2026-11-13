@@ -15,6 +15,7 @@ pub struct UnionType {
 
 #[derive(Default)]
 struct ArenaState {
+    member_revision: u64,
     types: Vec<UnionType>,
     identities: HashMap<Vec<Type>, UnionId>,
     named_types: HashMap<usize, Type>,
@@ -30,7 +31,7 @@ impl UnionArena {
         let identities=types.iter().enumerate().filter(|(_,union)|!union.recursive).map(|(index,union)| {
             (union.members.clone(),UnionId{index:u32::try_from(index).expect("existing union index"),copy:union.members.iter().all(|member|member.is_copy()),scalar_members:union.members.iter().all(|member|member.is_scalar())})
         }).collect();
-        Self(RefCell::new(ArenaState{types,identities,named_types:HashMap::new()}))
+        Self(RefCell::new(ArenaState{types,identities,..ArenaState::default()}))
     }
     pub(crate) fn from_snapshot_with_records(types: Vec<UnionType>, records: &[crate::syntax::Record]) -> Self {
         let arena = Self::from_snapshot(types);
@@ -83,6 +84,7 @@ impl UnionArena {
     pub(crate) fn reserve_recursive(&self,span:Span)->Result<Type,Diagnostic> {
         let mut arena=self.0.borrow_mut();
         let index=u32::try_from(arena.types.len()).map_err(|_|Diagnostic::new("unsupported","Program union type limit exceeded.",span))?;
+        arena.member_revision += 1;
         arena.types.push(UnionType{recursive:true,recursive_declaration:None,members:Vec::new()});
         Ok(Type::Union(UnionId{index,copy:false,scalar_members:false}))
     }
@@ -102,6 +104,7 @@ impl UnionArena {
             return Err(Diagnostic::new("schema-recursion","A recursive type cannot directly contain itself.",span));
         }
         slot.members=members;
+        arena.member_revision += 1;
         Ok(())
     }
 
@@ -109,9 +112,8 @@ impl UnionArena {
         self.0.borrow().types[id.index()].members.clone()
     }
 
-    pub(crate) fn matches_members(&self, snapshot: &[UnionType]) -> bool {
-        let state=self.0.borrow();
-        state.types.len()==snapshot.len() && state.types.iter().zip(snapshot).all(|(current,old)|current.members==old.members)
+    pub(crate) fn member_revision(&self) -> u64 {
+        self.0.borrow().member_revision
     }
 
     pub fn snapshot(&self) -> Vec<UnionType> {
@@ -129,6 +131,7 @@ impl UnionArena {
                 }
             }
         }
+        arena.member_revision += 1;
         // Union IDs remain stable in checked trees. Removed discovery origins
         // in unused symbolic types do not become concrete checked facts.
         arena.identities = arena
@@ -205,6 +208,7 @@ impl UnionArena {
             copy: members.iter().all(|ty| ty.is_copy()),
             scalar_members: members.iter().all(|ty|ty.is_scalar()),
         };
+        arena.member_revision += 1;
         arena.types.push(UnionType {
             recursive: false,
             recursive_declaration: None,
@@ -396,7 +400,11 @@ mod tests {
         let mut origins = vec![None; 8];
         origins[5] = Some(1);
         origins[7] = Some(0);
+        let before = arena.member_revision();
+        assert_eq!(first, intern(&arena, &[Type::Null, Type::Closure(5)]));
+        assert_eq!(arena.member_revision(), before);
         arena.remap_closure_origins(&origins);
+        assert_ne!(arena.member_revision(), before);
         assert_eq!(arena.payload(first), Some(Type::Closure(1)));
         assert_eq!(arena.payload(second), Some(Type::Closure(0)));
         assert_eq!(arena.payload(symbolic), Some(Type::Closure(2)));

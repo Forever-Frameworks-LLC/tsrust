@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Compiler shape-cache lookup during Studio checks
+
+Recursive native-view shape-cache validation now checks a union-members revision. Creating a union, binding a reserved recursive union and remapping closure origins invalidate the snapshot. Reusing an existing union identity keeps it valid. The earlier record and scoped-family validation paths remain in effect. Three cache invalidation and nine union tests passed. The updated language server loaded through Studio’s Restart action under the existing dev session.
+
+A single release CLI check of Studio main passed before and after. Observed wall time was 104.99 seconds before and 101.15 seconds after, with 103.68 and 99.40 seconds of user CPU respectively. Concurrent work and one observation per binary preclude a benchmark claim. A separate three-second baseline sample found exception-effect propagation repeatedly traversing checked expressions through region_caller_error_effects. That remains a candidate for the next compiler latency investigation.
+
 ## Language-server startup priority
 
 Studio recovery had one open source tab, main.tsrx. The language controller synchronizes changed session/revision identities on its 150 ms tick. The server previously scheduled a disk workspace scan immediately on initialization and could enter a synchronous compiler check before the first didOpen. It now debounces the initial workspace scan from the initialized notification using the configured debounce. Open documents remain immediately eligible. A framed regression received versioned diagnostics for an unsaved repaired module first and then the error from a separate closed file. All 17 stdio and nine workspace scan tests passed. One existing formatting assertion expected two spaces despite explicitly requesting four; its witness now checks the requested four-space indentation on both fields.
