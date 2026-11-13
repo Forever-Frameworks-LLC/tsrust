@@ -90,7 +90,8 @@ test('registered AI search tools share results and enforce host navigation and s
     const context: SearchActionContext = {
       workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot
     };
-    strictEqual(editorTools().length, 7);
+    strictEqual(editorTools().some((tool) => tool.name === 'search_content'), true);
+    strictEqual(editorTools().some((tool) => tool.name === 'open_search_result'), true);
     context.allowRead = false;
 
     match (invokeEditorTool(context, 'search_content', '{"query":"needle","allowRead":true}')) {
@@ -149,6 +150,30 @@ test('registered AI search tools share results and enforce host navigation and s
     }
 
     const next = context.workspace.get();
+    edit(next.files[0].document, '🦀 needle extended\n');
+    context.workspace.set(next);
+
+    match (invokeEditorTool(context, 'open_search_result', hit)) {
+      Ok(_) => {
+        throw 'extended line accepted as the original search result';
+      },
+      Err(_) => {}
+    }
+
+    edit(next.files[0].document, 'abc\nneedle\n');
+    context.workspace.set(next);
+    const second = JSON.parse<SearchResults>(unwrap(invokeEditorTool(context, 'search_content', '{"query":"needle"}')));
+    strictEqual(unwrap(invokeEditorTool(context, 'open_search_result', JSON.stringify(second.hits[0]))), '{"opened":true}');
+    edit(next.files[0].document, 'a\nb\nneedle\n');
+    context.workspace.set(next);
+
+    match (invokeEditorTool(context, 'open_search_result', JSON.stringify(second.hits[0]))) {
+      Ok(_) => {
+        throw 'moved line accepted at its previous byte offset';
+      },
+      Err(_) => {}
+    }
+
     edit(next.files[0].document, 'changed');
     context.workspace.set(next);
 

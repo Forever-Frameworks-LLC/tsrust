@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Content-search result freshness
+
+The shared UI and editor tool navigation action verifies the full preview line,
+its one-based line number, its byte offset and the selected UTF-8 range against
+the current document. Extending a matched line or moving it to a different line
+at the same byte offset now rejects the stale result. The search suite passed
+3/3 in 50.94 ms execution, including valid Unicode selection, malformed ranges,
+open drafts and ignored files. Tool registration checks target the two search
+actions independently of unrelated catalog entries. Whole-tree formatter reported
+zero changes. Logs /tmp/studio-search-hit-{check,format}.log. Native clicks were
+not replayed for this change.
+
 ## File picker result navigation
 
 The file picker and search_files use the same relative-path matching. The shared

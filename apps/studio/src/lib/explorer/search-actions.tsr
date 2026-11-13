@@ -1,4 +1,4 @@
-import { fromUtf8, length, view, toUtf8 } from 'std:bytes';
+import { fromUtf8, view, toUtf8 } from 'std:bytes';
 import { separator } from 'std:path';
 import { Signal, controlInput } from 'std:ui';
 
@@ -153,17 +153,25 @@ function validateSearchHit(workspace: ReadOnly<Workspace>, hit: ReadOnly<SearchH
   if (file === undefined || file.kind !== 'text' || hit.matches.length === 0) return Err('This search result is no longer current. Run the search again.');
 
   try {
-    const bytes = unwrap(fromUtf8(file.document.text));
-    const count = length(bytes);
+    if (hit.line < 1 || hit.offset < 0 || hit.offset > file.document.text.length) return Err('Invalid search result range.');
+    let start = 0;
 
-    if (hit.line < 1 || hit.offset < 0 || hit.offset > count || hit.preview.length > count - hit.offset) return Err('Invalid search result range.');
-    const line = unwrap(toUtf8(unwrap(view(bytes, hit.offset, hit.offset + hit.preview.length))));
+    for (let line = 1; line < hit.line; line += 1) {
+      const newline = file.document.text.indexOf('\n', start);
 
-    if (line !== hit.preview) return Err('This search result is no longer current. Run the search again.');
+      if (newline < 0 || newline >= hit.offset) return Err('This search result is no longer current. Run the search again.');
+      start = newline + 1;
+    }
+
+    const newline = file.document.text.indexOf('\n', start);
+    const end = newline < 0 ? file.document.text.length : newline;
+
+    if (start !== hit.offset || end - start !== hit.preview.length || !file.document.text.startsWith(hit.preview, start)) return Err('This search result is no longer current. Run the search again.');
     const first = hit.matches[0];
 
     if (first.start < 0 || first.end < first.start || first.end > hit.preview.length) return Err('Invalid search result range.');
-    unwrap(toUtf8(unwrap(view(bytes, hit.offset + first.start, hit.offset + first.end))));
+    const bytes = unwrap(fromUtf8(hit.preview));
+    unwrap(toUtf8(unwrap(view(bytes, first.start, first.end))));
     return Ok();
   } catch (_) {
     return Err('This search result is no longer current. Run the search again.');
