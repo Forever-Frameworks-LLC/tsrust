@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Inline completions across block comments in the desktop editor
+
+Two isolated `.tsr` workspaces exercised the current Studio binary on macOS. Typing on an interior line of a multiline comment showed zero completion controls after two seconds and never started the model host. Tab inserted two spaces and saving preserved the closing delimiter on the following line. In code after `/* selected value */`, the editor buffer still read `return ;` before Tab. With the configured local model, Tab changed it to `return second;` and Save produced the exact expected file. These fixtures disabled format-on-save and check-on-save in temporary settings. Both fixture windows closed independently of the dev session.
+
 ## Submodule conflict inspection
 
 Desktop follow-up: the old Studio opened the gitlink diff, but Stage resolution rejected the directory and the index stayed unresolved. The service now allows directory actions only for the exact indexed gitlink and requires its own working tree for staging. The native fixture selected the incoming commit inside the submodule, then clicked Stage resolution in a rebuilt Studio window. Git reported a single stage-zero 160000 entry for the selected ID and the nested untracked sentinel remained untracked. The focused suite verifies staging, unstaging and ordinary directory rejection; all 14 cases passed in 2.021 seconds. The dev watcher launched PID 3053.
