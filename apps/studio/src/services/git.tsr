@@ -308,6 +308,11 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 }
 
 async function gitOutput(root: ReadOnly<string>, args: string[], input: string = '', diffExit: boolean = false, blob: boolean = false): Task<Result<string, string>> {
+  // Poll subprocess I/O outside the nested source-control request stack.
+  return await runGit(clone(root), args, input, diffExit, blob).start();
+}
+
+async function runGit(root: string, args: string[], input: string, diffExit: boolean, blob: boolean): Task<Result<string, string>> {
   match (await run('git', args, {
     cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: gitOutputBytes()
   })) {

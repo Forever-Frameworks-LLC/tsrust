@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Source-control worker stack overflow in Studio
+
+macOS reported SIGABRT for Studio PID 70197 at 05:59; the dev log recorded
+a Tokio worker stack overflow. A native regression starting the same Git worker
+and requesting status on a tiny repository reproduced the abort. Polling Git
+subprocess I/O as a separate structured child task now keeps the nested
+request and process futures off the same poll stack. The regression requests
+status, an untracked diff, staging and status again on the same worker.
+Ten Git and terminal-session tests passed after a 17.85 s build.
+The surviving dev watcher (63326) had 812.1 MiB physical footprint and a
+2.3 GiB peak. Relaunched Studio and LSP measured 208.6 and 566.8 MiB.
+No allocation trace for the exited process exists. This fix addresses the
+reproduced abort; watcher memory and GUI interaction require separate evidence.
+
 ## Project questions using ordinary words for compound function names
 
 For a project-scoped question with no explicit file, symbol or reference result,

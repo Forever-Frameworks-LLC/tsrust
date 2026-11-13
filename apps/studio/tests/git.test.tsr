@@ -7,9 +7,62 @@ import {
   writeFile,
   writeTextFile
 } from 'std:fs';
+import { Channel } from 'std:futures';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
-import { GitRequest, diffHunks, changedFiles, gitRequest, readGitView } from '../src/services/git.tsr';
+import {
+  GitReply,
+  GitRequest,
+  gitWorker,
+  diffHunks,
+  changedFiles,
+  gitRequest,
+  readGitView
+} from '../src/services/git.tsr';
+
+test('opening source control reads status on the Studio worker', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-worker-'));
+
+  try {
+    strictEqual(unwrap(await run('git', ['init', '-q'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(root + '/pending.tsr', ''));
+    const requests = new Channel<GitRequest>(1);
+    const sender = requests.sender();
+    const replies = new Channel<GitReply>(1);
+    const worker = gitWorker(clone(root), requests, replies.sender()).start();
+
+    try {
+      await sender.send({
+        mode: 'status'
+      });
+      const reply = await replies.receive().timeout(10000);
+      strictEqual(reply.failed, false);
+      strictEqual((reply.files ?? []).includes('pending.tsr'), true);
+      await sender.send({
+        mode: 'working', viewFile: 'pending.tsr'
+      });
+      strictEqual((await replies.receive().timeout(10000)).failed, false);
+      await sender.send({
+        mode: 'staged', path: 'pending.tsr', action: 'stage'
+      });
+      strictEqual((await replies.receive().timeout(10000)).failed, false);
+      await sender.send({
+        mode: 'status'
+      });
+      strictEqual((await replies.receive().timeout(10000)).text.includes('A  pending.tsr'), true);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
 
 test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-git-'));
