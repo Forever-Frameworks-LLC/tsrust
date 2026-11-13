@@ -1128,6 +1128,54 @@ test('overflow retains a named historical source when the follow-up has no curre
   strictEqual(withoutEarlierWorkspace(messages, terms)[0].content, 'Inspect this file.');
 });
 
+test('spoken project names preserve word boundaries and ambiguous source identities', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-spoken-'));
+
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'export function handling_fee() { return 1; }\nexport function handlingFeeSchedule() { return 2; }'));
+    unwrap(writeTextFile(root + '/b.tsr', 'export function handlingFee() { return 3; }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const both = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Where is the handling fee in this repository?',
+      false,
+      false,
+      index
+    );
+    strictEqual(both.excerpt.includes('function handling_fee()'), true);
+    strictEqual(both.excerpt.includes('function handlingFee()'), true);
+    strictEqual(both.excerpt.includes('handlingFeeSchedule'), false);
+    strictEqual(both.functionLookup, undefined);
+    unwrap(openFile(workspace, root + '/a.tsr'));
+    const withActive = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Where is the handling fee in this repository?',
+      false,
+      false,
+      index
+    );
+    strictEqual(withActive.functionLookup, undefined);
+    const partial = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain handling feedback in this project.',
+      false,
+      false,
+      index
+    );
+    strictEqual(partial.excerpt.includes('Referenced workspace file:'), false);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('qualified chat paths exclude homonymous active and indexed definitions', () => {
   const root = unwrap(createTempDir(undefined, 'studio-chat-qualified-'));
 

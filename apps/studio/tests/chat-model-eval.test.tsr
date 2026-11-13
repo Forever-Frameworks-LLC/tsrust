@@ -53,7 +53,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified'].includes(workspaceEval)) test(workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified', 'prose'].includes(workspaceEval)) test(workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -149,13 +149,15 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
       }
 
       if (indexCase) {
-        const first = await ask(host, updates, 'What does handlingFee(5) return in this project? Reply with the integer alone.');
+        const first = await ask(host, updates, workspaceEval === 'prose' ? 'In this project, what is the handling fee for 5 units? Reply with the integer alone.' : 'What does handlingFee(5) return in this project? Reply with the integer alone.');
         const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
         console.log(first);
+
+        if (workspaceEval === 'prose') strictEqual(host.state.get().history.chats[0].messages[0].functionLookup, './lib/pricing-policy.tsr\n`handlingFee`');
         strictEqual(excerpt.includes('lib/pricing-policy.tsr'), true);
 
         if (workspaceEval === 'imports' || workspaceEval === 'constant') strictEqual(excerpt.includes('lib/rates.tsr'), true);
-        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = minimum;' : workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = minimum;' : workspaceEval !== 'index' && workspaceEval !== 'prose' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
 
         if (workspaceEval === 'constant') strictEqual(excerpt.includes('const minimum: int = 7;'), true);
 

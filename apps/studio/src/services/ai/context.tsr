@@ -623,6 +623,7 @@ export function editorContext(
     const symbols = promptSymbols(lookup);
     const unresolved = hasReferences ? new Set<string>() : recallTerms(lookup);
 
+    const hasExplicitSymbols = unresolved.size > 0;
     const visible = new Set<string>();
     const mentionedNames = new Map<string, int>();
     let qualified = new Set<string>();
@@ -707,6 +708,13 @@ export function editorContext(
 
 
     const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)"));
+    // In project questions, match spoken compound names such as "handling fee".
+    const normalized = lookup.toLowerCase();
+    const proseLookup = !editing && !hasReferences && !hasExplicitSymbols && !listFiles && mentionedNames.size === 0 && qualified.size === 0 && unwrap(compile('\\b(project|workspace|repository|codebase)\\b')).isMatch(normalized);
+    const words = unwrap(compile('[^\\p{L}\\p{N}]+'));
+    const phrase = proseLookup ? ' ' + words.replaceAll(normalized, ' ') + ' ' : '';
+    const camel = unwrap(compile('([\\p{Ll}\\p{N}])([\\p{Lu}])'));
+    const proseMatches: string[] = [];
     const indexedPaths = new Set<string>();
     const pending: ImportedCall[] = [];
 
@@ -728,11 +736,19 @@ export function editorContext(
 
         if (otherCopy && index.has(file.path)) indexedPaths.add(clone(file.path));
 
-        if (!otherCopy && unresolved.size > 0 && file.path !== workspace.active && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
+        if (!otherCopy && ((unresolved.size > 0 && file.path !== workspace.active) || proseLookup) && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
           indexedPaths.add(clone(file.path));
 
           for (const name of indexedFunctions(workspace, file.path, prefix, declarations, index)) {
             if (unresolved.has(name)) names.push(clone(name));
+            else if (proseLookup) {
+              const spoken = words.replaceAll(camel.replaceAll(name, '$1 $2').toLowerCase(), ' ').trim();
+
+              if (spoken.includes(' ') && phrase.includes(' ' + spoken + ' ')) {
+                names.push(clone(name));
+                proseMatches.push('./' + path + '\n`' + name + '`');
+              }
+            }
           }
         }
 
@@ -829,10 +845,12 @@ export function editorContext(
       }
     }
 
-    if (unresolved.size > 0) for (const path of Array.from(index.keys())) {
+    if (unresolved.size > 0 || proseLookup) for (const path of Array.from(index.keys())) {
       if (!indexedPaths.has(path)) index.delete(path);
     }
 
+
+    if (proseMatches.length === 1) functionLookup = clone(proseMatches[0]);
 
     if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files:\n' + paths.join('\n');
   }

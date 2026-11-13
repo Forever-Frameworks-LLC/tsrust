@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Project questions using ordinary words for compound function names
+
+For a project-scoped question with no explicit file, symbol or reference result,
+Studio compares whole phrases with indexed camelCase and snake_case function
+names. The existing dependency selector supplies the matched function body.
+One match pins its project-relative path and identifier for a “same function”
+follow-up. Multiple matches retain their source identities.
+
+The local 1.5B answered 12 when asked for the handling fee for five units, then
+19 when asked to pass its answer through the same function. The selected source
+was an unopened pricing-policy file and excluded its unrelated export. Peak
+sampled model-host RSS was 2,225,568 KiB. This measures one two-turn conversation.
+Final chat action and live model validation passed 28/28 after 62.44 s build,
+including compound-word boundaries, duplicate declarations, and an active-file
+collision. Paraphrases with different vocabulary and cold-index latency remain
+unverified.
+
 ## Compound overflow and diagnostic-assisted repair
 
 The host now uses extracted historical definitions in its whole-turn fit search
