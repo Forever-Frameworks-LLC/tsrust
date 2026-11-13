@@ -60,8 +60,11 @@ export async function checkSavedProject(root: ReadOnly<string>, program: ReadOnl
     output: '', failed: true, problems: []
   };
 
+  // The desktop event loop can exit before this task gets to cancel its compiler.
   match (await run(program, ['check', '.', '--json', '--color=never'], {
-    cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
+    env: [{
+      name: 'TSRUST_CHECK_WATCH_PARENT', value: '1'
+    }], cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
   })) {
     Ok(output) => {
       try {

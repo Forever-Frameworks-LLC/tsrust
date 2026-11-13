@@ -2,6 +2,20 @@
 use std::{collections::BTreeMap, env, fs, io::IsTerminal, path::PathBuf};
 use tsrust_compiler::{Diagnostic, Span, json_string, project_cli::{InputDiagnostic, check_input_diagnostics}};
 
+// macOS may terminate the UI before async worker cleanup runs. A Studio
+// background check has no consumer after its launching process exits.
+#[cfg(unix)]
+fn watch_studio_parent() -> std::io::Result<()> {
+    let parent = unsafe { libc::getppid() };
+    std::thread::Builder::new().name("check-studio-parent".into()).spawn(move || {
+        while parent > 1 && unsafe { libc::getppid() } == parent {
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+        std::process::exit(1);
+    })?;
+    Ok(())
+}
+
 pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let mut inputs=Vec::new();let mut json=false;let mut progress=false;let mut diagnostics_only=false;let mut color="auto".to_owned();
     while let Some(arg)=args.next() {
@@ -17,6 +31,10 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
         }
     }
     if !matches!(color.as_str(),"auto"|"always"|"never") {return Err("--color requires auto, always or never".into());}
+    #[cfg(unix)]
+    if env::var("TSRUST_CHECK_WATCH_PARENT").as_deref() == Ok("1") {
+        watch_studio_parent().map_err(|error| error.to_string())?;
+    }
     let single=inputs.len()==1 && inputs[0].is_file();
     if inputs.is_empty(){inputs.push(super::project_config::default_root()?);}
     let files=tsrust_compiler::source_discovery::discover(&inputs)?;

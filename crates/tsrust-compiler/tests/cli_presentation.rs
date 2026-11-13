@@ -59,3 +59,34 @@ fn project_check_and_format_respect_color_without_styling_machine_output() {
     assert!(!text.stdout.contains(&27));
     assert!(String::from_utf8(text.stdout).unwrap().starts_with("function main()"));
 }
+
+#[cfg(unix)]
+#[test]
+fn studio_check_stops_when_its_launching_process_exits() {
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::{Command, Stdio};
+    use std::time::Duration;
+
+    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../apps/studio/src/main.tsrx");
+    let mut owner = Command::new("sh")
+        .args(["-c", r#""$1" check "$2" --json --progress & echo $!; read hold"#, "owner"])
+        .arg(env!("CARGO_BIN_EXE_tsrust")).arg(source)
+        .env("TSRUST_CHECK_WATCH_PARENT", "1")
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped())
+        .spawn().unwrap();
+    let mut pid = String::new();
+    BufReader::new(owner.stdout.take().unwrap()).read_line(&mut pid).unwrap();
+    let mut progress = BufReader::new(owner.stderr.take().unwrap());
+    let mut line = String::new();
+    progress.read_line(&mut line).unwrap();
+    assert!(line.contains("Checking"), "{line}");
+    drop(owner.stdin.take());
+    owner.wait().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || { let _ = tx.send(progress.read_to_end(&mut Vec::new())); });
+    if rx.recv_timeout(Duration::from_secs(3)).is_err() {
+        let _ = Command::new("kill").arg(pid.trim()).status();
+        panic!("orphaned Studio check kept its diagnostic pipe open");
+    }
+}

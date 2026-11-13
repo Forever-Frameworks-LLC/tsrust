@@ -66,6 +66,30 @@ passed in 203 ms, including cancellation with a full channel, two queued edits,
 stale success and dismissal. The fixture exited and the dev watcher restarted
 Studio as PID 89547 in apps/studio.
 
+## Combined memory and compiler lifetime
+
+On the physical 8 GiB Mac, an isolated Studio window loaded the 1.5B model,
+opened Terminal and Source Control, accepted an inline suggestion, saved it
+and closed. With 138 tracked Studio source/test/config files, two baseline
+runs peaked at 2,296,672 and 2,261,664 KiB summed process-tree RSS. In the
+second run the model host exited within one second of Studio. The background
+save check survived reparented to PID 1 for at least 20 seconds at 100% CPU
+and 221,824 KiB RSS. The minimal-workspace control had no sampled survivor
+after two seconds. RSS samples every ~0.2 s can double-count shared pages and
+exclude unsampled GPU/system allocations. This exercise does not qualify
+long-running memory stability or the full 8 GiB application workload.
+
+Studio now opts its read-only project checks into Unix parent-lifetime
+monitoring. The release CLI exited 286 ms after a test owner disappeared.
+The process-boundary regression passed (0.88 s), and both saved-project
+diagnostic cases passed (14.56 ms). In the same 138-file desktop fixture,
+the repaired build accepted and saved the real inline completion while Terminal
+and Source Control were exercised. The save check and model were both present
+at close; no sampled descendant remained at the one-second follow-up. Peak
+summed RSS across 69 samples was 2,207,488 KiB, of which the model host held
+2,097,040 KiB. The authorized dev window remained in apps/studio. The orphaned
+compiler was reproduced; the original reported crash was not reproduced.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered
