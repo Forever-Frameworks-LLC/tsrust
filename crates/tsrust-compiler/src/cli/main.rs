@@ -452,7 +452,7 @@ fn run() -> Result<u8, String> {
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
         // Cache failure must not turn a successful native build into a failure.
-        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root) { let _ = cache.publish(&executable); }
+        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
     }
     if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});

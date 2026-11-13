@@ -47,10 +47,10 @@ fn dependency_build_honors_shared_target_and_stages_only_reported_artifacts(){
  // conceal the production regression and violate the shared-build contract.
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_owned()).canonicalize().unwrap();
  let source=directory.0.join("main.tsr");let binary=directory.0.join(format!("program{}",std::env::consts::EXE_SUFFIX));
- for (index,value) in [41,42,42].into_iter().enumerate(){
+ for (index,value) in [41,42,42,42].into_iter().enumerate(){
   let text=format!("import {{fromInt}} from 'std:json';function main(){{console.log(JSON.stringify(fromInt({value})));}}");fs::write(&source,support::format_round_trip(&text)).unwrap();
-  let output=support::run(support::cli().current_dir(&directory.0).arg("build").arg(&source).arg("-o").arg(&binary).env("CARGO_TARGET_DIR",&target).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),180);support::success(&output);
-  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0{"runtime=miss"}else if index==1{"runtime=hit"}else{"cache=hit"}),"{log}");
+  let output=support::run(support::cli().current_dir(&directory.0).arg("build").arg(&source).arg("-o").arg(&binary).env("CARGO_TARGET_DIR",&target).env("CARGO_PROFILE_DEV_OPT_LEVEL",if index==0{"0"}else{"1"}).env("TSRUST_TEST_BUILD_INPUT",if index==3{"changed"}else{"initial"}).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),180);support::success(&output);
+  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0 || index==3{"runtime=miss"}else if index==1{"runtime=hit"}else{"cache=hit"}),"{log}");
   let output=support::run(&mut std::process::Command::new(&binary),10);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),value.to_string());
  }
  let workspaces=fs::read_dir(cache.join("runtime/build-v1")).unwrap().map(Result::unwrap).filter(|entry|entry.path().join("native-support").is_dir()).collect::<Vec<_>>();assert_eq!(workspaces.len(),1);

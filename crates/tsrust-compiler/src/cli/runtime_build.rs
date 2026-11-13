@@ -24,7 +24,7 @@ fn gpui_application_identity(lock:&[u8],patch:&str)->Vec<u8>{
  [DEPENDENCY_RUNTIME_ABI,b";gpui=",digest.as_bytes()].concat()
 }
 
-fn artifact_override(key:&str)->bool {
+pub(super) fn artifact_override(key:&str)->bool {
  key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
 }
 #[test]
@@ -72,7 +72,7 @@ impl Prepared {
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
   let dependency_identity=crate::backend_sources::dependency_identity();
-  let shared_inputs=Some(crate::backend_sources::identity(root)?);
+  let shared_inputs=Some(crate::backend_sources::identity(root,true)?);
   let gpui=runtime.contains("mod tsrust_native_ui {");
   if gpui && binding.is_some(){return Err("std:gpui programs cannot import Rust packages yet".into());}
   let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
@@ -172,7 +172,7 @@ impl Prepared {
  }
  pub fn publish(&self) {
   if let Some((root,expected))=&self.source_snapshot
-   && !crate::backend_sources::unchanged(Some(expected.as_str()),root) {return;}
+   && !crate::backend_sources::unchanged(Some(expected.as_str()),root,true) {return;}
   if let (Some(cache),Some(library))=(&self.cache,&self.library){let artifact=if let (Some(dependencies),Some(packed))=(&self.dependencies,&self.packed) {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}

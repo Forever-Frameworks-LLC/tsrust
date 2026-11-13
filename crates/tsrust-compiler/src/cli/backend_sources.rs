@@ -92,12 +92,17 @@ pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), Str
 fn part(hash: &mut Sha256, bytes: &[u8]) {hash.update((bytes.len() as u64).to_le_bytes());hash.update(bytes);}
 
 /// Only the digest is persisted. Config contents and environment credentials are
-/// never written into cache identity files. Include all environment inputs because
-/// upstream build scripts can declare arbitrary environment dependencies.
-pub(crate) fn identity(root: &Path) -> Result<String, String> {
+/// never written into cache identity files. Include inherited environment inputs because upstream build scripts can
+/// declare arbitrary environment dependencies.
+pub(crate) fn identity(root: &Path, runtime: bool) -> Result<String, String> {
     let mut hash = Sha256::new();part(&mut hash, dependency_identity().as_bytes());
     let environment = std::env::vars_os().collect::<std::collections::BTreeMap<_,_>>();
-    for (name,value) in environment {part(&mut hash,name.as_encoded_bytes());part(&mut hash,value.as_encoded_bytes());}
+    for (name,value) in environment {
+        // Cargo gets a fixed incremental setting and no caller profile/flag overrides.
+        // CARGO_TARGET_DIR still selects an explicit command-line target directory.
+        if runtime && name.to_str().is_some_and(|key| key=="CARGO_INCREMENTAL" || (key!="CARGO_TARGET_DIR" && crate::runtime_build::artifact_override(key))) {continue;}
+        part(&mut hash,name.as_encoded_bytes());part(&mut hash,value.as_encoded_bytes());
+    }
     let root = super::absolute(root)?;
     let home = cargo_home()?;
     part(&mut hash,home.as_os_str().as_encoded_bytes());
@@ -148,12 +153,12 @@ pub(crate) fn identity(root: &Path) -> Result<String, String> {
     Ok(hash.finalize().iter().map(|byte|format!("{byte:02x}")).collect())
 }
 
-pub(crate) fn unchanged(expected: Option<&str>, root: &Path) -> bool {
-    expected.is_none_or(|expected|identity(root).is_ok_and(|actual|actual==expected))
+pub(crate) fn unchanged(expected: Option<&str>, root: &Path, runtime: bool) -> bool {
+    expected.is_none_or(|expected|identity(root,runtime).is_ok_and(|actual|actual==expected))
 }
 
 pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<String>, String> {
-    if tsrust_compiler::native_runtime::requires_dependencies(source) {Ok(Some(identity(root)?))} else {Ok(None)}
+    if tsrust_compiler::native_runtime::requires_dependencies(source) {Ok(Some(identity(root,false)?))} else {Ok(None)}
 }
 
 pub(crate) fn dependency_identity()-> &'static str {

@@ -186,7 +186,7 @@ mod platform {
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
-            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root){let _=cache.try_publish(&binary);}
+            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root,false){let _=cache.try_publish(&binary);}
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",if reused_frontend{0.0}else{frontend.check.as_secs_f64()*1000.0},if reused_frontend{0.0}else{frontend.emit.as_secs_f64()*1000.0},backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         #[cfg(target_os="macos")]

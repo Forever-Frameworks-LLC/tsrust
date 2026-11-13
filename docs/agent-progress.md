@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio runtime cache reuse across compiler-owned Cargo overrides
+
+Of 16 retained Studio runtime identities, 13 matched byte for byte except
+for the final shared-input digest. That digest covers environment and Cargo
+configuration. It cannot identify which input differed historically.
+Runtime compilation now excludes caller flags and profile overrides removed
+from Cargo's environment, plus the incremental setting fixed by the compiler.
+It still keys the explicit target directory and inherited build-script inputs.
+Application executable keys retain their previous environment behavior.
+The focused native JSON build regression ran four executable builds against
+one target. Changing the caller profile across an application edit reused
+the runtime, repeating the build hit the executable cache, and changing an
+inherited variable missed the runtime cache. Every binary produced the
+expected output. The final regression took 4.91 s execution.
+This does not establish long-running Studio cache growth or save latency.
+
 ## Imported snippets retain local constant dependencies
 
 Direct imports, indexed workspace functions and transitive imports now share
