@@ -7,6 +7,7 @@ import {
   Signal,
   computed,
   t,
+  translateWith,
   tWith
 } from 'std:ui';
 
@@ -48,6 +49,9 @@ export function ImagePreview(file: ReadOnly<OpenFile>, workspace: Signal<Workspa
   const actualTarget = clone(target);
   const toolbar = computed<string>(() => 'absolute top-2 right-2 flex-row items-center gap-1 text-[' + font.get().toString() + 'px]');
   const label = computed<string>(() => Math.round(effective.get()).toString() + '%');
+  const actualName = computed<string>(() => translateWith('Actual image size (current zoom {zoom})', {
+    zoom: label.get()
+  }));
   return (
     <View className="relative flex-col size-full min-w-0 min-h-0">
       <View className="grow min-w-0 min-h-0">
@@ -106,7 +110,7 @@ export function ImagePreview(file: ReadOnly<OpenFile>, workspace: Signal<Workspa
           size="xsmall"
           selected={zoom.get() === 100}
           tooltip={message('Actual image size')}
-          aria-label={accessibleName('Actual image size')}
+          aria-label={actualName.get()}
           onPress={() => {
             changeZoom(workspace, actualTarget, 100);
           }}

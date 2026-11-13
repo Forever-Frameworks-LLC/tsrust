@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Image preview zoom accessibility
+
+On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
+
 ## Editing an attached, unopened workspace file
 
 Independently exercised Save through Edit → Command Palette in native Studio. After the 1.5B reviewed edit, selected fees.tsr, searched for Save and clicked the matching result. The reviewed target alone reached disk, the other dirty draft remained in recovery and its disk bytes stayed unchanged. Opening the palette again and clicking Save for the now-clean tab left the palette open. A native test importing the saved module passed the quote, fee and unrelated assertions (0.16 ms test execution). The macOS accessibility tree exposed the disabled result's label as enabled static text under a list; pointer behavior passed, accessible disabled-state reporting remains unverified.

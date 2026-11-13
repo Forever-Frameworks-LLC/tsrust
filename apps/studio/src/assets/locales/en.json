@@ -310,6 +310,7 @@
   "Zoom out image": "Zoom out image",
   "Zoom in image": "Zoom in image",
   "Fit image to window": "Fit image to window",
+  "Actual image size (current zoom {zoom})": "Actual image size (current zoom {zoom})",
   "Actual image size": "Actual image size",
   "Save a Copy…": "Save a Copy…",
   "The document changed while choosing a destination. Save a copy again.": "The document changed while choosing a destination. Save a copy again.",

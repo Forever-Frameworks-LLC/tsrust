@@ -310,6 +310,7 @@
   "Zoom out image": "Diminuir zoom da imagem",
   "Zoom in image": "Aumentar zoom da imagem",
   "Fit image to window": "Ajustar imagem à janela",
+  "Actual image size (current zoom {zoom})": "Tamanho real da imagem (zoom atual {zoom})",
   "Actual image size": "Tamanho real da imagem",
   "Save a Copy…": "Salvar uma cópia…",
   "The document changed while choosing a destination. Save a copy again.": "O documento mudou durante a escolha do destino. Salve uma cópia novamente.",
