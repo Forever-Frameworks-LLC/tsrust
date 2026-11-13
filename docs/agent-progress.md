@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Closed-file constants in Studio chat
+
+Workspace declaration lookup now includes top-level constants in closed Tsrust files. A native AI action test asks about an exported constant, verifies that the model context contains the defining initializer and its private base constant, excludes the unrelated function, and separately verifies that a local variable inside that function cannot be selected as a workspace declaration. The full AI action suite passed 35/35. This is source retrieval acceptance, not a model-generated answer score.
+
 ## Local macOS bundle with the Studio inference host
 
 From apps/studio, `tsrust package --companion model-host` now builds the nested model-host project in release mode and places its executable at the sibling path used by Studio without an environment override. On macOS the helper is included before ZIP and DMG creation, and signed before the enclosing app when signing is requested. Three packaging CLI tests passed. The real unsigned arm64 Studio ZIP and DMG built locally under /tmp/studio-with-model-host and passed the generated SHA256SUMS check. The extracted application's Contents/MacOS directory contained the 63 MiB Studio executable and 15 MiB tsrust-studio-model-host. Running the public native host protocol test directly against that extracted executable passed both missing-model attempts, restart and clean pipe shutdown. This covers package contents and helper startup, not packaged-window inference, signed/notarized distribution or other operating systems. The dev preview remained running separately.

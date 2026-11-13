@@ -499,7 +499,7 @@ export interface FileDeclarations {
   names: string[];
 }
 
-function indexedFunctions(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>, pattern: ReadOnly<Regex>, index: Mutable<Map<string, FileDeclarations>>): string[] {
+function indexedDeclarations(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>, pattern: ReadOnly<Regex>, index: Mutable<Map<string, FileDeclarations>>): string[] {
   try {
     const open = workspace.files.find((file) => file.document.path === path);
     let stamp = '';
@@ -528,8 +528,14 @@ function indexedFunctions(workspace: ReadOnly<Workspace>, path: ReadOnly<string>
     const bytes = unwrap(fromUtf8(source));
     const names: string[] = [];
 
+    let depth = 0;
+
     for (const token of pattern.capturesAll(source)) {
-      const capture = token.groups[0];
+      if (source.startsWith('{', token.match.start)) depth += 1;
+      else if (source.startsWith('}', token.match.start)) depth -= 1;
+      const capture = token.groups[0] ?? token.groups[1];
+
+      if (depth !== 0 && token.groups[0] === undefined) continue;
 
       if (capture !== undefined) names.push(unwrap(toUtf8(unwrap(view(bytes, capture.start, capture.end)))));
     }
@@ -707,7 +713,7 @@ export function editorContext(
     }
 
 
-    const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)"));
+    const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|\\bconst\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|[{}]"));
     // In project questions, match spoken compound names such as "handling fee".
     const normalized = lookup.toLowerCase();
     const proseLookup = !editing && !hasReferences && !hasExplicitSymbols && !listFiles && mentionedNames.size === 0 && qualified.size === 0 && unwrap(compile('\\b(project|workspace|repository|codebase)\\b')).isMatch(normalized);
@@ -739,7 +745,7 @@ export function editorContext(
         if (!otherCopy && ((unresolved.size > 0 && file.path !== workspace.active) || proseLookup) && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
           indexedPaths.add(clone(file.path));
 
-          for (const name of indexedFunctions(workspace, file.path, prefix, declarations, index)) {
+          for (const name of indexedDeclarations(workspace, file.path, prefix, declarations, index)) {
             if (unresolved.has(name)) names.push(clone(name));
             else if (proseLookup) {
               const spoken = words.replaceAll(camel.replaceAll(name, '$1 $2').toLowerCase(), ' ').trim();
@@ -786,8 +792,11 @@ export function editorContext(
               }
 
               if (!whole) {
+                const values = names.length > 0 ? valueOffsets(excerpt) : new Map<string, int>();
+
                 for (const term of names) {
-                  const selected = functionExcerpt(excerpt, term, true, true);
+                  const offset = values.get(term);
+                  const selected = offset === undefined ? functionExcerpt(excerpt, term, true, true) : constantExcerpt(excerpt.slice(offset), term, true);
 
                   if (explicitFile && selected === '') whole = true;
 

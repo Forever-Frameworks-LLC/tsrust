@@ -1353,6 +1353,42 @@ test('overflow retains a named historical source when the follow-up has no curre
   strictEqual(withoutEarlierWorkspace(messages, terms)[0].content, 'Inspect this file.');
 });
 
+test('a closed file supplies a named constant and its initializer dependencies', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-constant-'));
+
+  try {
+    unwrap(writeTextFile(root + '/rates.tsr', 'const baseRate = 7;\nexport const handlingFee = baseRate + 2;\nfunction other() { const localRate = 12; return localRate; }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const result = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Explain `handlingFee`.',
+      false,
+      false,
+      index
+    );
+    strictEqual(result.excerpt.includes('Referenced workspace file: rates.tsr'), true);
+    strictEqual(result.excerpt.includes('const handlingFee = baseRate + 2;'), true);
+    strictEqual(result.excerpt.includes('const baseRate = 7;'), true);
+    strictEqual(result.excerpt.includes('function other'), false);
+    const local = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain `localRate`.',
+      false,
+      false,
+      index
+    );
+    strictEqual(local.excerpt, '');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('spoken project names preserve word boundaries and ambiguous source identities', () => {
   const root = unwrap(createTempDir(undefined, 'studio-chat-spoken-'));
 
