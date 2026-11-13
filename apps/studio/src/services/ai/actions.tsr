@@ -3,7 +3,7 @@ import { Sender, Channel } from 'std:futures';
 import { Signal, translate } from 'std:ui';
 
 import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { ChatMessage } from '../../lib/ai/prompts.tsr';
+import { fitGeneration } from '../../lib/ai/generation.tsr';
 import {
   ChatHistory,
   emptyHistory,
@@ -12,10 +12,9 @@ import {
   Conversation,
   setChatDraft,
   draftContext,
-  setDraftContext,
-  messageContent
+  setDraftContext
 } from '../../lib/ai/conversations.tsr';
-import { ModelRequest, ModelUpdate, fitGeneration } from '../../lib/ai/protocol.tsr';
+import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
@@ -301,9 +300,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : excerpt
       });
-      const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
-        role: clone(message.role), content: messageContent(message, canReadWorkspace)
-      }));
+      let editPrompt: string | undefined = undefined;
       next.editTarget = undefined;
 
       if (prompt.toLowerCase().startsWith('edit: ')) {
@@ -316,7 +313,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         if (file === undefined) return Err('Open a text file to propose an edit.');
         next.editTarget = propose(file.document, '');
         const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
-        messages[messages.length - 1].content = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Match each against the original file. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+        editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Match each against the original file. ' + anchor + ' No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
       }
 
       const generation: ModelRequest = {
@@ -344,7 +341,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         return Ok('{"accepted":true}');
       }
 
-      match (fitGeneration(generation, messages)) {
+      match (fitGeneration(generation, next.history.chats[index].messages, canReadWorkspace, editPrompt)) {
         Err(error) => {
           return Err(error);
         },

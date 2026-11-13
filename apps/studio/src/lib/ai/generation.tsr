@@ -1,0 +1,38 @@
+import { AiMessage, messageContent } from './conversations.tsr';
+import { ChatMessage } from './prompts.tsr';
+import { ModelRequest } from './protocol.tsr';
+
+// Walk backwards so history older than the frame never needs rendering.
+export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<AiMessage[]>, includeWorkspace: boolean, editPrompt?: string): Result<boolean, string> {
+  request.messages = [];
+  let bytes = JSON.stringify(request).length + 1;
+  const recent: ChatMessage[] = [];
+  let keep = 0;
+  let shortened = false;
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const entry = history[index];
+
+    if (entry.text === '' || (entry.role === 'user' && entry.status !== undefined && entry.status !== 'complete')) continue;
+    const content = recent.length === 0 && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace);
+    const message: ChatMessage = {
+      role: clone(entry.role), content
+    };
+    bytes += JSON.stringify(message).length + (recent.length === 0 ? 0 : 1);
+
+    if (bytes > 128 * 1024) {
+      shortened = true;
+      break;
+    }
+
+    recent.push(message);
+
+    if (entry.role === 'user') keep = recent.length;
+  }
+
+  if (keep === 0) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
+  const messages = recent.slice(0, keep);
+  messages.reverse();
+  request.messages = messages;
+  return Ok(shortened || recent.length > keep);
+}

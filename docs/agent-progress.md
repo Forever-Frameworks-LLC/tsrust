@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Building long-chat requests
+
+Studio now reads the saved transcript backwards and renders eligible messages
+until the next message exceeds the host frame. It avoids rendering earlier
+turns and their attachment JSON. Local clarification replies skip model frame
+construction. The edit-specific prompt replaces only the current user turn.
+AI action and session suites passed 17/17 in 48.73 ms, including complete-turn
+selection, exact byte boundaries, previous-turn contents and pending replies.
+No process-memory reduction or model token-budget improvement was measured.
+
 ## Long chat requests at the host frame limit
 
 The send action now fills the 128 KiB model frame with recent messages,

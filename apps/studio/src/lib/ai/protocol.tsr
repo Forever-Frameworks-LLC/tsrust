@@ -17,22 +17,3 @@ export type ModelUpdate = {
   error: string;
   stop?: string;
 };
-
-// Keep a contiguous suffix beginning with a user turn. Include the transport newline.
-export function fitGeneration(request: Mutable<ModelRequest>, messages: ReadOnly<ChatMessage[]>): Result<boolean, string> {
-  request.messages = [];
-  let bytes = JSON.stringify(request).length + 1;
-  let first = messages.length;
-
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    bytes += JSON.stringify(messages[index]).length + (index === messages.length - 1 ? 0 : 1);
-
-    if (bytes > 128 * 1024) break;
-
-    if (messages[index].role === 'user') first = index;
-  }
-
-  if (first === messages.length) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
-  request.messages = messages.slice(first);
-  return Ok(first > 0);
-}

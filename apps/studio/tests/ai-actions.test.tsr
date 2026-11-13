@@ -17,7 +17,8 @@ import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
 import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } from '../src/lib/ai/conversations.tsr';
-import { ModelRequest, ModelUpdate, fitGeneration } from '../src/lib/ai/protocol.tsr';
+import { fitGeneration } from '../src/lib/ai/generation.tsr';
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
 import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
@@ -672,13 +673,26 @@ test('a long chat retains its transcript and sends only whole recent turns withi
       role: 'user', content: ''
     }]
   };
+  const editFrame = clone(frame);
+  strictEqual(unwrap(fitGeneration(editFrame, [{
+    role: 'user', request: 'earlier', text: 'Original question'
+  }, {
+    role: 'assistant', request: 'earlier', text: 'Original answer'
+  }, {
+    role: 'user', request: 'edit', text: 'Edit: Change the constant'
+  }, {
+    role: 'assistant', request: 'edit', text: '', status: 'pending'
+  }], false, 'File and edit instructions')), false);
+  const editMessages = editFrame.messages ?? [];
+  strictEqual(editMessages[0].content, 'Original question');
+  strictEqual(editMessages[2].content, 'File and edit instructions');
   const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
   const exact = 'x'.repeat(capacity);
   strictEqual(unwrap(fitGeneration(frame, [{
-    role: 'user', content: clone(exact)
-  }])), false);
+    role: 'user', request: 'boundary', text: clone(exact)
+  }], false)), false);
   strictEqual(JSON.stringify(frame).length + 1, 128 * 1024);
   strictEqual(denied(fitGeneration(frame, [{
-    role: 'user', content: exact + '!'
-  }])), true);
+    role: 'user', request: 'boundary', text: exact + '!'
+  }], false)), true);
 });
