@@ -84,9 +84,8 @@ impl Analyzer {
     }
 
     pub(super) fn prepare_exception_callable(&mut self, context: &mut Context) -> CallableBoundary {
-        let effects = self.discovery_error_effects();
         let environment = context.exception_environment.replace(std::rc::Rc::new(exception_state::CheckEnvironment {
-            effects, runtime: None, refresh_contracts: true, partial_contracts: true,
+            effects: Default::default(), runtime: None, refresh_contracts: true, partial_contracts: true,
         }));
         CallableBoundary { exits: Self::prepare_exit_frames(context), environment }
     }

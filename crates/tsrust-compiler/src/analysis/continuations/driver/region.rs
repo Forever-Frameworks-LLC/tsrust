@@ -19,7 +19,8 @@ pub(super) fn environment(analyzer: &mut Analyzer, mode: Environment, runtime: O
     let (effects, refresh_contracts, partial_contracts) = match mode {
         Environment::Fixed(effects) => (effects, false, false),
         Environment::Current => (analyzer.checked_error_effects()?, true, false),
-        Environment::Partial => (analyzer.discovery_error_effects(), true, true),
+        // Partial contracts are derived from the checked body and its callers in Phase::Body.
+        Environment::Partial => (Default::default(), true, true),
     };
     Ok(std::rc::Rc::new(CheckEnvironment { effects, runtime, refresh_contracts, partial_contracts }))
 }

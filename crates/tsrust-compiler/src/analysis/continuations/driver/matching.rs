@@ -5,14 +5,14 @@ pub(super) struct ValueFrame {
     exits: Option<super::super::exceptions::ExitBoundary>,
 }
 
-pub(super) fn schedule_value<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, expected: Option<Type>) -> Step<'a> {
+pub(super) fn schedule_value<'a>(_analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, expected: Option<Type>) -> Step<'a> {
     let ExprKind::Match { id, body } = &mut task.expression.value().kind else { unreachable!() };
     context.match_values.push((*id, expected));
     context.match_loans.push((*task.loans).clone());
     let environment = context.exception_environment.clone();
     if environment.is_none() && has_exception_syntax(body) {
         context.exception_environment = Some(std::rc::Rc::new(exception_state::CheckEnvironment {
-            effects: analyzer.discovery_error_effects(), runtime: None, refresh_contracts: true, partial_contracts: true,
+            effects: Default::default(), runtime: None, refresh_contracts: true, partial_contracts: true,
         }));
     }
     let exits = if context.completion_frame.is_none() && has_exception_syntax(body) { Some(Analyzer::prepare_exit_frames(context)) } else { None };

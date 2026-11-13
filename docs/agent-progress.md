@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio exception checking on rebuild
+
+Removed unused preliminary whole-program error-contract calculations when opening partial exception environments in callables, matches and try regions. The post-body calculation still resolves pending callees and annotates the checked region. Optimized CLI check of apps/studio/src/main.tsrx took 62.64 s versus the prior 84.73 s observation. Both produced 418896 bytes, SHA-256 da7625adc94ec32091e7e5718efbcdf913151e4fbd91719a049cb7598b0cf896. The new check overlapped the tail of the library tests. This is a compiler observation; the live supervisor still uses its loaded compiler from the previous checkpoint.
+
+54 error-effect and 90 exception-state unit tests passed. Full compiler library in sandbox: 1521 passed, 31 failed, 8 ignored (153.13 s). With local socket access: 1551 passed, 1 failed, 8 ignored (108.77 s). The remaining test found that the bundled ignore dependency could be redeclared in bindings. Reserved that existing runtime pin for both manifest schemas and reran the affected dependency tests successfully. Whole-project formatting changed zero files and zero fingerprints. Owner chat and editor drafts excluded from checkpoint.
+
 ## Studio compiler error-effect traversal
 
 An 8-second sample of optimized Studio main checking showed expression_effect and own_expression_effect as the two most frequent active top frames (187 and 85 observations). The expression traversal now schedules child visits in reverse stack order and visits the first fixed child directly, avoiding reversal of queued continuation frames. The previous list payload order, reachable optional branches and expression annotations are covered by the error-effect regressions (54 passed, 0.32 s execution, 1m54s setup). Whole-project formatting reported zero changes.

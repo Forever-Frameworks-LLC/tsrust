@@ -3338,8 +3338,7 @@ impl Analyzer {
     fn prepare_discovery_exception(&mut self,context:&Context,region:&ExceptionRegion,result:Type,runtime:Option<Type>)->Result<ExceptionRegion,Diagnostic> {
         let mut checked_body=region.body.clone();
         let mut inner=context.clone();
-        let preliminary=self.discovery_error_effects();
-        self.with_exception_environment_mode(&mut inner,&preliminary,runtime,true,true,|analyzer,context|
+        self.with_exception_environment_mode(&mut inner,&Default::default(),runtime,true,true,|analyzer,context|
             analyzer.check_region_body(context,&mut checked_body,result))?;
         let effects=self.discovery_error_effects();
         let incoming=crate::error_effects::annotate_region_body(&mut checked_body,&effects);
