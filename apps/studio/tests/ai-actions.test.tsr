@@ -412,22 +412,20 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     const ready = state.get();
     ready.phase = 'ready';
     state.set(ready);
-    send(host, 'Explain helper.tsr and copy.tsr');
+    send(host, 'Explain helper.tsr');
     const messages = unwrap(requests.tryReceive()).messages;
 
     if (messages === undefined) throw 'missing generation';
     strictEqual(messages[0].content.includes('Active editor file: main.tsr'), true);
     strictEqual(messages[0].content.includes('unsaved fact'), true);
     strictEqual(messages[0].content.includes('Referenced workspace file: lib/helper.tsr'), true);
-    strictEqual(messages[0].content.includes('./copy.tsr'), true);
-    strictEqual(messages[0].content.includes('./lib/copy.tsr'), true);
     strictEqual(messages[0].content.includes('root duplicate content'), false);
     strictEqual(messages[0].content.includes('nested duplicate content'), false);
     strictEqual(messages[0].content.includes('tail'), false);
     strictEqual(messages[0].content.includes('unopened content'), true);
     strictEqual(messages[0].content.includes('large file tail'), false);
     strictEqual(messages[0].content.includes('unrelated suffix'), false);
-    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr and copy.tsr');
+    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr');
     const updates = new Channel<ModelUpdate>(4);
     unwrap(updates.sender().trySend({
       kind: 'complete', id: clone(state.get().active), text: 'The helper reads the input.', error: '', stop: 'eos'
@@ -456,7 +454,7 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     const withoutRead = unwrap(requests.tryReceive()).messages;
 
     if (withoutRead === undefined) throw 'missing restricted follow-up';
-    strictEqual(withoutRead[0].content, 'Explain helper.tsr and copy.tsr');
+    strictEqual(withoutRead[0].content, 'Explain helper.tsr');
     strictEqual(withoutRead[4].content, 'Continue');
   } finally {
     removeDirAll(folder);

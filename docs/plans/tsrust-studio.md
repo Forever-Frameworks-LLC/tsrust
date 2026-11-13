@@ -6,6 +6,11 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+A live local evaluation found that the 1.5B model guessed an ambiguous
+filename. Studio now asks for the path before inference and the configured
+model answered correctly using the selected source. The evaluation exercises
+the chat action and real model service without driving the desktop controls.
+
 Local chat context now includes visible explorer filenames, active editor text
 and bounded excerpts of explicitly named project files. The AI action suite
 and a separate local-host source question passed. Next, connect symbol-aware

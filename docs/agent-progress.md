@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Real local chat clarification
+
+The configured local 1.5B model initially guessed 1 when two different
+answer.tsr files were possible. Studio now returns a localized clarification
+and the relative paths itself, without dispatching an inference request.
+A follow-up selecting lib/answer.tsr reached the native model through the
+production chat action, request channel, model service and reply handler.
+The model answered 73, the value in that file (the other returned 51).
+Opt-in model evaluation plus AI action and localization suites passed 13/13
+in 2.494 s of test execution. Peak sampled model host RSS 1165.77 MiB,
+peak OS pressure level 2, zero observed system swap growth. Sandbox-only
+inference failed at native llama.cpp initialization; native run passed.
+The evaluation used a disposable workspace and no desktop interactions.
+Run chat-model-eval.test.tsr with TSRUST_STUDIO_RUN_MODEL_EVAL=1 and the
+absolute TSRUST_STUDIO_MODEL_HOST, using the local Studio model configuration.
+
 ## Chat filename resolution
 
 Chat resolves a bare filename against the explorer snapshot when it is unique.

@@ -1,6 +1,6 @@
 import { fromUtf8, length } from 'std:bytes';
 import { Sender, Channel } from 'std:futures';
-import { Signal } from 'std:ui';
+import { Signal, translate } from 'std:ui';
 
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { ChatMessage } from '../../lib/ai/prompts.tsr';
@@ -19,7 +19,7 @@ import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { editorContext, readContext } from './context.tsr';
+import { EditorContextResult, editorContext, readContext } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
 export interface AiState {
@@ -277,15 +277,6 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (length(unwrap(fromUtf8(prompt))) > 65536) return Err('This message is too large. Shorten it before sending.');
 
-      if (next.phase === 'stopped') match (startRequest(context)) {
-        Err(error) => {
-          return Err(clone(error));
-        },
-        Ok(start) => {
-          request = start;
-        }
-      }
-
       if (next.history.active === '') createChat(next.history);
       const index = next.history.chats.findIndex((chat) => chat.id === next.history.active);
 
@@ -298,7 +289,10 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const tree = context.projectTree;
       const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
       const attachments = draftContext(next.history);
-      const excerpt = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt) : '';
+      const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt) : {
+        excerpt: '', candidates: []
+      };
+      const excerpt = grounding.excerpt;
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: attachments, workspaceExcerpt: excerpt === '' ? undefined : excerpt
       });
@@ -311,12 +305,28 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (length(unwrap(fromUtf8(JSON.stringify(generation)))) > 128 * 1024) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
       next.history.chats[index].messages.push({
-        role: 'assistant', text: '', request: clone(next.active), status: 'pending'
+        role: 'assistant', text: grounding.candidates.length === 0 ? '' : translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n'), request: clone(next.active), status: grounding.candidates.length === 0 ? 'pending' : 'complete'
       });
       next.history.chats[index].draft = '';
       next.history.chats[index].context = [];
       next.history.chats[index].revision += 1;
       next.history.draft = '';
+
+      if (grounding.candidates.length > 0) {
+        next.active = '';
+        next.targetChat = '';
+        unwrap(publish(context, next));
+        return Ok('{"accepted":true}');
+      }
+
+      if (next.phase === 'stopped') match (startRequest(context)) {
+        Err(error) => {
+          return Err(clone(error));
+        },
+        Ok(start) => {
+          request = start;
+        }
+      }
 
       if (next.phase === 'stopped') {
         next.pending = generation;

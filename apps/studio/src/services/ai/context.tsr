@@ -109,7 +109,13 @@ function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean
   return false;
 }
 
-export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>): string {
+export interface EditorContextResult {
+  excerpt: string;
+  candidates: string[];
+}
+
+export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>): EditorContextResult {
+  const ambiguous: string[] = [];
   const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
   let result = '';
   const active = workspace.files.find((file) => file.document.path === workspace.active);
@@ -133,7 +139,6 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
 
     let size = 0;
     let named = 0;
-    const ambiguous: string[] = [];
     let ambiguousBytes = 0;
 
     for (const directory of tree.directories) {
@@ -165,10 +170,11 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
       }
     }
 
-    if (ambiguous.length > 0) result += '\n\nAmbiguous filenames in the question. Ask which relative path was intended:\n' + ambiguous.join('\n');
 
     if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files (sample):\n' + paths.join('\n');
   }
 
-  return result;
+  return {
+    excerpt: result, candidates: ambiguous
+  };
 }

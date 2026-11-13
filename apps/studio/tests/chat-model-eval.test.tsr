@@ -1,0 +1,81 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { strictEqual, test } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { emptyHistory } from '../src/lib/ai/conversations.tsr';
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
+import { configPath, loadConfig } from '../src/lib/settings/settings.tsr';
+import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { AiContext, initialAiState, invokeModelTool, pollModel } from '../src/services/ai/actions.tsr';
+import { modelService } from '../src/services/ai/session.tsr';
+
+async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>, prompt: string): Task<string> {
+  unwrap(invokeModelTool(host, 'local_model_send', JSON.stringify({
+    chat: host.state.get().history.active, prompt
+  })));
+
+  if (host.state.get().active === '') {
+    const messages = host.state.get().history.chats[0].messages;
+    return clone(messages[messages.length - 1].text);
+  }
+
+  const delivery = new Channel<ModelUpdate>(1);
+
+  while (true) {
+    const update = await updates.receive().timeout(180000);
+    const kind = clone(update.kind);
+
+    if (kind === 'error' || kind === 'rejected') throw clone(update.error);
+
+    if (kind === 'stopped' || kind === 'cancelled') throw 'Model stopped before answering.';
+    unwrap(delivery.sender().trySend(update));
+    pollModel(host, delivery);
+
+    if (kind === 'complete') {
+      const messages = host.state.get().history.chats[0].messages;
+      return clone(messages[messages.length - 1].text);
+    }
+  }
+}
+
+if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local chat clarifies a duplicate filename and reads the selected implementation', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-evaluation-'));
+
+  try {
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/answer.tsr', 'export function answer(): int { return 51; }'));
+    unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
+    const workspace = unwrap(openWorkspace(folder));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: signal(clone(workspace)), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      const first = await ask(host, updates, 'What number does the function in answer.tsr return?');
+      console.log(first);
+      strictEqual(first.includes('lib/answer.tsr'), true);
+      strictEqual(first.includes('51') || first.includes('73'), false);
+      const second = await ask(host, updates, 'I mean lib/answer.tsr. What number does its function return?');
+      console.log(second);
+      strictEqual(second.includes('73'), true);
+      strictEqual(second.includes('51'), false);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
