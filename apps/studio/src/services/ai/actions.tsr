@@ -19,7 +19,7 @@ import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { EditorContextResult, editorContext, readContext, referenceContext } from './context.tsr';
+import { FileDeclarations, EditorContextResult, editorContext, readContext, referenceContext } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
@@ -48,6 +48,7 @@ export interface AiContext {
   allowDelete?: boolean;
   workspace?: Signal<Workspace>;
   references?: Signal<LanguageReferences>;
+  declarations?: Signal<FileDeclarations[]>;
   projectTree?: Signal<DirectoryTree>;
   allowedContextPaths?: string[];
 }
@@ -71,10 +72,11 @@ export function initialAiState(history: ChatHistory = emptyHistory(), notice: st
 export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: boolean = false): AiContext {
   const references = context.references;
   const tree = context.projectTree;
+  const declarations = context.declarations;
   const store = context.store;
   const workspace = context.workspace;
   return {
-    references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+    declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
   };
 }
 
@@ -304,16 +306,23 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const editing = prompt.toLowerCase().startsWith('edit: ');
       const references = context.references;
       const snippets = canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '';
+      const storeIndex = context.declarations;
+      const declarations = new Map<string, FileDeclarations>();
+
+      if (canReadWorkspace && storeIndex !== undefined) for (const file of storeIndex.get()) declarations.set(clone(file.path), clone(file));
       const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(
         workspace.get(),
         tree === undefined ? undefined : tree.get(),
         attachments,
         prompt,
         editing,
-        snippets !== ''
+        snippets !== '',
+        declarations
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };
+
+      if (canReadWorkspace && storeIndex !== undefined) storeIndex.set(Array.from(declarations.values()));
       let excerpt = grounding.excerpt + snippets;
 
       if (canReadWorkspace && knowledgeQuestion(prompt) && grounding.candidates.length === 0 && grounding.unavailable.length === 0) {

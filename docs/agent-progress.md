@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Session index for named workspace functions
+
+Chat now discovers explicitly named functions in arbitrary Tsrust filenames.
+For unresolved identifiers it indexes names in the current explorer tree.
+The in-memory cache stores names and file identity stamps, never file bodies.
+Disk entries use the canonical path, size and modification timestamp.
+Open documents use session and revision. Retrieval rereads matched source
+under the existing workspace guard and extracts simple function bodies.
+Cold indexing currently runs synchronously on send. Large-workspace latency,
+background scheduling, semantic binding resolution and persistence remain open.
+
+The AI action regression retrieves handlingFee from unopened pricing-policy.tsr,
+alongside the existing imported and filename-matching examples. It renames the
+function externally, then verifies a subsequent request retrieves packingFee
+and the obsolete name disappears from the session cache. All 21 focused tests
+passed in 74.98 ms. Supervisor 36374 rebuilt Studio in 197911 ms (166822 ms
+checking, 29045 ms native compilation and link) and launched PID 96562.
+
 ## Chat discovery of symbol-named workspace modules
 
 For explicit identifiers without a resolved import, Studio uses the explorer

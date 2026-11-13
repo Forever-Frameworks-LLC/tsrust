@@ -42,6 +42,7 @@ import { Region } from './components/workbench/layout.tsrx';
 import { Panels } from './components/workbench/panels.tsrx';
 import { ChatPanel } from './components/ai/chat-panel.tsrx';
 import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
+import { FileDeclarations } from './services/ai/context.tsr';
 import { AiContext, initialAiState, pollModel } from './services/ai/actions.tsr';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
@@ -231,8 +232,9 @@ function App(
     formatFocus,
     font
   );
+  const declarations = signal<FileDeclarations[]>([]);
   const aiContext: AiContext = {
-    references: references.handle(), projectTree, state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
+    declarations: declarations.handle(), references: references.handle(), projectTree, state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
   };
   const chatView = ChatPanel(aiContext, font, aiState);
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');

@@ -6,7 +6,7 @@ import {
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { asString, get } from 'std:json';
-import { compile } from 'std:regex';
+import { compile, Regex } from 'std:regex';
 import {
   basename,
   dirname,
@@ -319,13 +319,65 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
   return paths;
 }
 
+export interface FileDeclarations {
+  path: string;
+  stamp: string;
+  names: string[];
+}
+
+function indexedFunctions(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>, pattern: ReadOnly<Regex>, index: Mutable<Map<string, FileDeclarations>>): string[] {
+  try {
+    const open = workspace.files.find((file) => file.document.path === path);
+    let stamp = '';
+
+    if (open !== undefined) {
+      if (open.kind !== 'text') return [];
+      stamp = open.document.session + '/' + open.document.revision.toString();
+    } else {
+      const real = unwrap(canonicalize(path));
+
+      if (!real.startsWith(prefix)) return [];
+      const info = unwrap(stat(real));
+
+      if (!info.isFile) return [];
+
+      if (info.modified !== undefined) stamp = real + '/' + JSON.stringify(info.modified) + '/' + info.size.toString();
+    }
+
+    {
+      const previous = index.get(path);
+
+      if (stamp !== '' && previous !== undefined && previous.stamp === stamp) return clone(previous.names);
+    }
+
+    const source = unwrap(namedExcerpt(workspace, path, prefix));
+    const bytes = unwrap(fromUtf8(source));
+    const names: string[] = [];
+
+    for (const token of pattern.capturesAll(source)) {
+      const capture = token.groups[0];
+
+      if (capture !== undefined) names.push(unwrap(toUtf8(unwrap(view(bytes, capture.start, capture.end)))));
+    }
+
+    index.set(clone(path), {
+      path: clone(path), stamp, names: clone(names)
+    });
+    return names;
+  } catch (_) {
+    index.delete(path);
+    return [];
+  }
+}
+
 export function editorContext(
   workspace: ReadOnly<Workspace>,
   tree: ReadOnly<DirectoryTree> | undefined,
   attached: ReadOnly<ContextFragment[]>,
   prompt: ReadOnly<string>,
   editing: boolean,
-  hasReferences: boolean
+  hasReferences: boolean,
+  index: Mutable<Map<string, FileDeclarations>>
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -342,21 +394,15 @@ export function editorContext(
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
     const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt, workspace.root) : new Map<string, ImportBinding[]>();
-    // Use the explorer tree to locate symbol-named modules without reading every file.
-    const moduleTerms = new Map<string, string[]>();
-    const unresolved = recallTerms(prompt);
+    const unresolved = hasReferences ? new Set<string>() : recallTerms(prompt);
 
     for (const bindings of imported.values()) {
       for (const binding of bindings) unresolved.delete(binding.local);
     }
 
-    if (!hasReferences) for (const term of unresolved) {
-      const key = term.replaceAll('_', '').toLowerCase();
-      const names = clone(moduleTerms.get(key)) ?? [];
-      names.push(clone(term));
-      moduleTerms.set(key, names);
-    }
 
+    const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)"));
+    const indexedPaths = new Set<string>();
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {
@@ -383,10 +429,17 @@ export function editorContext(
           ambiguous.push('./' + path);
         }
 
-        const extension = moduleTerms.size === 0 ? '' : extname(file.name);
-        const moduleNames = (extension === '.tsr' || extension === '.tsrx') ? moduleTerms.get(basename(file.name, extension).replaceAll('-', '').replaceAll('_', '').toLowerCase()) : undefined;
+        const names: string[] = [];
 
-        if ((file.path !== workspace.active || active?.kind !== 'text') && (referenced || moduleNames !== undefined) && !attached.some((fragment) => fragment.path === file.path)) {
+        if (unresolved.size > 0 && file.path !== workspace.active && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
+          indexedPaths.add(clone(file.path));
+
+          for (const name of indexedFunctions(workspace, file.path, prefix, declarations, index)) {
+            if (unresolved.has(name)) names.push(clone(name));
+          }
+        }
+
+        if ((file.path !== workspace.active || active?.kind !== 'text') && (referenced || names.length > 0) && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
               const bindings = imported.get(file.path);
@@ -418,8 +471,8 @@ export function editorContext(
                 }
               }
 
-              if (!whole && moduleNames !== undefined) {
-                for (const term of moduleNames) {
+              if (!whole) {
+                for (const term of names) {
                   const selected = functionExcerpt(excerpt, term, true);
 
                   if (selected !== '' && !snippets.includes(selected)) snippets.push(selected);
@@ -443,6 +496,11 @@ export function editorContext(
 
         paths.push(path);
       }
+    }
+
+
+    if (unresolved.size > 0) for (const path of Array.from(index.keys())) {
+      if (!indexedPaths.has(path)) index.delete(path);
     }
 
 
