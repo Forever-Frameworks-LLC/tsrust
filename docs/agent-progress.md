@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev watcher undo and redo
+
+The frontend worker retains the last two successful checked revisions. Changing a dependency from one valid version to another and undoing or redoing now reuses matching checked output and skips semantic analysis and Rust emission. Matching still compares captured inputs, application paths, resolutions and read errors through the existing watcher predicate. Failed checks leave both revisions usable. One extra checked output and snapshot remain resident; unchanged source byte buffers are shared. Focused public dev-supervisor integration passed (4.29 s execution, 53.22 s setup), including checking actual stdout after valid undo and redo, failure recovery, process replacement and cleanup. Whole-project formatting reported zero changes. The live Studio supervisor still runs the prior compiler. New styles still need full checking; the saved class string alone cannot identify a rendered element (two search-panel Views share the same literal).
+
 ## Studio exception checking on rebuild
 
 Removed unused preliminary whole-program error-contract calculations when opening partial exception environments in callables, matches and try regions. The post-body calculation still resolves pending callees and annotates the checked region. Optimized CLI check of apps/studio/src/main.tsrx took 62.64 s versus the prior 84.73 s observation. Both produced 418896 bytes, SHA-256 da7625adc94ec32091e7e5718efbcdf913151e4fbd91719a049cb7598b0cf896. The new check overlapped the tail of the library tests. This is a compiler observation; the live supervisor still uses its loaded compiler from the previous checkpoint.

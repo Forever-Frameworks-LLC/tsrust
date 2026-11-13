@@ -57,15 +57,18 @@ impl Worker {
 }
 fn run(requests:Receiver<Request>) {
  let mut session=ProjectSession::default();
- let mut previous:Option<(crate::dev_watch::Inputs,std::sync::Arc<Output>)>=None;
+ let mut recent:Vec<(crate::dev_watch::Inputs,std::sync::Arc<Output>)>=Vec::new();
  for request in requests {
-  if let Some((inputs,output))=&previous && request.sources.files.only_unused_sources_changed(inputs) {
-   let _=request.reply.send(Ok((output.clone(),true)));continue;
+  if let Some(index)=recent.iter().position(|(inputs,_)|request.sources.files.only_unused_sources_changed(inputs)) {
+   let hit=recent.remove(index);
+   let _=request.reply.send(Ok((hit.1.clone(),true)));
+   recent.push(hit);continue;
   }
-  // Keep the last successful snapshot available when a broken edit is undone.
+  // Keep the current revision and its predecessor for undo/redo, including across failed checks.
   let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources)).map(|output|{
    let output=std::sync::Arc::new(output);
-   previous=Some((request.sources.files,output.clone()));
+   if recent.len()==2 {recent.remove(0);}
+   recent.push((request.sources.files,output.clone()));
    (output,false)
   });
   let _=request.reply.send(result);

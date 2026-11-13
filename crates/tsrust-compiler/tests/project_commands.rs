@@ -119,6 +119,15 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     while lines.iter().filter(|line|line.contains("Started program")).count()<2 {lines.push(rx.recv_timeout(Duration::from_secs(5)).unwrap());}
     assert!(lines.iter().any(|line|line.contains("syntax reused=1") && line.contains("headers reused=2")),"{lines:?}");
     let new=pid(&lines);assert_ne!(old,new);assert_ne!(unsafe {kill(old,0)},0,"old program must be reaped");
+    let mut undo=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
+    wait(&rx,&mut undo,"first-version");wait(&rx,&mut undo,"Started program");
+    assert!(undo.iter().any(|line|line.contains("Reused checked application.")),"valid edit undo: {undo:?}");
+    let mut redo=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"second-version\";}").unwrap();
+    wait(&rx,&mut redo,"second-version");wait(&rx,&mut redo,"Started program");
+    assert!(redo.iter().any(|line|line.contains("Reused checked application.")),"redo: {redo:?}");
+    let new=pid(&redo);
     unsafe {kill(new,15);}
     wait(&rx,&mut lines,"Program exited with");
     fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('another unrelated edit',()=>{strictEqual(3,3);});")).unwrap();
