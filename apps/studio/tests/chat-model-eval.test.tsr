@@ -14,13 +14,28 @@ import { signal } from 'std:ui';
 import { emptyHistory } from '../src/lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { scanTree } from '../src/lib/explorer/tree.tsr';
-import { configPath, loadConfig } from '../src/lib/settings/settings.tsr';
+import { join } from 'std:path';
+import { modelExtensions, installedModel, modelFolder } from '../src/services/ai/model-extensions.tsr';
+import { StudioConfig, configPath, loadConfig } from '../src/lib/settings/settings.tsr';
 import { reviewChatEdit } from '../src/components/ai/edit-review.tsrx';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { readTextFile } from 'std:fs';
 import { openFile, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { AiContext, initialAiState, invokeModelTool, pollModel } from '../src/services/ai/actions.tsr';
 import { modelService } from '../src/services/ai/session.tsr';
+
+function evaluationConfig(): StudioConfig {
+  const config = unwrap(loadConfig(unwrap(configPath())));
+  const name = unwrap(get('TSRUST_STUDIO_EVAL_MODEL'));
+
+  if (name === undefined) return config;
+  const model = modelExtensions().find((entry) => entry.name === name);
+
+  if (model === undefined || !installedModel(model)) throw 'Install the selected evaluation model in Studio Extensions.';
+  config.aiModelPath = join(modelFolder(model), model.filename);
+  config.aiTokenizerPath = join(modelFolder(model), 'tokenizer.json');
+  return config;
+}
 
 async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>, prompt: string): Task<string> {
   unwrap(invokeModelTool(host, 'local_model_send', JSON.stringify({
@@ -98,7 +113,7 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
     const host: AiContext = {
-      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
     };
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
@@ -246,7 +261,7 @@ if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EV
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
     const host: AiContext = {
-      workspace: signal(clone(workspace)), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+      workspace: signal(clone(workspace)), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
     };
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
@@ -377,7 +392,7 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage', '
 
     if (broken && issue === undefined) throw 'Language service did not diagnose shipping: ' + JSON.stringify(reports);
     const host: AiContext = {
-      problems: signal<Problem[]>(mode === 'diagnostic' ? clone(reports) : []), workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+      problems: signal<Problem[]>(mode === 'diagnostic' ? clone(reports) : []), workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
     };
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
@@ -496,7 +511,7 @@ if (['1', 'excerpt', 'reply', 'followup', 'historical-source', 'mixed-source'].i
   const requests = new Channel<ModelRequest>(8);
   const updates = new Channel<ModelUpdate>(16);
   const host: AiContext = {
-    workspace: signal(workspace), state: signal(initialAiState(history)), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    workspace: signal(workspace), state: signal(initialAiState(history)), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
   };
   const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
@@ -518,7 +533,7 @@ if (workspaceEval === 'completion') test('local completion uses suffix context a
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
-  const config = unwrap(loadConfig(unwrap(configPath())));
+  const config = evaluationConfig();
   const requests = new Channel<ModelRequest>(8);
   const updates = new Channel<ModelUpdate>(16);
   const commands = requests.sender();

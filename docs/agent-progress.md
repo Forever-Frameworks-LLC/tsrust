@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Installed 3B model workspace edit evaluation
+
+The public Studio model evaluation suite accepts an installed extension name via `TSRUST_STUDIO_EVAL_MODEL`. It selects the GGUF and tokenizer in memory for that run and leaves the owner's model settings intact. On the existing 8 GiB Mac, Qwen2.5-Coder-3B-Instruct Q4_K_M changed two attached drafts with the same filename to their exact requested values (6.11 seconds). Peak sampled model-host RSS across the batch and dataflow tests was 2,281,104 KiB. The separate reordered-parameters case passed the normal edit review, save and four withheld native pricing assertions using an unopened policy module.
+
+The two-step dataflow case failed. The model flattened a multiline original into a single-line replacement anchor and added charges instead of feeding adjusted units to the pricing function. Studio rejected that proposal before application. Two alternate prompt layouts also failed. One obtained an exact anchor but reversed the call arguments and omitted the quantity adjustment. Both experimental prompts were discarded. These cases do not establish that 3B can carry out general code changes or that it outperforms 1.5B.
+
 ## Model extensions, editor completion and Source Control history
 
 Studio's extension worker installed the pinned Qwen2.5-Coder-3B-Instruct Q4_K_M and tokenizer using streamed SHA-256 verification and atomic directory publication. The two public runner cases passed in 83.55 seconds including download. The configured 1.5B model remained selected. Studio now queues the latest caret request during cold model startup. All 30 AI action cases passed in 0.214 seconds. A focused native Syntect test passed for line comments, multiline comments, strings and code immediately after a closing delimiter.
