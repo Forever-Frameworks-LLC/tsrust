@@ -11,13 +11,13 @@ import { separator } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
-import { SearchActionContext, FileSearchState, fileSearchLabel, updateFileQuery } from '../src/lib/explorer/search-actions.tsr';
+import { SearchActionContext, FileSearchState, fileSearchLabel, matchingFilePaths, updateFileQuery } from '../src/lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
 import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
 import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
 import { defaultConfig } from '../src/lib/settings/settings.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { Entry, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { invokeEditorTool } from '../src/services/editor-tools.tsr';
 
 test('explorer groups a single snapshot by parent without losing prefix siblings or hidden config files', () => {
@@ -191,6 +191,11 @@ test('filename search shares explicit read presentation and open actions without
     const target = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é main.tsr'
     });
+    const entries: Entry[] = [{
+      name: 'panel.tsr', path: '/parent/work/src/panel.tsr', directory: false
+    }];
+    strictEqual(matchingFilePaths('/parent/work', entries, 'PARENT').length, 0);
+    strictEqual(matchingFilePaths('/parent/work', entries, 'SRC/PANEL').length, 1);
     strictEqual(fileSearchLabel(separator(), separator() + 'first.tsr'), 'first.tsr');
     deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'

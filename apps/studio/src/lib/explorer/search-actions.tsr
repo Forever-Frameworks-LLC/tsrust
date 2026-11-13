@@ -38,10 +38,14 @@ function matchesFile(root: ReadOnly<string>, file: ReadOnly<Entry>, normalized: 
   return fileSearchLabel(root, file.path).toLowerCase().includes(normalized);
 }
 
+export function matchingFilePaths(root: ReadOnly<string>, files: ReadOnly<Entry[]>, query: ReadOnly<string>): Entry[] {
+  const normalized = query.toLowerCase();
+  return files.filter((file) => matchesFile(root, file, normalized));
+}
+
 export function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
   if (search.open !== true || search.query.startsWith('>')) return [];
-  const normalized = search.query.toLowerCase();
-  return search.files.filter((file) => matchesFile(search.root, file, normalized));
+  return matchingFilePaths(search.root, search.files, search.query);
 }
 
 export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query: ReadOnly<string>): Result<Entry[], string> {
@@ -56,8 +60,7 @@ export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly
     },
     Ok(files) => {
       if (query === '') return Ok(files);
-      const normalized = query.toLowerCase();
-      return Ok(files.filter((file) => matchesFile(root, file, normalized)));
+      return Ok(matchingFilePaths(root, files, query));
     }
   }
 }

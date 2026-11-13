@@ -19,6 +19,7 @@ import {
   t
 } from 'std:ui';
 
+import { fileSearchLabel, matchingFilePaths } from '../../lib/explorer/search-actions.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { Entry, projectFiles } from '../../lib/workspace/workspace.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
@@ -68,7 +69,7 @@ export function showContextPicker(context: ReadOnly<AiContext>, picker: Signal<C
 
 function ContextOption(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
   return (
-    <CommandItem value={clone(file.path)} label={file.path.slice(root.length + 1)} icon="file-code" />
+    <CommandItem value={clone(file.path)} label={fileSearchLabel(root, file.path)} icon="file-code" />
   );
 }
 
@@ -117,7 +118,7 @@ export function ContextPicker(context: ReadOnly<AiContext>, picker: Signal<Conte
             picker.set(next);
           }}
         >
-          {...picker.get().files.filter((file: ReadOnly<Entry>) => file.path.toLowerCase().includes(picker.get().query.toLowerCase())).map((file: ReadOnly<Entry>) => ContextOption(file, picker.get().root))}
+          {...matchingFilePaths(picker.get().root, picker.get().files, picker.get().query).map((file: ReadOnly<Entry>) => ContextOption(file, picker.get().root))}
           <CommandEmpty>
             <Text className="text-muted-foreground">
               {t('No matching context files')}
