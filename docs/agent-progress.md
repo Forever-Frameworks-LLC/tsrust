@@ -4,6 +4,26 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Live two-function composition probe — failed
+
+The opt-in combined and dataflow variants of the Studio workspace model
+evaluation exercise one caller, two imported definitions in a separate file,
+and a distractor export. Both definitions reached the model and the distractor
+was absent. The compact question produced units * 2. Temporarily moving the
+task after the code produced billableUnits(units) + shelfCharge(fragile, units).
+That product prompt experiment was reverted. Explicitly explaining the data
+flow with the original prompt layout also produced the sum. No output cap
+was introduced.
+
+After review of this side-effect-free expression, the evaluation applied it
+only to the temporary fixture and ran the native cases. For four nonfragile
+units the sum yields 19 instead of the required 17. Native acceptance failed
+in the dataflow evaluation (4030.59 ms including inference). Leave these
+opt-in quality probes red until the generated edit passes the behavioral
+oracle. Existing single-function successes remain recorded. Logs under
+/tmp/studio-combined-*.log. This case identifies a composition failure
+despite successful retrieval, not a general model-size limit.
+
 ## Multiple imported functions in one chat question
 
 Studio keeps each requested relative import binding per resolved path. When

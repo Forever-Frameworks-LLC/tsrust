@@ -158,22 +158,25 @@ if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat re
   }
 });
 
-if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+if (['1', 'default', 'combined', 'dataflow'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
   if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
   const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
+  const dataflow = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
+  const combined = dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
   const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
   const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
-  const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", "import { shelfCharge } from './policy.tsr'");
+  const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", combined ? "import { shelfCharge, billableUnits } from './policy.tsr'" : "import { shelfCharge } from './policy.tsr'");
   const implementation = 'export default function storageFee(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
 
   const policy = defaultImport ? clone(implementation) : implementation.replace('default function storageFee', 'function shelfCharge');
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));
-    const file = policy + 'export function unrelatedRule(): int { return 999; }\n';
+    const adjustment = 'export function billableUnits(units: int): int { return units <= 0 ? 0 : units + 2; }';
+    const file = policy + (combined ? adjustment + '\n' : '') + 'export function unrelatedRule(): int { return 999; }\n';
     unwrap(writeTextFile(folder + '/policy.tsr', file));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/quote.tsr'));
@@ -186,15 +189,21 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
-      const answer = await ask(host, updates, 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
+      const answer = await ask(host, updates, dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
       console.log(answer);
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
       strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes('unrelatedRule'), false);
+
+      if (combined) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(adjustment), true);
       const proposal = host.state.get().review;
 
       if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
-      // Review the only authorized executable change before running generated code.
-      strictEqual(proposal.after, caller.replace('return units;', 'return shelfCharge(fragile, units);'));
+      // Run only reviewed, side-effect-free caller bodies. The native cases decide correctness.
+      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return billableUnits(units) + shelfCharge(fragile, units);'] : ['return shelfCharge(fragile, units);'];
+
+      const after = clone(proposal.after);
+
+      if (!reviewed.some((body) => after === caller.replace('return units;', body))) throw 'Unreviewed generated caller body.';
       const recovery = signal<Recovery>({
         path: folder + '/journal.json', baseline: '', ready: true
       });
@@ -212,7 +221,7 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
     }
     // The model cannot retrieve these cases while proposing its edit.
     const cases = "import { test, strictEqual } from 'std:testing';\nimport { quote } from './quote.tsr';\ntest('quote policy', () => { strictEqual(quote(-2, true), 0); strictEqual(quote(0, false), 0); strictEqual(quote(4, true), 29); strictEqual(quote(4, false), 13); });";
-    unwrap(writeTextFile(folder + '/quote.test.tsr', cases));
+    unwrap(writeTextFile(folder + '/quote.test.tsr', combined ? cases.replace('29);', '35);').replace('13);', '17);') : cases));
     const result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
       cwd: clone(folder), env: [{
         name: 'TSRUST_TEST_REPORTER', value: 'plain'
