@@ -1170,6 +1170,10 @@ test('a long chat retains its transcript and sends all complete turns beyond the
     }, {
       role: 'assistant', request: 'first', text: 'orphaned if sent alone'
     }, {
+      role: 'user', request: 'cancelled', text: 'Question with a cancelled answer', workspaceExcerpt: 'Stale test source'
+    }, {
+      role: 'assistant', request: 'cancelled', text: 'Half an answer', status: 'cancelled'
+    }, {
       role: 'user', request: 'second', text: 'Keep this question'
     }, {
       role: 'assistant', request: 'second', text: 'Keep this answer'
@@ -1185,7 +1189,8 @@ test('a long chat retains its transcript and sends all complete turns beyond the
   strictEqual(messages[2].content, 'Keep this question');
   strictEqual(messages[3].content, 'Keep this answer');
   strictEqual(messages[4].content, 'Follow up');
-  strictEqual(state.get().history.chats[0].messages.length, 6);
+  strictEqual(state.get().history.chats[0].messages.length, 8);
+  strictEqual(state.get().history.chats[0].messages[3].text, 'Half an answer');
   strictEqual(state.get().history.chats[0].messages[0].text.length, 132000);
   strictEqual(state.get().notice.includes('Context was shortened'), false);
   const frame: ModelRequest = {

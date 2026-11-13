@@ -13,7 +13,16 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
   for (let index = history.length - 1; index >= 0; index -= 1) {
     const entry = history[index];
 
-    if (entry.text === '' || entry.status === 'rejected' || (entry.role === 'user' && entry.status !== undefined && entry.status !== 'complete')) continue;
+    if (entry.text === '' || (entry.status !== undefined && entry.status !== 'complete')) continue;
+
+    if (index !== lastUser) {
+      const position = index + (entry.role === 'user' ? 1 : -1);
+
+      if (position < 0 || position >= history.length) continue;
+      const partner = history[position];
+
+      if (partner.role === entry.role || partner.request !== entry.request || partner.text === '' || (partner.status !== undefined && partner.status !== 'complete')) continue;
+    }
 
     const excerpt = entry.workspaceExcerpt ?? '';
     const editing = editPrompt !== undefined && index === lastUser;

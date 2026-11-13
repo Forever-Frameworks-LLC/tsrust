@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat transcript completeness
+
+A two-turn native 1.5B conversation retrieved the terminal session example, correctly identified the remaining session as second, and then correctly gave the fourth session's ordinal as 4. Inspecting prompt assembly also found that cancelled partial assistant output and the associated question could enter later prompts. Generation now includes prior exchanges only when the adjacent user and assistant have matching request identities, nonempty text and completed status (legacy messages without a status remain eligible). The current user question remains eligible while its response is pending. The long-transcript native regression verifies that a cancelled partial answer stays in the stored chat while the next inference frame retains both completed exchanges and the follow-up. Regenerated the bundled test corpus and passed 36 tests across AI actions and offline knowledge. No change to token limits.
+
 ## Bundled Studio test examples
 
 Extended the offline FTS5 corpus with Studio application and model-host test suites. Excluded the retrieval oracle itself so expected search answers cannot become search hits. The rebuilt database has 1,733 passages across 335 files, including 184 passages across 30 Studio files. The native retrieval suite passed against the embedded asset, including prior language, SQLite and GPUI cases. In an isolated Studio window using 1.5B, a natural-language question about the active terminal after removing the third session retrieved apps/studio/tests/terminal-sessions.test.tsr:16. The persisted source excerpt included the real session transitions. The answer correctly identified 'second', with extra prose. The dev watcher rebuilt and launched PID 33952. This verifies one grounded answer and does not establish general coding accuracy.
