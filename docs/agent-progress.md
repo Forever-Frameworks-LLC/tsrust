@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio compiler error-effect traversal
+
+An 8-second sample of optimized Studio main checking showed expression_effect and own_expression_effect as the two most frequent active top frames (187 and 85 observations). The expression traversal now schedules child visits in reverse stack order and visits the first fixed child directly, avoiding reversal of queued continuation frames. The previous list payload order, reachable optional branches and expression annotations are covered by the error-effect regressions (54 passed, 0.32 s execution, 1m54s setup). Whole-project formatting reported zero changes.
+
+Same checkout, sequential optimized CLI checks of chat-panel.tsrx: old 10.56 s, new 9.99 s, new 8.95 s, old 9.70 s. Identical 131395 output bytes by SHA-256. One full Studio main comparison: old 92.67 s, new 84.73 s, identical 418896 output bytes by SHA-256. These are local wall-time observations for checking, not a release benchmark or a measured save-to-window change. The existing dev session retains its loaded compiler. Full semantic checking still dominates the observed rebuild.
+
 ## Read grant on attachment replay
 
 Restoring a prior chat exchange could send attached file and skill snapshots even when workspace read access was absent. Prompt assembly now uses plain message text for that request. The native action regression sends three explicitly selected snapshots under a grant (unsaved file, local skill and trusted outside file), completes the reply, removes the read grant and verifies the next frame contains only the original question, reply and follow-up. Stored history retains all three attachments. The AI action and offline knowledge suites passed 36/36. This controls future snapshot inclusion; conversation text already supplied by a user or returned by a model remains ordinary dialogue.

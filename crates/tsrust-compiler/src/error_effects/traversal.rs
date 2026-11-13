@@ -28,30 +28,44 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                 value.own_may_fail = own.may_fail();
                 value.effects_checked = true;
                 let reverse = matches!(&value.kind, ExprKind::SpreadCall(_) | ExprKind::Array(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..) | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Template(_) | ExprKind::Sequence(_) | ExprKind::Record(_));
-                let children = pending.len();
                 match &mut value.kind {
-                    ExprKind::SpreadCall(plan) => pending.extend(plan.expressions_mut().map(Work::Visit)),
-                    ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value) | ExprKind::Unary { value, .. } | ExprKind::Inject { value, .. } | ExprKind::Project { value, .. } | ExprKind::Update { target: value, .. } | ExprKind::Field(value, _) => pending.push(Work::Visit(value)),
-                    ExprKind::Optional { base, body, branch, .. } => {
-                        pending.push(Work::Visit(base));
-                        if *branch != NullishBranch::Absent { pending.push(Work::Visit(body)); }
-                    }
-                    ExprKind::Index(base, index) | ExprKind::Binary { left: base, right: index, .. } => pending.extend([Work::Visit(base), Work::Visit(index)]),
-                    ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. } | ExprKind::CoalesceAssign { target, value, .. } | ExprKind::LogicalAssign { target, value, .. } => pending.extend([Work::Visit(target), Work::Visit(value)]),
-                    ExprKind::Conditional { predicate, consequent, alternate } => pending.extend([Work::Visit(predicate), Work::Visit(consequent), Work::Visit(alternate)]),
-                    ExprKind::Call(callee, args) => { pending.push(Work::Visit(callee)); pending.extend(args.iter_mut().map(Work::Visit)); }
-                    ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().map(Work::Visit)),
-                    ExprKind::Record(fields) => pending.extend(fields.iter_mut().map(|(_, value)| Work::Visit(value))),
-                    // Creating a closure does not execute its source body.
                     ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {
                         value.may_fail = value.own_may_fail;
                         if pending.is_empty() { return own; }
                         if value.may_fail { results.push(own); }
-                        continue;
+                    }
+                    kind => {
+                        pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
+                        // Schedule in reverse so children execute left to right without moving queued frames.
+                        match kind {
+                            ExprKind::SpreadCall(plan) => pending.extend(plan.expressions_mut().rev().map(Work::Visit)),
+                            ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value) | ExprKind::Unary { value, .. } | ExprKind::Inject { value, .. } | ExprKind::Project { value, .. } | ExprKind::Update { target: value, .. } | ExprKind::Field(value, _) => current = Some(Work::Visit(value)),
+                            ExprKind::Optional { base, body, branch, .. } => {
+                                if *branch != NullishBranch::Absent { pending.push(Work::Visit(body)); }
+                                current = Some(Work::Visit(base));
+                            }
+                            ExprKind::Index(base, index) | ExprKind::Binary { left: base, right: index, .. } => {
+                                pending.push(Work::Visit(index));
+                                current = Some(Work::Visit(base));
+                            }
+                            ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. } | ExprKind::CoalesceAssign { target, value, .. } | ExprKind::LogicalAssign { target, value, .. } => {
+                                pending.push(Work::Visit(value));
+                                current = Some(Work::Visit(target));
+                            }
+                            ExprKind::Conditional { predicate, consequent, alternate } => {
+                                pending.extend([Work::Visit(alternate), Work::Visit(consequent)]);
+                                current = Some(Work::Visit(predicate));
+                            }
+                            ExprKind::Call(callee, args) => {
+                                pending.extend(args.iter_mut().rev().map(Work::Visit));
+                                current = Some(Work::Visit(callee));
+                            }
+                            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().rev().map(Work::Visit)),
+                            ExprKind::Record(fields) => pending.extend(fields.iter_mut().rev().map(|(_, value)| Work::Visit(value))),
+                            _ => unreachable!("leaf expression handled above"),
+                        }
                     }
                 }
-                pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
-                pending[children..].reverse();
             }
         }
     }
