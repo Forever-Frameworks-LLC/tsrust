@@ -55,6 +55,7 @@ export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly
       return Err(error);
     },
     Ok(files) => {
+      if (query === '') return Ok(files);
       const normalized = query.toLowerCase();
       return Ok(files.filter((file) => matchesFile(root, file, normalized)));
     }
@@ -76,16 +77,22 @@ export function showFileSearch(context: ReadOnly<SearchActionContext>, root: Rea
   if (context.allowRead !== true) return Err('Workspace search is not permitted for this task.');
   const commandSelectionEnd = requested.startsWith('>') ? requested.length : -1;
 
-  match (findFiles(context, root, '')) {
-    Err(error) => {
-      return Err(error);
-    },
-    Ok(files) => {
-      search.set({
-        root: clone(root), query: requested, files, open: true
-      });
+  const next: FileSearchState = {
+    root: clone(root), query: requested, files: [], open: true
+  };
+
+  if (commandSelectionEnd < 0) {
+    match (findFiles(context, root, '')) {
+      Ok(files) => {
+        next.files = files;
+      },
+      Err(error) => {
+        return Err(error);
+      }
     }
   }
+
+  search.set(next);
 
   if (context.focusEditor) {
     controlInput('file-search', 'focus');
@@ -96,6 +103,26 @@ export function showFileSearch(context: ReadOnly<SearchActionContext>, root: Rea
       });
     } else {
       controlInput('file-search', 'selectAll');
+    }
+  }
+
+  return Ok();
+}
+
+export function updateFileQuery(next: FileSearchState, query: string): Result<void, string> {
+  if (next.open !== true) return Ok();
+  const wasCommand = next.query.startsWith('>');
+  next.query = query;
+
+  if (next.query.startsWith('>')) next.files = [];
+  else if (wasCommand) {
+    match (projectFiles(clone(next.root))) {
+      Ok(files) => {
+        next.files = files;
+      },
+      Err(error) => {
+        return Err(error);
+      }
     }
   }
 

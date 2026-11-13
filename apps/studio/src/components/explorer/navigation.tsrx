@@ -20,6 +20,7 @@ import {
   fileMatches,
   fileSearchLabel,
   showFileSearch,
+  updateFileQuery,
   closeFileSearch,
   openFileSearchResult
 } from '../../lib/explorer/search-actions.tsr';
@@ -166,7 +167,18 @@ export function FileSearch(
             placeholder={message("Search files or type > for commands")}
             onQuery={(query) => {
               const next = search.get();
-              next.query = clone(query);
+
+              if (next.open !== true || next.root !== workspace.get().root) return;
+
+              match (updateFileQuery(next, clone(query))) {
+                Ok(_) => {},
+                Err(error) => {
+                  const current = workspace.get();
+                  current.error = error;
+                  workspace.set(current);
+                }
+              }
+
               search.set(next);
             }}
             onSelect={(path) => {

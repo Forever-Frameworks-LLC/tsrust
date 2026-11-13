@@ -11,7 +11,7 @@ import { separator } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
-import { SearchActionContext, FileSearchState, fileSearchLabel } from '../src/lib/explorer/search-actions.tsr';
+import { SearchActionContext, FileSearchState, fileSearchLabel, updateFileQuery } from '../src/lib/explorer/search-actions.tsr';
 import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
 import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
 import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
@@ -171,7 +171,7 @@ test('filename search shares explicit read presentation and open actions without
       root: clone(allowedRoot), query: '', files: []
     });
     const context: SearchActionContext = {
-      workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch
+      workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch: fileSearch.handle()
     };
     const query = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), query: 'SRC/É MAIN'
@@ -225,6 +225,13 @@ test('filename search shares explicit read presentation and open actions without
     unwrap(invokeEditorTool(context, 'show_command_palette', commandQuery));
     deniedFileSearch(context, 'open_file_search_result', target);
     strictEqual(context.fileSearch?.get().query ?? '', '>terminal');
+    const switching = fileSearch.get();
+    strictEqual(switching.files.length, 0);
+    unwrap(writeTextFile(root + '/late.txt', 'new'));
+    unwrap(updateFileQuery(switching, 'late'));
+    strictEqual(switching.files.some((file) => file.name === 'late.txt'), true);
+    unwrap(updateFileQuery(switching, '>'));
+    strictEqual(switching.files.length, 0);
     strictEqual(context.fileSearch?.get().open ?? false, true);
     unwrap(invokeEditorTool(context, 'close_command_palette', JSON.stringify({
       root: clone(context.allowedRoot ?? '')
