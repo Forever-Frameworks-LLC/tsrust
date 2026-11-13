@@ -1,5 +1,5 @@
 import { referenceContext } from '../src/services/ai/context.tsr';
-import { recallTerms, turnMentions, excerptTurn, ChatMessage } from '../src/lib/ai/prompts.tsr';
+import { recallTerms, turnMentions, excerptTurn, excerptWorkspace, ChatMessage } from '../src/lib/ai/prompts.tsr';
 import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
 import { LanguageReferences } from '../src/lib/language/references.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
@@ -807,6 +807,8 @@ test('a long chat retains its transcript and sends all complete turns beyond the
   const compact = repeatFrame.messages ?? [];
   strictEqual(compact[0].content, 'First');
   strictEqual(compact[2].content.includes('source snapshot'), true);
+  strictEqual(repeatFrame.workspaceStart ?? -1, 'Follow up\n\n'.length);
+  strictEqual(editFrame.workspaceStart === undefined, true);
   const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
   const exact = 'x'.repeat(capacity);
   strictEqual(unwrap(fitGeneration(frame, [{
@@ -852,6 +854,7 @@ test('only a matching generation rejection ends the request and allows a retry',
 test('compaction selects complete exchanges by exact code identifiers', () => {
   const terms = recallTerms('Compare caféFee and `montant` against MIN_RATE.');
   strictEqual(terms.size, 3);
+  strictEqual(recallTerms('Explain increment(n).').has('increment'), true);
   const messages: ChatMessage[] = [{
     role: 'user', content: 'caféFeeExtra and montantTotal are unrelated.'
   }, {
@@ -867,4 +870,11 @@ test('compaction selects complete exchanges by exact code identifiers', () => {
   strictEqual(excerpt[1].role === 'assistant', true);
   strictEqual(excerpt[1].content, '[Excerpt]\nUse MIN_RATE.');
   strictEqual(recallTerms('Tell me more about it.').size, 0);
+});
+
+test('workspace overflow keeps selected context and source attribution', () => {
+  const prefix = 'How much is caféFee?\n\nUser-selected context: 🦀\n\n';
+  const content = prefix + 'Active editor file: main.tsr\n// unrelated\ncaféFeeExtra();\n\nReferenced workspace file: rules.tsr\nconst caféFee = 73;';
+  strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is caféFee?')), prefix + '[Workspace excerpt]\nReferenced workspace file: rules.tsr\nconst caféFee = 73;');
+  strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is OTHER_FEE?')), '');
 });

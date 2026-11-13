@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Latest-turn workspace compaction
+
+Studio records where automatic workspace context starts in ordinary model requests.
+If the latest turn alone exceeds the tokenizer window, the host tries matching
+identifier lines with source headings, retaining the prompt and explicit attachments.
+Edit requests retain exact source. A context error remains possible when the
+selection cannot fit or there are no matching symbols. A normal function call
+such as increment(n) now qualifies for identifier recall.
+
+Direct two-turn check with the configured Qwen2.5-Coder-1.5B host, 35000 unrelated
+words and a crateFee function returning 73: first answer 73, follow-up adding one
+74. Both requests emitted compacted. macOS time -l observed maximum RSS
+2172862464 bytes and peak memory footprint 1191348696 bytes over 4.16 s.
+This single identifier-based scenario does not establish optimal selection
+for prose, indirect dependencies, or multiline calculations.
+
 ## Import retrieval from code expressions
 
 Chat matches imported local names using whole Unicode identifier tokens in

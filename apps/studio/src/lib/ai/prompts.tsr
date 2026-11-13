@@ -32,7 +32,7 @@ export function recallTerms(question: ReadOnly<string>): Set<string> {
     const word = unwrap(toUtf8(unwrap(view(bytes, token.start, token.end))));
     const quoted = token.start > 0 && unwrap(at(bytes, token.start - 1)) === 96 && question.startsWith('`', token.end);
 
-    if (quoted || word.includes('_') || internalCapital.isMatch(word)) terms.add(word);
+    if (quoted || question.startsWith('(', token.end) || word.includes('_') || internalCapital.isMatch(word)) terms.add(word);
   }
 
   return terms;
@@ -80,4 +80,24 @@ function mentions(content: ReadOnly<string>, terms: ReadOnly<Set<string>>, ident
   }
 
   return false;
+}
+
+// Only automatically attached workspace text can be excerpted on the newest turn.
+export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>): string {
+  if (start < 2 || start >= content.length || terms.size === 0 || !content.startsWith('\n\n', start - 2)) return '';
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const selected: string[] = [];
+  let heading = '';
+
+  for (const line of content.slice(start).split('\n')) {
+    if (line.startsWith('Active editor file: ') || line.startsWith('Referenced workspace file: ') || line.startsWith('Bundled Tsrust reference: ') || line.startsWith('Last Find References results for ') || line === 'Workspace files:') {
+      heading = clone(line);
+    } else if (mentions(line, terms, identifiers)) {
+      if (heading !== '') selected.push(clone(heading));
+      heading = '';
+      selected.push(clone(line));
+    }
+  }
+
+  return selected.length === 0 ? '' : content.slice(0, start) + '[Workspace excerpt]\n' + selected.join('\n');
 }

@@ -6,7 +6,8 @@ import {
   ChatMessage,
   recallTerms,
   turnMentions,
-  excerptTurn
+  excerptTurn,
+  excerptWorkspace
 } from '../../src/lib/ai/prompts.tsr';
 import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 import {
@@ -38,7 +39,7 @@ function publish(
 }
 
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
-  const messages = request.messages;
+  let messages = request.messages;
   let prompt = messages === undefined ? chatPrompt(request.prompt) : conversationPrompt(messages);
 
   if (messages !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
@@ -47,8 +48,22 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     for (let index = 0; index < messages.length; index += 1) {
       if (messages[index].role === 'user') starts.push(index);
     }
-    // Find the longest whole-turn suffix that leaves room for output.
+
     let low = 1;
+    const latest = starts.length === 0 ? -1 : starts[starts.length - 1];
+    const boundary = request.workspaceStart;
+
+    if (boundary !== undefined && latest === messages.length - 1 && latest >= 0 && !unwrap(qwen_prompt_fits(model, conversationPrompt(messages.slice(latest))))) {
+      const shorter = excerptWorkspace(messages[latest].content, boundary, recallTerms(request.prompt));
+
+      if (shorter !== '') {
+        messages[latest].content = shorter;
+        prompt = conversationPrompt(messages);
+
+        if (unwrap(qwen_prompt_fits(model, prompt))) low = 0;
+      }
+    }
+    // Find the longest whole-turn suffix that leaves room for output.
     let high = starts.length;
 
     while (low < high) {
