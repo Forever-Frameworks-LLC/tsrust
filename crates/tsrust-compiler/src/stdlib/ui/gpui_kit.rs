@@ -84,9 +84,10 @@ use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize,
 use super::commands::{self, Command};
 use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, DefinitionProvider, ReferencesProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
 
-struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64 }
+struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64, inline: bool, language: bool }
 impl EditorLanguageProvider {
     fn request(&self, method: &str, text: &Rope, params: serde_json::Value, cx: &mut App) -> Task<serde_json::Value> {
+        let inline = method == "textDocument/inlineCompletion";
         let (root,target,method,text)=(self.root.clone(),self.target,method.to_owned(),text.to_string());
         // A programmatic edit may still borrow Root. Enter it on the next task poll.
         cx.spawn(async move |cx| {
@@ -94,10 +95,17 @@ impl EditorLanguageProvider {
                 let (id, mut reply) = super::editor_language::Requests::begin(&root.language_requests,target,&method,text.clone());
                 let owner = root.command_owner.context();
                 reply.on_cancel = Some(Box::new(move || {let _scope=owner();let _=commands::command("editor-language-wake","{}");}));
-                root.emit(target,"languageRequest",serde_json::json!({"id":id,"method":method,"params":params,"text":text}).to_string(),cx);
-                reply
+                if inline {
+                    let offset=params.as_u64()? as usize;
+                    let (prefix,suffix)=text.split_at_checked(offset)?;
+                    root.emit(target,"inlineCompletion",serde_json::json!({"id":id,"prefix":prefix,"suffix":suffix}).to_string(),cx);
+                } else {
+                    root.emit(target,"languageRequest",serde_json::json!({"id":id,"method":method,"params":params,"text":text}).to_string(),cx);
+                }
+                Some(reply)
             });
-            let Ok(reply)=result else{return serde_json::Value::Null};
+            let Ok(Some(reply))=result else{return serde_json::Value::Null};
+            if inline {return reply.await;}
             let mut reply=Box::pin(reply);
             let timeout=super::editor_language::timeout_result(&method);
             let mut timer=Box::pin(cx.background_executor().timer(std::time::Duration::from_secs(5)));
@@ -139,8 +147,20 @@ impl SignatureHelpProvider for EditorLanguageProvider {
 }
 impl CompletionProvider for EditorLanguageProvider {
     fn completions(&self, text: &Rope, offset: usize, context: LanguageTypes::CompletionContext, _: &mut Window, cx: &mut App) -> Task<LanguageResult<LanguageTypes::CompletionResponse>> {
+        if !self.language {return Task::ready(Ok(LanguageTypes::CompletionResponse::Array(vec![])));}
         let task=self.request("textDocument/completion",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null),"context":context}),cx);
         cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/completion",&mut value); Ok(if value.is_null(){LanguageTypes::CompletionResponse::Array(vec![])}else{serde_json::from_value(value)?})})
+    }
+    fn inline_completion(&self, text: &Rope, offset: usize, _: LanguageTypes::InlineCompletionContext, _: &mut Window, cx: &mut App) -> Task<LanguageResult<LanguageTypes::InlineCompletionResponse>> {
+        if !self.inline {return Task::ready(Ok(LanguageTypes::InlineCompletionResponse::Array(vec![])));}
+        let task=self.request("textDocument/inlineCompletion",text,serde_json::json!(offset),cx);
+        cx.spawn(async move |_| {
+            let result=task.await;
+            let items=result.as_str().filter(|text|!text.is_empty()).map(|text| LanguageTypes::InlineCompletionItem {
+                insert_text:text.to_owned(),filter_text:None,range:None,command:None,insert_text_format:None,
+            }).into_iter().collect();
+            Ok(LanguageTypes::InlineCompletionResponse::Array(items))
+        })
     }
     fn is_completion_trigger(&self, _: usize, text: &str, _: &mut App) -> bool {
         text.chars().count()==1 && text.chars().all(|ch|ch.is_alphanumeric() || matches!(ch,'_'|'.'|':'))
@@ -2062,9 +2082,10 @@ impl Root {
                     });
                     let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
                     let has_references = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageReferences"));
-                    if has_language {
-                        let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id});
-                        state.update(cx, |state,_| {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().completion_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider.clone());if has_references {state.lsp_mut().references_provider=Some(provider);}});
+                    let inline=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="inlineCompletion"));
+                    if has_language || inline {
+                        let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id,inline,language:has_language});
+                        state.update(cx, |state,_| {state.lsp_mut().completion_provider=Some(provider.clone());if has_language {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider.clone());}if has_references {state.lsp_mut().references_provider=Some(provider);}});
                     }
                     let root=cx.entity().downgrade();
                     state.update(cx, |state,_| {

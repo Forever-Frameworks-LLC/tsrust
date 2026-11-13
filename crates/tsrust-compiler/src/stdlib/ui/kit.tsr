@@ -7783,6 +7783,8 @@ export interface CodeEditorProps {
   onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
   /** Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers. */
   onLanguageRequest?: Owned<Function<void, [request: ReadOnly<string>]>>;
+  /** Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions. */
+  onInlineCompletion?: Owned<Function<void, [request: ReadOnly<string>]>>;
   /** Receives the window-scoped request id when a native language read is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored. */
   onLanguageCancel?: Owned<Function<void, [request: int]>>;
   /** Receives LSP ShowDocumentParams JSON for Go to Definition. The host must validate the file URI and UTF-16 selection and open the target. Native URL/local-buffer fallbacks are consumed even when omitted; omission disables navigation delivery. */
@@ -8070,6 +8072,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (event_onLanguageRequest !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'languageRequest', event_onLanguageRequest));
+  }
+
+  const event_onInlineCompletion = props.onInlineCompletion;
+
+  if (event_onInlineCompletion !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'inlineCompletion', event_onInlineCompletion));
   }
 
   const event_onLanguageCancel = props.onLanguageCancel;

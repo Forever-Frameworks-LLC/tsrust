@@ -22,6 +22,14 @@ the exact insertion first after compaction. The same host then produced second
 without compaction. The focused Metal service test passed in 2.54 seconds.
 The dev host binary matches that build.
 
+Studio now routes debounced CodeEditor requests to a ready local model and
+returns the insertion to the native GPUI ghost-text provider. Requests are
+window-scoped and cancel by identity. The editor checks focus, revision,
+selection and caret before showing the reply. Typing does not load a stopped
+model. Studio compiled and its AI actions suite passed 28/28 in 197 ms,
+including prefix/suffix routing and matching cancellation. Three native
+request-lifecycle tests passed. Interactive Tab acceptance remains pending.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered

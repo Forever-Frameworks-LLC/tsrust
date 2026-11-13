@@ -471,6 +471,7 @@ impl InputBaseState<EditorMode> {
         };
 
         let offset = self.cursor();
+        let revision = self.document_revision;
         let text = self.text.clone();
         let debounce = provider.inline_completion_debounce();
         let background_executor = cx.background_executor().clone();
@@ -482,7 +483,10 @@ impl InputBaseState<EditorMode> {
             // Now fetch the inline completion after the debounce period
             let task = editor.update_in(cx, |editor, window, cx| {
                 // Check if cursor has moved during debounce
-                if editor.cursor() != offset {
+                if editor.cursor() != offset || editor.document_revision != revision
+                    || !editor.focus_handle.is_focused(window) || editor.disabled || editor.readonly
+                    || editor.ime_marked_range.is_some() || !editor.selections.is_single()
+                    || !editor.active_selection().is_empty() {
                     return None;
                 }
 
@@ -505,9 +509,12 @@ impl InputBaseState<EditorMode> {
 
             let response = task.await?;
 
-            editor.update_in(cx, |editor, _window, cx| {
+            editor.update_in(cx, |editor, window, cx| {
                 // Only apply if cursor still hasn't moved
-                if editor.cursor() != offset {
+                if editor.cursor() != offset || editor.document_revision != revision
+                    || !editor.focus_handle.is_focused(window) || editor.disabled || editor.readonly
+                    || editor.ime_marked_range.is_some() || !editor.selections.is_single()
+                    || !editor.active_selection().is_empty() {
                     return;
                 }
 

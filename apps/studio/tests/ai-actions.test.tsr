@@ -34,7 +34,15 @@ import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } f
 import { fitGeneration } from '../src/lib/ai/generation.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
-import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
+import {
+  initialAiState,
+  invokeModelTool,
+  requestInline,
+  cancelInline,
+  pollModel,
+  AiContext,
+  AiState
+} from '../src/services/ai/actions.tsr';
 import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
 
 function modelConfig(): StudioConfig {
@@ -67,6 +75,34 @@ function send(context: ReadOnly<AiContext>, prompt: string): void {
     chat: context.state.get().history.active, prompt
   })));
 }
+
+test('inline inference uses both sides of the caret and cancels by editor request id', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(4);
+  const sender = commands.sender();
+  requestInline(state, sender, '{"id":37,"prefix":"🦀return ","suffix":"; }"}');
+  const generate = unwrap(commands.tryReceive());
+  strictEqual(generate.kind, 'complete-code');
+  strictEqual(generate.prompt, '🦀return ');
+  strictEqual(generate.suffix, '; }');
+  strictEqual(state.get().phase, 'inline');
+  cancelInline(state, sender, 36);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      strictEqual(true, false);
+    },
+    Err(_) => {}
+  }
+
+  cancelInline(state, sender, 37);
+  const cancel = unwrap(commands.tryReceive());
+  strictEqual(cancel.kind, 'cancel');
+  strictEqual(cancel.id, generate.id);
+  strictEqual(state.get().history.chats.length, 0);
+});
 
 test('Unicode composer input and first-message titles preserve scalar boundaries', () => {
   strictEqual(contextTrigger('日本語🦀'), '');

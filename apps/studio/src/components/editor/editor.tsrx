@@ -24,6 +24,8 @@ import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatt
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState, requestNativeLanguage, cancelNativeLanguage } from '../../services/lsp/controller.tsr';
+import { ModelRequest } from '../../lib/ai/protocol.tsr';
+import { AiState, requestInline, cancelInline } from '../../services/ai/actions.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { ImagePreview } from './image-preview.tsrx';
 
@@ -35,6 +37,8 @@ export function FilePanel(
   focusQueue: Signal<QueuedFormatting[]>,
   language: Signal<LanguageState>,
   messages: Sender<LanguageMessage>,
+  ai: Signal<AiState>,
+  model: Sender<ModelRequest>,
   references: Signal<LanguageReferences>,
   panel: Signal<string>
 ): Node {
@@ -44,6 +48,7 @@ export function FilePanel(
   const referencePath = clone(path);
   const languageRequests = messages.share();
   const languageCancels = messages.share();
+  const inlineCancels = model.share();
   const focusPath = clone(path);
   const blurPath = clone(path);
   const labelPath = clone(path);
@@ -126,6 +131,9 @@ export function FilePanel(
             id={clone(file.document.path)}
             language={extname(file.document.path).slice(1)}
             value={text.get()}
+            onInlineCompletion={(request) => {
+              requestInline(ai, model, request);
+            }}
             onLanguageRequest={(request) => {
               requestNativeLanguage(
                 workspace,
@@ -151,6 +159,7 @@ export function FilePanel(
               navigateNativeLanguage(workspace, recovery, location);
             }}
             onLanguageCancel={(request) => {
+              cancelInline(ai, inlineCancels, request);
               cancelNativeLanguage(language, languageCancels, request);
             }}
             onChange={(value) => {

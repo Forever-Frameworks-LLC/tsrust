@@ -265,6 +265,8 @@ function App(
     formatFocus,
     languageState,
     languageMessages.sender(),
+    aiState,
+    modelRequests.sender(),
     references,
     panel,
     filenameSearch
@@ -433,7 +435,7 @@ function App(
   return (
     <View className="flex-col size-full bg-background text-foreground">
       <Ticker
-        interval={aiState.get().phase === 'generating' ? 50 : aiState.get().phase === 'ready' ? 1000 : 150}
+        interval={(aiState.get().phase === 'generating' || aiState.get().phase === 'inline') ? 50 : aiState.get().phase === 'ready' ? 1000 : 150}
         running={aiState.get().phase !== 'stopped'}
         onTick={(_frame) => {
           pollModel(aiContext, modelUpdates);

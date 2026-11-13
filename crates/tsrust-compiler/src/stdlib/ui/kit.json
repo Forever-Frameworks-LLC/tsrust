@@ -5292,6 +5292,12 @@
           "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
         },
         {
+          "prop": "onInlineCompletion",
+          "value": "string",
+          "param": "request",
+          "doc": "Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions."
+        },
+        {
           "prop": "onLanguageCancel",
           "value": "int",
           "param": "request",

@@ -1,6 +1,6 @@
 import { separator } from 'std:path';
 import { Sender, Channel } from 'std:futures';
-import { Signal, translate } from 'std:ui';
+import { Signal, answerEditorLanguage, translate } from 'std:ui';
 
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { knowledgeQuestion, searchKnowledge } from './knowledge.tsr';
@@ -29,6 +29,7 @@ import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
 import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 
 export interface AiState {
+  inlineRequest?: int;
   editTarget?: EditBatch;
   review?: EditBatch;
   undoEdit?: EditBatch;
@@ -498,7 +499,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
         next.phase = 'starting';
       } else if (name === 'local_model_stop') {
-        if (!['starting', 'ready', 'generating'].includes(next.phase)) return Err('The local model is not running.');
+        if (!['starting', 'ready', 'generating', 'inline'].includes(next.phase)) return Err('The local model is not running.');
         request.kind = 'shutdown';
         next.phase = 'stopping';
       } else {
@@ -530,6 +531,46 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
   }
 }
 
+interface InlineRequest {
+  id: int;
+  prefix: string;
+  suffix: string;
+}
+
+export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, payload: ReadOnly<string>): void {
+  const request = JSON.parse<InlineRequest>(payload, {
+    maxBytes: payload.length * 4 + 1, maxDepth: 4, maxEntries: 8, maxNodes: 16
+  });
+  const next = state.get();
+
+  if (next.phase === 'ready') {
+    match (commands.trySend({
+      kind: 'complete-code', id: 'inline:' + request.id.toString(), prompt: request.prefix, suffix: request.suffix, maxTokens: 0
+    })) {
+      Ok(_) => {
+        next.inlineRequest = request.id;
+        next.phase = 'inline';
+        state.set(next);
+        return;
+      },
+      Err(_) => {}
+    }
+  }
+
+  answerEditorLanguage(request.id, 'null', (_delivery) => {});
+}
+
+export function cancelInline(state: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, id: int): void {
+  if (state.get().inlineRequest === id) {
+    match (commands.trySend({
+      kind: 'cancel', id: 'inline:' + id.toString(), prompt: '', maxTokens: 0
+    })) {
+      Ok(_) => {},
+      Err(_) => {}
+    }
+  }
+}
+
 export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>): void {
   const next = context.state.get();
   let changed = false;
@@ -542,6 +583,18 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
       },
       Ok(update) => {
         changed = true;
+
+        const inline = next.inlineRequest;
+
+        if (inline !== undefined && (update.id === 'inline:' + inline.toString() || update.kind === 'stopped')) {
+          if (update.kind === 'prefix' || update.kind === 'compacted') continue;
+          answerEditorLanguage(inline, update.kind === 'complete' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
+          next.inlineRequest = undefined;
+
+          if (next.phase === 'inline') next.phase = 'ready';
+
+          if (update.kind !== 'stopped') continue;
+        }
 
         if (update.kind === 'ready') {
           if (next.phase === 'starting') next.phase = 'ready';

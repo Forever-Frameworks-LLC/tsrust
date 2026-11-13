@@ -18,6 +18,8 @@ import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState } from '../../services/lsp/controller.tsr';
+import { ModelRequest } from '../../lib/ai/protocol.tsr';
+import { AiState } from '../../services/ai/actions.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { CloseEditorsState, CloseEditorsDialog, requestCloseEditors } from '../editor/close-editors.tsrx';
 import { FilePanel } from '../editor/editor.tsrx';
@@ -31,6 +33,8 @@ export function EditorWorkspace(
   focusQueue: Signal<QueuedFormatting[]>,
   language: Signal<LanguageState>,
   messages: Sender<LanguageMessage>,
+  ai: Signal<AiState>,
+  model: Sender<ModelRequest>,
   references: Signal<LanguageReferences>,
   panel: Signal<string>,
   fileSearch: Signal<FileSearchState>
@@ -43,6 +47,8 @@ export function EditorWorkspace(
     focusQueue,
     language,
     messages.share(),
+    ai,
+    model.share(),
     references,
     panel
   );

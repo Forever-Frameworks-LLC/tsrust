@@ -14,7 +14,7 @@ struct Pending {
     target: u64,
     method: String,
     text: String,
-    deadline: Instant,
+    deadline: Option<Instant>,
     slot: Rc<RefCell<Slot>>,
 }
 #[derive(Default)]
@@ -57,12 +57,12 @@ impl Requests {
         for id in previous {state.cancel(id);}
         let id=NEXT_REQUEST.with(|next| {let id=next.get().checked_add(1).filter(|id|*id<=i64::MAX as u64).expect("language request identities exhausted");next.set(id);id});
         let slot = Rc::new(RefCell::new(Slot::default()));
-        state.pending.insert(id, Pending {target, method:method.into(), text, deadline:Instant::now()+Duration::from_secs(5), slot:slot.clone()});
+        state.pending.insert(id, Pending {target, method:method.into(), text, deadline:(method!="textDocument/inlineCompletion").then(||Instant::now()+Duration::from_secs(5)), slot:slot.clone()});
         (id, Reply {id, requests:Rc::downgrade(requests), slot, on_cancel:None})
     }
     fn cancel(&mut self, id: u64) {
         if let Some(pending) = self.pending.remove(&id) {
-            let result=if pending.deadline<=Instant::now(){timeout_result(&pending.method)}else{Value::Null};
+            let result=if pending.deadline.is_some_and(|d|d<=Instant::now()){timeout_result(&pending.method)}else{Value::Null};
             pending.slot.borrow_mut().finish(result);
             self.cancelled.push((pending.target, id));
         }
@@ -75,7 +75,7 @@ impl Requests {
         current
     }
     pub(crate) fn cancellations(&mut self, mounted: impl Fn(u64)->bool) -> Vec<(u64,u64)> {
-        let expired = self.pending.iter().filter(|(_,p)|p.deadline <= Instant::now() || !mounted(p.target)).map(|(&id,_)|id).collect::<Vec<_>>();
+        let expired = self.pending.iter().filter(|(_,p)|p.deadline.is_some_and(|d|d<=Instant::now()) || !mounted(p.target)).map(|(&id,_)|id).collect::<Vec<_>>();
         for id in expired {self.cancel(id);}
         std::mem::take(&mut self.cancelled)
     }
@@ -197,16 +197,20 @@ mod tests {
         drop(reply);
         assert_eq!(requests.borrow_mut().cancellations(|_|true), vec![(1,id)]);
         let (id, mut reply) = Requests::begin(&requests, 2, "hover", "current".into());
-        requests.borrow_mut().pending.get_mut(&id).unwrap().deadline = Instant::now();
+        requests.borrow_mut().pending.get_mut(&id).unwrap().deadline = Some(Instant::now());
         assert_eq!(requests.borrow_mut().cancellations(|_|true), vec![(2,id)]);
         assert_eq!(poll(&mut reply), Poll::Ready(Value::Null));
         let (id, mut reply) = Requests::begin(&requests, 3, "hover", "current".into());
         assert_eq!(requests.borrow_mut().cancellations(|_|false), vec![(3,id)]);
         assert_eq!(poll(&mut reply), Poll::Ready(Value::Null));
         let (id,mut reply)=Requests::begin(&requests,4,"textDocument/references","current".into());
-        requests.borrow_mut().pending.get_mut(&id).unwrap().deadline=Instant::now();
+        requests.borrow_mut().pending.get_mut(&id).unwrap().deadline=Some(Instant::now());
         assert_eq!(requests.borrow_mut().cancellations(|_|true),vec![(4,id)]);
         assert_eq!(poll(&mut reply),Poll::Ready(timeout_result("textDocument/references")));
+        let (id,mut reply)=Requests::begin(&requests,4,"textDocument/inlineCompletion","return ".into());
+        assert!(requests.borrow().pending[&id].deadline.is_none());
+        assert!(!requests.borrow_mut().resolve(id,Some("return x"),Value::String("value".into())));
+        assert_eq!(poll(&mut reply),Poll::Ready(Value::Null));
         assert!(requests.borrow().pending.is_empty());
     }
 }
