@@ -141,7 +141,7 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           }
         }
 
-        if (update.kind === 'unversioned' && connection.ready) {
+        if (update.kind === 'unversioned' && connection.ready && !current.some((row) => row.source === source && row.path === '' && row.code === 'unversioned-diagnostics')) {
           const notice = operationProblem(clone(source), '', clone(update.message));
           notice.code = 'unversioned-diagnostics';
           notice.severity = 'information';
@@ -149,15 +149,22 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           problemsChanged = true;
         }
 
-        if (update.kind === 'diagnostics' && connection.ready) {
+        if ((update.kind === 'diagnostics' || update.kind === 'unversioned') && connection.ready) {
           const document = update.document;
 
           if (document === undefined) continue;
           const path = clone(document.path);
           const file = files.find((file) => file.document.path === path);
-          const sent = next.documents.find((entry) => entry.path === path && identityServer(entry) === server);
+          const sent = next.documents.findIndex((entry) => entry.path === path && identityServer(entry) === server);
 
-          if (file !== undefined && sent !== undefined && file.document.session === document.session && file.document.revision === document.revision && sent.version === document.version) {
+          if (file !== undefined && sent >= 0 && file.document.session === document.session && file.document.revision === document.revision && next.documents[sent].version === document.version) {
+            if (update.kind === 'unversioned' && next.documents[sent].verifiedDiagnostics === true) continue;
+
+            if (update.kind === 'diagnostics') {
+              next.documents[sent].verifiedDiagnostics = true;
+              stateChanged = true;
+            }
+
             const reported = clone(update.problems ?? []);
 
             for (let row = 0; row < reported.length; row += 1) {

@@ -10,6 +10,7 @@ import {
   languageIdentity,
   publishedDiagnostics,
   documentProblems,
+  unversionedProblems,
   diagnosticPath,
   documentUri,
   DiagnosticPosition
@@ -254,7 +255,7 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
   try {
     const documents: LanguageDocument[] = [];
     let queries: LanguageQuery[] = [];
-    let reportedUnversioned = false;
+
 
     while (true) {
       if (!busy && outbox.pending.length > 0) {
@@ -434,10 +435,9 @@ async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMess
         const path = diagnosticPath(published.uri);
         const document = documents.find((entry) => entry.path === path);
         // Unversioned/closed-file reports cannot identify an unsaved buffer safely.
-        if (document !== undefined && published.version === undefined && !reportedUnversioned) {
-          reportedUnversioned = true;
+        if (document !== undefined && published.version === undefined) {
           await updates.send({
-            kind: 'unversioned', generation, server: clone(server.id), message: 'This server sends diagnostics without document versions. Studio cannot verify their locations.'
+            kind: 'unversioned', generation, server: clone(server.id), document: languageIdentity(document), problems: unversionedProblems(path, published, 'lsp:' + server.id), message: 'This server sends diagnostics without document versions. Studio cannot verify their locations.'
           });
         }
 

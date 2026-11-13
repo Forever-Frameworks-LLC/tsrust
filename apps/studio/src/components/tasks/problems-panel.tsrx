@@ -57,7 +57,7 @@ function revealProblem(
         return;
       }
 
-      if (problem.path === '') return;
+      if (problem.path === '' || problem.unversioned === true) return;
       const context: SearchActionContext = {
         workspace, recovery, allowNavigation: true, focusEditor: true
       };
@@ -82,13 +82,14 @@ function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): 
   const description = problem.code === 'unversioned-diagnostics' ? translate(problem.message) : clone(problem.message);
   const message = clone(description.split('\n').find((line) => line.trim() !== '') ?? description);
   const location = problem.path === '' ? clone(problem.source) : basename(problem.path) + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '');
-  const label = clone(location) + ' ' + clone(message);
   const details = description.slice(0, 8192);
+  const attribution = problem.unversioned === true ? ' · ' + translate('Unversioned report') : '';
+  const label = clone(location) + ' ' + clone(message) + clone(attribution);
   const metadata = problem.path === '' ? clone(problem.source) : location + ' [' + problem.source + (problem.code === problem.source ? '' : '/' + problem.code) + ']';
   const icon = problem.severity === 'warning' ? 'triangle-alert' : problem.severity === 'information' || problem.severity === 'hint' ? 'info' : 'circle-x';
   const iconClass = problem.severity === 'error' ? 'text-destructive' : 'text-muted-foreground';
   return (
-    <ListItem value={index.toString()} accessibilityLabel={label} disabled={problem.path === '' && problem.terminal === undefined} className={rowClass.get()}>
+    <ListItem value={index.toString()} accessibilityLabel={label} disabled={problem.unversioned === true || problem.path === '' && problem.terminal === undefined} className={rowClass.get()}>
       <Icon name={icon} size="sm" className={iconClass} />
       <Tooltip text={details} className="grow min-w-0">
         <Text className="grow min-w-0 truncate">
@@ -96,7 +97,7 @@ function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): 
         </Text>
       </Tooltip>
       <Text className="shrink-0 text-muted-foreground">
-        {metadata}
+        {metadata + attribution}
       </Text>
     </ListItem>
   );

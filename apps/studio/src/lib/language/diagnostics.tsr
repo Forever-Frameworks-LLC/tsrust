@@ -10,6 +10,7 @@ export interface LanguageIdentity {
   session: string;
   revision: int;
   version: int;
+  verifiedDiagnostics?: boolean;
 }
 
 export interface LanguageDocument {
@@ -110,6 +111,17 @@ export function diagnosticPath(uri: ReadOnly<string>): string {
   return unwrap(fileUrlToPath(url));
 }
 
+function diagnosticSeverity(severity: int | undefined): string {
+  return severity === 2 ? 'warning' : severity === 3 ? 'information' : severity === 4 ? 'hint' : 'error';
+}
+
+// A report without a version identifies its file, but none of its positions are trustworthy.
+export function unversionedProblems(path: ReadOnly<string>, published: ReadOnly<PublishedDiagnostics>, source: ReadOnly<string>): Problem[] {
+  return published.diagnostics.map((entry): Problem => ({
+    source: clone(source), path: clone(path), line: 0, column: 0, code: clone(entry.code) ?? '', message: clone(entry.message), severity: diagnosticSeverity(entry.severity), unversioned: true
+  }));
+}
+
 export function documentProblems(document: ReadOnly<LanguageDocument>, published: ReadOnly<PublishedDiagnostics>, source: string = 'lsp:tsrust'): Problem[] {
   const result: Problem[] = [];
 
@@ -123,7 +135,7 @@ export function documentProblems(document: ReadOnly<LanguageDocument>, published
 
     try {
       result.push({
-        source: clone(source), path: clone(document.path), line: start.line + 1, column: diagnosticColumn(lines[start.line], start.character), code: diagnostic.code === undefined ? '' : diagnostic.code.toString(), message: clone(diagnostic.message), severity: diagnostic.severity === 2 ? 'warning' : diagnostic.severity === 3 ? 'information' : diagnostic.severity === 4 ? 'hint' : 'error'
+        source: clone(source), path: clone(document.path), line: start.line + 1, column: diagnosticColumn(lines[start.line], start.character), code: diagnostic.code === undefined ? '' : diagnostic.code.toString(), message: clone(diagnostic.message), severity: diagnosticSeverity(diagnostic.severity)
       });
     } catch (_) {}
   }

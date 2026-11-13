@@ -541,13 +541,38 @@ test('language controller rejects stale reports, clears edits and closes documen
   pollLanguage(workspace, problems, state, messages, updates);
   const sent = unwrap(requests.tryReceive());
   strictEqual(sent.document?.version ?? -1, 2);
+  const synced = sent.document;
+
+  if (synced === undefined) throw 'Missing synchronized document.';
+  const advisory: LanguageUpdate = {
+    kind: 'unversioned', generation: 1, message: 'Missing versions', document: languageIdentity(synced), problems: [{
+      source: 'lsp:tsrust', path: clone(document.path), line: 0, column: 0, code: '2322', message: 'Type mismatch', severity: 'error', unversioned: true
+    }]
+  };
+  unwrap(replies.trySend(clone(advisory)));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(problems.get().some((row) => row.code === '2322' && row.unversioned === true), true);
+  advisory.problems = [];
+  unwrap(replies.trySend(clone(advisory)));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(problems.get().some((row) => row.path === document.path), false);
+  const verified = clone(advisory);
+  verified.kind = 'diagnostics';
+  unwrap(replies.trySend(verified));
+  pollLanguage(workspace, problems, state, messages, updates);
+  advisory.problems = [{
+    source: 'lsp:tsrust', path: clone(document.path), line: 0, column: 0, code: 'late', message: 'Late', severity: 'error', unversioned: true
+  }];
+  unwrap(replies.trySend(advisory));
+  pollLanguage(workspace, problems, state, messages, updates);
+  strictEqual(problems.get().some((row) => row.path === document.path), false);
   const closed = workspace.get();
   closed.files = [];
   workspace.set(closed);
   unwrap(replies.trySend(report));
   pollLanguage(workspace, problems, state, messages, updates);
   strictEqual(unwrap(requests.tryReceive()).kind, 'close');
-  strictEqual(problems.get().length, 0);
+  strictEqual(problems.get().length, 1);
 
   for (let index = 0; index < 2; index += 1) {
     unwrap(replies.trySend({

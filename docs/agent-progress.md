@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Individual unversioned language problems
+
+Unversioned publications for open files now retain each diagnostic message,
+severity and code. Problems rows show their file and unversioned status and
+have no navigable coordinates. Copy Problems also marks them unversioned.
+An empty publication clears its file's advisory rows. A matching versioned
+result takes precedence even if it contains zero problems. Service tests
+passed 15/15 in 977.98 ms, including actual TypeScript 2322 from an unsaved
+buffer and subsequent cross-module definition. Problems panel check and
+498-key locale parity passed. A server omitting versions cannot establish
+freshness or exact locations; physical Problems panel review remains open.
+
 ## Diagnostic freshness and unversioned TypeScript publications
 
 Studio now records the session/revision on accepted language problems and

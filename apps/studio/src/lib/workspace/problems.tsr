@@ -13,6 +13,7 @@ export interface Problem {
   terminal?: string;
   session?: string;
   revision?: int;
+  unversioned?: boolean;
 }
 
 export function operationProblem(source: string, path: string, message: string): Problem {
@@ -37,7 +38,7 @@ export function problemOffset(text: ReadOnly<string>, line: int, column: int): i
 }
 
 export function formatProblems(problems: ReadOnly<Problem[]>): string {
-  return problems.map((problem) => (problem.path === '' ? clone(problem.source) : problem.path + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '')) + ' [' + problem.source + '/' + problem.code + '] ' + problem.message).join('\n');
+  return problems.map((problem) => (problem.path === '' ? clone(problem.source) : problem.path + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '')) + ' [' + problem.source + '/' + problem.code + (problem.unversioned === true ? ', unversioned' : '') + '] ' + problem.message).join('\n');
 }
 
 export function collectProblems(workspace: ReadOnly<Workspace>, problems: ReadOnly<Problem[]>, terminalError: ReadOnly<string>): Problem[] {

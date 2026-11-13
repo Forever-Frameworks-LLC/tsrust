@@ -4,6 +4,7 @@
   "Toggle terminal": "Alternar terminal",
   "Settings": "Configurações",
   "This server sends diagnostics without document versions. Studio cannot verify their locations.": "Este servidor envia diagnósticos sem a versão do documento. O Studio não pode verificar suas localizações.",
+  "Unversioned report": "Relatório sem versão",
   "Files": "Arquivos",
   "Search contents": "Pesquisar conteúdo",
   "Source Control": "Controle de versão",
