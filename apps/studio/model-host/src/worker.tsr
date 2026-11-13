@@ -227,6 +227,9 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
   let insertion: string | undefined = undefined;
   const anchor = completion ? suffixAnchor(request.suffix ?? '') : '';
 
+  const lineStart = anchor.slice(0, -1).lastIndexOf('\n') + 1;
+  const spacedAnchor = anchor.slice(0, lineStart) + '\n' + anchor.slice(lineStart);
+
   while (true) {
     if (cancellationRequested()) {
       cancelled = true;
@@ -258,7 +261,9 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     const update = qwen_stream_next(stream);
 
     if (completion && update.changed && insertion === undefined && anchor !== '') {
-      const echoed = update.text.indexOf(anchor);
+      let echoed = update.text.indexOf(anchor);
+
+      if (echoed < 0) echoed = update.text.indexOf(spacedAnchor);
 
       if (echoed >= 0) {
         insertion = update.text.slice(0, echoed);
