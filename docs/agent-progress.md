@@ -6,6 +6,13 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+Native Stage file and Commit staged changes produced a commit with the entered
+subject and staged bytes while a later working-file edit remained unstaged.
+A delayed pre-commit hook reproduced loss of edits to the message field made
+after submission on build 79964301. Studio now clears only the submitted
+message. The same fixture passed on rebuilt app 68220, including preservation
+of the newer field text and verification of HEAD and worktree bytes.
+
 Two isolated text-conflict repositories exercised the native conflict editor
 from build 79964301. Accept incoming changed the merge-result buffer to
 `incoming\n` while the working file still contained Git conflict markers.

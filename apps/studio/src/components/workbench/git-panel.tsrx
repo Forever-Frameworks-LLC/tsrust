@@ -326,7 +326,7 @@ export function GitPanel(
             const req = sent.get();
             if (reply.failed) { errorText.set(localizeError(reply.text)); return; }
             errorText.set('');
-            if (req.action === 'commit-staged') messageText.set('');
+            if (req.action === 'commit-staged' && messageText.get() === req.message) messageText.set('');
             if (reply.mode === 'status') {
               const rows = reply.changes ?? [];
               changes.set(clone(rows)); loaded.set(true);
