@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat layout and code wrapping
+
+Studio overrides MessageScroller's native 12px horizontal row padding with
+px-1. Sent bubbles keep their horizontal inset and use less vertical padding.
+The composer fills the pane width, uses square corners and sits flush above
+the status bar. Code tabs explicitly disable native soft wrap so layout during
+hover cannot wrap other source lines. The multiline composer keeps its existing
+wrap behavior. The prior Studio toolchain rebuilt the complete app in 129126 ms
+and launched preview 41211 under supervisor 36374. macOS listed the window;
+targeted screenshot capture failed. Visual appearance and real hover interaction
+remain unverified. Whole-project formatter zero changes; owner edits retained.
+
 ## Leaf expression analysis during Studio checks
 
 Leaf expressions now record their own failure and return it directly without a

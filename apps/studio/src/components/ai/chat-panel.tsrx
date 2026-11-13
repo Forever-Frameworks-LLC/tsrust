@@ -75,7 +75,7 @@ function ChatMessageView(entry: ReadOnly<AiMessage>, state: Signal<AiState>, fon
     return fragments.map((fragment) => clone(fragment.label)).join(' · ');
   });
   const rowClass = computed<string>(() => 'flex-row w-full min-w-0 py-2 text-[' + font.get().toString() + 'px] ' + (sent ? 'justify-end' : 'justify-start'));
-  const bodyClass = sent ? 'max-w-[90%] min-w-0 px-3 py-2 bg-muted rounded-md' : 'max-w-full min-w-0 px-1 py-1';
+  const bodyClass = sent ? 'max-w-[90%] min-w-0 px-3 py-1 bg-muted rounded-md' : 'max-w-full min-w-0 py-1';
   const markdownClass = computed<string>(() => 'min-w-0 text-[' + font.get().toString() + 'px]');
   return (
     <View id={key} className={rowClass.get()}>
@@ -234,16 +234,16 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
         </List>
       </View>
       <View hidden={state.get().view !== 'thread'} className="flex-col grow min-h-0">
-        <MessageScroller className="grow min-h-0" contentClassName="px-2 py-2" rowClassName="pb-1">
+        <MessageScroller className="grow min-h-0" contentClassName="py-2" rowClassName="px-1 pb-1">
           {...activeMessages(state.get().history).map(renderMessage)}
         </MessageScroller>
-        <View className="shrink-0 min-w-0 px-2 pb-2 flex-col">
+        <View className="w-full shrink-0 min-w-0 flex-col">
           <View hidden={state.get().notice === ''} className="px-1 py-2">
             <Text className="text-destructive">
               {localizeError(state.get().notice)}
             </Text>
           </View>
-          <InputGroup size="small" className={inputStyle.get()} accessibilityLabel={message('AI composer')}>
+          <InputGroup size="small" className={'w-full rounded-none ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
             <Textarea
               value={chatDraft(state.get().history)}
               placeholder={message('Ask anything')}

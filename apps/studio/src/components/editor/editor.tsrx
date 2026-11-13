@@ -149,6 +149,7 @@ export function FilePanel(
             }}
             appearance={false}
             bordered={false}
+            softWrap={false}
             accessibilityLabel={clone(file.document.path)}
             className={editorClass.get()}
           />
