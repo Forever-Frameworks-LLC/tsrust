@@ -4,7 +4,38 @@ import { Channel } from 'std:futures';
 import { sha256 } from 'std:crypto';
 import { fromUtf8, toHex } from 'std:bytes';
 import { strictEqual, test } from 'std:testing';
-import { artifactChecksum, modelDownloads, installedModel, modelExtensions } from '../src/services/ai/model-extensions.tsr';
+import {
+  modelTokenizer,
+  availableModelPaths,
+  artifactChecksum,
+  modelDownloads,
+  installedModel,
+  modelExtensions
+} from '../src/services/ai/model-extensions.tsr';
+
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
+
+test('model selector excludes a missing model or tokenizer and keeps a working custom pair', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-selector-'));
+
+  try {
+    const config = defaultConfig();
+    config.aiModelPath = folder + '/weights.gguf';
+    config.aiTokenizerPath = folder + '/custom-tokenizer.json';
+    config.priorLocalModel = folder + '/missing.gguf';
+    config.priorLocalTokenizer = folder + '/previous-tokenizer.json';
+    strictEqual(modelTokenizer(config, folder + '/missing.gguf'), folder + '/previous-tokenizer.json');
+    strictEqual(modelTokenizer(config, folder + '/catalog.gguf'), folder + '/tokenizer.json');
+    unwrap(writeTextFile(config.aiModelPath, 'weights'));
+    strictEqual(availableModelPaths(config).includes(config.aiModelPath), false);
+    unwrap(writeTextFile(config.aiTokenizerPath, 'tokenizer'));
+    const available = availableModelPaths(config);
+    strictEqual(available.includes(config.aiModelPath), true);
+    strictEqual(available.includes(folder + '/missing.gguf'), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
 
 test('model artifact verification streams through more than one block', () => {
   const folder = unwrap(createTempDir(undefined, 'studio-model-checksum-'));

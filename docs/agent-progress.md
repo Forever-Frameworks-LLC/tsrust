@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Installed model selector integrity
+
+Extensions now checks that both weights and tokenizer are regular files before listing configured or remembered model paths, and refreshes the list from current files after download. Switching to a remembered custom model resolves its tokenizer before updating the remembered pair. All three focused model-extension tests passed in 28 ms after a 3.92-second build, including missing-tokenizer and custom-path cases. The download gate had already passed separately.
+
 ## Reference-only attachments in a multi-file edit
 
 Studio now reviews just the files named by a nonempty replacement array. Every named change still requires a valid file index and an exact, unique original passage. An empty array remains an error. All 30 AI action cases passed (0.213 seconds). The installed 3B model used an unsaved reference draft containing 47 while disk held 25. It proposed only the other attached draft's timeout change from 10 to 47. Accepting the proposal preserved the reference draft and both on-disk originals. The opt-in `reference-draft` case passed through the Studio model service and review action in 4.90 seconds after 55.63 seconds of build time.

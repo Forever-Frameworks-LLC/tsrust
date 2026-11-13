@@ -13,7 +13,7 @@ import { createHasher } from 'std:crypto';
 import { run } from 'std:process';
 import { dirname, join } from 'std:path';
 import { Channel, Sender } from 'std:futures';
-import { configPath } from '../../lib/settings/settings.tsr';
+import { StudioConfig, configPath } from '../../lib/settings/settings.tsr';
 
 export interface ModelExtension {
   name: string;
@@ -35,9 +35,34 @@ export function modelFolder(model: ReadOnly<ModelExtension>): string {
   return join(dirname(unwrap(configPath())), 'models', model.name);
 }
 
-export function installedModel(model: ReadOnly<ModelExtension>): boolean {
-  for (const file of [clone(model.filename), 'tokenizer.json']) {
-    match (stat(join(modelFolder(model), file))) {
+export function modelTokenizer(config: ReadOnly<StudioConfig>, path: ReadOnly<string>): string {
+  if (path === config.aiModelPath) return clone(config.aiTokenizerPath);
+
+  if (path === config.priorLocalModel) return clone(config.priorLocalTokenizer) ?? '';
+  return join(dirname(path), 'tokenizer.json');
+}
+
+export function availableModelPaths(config: ReadOnly<StudioConfig>): string[] {
+  const paths: string[] = [];
+
+  for (const path of [clone(config.aiModelPath), clone(config.priorLocalModel) ?? '']) {
+    if (path === '' || paths.includes(path)) continue;
+
+    if (modelFilesAvailable(path, modelTokenizer(config, path))) paths.push(clone(path));
+  }
+
+  for (const model of modelExtensions()) {
+    const path = join(modelFolder(model), model.filename);
+
+    if (!paths.includes(path) && installedModel(model)) paths.push(path);
+  }
+
+  return paths;
+}
+
+function modelFilesAvailable(path: ReadOnly<string>, tokenizer: ReadOnly<string>): boolean {
+  for (const file of [clone(path), clone(tokenizer)]) {
+    match (stat(file)) {
       Ok(info) => {
         if (!info.isFile) return false;
       },
@@ -48,6 +73,11 @@ export function installedModel(model: ReadOnly<ModelExtension>): boolean {
   }
 
   return true;
+}
+
+export function installedModel(model: ReadOnly<ModelExtension>): boolean {
+  const folder = modelFolder(model);
+  return modelFilesAvailable(join(folder, model.filename), join(folder, 'tokenizer.json'));
 }
 
 export function artifactChecksum(path: ReadOnly<string>): string {

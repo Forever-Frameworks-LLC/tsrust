@@ -1,5 +1,5 @@
 import { Channel, Sender } from 'std:futures';
-import { basename, dirname, join } from 'std:path';
+import { basename, join } from 'std:path';
 import { readTextFile, stat } from 'std:fs';
 import {
   Node,
@@ -25,28 +25,10 @@ import {
 } from '../../lib/settings/settings.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
 import { ModelRequest } from '../../lib/ai/protocol.tsr';
-import { ModelExtension, modelExtensions, installedModel, modelFolder } from '../../services/ai/model-extensions.tsr';
-
-function modelPaths(config: ReadOnly<StudioConfig>): string[] {
-  const paths: string[] = [];
-
-  if (config.aiModelPath !== '') paths.push(clone(config.aiModelPath));
-
-  const previous = config.priorLocalModel ?? '';
-
-  if (previous !== '' && !paths.includes(previous)) paths.push(clone(previous));
-
-  for (const model of modelExtensions()) {
-    const installed = join(modelFolder(model), model.filename);
-
-    if (installedModel(model) && !paths.includes(installed)) paths.push(installed);
-  }
-
-  return paths;
-}
+import { ModelExtension, modelExtensions, availableModelPaths, modelTokenizer, modelFolder } from '../../services/ai/model-extensions.tsr';
 
 export function ModelExtensions(settings: Signal<StudioConfig>, ai: Signal<AiState>, commands: Sender<ModelRequest>, downloads: Sender<string>, replies: Channel<string>): Node {
-  const paths = signal(modelPaths(settings.get()));
+  const paths = signal(availableModelPaths(settings.get()));
   const pending = signal('');
   const error = signal('');
   const rows: Node[] = [];
@@ -83,12 +65,12 @@ export function ModelExtensions(settings: Signal<StudioConfig>, ai: Signal<AiSta
               }
             }
 
+            const tokenizer = modelTokenizer(config, path);
+
             if (config.aiModelPath !== '' && !modelExtensions().some((model: ReadOnly<ModelExtension>) => join(modelFolder(model), model.filename) === config.aiModelPath)) {
               config.priorLocalModel = clone(config.aiModelPath);
               config.priorLocalTokenizer = clone(config.aiTokenizerPath);
             }
-
-            const tokenizer = path === clone(config.priorLocalModel) ? clone(config.priorLocalTokenizer) ?? '' : join(dirname(path), 'tokenizer.json');
 
             if (!unwrap(stat(path)).isFile || !unwrap(stat(tokenizer)).isFile) {
               error.set('Model files are unavailable.');
@@ -139,13 +121,7 @@ export function ModelExtensions(settings: Signal<StudioConfig>, ai: Signal<AiSta
             Ok(result) => {
               pending.set('');
               error.set(result);
-              const found = modelPaths(settings.get());
-
-              for (const path of paths.get()) {
-                if (!found.includes(path)) found.push(clone(path));
-              }
-
-              paths.set(found);
+              paths.set(availableModelPaths(settings.get()));
             },
             Err(reason) => {
               if (reason.code !== 'empty') {
