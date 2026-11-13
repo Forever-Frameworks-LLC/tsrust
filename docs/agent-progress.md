@@ -6,6 +6,15 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+Modify/delete conflict previews identify which side deleted the file. The
+merge result editor requires an open text document. Marker-choice buttons
+require an opening marker in that draft. The resolver and staging check
+now share the marker predicate, so a literal such as `<<<<<<<literal` is
+preserved and does not prevent staging. The focused Git suite passed 10/10
+in 1.37 s and Studio rebuilt in 139 s. A temporary binary modify/delete
+fixture produced Git status UD. Desktop automation could not consistently
+select its conflict row, so the live conflict controls remain unverified.
+
 The latest revision uses a square, edge-to-edge commit InputGroup, 22-pixel
 change rows, secondary directory text and a full-path tooltip. Status and
 stage controls share a trailing slot. The working-group label is hidden

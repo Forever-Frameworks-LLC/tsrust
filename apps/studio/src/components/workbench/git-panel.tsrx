@@ -30,7 +30,7 @@ import { DiffHunk, GitChange, GitReply, GitRequest, diffHunks } from '../../serv
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr';
 import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
-import { resolveFirstConflict } from '../../lib/workspace/merge.tsr';
+import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
 function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
   const file = clone(row.path);
@@ -425,6 +425,7 @@ export function GitEditor(
     const file = workspace.get().files.find((file: ReadOnly<OpenFile>) => file.document.path === path.get() && file.kind === 'text');
     return file === undefined ? '' : clone(file.document.text);
   });
+  const editable = computed<boolean>(() => selected.get().mode === 'conflicts' && workspace.get().files.some((file: ReadOnly<OpenFile>) => file.document.path === path.get() && file.kind === 'text'));
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
@@ -434,21 +435,46 @@ export function GitEditor(
         {basename(selected.get().path)}
       </Text>
       <View hidden={selected.get().mode !== 'conflicts'}>
-        <Button icon="check" size="xsmall" variant="ghost" tooltip={message('Stage resolution')} aria-label={accessibleName('Stage resolution')} disabled={locked.get()} onPress={() => {
-        if (selected.get().mode === 'conflicts') {
-          const next = workspace.get();
-          const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
-          if (index >= 0) {
-            if (next.files[index].document.text.split('\n').some((line) => line.startsWith('<<<<<<<'))) {errorText.set(translate('Resolve conflict markers before staging.'));return;}
-            const target: FormattingTarget = {path:clone(next.files[index].document.path),session:clone(next.files[index].document.session),revision:next.files[index].document.revision};
-            match (saveTarget(next,target)) {
-              Err(reason) => {errorText.set(reason);publishWorkspace(next,workspace,recovery);return;}, Ok(_) => {}
+        <Button
+          icon="check"
+          size="xsmall"
+          variant="ghost"
+          tooltip={message('Stage resolution')}
+          aria-label={accessibleName('Stage resolution')}
+          disabled={locked.get()}
+          onPress={() => {
+            if (selected.get().mode === 'conflicts') {
+              const next = workspace.get();
+              const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
+
+              if (index >= 0) {
+                if (hasConflictStart(next.files[index].document.text)) {
+                  errorText.set(translate('Resolve conflict markers before staging.'));
+                  return;
+                }
+
+                const target: FormattingTarget = {
+                  path: clone(next.files[index].document.path), session: clone(next.files[index].document.session), revision: next.files[index].document.revision
+                };
+
+                match (saveTarget(next, target)) {
+                  Err(reason) => {
+                    errorText.set(reason);
+                    publishWorkspace(next, workspace, recovery);
+                    return;
+                  },
+                  Ok(_) => {}
+                }
+
+                publishWorkspace(next, workspace, recovery);
+              }
             }
-            publishWorkspace(next,workspace,recovery);
-          }
-        }
-        pending.set({mode:'status',action:selected.get().mode === 'staged' ? 'unstage' : 'stage',path:selected.get().path});
-      }} />
+
+            pending.set({
+              mode: 'status', action: selected.get().mode === 'staged' ? 'unstage' : 'stage', path: selected.get().path
+            });
+          }}
+        />
       </View>
       <Button
         icon="x"
@@ -462,10 +488,15 @@ export function GitEditor(
       />
     </View>
     <View hidden={selected.get().mode !== 'conflicts'} className="flex-col grow min-h-0">
+      <View hidden={selected.get().status !== 'DU' && selected.get().status !== 'UD'} className="px-2 shrink-0">
+        <Text className={'text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+          {selected.get().status === 'DU' ? t('Deleted in current version') : t('Deleted in incoming version')}
+        </Text>
+      </View>
       <View className="w-full grow min-w-0 min-h-0 overflow-hidden">
         <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
       </View>
-      <View className="flex-row">
+      <View hidden={!editable.get() || !hasConflictStart(draft.get())} className="flex-row">
         <Button
           variant="ghost"
           size="small"
@@ -518,15 +549,17 @@ export function GitEditor(
           {t('Accept both')}
         </Button>
       </View>
-      <CodeEditor
-        value={draft.get()}
-        language={extname(path.get()).slice(1)}
-        accessibilityLabel={message('Merge result')}
-        className="grow min-h-0"
-        onChange={(event) => {
-          updateDraft(workspace, recovery, path.get(), event);
-        }}
-      />
+      <View hidden={!editable.get()} className="flex-col grow min-h-0">
+        <CodeEditor
+          value={draft.get()}
+          language={extname(path.get()).slice(1)}
+          accessibilityLabel={message('Merge result')}
+          className={'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]'}
+          onChange={(event) => {
+            updateDraft(workspace, recovery, path.get(), event);
+          }}
+        />
+      </View>
     </View>
     <View hidden={selected.get().mode === 'conflicts'} className="w-full grow min-w-0 min-h-0 overflow-hidden">
       <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">

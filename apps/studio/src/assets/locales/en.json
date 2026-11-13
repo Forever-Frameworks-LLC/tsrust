@@ -1,4 +1,6 @@
 {
+  "Deleted in current version": "Deleted in current version",
+  "Deleted in incoming version": "Deleted in incoming version",
   "Stage hunk": "Stage hunk",
   "Unstage hunk": "Unstage hunk",
   "The hunk changed. Refresh the diff.": "The hunk changed. Refresh the diff.",

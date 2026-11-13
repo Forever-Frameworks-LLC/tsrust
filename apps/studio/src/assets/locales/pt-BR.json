@@ -1,4 +1,6 @@
 {
+  "Deleted in current version": "Excluído na versão atual",
+  "Deleted in incoming version": "Excluído na versão recebida",
   "Stage hunk": "Preparar trecho",
   "Unstage hunk": "Retirar trecho da preparação",
   "The hunk changed. Refresh the diff.": "O trecho mudou. Atualize o diff.",

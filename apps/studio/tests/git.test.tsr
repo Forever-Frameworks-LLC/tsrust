@@ -8,7 +8,7 @@ import {
   writeTextFile
 } from 'std:fs';
 import { Channel } from 'std:futures';
-import { resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
+import { hasConflictStart, resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import {
@@ -23,6 +23,9 @@ import {
 
 test('merge choices preserve surrounding lines and resolve only the first block', () => {
   const block = '<<<<<<< HEAD\r\nours\r\n||||||| base\r\nbase\r\n=======\r\ntheirs\r\n>>>>>>> topic\r\n';
+  strictEqual(hasConflictStart('<<<<<<<literal'), false);
+  strictEqual(hasConflictStart('<<<<<<<< custom width'), true);
+  strictEqual(unwrap(resolveFirstConflict('<<<<<<< HEAD\n<<<<<<<literal\n=======\nb\n>>>>>>> topic\n', 'current')), '<<<<<<<literal\n');
   const draft = 'prefix\r\n' + block + 'gap\r\n' + block;
 
   for (const choice of ['current', 'incoming', 'both']) {
