@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Composition follow-up with native feedback
+
+The feedback variant keeps the model service and chat alive across review,
+save and native testing of the temporary caller. After failure it supplies
+a diagnostic example (4 units, adjusted quantity 6, expected charge 17)
+and requests a corrected edit. The first proposal was the known incorrect
+sum. The final follow-up repeated the exact same source; Studio rejected the
+no-op and produced no reviewable proposal (6032.85 ms, quality test failed).
+An earlier wording giving the actual 19 produced a subtraction instead.
+Replay with TSRUST_STUDIO_RUN_WORKSPACE_EVAL=feedback. Feedback is supplied
+by the test harness; automatic product test execution is not implemented here.
+
+A generic nested-call example retained the incorrect sum, and grouping the
+two function signatures caused the model to omit the charge entirely. Both
+product prompt experiments were reverted. Native cases and prior passes
+remain intact. Logs /tmp/studio-composition-example-dataflow.log,
+ /tmp/studio-compose-signatures.log and /tmp/studio-compose-feedback-final.log.
+
 ## Live two-function composition probe — failed
 
 The opt-in combined and dataflow variants of the Studio workspace model

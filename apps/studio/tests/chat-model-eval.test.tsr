@@ -158,13 +158,14 @@ if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat re
   }
 });
 
-if (['1', 'default', 'combined', 'dataflow'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
   if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
   const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
-  const dataflow = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
+  const feedback = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'feedback';
+  const dataflow = feedback || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
   const combined = dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
   const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
   const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
@@ -212,6 +213,36 @@ if (['1', 'default', 'combined', 'dataflow'].includes(unwrap(get('TSRUST_STUDIO_
       strictEqual(unwrap(readTextFile(folder + '/quote.tsr')), caller);
       unwrap(saveDocument(changed.files[0].document));
       strictEqual(unwrap(readTextFile(folder + '/policy.tsr')), file);
+      // The model cannot retrieve these cases while proposing its edit.
+      const cases = "import { test, strictEqual } from 'std:testing';\nimport { quote } from './quote.tsr';\ntest('quote policy', () => { strictEqual(quote(-2, true), 0); strictEqual(quote(0, false), 0); strictEqual(quote(4, true), 29); strictEqual(quote(4, false), 13); });";
+      unwrap(writeTextFile(folder + '/quote.test.tsr', combined ? cases.replace('29);', '35);').replace('13);', '17);') : cases));
+      let result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+        cwd: clone(folder), env: [{
+          name: 'TSRUST_TEST_REPORTER', value: 'plain'
+        }]
+      }));
+
+      if (feedback && !result.status.success) {
+
+        const answer = await ask(host, updates, 'Edit: The native test failed. For 4 nonfragile units, billableUnits returns 6 and the expected charge is 17. Pass the adjusted units to shelfCharge and return its result.');
+        console.log(answer);
+        const revised = host.state.get().review;
+
+        if (revised === undefined) throw 'Missing correction proposal.';
+        strictEqual(revised.after, caller.replace('return units;', 'return shelfCharge(fragile, billableUnits(units));'));
+        const recovery = signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        });
+        reviewChatEdit(host.state, opened, recovery, revised, true);
+        const corrected = opened.get();
+        unwrap(saveDocument(corrected.files[0].document));
+        result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+          cwd: clone(folder)
+        }));
+
+      }
+
+      if (!result.status.success) throw unwrap(toUtf8(result.stderr)) + unwrap(toUtf8(result.stdout));
     } finally {
       worker.cancel();
 
@@ -219,16 +250,6 @@ if (['1', 'default', 'combined', 'dataflow'].includes(unwrap(get('TSRUST_STUDIO_
         await worker;
       } catch (_) {}
     }
-    // The model cannot retrieve these cases while proposing its edit.
-    const cases = "import { test, strictEqual } from 'std:testing';\nimport { quote } from './quote.tsr';\ntest('quote policy', () => { strictEqual(quote(-2, true), 0); strictEqual(quote(0, false), 0); strictEqual(quote(4, true), 29); strictEqual(quote(4, false), 13); });";
-    unwrap(writeTextFile(folder + '/quote.test.tsr', combined ? cases.replace('29);', '35);').replace('13);', '17);') : cases));
-    const result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
-      cwd: clone(folder), env: [{
-        name: 'TSRUST_TEST_REPORTER', value: 'plain'
-      }]
-    }));
-
-    if (!result.status.success) throw unwrap(toUtf8(result.stderr)) + unwrap(toUtf8(result.stdout));
   } finally {
     unwrap(removeDirAll(folder));
   }
