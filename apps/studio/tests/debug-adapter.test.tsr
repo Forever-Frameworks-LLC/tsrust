@@ -24,7 +24,20 @@ interface DebugBreakpoint {
   verified: boolean;
 }
 
+interface DebugScope {
+  name: string;
+  variablesReference: int;
+}
+
+interface DebugVariable {
+  name: string;
+  value: string;
+  variablesReference: int;
+}
+
 interface AdapterBody {
+  scopes?: DebugScope[];
+  variables?: DebugVariable[];
   supportsFunctionBreakpoints?: boolean;
   breakpoints?: DebugBreakpoint[];
   stackFrames?: DebugFrame[];
@@ -55,6 +68,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
     let configured = false;
     let thread = 0;
     let initialAddress = '';
+    let steppedAddress = '';
     let stepAcknowledged = false;
     let resumed = false;
     let output = '';
@@ -106,8 +120,44 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           } else {
             strictEqual(reply.request_seq, 7);
             strictEqual(address !== initialAddress, true);
+            steppedAddress = clone(address);
             await writeFrame(writer, JSON.stringify({
-              seq: 8, type: 'request', command: 'continue', arguments: {
+              seq: 8, type: 'request', command: 'scopes', arguments: {
+                frameId: frames[0].id
+              }
+            }));
+          }
+        } else if (reply.command === 'scopes') {
+          strictEqual(reply.request_seq, 8);
+          const scopes = clone(reply.body?.scopes) ?? [];
+          const registers = scopes.find((scope) => scope.name === 'Registers');
+
+          if (registers === undefined || registers.variablesReference <= 0) throw 'Frame has no register scope.';
+          await writeFrame(writer, JSON.stringify({
+            seq: 9, type: 'request', command: 'variables', arguments: {
+              variablesReference: registers.variablesReference
+            }
+          }));
+        } else if (reply.command === 'variables') {
+          const variables = clone(reply.body?.variables) ?? [];
+
+          if (reply.request_seq === 9) {
+            const group = variables.find((item) => item.name === 'General Purpose Registers');
+
+            if (group === undefined || group.variablesReference <= 0) throw 'General purpose registers missing.';
+            await writeFrame(writer, JSON.stringify({
+              seq: 10, type: 'request', command: 'variables', arguments: {
+                variablesReference: group.variablesReference
+              }
+            }));
+          } else {
+            strictEqual(reply.request_seq, 10);
+            const pc = variables.find((item) => item.name === 'pc' || item.name === 'rip');
+
+            if (pc === undefined || pc.value === '') throw 'Program counter missing.';
+            strictEqual(parseInt(pc.value.split(' ')[0], 16), parseInt(steppedAddress, 16));
+            await writeFrame(writer, JSON.stringify({
+              seq: 11, type: 'request', command: 'continue', arguments: {
                 threadId: thread
               }
             }));
@@ -116,7 +166,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           strictEqual(reply.request_seq, 6);
           stepAcknowledged = true;
         } else if (reply.command === 'continue') {
-          strictEqual(reply.request_seq, 8);
+          strictEqual(reply.request_seq, 11);
           resumed = true;
         }
       } else if (reply.event === 'initialized') {
@@ -152,7 +202,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
   }
 }
 
-test('LLDB stops at native main, steps one instruction and resumes a compiled Tsrust program', async () => {
+test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
 
   try {

@@ -12,6 +12,8 @@ The same native-target regression now sets a function breakpoint at main before 
 
 Instruction stepping passed through the real Xcode adapter. After the native main breakpoint the regression requested next with instruction granularity, received its acknowledgement and a step stop on the same thread, and read a different nonempty instruction pointer from the top main frame. Continue preserved the expected program stdout and exit. Suite passed (370.44 ms including cached fixture build). Source-level stepping and Studio UI integration remain open.
 
+The stopped-frame regression now requests scopes using the stepped main frame ID, expands Registers and General Purpose Registers through their adapter-issued variable references, and checks that the program counter equals the stepped frame instruction address. The target then resumes to its original stdout and exit. Xcode LLDB on Apple Silicon passed (410.82 ms including cached build). This checks a nested register value; source-level locals and Studio’s variables UI remain open.
+
 ## Image preview zoom accessibility
 
 On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
