@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Native GPUI examples in the offline corpus
+
+The generator extracts rustdoc blocks containing fenced examples from
+the tracked gpui-base and gpui-component patch sources. Each passage carries
+a native Rust label, source path and line so chat can distinguish these APIs
+from Tsrust wrappers. The 53 new passages span 37 files. Two regenerations
+produced identical bytes and exact row comparison retained all 1492 prior
+passages. The SQLite suite retrieved the RopeExt line_start_offset example
+and preserved existing cases in 274.42 ms. Full upstream application examples
+and model accuracy on native Rust remain unverified.
+
 ## Offline knowledge cache repair
 
 Before reusing the installed corpus, Studio verifies its bytes against the

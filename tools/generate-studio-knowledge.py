@@ -11,11 +11,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "apps/studio/src/assets/knowledge"
 GUIDES = ["docs/guides/ui", *[f"website/src/content/docs/{area}" for area in ("language", "learn", "library", "start", "tools")]]
-SOURCES = ["examples", *GUIDES, "crates/tsrust-compiler/tests/fixtures"]
+GPUI = [f"crates/tsrust-compiler/patched-dependencies/{crate}/src" for crate in ("gpui-base", "gpui-component")]
+SOURCES = [*GPUI, "examples", *GUIDES, "crates/tsrust-compiler/tests/fixtures"]
 
 
 def passages(path, text):
     lines = text.splitlines()
+    if path.suffix == ".rs":
+        block = []
+        for i, line in enumerate([*lines, ""]):
+            comment = re.match(r"^\s*(?:///|//!) ?(.*)$", line)
+            if comment:
+                block.append(comment[1])
+                continue
+            if re.search(r"(?ms)^```(?:rust|ignore|no_run)?[ \t]*\n.+?^```[ \t]*$", "\n".join(block)):
+                title = next((text for text in block if text.strip()), path.stem)
+                yield i - len(block) + 1, title, "GPUI native Rust documentation:\n" + "\n".join(block)
+            block = []
+        return
     if path.suffix == ".md":
         titles = {}
         first = 0
@@ -61,9 +74,11 @@ def main():
             path = Path(name)
             if name == "examples/gpui-starter/src/search-index.tsr":
                 continue  # Generated gallery navigation data is not a code example.
-            if path.suffix not in {".md", ".tsr", ".tsrx"}:
+            if path.suffix not in {".md", ".tsr", ".tsrx", ".rs"}:
                 continue
-            if name.startswith("crates/") and not name.endswith(".test.tsr"):
+            if path.suffix == ".rs" and not any(name.startswith(root + "/") for root in GPUI):
+                continue
+            if name.startswith("crates/") and path.suffix != ".rs" and not name.endswith(".test.tsr"):
                 continue
             if path.suffix == ".md" and not any(name.startswith(guide + "/") for guide in GUIDES):
                 continue
