@@ -97,6 +97,7 @@
   "Language-service diagnostics are not connected yet.": "Os diagnósticos do serviço de linguagem ainda não estão conectados.",
   "Stop on entry": "Parar na entrada",
   "Continue": "Continuar",
+  "Stop debugging": "Encerrar depuração",
   "Step instruction": "Avançar uma instrução",
   "Launch executable…": "Iniciar executável…",
   "Repository status, diffs and staging are planned.": "O status do repositório, as diferenças e a preparação de alterações estão planejados.",

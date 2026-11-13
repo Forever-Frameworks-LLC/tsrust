@@ -14,10 +14,32 @@ import {
 import { message } from '../../lib/localization.tsr';
 import { DebugCommand, DebugOutput } from '../../services/debug/session.tsr';
 
+function DebugControl(requests: ReadOnly<Channel<DebugCommand>>, stopped: Signal<boolean>, output: Signal<string>, action: string, label: string): Node {
+  const sender = requests.sender();
+  return (
+    <Button
+      variant="ghost"
+      size="small"
+      onPress={() => {
+        match (sender.trySend({
+          action: clone(action)
+        })) {
+          Ok(_) => {
+            stopped.set(false);
+          },
+          Err(error) => {
+            output.set(output.get() + error.code);
+          }
+        }
+      }}
+    >
+      {t(label)}
+    </Button>
+  );
+}
+
 export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies: Channel<DebugOutput>, font: Signal<int>): Node {
   const sender = requests.sender();
-  const controls = requests.sender();
-  const steps = requests.sender();
   const stopOnEntry = signal(false);
   const stopped = signal(false);
   const chosen = signal('');
@@ -55,42 +77,9 @@ export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies:
           {t('Stop on entry')}
         </Button>
         <View hidden={!stopped.get()} className="flex-row">
-          <Button
-            variant="ghost"
-            size="small"
-            onPress={() => {
-              match (controls.trySend({
-                action: 'continue'
-              })) {
-                Ok(_) => {
-                  stopped.set(false);
-                },
-                Err(error) => {
-                  output.set(output.get() + error.code);
-                }
-              }
-            }}
-          >
-            {t('Continue')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="small"
-            onPress={() => {
-              match (steps.trySend({
-                action: 'next'
-              })) {
-                Ok(_) => {
-                  stopped.set(false);
-                },
-                Err(error) => {
-                  output.set(output.get() + error.code);
-                }
-              }
-            }}
-          >
-            {t('Step instruction')}
-          </Button>
+          {DebugControl(requests, stopped, output, 'continue', 'Continue')}
+          {DebugControl(requests, stopped, output, 'next', 'Step instruction')}
+          {DebugControl(requests, stopped, output, 'stop', 'Stop debugging')}
         </View>
       </View>
       <CodeEditor value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />

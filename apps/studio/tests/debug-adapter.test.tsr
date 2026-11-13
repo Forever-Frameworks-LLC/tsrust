@@ -269,7 +269,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         action: 'launch', program: clone(program), stopOnEntry: true
       });
 
-      for (const action of ['next', 'continue']) {
+      for (const action of ['stop', 'next', 'continue']) {
         while (true) {
           const update = await output.receive().timeout(10000);
 
@@ -287,6 +287,15 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         await commands.send({
           action: clone(action)
         });
+
+        if (action === 'stop') {
+          const stopped = await consoleResult(output);
+          strictEqual(stopped.includes('Debug session stopped.'), true);
+          strictEqual(stopped.includes('Studio debugger fixture'), false);
+          await commands.send({
+            action: 'launch', program: clone(program), stopOnEntry: true
+          });
+        }
       }
 
       const succeeded = await consoleResult(output);

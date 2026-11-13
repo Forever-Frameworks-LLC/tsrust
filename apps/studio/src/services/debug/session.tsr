@@ -34,6 +34,7 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     await writeFrame(writer, '{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"lldb","clientID":"tsrust-studio","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true}}');
 
     let seq = 4;
+    let disconnectRequest = 0;
     let stackRequest = 0;
     let thread = 0;
     let stopReason = '';
@@ -94,21 +95,26 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
         });
         const control = await requests.receive();
 
-        if (control.action !== 'continue' && control.action !== 'next') throw 'Invalid debugger control.';
-
-        if (control.action === 'next') {
+        if (control.action === 'stop') {
+          disconnectRequest = seq;
+          await writeFrame(writer, JSON.stringify({
+            seq, type: 'request', command: 'disconnect', arguments: {
+              terminateDebuggee: true
+            }
+          }));
+        } else if (control.action === 'next') {
           await writeFrame(writer, JSON.stringify({
             seq, type: 'request', command: 'next', arguments: {
               threadId: thread, granularity: 'instruction'
             }
           }));
-        } else {
+        } else if (control.action === 'continue') {
           await writeFrame(writer, JSON.stringify({
             seq, type: 'request', command: 'continue', arguments: {
               threadId: thread
             }
           }));
-        }
+        } else throw 'Invalid debugger control.';
 
         seq += 1;
       } else if (reply.event === 'output') {
@@ -119,7 +125,12 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
         await output.send({
           text: exitStatusText(reply.body?.exitCode), finished: false
         });
-      } else if (reply.event === 'terminated') return;
+      } else if (reply.command === 'disconnect' && reply.request_seq === disconnectRequest) {
+        await output.send({
+          text: '\nDebug session stopped.\n', finished: false
+        });
+        return;
+      } else if (reply.event === 'terminated' && disconnectRequest === 0) return;
     }
   } finally {
     try {

@@ -97,6 +97,7 @@
   "Language-service diagnostics are not connected yet.": "Language-service diagnostics are not connected yet.",
   "Stop on entry": "Stop on entry",
   "Continue": "Continue",
+  "Stop debugging": "Stop debugging",
   "Step instruction": "Step instruction",
   "Launch executable…": "Launch executable…",
   "Repository status, diffs and staging are planned.": "Repository status, diffs and staging are planned.",
