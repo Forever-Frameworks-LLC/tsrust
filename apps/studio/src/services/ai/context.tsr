@@ -684,14 +684,14 @@ export function editorContext(
       const target = outline?.query.document;
       const located = outline !== undefined && target !== undefined && outline.error === '' && target.path === active.document.path && target.session === active.document.session && target.revision === active.document.revision && unresolved.size > 0 ? outlineSymbols(outline.result) : new Map<string, DocumentSymbol>();
       const lines = located.size === 0 ? [] : active.document.text.split('\n');
-      let selectedOutline = false;
+      const values = unresolved.size === 0 ? new Map<string, int>() : valueOffsets(active.document.text);
 
       for (const name of Array.from(unresolved)) {
         const symbol = located.get(name);
         const selected = symbol === undefined ? '' : outlineBody(lines, symbol);
 
-        if (selected !== '') selectedOutline = true;
-        const body = selected === '' ? functionExcerpt(active.document.text, name, true, true) : selected;
+        const offset = values.get(name);
+        const body = selected !== '' ? selected : offset === undefined ? functionExcerpt(active.document.text, name, true, true) : constantExcerpt(active.document.text.slice(offset), name, true);
 
         if (body !== '') {
           bodies.push(body);
@@ -700,9 +700,9 @@ export function editorContext(
       }
 
       if (bodies.length > 0) {
-        for (const name of includeLocalCalls(active.document.text, bodies, located, lines)) symbols.add(clone(name));
+        for (const name of includeLocalCalls(active.document.text, bodies, located, lines, values)) symbols.add(clone(name));
 
-        if (selectedOutline && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
+        if (!keepWholeFile && result !== '' && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
 
       }
     }

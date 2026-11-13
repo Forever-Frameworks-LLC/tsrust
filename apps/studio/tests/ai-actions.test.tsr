@@ -1471,6 +1471,45 @@ test('spoken project names preserve word boundaries and ambiguous source identit
   }
 });
 
+test('active draft symbol lookup includes local dependencies before the outline arrives', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-active-'));
+
+  try {
+    unwrap(writeTextFile(root + '/fees.tsr', 'function quote() { return 999; }'));
+    const workspace = unwrap(openWorkspace(root));
+    unwrap(openFile(workspace, root + '/fees.tsr'));
+    workspace.files[0].document.text = 'function quote() { return fee(); }\nfunction fee() { return base; }\nconst base = 72;\nconst unrelated = 300;';
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const focused = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Explain quote()',
+      false,
+      false,
+      index
+    );
+    strictEqual(focused.excerpt.includes('return fee()'), true);
+    strictEqual(focused.excerpt.includes('return base'), true);
+    strictEqual(focused.excerpt.includes('base = 72'), true);
+    strictEqual(focused.excerpt.includes('unrelated'), false);
+    strictEqual(focused.excerpt.includes('999'), false);
+    const full = editorContext(
+      workspace,
+      tree,
+      [],
+      'Show the whole file containing quote()',
+      false,
+      false,
+      index
+    );
+    strictEqual(full.excerpt.includes('unrelated = 300'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('qualified chat paths exclude homonymous active and indexed definitions', () => {
   const root = unwrap(createTempDir(undefined, 'studio-chat-qualified-'));
 

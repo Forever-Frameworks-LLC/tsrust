@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Active draft excerpts before outline availability
+
+When a named function or constant is resolved in the active editor draft, chat can select its body and local dependencies from the current text before the language-server outline arrives. Previously a source-based function match retained the entire active file, and constant initializer dependencies were omitted from the narrowed outline path. Explicit whole-file requests keep the full draft. Focused native coverage uses disk and draft versions with different return values, traces a helper to its constant and excludes an unrelated constant. AI actions and bundled knowledge passed 37/37 in 278 ms execution. Rebuilt the corpus from 335 files (1734 passages). The authorized watcher rebuilt Studio and launched PID 44130. Prompt source selection verified; generated-answer accuracy on this case unmeasured.
+
 ## Dev watcher undo and redo
 
 The frontend worker retains the last two successful checked revisions. Changing a dependency from one valid version to another and undoing or redoing now reuses matching checked output and skips semantic analysis and Rust emission. Matching still compares captured inputs, application paths, resolutions and read errors through the existing watcher predicate. Failed checks leave both revisions usable. One extra checked output and snapshot remain resident; unchanged source byte buffers are shared. Focused public dev-supervisor integration passed (4.29 s execution, 53.22 s setup), including checking actual stdout after valid undo and redo, failure recovery, process replacement and cleanup. Whole-project formatting reported zero changes. The live Studio supervisor still runs the prior compiler. New styles still need full checking; the saved class string alone cannot identify a rendered element (two search-panel Views share the same literal).
