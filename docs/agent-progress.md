@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio frontend check latency
+
+The release CLI checked apps/studio/src/main.tsrx with --diagnostics-only
+in 102.18 s (101.25 s user) after skipping repeated record-shape comparisons
+between mutable program accesses. The previous run on the same Studio entry
+took 156.90 s (155.22 s user). These are individual frontend checks, not
+end-to-end watcher timings. Existing in-place record, recursive union and
+scoped callable cache tests passed 3/3 in 0.01 s. The full shape comparison
+still runs after mutable access, and union and callable validation are
+independent. The retained dev supervisor PID 36374 uses its previous binary.
+Error-effect passes remain a known frontend cost.
+
 ## Answer-dependent follow-ups after context overflow
 
 When only the latest user turn fits and it has no explicit recall identifiers,

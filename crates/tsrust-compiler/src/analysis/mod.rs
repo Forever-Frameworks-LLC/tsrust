@@ -821,6 +821,24 @@ mod exception_escape_tests {
     }
 }
 
+// Mutable access may change an existing record shape without changing its ID.
+struct AnalysisProgram {
+    source: Program,
+    revision: u64,
+}
+
+impl std::ops::Deref for AnalysisProgram {
+    type Target = Program;
+    fn deref(&self) -> &Program { &self.source }
+}
+
+impl std::ops::DerefMut for AnalysisProgram {
+    fn deref_mut(&mut self) -> &mut Program {
+        self.revision += 1;
+        &mut self.source
+    }
+}
+
 struct Analyzer {
     program_access: BTreeMap<usize, Mode>,
     program_callback_sites: BTreeMap<usize, CallbackKind>,
@@ -836,7 +854,7 @@ struct Analyzer {
     threads_enabled: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
-    program: Program,
+    program: AnalysisProgram,
     // Retained source specialization state for the checked-inference handoff.
     generic_functions: crate::generic_functions::Cache,
     generic_records: crate::generic_records::Cache,
@@ -1714,7 +1732,7 @@ impl Analyzer {
             specialization_depths: HashMap::new(),
             closure_depths: HashMap::new(),
             original_count: count,
-            program,
+            program: AnalysisProgram { source: program, revision: 0 },
             record_names,
             function_names,
             fields,
@@ -2903,9 +2921,10 @@ impl Analyzer {
         if !self.effects_only {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
+        let program = self.program.source;
         let checked = CheckedProgram {
             program_callback_sites: self.program_callback_sites,
-            module_owner_bindings: self.program.module_owner_bindings,
+            module_owner_bindings: program.module_owner_bindings,
             schema_choices: self.schema_choices,
             schema_pipelines: self.schema_pipelines,
             schema_factories: self.schema_factories,
@@ -2920,15 +2939,13 @@ impl Analyzer {
             scoped_records: self.scoped_records,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
-            local_capture_plans: self.program.local_capture_plans,
-            local_declarations: self.program.local_declarations,
+            local_capture_plans: program.local_capture_plans,
+            local_declarations: program.local_declarations,
             function_specializations:self.specializations.iter().map(|((origin,_),instance)|(*instance,*origin)).collect(),
             error_effects: Default::default(),
             stored_contracts: self.callables.storage,
             callable_shapes: self.callables.shapes,
-            generic_parameter_types: self
-                .program
-                .functions
+            generic_parameter_types: program.functions
                 .iter()
                 .enumerate()
                 .filter_map(|(id, function)| {
@@ -2940,9 +2957,7 @@ impl Analyzer {
             deferred_generic_nominals,
             deferred_generic_values: self.deferred_generic_values.keys().copied().collect(),
             deferred_generic_sources: self.deferred_generic_values.iter().map(|(origin, source)| (*origin, self.generic_functions.template(&source.declaration).expect("deferred generic source template").name.clone())).collect(),
-            generic_declarations: self
-                .program
-                .functions
+            generic_declarations: program.functions
                 .iter()
                 .enumerate()
                 .filter_map(|(id, function)| {
@@ -2953,7 +2968,7 @@ impl Analyzer {
                 })
                 .collect(),
             unions: self.unions.snapshot(),
-            records: self.program.records,
+            records: program.records,
             task_origins: self.task_origins,
             closures: self.closures,
             callback_contracts: self.callables.callbacks,
