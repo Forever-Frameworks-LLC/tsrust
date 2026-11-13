@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Diagnostic freshness and unversioned TypeScript publications
+
+Studio now records the session/revision on accepted language problems and
+removes stale rows on the next poll even when the server inbox is full. A
+server sending unversioned diagnostics gets one informational Problems row per
+connection. The row has no file location and clears on stop or restart.
+typescript-language-server 6.1.0 with TypeScript 5.9.3 exercised the notice
+on an unsaved type error and still resolved a subsequent cross-file definition.
+The focused controller/service suites passed 15/15 in 918.22 ms. The panel
+check and both locale catalogs passed. Actual TypeScript error text/locations
+for unversioned reports and native Problems panel interaction remain open.
+
 ## TypeScript module files and cross-file navigation
 
 Studio's TypeScript server preset and Explorer icons recognize .mts, .cts and

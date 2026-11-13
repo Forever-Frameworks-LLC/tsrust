@@ -141,6 +141,14 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           }
         }
 
+        if (update.kind === 'unversioned' && connection.ready) {
+          const notice = operationProblem(clone(source), '', clone(update.message));
+          notice.code = 'unversioned-diagnostics';
+          notice.severity = 'information';
+          current = replaceProblems(current, clone(source), [notice], '');
+          problemsChanged = true;
+        }
+
         if (update.kind === 'diagnostics' && connection.ready) {
           const document = update.document;
 
@@ -150,7 +158,14 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
           const sent = next.documents.find((entry) => entry.path === path && identityServer(entry) === server);
 
           if (file !== undefined && sent !== undefined && file.document.session === document.session && file.document.revision === document.revision && sent.version === document.version) {
-            current = replaceProblems(current, clone(source), clone(update.problems ?? []), clone(document.path));
+            const reported = clone(update.problems ?? []);
+
+            for (let row = 0; row < reported.length; row += 1) {
+              reported[row].session = clone(document.session);
+              reported[row].revision = document.revision;
+            }
+
+            current = replaceProblems(current, clone(source), reported, clone(document.path));
             problemsChanged = true;
           }
         }
@@ -257,6 +272,17 @@ export function pollLanguage(workspace: Signal<Workspace>, problems: Signal<Prob
         break;
       }
     }
+  }
+
+  for (let row = current.length - 1; row >= 0; row -= 1) {
+    {
+      const problem = current[row];
+
+      if (problem.session === undefined || files.some((file) => file.document.path === problem.path && file.document.session === problem.session && file.document.revision === problem.revision)) continue;
+    }
+
+    current.splice(row, 1);
+    problemsChanged = true;
   }
 
   if (problemsChanged) problems.set(current);

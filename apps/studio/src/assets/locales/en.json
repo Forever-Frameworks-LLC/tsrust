@@ -3,6 +3,7 @@
   "Save file": "Save file",
   "Toggle terminal": "Toggle terminal",
   "Settings": "Settings",
+  "This server sends diagnostics without document versions. Studio cannot verify their locations.": "This server sends diagnostics without document versions. Studio cannot verify their locations.",
   "Files": "Files",
   "Search contents": "Search contents",
   "Source Control": "Source Control",

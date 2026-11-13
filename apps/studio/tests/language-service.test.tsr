@@ -504,7 +504,7 @@ test('language controller rejects stale reports, clears edits and closes documen
   const workspace = signal(initial);
   const problems = signal<Problem[]>([]);
   const state = signal(createLanguageState());
-  const requests = new Channel<LanguageMessage>(8);
+  const requests = new Channel<LanguageMessage>(1);
   const messages = requests.sender();
   const updates = new Channel<LanguageUpdate>(8);
   const replies = updates.sender();
@@ -527,6 +527,9 @@ test('language controller rejects stale reports, clears edits and closes documen
   unwrap(replies.trySend(clone(report)));
   pollLanguage(workspace, problems, state, messages, updates);
   strictEqual(problems.get().length, 1);
+  unwrap(messages.trySend({
+    kind: 'occupied', generation: 1
+  }));
   const changed = workspace.get();
   changed.files[0].document.revision = 1;
   changed.files[0].document.text = 'function main() { console.log(1); }';
@@ -534,6 +537,8 @@ test('language controller rejects stale reports, clears edits and closes documen
   unwrap(replies.trySend(clone(report)));
   pollLanguage(workspace, problems, state, messages, updates);
   strictEqual(problems.get().length, 0);
+  strictEqual(unwrap(requests.tryReceive()).kind, 'occupied');
+  pollLanguage(workspace, problems, state, messages, updates);
   const sent = unwrap(requests.tryReceive());
   strictEqual(sent.document?.version ?? -1, 2);
   const closed = workspace.get();
@@ -542,6 +547,22 @@ test('language controller rejects stale reports, clears edits and closes documen
   unwrap(replies.trySend(report));
   pollLanguage(workspace, problems, state, messages, updates);
   strictEqual(unwrap(requests.tryReceive()).kind, 'close');
+  strictEqual(problems.get().length, 0);
+
+  for (let index = 0; index < 2; index += 1) {
+    unwrap(replies.trySend({
+      kind: 'unversioned', generation: 1, message: 'Missing versions'
+    }));
+    pollLanguage(workspace, problems, state, messages, updates);
+  }
+
+  strictEqual(problems.get().length, 1);
+  strictEqual(problems.get()[0].severity, 'information');
+  strictEqual(problems.get()[0].path, '');
+  unwrap(replies.trySend({
+    kind: 'stopped', generation: 1, message: 'stopped'
+  }));
+  pollLanguage(workspace, problems, state, messages, updates);
   strictEqual(problems.get().length, 0);
   strictEqual(workspace.get().active, '/project/main.tsr');
 });

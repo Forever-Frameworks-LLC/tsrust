@@ -11,6 +11,8 @@ export interface Problem {
   message: string;
   severity: string;
   terminal?: string;
+  session?: string;
+  revision?: int;
 }
 
 export function operationProblem(source: string, path: string, message: string): Problem {

@@ -11,6 +11,7 @@ import {
   Node,
   Signal,
   computed,
+  translate,
   t,
   Button
 } from 'std:ui';
@@ -78,10 +79,11 @@ function revealProblem(
 
 function ProblemRow(problem: ReadOnly<Problem>, index: int, font: Signal<int>): Node {
   const rowClass = computed<string>(() => 'py-1 border-b border-border rounded-none text-[' + font.get().toString() + 'px]');
-  const message = clone(problem.message.split('\n').find((line) => line.trim() !== '') ?? problem.message);
+  const description = problem.code === 'unversioned-diagnostics' ? translate(problem.message) : clone(problem.message);
+  const message = clone(description.split('\n').find((line) => line.trim() !== '') ?? description);
   const location = problem.path === '' ? clone(problem.source) : basename(problem.path) + (problem.line > 0? ':' + problem.line.toString() + ':' + problem.column.toString(): '');
   const label = clone(location) + ' ' + clone(message);
-  const details = problem.message.slice(0, 8192);
+  const details = description.slice(0, 8192);
   const metadata = problem.path === '' ? clone(problem.source) : location + ' [' + problem.source + (problem.code === problem.source ? '' : '/' + problem.code) + ']';
   const icon = problem.severity === 'warning' ? 'triangle-alert' : problem.severity === 'information' || problem.severity === 'hint' ? 'info' : 'circle-x';
   const iconClass = problem.severity === 'error' ? 'text-destructive' : 'text-muted-foreground';

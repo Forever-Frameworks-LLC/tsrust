@@ -51,8 +51,17 @@ test('TypeScript server resolves a NodeNext module import from an unsaved .mts b
     });
     const ready = await nextUpdate(updates, 'ready').timeout(20000);
     const document: LanguageDocument = {
-      server: clone(route.server), languageId: clone(route.language), path: clone(path), session: 'module', version: 1, revision: 1, text: 'import { answer } from "./math.mjs";\nexport const local = answer;\n'
+      server: clone(route.server), languageId: clone(route.language), path: clone(path), session: 'module', version: 1, revision: 1, text: 'export const wrong: number = "bad";\n'
     };
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const notice = await nextUpdate(updates, 'unversioned').timeout(20000);
+    strictEqual(notice.server, 'typescript');
+    strictEqual(notice.problems === undefined, true);
+    document.text = 'import { answer } from "./math.mjs";\nexport const local = answer;\n';
+    document.revision += 1;
+    document.version += 1;
     await requests.send({
       server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
     });
