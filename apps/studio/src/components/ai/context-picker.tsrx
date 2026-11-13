@@ -13,6 +13,7 @@ import {
   Node,
   Signal,
   computed,
+  controlInput,
   pickFiles,
   translate,
   t
@@ -62,6 +63,7 @@ export function showContextPicker(context: ReadOnly<AiContext>, picker: Signal<C
   picker.set({
     open: true, kind, query: '', chat: clone(context.state.get().history.active), root, files
   });
+  controlInput('chat-context-search', 'focus');
 }
 
 function ContextOption(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
@@ -91,6 +93,7 @@ export function ContextPicker(context: ReadOnly<AiContext>, picker: Signal<Conte
       <DialogContent className="p-0">
         <Command
           className={style.get()}
+          inputId="chat-context-search"
           filterable={false}
           query={picker.get().query}
           placeholder={message('Search context files')}
