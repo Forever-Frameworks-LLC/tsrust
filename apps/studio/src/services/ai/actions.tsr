@@ -394,6 +394,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       }
     }
 
+    if (request.kind === 'cancel' || request.kind === 'shutdown') next.editTarget = undefined;
+
     match (context.commands.trySend(request)) {
       Err(_) => {
         return Err('The model command queue is full or closed.');

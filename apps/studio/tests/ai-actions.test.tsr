@@ -576,3 +576,44 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     unwrap(removeDirAll(folder));
   }
 });
+
+test('an accepted cancellation or shutdown withdraws the edit target before a late completion', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-cancel-'));
+
+  try {
+    const path = folder + '/main.tsr';
+    unwrap(writeTextFile(path, 'const x = 1;'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, path));
+
+    for (const action of ['local_model_cancel', 'local_model_stop']) {
+      const requests = new Channel<ModelRequest>(1);
+      const updates = new Channel<ModelUpdate>(1);
+      const ready = initialAiState(emptyHistory(clone(model.root)));
+      ready.phase = 'ready';
+      const state = signal(ready);
+      const settings = signal(modelConfig());
+      const host = context(state, settings, requests);
+      host.workspace = signal(clone(model));
+      send(host, 'Edit: Change x to 2');
+      const args = JSON.stringify({
+        request: clone(state.get().active)
+      });
+      strictEqual(denied(invokeModelTool(host, action, args)), true);
+      strictEqual(state.get().editTarget !== undefined, true);
+      const generation = unwrap(requests.tryReceive());
+      unwrap(invokeModelTool(host, action, args));
+      strictEqual(state.get().editTarget === undefined, true);
+      const reply = '{"before":"1","after":"2"}';
+      unwrap(updates.sender().trySend({
+        kind: 'complete', id: generation.id, text: clone(reply), error: '', stop: 'eos'
+      }));
+      pollModel(host, updates);
+      strictEqual(state.get().review === undefined, true);
+      strictEqual(state.get().history.chats[0].messages[1].text, reply);
+      strictEqual(unwrap(readTextFile(path)), 'const x = 1;');
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

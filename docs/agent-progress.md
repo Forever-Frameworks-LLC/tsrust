@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Cancellation during chat edit generation
+
+Once a cancellation or shutdown command enters the host queue, Studio drops
+the captured edit target. A racing completion can still finish the transcript
+without creating an edit review. A failed queue submission keeps the original
+request eligible. AI action tests passed 14/14 in 37.64 ms, covering a full
+queue, successful retry, and a valid late replacement for both operations.
+This was a deterministic host-channel test; desktop clicks were not exercised.
+
 ## Multiple replacements in one chat edit
 
 The edit parser accepts the previous single replacement and a JSON array.
