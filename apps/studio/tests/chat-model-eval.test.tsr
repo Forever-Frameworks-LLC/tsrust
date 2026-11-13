@@ -531,18 +531,26 @@ if (workspaceEval === 'completion') test('local code completion changes with the
     strictEqual((await updates.receive().timeout(180000)).kind, 'ready');
 
     for (const expected of ['first', 'second']) {
+      const overflow = expected === 'first';
+      let compacted = false;
       await commands.send({
-        kind: 'complete-code', id: clone(expected), maxTokens: 0, prompt: 'function pick(first: string, second: string): string { return ', suffix: '; }\n// pick returns the ' + expected + ' string.\n'
+        kind: 'complete-code', id: clone(expected), maxTokens: 0, prompt: (overflow ? '// ' + '🦀'.repeat(35000) + '\n' : '') + 'function pick(first: string, second: string): string { return ', suffix: '; }\n// pick returns the ' + expected + ' string.\n'
       });
 
       while (true) {
         const update = await updates.receive().timeout(180000);
         strictEqual(update.id, expected);
 
+        if (update.kind === 'compacted') {
+          compacted = true;
+          continue;
+        }
+
         if (update.kind === 'prefix') continue;
         strictEqual(update.kind, 'complete');
         strictEqual(update.stop, 'eos');
         strictEqual(update.text, expected);
+        strictEqual(compacted, overflow);
         break;
       }
     }

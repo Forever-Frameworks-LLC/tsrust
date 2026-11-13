@@ -40,10 +40,44 @@ function publish(
   }));
 }
 
+function completionPrompt(prefix: ReadOnly<string>, suffix: ReadOnly<string>): string {
+  return '<|fim_prefix|>' + prefix + '<|fim_suffix|>' + suffix + '<|fim_middle|>';
+}
+
+// Discard the distant half of the larger side at a line boundary when possible.
+// A single long line falls back to a Unicode character boundary.
+function nearCursor(source: ReadOnly<string>, before: boolean): string {
+  const lines = source.split('\n');
+
+  if (lines.length > 1) {
+    const keep = (lines.length + 1) / 2;
+    return before ? lines.slice(lines.length - keep).join('\n') : lines.slice(0, keep).join('\n');
+  }
+
+  const characters = Array.from(source);
+  const keep = characters.length / 2;
+  return before ? characters.slice(characters.length - keep).join('') : characters.slice(0, keep).join('');
+}
+
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
   const completion = request.kind === 'complete-code';
   const transcript = completion ? undefined : request.messages;
-  let prompt = completion ? '<|fim_prefix|>' + request.prompt + '<|fim_suffix|>' + (request.suffix ?? '') + '<|fim_middle|>' : transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
+  let prompt = completion ? completionPrompt(request.prompt, request.suffix ?? '') : transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
+
+  if (completion && !unwrap(qwen_prompt_fits(model, prompt))) {
+    let before = clone(request.prompt);
+    let after = clone(request.suffix) ?? '';
+
+    while (before !== '' || after !== '') {
+      if (before.length >= after.length) before = nearCursor(before, true);
+      else after = nearCursor(after, false);
+      prompt = completionPrompt(before, after);
+
+      if (unwrap(qwen_prompt_fits(model, prompt))) break;
+    }
+
+    publish(updates, 'compacted', clone(request.id));
+  }
 
   if (transcript !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
     let messages: ChatMessage[] = transcript;

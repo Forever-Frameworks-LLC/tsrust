@@ -16,6 +16,12 @@ chat-model-eval.test.tsr passed through the service in 8.98 seconds. The dev
 host binary matches the tested executable. Ghost-text delivery, cancellation
 on typing, Tab acceptance and broader completion quality remain unverified.
 
+Oversized FIM requests now discard distant source until the model tokenizer
+accepts the prompt. An oversized prefix containing 35,000 crab emoji produced
+the exact insertion first after compaction. The same host then produced second
+without compaction. The focused Metal service test passed in 2.54 seconds.
+The dev host binary matches that build.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered
