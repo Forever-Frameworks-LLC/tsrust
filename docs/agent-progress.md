@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Recall when the answer omits the symbol
+
+When a historical question mentioning the requested identifier must be
+excerpted, the worker tries to keep its full paired assistant reply. If
+the tokenizer rejects that combination, it tries matching lines as before.
+The answer can now supply a decision without repeating the identifier.
+
+The exact same direct Metal input (35000 preamble words, a separate 35000
+word distractor, value only in the assistant reply) returned [Omitted] before
+and 73 after, both stopping at EOS. Sampled peak RSS was 2069552 KiB and
+1324880 KiB respectively, single runs. The reply variant of the public
+Studio chat-session evaluation passed in 3398.58 ms with all six messages
+retained. Run with TSRUST_STUDIO_RUN_RECALL_EVAL=reply and the configured
+model host. Natural-language paraphrase recall remains open.
+
 ## Excerpts from oversized historical exchanges
 
 When a symbol-relevant complete exchange exceeds the remaining tokenizer

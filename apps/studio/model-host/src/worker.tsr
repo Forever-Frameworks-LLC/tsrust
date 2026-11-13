@@ -74,7 +74,20 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
           retained = candidate;
           prompt = rendered;
         } else {
-          const excerpt = excerptTurn(messages, starts[index], starts[index + 1], terms).concat(retained);
+          const fragments = excerptTurn(messages, starts[index], starts[index + 1], terms);
+          // An answer can supply the value without repeating the identifier in the question.
+          if (fragments.length === 2 && fragments[0].content !== '[Omitted]' && fragments[1].role === 'assistant') {
+            const exchange = [clone(fragments[0]), clone(messages[starts[index] + 1])].concat(retained);
+            const withAnswer = conversationPrompt(exchange);
+
+            if (unwrap(qwen_prompt_fits(model, withAnswer))) {
+              retained = exchange;
+              prompt = withAnswer;
+              continue;
+            }
+          }
+
+          const excerpt = fragments.concat(retained);
           const shorter = conversationPrompt(excerpt);
 
           if (unwrap(qwen_prompt_fits(model, shorter))) {
