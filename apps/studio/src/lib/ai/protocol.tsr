@@ -5,6 +5,7 @@ export type ModelRequest = {
   id: string;
   prompt: string;
   maxTokens: int;
+  suffix?: string;
   modelPath?: string;
   tokenizerPath?: string;
   messages?: ChatMessage[];

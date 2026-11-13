@@ -41,8 +41,9 @@ function publish(
 }
 
 function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
-  const transcript = request.messages;
-  let prompt = transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
+  const completion = request.kind === 'complete-code';
+  const transcript = completion ? undefined : request.messages;
+  let prompt = completion ? '<|fim_prefix|>' + request.prompt + '<|fim_suffix|>' + (request.suffix ?? '') + '<|fim_middle|>' : transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
 
   if (transcript !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
     let messages: ChatMessage[] = transcript;
@@ -235,7 +236,12 @@ export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, toke
 
     if (request.kind === 'shutdown') return;
 
-    if (request.kind !== 'generate' || request.id === '') {
+    if (request.kind === 'complete-code' && (request.suffix === undefined || request.messages !== undefined)) {
+      publish(updates, 'rejected', request.id, '', 'Code completion requires a suffix and no chat history.');
+      continue;
+    }
+
+    if (!['generate', 'complete-code'].includes(request.kind) || request.id === '') {
       publish(updates, 'rejected', request.id, '', 'Expected a generation request with a nonempty identity.');
       continue;
     }

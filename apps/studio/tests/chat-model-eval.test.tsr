@@ -513,3 +513,44 @@ if (['1', 'excerpt', 'reply', 'followup', 'historical-source', 'mixed-source'].i
     } catch (_) {}
   }
 });
+
+if (workspaceEval === 'completion') test('local code completion changes with the suffix at the same cursor', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const config = unwrap(loadConfig(unwrap(configPath())));
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(16);
+  const commands = requests.sender();
+  const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+  try {
+    await commands.send({
+      kind: 'start', id: '', prompt: '', maxTokens: 0, modelPath: config.aiModelPath, tokenizerPath: config.aiTokenizerPath
+    });
+    strictEqual((await updates.receive().timeout(180000)).kind, 'ready');
+
+    for (const expected of ['first', 'second']) {
+      await commands.send({
+        kind: 'complete-code', id: clone(expected), maxTokens: 0, prompt: 'function pick(first: string, second: string): string { return ', suffix: '; }\n// pick returns the ' + expected + ' string.\n'
+      });
+
+      while (true) {
+        const update = await updates.receive().timeout(180000);
+        strictEqual(update.id, expected);
+
+        if (update.kind === 'prefix') continue;
+        strictEqual(update.kind, 'complete');
+        strictEqual(update.stop, 'eos');
+        strictEqual(update.text, expected);
+        break;
+      }
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});

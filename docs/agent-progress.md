@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Local fill-in-the-middle model host
+
+Studio's model service accepts a complete-code request with the source before
+the cursor in prompt and the remaining source in suffix. The host encodes
+both with Qwen's FIM tokens, without chat history. In two requests with the
+same function prefix, changing only a comment after the cursor changed the
+exact insertion from first to second. Both ended at EOS with maxTokens=0.
+Peak sampled host RSS was 2,069,456 KiB. The opt-in completion case in
+chat-model-eval.test.tsr passed through the service in 8.98 seconds. The dev
+host binary matches the tested executable. Ghost-text delivery, cancellation
+on typing, Tab acceptance and broader completion quality remain unverified.
+
 ## Source-control sidebar and editor comparison
 
 Native Stage file and Commit staged changes produced a commit with the entered
