@@ -81,8 +81,9 @@ function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, m
 
   for (let index = 0; index < passages.length; index += 1) {
     const passage = passages[index];
-    const line = file.before.slice(0, passage.start).split('\n').length;
-    const label = translate(passage.included ? 'Exclude change' : 'Include change') + ' · ' + translate('Line') + ' ' + line.toString();
+    const lines = file.before.slice(0, passage.start).split('\n');
+    const column = Array.from(lines[lines.length - 1]).length + 1;
+    const label = translate(passage.included ? 'Exclude change' : 'Include change') + ' · ' + translate('Line') + ' ' + lines.length.toString() + ':' + column.toString();
     const path = clone(file.path);
     const captured = clone(file);
     const position = index;
