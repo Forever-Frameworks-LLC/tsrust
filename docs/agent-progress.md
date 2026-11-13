@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat priority on the shared model host
+
+Chat can send while the editor loads the model or runs an inline request. Studio queues the chat, cancels obsolete editor work and dispatches the chat on the same resident host. Cancelling a waiting chat restores its draft. The native composer now keys its stop button to an active chat request. The 33 AI action cases passed in 0.218 seconds. In an isolated rebuilt Studio window a deliberately delayed inline command allowed an actual chat submission during the overlap. The real 1.5B host received start, complete-code, cancel and generate in order, and the persisted answer to 4 + 7 was 11.
+
 ## Inline completion during model queue congestion
 
 When the model command queue is full, Studio retains the latest editor request across both cold startup and dispatch to a ready host. Newer caret requests replace older queued ones, and a closed queue or missing startup permission still resolves the editor request. A capacity-one channel regression occupied the queue at both boundaries, replaced the waiting request, then observed only the newest prefix/suffix request after capacity returned. All 31 AI action cases passed in 0.187 seconds.

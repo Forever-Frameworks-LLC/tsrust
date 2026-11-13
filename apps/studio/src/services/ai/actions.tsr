@@ -294,7 +294,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (args.chat !== next.history.active) return Err('The selected conversation changed before sending.');
 
-      if (next.phase !== 'ready' && next.phase !== 'stopped') return Err('Wait for the current response or stop it before sending another.');
+      if (next.active !== '' || next.pending !== undefined || !['ready', 'stopped', 'starting', 'inline'].includes(next.phase)) return Err('Wait for the current response or stop it before sending another.');
       const prompt = args.prompt ?? '';
 
       if (prompt.trim() === '') return Err('Enter a message before sending.');
@@ -468,6 +468,22 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         Ok(_) => {}
       }
 
+      if (next.phase === 'starting' || next.phase === 'inline') {
+        next.pending = generation;
+        const queued = next.queuedInline;
+
+        if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+        next.queuedInline = undefined;
+
+        if (next.phase === 'inline' && next.inlineCancel === undefined) {
+          next.inlineCancel = 'pending';
+          sendInlineCancel(next, context.commands);
+        }
+
+        unwrap(publish(context, next));
+        return Ok('{"accepted":true}');
+      }
+
       if (next.phase === 'stopped') match (startRequest(context)) {
         Err(error) => {
           return Err(clone(error));
@@ -505,6 +521,13 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         request.kind = 'shutdown';
         next.phase = 'stopping';
       } else {
+        if (next.pending !== undefined && next.phase !== 'starting' && args.request === next.active && next.active !== '') {
+          restorePending(next, 'cancelled');
+          next.editTarget = undefined;
+          unwrap(publish(context, next));
+          return Ok('{"accepted":true}');
+        }
+
         if (args.request !== next.active || next.active === '' || !['starting', 'generating'].includes(next.phase)) return Err('The generation request is no longer active.');
 
         if (next.phase === 'starting') {
@@ -545,7 +568,7 @@ export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<
   });
   const next = state.get();
 
-  if (next.phase === 'stopped' || next.phase === 'ready' || (next.phase === 'starting' && next.pending === undefined) || next.phase === 'inline') {
+  if (next.pending === undefined && ['stopped', 'ready', 'starting', 'inline'].includes(next.phase)) {
     const previous = next.queuedInline;
 
     if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});

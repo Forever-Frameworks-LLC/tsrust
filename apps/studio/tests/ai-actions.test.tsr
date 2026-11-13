@@ -154,6 +154,67 @@ test('a full command queue retains only the latest inline request at startup and
   strictEqual(state.get().queuedInline === undefined, true);
 });
 
+test('chat preempts inline inference and survives an editor cold start', () => {
+  for (const phase of ['starting', 'ready']) {
+    const initial = initialAiState();
+    initial.phase = clone(phase);
+    const state = signal(initial);
+    const commands = new Channel<ModelRequest>(1);
+    const sender = commands.sender();
+    const settings = signal(modelConfig());
+    const host = context(state, settings, commands);
+    const updates = new Channel<ModelUpdate>(1);
+    requestInline(state, sender, '{"id":17,"prefix":"old","suffix":";"}');
+    send(host, 'Explain this function.');
+    const active = clone(state.get().active);
+    strictEqual(state.get().pending?.id, clone(active));
+    requestInline(state, sender, '{"id":18,"prefix":"new","suffix":";"}');
+    strictEqual(state.get().queuedInline === undefined, true);
+
+    if (phase === 'ready') {
+      strictEqual(unwrap(commands.tryReceive()).id, 'inline:17');
+      pollModel(host, updates);
+      strictEqual(unwrap(commands.tryReceive()).kind, 'cancel');
+      unwrap(updates.sender().trySend({
+        kind: 'cancelled', id: 'inline:17', text: '', error: ''
+      }));
+    } else unwrap(updates.sender().trySend({
+      kind: 'ready', id: '', text: '', error: ''
+    }));
+    pollModel(host, updates);
+    const chat = unwrap(commands.tryReceive());
+    strictEqual(chat.kind, 'generate');
+    strictEqual(chat.id, active);
+    strictEqual(state.get().phase, 'generating');
+  }
+});
+
+test('cancelling a chat waiting on inline inference restores its draft', () => {
+  const initial = initialAiState();
+  initial.phase = 'ready';
+  const state = signal(initial);
+  const commands = new Channel<ModelRequest>(3);
+  const sender = commands.sender();
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  const updates = new Channel<ModelUpdate>(1);
+  requestInline(state, sender, '{"id":9,"prefix":"old","suffix":""}');
+  send(host, 'Keep this draft');
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: state.get().active
+  })));
+  strictEqual(state.get().pending === undefined, true);
+  strictEqual(state.get().history.chats[0].draft, 'Keep this draft');
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:9');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'cancel');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: 'inline:9', text: 'late', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().active, '');
+});
+
 test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
   const ready = initialAiState();
   ready.phase = 'ready';

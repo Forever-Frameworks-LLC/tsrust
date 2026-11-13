@@ -207,7 +207,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
   const renderChat = (chat: ReadOnly<Conversation>): Node => ConversationRow(chat, state, font, deleting);
   const style = computed<string>(() => 'flex-col size-full min-w-0 min-h-0 bg-background text-[' + font.get().toString() + 'px]');
   const inputStyle = computed<string>(() => 'min-w-0 text-[' + font.get().toString() + 'px]');
-  const working = computed<boolean>(() => ['starting', 'generating', 'stopping'].includes(state.get().phase));
+  const working = computed<boolean>(() => state.get().active !== '' || state.get().phase === 'stopping');
   return (
     <View className={style.get()}>
       <View hidden={state.get().view !== 'all'} className="flex-col grow min-h-0">
