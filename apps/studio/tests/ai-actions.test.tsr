@@ -395,7 +395,10 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
 
   try {
     unwrap(writeTextFile(folder + '/main.tsr', 'disk version'));
-    unwrap(writeTextFile(folder + '/helper.tsr', 'unopened content' + 'x'.repeat(2031) + '😀' + 'y'.repeat(40000) + 'large file tail'));
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/copy.tsr', 'root duplicate content'));
+    unwrap(writeTextFile(folder + '/lib/copy.tsr', 'nested duplicate content'));
+    unwrap(writeTextFile(folder + '/lib/helper.tsr', 'unopened content' + 'x'.repeat(2031) + '😀' + 'y'.repeat(40000) + 'large file tail'));
     unwrap(writeTextFile(folder + '/per.tsr', 'unrelated suffix'));
     const model = unwrap(openWorkspace(clone(folder)));
     unwrap(openFile(model, folder + '/main.tsr'));
@@ -409,29 +412,33 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     const ready = state.get();
     ready.phase = 'ready';
     state.set(ready);
-    send(host, 'Explain helper.tsr');
+    send(host, 'Explain helper.tsr and copy.tsr');
     const messages = unwrap(requests.tryReceive()).messages;
 
     if (messages === undefined) throw 'missing generation';
     strictEqual(messages[0].content.includes('Active editor file: main.tsr'), true);
     strictEqual(messages[0].content.includes('unsaved fact'), true);
-    strictEqual(messages[0].content.includes('helper.tsr'), true);
+    strictEqual(messages[0].content.includes('Referenced workspace file: lib/helper.tsr'), true);
+    strictEqual(messages[0].content.includes('./copy.tsr'), true);
+    strictEqual(messages[0].content.includes('./lib/copy.tsr'), true);
+    strictEqual(messages[0].content.includes('root duplicate content'), false);
+    strictEqual(messages[0].content.includes('nested duplicate content'), false);
     strictEqual(messages[0].content.includes('tail'), false);
     strictEqual(messages[0].content.includes('unopened content'), true);
     strictEqual(messages[0].content.includes('large file tail'), false);
     strictEqual(messages[0].content.includes('unrelated suffix'), false);
-    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr');
+    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr and copy.tsr');
     const updates = new Channel<ModelUpdate>(4);
     unwrap(updates.sender().trySend({
       kind: 'complete', id: clone(state.get().active), text: 'The helper reads the input.', error: '', stop: 'eos'
     }));
     pollModel(host, updates);
-    unwrap(writeTextFile(folder + '/helper.tsr', 'changed on disk'));
+    unwrap(writeTextFile(folder + '/lib/helper.tsr', 'changed on disk'));
     const restored = unwrap(parseHistory(JSON.stringify(state.get().history), state.get().history.root));
     const resumed = initialAiState(restored);
     resumed.phase = 'ready';
     state.set(resumed);
-    send(host, 'What did that helper read?');
+    send(host, 'What did that helper read? Compare with lib/copy.tsr.');
     const followUp = unwrap(requests.tryReceive()).messages;
 
     if (followUp === undefined) throw 'missing follow-up';
@@ -439,6 +446,7 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     strictEqual(followUp[0].content, messages[0].content);
     strictEqual(followUp[1].content, 'The helper reads the input.');
     strictEqual(followUp[2].content.includes('changed on disk'), false);
+    strictEqual(followUp[2].content.includes('nested duplicate content'), true);
     unwrap(updates.sender().trySend({
       kind: 'complete', id: clone(state.get().active), text: 'The original input.', error: '', stop: 'eos'
     }));
@@ -448,7 +456,7 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     const withoutRead = unwrap(requests.tryReceive()).messages;
 
     if (withoutRead === undefined) throw 'missing restricted follow-up';
-    strictEqual(withoutRead[0].content, 'Explain helper.tsr');
+    strictEqual(withoutRead[0].content, 'Explain helper.tsr and copy.tsr');
     strictEqual(withoutRead[4].content, 'Continue');
   } finally {
     removeDirAll(folder);

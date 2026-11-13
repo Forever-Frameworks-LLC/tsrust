@@ -120,15 +120,36 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
 
   if (tree !== undefined && tree.root === workspace.root) {
     const paths: string[] = [];
+    const mentionedNames = new Map<string, int>();
+
+    for (const directory of tree.directories) {
+      for (const file of directory.children) {
+        if (!file.directory && file.path.startsWith(prefix) && mentionsPath(prompt, file.name)) {
+          const count = mentionedNames.get(file.name) ?? 0;
+          mentionedNames.set(clone(file.name), count + 1);
+        }
+      }
+    }
+
     let size = 0;
     let named = 0;
+    const ambiguous: string[] = [];
+    let ambiguousBytes = 0;
 
     for (const directory of tree.directories) {
       for (const file of directory.children) {
         if (file.directory || !file.path.startsWith(prefix)) continue;
         const path = file.path.slice(prefix.length);
 
-        if (named < 2 && file.path !== workspace.active && mentionsPath(prompt, path) && !attached.some((fragment) => fragment.path === file.path)) {
+        const nameCount = mentionedNames.get(file.name) ?? 0;
+        const referenced = nameCount === 1 || (path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path);
+
+        if (nameCount > 1 && ambiguous.length < 12 && ambiguousBytes + path.length + 3 <= 1024) {
+          ambiguousBytes += path.length + 3;
+          ambiguous.push('./' + path);
+        }
+
+        if (named < 2 && file.path !== workspace.active && referenced && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
               result += '\n\nReferenced workspace file: ' + path + '\n' + excerpt;
@@ -141,10 +162,10 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
         if (paths.length >= 24 || size + path.length + 1 > 1024) continue;
         size += path.length + 1;
         paths.push(path);
-
       }
-
     }
+
+    if (ambiguous.length > 0) result += '\n\nAmbiguous filenames in the question. Ask which relative path was intended:\n' + ambiguous.join('\n');
 
     if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files (sample):\n' + paths.join('\n');
   }

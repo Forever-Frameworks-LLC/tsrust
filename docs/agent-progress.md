@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat filename resolution
+
+Chat resolves a bare filename against the explorer snapshot when it is unique.
+For duplicate names the model request includes bounded disambiguation paths
+instead of choosing a file. Workspace-relative paths and explicit ./ paths
+select a particular match. AI action tests passed 11/11 in 15.15 ms. The
+fixture covered a nested unique file, duplicate root/nested names and the
+subsequent qualified selection. Native chat interaction, model clarification
+quality, large-tree latency and semantic symbol lookup remain unverified.
+
 ## Workspace excerpts across chat turns
 
 Automatic excerpts now persist with the originating user turn in the local
