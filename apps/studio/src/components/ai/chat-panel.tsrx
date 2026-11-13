@@ -20,6 +20,7 @@ import {
   signal,
   computed,
   translate,
+  translateWith,
   t
 } from 'std:ui';
 
@@ -118,6 +119,7 @@ function ChatMessageView(entry: ReadOnly<AiMessage>, state: Signal<AiState>, fon
 }
 
 interface DeleteChatTarget {
+  title?: string;
   chat: string;
   revision: int;
 }
@@ -131,6 +133,9 @@ function ConversationRow(chat: ReadOnly<Conversation>, state: Signal<AiState>, f
     const index = state.get().history.chats.findIndex((chat) => chat.id === captionId);
     return index < 0 || state.get().history.chats[index].title === '' ? translate('New chat') : clone(state.get().history.chats[index].title);
   });
+  const deleteName = computed<string>(() => translateWith('Delete “{title}”', {
+    title: title.get()
+  }));
   const style = computed<string>(() => 'py-2 rounded-none border-b border-border text-[' + font.get().toString() + 'px]');
   return (
     <ListItem value={id} accessibilityLabel={title.get()} className={style.get()}>
@@ -142,15 +147,15 @@ function ConversationRow(chat: ReadOnly<Conversation>, state: Signal<AiState>, f
           icon="trash"
           variant="ghost"
           size="xsmall"
-          tooltip={message('Delete chat')}
-          aria-label={accessibleName('Delete chat')}
+          tooltip={deleteName.get()}
+          aria-label={deleteName.get()}
           disabled={state.get().targetChat === targetId && state.get().active !== ''}
           onPress={() => {
             const current = state.get();
             const index = current.history.chats.findIndex((chat) => chat.id === deleteId);
 
             if (index >= 0) deleting.set({
-              chat: clone(deleteId), revision: current.history.chats[index].revision
+              chat: clone(deleteId), revision: current.history.chats[index].revision, title: clone(current.history.chats[index].title)
             });
           }}
         />
@@ -192,6 +197,12 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
   });
   const deleting = signal<DeleteChatTarget>({
     chat: '', revision: 0
+  });
+  const deleteTitle = computed<string>(() => {
+    const title = deleting.get().title ?? '';
+    return translateWith('Delete “{title}”?', {
+      title: title === '' ? translate('New chat') : clone(title)
+    });
   });
   const input = aiContextHandles(context);
   const submit = aiContextHandles(context);
@@ -327,7 +338,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
       {ContextPicker(context, picker.handle(), font.handle())}
       <Dialog
         open={deleting.get().chat !== ''}
-        title={message('Delete this chat?')}
+        title={deleteTitle.get()}
         description={message('This removes the conversation and its messages.')}
         width={420}
         onOpenChange={(open) => {
@@ -355,8 +366,13 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
             </Button>
             <Button
               variant="danger"
+              aria-label={deleteTitle.get()}
               onPress={() => {
-                if (perform(remove, 'chat_delete', JSON.stringify(deleting.get()))) deleting.set({
+                const target = deleting.get();
+
+                if (perform(remove, 'chat_delete', JSON.stringify({
+                  chat: target.chat, revision: target.revision
+                }))) deleting.set({
                   chat: '', revision: 0
                 });
               }}
