@@ -666,6 +666,8 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
 
   try {
     unwrap(writeTextFile(folder + '/main.tsr', ''));
+    unwrap(writeTextFile(folder + '/tsrust.config.json', '{"paths":{"@prices":"./fees"}}'));
+    unwrap(writeTextFile(folder + '/fees.tsr', 'export function fee() { return 91; }'));
     unwrap(writeTextFile(folder + '/helpers.tsr', 'export function policyExtra() { return 444; }\nexport function policy() { return 37; }'));
     unwrap(writeTextFile(folder + '/unused.tsr', 'never include this source'));
     unwrap(mkdirAll(folder + '/rules'));
@@ -673,7 +675,7 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     unwrap(writeTextFile(folder + '/helpers.tsrx', 'lower priority candidate'));
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, folder + '/main.tsr'));
-    edit(workspace.files[0].document, "/* import { compute } from './unused.tsr'; */\nimport {\n  policy as compute\n} from './helpers';\nimport rules, { chosenExtra as alternate } from './rules';");
+    edit(workspace.files[0].document, "/* import { compute } from './unused.tsr'; */\nimport {\n  policy as compute\n} from './helpers';\nimport rules, { chosenExtra as alternate } from './rules';\nimport { fee } from '@prices';");
     const requests = new Channel<ModelRequest>(2);
     const ready = initialAiState(emptyHistory(clone(workspace.root)));
     ready.phase = 'ready';
@@ -681,12 +683,14 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     const host = context(state, signal(modelConfig()), requests);
     host.projectTree = signal(unwrap(scanTree(clone(workspace.root), false)));
     host.workspace = signal(workspace);
-    send(host, 'Compare compute(), rules() and alternate().');
+    send(host, 'Compare compute(), rules(), alternate() and fee().');
     const messages = unwrap(requests.tryReceive()).messages ?? [];
     strictEqual(messages[0].content.includes('Referenced workspace file: helpers.tsr'), true);
     strictEqual(messages[0].content.includes('return 37;'), true);
     strictEqual(messages[0].content.includes('return 444;'), false);
     strictEqual(messages[0].content.includes('compute refers to policy'), true);
+    strictEqual(messages[0].content.includes('Referenced workspace file: fees.tsr'), true);
+    strictEqual(messages[0].content.includes('return 91;'), true);
     strictEqual(messages[0].content.includes('never include this source'), false);
     strictEqual(messages[0].content.includes('Referenced workspace file: rules/index.tsrx\nLocal signature: rules()'), true);
     strictEqual(messages[0].content.includes('return 0; }'), true);

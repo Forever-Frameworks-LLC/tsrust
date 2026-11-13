@@ -5,8 +5,16 @@ import {
 } from 'std:bytes';
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
+import { asString, get } from 'std:json';
 import { compile, escape } from 'std:regex';
-import { basename, dirname, extname, join, separator } from 'std:path';
+import {
+  basename,
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  separator
+} from 'std:path';
 
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
@@ -203,11 +211,53 @@ interface ImportBinding {
   exported: string;
 }
 
+// Use an exact paths mapping from the nearest saved workspace configuration.
+function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: ReadOnly<string>): string {
+  if (specifier.includes('\\') || specifier.includes('\0') || isAbsolute(specifier) || specifier.startsWith('std:')) return '';
+  let dir = dirname(path);
+
+  if (specifier.startsWith('./') || specifier.startsWith('../')) return join(dir, specifier);
+  const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
+
+  while (dir === root || dir.startsWith(prefix)) {
+    const config = join(dir, 'tsrust.config.json');
+
+    match (stat(config)) {
+      Ok(info) => {
+        try {
+          if (!info.isFile || !unwrap(canonicalize(config)).startsWith(prefix)) return '';
+          const settings = JSON.parse(unwrap(readTextFile(config)));
+          const mappings = unwrap(get(settings, 'paths'));
+
+          if (mappings === undefined || specifier.includes('*')) return '';
+          const mapped = unwrap(get(mappings, specifier));
+
+          if (mapped === undefined) return '';
+          const target = String(unwrap(asString(mapped)));
+
+          if (target === '' || isAbsolute(target) || target.includes('*') || target.includes('\\') || target.includes('\0') || target.includes('\n') || target.includes('\r')) return '';
+          return join(dir, target);
+        } catch (_) {
+          return '';
+        }
+      },
+      Err(error) => {
+        if (error.code !== 'not-found') return '';
+      }
+    }
+
+    if (dir === root) break;
+    dir = dirname(dir);
+  }
+
+  return '';
+}
+
 // Match relative named import declarations before reading a file from the workspace tree.
-function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Map<string, ImportBinding[]> {
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
   const paths = new Map<string, ImportBinding[]>();
   const bytes = unwrap(fromUtf8(source));
-  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"](\\.\\.?/[^'\"\\r\\n]+)['\"]"));
+  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"]([^'\"\\r\\n]+)['\"]"));
 
   for (const found of imports.capturesAll(source)) {
     const names = found.groups[0];
@@ -225,8 +275,10 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
       if (name === '' || !mentionsPath(prompt, name)) continue;
       const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
 
-      const base = join(dirname(path), relative);
-      const candidates = extname(relative) === '' ? [base + '.tsr', base + '.tsrx', join(base, 'index.tsr'), join(base, 'index.tsrx')] : [clone(base)];
+      const base = importBase(path, relative, root);
+
+      if (base === '') continue;
+      const candidates = extname(base) === '' ? [base + '.tsr', base + '.tsrx', join(base, 'index.tsr'), join(base, 'index.tsrx')] : [clone(base)];
 
       for (const candidate of candidates) {
         match (stat(candidate)) {
@@ -308,7 +360,7 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Map<string, ImportBinding[]>();
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt, workspace.root) : new Map<string, ImportBinding[]>();
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {

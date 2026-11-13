@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Exact project path mappings for chat
+
+Symbol retrieval recognizes exact import mappings in the nearest saved
+tsrust.config.json inside the workspace. Extension candidates are based on
+the mapped target. Retrieved source still goes through workspace tree selection
+and canonical read checks. The AI action suite verified an unsaved draft
+importing fee from @prices, resolved the unopened fees.tsr and included its
+return value in the outgoing request. Existing relative import cases also
+passed (20/20 in 71.08 ms). Wildcard mapping, complete config validation and
+a workspace-wide symbol index remain open.
+
 ## Native GPUI examples in the offline corpus
 
 The generator extracts rustdoc blocks containing fenced examples from
