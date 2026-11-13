@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio compiler check profiling
+
+CPU samples of a full Studio check showed reused UI signal and result types
+re-entering whole-record layout validation. The shared native application
+checker now bypasses that traversal when specialization added no records and
+all fields are resolved. New records still go through layout validation.
+Two signal authoring tests passed in 0.63 s (2m03s build). A direct generic
+record cycle still failed with recursive-layout. Studio entry checks passed
+before and after. Elapsed/user CPU seconds were 154.58/140.73 before and
+163.92/128.44 after during overlapping builds. A subsequent check without
+the competing build took 93.32/92.27 with the test-built optimized CLI.
+These are observations with different build loads, not a matched speedup.
+The later CPU sample also showed repeated expression error-effect analysis.
+The existing dev supervisor retains its loaded executable.
+
 ## Stage and unstage the active file
 
 Source Control's plus and minus actions capture the active workspace-relative

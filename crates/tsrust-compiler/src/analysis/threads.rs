@@ -149,8 +149,12 @@ impl Analyzer {
     fn thread_applied(&mut self, name: &str, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {
         use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind, TypeName};
         let mut annotation = ValueAnnotation { span, kind: ValueAnnotationKind::Applied { name: TypeName { text: name.into(), span }, arguments: arguments.iter().map(|&ty| self.checked_value_annotation(ty, span)).collect::<Result<_, _>>()? } };
+        let record_count = self.program.records.len();
         self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
-        append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
+        // Reusing a specialization leaves its previously checked layout intact.
+        if self.program.records.len() != record_count || self.fields.len() != record_count {
+            append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
+        }
         self.resolve_value_annotation(&annotation, false)
     }
 }
