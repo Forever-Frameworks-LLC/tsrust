@@ -98,7 +98,7 @@ function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean
     if (start < 0) return false;
     const end = start + path.length;
     const before = start === 0 || [' ', '\n', '\t', '\r', '(', '[', '"', "'", '`'].some((mark) => prompt.slice(0, start).endsWith(mark));
-    const after = end === prompt.length || [' ', '\n', '\t', '\r', ')', ']', '"', "'", '`', ':', ',', '!', '?'].some((mark) => prompt.startsWith(mark, end)) || (prompt.startsWith('.', end) && (end + 1 === prompt.length || prompt.startsWith(' ', end + 1)));
+    const after = end === prompt.length || [' ', '\n', '\t', '\r', '(', ')', ']', '"', "'", '`', ':', ',', '!', '?'].some((mark) => prompt.startsWith(mark, end)) || (prompt.startsWith('.', end) && (end + 1 === prompt.length || prompt.startsWith(' ', end + 1)));
 
     if (before && after) return true;
     offset = end;
@@ -188,6 +188,40 @@ export interface EditorContextResult {
   unavailable: string[];
 }
 
+// Match relative named import declarations before reading a file from the workspace tree.
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Set<string> {
+  const paths = new Set<string>();
+  const bytes = unwrap(fromUtf8(source));
+  const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*\\{([^{};]+)\\}\\s*from\\s*['\"](\\.\\.?/[^'\"\\r\\n]+)['\"]"));
+
+  for (const found of imports.capturesAll(source)) {
+    const names = found.groups[0];
+    const specifier = found.groups[1];
+
+    if (names === undefined || specifier === undefined) continue;
+    const bindings = unwrap(toUtf8(unwrap(view(bytes, names.start, names.end))));
+
+    for (const binding of bindings.split(',')) {
+      const parts = binding.trim().split(' as ');
+      const name = parts[parts.length - 1].trim();
+
+      if (name === '' || !mentionsPath(prompt, name)) continue;
+      const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
+
+      match (canonicalize(join(dirname(path), relative))) {
+        Ok(real) => {
+          paths.add(real);
+        },
+        Err(_) => {}
+      }
+
+      break;
+    }
+  }
+
+  return paths;
+}
+
 export function editorContext(
   workspace: ReadOnly<Workspace>,
   tree: ReadOnly<DirectoryTree> | undefined,
@@ -210,6 +244,7 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Set<string>();
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {
@@ -229,7 +264,7 @@ export function editorContext(
         const path = file.path.slice(prefix.length);
 
         const nameCount = mentionedNames.get(file.name) ?? 0;
-        const referenced = nameCount === 1 || (path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path);
+        const referenced = imported.has(file.path) || nameCount === 1 || (path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path);
 
         if (nameCount > 1) {
 

@@ -1,3 +1,6 @@
+import { toUtf8 } from 'std:bytes';
+import { run } from 'std:process';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
 import { Channel } from 'std:futures';
@@ -150,6 +153,67 @@ if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === '1') test('local chat re
         await worker;
       } catch (_) {}
     }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+if (unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === '1') test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+  const compiler = unwrap(get('TSRUST'));
+
+  if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
+  const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
+  const caller = "import { shelfCharge } from './policy.tsr';\nexport function quote(units: int, fragile: boolean): int {\n  return units;\n}\n";
+  const policy = 'export function shelfCharge(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
+
+  try {
+    unwrap(writeTextFile(folder + '/quote.tsr', caller));
+    unwrap(writeTextFile(folder + '/policy.tsr', policy));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, folder + '/quote.tsr'));
+    const opened = signal(clone(workspace));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      const answer = await ask(host, updates, 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
+      console.log(answer);
+      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
+      const proposal = host.state.get().review;
+
+      if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
+      // Review the only authorized executable change before running generated code.
+      strictEqual(proposal.after, caller.replace('return units;', 'return shelfCharge(fragile, units);'));
+      const recovery = signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      });
+      reviewChatEdit(host.state, opened, recovery, proposal, true);
+      const changed = opened.get();
+      strictEqual(unwrap(readTextFile(folder + '/quote.tsr')), caller);
+      unwrap(saveDocument(changed.files[0].document));
+      strictEqual(unwrap(readTextFile(folder + '/policy.tsr')), policy);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+    // The model cannot retrieve these cases while proposing its edit.
+    const cases = "import { test, strictEqual } from 'std:testing';\nimport { quote } from './quote.tsr';\ntest('quote policy', () => { strictEqual(quote(-2, true), 0); strictEqual(quote(0, false), 0); strictEqual(quote(4, true), 29); strictEqual(quote(4, false), 13); });";
+    unwrap(writeTextFile(folder + '/quote.test.tsr', cases));
+    const result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+      cwd: clone(folder), env: [{
+        name: 'TSRUST_TEST_REPORTER', value: 'plain'
+      }]
+    }));
+
+    if (!result.status.success) throw unwrap(toUtf8(result.stderr)) + unwrap(toUtf8(result.stdout));
   } finally {
     unwrap(removeDirAll(folder));
   }

@@ -4,6 +4,25 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Live two-file caller repair
+
+Studio resolves a named relative import from the active draft when its local
+symbol appears in the prompt. Source text comes from the workspace tree and
+existing canonical-path checks. The focused AI suite passed 18/18 in 41.07 ms,
+including a multiline alias in an unsaved draft and a misleading commented
+import. This is lexical lookup of direct named imports with explicit paths.
+Default imports, compiler aliases, re-exports and workspace-wide discovery are
+outside this implementation.
+
+In a new temporary workspace the local 1.5B model changed quote(units, fragile)
+to call shelfCharge(fragile, units), preserving the signature. Naming the policy
+filename passed in 4.43 s. Naming only the imported function passed in 5.20 s.
+The latter check required the unopened module's contents in the outgoing turn.
+The harness reviewed and saved the proposal using Studio handlers. It then
+created and ran a separate native suite checking negative, zero, standard and
+fragile orders. The policy file remained intact. This evaluates one repair of
+a single file using a second file as context, with no training or test feedback.
+
 ## Bundled SQLite retrieval
 
 Studio now embeds a prebuilt SQLite FTS5 corpus with 1,027 source passages from
