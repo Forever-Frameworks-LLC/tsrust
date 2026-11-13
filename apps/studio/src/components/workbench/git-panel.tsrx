@@ -202,17 +202,17 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
               Ok(reply) => {
                 if (reply.mode === 'history') commits.set(reply.failed ? [] : reply.text.split('\n').filter((line) => line !== ''));
                 if (reply.mode === 'conflicts') {
-                  const paths = reply.files ?? [];
+                  const paths = clone(reply.files) ?? [];
+                  const cleared = !paths.includes(conflict.get()) && !reply.failed && conflict.get() !== '';
                   conflicts.set(paths);
-                  if (!paths.includes(conflict.get()) && !reply.failed && conflict.get() !== '') {
+                  if (cleared) {
                     conflict.set('');
                     shown.set('');
                     busy.set(false);
                     return;
                   }
-                }
-                if (reply.mode === 'status') {
-                  const paths = reply.files ?? [];
+                } else if (reply.mode === 'status') {
+                  const paths = clone(reply.files) ?? [];
 
                   if (!paths.includes(chosen.get())) chosen.set('');
                   files.set(paths);
