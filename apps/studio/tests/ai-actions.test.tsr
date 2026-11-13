@@ -1067,6 +1067,12 @@ test('unopened chat targets stay closed until review and reject changed disk con
     reviewChatEdit(stale, workspace, recovery, proposal, true);
     strictEqual(workspace.get().files.length, 1);
     strictEqual(unwrap(readTextFile(path)), 'external change');
+    const failed = stale.get().review;
+
+    if (failed === undefined) throw 'Missing stale review notice.';
+    strictEqual(failed.stale, true);
+    reviewChatEdit(stale, workspace, recovery, failed, false);
+    strictEqual(stale.get().review === undefined, true);
     unwrap(writeTextFile(path, 'original'));
     reviewChatEdit(state, workspace, recovery, proposal, true);
     strictEqual(workspace.get().files[1].document.text, 'updated');

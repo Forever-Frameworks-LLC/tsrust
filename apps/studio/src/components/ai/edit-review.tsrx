@@ -17,7 +17,7 @@ import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
-import { message } from '../../lib/localization.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 
 // Publish once after every edit has matched its captured document.
 function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, batch: ReadOnly<EditBatch>): EditBatch | undefined {
@@ -87,10 +87,17 @@ export function reviewChatEdit(state: Signal<AiState>, workspace: Signal<Workspa
   if (proposal === undefined || JSON.stringify(proposal) !== JSON.stringify(clone(target))) return;
 
   if (accept) {
+    if (proposal.stale === true) return;
     const inverse = applyBatch(workspace, recovery, proposal);
 
     if (inverse !== undefined) chat.undoEdit = inverse;
-    else chat.notice = translate('The file changed. Request a new edit proposal.');
+    else {
+      proposal.stale = true;
+      chat.review = proposal;
+      chat.notice = translate('The file changed. Request a new edit proposal.');
+      state.set(chat);
+      return;
+    }
   }
 
   chat.review = undefined;
@@ -136,6 +143,36 @@ function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, m
 }
 
 function Review(target: EditBatch, state: Signal<AiState>, workspace: Signal<Workspace>, recovery: Signal<Recovery>, font: Signal<int>): Node {
+  if (target.stale === true) {
+    const close = clone(target);
+    const dismiss = clone(target);
+    return (
+      <Dialog
+        open={true}
+        centered={true}
+        width={440}
+        closeButton={false}
+        title={message('The file changed. Request a new edit proposal.')}
+        onOpenChange={(open) => {
+          if (!open) reviewChatEdit(state, workspace, recovery, dismiss, false);
+        }}
+      >
+        <DialogContent>
+          <DialogFooter>
+            <Button
+              aria-label={accessibleName('Close: The file changed. Request a new edit proposal.')}
+              onPress={() => {
+                reviewChatEdit(state, workspace, recovery, close, false);
+              }}
+            >
+              {t('Close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const multipleFiles = target.files.length > 1;
   const empty = target.files.every((file) => file.before === file.after);
   const rows: Node[] = [];
