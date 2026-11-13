@@ -99,6 +99,38 @@ function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, pr
   }
 }
 
+function diskComparison(path: ReadOnly<string>, draft: ReadOnly<string>, prefix: ReadOnly<string>): string {
+  const label = 'Current disk comparison for ' + path.slice(prefix.length) + ': ';
+
+  try {
+    const resolved = unwrap(canonicalize(path));
+
+    if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return label + 'unavailable.';
+    const disk = unwrap(readTextFile(resolved));
+
+    if (disk === draft) return label + 'the editor text matches the saved file.';
+    const saved = disk.split('\n');
+    const edited = draft.split('\n');
+    let start = 0;
+    let left = saved.length;
+    let right = edited.length;
+
+    while (start < left && start < right && saved[start] === edited[start]) start += 1;
+
+    while (left > start && right > start && saved[left - 1] === edited[right - 1]) {
+      left -= 1;
+      right -= 1;
+    }
+
+    if (left === start) return label + 'the editor text differs from the saved file. At this position these lines are only in the draft, not saved to disk:\n' + edited.slice(start, right).join('\n');
+
+    if (right === start) return label + 'the editor text differs from the saved file. At this position these lines remain on disk and are absent from the draft:\n' + saved.slice(start, left).join('\n');
+    return label + 'the editor text differs from the saved file.\nOn disk (changed region):\n' + saved.slice(start, left).join('\n') + '\nIn editor (changed region):\n' + edited.slice(start, right).join('\n');
+  } catch (_) {
+    return label + 'unavailable.';
+  }
+}
+
 function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean {
   let offset = 0;
 
@@ -871,6 +903,15 @@ export function editorContext(
     if (proseMatches.length === 1) functionLookup = clone(proseMatches[0]);
 
     if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files:\n' + paths.join('\n');
+  }
+
+  if (!editing && ['saved', 'unsaved', 'on disk', 'to disk'].some((term) => question.includes(term))) {
+    const opened = workspace.files.filter((file) => file.kind === 'text' && file.document.path.startsWith(prefix));
+    const qualified = opened.filter((file) => mentionsPath(prompt, file.document.path.slice(prefix.length)) && file.document.path.slice(prefix.length) !== file.name);
+    const named = qualified.length > 0 ? qualified : opened.filter((file) => mentionsPath(prompt, file.name));
+    const targets = named.length > 0 ? named : opened.filter((file) => file.document.path === workspace.active);
+
+    for (const file of targets) result += '\n\n' + diskComparison(file.document.path, file.document.text, prefix);
   }
 
   return {

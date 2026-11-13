@@ -1865,3 +1865,77 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
     unwrap(removeDirAll(root));
   }
 });
+
+test('chat compares open drafts to current disk contents for save questions', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-disk-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const path = workspace.root + '/main.tsr';
+    const old = 'one\ntwo\nthree';
+    unwrap(writeTextFile(path, old));
+    unwrap(openFile(workspace, path));
+    const index = new Map<string, FileDeclarations>();
+    const question = 'Is main.tsr saved to disk?';
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('matches the saved file'), true);
+    unwrap(writeTextFile(path, 'one\nexternal change\nthree'));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('On disk (changed region):\nexternal change\nIn editor (changed region):\ntwo'), true);
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Explain main.tsr.',
+      false,
+      false,
+      index
+    ).excerpt.includes('external change'), false);
+    unwrap(writeTextFile(path, 'one\nthree'));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('only in the draft, not saved to disk:\ntwo'), true);
+    unwrap(writeTextFile(path, 'one\ntwo\nexternal insertion\nthree'));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('remain on disk and are absent from the draft:\nexternal insertion'), true);
+    unwrap(removeFile(path));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('Current disk comparison for main.tsr: unavailable.'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
