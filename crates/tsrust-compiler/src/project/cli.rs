@@ -117,6 +117,13 @@ impl CheckedInput {
             Self::Project(analysis) => analysis.emit_rust_with_native_features(),
         }
     }
+    /// Annotate generated statements with original file and half-open UTF-8 byte range.
+    pub fn emit_rust_with_locations(&self, entry: &str) -> (String, Vec<&'static str>) {
+        match self {
+            Self::Single(analysis) => crate::emit::emit_with_source_segments(&analysis.program, "", &[], None, Some(entry)),
+            Self::Project(analysis) => analysis.emit_rust_with_locations(Some(entry)),
+        }
+    }
     pub fn contracts(&self) -> BTreeMap<String, Mode> {
         match self {
             Self::Single(analysis) => analysis.contracts(),

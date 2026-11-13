@@ -90,3 +90,33 @@ fn studio_check_stops_when_its_launching_process_exits() {
         panic!("orphaned Studio check kept its diagnostic pipe open");
     }
 }
+
+#[test]
+fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
+    let directory = support::TempDirectory::new();
+    let helper = directory.0.join("helper.tsr");
+    std::fs::write(&helper, "// λ\nexport function twice(n: int): int { return n + n; }").unwrap();
+    for (source, linked) in [
+        ("// λ\nfunction main() { console.log(12); }", false),
+        ("import {twice} from './helper.tsr';\nfunction main() { console.log(twice(6)); }", true),
+    ] {
+        let entry = directory.source(source);
+        let emit = |annotated| {
+            let mut command = support::cli();
+            command.arg("emit").arg(&entry);
+            if annotated { command.arg("--source-locations"); }
+            let result = support::run(&mut command, 20);
+            support::success(&result);
+            String::from_utf8(result.stdout).unwrap()
+        };
+        assert!(!emit(false).contains("// tsrust-source "));
+        let mut passages = Vec::new();
+        for marker in emit(true).lines().filter_map(|line| line.strip_prefix("// tsrust-source ")) {
+            let (path, start, end): (String, usize, usize) = serde_json::from_str(marker).unwrap();
+            let text = std::fs::read_to_string(&path).unwrap();
+            passages.push((std::path::PathBuf::from(path), text[start..end].to_owned()));
+        }
+        assert!(passages.iter().any(|(file, text)| file == &entry.canonicalize().unwrap() && text == "console"), "{passages:?}");
+        assert_eq!(passages.iter().any(|(file, text)| file == &helper.canonicalize().unwrap() && text == "return"), linked);
+    }
+}

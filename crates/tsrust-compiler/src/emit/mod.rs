@@ -220,6 +220,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         restored_slots:restored_capture_slots::Index::new(program),
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
+        debug_source: None,
         source_segments: &[],
         source_graph: None,
         fields,
@@ -273,11 +274,12 @@ pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),cra
 }
 
 pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str)->(String,Vec<&'static str>) {
-    emit_with_source_segments(program,entry_setup,&[],None)
+    emit_with_source_segments(program,entry_setup,&[],None,None)
 }
 
-pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>)->(String,Vec<&'static str>) {
+pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<&str>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
+    emitter.debug_source=debug_source;
     emitter.source_segments=segments;
     emitter.source_graph=graph;
     let declarations=if needs_exception_transport(program) {emitter.prepare_result_declarations().expect("checked source exception transports")}else{String::new()};
@@ -332,6 +334,7 @@ struct Emitter<'a> {
     restored_slots:restored_capture_slots::Index,
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
+    debug_source: Option<&'a str>,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     source_graph: Option<&'a crate::project::ProjectGraph>,
     fields: Vec<HashMap<&'a str, usize>>,
@@ -4072,6 +4075,22 @@ impl Emitter<'_> {
                 },
                 Work::Statement(stmt, body, visible, depth, label) => (stmt, body, visible, depth, label),
             };
+            if let Some(entry) = self.debug_source {
+                let span = stmt.span;
+                let location = match self.source_graph {
+                    None => Some((entry, span.start, span.end)),
+                    Some(graph) => self.source_segments.partition_point(|(_, base, _)| *base <= span.start)
+                        .checked_sub(1).and_then(|index| {
+                            let (id, base, _) = &self.source_segments[index];
+                            let module = &graph.modules[id];
+                            (module.rust.is_none() && module.data.is_none() && span.end <= base + module.source.text.len())
+                                .then(|| (id.0.as_str(), span.start - base, span.end - base))
+                        }),
+                };
+                if let Some((path, start, end)) = location.filter(|(_, start, end)| start < end) {
+                    let _ = writeln!(output, "\n// tsrust-source [{},{start},{end}]", crate::json_string(path));
+                }
+            }
             let declarations = Declarations::Visible(&visible);
 
             for epoch in fun.storage_exits.array_epochs(stmt.span).iter().filter(|epoch| epoch.before) {

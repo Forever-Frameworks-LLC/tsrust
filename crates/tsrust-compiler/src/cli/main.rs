@@ -109,6 +109,7 @@ Options:
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
   --color auto|always|never  Color help, diagnostics, dev status and test reports
+  --source-locations        emit: annotate Rust statements with Tsrust file and byte range
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
@@ -236,6 +237,7 @@ fn run() -> Result<u8, String> {
     let mut test_profile=false;
     let mut release = false;
     let mut package = false;
+    let mut source_locations = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-o" | "--output" if output.is_none() => {
@@ -256,6 +258,7 @@ fn run() -> Result<u8, String> {
             }
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
+            "--source-locations" if command == "emit" && !source_locations => source_locations = true,
             "--package" if !package => package = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
@@ -342,7 +345,9 @@ fn run() -> Result<u8, String> {
     }
     let check_elapsed=check_started.elapsed();
     let emit_started=std::time::Instant::now();
-    let (rust, native_features) = analysis.emit_rust_with_native_features();
+    let (rust, native_features) = if source_locations {
+        analysis.emit_rust_with_locations(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?)
+    } else { analysis.emit_rust_with_native_features() };
     let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
         if package {
