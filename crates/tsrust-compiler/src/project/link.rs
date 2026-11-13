@@ -60,7 +60,7 @@ impl ProjectAnalysis {
     pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
         self.emit_rust_with_locations(None)
     }
-    pub(crate) fn emit_rust_with_locations(&self, debug_source: Option<&str>) -> (String, Vec<&'static str>) {
+    pub(crate) fn emit_rust_with_locations(&self, debug_source: Option<(&str, &str)>) -> (String, Vec<&'static str>) {
         crate::emit::emit_with_source_segments(
             &self.analysis.program,
             &crate::project_runtime::setup(&self.segments),

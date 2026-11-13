@@ -97,7 +97,7 @@ fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
     let helper = directory.0.join("helper.tsr");
     std::fs::write(&helper, "// λ\nexport function twice(n: int): int { return n + n; }").unwrap();
     for (source, linked) in [
-        ("// λ\nfunction main() { console.log(12); }", false),
+        ("// λ\nfunction main() { /* 🦀 */ console.log(12); }", false),
         ("import {twice} from './helper.tsr';\nfunction main() { console.log(twice(6)); }", true),
     ] {
         let entry = directory.source(source);
@@ -111,9 +111,17 @@ fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
         };
         assert!(!emit(false).contains("// tsrust-source "));
         let mut passages = Vec::new();
-        for marker in emit(true).lines().filter_map(|line| line.strip_prefix("// tsrust-source ")) {
+        let generated = emit(true);
+        let lines: Vec<_> = generated.lines().collect();
+        for pair in lines.windows(2) {
+            let Some(marker) = pair[1].strip_prefix("// tsrust-source ") else {continue};
+            let pos: serde_json::Value = serde_json::from_str(pair[0].strip_prefix("// tsrust-position ").unwrap()).unwrap();
             let (path, start, end): (String, usize, usize) = serde_json::from_str(marker).unwrap();
             let text = std::fs::read_to_string(&path).unwrap();
+            let prefix = &text[..start];
+            assert_eq!(pos["path"], path);
+            assert_eq!(pos["line"], prefix.bytes().filter(|&b| b == b'\n').count() + 1);
+            assert_eq!(pos["column"], prefix.rsplit('\n').next().unwrap().encode_utf16().count() + 1);
             passages.push((std::path::PathBuf::from(path), text[start..end].to_owned()));
         }
         assert!(passages.iter().any(|(file, text)| file == &entry.canonicalize().unwrap() && text == "console"), "{passages:?}");

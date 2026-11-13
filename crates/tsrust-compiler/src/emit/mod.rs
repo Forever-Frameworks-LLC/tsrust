@@ -221,6 +221,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
         debug_source: None,
+        debug_lines: RefCell::default(),
         source_segments: &[],
         source_graph: None,
         fields,
@@ -277,7 +278,7 @@ pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str
     emit_with_source_segments(program,entry_setup,&[],None,None)
 }
 
-pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<&str>)->(String,Vec<&'static str>) {
+pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
     emitter.debug_source=debug_source;
     emitter.source_segments=segments;
@@ -334,7 +335,8 @@ struct Emitter<'a> {
     restored_slots:restored_capture_slots::Index,
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
-    debug_source: Option<&'a str>,
+    debug_source: Option<(&'a str, &'a str)>,
+    debug_lines: RefCell<HashMap<&'a str, Vec<usize>>>,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     source_graph: Option<&'a crate::project::ProjectGraph>,
     fields: Vec<HashMap<&'a str, usize>>,
@@ -4075,19 +4077,25 @@ impl Emitter<'_> {
                 },
                 Work::Statement(stmt, body, visible, depth, label) => (stmt, body, visible, depth, label),
             };
-            if let Some(entry) = self.debug_source {
+            if let Some((entry, text)) = self.debug_source {
                 let span = stmt.span;
                 let location = match self.source_graph {
-                    None => Some((entry, span.start, span.end)),
+                    None => Some((entry, text, span.start, span.end)),
                     Some(graph) => self.source_segments.partition_point(|(_, base, _)| *base <= span.start)
                         .checked_sub(1).and_then(|index| {
                             let (id, base, _) = &self.source_segments[index];
                             let module = &graph.modules[id];
                             (module.rust.is_none() && module.data.is_none() && span.end <= base + module.source.text.len())
-                                .then(|| (id.0.as_str(), span.start - base, span.end - base))
+                                .then(|| (id.0.as_str(), module.source.text.as_str(), span.start - base, span.end - base))
                         }),
                 };
-                if let Some((path, start, end)) = location.filter(|(_, start, end)| start < end) {
+                if let Some((path, text, start, end)) = location.filter(|(_, text, start, end)| start < end && *end <= text.len() && text.is_char_boundary(*start)) {
+                    let mut files = self.debug_lines.borrow_mut();
+                    let lines = files.entry(path).or_insert_with(|| std::iter::once(0)
+                        .chain(text.match_indices('\n').map(|(offset, _)| offset + 1)).collect());
+                    let line = lines.partition_point(|offset| *offset <= start);
+                    let column = text[lines[line-1]..start].encode_utf16().count() + 1;
+                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column}}}", crate::json_string(path));
                     let _ = writeln!(output, "\n// tsrust-source [{},{start},{end}]", crate::json_string(path));
                 }
             }

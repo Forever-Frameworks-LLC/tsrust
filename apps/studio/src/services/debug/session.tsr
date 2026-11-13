@@ -3,6 +3,7 @@ import { Channel, Sender } from 'std:futures';
 import { spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
+import { debugLocations } from './source-locations.tsr';
 import { decodeAdapterReply } from './protocol.tsr';
 
 export interface DebugCommand {
@@ -10,6 +11,8 @@ export interface DebugCommand {
   program?: string;
   stopOnEntry?: boolean;
   functionBreakpoint?: string;
+  sourceBreakpoint?: string;
+  breakpointLine?: int;
   watch?: string;
 }
 
@@ -37,13 +40,15 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     await writeFrame(writer, '{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"lldb","clientID":"tsrust-studio","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true}}');
 
     const breakpoint = (command.functionBreakpoint ?? '').trim();
-    let seq = 5;
+    let seq = 6;
     let disconnectRequest = 0;
     let stackRequest = 0;
     let watchRequest = 0;
     const watch = (command.watch ?? '').trim();
     let thread = 0;
     let stopReason = '';
+    let mappedUnit = '';
+    let positions = new Map<int, string>();
 
     while (true) {
       const reply = decodeAdapterReply(await readFrame(reader));
@@ -57,9 +62,14 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
             program: clone(command.program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
           }
         }));
-      } else if (reply.event === 'initialized' && breakpoint !== '') {
-        await writeFrame(writer, '{"seq":3,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
-      } else if (reply.event === 'initialized' || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 3)) {
+      } else if (reply.event === 'initialized' && command.sourceBreakpoint !== undefined) {
+        const line = command.breakpointLine ?? 0;
+
+        if (line < 1) throw 'Invalid source breakpoint line.';
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(command.sourceBreakpoint ?? '') + '},"breakpoints":[{"line":' + line.toString() + '}]}}');
+      } else if ((reply.event === 'initialized' || reply.command === 'setBreakpoints') && breakpoint !== '') {
+        await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
+      } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
         if (reply.command === 'setFunctionBreakpoints') {
           const points = clone(reply.body?.breakpoints) ?? [];
           const verified = points.length === 1 && points[0].verified;
@@ -111,7 +121,15 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
               text += '#' + i.toString() + ' ' + frame.name;
               const source = frame.source?.path ?? frame.source?.name ?? '';
 
-              if (source !== '') {
+              if (source.endsWith('.rs') && source.includes('.tsrust-debug') && source !== mappedUnit) {
+                positions = debugLocations(command.program ?? '', source);
+                mappedUnit = clone(source);
+              }
+
+              const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
+
+              if (original !== undefined) text += '  ' + original;
+              else if (source !== '') {
                 text += '  ' + source;
 
                 if (frame.line > 0) text += ':' + frame.line.toString();

@@ -1,7 +1,8 @@
 import { Channel } from 'std:futures';
 import { DebugCommand, DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
+import { debugLocations } from '../src/services/debug/source-locations.tsr';
 import { get } from 'std:env';
-import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
+import { canonicalize, readDir, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
 import { run, spawn } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 
@@ -323,27 +324,43 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       strictEqual(succeeded.includes('Studio debugger fixture'), true);
       strictEqual(succeeded.includes('\nExit code 0\n'), true);
 
-      const symbols = unwrap(await run(compiler, ['build', source, '--debug', '-o', clone(program)], {}));
+      const symbols = unwrap(await run(compiler, ['build', clone(source), '--debug', '-o', clone(program)], {}));
       strictEqual(symbols.status.success, true);
+      const units = unwrap(readDir(program + '.tsrust-debug'));
+      strictEqual(units.length, 1);
+      const unit = clone(units[0].path);
+      const expected = source + ':11:3';
+      let line = 0;
+
+      for (const entry of debugLocations(program, unit).entries()) {
+        if (entry[1] === expected) line = entry[0];
+      }
+
+      strictEqual(line > 0, true);
       await commands.send({
-        action: 'launch', program: clone(program), functionBreakpoint: 'program::main'
+        action: 'launch', program: clone(program), sourceBreakpoint: unit, breakpointLine: line
       });
+
+      let stops = 0;
+      let transcript = '';
 
       while (true) {
         const reply = await output.receive().timeout(10000);
+        transcript += reply.text;
 
-        if (reply.finished) throw 'Missing debug build breakpoint: ' + reply.text;
+        if (reply.finished) break;
 
         if (reply.stopped === true) {
-          strictEqual(reply.text.includes('debug-target.tsrust-debug') && reply.text.includes('program_'), true);
-          break;
+          strictEqual(reply.text.includes(expected), true);
+          stops += 1;
+          await commands.send({
+            action: 'continue'
+          });
         }
       }
 
-      await commands.send({
-        action: 'continue'
-      });
-      strictEqual((await consoleResult(output)).includes('Exit code 0'), true);
+      strictEqual(stops > 0, true);
+      strictEqual(transcript.includes('Exit code 0'), true);
     } finally {
       worker.cancel();
 
