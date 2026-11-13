@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Real model chat with an indexed workspace function
+
+TSRUST_STUDIO_RUN_MODEL_EVAL=index runs Studio chat against the configured
+local host. The workspace has no open editor and the question mentions only
+handlingFee(5). The actual request contained the function from unopened
+lib/pricing-policy.tsr and excluded the neighboring function returning 999.
+Qwen2.5-Coder-1.5B returned 12, then 19 when asked to pass its previous
+answer to the same function. The two-turn evaluation passed in 2.36 seconds
+excluding compilation. Sampled peak host RSS was 2048720 KiB. This covers
+an indexed pure function and a dependent follow-up. It does not exercise
+cross-function reasoning, repository edits, or desktop interaction.
+
 ## Session index for named workspace functions
 
 Chat now discovers explicitly named functions in arbitrary Tsrust filenames.

@@ -47,7 +47,9 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
   }
 }
 
-if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local chat resolves a filename and proposes an edit for review', async () => {
+const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
+
+if (['1', 'index'].includes(workspaceEval)) test(workspaceEval === 'index' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -57,6 +59,9 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
     unwrap(mkdirAll(folder + '/lib'));
     unwrap(writeTextFile(folder + '/answer.tsr', 'export function answer(): int { return 51; }'));
     unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
+    const indexCase = workspaceEval === 'index';
+
+    if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
     const workspace = unwrap(openWorkspace(folder));
     const opened = signal(clone(workspace));
     const requests = new Channel<ModelRequest>(8);
@@ -67,6 +72,20 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
+      if (indexCase) {
+        const first = await ask(host, updates, 'What does handlingFee(5) return in this project? Reply with the integer alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        console.log(first);
+        strictEqual(excerpt.includes('lib/pricing-policy.tsr'), true);
+        strictEqual(excerpt.includes('return units + 7;'), true);
+        strictEqual(excerpt.includes('999'), false);
+        const second = await ask(host, updates, 'Pass your previous answer to the same function. What does it return now? Reply with the integer alone.');
+        console.log(second);
+        strictEqual(first.trim(), '12');
+        strictEqual(second.trim(), '19');
+        return;
+      }
+
       const first = await ask(host, updates, 'What number does the function in answer.tsr return?');
       console.log(first);
       strictEqual(first.includes('lib/answer.tsr'), true);
