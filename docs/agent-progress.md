@@ -10,6 +10,8 @@ A public Studio test builds tests/fixtures/debug-target.tsr into a temporary nat
 
 The same native-target regression now sets a function breakpoint at main before configurationDone. Xcode LLDB confirmed the breakpoint, emitted a breakpoint stop with a thread ID, returned main in the top frame of that thread, and acknowledged continue. The process then produced its expected stdout and exit code. Suite passed (376.03 ms including cached fixture build). This exercises a native symbol; no Tsrust source-line mapping or interactive panel result.
 
+Instruction stepping passed through the real Xcode adapter. After the native main breakpoint the regression requested next with instruction granularity, received its acknowledgement and a step stop on the same thread, and read a different nonempty instruction pointer from the top main frame. Continue preserved the expected program stdout and exit. Suite passed (370.44 ms including cached fixture build). Source-level stepping and Studio UI integration remain open.
+
 ## Image preview zoom accessibility
 
 On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.

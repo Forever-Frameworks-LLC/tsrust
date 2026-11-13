@@ -17,6 +17,7 @@ interface AdapterReply {
 interface DebugFrame {
   id: int;
   name: string;
+  instructionPointerReference?: string;
 }
 
 interface DebugBreakpoint {
@@ -53,12 +54,14 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
     let launched = false;
     let configured = false;
     let thread = 0;
+    let initialAddress = '';
+    let stepAcknowledged = false;
     let resumed = false;
     let output = '';
     let exited = false;
     let terminated = false;
 
-    while (!launched || !configured || !resumed || !exited || !terminated) {
+    while (!launched || !configured || !stepAcknowledged || !resumed || !exited || !terminated) {
       const frame = await readFrame(reader).timeout(10000);
       const reply = JSON.parse<AdapterReply>(frame);
 
@@ -87,27 +90,47 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           strictEqual(reply.request_seq, 4);
           configured = true;
         } else if (reply.command === 'stackTrace') {
-          strictEqual(reply.request_seq, 5);
           const frames = clone(reply.body?.stackFrames) ?? [];
           strictEqual(frames.length > 0, true);
           strictEqual(frames[0].name.includes('main'), true);
-          await writeFrame(writer, JSON.stringify({
-            seq: 6, type: 'request', command: 'continue', arguments: {
-              threadId: thread
-            }
-          }));
-        } else if (reply.command === 'continue') {
+          const address = clone(frames[0].instructionPointerReference) ?? '';
+          strictEqual(address !== '', true);
+
+          if (reply.request_seq === 5) {
+            initialAddress = clone(address);
+            await writeFrame(writer, JSON.stringify({
+              seq: 6, type: 'request', command: 'next', arguments: {
+                threadId: thread, granularity: 'instruction'
+              }
+            }));
+          } else {
+            strictEqual(reply.request_seq, 7);
+            strictEqual(address !== initialAddress, true);
+            await writeFrame(writer, JSON.stringify({
+              seq: 8, type: 'request', command: 'continue', arguments: {
+                threadId: thread
+              }
+            }));
+          }
+        } else if (reply.command === 'next') {
           strictEqual(reply.request_seq, 6);
+          stepAcknowledged = true;
+        } else if (reply.command === 'continue') {
+          strictEqual(reply.request_seq, 8);
           resumed = true;
         }
       } else if (reply.event === 'initialized') {
         await writeFrame(writer, '{"seq":3,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":"main"}]}}');
       } else if (reply.event === 'stopped') {
-        strictEqual(reply.body?.reason, 'breakpoint');
-        thread = reply.body?.threadId ?? 0;
-        strictEqual(thread > 0, true);
+        const firstStop = initialAddress === '';
+        strictEqual(reply.body?.reason, firstStop ? 'breakpoint' : 'step');
+        const stoppedThread = reply.body?.threadId ?? 0;
+        strictEqual(stoppedThread > 0, true);
+
+        if (!firstStop) strictEqual(stoppedThread, thread);
+        thread = stoppedThread;
         await writeFrame(writer, JSON.stringify({
-          seq: 5, type: 'request', command: 'stackTrace', arguments: {
+          seq: firstStop ? 5 : 7, type: 'request', command: 'stackTrace', arguments: {
             threadId: thread
           }
         }));
@@ -129,7 +152,7 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
   }
 }
 
-test('LLDB stops at native main, reads the stack and resumes a compiled Tsrust program', async () => {
+test('LLDB stops at native main, steps one instruction and resumes a compiled Tsrust program', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
 
   try {
