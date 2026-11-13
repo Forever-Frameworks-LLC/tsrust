@@ -88,7 +88,9 @@ and Source Control were exercised. The save check and model were both present
 at close; no sampled descendant remained at the one-second follow-up. Peak
 summed RSS across 69 samples was 2,207,488 KiB, of which the model host held
 2,097,040 KiB. The authorized dev window remained in apps/studio. The orphaned
-compiler was reproduced; the original reported crash was not reproduced.
+compiler and the earlier Git-worker stack overflow are distinct defects. The
+macOS report for Studio PID 70197 records a Tokio worker hitting its stack
+guard. The Git-worker reproduction and repair are recorded below at f6cfdbbf0.
 
 ## Source-control sidebar and editor comparison
 
@@ -209,6 +211,15 @@ PID 96226, macOS AXPress opened Terminal 1 and then Source Control. The status
 text showed the branch and both existing owner drafts. After switching, Studio
 had a 231.1 MiB physical footprint (289.5 MiB peak). Watcher memory growth
 remains separate and unresolved.
+
+On build df03cb4b, a 139-file disposable Studio Git workspace on the 8 GiB
+Mac loaded the real model, opened Terminal, then switched from Files to Source
+Control, confirmed a changed-file diff and refreshed status 12 times. Each cycle
+checked the native Diff for pick.txt view. Tab acceptance and Save then wrote
+the expected insertion. Across 131 process-tree samples, summed RSS peaked at
+2,207,632 KiB. One second after window close, every sampled descendant,
+including the active check and model host, had exited. This short run exercises
+the recorded crash sequence; sustained memory growth remains unmeasured.
 
 ## Project questions using ordinary words for compound function names
 
