@@ -47,6 +47,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           <Tab value="status" label={message('Status')} />
           <Tab value="working" label={message('Working diff')} />
           <Tab value="staged" label={message('Staged diff')} />
+          <Tab value="conflicts" label={message('Conflicts')} />
           <Tab value="history" label={message('History')} />
         </Tabs>
         <Button
@@ -94,7 +95,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
       </View>
       <View hidden={shown.get() !== mode.get() || failed.get() || output.get() !== ''}>
         <Text>
-          {mode.get() === 'history' ? t('No commits in this workspace.') : t('No changes in this view.')}
+          {mode.get() === 'history' ? t('No commits in this workspace.') : mode.get() === 'conflicts' ? t('No unresolved conflicts.') : t('No changes in this view.')}
         </Text>
       </View>
       <CodeEditor value={shown.get() === mode.get() ? output.get() : ''} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />

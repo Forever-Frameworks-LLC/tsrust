@@ -120,7 +120,9 @@ The action menu also interrupts the foreground job and restarts exited shells.
 The terminal viewport fills its region without an inset
 frame. Editor and panel tab labels follow configured text size and zoom.
 Source Control shows workspace status, working and staged diffs, and the current
-branch’s commit history for the open workspace.
+branch’s commit history for the open workspace. Conflicts lists unresolved
+paths. Open a listed file in the editor, resolve it, save, and stage it to
+remove it from the list.
 Use its plus and minus buttons to stage the active file from disk or unstage it.
 Unsaved editor changes stay in the draft.
 Problems lists source-labeled structured diagnostics and operation errors. Debug,

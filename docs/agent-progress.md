@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Workspace merge conflicts
+
+Source Control lists unresolved Git paths in the Conflicts tab. Its stage
+action refreshes that list after a saved file is resolved. In a real merge
+with conflicts both inside and outside a nested workspace, only the inside
+path appeared. Staging its resolution emptied the local list and preserved
+the outside conflict. Both Git tests passed after 3.86 s build, the panel
+source checked, and both locale catalogs passed (537 keys). Direct desktop
+interaction and a three-way merge editor remain unverified.
+
 ## Current Studio dev session and workspace commit history
 
 Supervisor 63326 uses the rebuilt optimized CLI and the existing model host.

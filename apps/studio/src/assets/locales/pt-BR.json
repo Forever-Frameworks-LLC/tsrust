@@ -11,6 +11,8 @@
   "Unknown source control view.": "Visualização de controle de versão desconhecida.",
   "Stage active file from disk": "Preparar arquivo ativo do disco",
   "Unstage active file": "Retirar arquivo ativo da preparação",
+  "Conflicts": "Conflitos",
+  "No unresolved conflicts.": "Nenhum conflito pendente.",
   "History": "Histórico",
   "No commits in this workspace.": "Nenhum commit neste espaço de trabalho.",
   "Status": "Status",

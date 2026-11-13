@@ -89,3 +89,39 @@ test('source control reads status and separate staged and working diffs scoped t
     unwrap(removeDirAll(root));
   }
 });
+
+async function repoGit(root: ReadOnly<string>, args: string[]): Task<boolean> {
+  return unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgSign=false'].concat(args), {
+    cwd: clone(root)
+  })).status.success;
+}
+
+test('conflicts list only unresolved workspace paths until the saved resolution is staged', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-conflicts-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main']), true);
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+      unwrap(writeTextFile(sub + '/ré view.txt', branch + '\n'));
+      unwrap(writeTextFile(root + '/outside.txt', branch + '\n'));
+      strictEqual(await repoGit(root, ['add', '--', '.']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
+    unwrap(writeTextFile(sub + '/ré view.txt', 'resolved\n'));
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'conflicts', action: 'stage', path: 'ré view.txt'
+    })), '');
+    strictEqual(unwrap(await readGitView(root, 'conflicts')), 'outside.txt\n');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

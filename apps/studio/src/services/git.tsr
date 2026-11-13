@@ -9,6 +9,8 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
 
   if (mode === 'status') {
     for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
+  } else if (mode === 'conflicts') {
+    for (const arg of ['diff', '--relative', '--name-only', '--diff-filter=U', '--no-ext-diff']) args.push(clone(arg));
   } else if (mode === 'history') {
     for (const arg of ['log', '--ignore-missing', '--no-decorate', '--no-show-signature', '--format=%h  %as  %s', 'HEAD']) args.push(clone(arg));
   } else if (mode === 'working' || mode === 'staged') {

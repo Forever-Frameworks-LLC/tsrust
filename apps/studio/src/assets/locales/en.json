@@ -11,6 +11,8 @@
   "Unknown source control view.": "Unknown source control view.",
   "Stage active file from disk": "Stage active file from disk",
   "Unstage active file": "Unstage active file",
+  "Conflicts": "Conflicts",
+  "No unresolved conflicts.": "No unresolved conflicts.",
   "History": "History",
   "No commits in this workspace.": "No commits in this workspace.",
   "Status": "Status",
