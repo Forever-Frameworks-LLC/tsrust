@@ -4004,7 +4004,10 @@ impl Render for ImageViewport {
                 div().w(px(width.max(self.viewport.width.into()))).h(px(height.max(self.viewport.height.into()))).flex_shrink_0().flex().items_center().justify_center()
                     .child(img(ImageSource::Render(image)).id("image").w(px(width)).h(px(height)).flex_shrink_0().object_fit(ObjectFit::Contain)).into_any_element()
             },
-            Some(Err(_))=>div().child(self.props.get("alt").cloned().unwrap_or_default()).into_any_element(),
+            Some(Err(_))=>match self.props.get("alt").filter(|text|!text.is_empty()) {
+                Some(alt)=>div().id("image-error").role(Role::Label).aria_label(alt.clone()).child(alt.clone()).into_any_element(),
+                None=>div().into_any_element(),
+            },
             _=>div().into_any_element(),
         };
         let scroll=self.props.get("scrollTo").cloned().unwrap_or_default();
