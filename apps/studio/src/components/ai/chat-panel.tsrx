@@ -252,7 +252,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
         </MessageScroller>
         <View className="w-full shrink-0 min-w-0 flex-col overflow-hidden">
           <View hidden={state.get().notice === ''} className="px-1 py-2">
-            <Text className="text-destructive">
+            <Text role="status" className="text-destructive">
               {localizeError(state.get().notice)}
             </Text>
           </View>
@@ -338,7 +338,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
       >
         <DialogContent>
           <View hidden={state.get().notice === ''}>
-            <Text className="text-destructive">
+            <Text role="status" className="text-destructive">
               {localizeError(state.get().notice)}
             </Text>
           </View>

@@ -587,7 +587,19 @@ impl Root {
                 }
             }
             // Native runs preserve inline styling while sharing one paragraph layout.
-            Kind::Text => styled_rules(div(), self.rules(node), false, node.identity.get()).child(self.inline_text(node)).into_any_element(),
+            Kind::Text => {
+                let mut text = styled_rules(div(), self.rules(node), false, id);
+                let role = match node.semantics.role.as_str() {
+                    "alert" => Some(Role::Alert),
+                    "status" => Some(Role::Status),
+                    _ => None,
+                };
+                if let Some(role) = role.filter(|_| !node.semantics.hidden) {
+                    let label = if node.semantics.label.is_empty() {node.content_text()} else {node.semantics.label.clone()};
+                    text = text.role(role).aria_label(label);
+                }
+                text.child(self.inline_text(node)).into_any_element()
+            }
             _ if children.is_empty() => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.
