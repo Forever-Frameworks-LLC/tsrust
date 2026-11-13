@@ -291,12 +291,13 @@ if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EV
   }
 });
 
-if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
   const compiler = unwrap(get('TSRUST'));
 
   if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
   const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
+  const reordered = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'reordered';
   const feedback = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'feedback';
   const dataflow = feedback || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
   const combined = dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
@@ -305,7 +306,8 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
   const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", combined ? "import { shelfCharge, billableUnits } from './policy.tsr'" : "import { shelfCharge } from './policy.tsr'");
   const implementation = 'export default function storageFee(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
 
-  const policy = defaultImport ? clone(implementation) : implementation.replace('default function storageFee', 'function shelfCharge');
+  const named = implementation.replace('default function storageFee', 'function shelfCharge');
+  const policy = defaultImport ? clone(implementation) : reordered ? named.replace('fragile: boolean, units: int', 'units: int, fragile: boolean') : clone(named);
 
   try {
     unwrap(writeTextFile(folder + '/quote.tsr', caller));
@@ -333,7 +335,7 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
 
       if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
       // Run only reviewed, side-effect-free caller bodies. The native cases decide correctness.
-      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return billableUnits(units) + shelfCharge(fragile, units);'] : ['return shelfCharge(fragile, units);'];
+      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return billableUnits(units) + shelfCharge(fragile, units);'] : [reordered ? 'return shelfCharge(units, fragile);' : 'return shelfCharge(fragile, units);'];
 
       const after = clone(proposal.files[0].after);
 

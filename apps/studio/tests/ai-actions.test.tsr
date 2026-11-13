@@ -631,6 +631,8 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     strictEqual(denied(replacementProposal(snapshot, 'unfinished')), true);
     strictEqual(denied(replacementProposal(snapshot, '{"before":"","after":"insert"}')), true);
     const proposal = unwrap(replacementProposal(snapshot, '{"before":"two","after":"three"}'));
+    strictEqual(unwrap(replacementProposal(snapshot, '[{"before":"one one","after":"one one"},{"before":"two","after":"three"}]')).after, proposal.after);
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"two"}]')), true);
     const swapped = unwrap(replacementProposal(snapshot, '[{"before":"two","after":"one one"},{"before":"one one","after":"two"}]'));
     strictEqual(swapped.after, 'two one one');
     strictEqual(denied(replacementProposal(snapshot, '[{"before":"one one","after":"new"},{"before":"one two","after":"last"}]')), true);

@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Local model delegates a caller across parameter-order variants
+
+The reordered workspace evaluation uses the same task and caller but changes
+the imported policy signature. Initially the model delegated only the fragile
+branch and copied the other formula. Studio now clarifies explicit requests
+to delegate to the imported function. The 1.5B host produced the direct call
+with the correct order in both named-import variants. Each reviewed edit
+passed native negative, zero, standard and fragile cases. Peak sampled host
+RSS for the reordered success was 2,079,504 KiB. A default-import run exposed
+a separate review issue: the model returned the correct replacement alongside
+two exact unchanged passages. Review now validates and skips those passages
+while rejecting all-no-op proposals. The final default-import edit and 25
+action tests passed (51.21 s build). No model-generated edit touched an
+owner file. This does not resolve the recorded two-function composition failure.
+
 ## Large conflict objects
 
 The conflict reader asks Git for each blob's exact size before requesting

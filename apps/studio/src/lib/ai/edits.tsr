@@ -29,12 +29,15 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
     for (const change of changes) {
       const start = snapshot.before.indexOf(change.before);
 
-      if ((change.before === '' && snapshot.before !== '') || change.before === change.after || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+      if ((change.before === '' && snapshot.before !== '') || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+
+      if (change.before === change.after) continue;
       edits.push({
         start, end: start + change.before.length, after: clone(change.after)
       });
     }
 
+    if (edits.length === 0) return Err('The model did not return a valid edit proposal.');
     edits.sort((a, b) => a.start - b.start);
     const parts: string[] = [];
     let end = 0;
