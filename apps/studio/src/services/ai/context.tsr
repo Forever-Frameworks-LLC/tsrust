@@ -252,6 +252,7 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
 }
 
 export interface EditorContextResult {
+  saveStatus?: string;
   functionLookup?: string;
   excerpt: string;
   candidates: string[];
@@ -905,16 +906,28 @@ export function editorContext(
     if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files:\n' + paths.join('\n');
   }
 
+  let saveStatus: string | undefined = undefined;
+
   if (!editing && ['saved', 'unsaved', 'on disk', 'to disk'].some((term) => question.includes(term))) {
     const opened = workspace.files.filter((file) => file.kind === 'text' && file.document.path.startsWith(prefix));
     const qualified = opened.filter((file) => mentionsPath(prompt, file.document.path.slice(prefix.length)) && file.document.path.slice(prefix.length) !== file.name);
     const named = qualified.length > 0 ? qualified : opened.filter((file) => mentionsPath(prompt, file.name));
-    const targets = named.length > 0 ? named : opened.filter((file) => file.document.path === workspace.active);
+    const hasNamedFile = named.length > 0;
+    const targets = hasNamedFile ? named : opened.filter((file) => file.document.path === workspace.active);
 
-    for (const file of targets) result += '\n\n' + diskComparison(file.document.path, file.document.text, prefix);
+    const comparisons = targets.map((file) => diskComparison(file.document.path, file.document.text, prefix)).join('\n\n');
+
+    if (comparisons !== '') {
+      result += '\n\n' + comparisons;
+
+      const namesUnknownFile = !hasNamedFile && unwrap(compile('[[:alnum:]_-]+\\.[[:alpha:]][[:alnum:]]*')).isMatch(question);
+      const statusQuestion = unwrap(compile('^(?:is|are|was|were|has|have)\\s+[^?!]+\\b(?:saved(?: to disk)?|unsaved|on disk)(?: or (?:only )?in (?:the )?(?:editor )?draft)?[?.]?$')).isMatch(question.trim());
+
+      if (!namesUnknownFile && statusQuestion && !question.includes(' and ')) saveStatus = comparisons;
+    }
   }
 
   return {
-    excerpt: result, candidates: ambiguous, unavailable, functionLookup
+    excerpt: result, candidates: ambiguous, unavailable, functionLookup, saveStatus
   };
 }

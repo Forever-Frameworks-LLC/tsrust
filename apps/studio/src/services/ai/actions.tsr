@@ -496,6 +496,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       if (grounding.candidates.length > 0) reply = translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n');
 
       if (grounding.unavailable.length > 0) reply += (reply === '' ? '' : '\n\n') + translate('Studio could not read text from these files.') + '\n\n' + grounding.unavailable.join('\n\n');
+
+      if (reply === '') reply = clone(grounding.saveStatus) ?? '';
       next.history.chats[index].messages.push({
         role: 'assistant', text: clone(reply), request: clone(next.active), status: reply === '' ? 'pending' : 'complete'
       });

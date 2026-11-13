@@ -1906,6 +1906,32 @@ test('chat compares open drafts to current disk contents for save questions', ()
       index
     ).excerpt.includes('external change'), false);
     unwrap(writeTextFile(path, 'one\nthree'));
+    const state = signal(initialAiState(emptyHistory(clone(workspace.root))));
+    const commands = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), commands);
+    host.workspace = signal(clone(workspace));
+    send(host, clone(question));
+    strictEqual(state.get().history.chats[0].messages[1].text.includes('only in the draft, not saved to disk:\ntwo'), true);
+    strictEqual(state.get().phase, 'stopped');
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Is other.tsr saved?',
+      false,
+      false,
+      index
+    ).saveStatus === undefined, true);
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Explain how main.tsr is saved.',
+      false,
+      false,
+      index
+    ).saveStatus === undefined, true);
+
     strictEqual(editorContext(
       workspace,
       undefined,
