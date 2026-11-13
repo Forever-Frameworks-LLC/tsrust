@@ -29,7 +29,14 @@ import {
   translate
 } from 'std:ui';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
-import { DiffHunk, GitChange, GitReply, GitRequest, diffHunks } from '../../services/git.tsr';
+import {
+  DiffHunk,
+  GitChange,
+  GitReply,
+  GitRequest,
+  diffHunks,
+  gitPatch
+} from '../../services/git.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr';
 import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
@@ -597,7 +604,7 @@ export function GitEditor(
       </View>
     </View>
     <View hidden={selected.get().mode === 'conflicts'} className="w-full grow min-w-0 min-h-0 overflow-hidden">
-      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={selected.get().mode === 'commit'} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">
+      <Diff patch={gitPatch(output.get())} mode="split" headerVisible={selected.get().mode === 'commit'} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">
         {...HunkActions(hunks.get(), output.get(), selected.get(), pending.handle(), busy.handle())}
       </Diff>
     </View>

@@ -17,6 +17,7 @@ import {
   GitRequest,
   gitWorker,
   diffHunks,
+  gitPatch,
   changedFiles,
   gitRequest,
   readGitView
@@ -450,6 +451,14 @@ test('inspect binary modify/delete conflicts on either side without altering the
   } finally {
     unwrap(removeDirAll(root));
   }
+});
+
+test('commit messages mentioning a Git patch cannot create a file section', () => {
+  const message = 'commit abc\n\n    diff --git a/fiction b/fiction\n';
+  const patch = 'diff --git a/réel b/réel\n--- a/réel\n+++ b/réel\n@@ -1 +1 @@\n-old\n+new\n';
+  strictEqual(gitPatch(message), '');
+  strictEqual(gitPatch(message + '\n' + patch), patch);
+  strictEqual(gitPatch(patch), patch);
 });
 
 test('diff hunk navigation preserves exact text and stops at the next file', () => {

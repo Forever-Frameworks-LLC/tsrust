@@ -200,6 +200,12 @@ export interface DiffHunk {
   end: int;
 }
 
+export function gitPatch(output: ReadOnly<string>): string {
+  if (output.startsWith('diff --git ')) return clone(output);
+  const header = output.indexOf('\ndiff --git ');
+  return header < 0 ? '' : output.slice(header + 1);
+}
+
 export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
   const hunks: DiffHunk[] = [];
   let file = '';

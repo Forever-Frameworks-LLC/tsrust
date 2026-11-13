@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## History patch boundaries and native cache housekeeping
+
+The diff viewer now finds a Git file header only at the start of a line. An indented patch example inside a commit message previously matched its substring search and could become a spurious file section. Tests cover a message without a patch, the same message followed by a real Unicode-path patch and direct working-tree patch input. All 12 Git tests passed in 1.659 seconds of execution. Project formatting passed.
+
+The CLI explicitly retains valid build artifacts without an automatic quota. Under the runtime namespace lock, 22 least-recently-used complete runtime artifacts older than four hours were removed (13,618,419,019 logical bytes). Available disk space rose from 3.9 GiB to 17 GiB. Current builds and the shared Cargo target stayed in place.
+
 ## Merge commits in History
 
 Studio requests a first-parent patch from Git for merge commits, so the existing split diff can show the files and changes introduced onto the receiving branch. Extended the real Git conflict fixture to finish the merge, select it from History in a nested workspace, and verify the non-ASCII file header, removed first-parent line, added resolution and exclusion of the sibling file. The regression failed with the previous command. All 11 Git cases then passed in 1.705 seconds of execution. Project formatting passed.
