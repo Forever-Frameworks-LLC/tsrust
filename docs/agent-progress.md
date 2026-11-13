@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Named project file excerpts
+
+Unopened files named in a chat question now use a bounded 2,049-byte prefix read.
+The extra byte distinguishes a complete 2 KiB file from a longer one and lets
+the excerpt stop on a UTF-8 boundary. Manual attachment limits still apply to
+full snapshots. AI and workspace suites passed together, 17/17 in 22.18 ms,
+including an unopened source larger than 32 KiB with an emoji at the cutoff.
+Only the prefix is inspected for text suitability. File-size scaling and
+model quality on long documents have not been measured.
+
 ## Chat workspace context and composer edge
 
 Ordinary local chat sends now include a sample of the current explorer paths,

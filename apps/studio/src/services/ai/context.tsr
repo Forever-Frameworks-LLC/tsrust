@@ -1,11 +1,18 @@
-import { fromUtf8, length, at, toUtf8, view } from 'std:bytes';
+import {
+  Bytes,
+  fromUtf8,
+  length,
+  at,
+  toUtf8,
+  view
+} from 'std:bytes';
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { basename, dirname, join, separator } from 'std:path';
 
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { Workspace, readPrefix } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
 
 // Only trusted picker results may extend a read beyond the bound workspace.
@@ -59,13 +66,29 @@ export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<strin
   }
 }
 
-function contextExcerpt(source: ReadOnly<string>): string {
-  const bytes = unwrap(fromUtf8(source));
+function contextExcerpt(bytes: ReadOnly<Bytes>): string {
   const count = length(bytes);
   let end = count < 2048 ? count : 2048;
 
   while (end < count && unwrap(at(bytes, end)) >= 128 && unwrap(at(bytes, end)) < 192) end -= 1;
   return unwrap(toUtf8(unwrap(view(bytes, 0, end)))) + (end < count ? '\n…' : '');
+}
+
+function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>): Result<string, string> {
+  try {
+    const resolved = unwrap(canonicalize(path));
+
+    if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return Err('Unavailable file');
+    const opened = workspace.files.find((file) => file.document.path === resolved);
+
+    if (opened !== undefined && opened.kind !== 'text') return Err('Expected text file');
+    const excerpt = opened === undefined ? contextExcerpt(readPrefix(resolved, 2049)) : contextExcerpt(unwrap(fromUtf8(opened.document.text)));
+
+    if (excerpt.includes('\0')) return Err('Expected text file');
+    return Ok(excerpt);
+  } catch (_) {
+    return Err('Unavailable text excerpt');
+  }
 }
 
 function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean {
@@ -92,7 +115,7 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
   const active = workspace.files.find((file) => file.document.path === workspace.active);
 
   if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active)) {
-    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + contextExcerpt(active.document.text);
+    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + contextExcerpt(unwrap(fromUtf8(active.document.text)));
   }
 
   if (tree !== undefined && tree.root === workspace.root) {
@@ -106,9 +129,9 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
         const path = file.path.slice(prefix.length);
 
         if (named < 2 && file.path !== workspace.active && mentionsPath(prompt, path) && !attached.some((fragment) => fragment.path === file.path)) {
-          match (readContext(workspace, file.path, 'file', [])) {
-            Ok(fragment) => {
-              result += '\n\nReferenced workspace file: ' + path + '\n' + contextExcerpt(fragment.text);
+          match (namedExcerpt(workspace, file.path, prefix)) {
+            Ok(excerpt) => {
+              result += '\n\nReferenced workspace file: ' + path + '\n' + excerpt;
               named += 1;
             },
             Err(_) => {}

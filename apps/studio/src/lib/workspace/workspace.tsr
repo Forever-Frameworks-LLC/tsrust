@@ -90,11 +90,11 @@ export function selectFile(workspace: Mutable<Workspace>, path: string): boolean
   return true;
 }
 
-function readPrefix(path: ReadOnly<string>): Bytes {
+export function readPrefix(path: ReadOnly<string>, limit: int): Bytes {
   const file = unwrap(open(path));
 
   try {
-    return unwrap(read(file, 256));
+    return unwrap(read(file, limit));
   } finally {
     unwrap(close(file));
   }
@@ -127,7 +127,7 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
 
     if (!image) {
       const large = info.size > maxEditableBytes();
-      const bytes = large ? readPrefix(resolved) : unwrap(readFile(resolved, maxEditableBytes()));
+      const bytes = large ? readPrefix(resolved, 256) : unwrap(readFile(resolved, maxEditableBytes()));
 
       if (large) kind = 'bytes';
       else match (toUtf8(bytes)) {

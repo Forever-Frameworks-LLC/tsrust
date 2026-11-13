@@ -395,7 +395,7 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
 
   try {
     unwrap(writeTextFile(folder + '/main.tsr', 'disk version'));
-    unwrap(writeTextFile(folder + '/helper.tsr', 'unopened content'));
+    unwrap(writeTextFile(folder + '/helper.tsr', 'unopened content' + 'x'.repeat(2031) + '😀' + 'y'.repeat(40000) + 'large file tail'));
     unwrap(writeTextFile(folder + '/per.tsr', 'unrelated suffix'));
     const model = unwrap(openWorkspace(clone(folder)));
     unwrap(openFile(model, folder + '/main.tsr'));
@@ -418,6 +418,7 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     strictEqual(messages[0].content.includes('helper.tsr'), true);
     strictEqual(messages[0].content.includes('tail'), false);
     strictEqual(messages[0].content.includes('unopened content'), true);
+    strictEqual(messages[0].content.includes('large file tail'), false);
     strictEqual(messages[0].content.includes('unrelated suffix'), false);
     strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr');
   } finally {
