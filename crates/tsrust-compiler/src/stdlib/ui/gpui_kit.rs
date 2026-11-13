@@ -2604,7 +2604,15 @@ impl Root {
                     let receiver = if name == "pick-files" {
                         let directories = flag("directories");
                         let prompt = cx.prompt_for_paths(PathPromptOptions {files: !directories, directories, multiple: flag("multiple"), prompt: None});
-                        Box::pin(async move {prompt.await.ok().and_then(Result::ok).flatten().unwrap_or_default().iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\n")}) as std::pin::Pin<Box<dyn std::future::Future<Output = String>>>
+                        let path_array = flag("pathArray");
+                        Box::pin(async move {
+                            let selected = prompt.await.ok().and_then(Result::ok).flatten().unwrap_or_default();
+                            if path_array {
+                                commands::picked_paths_json(&selected)
+                            } else {
+                                selected.iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\n")
+                            }
+                        }) as std::pin::Pin<Box<dyn std::future::Future<Output = String>>>
                     } else {
                         let directory = std::env::current_dir().unwrap_or_default();
                         let suggested = value.get("name").and_then(|name| name.as_str()).unwrap_or_default().to_owned();

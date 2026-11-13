@@ -23134,6 +23134,21 @@
       "documentation": "Shows the system open dialog. onPicked receives the chosen paths, one per line, or an empty string when the dialog is cancelled.\n\n```tsrx\npickFiles((paths) => { selected.set(clone(paths)); }, { multiple: true });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
     },
     {
+      "name": "pickFilePaths",
+      "signature": "pickFilePaths(onPicked: Owned<Function<void, [paths: ReadOnly<string[]>]>>, options?: PickFilesOptions): void",
+      "parameters": [
+        {
+          "label": "onPicked",
+          "documentation": "Receives one entry per selected UTF-8 path."
+        },
+        {
+          "label": "options?: PickFilesOptions",
+          "documentation": "multiple and directories, both default false."
+        }
+      ],
+      "documentation": "Shows the system open dialog. onPicked receives one string per chosen path, preserving embedded newlines. Cancellation or a selection containing a non-UTF-8 path returns an empty list.\n\n```tsrx\npickFilePaths((paths) => { selected.set(clone(paths)); }, { multiple: true });\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
+    },
+    {
       "name": "PickFilesOptions",
       "signature": "interface PickFilesOptions",
       "parameters": [],

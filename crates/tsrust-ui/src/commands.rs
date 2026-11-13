@@ -52,6 +52,11 @@ pub fn command(name: &str, payload: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) fn picked_paths_json(selected: &[std::path::PathBuf]) -> String {
+    let paths: Option<Vec<&str>> = selected.iter().map(|path| path.to_str()).collect();
+    serde_json::json!(paths.unwrap_or_default()).to_string()
+}
+
 /// Queue a command whose result (text) is delivered to `reply` later.
 pub fn command_reply(name: &str, payload: &str, reply: impl FnOnce(&str) -> Result<(), String> + 'static) -> Result<(), String> {
     if !REPLIES.contains(&name) {return Err(format!("Unknown UI command: {name}"));}
@@ -130,6 +135,20 @@ mod tests {
         drop(first);{let _origin=context();command("close","closed").unwrap();}
         assert!(take(&second).is_empty());
     }
+    #[test]
+    fn picked_paths_preserve_boundaries() {
+        let selected = ["first\nsecond", "quoted\"path"];
+        let paths = selected.map(std::path::PathBuf::from);
+        assert_eq!(serde_json::from_str::<Vec<String>>(&picked_paths_json(&paths)).unwrap(), selected);
+        assert_eq!(picked_paths_json(&[]), "[]");
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            let invalid = std::ffi::OsStr::from_bytes(b"invalid\xff");
+            assert_eq!(picked_paths_json(&[paths[0].clone(), invalid.into()]), "[]");
+        }
+    }
+
     #[test]
     fn commands_queue_in_order_and_reject_unknown_names() {
         let owner=Owner::new();

@@ -27,6 +27,7 @@ import {
   mkdirAll
 } from 'std:fs';
 import { Channel } from 'std:futures';
+import { separator } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
@@ -604,10 +605,11 @@ test('chat storage round-trips Unicode and rejects external history conflicts', 
 test('file and skill context use guarded snapshots, including unsaved editor text', () => {
   const folder = unwrap(createTempDir(undefined, 'studio-chat-context-'));
   const outside = unwrap(createTempDir(undefined, 'studio-chat-outside-'));
+  const externalPath = outside + (separator() === '/' ? '/outside\nnotes.txt' : '/outside.txt');
 
   try {
     unwrap(writeTextFile(folder + '/main.tsr', 'const disk = 1;'));
-    unwrap(writeTextFile(outside + '/outside.txt', 'outside private text'));
+    unwrap(writeTextFile(externalPath, 'outside private text'));
     unwrap(mkdirAll(folder + '/.agents/skills/review'));
     unwrap(writeTextFile(folder + '/.agents/skills/review/SKILL.md', '# Review\nRead carefully.'));
     const model = unwrap(openWorkspace(clone(folder)));
@@ -620,7 +622,7 @@ test('file and skill context use guarded snapshots, including unsaved editor tex
     const host = context(state, settings, requests);
     host.workspace = workspace.handle();
     strictEqual(denied(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
-      chat: '', path: outside + '/outside.txt', kind: 'file', allowOutside: true
+      chat: '', path: clone(externalPath), kind: 'file', allowOutside: true
     }))), true);
     unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
       chat: '', path: folder + '/main.tsr', kind: 'file'
@@ -633,9 +635,9 @@ test('file and skill context use guarded snapshots, including unsaved editor tex
       chat: '', path: folder + '/main.tsr', kind: 'file'
     }))), true);
     host.allowRead = true;
-    host.allowedContextPaths = [outside + '/outside.txt'];
+    host.allowedContextPaths = [clone(externalPath)];
     unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
-      chat: '', path: outside + '/outside.txt', kind: 'file'
+      chat: '', path: clone(externalPath), kind: 'file'
     })));
     const ready = host.state.get();
     ready.phase = 'ready';

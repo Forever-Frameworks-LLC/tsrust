@@ -29,7 +29,7 @@ import { chatIdentity } from '../../lib/ai/conversations.tsr';
 export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, kind: ReadOnly<string>, allowedPaths: ReadOnly<string[]>): Result<ContextFragment, string> {
   try {
     if (kind !== 'file' && kind !== 'skill') return Err('Unknown chat context type.');
-    const resolved = unwrap(canonicalize(path.startsWith('/') ? clone(path) : join(workspace.root, path)));
+    const resolved = unwrap(canonicalize(isAbsolute(path) ? clone(path) : join(workspace.root, path)));
     const root = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
 
     if (!resolved.startsWith(root)) {

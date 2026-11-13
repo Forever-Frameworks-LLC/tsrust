@@ -1709,6 +1709,15 @@ export function pickFiles(onPicked: Owned<Function<void, [paths: ReadOnly<string
   }), onPicked));
 }
 
+/** Receives selected UTF-8 paths as separate entries, or an empty list on cancellation. */
+export function pickFilePaths(onPicked: Owned<Function<void, [paths: ReadOnly<string[]>]>>, options?: PickFilesOptions): void {
+  unwrap(nativeCommandReply('pick-files', JSON.stringify({
+    multiple: options?.multiple ?? false, directories: options?.directories ?? false, pathArray: true
+  }), (text: ReadOnly<string>): void => {
+    onPicked(JSON.parse<string[]>(text));
+  }));
+}
+
 /** Shows the system save dialog with a suggested file name. onChosen receives the chosen path, or an empty string when cancelled. */
 export function saveFile(suggestedName: string, onChosen: Owned<Function<void, [path: ReadOnly<string>]>>): void {
   unwrap(nativeCommandReply('save-file', JSON.stringify({

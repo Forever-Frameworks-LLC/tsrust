@@ -14,7 +14,7 @@ import {
   Signal,
   computed,
   controlInput,
-  pickFiles,
+  pickFilePaths,
   translate,
   translateWith,
   t
@@ -127,19 +127,36 @@ export function ContextPicker(context: ReadOnly<AiContext>, picker: Signal<Conte
           </CommandEmpty>
         </Command>
         <View className="flex-row px-2 py-1">
-          <Button icon="folder-open" variant="ghost" size="small" onPress={() => {
-            const chat=clone(picker.get().chat);
-            const kind=clone(picker.get().kind);
-            const multiple=kind !== 'skill';
-            const scope=aiContextHandles(choose);
-            pickFiles((paths) => {
-              if (paths === '') return;
-              const grant=aiContextHandles(scope);
-              grant.allowedContextPaths=paths.split('\n');
-              for (const path of grant.allowedContextPaths ?? []) performModelAction(grant,'chat_attach_context',JSON.stringify({chat:clone(chat),path:clone(path),kind:clone(kind)}));
-              const next=picker.get();next.open=false;picker.set(next);
-            },{multiple});
-          }}>{t('Choose from disk…')}</Button>
+          <Button
+            icon="folder-open"
+            variant="ghost"
+            size="small"
+            onPress={() => {
+              const chat = clone(picker.get().chat);
+              const kind = clone(picker.get().kind);
+              const multiple = kind !== 'skill';
+              const scope = aiContextHandles(choose);
+              pickFilePaths((paths) => {
+                if (paths.length === 0) return;
+                const grant = aiContextHandles(scope);
+                grant.allowedContextPaths = clone(paths);
+
+                for (const path of paths) {
+                  performModelAction(grant, 'chat_attach_context', JSON.stringify({
+                    chat: clone(chat), path: clone(path), kind: clone(kind)
+                  }));
+                }
+
+                const next = picker.get();
+                next.open = false;
+                picker.set(next);
+              }, {
+                multiple
+              });
+            }}
+          >
+            {t('Choose from disk…')}
+          </Button>
         </View>
       </DialogContent>
     </Dialog>
