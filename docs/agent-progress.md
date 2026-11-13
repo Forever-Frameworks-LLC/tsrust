@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Import retrieval from code expressions
+
+Chat matches imported local names using whole Unicode identifier tokens in
+the prompt. Operators and punctuation in a pasted expression no longer hide
+adjacent imports. The outgoing request for compute()+rules()*alternate()-fee()
+contained all four definitions from the unsaved draft's three imported modules.
+Reference-query matching uses the same tokenizer. The focused AI action suite
+passed 20/20 in 73.38 ms. This checks retrieval only.
+
 ## Exact project path mappings for chat
 
 Symbol retrieval recognizes exact import mappings in the nearest saved

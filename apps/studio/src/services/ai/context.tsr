@@ -147,6 +147,15 @@ function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, h
   return line.trim();
 }
 
+function promptSymbols(prompt: ReadOnly<string>): Set<string> {
+  const symbols = new Set<string>();
+  const identifiers = unwrap(compile('[\\p{L}\\p{N}_$]+'));
+  const bytes = unwrap(fromUtf8(prompt));
+
+  for (const token of identifiers.findAll(prompt)) symbols.add(unwrap(toUtf8(unwrap(view(bytes, token.start, token.end)))));
+  return symbols;
+}
+
 // A references result is a snapshot of a language-server query, not a fresh search.
 export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnly<LanguageReferences>, prompt: ReadOnly<string>): string {
   const root = workspace.root;
@@ -162,10 +171,8 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
   }
 
   const symbol = clone(query.symbol);
-  const identifiers = unwrap(compile('[\\p{L}\\p{N}_$]+'));
-  const bytesPrompt = unwrap(fromUtf8(prompt));
 
-  if (!identifiers.findAll(prompt).some((token) => unwrap(toUtf8(unwrap(view(bytesPrompt, token.start, token.end)))) === symbol)) return '';
+  if (!promptSymbols(prompt).has(symbol)) return '';
   const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
   const cache = new Map<string, string[]>();
   const rows: string[] = [];
@@ -256,6 +263,7 @@ function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: R
 // Match relative named import declarations before reading a file from the workspace tree.
 function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
   const paths = new Map<string, ImportBinding[]>();
+  const symbols = promptSymbols(prompt);
   const bytes = unwrap(fromUtf8(source));
   const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"]([^'\"\\r\\n]+)['\"]"));
 
@@ -272,7 +280,7 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
       const parts = binding.trim().split(' as ');
       const name = parts[parts.length - 1].trim();
 
-      if (name === '' || !mentionsPath(prompt, name)) continue;
+      if (!symbols.has(name)) continue;
       const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
 
       const base = importBase(path, relative, root);

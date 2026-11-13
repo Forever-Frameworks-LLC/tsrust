@@ -683,7 +683,7 @@ test('chat resolves a local import alias in an unsaved draft and skips commented
     const host = context(state, signal(modelConfig()), requests);
     host.projectTree = signal(unwrap(scanTree(clone(workspace.root), false)));
     host.workspace = signal(workspace);
-    send(host, 'Compare compute(), rules(), alternate() and fee().');
+    send(host, 'Explain the expression compute()+rules()*alternate()-fee();');
     const messages = unwrap(requests.tryReceive()).messages ?? [];
     strictEqual(messages[0].content.includes('Referenced workspace file: helpers.tsr'), true);
     strictEqual(messages[0].content.includes('return 37;'), true);
