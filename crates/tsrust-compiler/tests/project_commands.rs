@@ -108,6 +108,11 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return 42;}").unwrap();
     wait(&rx,&mut lines,"Build failed; previous application remains running.");
     assert_eq!(unsafe {kill(old,0)},0,"last good program must still be alive");
+    let mut restored=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
+    wait(&rx,&mut restored,"Application unchanged; kept running.");
+    assert!(restored.iter().any(|line|line.contains("Reused checked application.")),"undo should reuse the last good check: {restored:?}");
+    assert_eq!(unsafe {kill(old,0)},0);
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"second-version\";}").unwrap();
     wait(&rx,&mut lines,"second-version");
     // stderr/stdout reader threads may deliver the start line in either order.

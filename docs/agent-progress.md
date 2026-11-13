@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev watcher recovery after undo
+
+The frontend worker retains the last successful input snapshot and output
+through a failed check. Undoing an invalid dependency edit now reuses the
+checked application. The public dev process test observed the original PID
+still running and a later valid edit starting a new PID. Passed in 3.82 s
+after 6.90 s build. Whole-project formatter changed zero files.
+
+An independent optimized check of Studio main printed Check passed in 149.70 s.
+The time wrapper failed to read kern.clockrate for memory accounting. Samples
+from two phases showed repeated recursive native-view shape comparisons and
+expression error-effect traversal. This undo fix does not accelerate those
+paths. Supervisor 36374 and child 19954 were live on the prior toolchain.
+
 ## Recall across oversized unrelated exchanges
 
 After selecting a recent suffix with the model tokenizer, the host looks back

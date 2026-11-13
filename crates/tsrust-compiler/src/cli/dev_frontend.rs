@@ -62,7 +62,7 @@ fn run(requests:Receiver<Request>) {
   if let Some((inputs,output))=&previous && request.sources.files.only_unused_sources_changed(inputs) {
    let _=request.reply.send(Ok((output.clone(),true)));continue;
   }
-  previous=None;
+  // Keep the last successful snapshot available when a broken edit is undone.
   let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources)).map(|output|{
    let output=std::sync::Arc::new(output);
    previous=Some((request.sources.files,output.clone()));
