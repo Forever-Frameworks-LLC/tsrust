@@ -6,7 +6,7 @@ import {
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { asString, get } from 'std:json';
-import { compile, escape } from 'std:regex';
+import { compile } from 'std:regex';
 import {
   basename,
   dirname,
@@ -16,6 +16,7 @@ import {
   separator
 } from 'std:path';
 
+import { functionExcerpt } from '../../lib/ai/prompts.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
 import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
 import { diagnosticPath } from '../../lib/language/diagnostics.tsr';
@@ -316,34 +317,6 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
   }
 
   return paths;
-}
-
-// Only narrow a simple exported function when its complete body can be located.
-function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>): string {
-  const bytes = unwrap(fromUtf8(source));
-  const declaration = exported === 'default' ? 'default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*' : '(?:async\\s+)?function\\s+' + escape(exported);
-  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bexport\\s+" + declaration + "\\s*\\([^(){}]*\\)\\s*(?::\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\[\\])?\\s*)?\\{|[{}]"));
-  let start = -1;
-  let depth = 0;
-
-  for (const token of tokens.findAll(source)) {
-    if (start < 0) {
-      if (source.startsWith('export', token.start)) {
-        start = token.start;
-        depth = 1;
-      }
-    } else if (source.startsWith('{', token.start)) depth += 1;
-    else if (source.startsWith('}', token.start)) {
-      depth -= 1;
-
-      if (depth === 0) {
-        const end = source.startsWith('\n', token.end) ? token.end + 1 : token.end;
-        return unwrap(toUtf8(unwrap(view(bytes, start, end))));
-      }
-    }
-  }
-
-  return '';
 }
 
 export function editorContext(

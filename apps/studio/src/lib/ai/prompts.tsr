@@ -1,4 +1,4 @@
-import { compile, Regex } from 'std:regex';
+import { compile, escape, Regex } from 'std:regex';
 import { at, fromUtf8, toUtf8, view } from 'std:bytes';
 
 // Matches the pinned Qwen template's no-tools, system/user/assistant branch.
@@ -82,19 +82,84 @@ function mentions(content: ReadOnly<string>, terms: ReadOnly<Set<string>>, ident
   return false;
 }
 
+// Only narrow a simple function when its complete body can be located.
+export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>, local: boolean = false): string {
+  const bytes = unwrap(fromUtf8(source));
+  const declaration = exported === 'default' ? 'default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*' : '(?:async\\s+)?function\\s+' + escape(exported);
+  const prefix = local ? '(?:export\\s+)?' : 'export\\s+';
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b" + prefix + declaration + "\\s*\\([^(){}]*\\)\\s*(?::\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\[\\])?\\s*)?\\{|[{}]"));
+  let start = -1;
+  let depth = 0;
+
+  for (const token of tokens.findAll(source)) {
+    const declarationStart = source.startsWith('export', token.start) || (local && (source.startsWith('function', token.start) || source.startsWith('async', token.start)));
+
+    if (start < 0) {
+      if (declarationStart) {
+        start = token.start;
+        depth = 1;
+      }
+    } else if (declarationStart || source.startsWith('{', token.start)) depth += 1;
+    else if (source.startsWith('}', token.start)) {
+      depth -= 1;
+
+      if (depth === 0) {
+        const end = source.startsWith('\n', token.end) ? token.end + 1 : token.end;
+        return unwrap(toUtf8(unwrap(view(bytes, start, end))));
+      }
+    }
+  }
+
+  return '';
+}
+
 // Only automatically attached workspace text can be excerpted on the newest turn.
-export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>): string {
+export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false): string {
   if (start < 2 || start >= content.length || terms.size === 0 || !content.startsWith('\n\n', start - 2)) return '';
   const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
   const selected: string[] = [];
   let heading = '';
 
-  for (const line of content.slice(start).split('\n')) {
+  const lines = content.slice(start).split('\n');
+  const fn = unwrap(compile('^(?:export\\s+)?(?:async\\s+)?function\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\('));
+  let offset = start;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const lineStart = offset;
+    offset += line.length + 1;
+
     if (line.startsWith('Active editor file: ') || line.startsWith('Referenced workspace file: ') || line.startsWith('Bundled Tsrust reference: ') || line.startsWith('Last Find References results for ') || line === 'Workspace files:') {
       heading = clone(line);
     } else if (mentions(line, terms, identifiers)) {
       if (heading !== '') selected.push(clone(heading));
       heading = '';
+
+      if (includeBodies) {
+        const matchLine = fn.captures(line.trim());
+        const capture = matchLine?.groups[0];
+
+        if (capture !== undefined) {
+          const name = unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(line.trim())), capture.start, capture.end))));
+
+          if (terms.has(name)) {
+            const body = functionExcerpt(content.slice(lineStart), name, true).trimEnd();
+
+            if (body !== '' && body.startsWith(line.trim()) && body.includes('\n')) {
+              const count = body.split('\n').length;
+              selected.push(body);
+
+              for (let n = 1; n < count; n += 1) {
+                index += 1;
+                offset += lines[index].length + 1;
+              }
+
+              continue;
+            }
+          }
+        }
+      }
+
       selected.push(clone(line));
     }
   }

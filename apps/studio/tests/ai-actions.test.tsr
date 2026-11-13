@@ -877,4 +877,7 @@ test('workspace overflow keeps selected context and source attribution', () => {
   const content = prefix + 'Active editor file: main.tsr\n// unrelated\ncaféFeeExtra();\n\nReferenced workspace file: rules.tsr\nconst caféFee = 73;';
   strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is caféFee?')), prefix + '[Workspace excerpt]\nReferenced workspace file: rules.tsr\nconst caféFee = 73;');
   strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is OTHER_FEE?')), '');
+  const body = 'function caféFee() {\n  // }\n  return 73;\n}';
+  const source = prefix + 'Active editor file: main.tsr\n' + body + '\nfunction unrelated() {}';
+  strictEqual(excerptWorkspace(source, prefix.length, recallTerms('caféFee()'), true), prefix + '[Workspace excerpt]\nActive editor file: main.tsr\n' + body);
 });

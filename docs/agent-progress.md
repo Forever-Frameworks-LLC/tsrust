@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Multiline functions in an overflowing current turn
+
+Workspace compaction tries complete bodies for named simple functions before
+falling back to matching lines when the tokenizer rejects the larger excerpt.
+The import and overflow paths share the same brace scanner. The regression
+uses a Unicode function name, a brace inside a comment, and an unrelated
+neighboring declaration. With 35000 unrelated words, a multiline crateFee
+returning 73, and a follow-up asking for one more, the configured 1.5B host
+reported compaction twice and answered 73 then 74. Maximum RSS was 2199093248
+bytes and peak memory footprint 1189644784 bytes in 4.14 seconds. Scope is
+simple named functions; helper dependencies and complex signatures remain open.
+
 ## Latest-turn workspace compaction
 
 Studio records where automatic workspace context starts in ordinary model requests.
