@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Offline retrieval of example setup
+
+Studio's bundled index now includes top-level state and test hooks preceding
+the first named declaration or test. All 1545 earlier database rows were
+retained exactly. Four new passages cover two examples and two compiler
+fixtures. Independent regeneration produced the same SHA-256 digest.
+The shipped SQLite retrieval suite passed in 310.37 ms and verified that
+“Tsrust beforeAll setCount” returns examples/testing/program-state.test.tsr:3
+with the actual setCount(7) setup. Model answer quality was not measured.
+
 ## Multiline functions in an overflowing current turn
 
 Workspace compaction tries complete bodies for named simple functions before

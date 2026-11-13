@@ -55,6 +55,13 @@ def passages(path, text):
         starts = [i for i, line in enumerate(lines) if re.match(
             r"^(?:(?:export|async) )*(?:function|class|interface|type|enum) |^(?:test|describe)\(", line
         )]
+        # Module state and suite setup can precede the first named declaration.
+        first = starts[0] if starts else len(lines)
+        setup = next((i for i in range(first) if re.match(
+            r"^(?:export )?(?:const|let) |^(?:beforeAll|afterAll|beforeEach|afterEach)\(", lines[i]
+        )), None)
+        if setup is not None:
+            starts.insert(0, setup)
     for start, end in zip(starts, starts[1:] + [len(lines)]):
         title = titles[start] if path.suffix == ".md" else lines[start].strip()
         if path.suffix == ".tsrx" and path.parent.name == "pages" and title.startswith("export "):
