@@ -234,7 +234,19 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
         </List>
       </View>
       <View hidden={state.get().view !== 'thread'} className="flex-col grow min-h-0">
-        <MessageScroller className="grow min-h-0" contentClassName="py-2" rowClassName="px-1 pb-1">
+        <View className="flex-row items-center shrink-0 px-1 h-8">
+          <Button
+            icon="arrow-left"
+            variant="ghost"
+            size="xsmall"
+            tooltip={message('All chats')}
+            aria-label={accessibleName('All chats')}
+            onPress={() => {
+              perform(navigation, 'chat_show_all');
+            }}
+          />
+        </View>
+        <MessageScroller className="grow min-h-0" contentClassName="py-2" rowClassName="px-2 pb-1">
           {...activeMessages(state.get().history).map(renderMessage)}
         </MessageScroller>
         <View className="w-full shrink-0 min-w-0 flex-col">
@@ -243,7 +255,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
               {localizeError(state.get().notice)}
             </Text>
           </View>
-          <InputGroup size="small" className={'w-full rounded-none ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
+          <InputGroup size="small" className={'w-full rounded-none border-b-0 ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
             <Textarea
               value={chatDraft(state.get().history)}
               placeholder={message('Ask anything')}
@@ -275,14 +287,6 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
             </InputGroupAddon>
             <InputGroupAddon align="block-end" className="min-w-0 gap-1">
               <InputGroupButton
-                icon="messages-square"
-                tooltip={translate('All chats')}
-                accessibilityLabel={translate('All chats')}
-                onClick={() => {
-                  perform(navigation, 'chat_show_all');
-                }}
-              />
-              <InputGroupButton
                 icon="paperclip"
                 tooltip={translate('Attach text files')}
                 accessibilityLabel={translate('Attach text files')}
@@ -298,7 +302,6 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
                   showContextPicker(skills, picker.handle(), 'skill');
                 }}
               />
-              {NewChatButton(context)}
               <View className="grow min-w-0" />
               <InputGroupButton
                 icon={working.get() ? 'square' : 'arrow-up'}
