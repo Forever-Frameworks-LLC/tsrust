@@ -9,6 +9,7 @@ import {
   emptyHistory,
   createChat,
   chatIdentity,
+  Conversation,
   setChatDraft,
   draftContext,
   setDraftContext,
@@ -90,7 +91,7 @@ function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = 
 
 export function modelTools(): EditorTool[] {
   return [{
-    name: 'local_model_read', description: 'Read this host-bound model state and conversations. Requires a host read grant.', inputSchema: '{"type":"object","properties":{}}'
+    name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
     name: 'local_model_send', description: 'Send in the explicit selected conversation. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string","maxLength":65536},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
@@ -163,15 +164,29 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
   if (!modelTools().some((tool) => tool.name === name)) return Err('Unknown local model action.');
   const next = context.state.get();
 
-  if (name === 'local_model_read') {
-    if (!context.allowRead) return Err('The host has not permitted reading this conversation.');
-    return Ok(JSON.stringify(next));
-  }
-
   try {
     const args = JSON.parse<Arguments>(payload, {
       maxBytes: 512 * 1024, maxDepth: 4, maxEntries: 8, maxNodes: 16
     });
+
+    if (name === 'local_model_read') {
+      if (!context.allowRead) return Err('The host has not permitted reading this conversation.');
+
+      if (args.chat === undefined) return Ok(JSON.stringify(next));
+
+      if (args.chat === '') {
+        const draft: Conversation = {
+          id: '', title: '', revision: 0, draft: clone(next.history.draft), context: clone(next.history.context) ?? [], messages: []
+        };
+        return Ok(JSON.stringify(draft));
+      }
+
+      const chat = next.history.chats.find((item) => item.id === args.chat);
+
+      if (chat === undefined) return Err('This conversation no longer exists.');
+      return Ok(JSON.stringify(chat));
+    }
+
     next.notice = '';
 
     if (name.startsWith('chat_')) {

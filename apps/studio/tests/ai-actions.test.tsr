@@ -5,7 +5,7 @@ import { Channel } from 'std:futures';
 import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
-import { emptyHistory, parseHistory, chatDraft } from '../src/lib/ai/conversations.tsr';
+import { Conversation, emptyHistory, parseHistory, chatDraft } from '../src/lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
@@ -41,6 +41,34 @@ function send(context: ReadOnly<AiContext>, prompt: string): void {
     chat: context.state.get().history.active, prompt
   })));
 }
+
+test('reading an explicit conversation leaves selection intact and excludes other drafts', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(invokeModelTool(host, 'chat_set_draft', '{"chat":"","prompt":"first draft"}'));
+  const draft = JSON.parse<Conversation>(unwrap(invokeModelTool(host, 'local_model_read', '{"chat":""}')));
+  strictEqual(draft.draft, 'first draft');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const first = host.state.get().history.active;
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const second = host.state.get().history.active;
+  unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+    chat: clone(second), prompt: 'separate draft'
+  })));
+  const target = JSON.stringify({
+    chat: first
+  });
+  const result = unwrap(invokeModelTool(host, 'local_model_read', target));
+  strictEqual(JSON.parse<Conversation>(result).draft, 'first draft');
+  strictEqual(result.includes('separate draft'), false);
+  strictEqual(host.state.get().history.active, second);
+  strictEqual(denied(invokeModelTool(host, 'local_model_read', '{"chat":"missing"}')), true);
+  strictEqual(JSON.parse<AiState>(unwrap(invokeModelTool(host, 'local_model_read', '{}'))).history.chats.length, 2);
+  host.allowRead = false;
+  strictEqual(denied(invokeModelTool(host, 'local_model_read', target)), true);
+});
 
 test('local model settings preserve legacy defaults and artifact paths', () => {
   const config = defaultConfig();

@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Read a conversation without selecting it
+
+The registered local_model_read action accepts an optional chat ID. An explicit
+ID returns only that conversation, including its draft and message attachments.
+An empty ID reads the unassigned composer. Omitting the ID preserves the existing
+workspace-wide model state response under the host read grant. A scoped read
+does not change selection. The public action suite passed 10/10 in 10.56 ms,
+including separate drafts, missing IDs, denied reads and legacy response shape.
+Final project format zero changes. Logs /tmp/studio-chat-read-tests-final.log
+and /tmp/studio-chat-read-format-final.log. Preview 4521 and supervisor 1088
+were alive. Live model tool dispatch remains pending.
+
 ## Final model reply during shutdown
 
 A completion, cancellation or generation error received after Stop now settles
