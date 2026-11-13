@@ -6,6 +6,22 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+The latest revision uses a square, edge-to-edge commit InputGroup, 22-pixel
+change rows, secondary directory text and a full-path tooltip. Status and
+stage controls share a trailing slot. The working-group label is hidden
+when it is the only group. The diff exposes hunk staging in its gutter.
+Each control retains its reviewed file, mode and patch. Git rechecks these
+before applying. Ten Git tests passed in 2.22 s, including a wrong-path
+same-name request and both zero-count sides of a patch. All five Syntect
+diff presentation tests passed in 3.40 s, including Tsrust-specific type
+highlight spans for both sides of .tsr and .tsrx files. The prior language
+detector had classified both extensions as plain text.
+
+Native interaction on the updated layout measured 248-by-22 rows and an
+822-by-698 diff pane. Pressing the first Stage hunk button in the regression
+test diff staged only its two added assertions. The dev supervisor was
+reloaded in apps/studio to pick up the rebuilt embedded native renderer.
+
 After owner visual review, the sidebar uses a single commit row, filenames
 first and editor zoom for change text. File staging stays on its row. The
 split diff wraps at the pane width, hides its redundant file header, and

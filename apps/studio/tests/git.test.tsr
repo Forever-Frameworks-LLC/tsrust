@@ -164,6 +164,8 @@ test('source control reads status and separate staged and working diffs scoped t
     strictEqual(preview.includes('another file'), false);
     strictEqual(unwrap(await readGitView(sub, 'staged', clone(literal))), '');
     const addition = diffHunks(preview)[0];
+    strictEqual(addition.originalLine, 0);
+    strictEqual(addition.modifiedLine, 1);
     strictEqual(unwrap(await gitRequest(sub, {
       mode: 'working', action: 'stage-hunk', viewFile: clone(literal), hunk: clone(addition.label), patch: addition.header + preview.slice(addition.start, addition.end)
     })), '');
@@ -415,6 +417,20 @@ test('stage and unstage one reviewed hunk in a nested workspace', async () => {
     const request: GitRequest = {
       mode: 'working', action: 'stage-hunk', viewFile: 'file.txt', hunk: clone(last.label), patch: last.header + working.slice(last.start, last.end)
     };
+    unwrap(mkdirAll(sub + '/another'));
+    unwrap(writeTextFile(sub + '/another/file.txt', edited));
+
+    match (await gitRequest(sub, {
+      mode: 'working', action: 'stage-hunk', viewFile: 'another/file.txt', hunk: clone(last.label), patch: clone(request.patch)
+    })) {
+      Ok(_) => {
+        throw 'Applied reviewed hunk to a different same-named file';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('Refresh'), true);
+      }
+    }
+
     unwrap(writeTextFile(file, edited.replace('LAST', 'changed again')));
 
     match (await gitRequest(sub, request)) {
@@ -494,6 +510,8 @@ test('unstaging a deleted executable restores its original index mode', async ()
     strictEqual(await repoGit(root, ['rm', '-f', '--', clone(file)]), true);
     const diff = unwrap(await readGitView(root, 'staged'));
     const hunk = diffHunks(diff)[0];
+    strictEqual(hunk.originalLine, 1);
+    strictEqual(hunk.modifiedLine, 0);
     const remaining = unwrap(await gitRequest(root, {
       mode: 'staged', action: 'unstage-hunk', hunk: clone(hunk.label), patch: hunk.header + diff.slice(hunk.start, hunk.end)
     }));

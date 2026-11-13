@@ -1,11 +1,13 @@
 import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
-import { join, extname, basename } from 'std:path';
+import { join, extname, basename, dirname } from 'std:path';
 import {
   Button,
   CodeEditor,
-  DropdownMenu,
-  MenuItem,
+  DiffGutterMarker,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
   Diff,
   Input,
   List,
@@ -16,6 +18,7 @@ import {
   Signal,
   Text,
   Ticker,
+  Tooltip,
   View,
   computed,
   signal,
@@ -33,14 +36,21 @@ function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<
   const file = clone(row.path);
   const staged = row.mode === 'staged';
   return (
-    <ListItem value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
-      <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
-        {basename(row.path)}
-      </Text>
-      <Text className={'shrink-0 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-        {clone(row.status)}
-      </Text>
+    <ListItem className="h-[22px] px-1 py-0 rounded-none" value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+      <Tooltip text={clone(row.path)} className="grow min-w-0">
+        <View className="w-full min-w-0 flex-row gap-1 items-center">
+          <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
+            {basename(row.path)}
+          </Text>
+          <Text className={'min-w-0 truncate text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+            {dirname(row.path) === '.' ? '' : dirname(row.path)}
+          </Text>
+        </View>
+      </Tooltip>
       <ListItemSuffix>
+        <Text className={'shrink-0 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+          {clone(row.status)}
+        </Text>
         <View hidden={row.mode === 'conflicts'}>
           <Button
             icon={staged ? 'minus' : 'plus'}
@@ -120,11 +130,14 @@ function ChangeGroup(
   busy: Signal<boolean>
 ): Node {
   const groupKind = clone(kind);
+  const working = kind === 'working';
   return (
     <View hidden={!changes.get().some((item: ReadOnly<GitChange>) => item.mode === kind)} className="flex-col grow min-h-0">
-      <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-        {title}
-      </Text>
+      <View hidden={working && !changes.get().some((item: ReadOnly<GitChange>) => item.mode !== 'working')}>
+        <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+          {title}
+        </Text>
+      </View>
       <List
         className="grow min-h-0"
         size="small"
@@ -180,7 +193,7 @@ export function GitPanel(
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
   const sidebar: Node = <View className="size-full flex-col min-h-0 min-w-0 overflow-hidden">
-    <View className="flex-row items-center min-w-0 shrink-0 px-1 gap-1">
+    <InputGroup size="small" className="w-full min-w-0 shrink-0 rounded-none border-0 border-b">
       <Input
         className={'grow min-w-0 text-[' + font.get().toString() + 'px]'}
         value={messageText.get()}
@@ -190,48 +203,50 @@ export function GitPanel(
           messageText.set(clone(event.target.value));
         }}
       />
-      <Button
-        icon="check"
-        size="xsmall"
-        variant="ghost"
-        tooltip={message('Commit staged changes')}
-        aria-label={accessibleName('Commit staged changes')}
-        disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
-        onPress={() => {
-          pending.set({
-            mode: 'status', action: 'commit-staged', message: messageText.get()
-          });
-        }}
-      />
-      <Button
-        icon="history"
-        variant="ghost"
-        size="xsmall"
-        tooltip={message('History')}
-        aria-label={accessibleName('History')}
-        disabled={locked.get()}
-        onPress={() => {
-          history.set(!history.get());
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton
+          icon="check"
+          size="xsmall"
+          variant="ghost"
+          tooltip={message('Commit staged changes')}
+          accessibilityLabel={message('Commit staged changes')}
+          disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
+          onClick={() => {
+            pending.set({
+              mode: 'status', action: 'commit-staged', message: messageText.get()
+            });
+          }}
+        />
+        <InputGroupButton
+          icon="history"
+          variant="ghost"
+          size="xsmall"
+          tooltip={message('History')}
+          accessibilityLabel={message('History')}
+          disabled={locked.get()}
+          onClick={() => {
+            history.set(!history.get());
 
-          if (history.get()) pending.set({
-            mode: 'history'
-          });
-        }}
-      />
-      <Button
-        icon="refresh-cw"
-        variant="ghost"
-        size="xsmall"
-        tooltip={message('Refresh source control')}
-        aria-label={accessibleName('Refresh source control')}
-        disabled={locked.get()}
-        onPress={() => {
-          pending.set({
-            mode: 'status'
-          });
-        }}
-      />
-    </View>
+            if (history.get()) pending.set({
+              mode: 'history'
+            });
+          }}
+        />
+        <InputGroupButton
+          icon="refresh-cw"
+          variant="ghost"
+          size="xsmall"
+          tooltip={message('Refresh source control')}
+          accessibilityLabel={message('Refresh source control')}
+          disabled={locked.get()}
+          onClick={() => {
+            pending.set({
+              mode: 'status'
+            });
+          }}
+        />
+      </InputGroupAddon>
+    </InputGroup>
     <View hidden={!history.get()}>
       <Select
         items={commits.get()}
@@ -358,22 +373,36 @@ function resolveDraft(
   }
 }
 
-function HunkAction(item: ReadOnly<DiffHunk>, selected: Signal<GitChange>, output: Signal<string>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node {
-  const label = clone(item.label);
-  return (
-    <MenuItem
-      label={label.slice(label.indexOf('  @@ ') + 2)}
-      onSelect={() => {
-        if (busy.get() || pending.get().mode !== '') return;
-        const patch = output.get();
-        const current = diffHunks(patch).find((entry: ReadOnly<DiffHunk>) => entry.label === label);
+function HunkActions(hunks: ReadOnly<DiffHunk[]>, output: ReadOnly<string>, selection: ReadOnly<GitChange>, pending: Signal<GitRequest>, busy: Signal<boolean>): Node[] {
+  const items: Node[] = [];
 
-        if (current !== undefined) pending.set({
-          mode: selected.get().mode, action: selected.get().mode === 'staged' ? 'unstage-hunk' : 'stage-hunk', viewFile: selected.get().path, hunk: clone(label), patch: current.header + patch.slice(current.start, current.end)
-        });
-      }}
-    />
-  );
+  if (selection.mode !== 'working' && selection.mode !== 'staged') return items;
+
+  for (const hunk of hunks) {
+    const request: GitRequest = {
+      mode: clone(selection.mode), action: selection.mode === 'staged' ? 'unstage-hunk' : 'stage-hunk', viewFile: clone(selection.path), hunk: clone(hunk.label), patch: hunk.header + output.slice(hunk.start, hunk.end)
+    };
+    const staged = selection.mode === 'staged';
+    const useOriginal = hunk.modifiedLine === 0;
+    items.push(
+      <DiffGutterMarker path={clone(selection.path)} side={useOriginal ? 'original' : 'modified'} line={useOriginal ? hunk.originalLine : hunk.modifiedLine}>
+        <Button
+          icon={staged ? 'minus' : 'plus'}
+          variant="ghost"
+          size="xsmall"
+          className="size-4 p-0"
+          tooltip={staged ? translate('Unstage hunk') : translate('Stage hunk')}
+          aria-label={staged ? translate('Unstage hunk') : translate('Stage hunk')}
+          disabled={busy.get() || pending.get().mode !== ''}
+          onPress={() => {
+            if (!busy.get() && pending.get().mode === '') pending.set(clone(request));
+          }}
+        />
+      </DiffGutterMarker>
+    );
+  }
+
+  return items;
 }
 
 export function GitEditor(
@@ -420,12 +449,6 @@ export function GitEditor(
         }
         pending.set({mode:'status',action:selected.get().mode === 'staged' ? 'unstage' : 'stage',path:selected.get().path});
       }} />
-      </View>
-      <View hidden={hunks.get().length === 0 || !['working', 'staged'].includes(selected.get().mode)}>
-        <DropdownMenu fontSize={font.get()}>
-          <Button icon="ellipsis" variant="ghost" size="xsmall" disabled={locked.get()} tooltip={selected.get().mode === 'staged' ? translate('Unstage hunk') : translate('Stage hunk')} aria-label={selected.get().mode === 'staged' ? translate('Unstage hunk') : translate('Stage hunk')} />
-          {...hunks.get().map((item: ReadOnly<DiffHunk>) => HunkAction(item, selected.handle(), output.handle(), pending.handle(), busy.handle()))}
-        </DropdownMenu>
       </View>
       <Button
         icon="x"
@@ -506,7 +529,9 @@ export function GitEditor(
       />
     </View>
     <View hidden={selected.get().mode === 'conflicts'} className="w-full grow min-w-0 min-h-0 overflow-hidden">
-      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full" />
+      <Diff patch={output.get().includes('diff --git ') ? output.get().slice(output.get().indexOf('diff --git ')) : ''} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} lineNumbers={true} fontSize={font.get()} className="size-full">
+        {...HunkActions(hunks.get(), output.get(), selected.get(), pending.handle(), busy.handle())}
+      </Diff>
     </View>
   </View>;
   return editor;

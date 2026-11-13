@@ -330,6 +330,7 @@ pub(crate) fn detected_language(path: &str) -> SharedString {
         "cmakelists.txt" => "cmake",
         _ => match name.rsplit_once('.').map(|(_, extension)| extension) {
             Some("jsx" | "mjs" | "cjs") => "javascript",
+            Some(extension @ ("tsr" | "tsrx")) => return extension.to_owned().into(),
             Some("mts" | "cts") => "typescript",
             Some("cc" | "cxx" | "hpp" | "hxx") => "cpp",
             Some("h") => "c",
@@ -364,6 +365,8 @@ mod tests {
     fn language_detection_uses_filename() {
         for (name, language) in [
             ("src/main.RS", "rust"),
+            ("src/main.tsr", "tsr"),
+            ("src/components/App.TSRX", "tsrx"),
             ("src/components/App.jsx", "javascript"),
             ("C:\\src\\lib.hpp", "cpp"),
             ("build/CMakeLists.txt", "cmake"),
@@ -539,6 +542,20 @@ mod tests {
             ),
             [(0..3, bold), (4..6, bold)]
         );
+    }
+
+    #[cfg(all(feature = "syntect", not(feature = "tree-sitter")))]
+    #[test]
+    fn studio_patch_highlights_both_sides_with_editor_grammar() {
+        for ext in ["tsr", "tsrx"] {
+            let patch = format!("--- a/file.{ext}\n+++ b/file.{ext}\n@@ -1 +1 @@\n-const old: int = 1;\n+const next: int = 2;\n");
+            let file = DiffFile::parse(&patch).unwrap().remove(0);
+            let view = FilePresentation::prepare(&file, OPTIONS, &mut SyntaxHighlighters::default(), None);
+            for side in [DiffSide::Original, DiffSide::Modified] {
+                assert!(view.syntax[side as usize].line(0).iter().any(|(_, paint)|
+                    matches!(paint, SyntaxPaint::Name(i) if view.names[*i as usize].as_ref() == "type")));
+            }
+        }
     }
 
     #[cfg(feature = "tree-sitter-rust")]

@@ -2,6 +2,7 @@ import { fromUtf8, length, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { isAbsolute, separator } from 'std:path';
 import { lstat, stat } from 'std:fs';
+import { toInt } from 'std:numeric';
 import { compile } from 'std:regex';
 import { run } from 'std:process';
 
@@ -148,6 +149,8 @@ export async function changedFiles(root: ReadOnly<string>): Task<Result<string[]
 }
 
 export interface DiffHunk {
+  originalLine: int;
+  modifiedLine: int;
   label: string;
   header: string;
   start: int;
@@ -176,8 +179,13 @@ export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
       header += line + '\n';
     } else if (file !== '' && line.startsWith('@@ ')) {
       if (active) hunks[hunks.length - 1].end = offset;
+      const ranges = line.split(' ');
+      const before = ranges[1].slice(1).split(',');
+      const after = ranges[2].slice(1).split(',');
+      const originalLine = before.length > 1 && before[1] === '0' ? 0 : unwrap(toInt(Number(before[0])));
+      const modifiedLine = after.length > 1 && after[1] === '0' ? 0 : unwrap(toInt(Number(after[0])));
       hunks.push({
-        label: file + '  ' + line, header: clone(header), start: offset, end: diff.length
+        originalLine, modifiedLine, label: file + '  ' + line, header: clone(header), start: offset, end: diff.length
       });
       active = true;
     }
