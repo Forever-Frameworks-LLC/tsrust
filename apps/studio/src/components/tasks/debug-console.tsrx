@@ -12,10 +12,14 @@ import {
   t
 } from 'std:ui';
 import { message } from '../../lib/localization.tsr';
-import { DebugOutput } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput } from '../../services/debug/session.tsr';
 
-export function DebugConsole(requests: ReadOnly<Channel<string>>, replies: Channel<DebugOutput>, font: Signal<int>): Node {
+export function DebugConsole(requests: ReadOnly<Channel<DebugCommand>>, replies: Channel<DebugOutput>, font: Signal<int>): Node {
   const sender = requests.sender();
+  const controls = requests.sender();
+  const steps = requests.sender();
+  const stopOnEntry = signal(false);
+  const stopped = signal(false);
   const chosen = signal('');
   const running = signal(false);
   const output = signal('');
@@ -39,19 +43,68 @@ export function DebugConsole(requests: ReadOnly<Channel<string>>, replies: Chann
         >
           {t('Launch executable…')}
         </Button>
+        <Button
+          selected={stopOnEntry.get()}
+          disabled={running.get()}
+          variant="ghost"
+          size="small"
+          onPress={() => {
+            stopOnEntry.set(!stopOnEntry.get());
+          }}
+        >
+          {t('Stop on entry')}
+        </Button>
+        <View hidden={!stopped.get()} className="flex-row">
+          <Button
+            variant="ghost"
+            size="small"
+            onPress={() => {
+              match (controls.trySend({
+                action: 'continue'
+              })) {
+                Ok(_) => {
+                  stopped.set(false);
+                },
+                Err(error) => {
+                  output.set(output.get() + error.code);
+                }
+              }
+            }}
+          >
+            {t('Continue')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="small"
+            onPress={() => {
+              match (steps.trySend({
+                action: 'next'
+              })) {
+                Ok(_) => {
+                  stopped.set(false);
+                },
+                Err(error) => {
+                  output.set(output.get() + error.code);
+                }
+              }
+            }}
+          >
+            {t('Step instruction')}
+          </Button>
+        </View>
       </View>
       <CodeEditor value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />
       <Ticker interval={50} running={running.get() || chosen.get() !== ''} onTick={(_frame) => {
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend(clone(path))) {
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get()})) {
             Ok(_) => { output.set(path + '\n'); running.set(true); },
             Err(error) => { output.set(clone(error.code)); return; }
           }
         }
         match (replies.tryReceive()) {
-          Ok(reply) => { output.set(output.get() + reply.text); running.set(!reply.finished); },
+          Ok(reply) => { output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />

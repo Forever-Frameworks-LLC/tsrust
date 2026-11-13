@@ -1,5 +1,5 @@
 import { Channel } from 'std:futures';
-import { DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
+import { DebugCommand, DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
 import { run, spawn } from 'std:process';
@@ -241,13 +241,15 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
     const build = unwrap(await run(compiler, ['build', source, '-o', clone(program)], {}));
     strictEqual(build.status.success, true);
     await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(program)).timeout(30000);
-    const requests = new Channel<string>(1);
+    const requests = new Channel<DebugCommand>(1);
     const output = new Channel<DebugOutput>(16);
     const commands = requests.sender();
     const worker = debugWorker(clone(folder), requests, output.sender()).start();
 
     try {
-      await commands.send(folder + '/missing');
+      await commands.send({
+        action: 'launch', program: folder + '/missing'
+      });
       const missing = await consoleResult(output);
       strictEqual(missing.includes(folder + '/missing'), true);
       const marker = folder + '/studio-debug-mode';
@@ -256,12 +258,34 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         cwd: clone(folder)
       }));
       strictEqual(control.status.success, false);
-      await commands.send(clone(program));
+      await commands.send({
+        action: 'launch', program: clone(program)
+      });
       const failed = await consoleResult(output);
       strictEqual(failed.includes('Requested fixture failure'), true);
       strictEqual(failed.includes('\nExit code ' + (control.status.code ?? -1).toString() + '\n'), true);
       unwrap(writeTextFileAtomic(marker, 'pass'));
-      await commands.send(clone(program));
+      await commands.send({
+        action: 'launch', program: clone(program), stopOnEntry: true
+      });
+
+      for (const action of ['next', 'continue']) {
+        while (true) {
+          const update = await output.receive().timeout(10000);
+
+          if (update.finished) throw 'Target exited before the expected stop: ' + update.text;
+
+          if (update.stopped === true) {
+            if (action === 'continue') strictEqual(update.text.includes('step'), true);
+            break;
+          }
+        }
+
+        await commands.send({
+          action: clone(action)
+        });
+      }
+
       const succeeded = await consoleResult(output);
       strictEqual(succeeded.includes('Studio debugger fixture'), true);
       strictEqual(succeeded.includes('\nExit code 0\n'), true);

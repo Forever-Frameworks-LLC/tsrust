@@ -1,5 +1,5 @@
 import { DebugConsole } from './components/tasks/debug-console.tsrx';
-import { DebugOutput } from './services/debug/session.tsr';
+import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
 import { ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
@@ -90,7 +90,7 @@ function App(
   gitReplies: Channel<GitReply>,
   downloads: Sender<string>,
   downloadReplies: Channel<string>,
-  debugRequests: ReadOnly<Channel<string>>,
+  debugRequests: ReadOnly<Channel<DebugCommand>>,
   debugResults: Channel<DebugOutput>,
   initialConfig: StudioConfig,
   settingsError: string
@@ -577,7 +577,7 @@ async function main(): Task<void> {
   const downloadSender = downloadChannel.sender();
   const downloadReplies = new Channel<string>(1);
   const downloadResults = downloadReplies.sender();
-  const debugRequests = new Channel<string>(1);
+  const debugRequests = new Channel<DebugCommand>(1);
   const debugResults = new Channel<DebugOutput>(16);
   const debugReplies = debugResults.sender();
   const view = App(

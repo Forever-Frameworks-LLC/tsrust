@@ -3,7 +3,7 @@ import { Channel, Sender, all } from 'std:futures';
 import { ModelRequest, ModelUpdate } from '../lib/ai/protocol.tsr';
 import { LanguageServer, studioServers } from '../lib/language/servers.tsr';
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
-import { DebugOutput, debugWorker } from './debug/session.tsr';
+import { DebugCommand, DebugOutput, debugWorker } from './debug/session.tsr';
 import { modelDownloads } from './ai/model-extensions.tsr';
 import { modelService } from './ai/session.tsr';
 import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from './content-search.tsr';
@@ -33,7 +33,7 @@ export async function studioWorkers(
   gitReplies: Sender<GitReply>,
   downloads: Channel<string>,
   downloadReplies: Sender<string>,
-  debugRequests: Channel<string>,
+  debugRequests: Channel<DebugCommand>,
   debugReplies: Sender<DebugOutput>,
   servers: LanguageServer[] = []
 ): Task<void> {
