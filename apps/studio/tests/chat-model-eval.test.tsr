@@ -223,7 +223,7 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
   }
 });
 
-if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1') test('local chat recalls a symbol decision across an oversized unrelated exchange', async () => {
+if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1' || unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'excerpt') test('local chat recalls a symbol decision across oversized history', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
@@ -231,7 +231,7 @@ if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1') test('local chat recal
   history.active = 'recall';
   history.chats.push({
     id: 'recall', title: 'Recall', revision: 1, draft: '', messages: [{
-      role: 'user', request: 'one', text: 'For this repository the agreed crateFee is 73.'
+      role: 'user', request: 'one', text: (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'excerpt' ? ' preamble'.repeat(35000) + '\n' : '') + 'For this repository the agreed crateFee is 73.'
     }, {
       role: 'assistant', request: 'one', text: 'Understood.'
     }, {

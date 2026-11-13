@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Excerpts from oversized historical exchanges
+
+When a symbol-relevant complete exchange exceeds the remaining tokenizer
+window, Studio tries lines mentioning the exact requested identifiers. It
+preserves speaker roles and marks excerpts and omitted messages. It includes
+the result only if the tokenizer confirms a fit. Saved history stays intact.
+Facts on separate nonmatching lines, paraphrases and oversized matching lines
+remain unresolved.
+
+With TSRUST_STUDIO_RUN_RECALL_EVAL=excerpt the local 1.5B model recovered
+crateFee=73 after 35000 preamble words in the relevant exchange and 35000
+distractor words in another. The Studio chat action retained all six messages.
+Both focused suites passed 20/20 in 3492.93 ms. A separate direct host run
+returned 73 at EOS and sampled peak RSS of 1339248 KiB. This is one workload,
+not 8 GiB qualification. The configured host executable was rebuilt.
+
 ## Dev watcher recovery after undo
 
 The frontend worker retains the last successful input snapshot and output

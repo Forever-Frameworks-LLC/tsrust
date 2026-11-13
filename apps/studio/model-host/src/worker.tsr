@@ -1,6 +1,13 @@
 import { Channel, Sender, TaskContext, cancellationRequested } from 'std:threads';
 
-import { chatPrompt, conversationPrompt, ChatMessage, recallTerms, turnMentions } from '../../src/lib/ai/prompts.tsr';
+import {
+  chatPrompt,
+  conversationPrompt,
+  ChatMessage,
+  recallTerms,
+  turnMentions,
+  excerptTurn
+} from '../../src/lib/ai/prompts.tsr';
 import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 import {
   QwenModel,
@@ -66,6 +73,14 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
         if (unwrap(qwen_prompt_fits(model, rendered))) {
           retained = candidate;
           prompt = rendered;
+        } else {
+          const excerpt = excerptTurn(messages, starts[index], starts[index + 1], terms).concat(retained);
+          const shorter = conversationPrompt(excerpt);
+
+          if (unwrap(qwen_prompt_fits(model, shorter))) {
+            retained = excerpt;
+            prompt = shorter;
+          }
         }
       }
 

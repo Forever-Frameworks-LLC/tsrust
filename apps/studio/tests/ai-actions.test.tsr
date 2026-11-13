@@ -1,4 +1,4 @@
-import { recallTerms, turnMentions, ChatMessage } from '../src/lib/ai/prompts.tsr';
+import { recallTerms, turnMentions, excerptTurn, ChatMessage } from '../src/lib/ai/prompts.tsr';
 import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
 import { LanguageReferences } from '../src/lib/language/references.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
@@ -802,12 +802,16 @@ test('compaction selects complete exchanges by exact code identifiers', () => {
   const messages: ChatMessage[] = [{
     role: 'user', content: 'caféFeeExtra and montantTotal are unrelated.'
   }, {
-    role: 'assistant', content: 'Use MIN_RATE.'
+    role: 'assistant', content: 'Do not include this line.\nUse MIN_RATE.'
   }, {
     role: 'user', content: 'montant is 17.'
   }];
   strictEqual(turnMentions(messages, 0, 1, terms), false);
   strictEqual(turnMentions(messages, 0, 2, terms), true);
   strictEqual(turnMentions(messages, 2, 3, terms), true);
+  const excerpt = excerptTurn(messages, 0, 2, terms);
+  strictEqual(excerpt[0].content, '[Omitted]');
+  strictEqual(excerpt[1].role === 'assistant', true);
+  strictEqual(excerpt[1].content, '[Excerpt]\nUse MIN_RATE.');
   strictEqual(recallTerms('Tell me more about it.').size, 0);
 });

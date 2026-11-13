@@ -1,4 +1,4 @@
-import { compile } from 'std:regex';
+import { compile, Regex } from 'std:regex';
 import { at, fromUtf8, toUtf8, view } from 'std:bytes';
 
 // Matches the pinned Qwen template's no-tools, system/user/assistant branch.
@@ -42,22 +42,41 @@ export function turnMentions(messages: ReadOnly<ChatMessage[]>, start: int, end:
   const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
 
   for (let index = start; index < end; index += 1) {
-    const content = messages[index].content;
-    let possible = false;
+    if (mentions(messages[index].content, terms, identifiers)) return true;
+  }
 
-    for (const term of terms) {
-      if (content.includes(term)) {
-        possible = true;
-        break;
-      }
+  return false;
+}
+
+export function excerptTurn(messages: ReadOnly<ChatMessage[]>, start: int, end: int, terms: ReadOnly<Set<string>>): ChatMessage[] {
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const excerpt: ChatMessage[] = [];
+
+  for (let index = start; index < end; index += 1) {
+    const lines: string[] = [];
+
+    for (const line of messages[index].content.split('\n')) {
+      if (mentions(line, terms, identifiers)) lines.push(clone(line));
     }
 
-    if (!possible) continue;
+    excerpt.push({
+      role: clone(messages[index].role), content: lines.length === 0 ? '[Omitted]' : '[Excerpt]\n' + lines.join('\n')
+    });
+  }
+
+  return excerpt;
+}
+
+function mentions(content: ReadOnly<string>, terms: ReadOnly<Set<string>>, identifiers: ReadOnly<Regex>): boolean {
+  for (const term of terms) {
+    if (!content.includes(term)) continue;
     const bytes = unwrap(fromUtf8(content));
 
     for (const token of identifiers.findAll(content)) {
       if (terms.has(unwrap(toUtf8(unwrap(view(bytes, token.start, token.end)))))) return true;
     }
+
+    return false;
   }
 
   return false;
