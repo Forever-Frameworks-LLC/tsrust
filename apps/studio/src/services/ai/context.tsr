@@ -295,9 +295,8 @@ function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: R
 }
 
 // Match relative named import declarations before reading a file from the workspace tree.
-function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols: ReadOnly<Set<string>>, root: ReadOnly<string>): Map<string, ImportBinding[]> {
   const paths = new Map<string, ImportBinding[]>();
-  const symbols = promptSymbols(prompt);
   const bytes = unwrap(fromUtf8(source));
   const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"]([^'\"\\r\\n]+)['\"]"));
 
@@ -353,9 +352,10 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
 }
 
 // Extend selected bodies with bare calls to functions declared in the same source.
-function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>): void {
+function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>): Set<string> {
   const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\("));
   const visited = new Set<string>();
+  const external = new Set<string>();
 
   for (let i = 0; i < snippets.length; i += 1) {
     const snippet = clone(snippets[i]);
@@ -371,7 +371,30 @@ function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>
       visited.add(clone(name));
       const definition = functionExcerpt(source, name, true);
 
-      if (definition !== '' && !snippets.includes(definition)) snippets.push(definition);
+      if (definition === '') external.add(clone(name));
+      else if (!snippets.includes(definition)) snippets.push(definition);
+    }
+  }
+
+  return external;
+}
+
+interface ImportedCall {
+  path: string;
+  binding: ImportBinding;
+}
+
+function queueImportedCalls(source: ReadOnly<string>, path: ReadOnly<string>, root: ReadOnly<string>, calls: ReadOnly<Set<string>>, pending: Mutable<ImportedCall[]>): void {
+  if (calls.size === 0) return;
+  const imports = promptImports(source, path, calls, root);
+
+  for (const target of imports.keys()) {
+    const bindings = imports.get(target);
+
+    if (bindings !== undefined) for (const binding of bindings) {
+      if (!pending.some((item) => item.path === target && item.binding.local === binding.local && item.binding.exported === binding.exported)) pending.push({
+        path: clone(target), binding: clone(binding)
+      });
     }
   }
 }
@@ -450,7 +473,7 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt, workspace.root) : new Map<string, ImportBinding[]>();
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, promptSymbols(prompt), workspace.root) : new Map<string, ImportBinding[]>();
     const unresolved = hasReferences ? new Set<string>() : recallTerms(prompt);
 
     for (const bindings of imported.values()) {
@@ -460,10 +483,14 @@ export function editorContext(
 
     const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)"));
     const indexedPaths = new Set<string>();
+    const visible = new Set<string>();
+    const pending: ImportedCall[] = [];
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {
       for (const file of directory.children) {
+        if (!file.directory && file.path.startsWith(prefix)) visible.add(clone(file.path));
+
         if (!file.directory && file.path.startsWith(prefix) && mentionsPath(prompt, file.name)) {
           const count = mentionedNames.get(file.name) ?? 0;
           mentionedNames.set(clone(file.name), count + 1);
@@ -537,7 +564,7 @@ export function editorContext(
               }
 
               if (referenced || snippets.length > 0) {
-                if (!whole && snippets.length > 0) includeLocalCalls(excerpt, snippets);
+                if (!whole && snippets.length > 0) queueImportedCalls(excerpt, file.path, workspace.root, includeLocalCalls(excerpt, snippets), pending);
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
                 result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
               }
@@ -556,6 +583,26 @@ export function editorContext(
       }
     }
 
+
+    for (let i = 0; i < pending.length; i += 1) {
+      const call = clone(pending[i]);
+
+      if (!visible.has(call.path)) continue;
+
+      match (namedExcerpt(workspace, call.path, prefix)) {
+        Ok(source) => {
+          const definition = functionExcerpt(source, call.binding.exported);
+
+          if (definition === '') continue;
+          const parts = [definition];
+          const next = includeLocalCalls(source, parts);
+          queueImportedCalls(source, call.path, workspace.root, next, pending);
+          const alias = call.binding.local === call.binding.exported ? '' : 'Local name: ' + call.binding.local + ' refers to ' + call.binding.exported + '.\n';
+          result += '\n\nReferenced workspace file: ' + call.path.slice(prefix.length) + '\n' + alias + parts.join('\n');
+        },
+        Err(_) => {}
+      }
+    }
 
     if (unresolved.size > 0) for (const path of Array.from(index.keys())) {
       if (!indexedPaths.has(path)) index.delete(path);

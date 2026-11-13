@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Imported callees in chat context
+
+Selected function snippets now follow bare calls into workspace imports,
+using the importing file's own path mappings. The queue retains target and
+binding identities, and only files in the current explorer tree can supply
+source. The AI action suite passed 21/21 in 89.08 ms. Its added witness
+checked an aliased helper, its definition and exclusion of an unrelated
+export. TSRUST_STUDIO_RUN_MODEL_EVAL=imports retrieved handlingFee and
+baseCharge from separate unopened files without naming the helper in the
+question. The configured 1.5B model answered 12 then 19 in 2397.48 ms.
+This covers named function imports and answer generation; compiler-scoped
+shadowing, namespace imports and multi-file edit review remain open.
+
 ## Wildcard import mappings in workspace chat
 
 Chat decodes the nearest saved configuration's paths as string mappings.
