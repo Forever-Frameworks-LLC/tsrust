@@ -1,8 +1,44 @@
 # Tsrust continuation
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full Studio goal is owner-paused for thread transfer; required scope remains incomplete.
+B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
+
+## Studio coding conversation and active language analysis — November 12
+
+The owner selected a direct model-host test because desktop controls were unavailable.
+The configured Qwen2.5-Coder-1.5B-Instruct Q4_K_M host handled two turns with the
+same loaded model and the first answer included in the second request. Both reached
+EOS under a 192-token limit per turn. It wrote a correct Python first-even function
+and reused its chosen name, find_first_even, in both assertions. It covered the
+no-even case but missed the explicitly requested zero-before-another-even case:
+its positive example was [2, 4, 6, 8]. This is a partial instruction-following result.
+Host launch to shutdown 3.73 seconds, peak sampled host RSS 1183.94 MiB, starting
+system swap 2342.88 MiB, maximum observed growth 0 MiB, highest observed pressure
+1, host exit 0. Existing GUI pressure failure and full 8 GiB acceptance remain open.
+
+Verified dev 1088, Studio 1588, LSP 1639. During focused compiler build the existing
+LSP was at 99% CPU. One-second sample /tmp/studio-before-sparse-active-lsp.sample
+recorded 409.8 MiB footprint, 446.6 MiB peak during recursive analysis. This is
+an active sample of the installed pre-change binary, not a quiet comparison.
+
+Compiler expression-effect traversal now keeps only failures in its child-result
+stack. Infallible subtrees still annotate every visited node; prior sibling
+failures, reverse payload order and reachability are preserved. The 54 error-effect
+tests passed in 1.13 seconds, including the new mixed-sibling and all-infallible
+recheck case. /tmp/studio-sparse-effects-tests.log. Whole-project formatter
+reported 0 files, snippets and fingerprints. This source change has no measured
+latency gain and is not installed in the live dev session.
+
+The owner's saved chat header padding edit triggered a genuine native rebuild.
+A one-second sample of dev 1088 during the rebuild showed ProjectSession::check
+in recursive analysis, including repeated partial error-contract annotation.
+See /tmp/studio-save-rebuild.sample. The compiler caches pre-link syntax but
+rechecks the linked project. Style literals are compiled into the application.
+The saved edit rebuilt in 271554 ms; 83/85 module parses reused, 84/85 headers
+reused. Check 226707.2 ms, emit 6262.6 ms, native+link 37676.8 ms (runtime hit).
+Same supervisor 1088 launched Studio PID 4521. Concurrent compiler test build
+and active LSP make this a user-observed rebuild, not a quiet benchmark.
 
 ## Studio terminal and check repairs — November 12
 

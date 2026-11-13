@@ -16,7 +16,8 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                 if reverse { for child in results.drain(start..).rev() { own |= child; } }
                 else { for child in results.drain(start..) { own |= child; } }
                 *may_fail = own.may_fail();
-                results.push(own);
+                // Parents only union child failures. An infallible child needs no result slot.
+                if *may_fail { results.push(own); }
             }
             Work::Visit(value) => {
                 let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect(body, effects) } else { own_expression_effect(value, effects) };
@@ -45,7 +46,7 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
             }
         }
     }
-    results.pop().expect("root expression effect")
+    results.pop().unwrap_or_default()
 }
 
 pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureSet {
@@ -159,6 +160,24 @@ mod tests {
             } else { assert!(current.own_may_fail); break; }
         }
         assert_eq!(count, 16_384);
+    }
+
+    #[test]
+    fn infallible_siblings_do_not_consume_an_earlier_failure() {
+        let span = crate::Span::new(11, 19);
+        let literal = || Expr::checked(ExprKind::Boolean(true), span, Some(Type::Boolean));
+        let mut throwing = literal();
+        throwing.target = Some(CallTarget::Function(0));
+        let quiet = Expr::checked(ExprKind::Sequence(vec![literal(), literal()]), span, Some(Type::Boolean));
+        let mut root = Expr::checked(ExprKind::Sequence(vec![throwing, quiet]), span, Some(Type::Boolean));
+        let effects = ErrorEffects { function_errors: vec![FailureSet::runtime()], ..Default::default() };
+        assert_eq!(expression_effect(&mut root, &effects), FailureSet::runtime());
+        let ExprKind::Sequence(children) = &root.kind else { unreachable!() };
+        assert!(children[0].may_fail);
+        assert!(children[1].effects_checked && !children[1].may_fail);
+        let repaired = ErrorEffects { function_errors: vec![FailureSet::default()], ..Default::default() };
+        assert_eq!(expression_effect(&mut root, &repaired), FailureSet::default());
+        assert!(!root.may_fail);
     }
 
     #[test]
