@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat composer focus edge
+
+The native InputGroup applies a four-sided external child ring after its style
+refinements, even with zero side border widths. Studio now clips descendants
+at the group itself. Its existing top border still receives the native focus
+color. The chat component passed the compiler diagnostic check and whole-tree
+formatting changed zero files. macOS listed the running Studio window but
+targeted screencapture failed, so visual acceptance remains open.
+
 ## Composition follow-up with native feedback
 
 The feedback variant keeps the model service and chat alive across review,
