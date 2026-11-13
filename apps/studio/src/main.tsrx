@@ -24,6 +24,7 @@ import {
   t
 } from 'std:ui';
 
+import { ChatEditReview } from './components/ai/edit-review.tsrx';
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree, RefreshExplorer } from './components/explorer/browser.tsrx';
 import { DirectoryTree } from './lib/explorer/tree.tsr';
@@ -377,6 +378,7 @@ function App(
       />
       {referenceControls}
       {SaveConflicts(workspace, recovery, font)}
+      {ChatEditReview(aiState, workspace, recovery, font)}
       {chrome}
       {fileSearch}
       {refreshExplorer}

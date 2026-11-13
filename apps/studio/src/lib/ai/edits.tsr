@@ -1,0 +1,26 @@
+import { ProposedEdit } from '../workspace/documents.tsr';
+
+interface Replacement {
+  before: string;
+  after: string;
+}
+
+// The model supplies text only. Studio owns the target, revision and original buffer.
+export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: ReadOnly<string>): Result<ProposedEdit, string> {
+  try {
+    let body = response.trim();
+
+    if (body.startsWith('```json\n') && body.endsWith('\n```')) body = body.slice(8, -4);
+    const change = JSON.parse<Replacement>(body, {
+      maxBytes: 128 * 1024, maxDepth: 3, maxEntries: 2, maxNodes: 4
+    });
+    const start = snapshot.before.indexOf(change.before);
+
+    if (change.before === '' || change.before === change.after || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+    const result = clone(snapshot);
+    result.after = snapshot.before.slice(0, start) + change.after + snapshot.before.slice(start + change.before.length);
+    return Ok(result);
+  } catch (_) {
+    return Err('The model did not return a valid edit proposal.');
+  }
+}

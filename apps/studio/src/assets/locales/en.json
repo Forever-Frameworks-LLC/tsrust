@@ -1,4 +1,12 @@
 {
+  "Review chat edit": "Review chat edit",
+  "Apply to draft": "Apply to draft",
+  "Reject": "Reject",
+  "The file changed. Request a new edit proposal.": "The file changed. Request a new edit proposal.",
+  "Review the previous edit proposal first.": "Review the previous edit proposal first.",
+  "Open a text file to propose an edit.": "Open a text file to propose an edit.",
+  "The model did not return a valid edit proposal.": "The model did not return a valid edit proposal.",
+  "The proposed change did not match one unique passage in the original file.": "The proposed change did not match one unique passage in the original file.",
   "Studio could not read text from these files.": "Studio could not read text from these files.",
   "Which file did you mean?": "Which file did you mean?",
   "Toggle sidebar": "Toggle sidebar",

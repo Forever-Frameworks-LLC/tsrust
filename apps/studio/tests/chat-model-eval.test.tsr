@@ -8,7 +8,10 @@ import { emptyHistory } from '../src/lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
 import { scanTree } from '../src/lib/explorer/tree.tsr';
 import { configPath, loadConfig } from '../src/lib/settings/settings.tsr';
-import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { reviewChatEdit } from '../src/components/ai/edit-review.tsrx';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { readTextFile } from 'std:fs';
+import { openFile, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { AiContext, initialAiState, invokeModelTool, pollModel } from '../src/services/ai/actions.tsr';
 import { modelService } from '../src/services/ai/session.tsr';
 
@@ -41,7 +44,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
   }
 }
 
-if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local chat clarifies a duplicate filename and reads the selected implementation', async () => {
+if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -52,10 +55,11 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
     unwrap(writeTextFile(folder + '/answer.tsr', 'export function answer(): int { return 51; }'));
     unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
     const workspace = unwrap(openWorkspace(folder));
+    const opened = signal(clone(workspace));
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
     const host: AiContext = {
-      workspace: signal(clone(workspace)), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
     };
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
@@ -68,6 +72,21 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
       console.log(second);
       strictEqual(second.includes('73'), true);
       strictEqual(second.includes('51'), false);
+      const next = opened.get();
+      unwrap(openFile(next, folder + '/lib/answer.tsr'));
+      opened.set(next);
+      await ask(host, updates, 'Edit: Change the returned number from 73 to 84.');
+      const proposal = host.state.get().review;
+
+      if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
+      strictEqual(proposal.after.includes('return 84;'), true);
+      strictEqual(opened.get().files[0].document.text, proposal.before);
+      const recovery = signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      });
+      reviewChatEdit(host.state, opened, recovery, proposal, true);
+      strictEqual(opened.get().files[0].document.text, proposal.after);
+      strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), proposal.before);
     } finally {
       worker.cancel();
 

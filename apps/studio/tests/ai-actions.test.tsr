@@ -1,6 +1,9 @@
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import { scanTree } from '../src/lib/explorer/tree.tsr';
-import { edit } from '../src/lib/workspace/documents.tsr';
+import { reviewChatEdit } from '../src/components/ai/edit-review.tsrx';
+import { replacementProposal } from '../src/lib/ai/edits.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { edit, propose } from '../src/lib/workspace/documents.tsr';
 import {
   createTempDir,
   removeDirAll,
@@ -510,6 +513,45 @@ test('named binary and removed files produce a local reply without starting the 
 
     if (messages === undefined) throw 'missing draft context';
     strictEqual(messages[messages.length - 1].content.includes('in-memory draft'), true);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('chat edit review rejects ambiguous replacements, stale drafts and dismissed proposals', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-review-'));
+
+  try {
+    const path = folder + '/main.tsr';
+    unwrap(writeTextFile(path, 'one one two'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, path));
+    const snapshot = propose(model.files[0].document, '');
+    strictEqual(denied(replacementProposal(snapshot, '{"before":"one","after":"new"}')), true);
+    strictEqual(denied(replacementProposal(snapshot, 'unfinished')), true);
+    const proposal = unwrap(replacementProposal(snapshot, '{"before":"two","after":"three"}'));
+    const workspace = signal(model);
+    const state = signal(initialAiState());
+    const recovery = signal<Recovery>({
+      path: folder + '/journal.json', baseline: '', ready: true
+    });
+    const current = state.get();
+    current.review = clone(proposal);
+    state.set(current);
+    reviewChatEdit(state, workspace, recovery, proposal, false);
+    strictEqual(workspace.get().files[0].document.text, 'one one two');
+    reviewChatEdit(state, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files[0].document.text, 'one one two');
+    const again = state.get();
+    again.review = clone(proposal);
+    state.set(again);
+    const changed = workspace.get();
+    edit(changed.files[0].document, 'owner draft');
+    workspace.set(changed);
+    reviewChatEdit(state, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files[0].document.text, 'owner draft');
+    strictEqual(state.get().notice.includes('changed'), true);
+    strictEqual(unwrap(readTextFile(path)), 'one one two');
   } finally {
     unwrap(removeDirAll(folder));
   }

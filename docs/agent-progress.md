@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat edit proposals for the active document
+
+An explicit Edit: message captures the active open text buffer, session and
+revision before inference. The model supplies one before/after text replacement.
+A complete response with a unique match produces a native diff review. Reject
+discards the proposal. Apply to draft rechecks identity, revision and before
+text and publishes the edit through the normal workspace/recovery path.
+Workspace file saving remains a separate user action. No multi-file support or
+persistent pending review yet. AI actions, model evaluation and localization
+passed 15/15 in 3.083 s. The final documented Edit: command passed the native
+model evaluation separately in 2.949 s: the configured model proposed changing
+73 to 84, acceptance changed the draft, and disk retained its exact old bytes.
+Stale drafts, dismissal and repeated before passages are covered. Desktop
+review clicks and memory under this workflow remain unverified.
+
 ## Unreadable files in chat
 
 If named entries in the explorer snapshot cannot supply text, Studio replies

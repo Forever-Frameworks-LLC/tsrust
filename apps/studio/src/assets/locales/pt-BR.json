@@ -1,4 +1,12 @@
 {
+  "Review chat edit": "Revisar alteração do chat",
+  "Apply to draft": "Aplicar ao rascunho",
+  "Reject": "Rejeitar",
+  "The file changed. Request a new edit proposal.": "O arquivo mudou. Solicite uma nova proposta de edição.",
+  "Review the previous edit proposal first.": "Revise primeiro a proposta de edição anterior.",
+  "Open a text file to propose an edit.": "Abra um arquivo de texto para propor uma edição.",
+  "The model did not return a valid edit proposal.": "O modelo não retornou uma proposta de edição válida.",
+  "The proposed change did not match one unique passage in the original file.": "A alteração proposta não correspondeu a um trecho único no arquivo original.",
   "Studio could not read text from these files.": "O Studio não conseguiu ler o texto destes arquivos.",
   "Which file did you mean?": "A qual arquivo você se refere?",
   "Toggle sidebar": "Alternar barra lateral",

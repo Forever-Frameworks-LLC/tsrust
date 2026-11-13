@@ -6,6 +6,12 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+Single-file chat editing now reaches the native review dialog via an explicit
+Edit: request. The configured local model produced a unique replacement from
+the active draft, and the approval handler updated the draft while preserving
+the disk file. Multi-file edits, semantic retrieval and desktop review interaction
+remain open.
+
 A live local evaluation found that the 1.5B model guessed an ambiguous
 filename. Studio now asks for the path before inference and the configured
 model answered correctly using the selected source. The evaluation exercises

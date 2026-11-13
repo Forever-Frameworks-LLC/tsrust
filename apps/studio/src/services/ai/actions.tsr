@@ -22,7 +22,12 @@ import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { EditorContextResult, editorContext, readContext } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
+import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
+import { replacementProposal } from '../../lib/ai/edits.tsr';
+
 export interface AiState {
+  editTarget?: ProposedEdit;
+  review?: ProposedEdit;
   phase: string;
   active: string;
   targetChat: string;
@@ -294,11 +299,25 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       };
       const excerpt = grounding.excerpt;
       next.history.chats[index].messages.push({
-        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: attachments, workspaceExcerpt: excerpt === '' ? undefined : excerpt
+        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : excerpt
       });
       const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
         role: clone(message.role), content: messageContent(message, canReadWorkspace)
       }));
+      next.editTarget = undefined;
+
+      if (prompt.toLowerCase().startsWith('edit: ')) {
+        if (next.review !== undefined) return Err('Review the previous edit proposal first.');
+
+        if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
+        const current = workspace.get();
+        const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
+
+        if (file === undefined) return Err('Open a text file to propose an edit.');
+        next.editTarget = propose(file.document, '');
+        messages[messages.length - 1].content = 'Propose one edit to the active file. Return only a JSON object with string fields "before" and "after". Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it. No Markdown.\nTask: ' + prompt.slice(6) + '\nSource file: ' + file.name + '\n' + file.document.text + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+      }
+
       const generation: ModelRequest = {
         kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens, messages
       };
@@ -318,6 +337,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.history.draft = '';
 
       if (reply !== '') {
+        next.editTarget = undefined;
         next.active = '';
         next.targetChat = '';
         unwrap(publish(context, next));
@@ -420,6 +440,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
             next.targetChat = '';
           }
 
+          next.editTarget = undefined;
           next.phase = 'stopped';
           save = true;
         } else if (update.id === next.active && update.id !== '') {
@@ -433,6 +454,17 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
 
               if (update.kind === 'prefix' || update.kind === 'complete') next.history.chats[chat].messages[message].text = clone(update.text);
 
+              if (update.kind === 'complete' && next.editTarget !== undefined && update.stop !== 'length') {
+                match (replacementProposal(next.editTarget, update.text)) {
+                  Ok(proposal) => {
+                    next.review = proposal;
+                  },
+                  Err(error) => {
+                    next.notice = error;
+                  }
+                }
+              }
+
               if (update.kind === 'complete') next.history.chats[chat].messages[message].limited = update.stop === 'length';
 
               if (update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') next.history.chats[chat].messages[message].status = clone(update.kind);
@@ -440,6 +472,8 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
           }
 
           if (['complete', 'cancelled', 'error'].includes(update.kind)) {
+            next.editTarget = undefined;
+
             if (next.phase !== 'stopping') next.phase = 'ready';
             next.active = '';
             next.targetChat = '';

@@ -190,3 +190,9 @@ wrap above five, counting only the direct list, not nested calls or generic type
 `importWrapThreshold` and `argumentWrapThreshold` are independent settings (0–100;
 0 disables wrapping). `organizeImports` controls reordering. Global/project
 overrides and guarded UI/AI formatting actions share these rules.
+
+
+To request a change to the active text file, start a chat message with
+`Edit: `, followed by the change you want. Studio shows the proposed
+replacement in a diff. **Apply to draft** updates the open buffer. **Reject**
+discards the proposal. Save the draft separately when ready.
