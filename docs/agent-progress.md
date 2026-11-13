@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat edits for an empty active draft
+
+An empty before string identifies an insertion only when the captured draft
+itself is empty. A nonempty draft still requires one unique original passage.
+The configured 1.5B model proposed the exact requested declaration in a new
+empty file. The extended native evaluation passed in 3.851 s. The AI action
+suite passed 13/13 in 41.24 ms, including acceptance of a multiline CRLF and
+Unicode insertion into an unsaved empty draft without changing disk bytes.
+Desktop interaction and multi-file edits remain open.
+
 ## Chat edit proposals for the active document
 
 An explicit Edit: message captures the active open text buffer, session and

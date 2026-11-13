@@ -529,6 +529,7 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     const snapshot = propose(model.files[0].document, '');
     strictEqual(denied(replacementProposal(snapshot, '{"before":"one","after":"new"}')), true);
     strictEqual(denied(replacementProposal(snapshot, 'unfinished')), true);
+    strictEqual(denied(replacementProposal(snapshot, '{"before":"","after":"insert"}')), true);
     const proposal = unwrap(replacementProposal(snapshot, '{"before":"two","after":"three"}'));
     const workspace = signal(model);
     const state = signal(initialAiState());
@@ -551,6 +552,20 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     reviewChatEdit(state, workspace, recovery, proposal, true);
     strictEqual(workspace.get().files[0].document.text, 'owner draft');
     strictEqual(state.get().notice.includes('changed'), true);
+    strictEqual(unwrap(readTextFile(path)), 'one one two');
+    const blank = workspace.get();
+    edit(blank.files[0].document, '');
+    const empty = propose(blank.files[0].document, '');
+    workspace.set(blank);
+    const firstSource = '// 🦀\r\nexport const count = 1;\r\n';
+    const insertion = unwrap(replacementProposal(empty, JSON.stringify({
+      before: '', after: clone(firstSource)
+    })));
+    const waiting = state.get();
+    waiting.review = clone(insertion);
+    state.set(waiting);
+    reviewChatEdit(state, workspace, recovery, insertion, true);
+    strictEqual(workspace.get().files[0].document.text, firstSource);
     strictEqual(unwrap(readTextFile(path)), 'one one two');
   } finally {
     unwrap(removeDirAll(folder));

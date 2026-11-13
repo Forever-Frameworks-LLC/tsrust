@@ -87,6 +87,17 @@ if (unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) === '1') test('configured local 
       reviewChatEdit(host.state, opened, recovery, proposal, true);
       strictEqual(opened.get().files[0].document.text, proposal.after);
       strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), proposal.before);
+      unwrap(writeTextFile(folder + '/empty.tsr', ''));
+      const empty = opened.get();
+      unwrap(openFile(empty, folder + '/empty.tsr'));
+      opened.set(empty);
+      await ask(host, updates, 'Edit: Add this exact declaration to the empty file: export const answer = 27;');
+      const insertion = host.state.get().review;
+
+      if (insertion === undefined) throw 'Missing insertion proposal: ' + host.state.get().notice;
+      strictEqual(insertion.before, '');
+      strictEqual(insertion.after.trim(), 'export const answer = 27;');
+      strictEqual(unwrap(readTextFile(folder + '/empty.tsr')), '');
     } finally {
       worker.cancel();
 
