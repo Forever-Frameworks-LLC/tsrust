@@ -14,7 +14,11 @@ Hover resolves an unsaved function name and return type. Definition resolves
 its exact URI and identifier range. Disk contents stay at the original revision.
 The real service passed 1/1 in 4.37 s execution. Set RUST_ANALYZER to the server
 executable to reproduce with a non-PATH installation. Native Rust hover and
-navigation gestures, diagnostics and completion remain unverified.
+navigation gestures remain unverified. A subsequent real-server run applied a field
+completion to an unsaved Rust buffer after an emoji, preserving the surrounding
+text. The same session reported the later syntax error under lsp:rust and cleared
+the list for the corrected version. The combined service case passed in 2.73 s
+execution; physical completion acceptance and Problems interactions remain open.
 
 ## Save a copy of a recovered draft
 

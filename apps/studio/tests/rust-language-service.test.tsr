@@ -1,6 +1,8 @@
 import { get } from 'std:env';
 import { canonicalize, createTempDir, readTextFile, removeDirAll, writeTextFile } from 'std:fs';
 import { Channel, delay } from 'std:futures';
+import { JsonRaw } from 'std:json';
+import { completionText } from 'std:ui';
 import { join } from 'std:path';
 import { strictEqual, test } from 'std:testing';
 
@@ -10,22 +12,30 @@ import { languageRoute } from '../src/lib/language/servers.tsr';
 import { languageServices } from '../src/services/lsp/registry.tsr';
 import { LanguageMessage, LanguageUpdate } from '../src/services/lsp/session.tsr';
 
+interface CompletionList {
+  items: JsonRaw[];
+}
+
+interface CompletionLabel {
+  label: string;
+}
+
 interface DefinitionLink {
   targetUri: string;
   targetSelectionRange: DiagnosticRange;
 }
 
-async function nextRustUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
+async function nextRustUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string, version: int | undefined = undefined): Task<LanguageUpdate> {
   while (true) {
     const event = await updates.receive();
 
     if (event.kind === 'failed') throw event.message;
 
-    if (event.kind === kind) return event;
+    if (event.kind === kind && (version === undefined || event.document?.version === version)) return event;
   }
 }
 
-test('installed rust-analyzer resolves an unsaved Rust function through the Studio registry', async () => {
+test('installed rust-analyzer navigates, completes and diagnoses unsaved Rust revisions', async () => {
   const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-rust-lsp-'))));
   const path = join(root, 'lib.rs');
   const saved = 'pub fn saved() -> u32 { 1 }\n';
@@ -92,6 +102,53 @@ test('installed rust-analyzer resolves an unsaved Rust function through the Stud
     strictEqual(links[0].targetSelectionRange.start.character, 7);
     strictEqual(links[0].targetSelectionRange.end.line, 0);
     strictEqual(links[0].targetSelectionRange.end.character, 17);
+    const prefix = 'struct Draft { draft_field: u32 }\nfn field(value: Draft) -> u32 { /* 🦀 */ value.';
+    document.text = clone(prefix) + 'dra }\n';
+    document.version += 1;
+    document.revision += 1;
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    await requests.send({
+      server: clone(route.server), kind: 'query', generation: ready.generation, query: {
+        id: 'rust-complete', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 1, character: 50
+        }
+      }
+    });
+    const completion = await nextRustUpdate(updates, 'query').timeout(10000);
+    strictEqual(completion.query?.id, 'rust-complete');
+    const response = completion.result ?? 'null';
+    const items = response.startsWith('[') ? JSON.parse<JsonRaw[]>(response) : JSON.parse<CompletionList>(response).items;
+    let proposed = '';
+
+    for (const item of items) {
+      const encoded = JSON.stringify(item);
+
+      if (JSON.parse<CompletionLabel>(encoded).label !== 'draft_field') continue;
+      proposed = unwrap(completionText(document.text, encoded, 0, 0));
+      break;
+    }
+
+    strictEqual(proposed, clone(prefix) + 'draft_field }\n');
+    document.text = 'pub fn broken() { let = ; }\n';
+    document.version += 1;
+    document.revision += 1;
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const broken = await nextRustUpdate(updates, 'diagnostics', document.version).timeout(15000);
+    strictEqual(broken.document?.version, document.version);
+    strictEqual((broken.problems ?? []).some((problem) => problem.source === 'lsp:rust' && problem.line === 1), true, JSON.stringify(broken.problems));
+    document.text = clone(saved);
+    document.version += 1;
+    document.revision += 1;
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const clean = await nextRustUpdate(updates, 'diagnostics', document.version).timeout(15000);
+    strictEqual(clean.document?.version, document.version);
+    strictEqual((clean.problems ?? []).length, 0);
     strictEqual(unwrap(readTextFile(path)), saved);
   } finally {
     worker.cancel();
