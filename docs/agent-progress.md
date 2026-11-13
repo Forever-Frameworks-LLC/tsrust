@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Current public guides in offline retrieval
+
+The bundled corpus includes the tracked website language, learn, library,
+start and tools guides. Markdown front matter supplies the introductory
+passage title. Headings inside fenced code remain part of the example.
+Historical implementation records were excluded. Two builds produced
+identical bytes (1744896). Exact row comparison preserved all 1027 previous
+passages and added 465 from 29 guides. The native SQLite suite retrieved
+both the missing-linker repair command and the string position-unit table,
+and preserved the earlier retrieval cases (83.39 ms). This verifies
+retrieval, not model answer accuracy on the new material.
+
 ## Bundled retrieval for multi-symbol questions
 
 The bundled FTS query now supplements its best matching passage with a

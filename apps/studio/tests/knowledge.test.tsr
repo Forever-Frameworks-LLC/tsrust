@@ -23,6 +23,12 @@ test('offline reference retrieval opens the shipped index and returns attributab
     const guide = unwrap(searchKnowledge('GPUI controlled uncontrolled switch', clone(folder)));
     strictEqual(guide.includes('docs/guides/ui/03-state.md:'), true);
     strictEqual(guide.includes('defaultChecked'), true);
+    const linker = unwrap(searchKnowledge('Tsrust repair missing native linker', clone(folder)));
+    strictEqual(linker.includes('website/src/content/docs/tools/rust-setup.md:'), true);
+    strictEqual(linker.includes('tsrust doctor --native'), true);
+    const strings = unwrap(searchKnowledge('Tsrust choose the right position unit', clone(folder)));
+    strictEqual(strings.includes('website/src/content/docs/language/strings.md:'), true);
+    strictEqual(strings.includes('Unicode scalar positions'), true);
     strictEqual(unwrap(searchKnowledge('zzznosuchidentifier', clone(folder))), '');
     strictEqual(knowledgeQuestion('What did I just ask?'), false);
   } finally {

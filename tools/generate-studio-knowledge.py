@@ -10,19 +10,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "apps/studio/src/assets/knowledge"
-SOURCES = ["examples", "docs/guides/ui", "crates/tsrust-compiler/tests/fixtures"]
+GUIDES = ["docs/guides/ui", *[f"website/src/content/docs/{area}" for area in ("language", "learn", "library", "start", "tools")]]
+SOURCES = ["examples", *GUIDES, "crates/tsrust-compiler/tests/fixtures"]
 
 
 def passages(path, text):
     lines = text.splitlines()
     if path.suffix == ".md":
-        starts = [i for i, line in enumerate(lines) if re.match(r"^#{1,3} ", line)]
+        titles = {}
+        first = 0
+        if lines and lines[0] == "---":
+            first = lines.index("---", 1) + 1
+            title = next((line[6:].strip() for line in lines[1:first] if line.startswith("title:")), path.stem)
+            while first < len(lines) and not lines[first].strip():
+                first += 1
+            if first < len(lines):
+                titles[first] = title
+        fence = ""
+        for i in range(first, len(lines)):
+            marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", lines[i])
+            if marker:
+                run, tail = marker.groups()
+                if not fence:
+                    fence = run
+                elif run.startswith(fence) and not tail.strip():
+                    fence = ""
+            elif not fence and re.match(r"^#{1,3} ", lines[i]):
+                titles[i] = lines[i].strip()
+        starts = list(titles)
     else:
         starts = [i for i, line in enumerate(lines) if re.match(
             r"^(?:(?:export|async) )*(?:function|class|interface|type|enum) |^(?:test|describe)\(", line
         )]
     for start, end in zip(starts, starts[1:] + [len(lines)]):
-        title = lines[start].strip()
+        title = titles[start] if path.suffix == ".md" else lines[start].strip()
         if path.suffix == ".tsrx" and path.parent.name == "pages" and title.startswith("export "):
             continue  # Gallery page scaffolding repeats its examples as quoted source.
         body = "\n".join(lines[start:end]).rstrip()
@@ -44,7 +65,7 @@ def main():
                 continue
             if name.startswith("crates/") and not name.endswith(".test.tsr"):
                 continue
-            if path.suffix == ".md" and not name.startswith("docs/guides/ui/"):
+            if path.suffix == ".md" and not any(name.startswith(guide + "/") for guide in GUIDES):
                 continue
             for line, title, body in passages(path, (ROOT / path).read_text()):
                 terms = re.sub(r"([a-z])([A-Z])", r"\1 \2", path.stem + " " + title)
