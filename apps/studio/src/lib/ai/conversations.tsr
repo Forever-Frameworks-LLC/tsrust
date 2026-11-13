@@ -15,6 +15,7 @@ export interface AiMessage {
   status?: string;
   limited?: boolean;
   workspaceExcerpt?: string;
+  functionLookup?: string;
   context?: ContextFragment[];
 }
 

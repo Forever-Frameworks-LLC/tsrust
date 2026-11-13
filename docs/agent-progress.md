@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Repeated same-function follow-ups
+
+For qualified-file questions Studio stores the resolved relative paths and
+lookup identifiers on the user message. A subsequent same-function request
+uses that lookup to retrieve current source. The optional field allows older
+messages to fall back to their question text. Lookup metadata is not rendered
+in the model transcript. In the local 1.5B evaluation, lib/answer.tsr changed
+twice while the active answer.tsr still returned 51. Across three turns the
+model replied 73, 84 and 96. The last prompt contained the current 96 source
+and excluded the active copy. All 26 focused cases passed. This establishes
+the explicit same-function wording in one chat, not general pronoun resolution.
+
 ## Same-function follow-up keeps the qualified path
 
 When a same-function question refers to the preceding completed exchange,

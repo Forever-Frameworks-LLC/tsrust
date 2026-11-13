@@ -324,7 +324,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           const previous = history[history.length - 2];
           const answer = history[history.length - 1];
 
-          if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') previousQuestion = clone(previous.text);
+          if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') previousQuestion = clone(previous.functionLookup ?? previous.text);
         }
       }
 
@@ -361,7 +361,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       }
 
       next.history.chats[index].messages.push({
-        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
+        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), functionLookup: grounding.functionLookup, workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
       });
       let editPrompt: string | undefined = undefined;
       next.editTarget = undefined;

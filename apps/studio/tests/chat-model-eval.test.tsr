@@ -130,6 +130,12 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
         strictEqual(current.includes('return 84'), true);
         strictEqual(current.includes('return 51'), false);
         strictEqual(second.trim(), '84');
+        unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 96; }'));
+        const third = await ask(host, updates, 'The same function changed again. Read its current value. Reply with the integer alone.');
+        const latest = host.state.get().history.chats[0].messages[4].workspaceExcerpt ?? '';
+        strictEqual(latest.includes('return 96'), true);
+        strictEqual(latest.includes('return 51'), false);
+        strictEqual(third.trim(), '96');
         return;
       }
 
