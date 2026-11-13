@@ -126,7 +126,7 @@ function startRequest(context: ReadOnly<AiContext>): Result<ModelRequest, string
   });
 }
 
-function restorePending(next: Mutable<AiState>): void {
+function restorePending(next: Mutable<AiState>, status: string): void {
   const pending = clone(next.pending);
 
   if (pending !== undefined) {
@@ -134,13 +134,23 @@ function restorePending(next: Mutable<AiState>): void {
 
     if (index >= 0) {
       const requestId = clone(pending.id);
-      next.history.chats[index].draft = clone(pending.prompt);
       const user = next.history.chats[index].messages.findIndex((message) => message.role === 'user' && message.request === requestId);
 
-      if (user >= 0) next.history.chats[index].context = clone(next.history.chats[index].messages[user].context) ?? [];
-      next.history.chats[index].revision += 1;
+      if (next.history.chats[index].draft === '' && (next.history.chats[index].context ?? []).length === 0) {
+        next.history.chats[index].draft = clone(pending.prompt);
 
-      next.history.chats[index].messages = next.history.chats[index].messages.filter((message) => message.request !== requestId);
+        if (user >= 0) next.history.chats[index].context = clone(next.history.chats[index].messages[user].context) ?? [];
+        next.history.chats[index].messages = next.history.chats[index].messages.filter((message) => message.request !== requestId);
+      } else {
+        // Keep the original prompt and attachments in history when the composer already holds new work.
+        const reply = next.history.chats[index].messages.findIndex((message) => message.request === requestId && message.role === 'assistant');
+
+        if (user >= 0) next.history.chats[index].messages[user].status = clone(status);
+
+        if (reply >= 0) next.history.chats[index].messages[reply].status = clone(status);
+      }
+
+      next.history.chats[index].revision += 1;
     }
   }
 
@@ -269,7 +279,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.history.chats[index].messages.push({
         role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: draftContext(next.history)
       });
-      const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '').map((message): ChatMessage => ({
+      const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
         role: clone(message.role), content: messageContent(message)
       }));
       const generation: ModelRequest = {
@@ -352,10 +362,13 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
       Ok(update) => {
         changed = true;
 
-        if (update.kind === 'ready') next.phase = 'ready';
-        else if (update.kind === 'stopped') {
-          if (next.pending !== undefined) restorePending(next);
-          else {
+        if (update.kind === 'ready') {
+          if (next.phase === 'starting') next.phase = 'ready';
+        } else if (update.kind === 'stopped') {
+          if (next.pending !== undefined) {
+            const status = next.phase === 'stopping' ? 'cancelled' : 'error';
+            restorePending(next, status);
+          } else {
             const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
 
             if (chat >= 0) for (let message = 0; message < next.history.chats[chat].messages.length; message += 1) {
@@ -410,7 +423,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
       },
       Err(error) => {
         if (error.code !== 'full') {
-          restorePending(next);
+          restorePending(next, 'error');
           next.notice = 'The model command queue is full or closed.';
           changed = true;
           save = true;

@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat startup cancellation and draft recovery
+
+A late ready update could override stopping and dispatch a cancelled generation.
+Ready now advances only a starting session. Startup rollback restores the original
+prompt and attachments into an empty composer. If the user has started another
+draft or selected new context, rollback preserves that work and retains the original
+turn in history with its cancellation/error status. Unsent user turns are excluded
+from subsequent model context. Legacy user turns without status remain supported.
+This shared action path serves Studio and the guarded model tools.
+
+Final AI action suite 8/8 passed in 13.45 ms execution, including cancellation,
+late readiness, independent drafts, subsequent request history, attachments,
+permissions and storage conflicts. No weights loaded. Whole-project format final
+0 files, snippets or fingerprints. Logs /tmp/studio-chat-startup-tests-final.log
+and /tmp/studio-chat-startup-format-final.log. Supervisor 1088 and preview 4521
+were alive during validation. Actual cancellation through the desktop remains
+unverified. Owner changes to chat-panel.tsrx and editor.tsrx remain separate.
+
 ## Dev rebuild visibility and matched diagnostic observation
 
 The native watcher reports the entry being checked before dispatching the frontend

@@ -135,6 +135,43 @@ test('cancelled startup restores the exact prompt and preserves newer chat selec
   strictEqual(host.state.get().phase, 'stopped');
 });
 
+test('late readiness after startup cancellation preserves the newer draft and never queues generation', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'first prompt');
+  unwrap(requests.tryReceive());
+  const active = host.state.get();
+  unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+    chat: active.history.active, prompt: 'second draft'
+  })));
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: active.active
+  })));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().phase, 'stopping');
+  strictEqual(host.state.get().pending !== undefined, true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const chat = host.state.get().history.chats[0];
+  strictEqual(chat.draft, 'second draft');
+  strictEqual(chat.messages[0].text, 'first prompt');
+  strictEqual(chat.messages[0].status, 'cancelled');
+  strictEqual(chat.messages[1].status, 'cancelled');
+  strictEqual(host.state.get().pending === undefined, true);
+  send(host, 'second draft');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  strictEqual(host.state.get().pending?.messages?.length ?? 0, 1);
+});
+
 test('full queues and missing model paths preserve conversation drafts and identities', () => {
   const requests = new Channel<ModelRequest>(1);
   const state = signal(initialAiState());
