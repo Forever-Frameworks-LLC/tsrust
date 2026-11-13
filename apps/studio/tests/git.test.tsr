@@ -180,6 +180,14 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
 
     strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
     strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
+    const stages = unwrap(await gitRequest(sub, {
+      mode: 'conflicts', viewFile: 'ré view.txt'
+    }));
+    strictEqual(stages.includes(':1:ré view.txt\nbase\n'), true);
+    strictEqual(stages.includes(':2:ré view.txt\nmain\n'), true);
+    strictEqual(stages.includes(':3:ré view.txt\ntopic\n'), true);
+    strictEqual(stages.includes('outside.txt'), false);
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
     unwrap(writeTextFile(sub + '/ré view.txt', 'resolved\n'));
     strictEqual(unwrap(await gitRequest(sub, {
       mode: 'conflicts', action: 'stage', path: 'ré view.txt'

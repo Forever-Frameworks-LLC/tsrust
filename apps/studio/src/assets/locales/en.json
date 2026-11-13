@@ -20,6 +20,7 @@
   "Unstage active file": "Unstage active file",
   "Conflicts": "Conflicts",
   "No unresolved conflicts.": "No unresolved conflicts.",
+  "Index stages: 1 = base, 2 = ours, 3 = theirs": "Index stages: 1 = base, 2 = ours, 3 = theirs",
   "Choose a commit": "Choose a commit",
   "Choose a diff hunk": "Choose a diff hunk",
   "History": "History",

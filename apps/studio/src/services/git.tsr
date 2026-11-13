@@ -11,12 +11,47 @@ function workspaceFile(path: ReadOnly<string>): boolean {
 }
 
 export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>, file: string = ''): Task<Result<string, string>> {
-  if (file !== '' && (!workspaceFile(file) || (mode !== 'working' && mode !== 'staged'))) return Err('Choose a file inside the workspace.');
+  if (file !== '' && (!workspaceFile(file) || !['working', 'staged', 'conflicts'].includes(mode))) return Err('Choose a file inside the workspace.');
   const args = ['--literal-pathspecs', '--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false'];
 
   if (mode === 'status') {
     for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
   } else if (mode === 'conflicts') {
+    if (file !== '') {
+      const sections: string[] = [];
+
+      match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(file)])) {
+        Err(reason) => {
+          return Err(reason);
+        },
+        Ok(entries) => {
+          for (const entry of entries.split('\0')) {
+            const tab = entry.indexOf('\t');
+
+            if (tab < 0 || entry.slice(tab + 1) !== file) continue;
+            const fields = entry.slice(0, tab).split(' ');
+            const heading = ':' + fields[2] + ':' + file;
+
+            if (fields[0] === '160000') {
+              sections.push(heading + '\nSubproject commit ' + fields[1]);
+              continue;
+            }
+
+            match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
+              Ok(content) => {
+                sections.push(heading + '\n' + content);
+              },
+              Err(reason) => {
+                return Err(reason);
+              }
+            }
+          }
+        }
+      }
+
+      return Ok(sections.join('\n\n'));
+    }
+
     for (const arg of ['diff', '--relative', '--name-only', '--diff-filter=U', '--no-ext-diff']) args.push(clone(arg));
   } else if (mode === 'history') {
     for (const arg of ['log', '--ignore-missing', '--no-decorate', '--no-show-signature', '--format=%h  %as  %s', 'HEAD']) args.push(clone(arg));
@@ -140,7 +175,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
   const viewFile = clone(request.viewFile) ?? '';
 
-  if (viewFile !== '' && (!workspaceFile(viewFile) || (request.mode !== 'working' && request.mode !== 'staged'))) return Err('Choose a file inside the workspace.');
+  if (viewFile !== '' && (!workspaceFile(viewFile) || !['working', 'staged', 'conflicts'].includes(request.mode))) return Err('Choose a file inside the workspace.');
 
   if (action === undefined) return await readGitView(root, request.mode, clone(viewFile));
 
@@ -253,7 +288,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
   }
 }
 
-async function gitOutput(root: ReadOnly<string>, args: string[], input: string = '', diffExit: boolean = false): Task<Result<string, string>> {
+async function gitOutput(root: ReadOnly<string>, args: string[], input: string = '', diffExit: boolean = false, blob: boolean = false): Task<Result<string, string>> {
   match (await run('git', args, {
     cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
   })) {
@@ -263,6 +298,18 @@ async function gitOutput(root: ReadOnly<string>, args: string[], input: string =
     Ok(output) => {
       try {
         if (!output.status.success && !(diffExit && output.status.code === 1 && length(output.stderr) === 0)) return Err(unwrap(toUtf8(output.stderr)).trim());
+
+        if (blob) {
+          match (toUtf8(output.stdout)) {
+            Ok(text) => {
+              return Ok(text.includes('\0') ? 'Binary blob' : text);
+            },
+            Err(_) => {
+              return Ok('Binary blob');
+            }
+          }
+        }
+
         return Ok(unwrap(toUtf8(output.stdout)));
       } catch (_) {
         return Err('Git output is not valid UTF-8.');
@@ -286,6 +333,20 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
     match (await gitRequest(root, request)) {
       Ok(text) => {
         let files: string[] = [];
+
+        if (mode === 'conflicts') {
+          match (await gitOutput(root, ['diff', '--relative', '--name-only', '--diff-filter=U', '-z', '--', '.'])) {
+            Ok(names) => {
+              files = names.split('\0').filter((path) => path !== '');
+            },
+            Err(error) => {
+              await replies.send({
+                mode, text: error, failed: true
+              });
+              continue;
+            }
+          }
+        }
 
         if (mode === 'status') {
           match (await changedFiles(root)) {

@@ -27,8 +27,12 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
   const commit = signal('');
   const view = computed<string>(() => mode.get() === 'history' && commit.get() !== '' ? 'commit' : mode.get());
   const files = signal<string[]>([]);
+  const conflicts = signal<string[]>([]);
+  const conflict = signal('');
   const chosen = signal('');
   const selection = computed<string>(() => {
+    if (mode.get() === 'conflicts') return conflict.get();
+
     if (['status', 'working', 'staged'].includes(mode.get()) && chosen.get() !== '') return chosen.get();
     const state = workspace.get();
     const prefix = state.root.endsWith(separator()) ? clone(state.root) : state.root + separator();
@@ -121,23 +125,31 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           }}
         />
       </View>
-      <View hidden={mode.get() !== 'status' || shown.get() !== 'status' || busy.get() || files.get().length === 0}>
+      <View hidden={!['status', 'conflicts'].includes(mode.get()) || shown.get() !== mode.get() || busy.get() || (mode.get() === 'conflicts' ? conflicts.get() : files.get()).length === 0}>
         <Select
-          items={files.get()}
-          value={chosen.get()}
+          items={mode.get() === 'conflicts' ? conflicts.get() : files.get()}
+          value={mode.get() === 'conflicts' ? conflict.get() : chosen.get()}
           searchable={true}
           cleanable={true}
           size="small"
           placeholder={message('Choose a changed file')}
           accessibilityLabel={message('Choose a changed file')}
           onChange={(path) => {
-            chosen.set(clone(path));
+            if (mode.get() === 'conflicts') {
+              conflict.set(clone(path));
+              shown.set('');
+            } else chosen.set(clone(path));
           }}
         />
       </View>
-      <View hidden={chosen.get() === '' || (mode.get() !== 'working' && mode.get() !== 'staged')}>
+      <View hidden={chosen.get() === '' || !['working', 'staged'].includes(mode.get())}>
         <Text>
           {chosen.get()}
+        </Text>
+      </View>
+      <View hidden={conflict.get() === '' || mode.get() !== 'conflicts'}>
+        <Text>
+          {t('Index stages: 1 = base, 2 = ours, 3 = theirs')}
         </Text>
       </View>
       <View hidden={shown.get() !== view.get() || hunks.get().length === 0}>
@@ -189,6 +201,16 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
             match (replies.tryReceive()) {
               Ok(reply) => {
                 if (reply.mode === 'history') commits.set(reply.failed ? [] : reply.text.split('\n').filter((line) => line !== ''));
+                if (reply.mode === 'conflicts') {
+                  const paths = reply.files ?? [];
+                  conflicts.set(paths);
+                  if (!paths.includes(conflict.get()) && !reply.failed && conflict.get() !== '') {
+                    conflict.set('');
+                    shown.set('');
+                    busy.set(false);
+                    return;
+                  }
+                }
                 if (reply.mode === 'status') {
                   const paths = reply.files ?? [];
 
@@ -223,7 +245,8 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
             if (request.mode === '') request.mode = view.get();
             if (request.mode === 'commit') request.commit = commit.get().split(' ')[0];
 
-            if ((request.mode === 'working' || request.mode === 'staged') && chosen.get() !== '') request.viewFile = chosen.get();
+            if (request.mode === 'conflicts' && conflict.get() !== '') request.viewFile = conflict.get();
+            if (['working', 'staged'].includes(request.mode) && chosen.get() !== '') request.viewFile = chosen.get();
 
             match (requests.trySend(request)) {
               Ok(_) => {

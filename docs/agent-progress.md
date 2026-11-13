@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Inspect unresolved Git index stages
+
+The Conflicts tab lists unresolved paths in the workspace and provides a
+searchable picker. Selecting a path reads the available base, ours and
+theirs index objects and labels each version by stage. Staging the saved
+file refreshes the unresolved list. The nested merge regression verified
+three distinct texts for one file, excluded an outside sibling, and found
+the conflict still unresolved after inspection. The Git and localization
+suites passed 7/7 after 12.10 s build. Native interaction and binary and
+submodule conflict presentation remain unverified.
+
 ## Inspect a commit from workspace history
 
 The History tab now has a searchable commit picker. Selecting a row requests

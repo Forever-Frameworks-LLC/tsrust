@@ -20,6 +20,7 @@
   "Unstage active file": "Retirar arquivo ativo da preparação",
   "Conflicts": "Conflitos",
   "No unresolved conflicts.": "Nenhum conflito pendente.",
+  "Index stages: 1 = base, 2 = ours, 3 = theirs": "Estágios do índice: 1 = base, 2 = nossa versão, 3 = versão deles",
   "Choose a commit": "Escolher um commit",
   "Choose a diff hunk": "Escolher um trecho do diff",
   "History": "Histórico",
