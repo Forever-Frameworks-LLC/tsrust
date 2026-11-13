@@ -1,5 +1,5 @@
 import { fromUtf8, length } from 'std:bytes';
-import { join } from 'std:path';
+import { isAbsolute, join } from 'std:path';
 import { controlInput } from 'std:ui';
 
 import { SearchActionContext } from '../explorer/search-actions.tsr';
@@ -34,7 +34,7 @@ export function openProblem(context: ReadOnly<SearchActionContext>, location: Re
 
   if (location.path === '' || location.path.length > 8192 || location.line < 1 || location.column < 1) return Err('Invalid problem location.');
   const next = context.workspace.get();
-  const path = location.path.startsWith('/') ? clone(location.path) : join(next.root, location.path);
+  const path = isAbsolute(location.path) ? clone(location.path) : join(next.root, location.path);
 
   match (openFile(next, path)) {
     Err(error) => {

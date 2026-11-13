@@ -1,3 +1,5 @@
+import { signal } from 'std:ui';
+import { join } from 'std:path';
 import { get } from 'std:env';
 import { createTempDir, removeDirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
 import { Channel } from 'std:futures';
@@ -8,9 +10,11 @@ import { defaultFormatting } from '../src/lib/settings/formatting.tsr';
 import { closeEditors, planCloseEditors } from '../src/lib/workspace/close-editors.tsr';
 import { createDocument, propose, edit } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
-import { ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { openProblem, ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
 import { TerminalSession, terminalLocation } from '../src/lib/workspace/terminals.tsr';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { Workspace, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { formattingWorker } from '../src/services/formatting.tsr';
 
 function workspace(root: string): Workspace {
@@ -119,4 +123,30 @@ test('formatter terminal links map only exact host snapshots and reject edited t
   })).path, '/outside.tsr');
   edit(state.files[0].document, 'new text');
   strictEqual(rejected(terminalLocation(terminal, state, location)), true);
+});
+
+test('terminal diagnostics open absolute and relative paths with spaces and Unicode inside the workspace', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-link-'));
+
+  try {
+    const current = unwrap(openWorkspace(root));
+    const name = 'my 日本 file.tsr';
+    const path = join(current.root, name);
+    unwrap(writeTextFileAtomic(path, 'first\n日本語\n'));
+    const context: SearchActionContext = {
+      workspace: signal(current), recovery: signal<Recovery>({
+        path: join(root, 'journal.json'), baseline: '', ready: true
+      }), allowNavigation: true, focusEditor: false
+    };
+
+    for (const target of [name, clone(path)]) {
+      unwrap(openProblem(context, {
+        path: clone(target), line: 2, column: 2
+      }));
+      strictEqual(context.workspace.get().active, path);
+      strictEqual(context.workspace.get().files.length, 1);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
 });

@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Terminal diagnostic path navigation
+
+The terminal link parser preserves quoted relative filenames with spaces and
+relative paths on compiler arrow lines. Locations on the same output line are
+scanned independently, including after invalid numeric coordinates. Studio uses
+the host path API to distinguish absolute from workspace-relative destinations.
+Focused parser test passed; Studio terminal-formatting suite 4/4 in 100.24 ms
+includes opening the same Unicode file by absolute and relative path. Final
+formatter zero changes. Logs /tmp/studio-terminal-link-{paths,nav,format-final}.log.
+Native pointer interaction and Windows host execution remain unverified.
+
 ## Keyboard navigation in retained terminal output
 
 The native terminal handles Page Up/Down and Home/End locally after exit. In a
