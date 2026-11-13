@@ -1,7 +1,16 @@
-import { canonicalize, createTempDir, writeTextFile, readTextFile, removeDirAll } from 'std:fs';
+import {
+  canonicalize,
+  createTempDir,
+  removeFile,
+  writeTextFile,
+  readTextFile,
+  removeDirAll
+} from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
+import { saveDraftCopy } from '../src/lib/workspace/document-actions.tsr';
+import { FormattingTarget } from '../src/lib/workspace/formatting-actions.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Problem, collectProblems, formatProblems, operationProblem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
@@ -75,6 +84,62 @@ test('document actions expose unsaved files and conflicts without trusting model
     strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
     strictEqual(unwrap(readTextFile(path)), 'external');
     strictEqual(context.workspace.get().files[0].document.text, 'newer draft');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('saving a copy preserves the deleted original and rejects stale drafts and open destinations', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-save-copy-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const source = workspace.root + '/draft.tsr';
+    const other = workspace.root + '/other.tsr';
+    const copy = workspace.root + '/copy.tsr';
+    unwrap(writeTextFile(source, 'saved'));
+    unwrap(writeTextFile(other, 'keep'));
+    unwrap(openFile(workspace, source));
+    unwrap(openFile(workspace, other));
+    edit(workspace.files[0].document, '日本語 🦀\r\n');
+    unwrap(removeFile(source));
+    const target: FormattingTarget = {
+      path: clone(source), session: clone(workspace.files[0].document.session), revision: workspace.files[0].document.revision
+    };
+    unwrap(saveDraftCopy(workspace, target, copy));
+    strictEqual(unwrap(readTextFile(copy)), '日本語 🦀\r\n');
+    strictEqual(workspace.files[0].document.savedText, 'saved');
+    strictEqual(workspace.active, other);
+
+    for (const path of [clone(source), clone(other)]) {
+      match (saveDraftCopy(workspace, target, path)) {
+        Ok(_) => {
+          throw 'Selected an open destination';
+        },
+        Err(_) => {}
+      }
+    }
+
+    edit(workspace.files[0].document, 'changed');
+
+    match (saveDraftCopy(workspace, target, copy)) {
+      Ok(_) => {
+        throw 'Stale draft copied';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(other)), 'keep');
+    strictEqual(unwrap(readTextFile(copy)), '日本語 🦀\r\n');
+
+    match (readTextFile(source)) {
+      Ok(_) => {
+        throw 'Deleted original was recreated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
   } finally {
     unwrap(removeDirAll(root));
   }

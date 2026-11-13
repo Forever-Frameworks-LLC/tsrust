@@ -4,6 +4,7 @@ import {
   Text,
   computed,
   controlInput,
+  saveFile,
   t,
   Shortcut,
   AppMenuBar,
@@ -16,8 +17,8 @@ import {
 import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { canFormat } from '../../lib/workspace/formatting-actions.tsr';
+import { publishWorkspace, saveDraftCopy } from '../../lib/workspace/document-actions.tsr';
+import { canFormat, FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, closeFile } from '../../lib/workspace/workspace.tsr';
 import { zoomWorkspace } from '../../lib/workspace/zoom.tsr';
@@ -50,6 +51,10 @@ export function Chrome(
   chat: Signal<boolean>
 ): Node {
   const paletteClass = computed<string>(() => 'w-full max-w-[320px] h-6 px-3 gap-2 min-w-0 justify-start border border-border rounded-sm bg-background text-muted-foreground text-[' + font.get().toString() + 'px]');
+  const canCopy = computed<boolean>(() => {
+    const current = workspace.get();
+    return current.files.some((file) => file.document.path === current.active && file.kind === 'text');
+  });
   // macOS retains its traffic-light controls in the leading 80 logical pixels.
   return (
     <View className="relative shrink-0 h-9 bg-muted border-b border-border" windowDragRegion={true}>
@@ -60,6 +65,7 @@ export function Chrome(
         <AppMenu label={message("File")}>
           <MenuItem command="find-file" label={message("Find project file")} />
           <MenuItem command="save-all" label={message("Save All")} disabled={unsavedTargets(workspace.get()).length === 0} />
+          <MenuItem command="save-copy" label={message("Save a Copy…")} disabled={!canCopy.get()} />
           <MenuItem command="close-tab" label={message("Close Editor")} />
         </AppMenu>
         <AppMenu label={message("Edit")}>
@@ -115,6 +121,34 @@ export function Chrome(
           }}
         />
       </View>
+      <Shortcut
+        command="save-copy"
+        onTrigger={() => {
+          const current = workspace.get();
+          const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
+
+          if (file === undefined) return;
+          const target: FormattingTarget = {
+            path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
+          };
+          saveFile(clone(file.name), (destination) => {
+            if (destination === '') return;
+            const next = workspace.get();
+
+            match (saveDraftCopy(next, target, destination)) {
+              Err(error) => {
+                next.error = clone(error);
+                workspace.set(next);
+                panel.set('problems');
+              },
+              Ok(_) => {
+                next.error = '';
+                workspace.set(next);
+              }
+            }
+          });
+        }}
+      />
       <Shortcut
         command="toggle-sidebar"
         keys="secondary-b"

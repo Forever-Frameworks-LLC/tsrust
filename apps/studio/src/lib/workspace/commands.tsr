@@ -15,6 +15,8 @@ export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<
   const rows: PaletteCommand[] = [{
     id: 'save-all', label: translate('Save All'), disabled: !workspace.files.some((file) => dirty(file.document))
   }, {
+    id: 'save-copy', label: translate('Save a Copy…'), disabled: !workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text')
+  }, {
     id: 'close-tab', label: translate('Close Editor'), disabled: workspace.active === ''
   }, {
     id: 'format-document', label: translate('Format document'), disabled: !canFormat(workspace.active)

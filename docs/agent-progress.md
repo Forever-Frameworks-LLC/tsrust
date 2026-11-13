@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Save a copy of a recovered draft
+
+File → Save a Copy… and the command palette open a native destination picker
+for the active text document. The copy uses the draft revision captured when
+opening the picker. The write rejects stale revisions and open destinations.
+Focused document and explorer tests passed 6/6 in 67.33 ms, including copying
+a deleted original with Unicode and CRLF while preserving the active tab and
+saved baseline. Chrome check, locale parity and whole-project formatting passed.
+The native picker interaction has not been exercised.
+
 ## Recovery after external file replacement or deletion
 
 A real-filesystem regression reproduced an entire journal failing to restore

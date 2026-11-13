@@ -1,3 +1,5 @@
+import { canonicalize, writeTextFileAtomic } from 'std:fs';
+import { basename, dirname, join } from 'std:path';
 import { Signal } from 'std:ui';
 
 import { edit } from './documents.tsr';
@@ -29,6 +31,23 @@ export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recov
   edit(next.files[index].document, clone(text));
   next.error = '';
   publishWorkspace(next, workspace, recovery);
+}
+
+// The native save dialog supplies the destination. Copying never retargets or marks a draft saved.
+export function saveDraftCopy(workspace: ReadOnly<Workspace>, target: ReadOnly<FormattingTarget>, destination: ReadOnly<string>): Result<void, string> {
+  const file = workspace.files.find((entry) => entry.document.path === target.path);
+
+  if (file === undefined || file.kind !== 'text' || file.document.session !== target.session || file.document.revision !== target.revision) return Err('The document changed while choosing a destination. Save a copy again.');
+
+  try {
+    const path = join(unwrap(canonicalize(dirname(destination))), basename(destination));
+
+    if (workspace.files.some((entry) => entry.document.path === path)) return Err('Choose a destination other than an open file.');
+    unwrap(writeTextFileAtomic(path, file.document.text));
+    return Ok();
+  } catch (error) {
+    return Err(clone(error.message));
+  }
 }
 
 export function saveTarget(next: Mutable<Workspace>, target: ReadOnly<FormattingTarget>): Result<void, string> {
