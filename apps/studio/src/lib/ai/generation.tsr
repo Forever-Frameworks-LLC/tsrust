@@ -27,7 +27,10 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
     const excerpt = entry.workspaceExcerpt ?? '';
     const editing = editPrompt !== undefined && index === lastUser;
     const attachWorkspace = includeWorkspace && !editing && excerpt !== '' && !seen.has(excerpt);
-    let content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, attachWorkspace);
+    let content = clone(entry.text);
+
+    if (editing && editPrompt !== undefined) content = clone(editPrompt);
+    else if (includeWorkspace) content = messageContent(entry, attachWorkspace);
 
     if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
 

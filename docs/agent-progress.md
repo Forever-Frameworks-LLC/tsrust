@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Read grant on attachment replay
+
+Restoring a prior chat exchange could send attached file and skill snapshots even when workspace read access was absent. Prompt assembly now uses plain message text for that request. The native action regression sends three explicitly selected snapshots under a grant (unsaved file, local skill and trusted outside file), completes the reply, removes the read grant and verifies the next frame contains only the original question, reply and follow-up. Stored history retains all three attachments. The AI action and offline knowledge suites passed 36/36. This controls future snapshot inclusion; conversation text already supplied by a user or returned by a model remains ordinary dialogue.
+
 ## Chat transcript completeness
 
 A two-turn native 1.5B conversation retrieved the terminal session example, correctly identified the remaining session as second, and then correctly gave the fourth session's ordinal as 4. Inspecting prompt assembly also found that cancelled partial assistant output and the associated question could enter later prompts. Generation now includes prior exchanges only when the adjacent user and assistant have matching request identities, nonempty text and completed status (legacy messages without a status remain eligible). The current user question remains eligible while its response is pending. The long-transcript native regression verifies that a cancelled partial answer stays in the stored chat while the next inference frame retains both completed exchanges and the follow-up. Regenerated the bundled test corpus and passed 36 tests across AI actions and offline knowledge. No change to token limits.

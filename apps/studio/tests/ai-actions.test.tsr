@@ -650,6 +650,20 @@ test('file and skill context use guarded snapshots, including unsaved editor tex
     strictEqual(messages[0].content.includes('outside private text'), true);
     strictEqual(unwrap(readTextFile(folder + '/main.tsr')), 'const disk = 1;');
     strictEqual((host.state.get().history.context ?? []).length, 0);
+    const updates = new Channel<ModelUpdate>(2);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: 'Done', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    host.allowRead = false;
+    send(host, 'Continue');
+    const restricted = unwrap(requests.tryReceive()).messages;
+
+    if (restricted === undefined) throw 'missing follow-up';
+    strictEqual(restricted[0].content, 'Explain these references');
+    strictEqual(restricted[1].content, 'Done');
+    strictEqual(restricted[2].content, 'Continue');
+    strictEqual((state.get().history.chats[0].messages[0].context ?? []).length, 3);
   } finally {
     removeDirAll(folder);
     removeDirAll(outside);
