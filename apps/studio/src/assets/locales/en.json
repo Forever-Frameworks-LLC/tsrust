@@ -89,6 +89,7 @@
   "Restore pane": "Restore pane",
   "Maximize pane": "Maximize pane",
   "Close": "Close",
+  "searchResultPage": "Page {page} of {total}",
   "matchingLines_zero": "No matching lines",
   "matchingLines_one": "{count} matching line",
   "matchingLines_other": "{count} matching lines",

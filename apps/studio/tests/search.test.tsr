@@ -4,7 +4,14 @@ import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
-import { searchContents, searchSnapshot, searchPreview, SearchResults } from '../src/lib/explorer/search.tsr';
+import {
+  searchContents,
+  searchSnapshot,
+  searchPreview,
+  searchPage,
+  searchPageCount,
+  SearchResults
+} from '../src/lib/explorer/search.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
@@ -129,6 +136,27 @@ test('match previews retain UTF-8 ranges and bound long-line display around the 
     strictEqual(searchPreview(zero[0]).length > 0, true);
     const all = unwrap(searchContents(unwrap(openWorkspace(root)), '.*', true, true)).hits;
     strictEqual(searchPreview(all[0]).map((part) => clone(part.text)).join('').length < 200, true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('broad content searches keep all matches reachable across result pages', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-search-pages-'));
+
+  try {
+    unwrap(writeTextFile(root + '/many.tsr', 'match\n'.repeat(100) + '🦀 match'));
+    const results = unwrap(searchContents(unwrap(openWorkspace(root)), 'match', false, true));
+    strictEqual(searchPageCount(0), 0);
+    strictEqual(searchPageCount(50), 1);
+    strictEqual(searchPageCount(results.hits.length), 3);
+    strictEqual(searchPage(results.hits, 1).length, 50);
+    strictEqual(searchPage(results.hits, 2)[0].line, 51);
+    const tail = searchPage(results.hits, 3);
+    strictEqual(tail.length, 1);
+    strictEqual(tail[0].line, 101);
+    strictEqual(tail[0].matches[0].start, 5);
+    strictEqual(searchPage(results.hits, 4).length, 0);
   } finally {
     unwrap(removeDirAll(root));
   }

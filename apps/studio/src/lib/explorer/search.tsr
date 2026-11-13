@@ -19,6 +19,18 @@ export interface SearchHit {
   matches: SearchRange[];
 }
 
+// Keep native row construction bounded while retaining every match for navigation.
+export function searchPageCount(count: int): int {
+  if (count <= 0) return 0;
+  return 1 + (count - 1) / 50;
+}
+
+export function searchPage(hits: ReadOnly<SearchHit[]>, page: int): SearchHit[] {
+  if (page < 1 || page > searchPageCount(hits.length)) return [];
+  const start = (page - 1) * 50;
+  return hits.slice(start, start + 50);
+}
+
 export interface SearchResults {
   hits: SearchHit[];
   skipped: int;

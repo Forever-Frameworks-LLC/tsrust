@@ -89,6 +89,7 @@
   "Restore pane": "Restaurar painel",
   "Maximize pane": "Maximizar painel",
   "Close": "Fechar",
+  "searchResultPage": "Página {page} de {total}",
   "matchingLines_zero": "Nenhuma linha correspondente",
   "matchingLines_one": "{count} linha correspondente",
   "matchingLines_other": "{count} linhas correspondentes",

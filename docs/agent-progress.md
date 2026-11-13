@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Large content-search result lists
+
+The search panel now builds up to 50 native result rows per page. Existing
+search snapshots and tool results still contain every matching line. The
+compact Kit pagination control and localized page counter appear on multi-page
+results and reset when a search is submitted. The focused search suite passed
+5/5 in 36.28 ms, including 101 matching lines, the last partial page and UTF-8
+offsets. Panel check and 502-key locale validation passed. Total result storage,
+native page clicks and end-to-end frame timing have not been measured.
+
 ## Save conflict comparison freshness
 
 Keep Editing, Reload and Overwrite now require a matching comparison still

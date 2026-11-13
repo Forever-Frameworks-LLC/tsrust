@@ -8,6 +8,7 @@ import {
   InputGroupAddon,
   InputGroupButton,
   Button,
+  Pagination,
   Node,
   Signal,
   signal,
@@ -17,7 +18,7 @@ import {
 } from 'std:ui';
 
 import { SearchActionContext, openSearchResult } from '../../lib/explorer/search-actions.tsr';
-import { SearchHit, searchSnapshot, searchPreview } from '../../lib/explorer/search.tsr';
+import { SearchHit, searchSnapshot, searchPreview, searchPage, searchPageCount } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
@@ -74,6 +75,7 @@ interface ContentSearchState {
   regex: boolean;
   sensitive: boolean;
   hits: SearchHit[];
+  page: int;
   error: string;
   skipped: int;
   searched: boolean;
@@ -90,6 +92,7 @@ function submitContentSearch(search: Signal<ContentSearchState>, run: boolean = 
   next.pending = run && next.query !== '';
   next.searched = false;
   next.hits = [];
+  next.page = 1;
   next.error = '';
   search.set(next);
 }
@@ -168,9 +171,10 @@ export function ContentSearch(
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
-    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
+    query: '', regex: false, sensitive: false, hits: [], page: 1, error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
   });
   const runLabel = computed<string>(() => search.get().running || search.get().pending ? translate("Cancel search") : translate("Run content search"));
+  const pages = computed<int>(() => searchPageCount(search.get().hits.length));
   const summary = computed<string>(() => translateWith('matchingLines', {
     count: search.get().hits.length
   }) + (search.get().skipped > 0 ? ' • ' + translateWith('skippedFiles', {
@@ -257,7 +261,28 @@ export function ContentSearch(
         </Text>
       </View>
       <View className="flex-col grow min-h-0 overflow-y-auto">
-        {...search.get().hits.map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery, font))}
+        {...searchPage(search.get().hits, search.get().page).map((hit: ReadOnly<SearchHit>) => ResultRow(hit, workspace.get().root, workspace, recovery, font))}
+      </View>
+      <View hidden={pages.get() <= 1} className="flex-row shrink-0 items-center">
+        <Text className="grow px-1">
+          {translateWith('searchResultPage', {
+            page: search.get().page, total: pages.get()
+          })}
+        </Text>
+        <Pagination
+          page={search.get().page}
+          total={pages.get() > 0 ? pages.get() : 1}
+          size="small"
+          compact={true}
+          onChange={(page) => {
+            const next = search.get();
+
+            if (page >= 1 && page <= searchPageCount(next.hits.length)) {
+              next.page = page;
+              search.set(next);
+            }
+          }}
+        />
       </View>
     </View>
   );
