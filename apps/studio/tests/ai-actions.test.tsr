@@ -1119,6 +1119,31 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
     strictEqual(opened.excerpt.includes('return 999'), false);
     strictEqual(opened.excerpt.includes('return 73'), true);
     strictEqual(opened.candidates.length, 0);
+    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return 84; }'));
+    const follow = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'What does the same function return now?',
+      false,
+      false,
+      index,
+      question
+    );
+    strictEqual(follow.excerpt.includes('return 84'), true);
+    strictEqual(follow.excerpt.includes('return 999'), false);
+    const redirect = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Use the same function in ./quote.tsr',
+      false,
+      false,
+      index,
+      question
+    );
+    strictEqual(redirect.excerpt.includes('return 999'), true);
+    strictEqual(redirect.excerpt.includes('return 84'), false);
     const ambiguous = editorContext(
       workspace,
       tree,

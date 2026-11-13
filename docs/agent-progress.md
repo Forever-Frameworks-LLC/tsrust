@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Same-function follow-up keeps the qualified path
+
+When a same-function question refers to the preceding completed exchange,
+chat reuses its qualified workspace path unless the current question names
+a visible file. Source text is read again. The action regression also
+redirected the follow-up to ./quote.tsr and verified the old nested file
+was excluded. In the local 1.5B evaluation the open answer.tsr returned 51,
+the requested lib/answer.tsr initially returned 73, then was edited on disk
+to return 84. Chat answered 73 then 84. All 26 cases in the combined action
+and model evaluation passed. Longer reference chains remain unverified.
+
 ## Chat disambiguates same-named files by relative path
 
 A qualified workspace path now suppresses competing implicit active-file

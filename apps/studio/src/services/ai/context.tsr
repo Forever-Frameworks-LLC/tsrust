@@ -583,8 +583,10 @@ export function editorContext(
 
     const visible = new Set<string>();
     const mentionedNames = new Map<string, int>();
-    const qualified = new Set<string>();
-    const qualifiedNames = new Set<string>();
+    let qualified = new Set<string>();
+    const previousPaths = new Set<string>();
+    let qualifiedNames = new Set<string>();
+    const previousNames = new Set<string>();
 
     for (const directory of tree.directories) {
       for (const file of directory.children) {
@@ -601,8 +603,16 @@ export function editorContext(
         if ((path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path)) {
           qualified.add(clone(file.path));
           qualifiedNames.add(clone(file.name));
+        } else if (previousQuestion !== '' && ((path !== file.name && mentionsPath(previousQuestion, path)) || mentionsPath(previousQuestion, './' + path))) {
+          previousPaths.add(clone(file.path));
+          previousNames.add(clone(file.name));
         }
       }
+    }
+
+    if (qualified.size === 0 && mentionedNames.size === 0) {
+      qualified = previousPaths;
+      qualifiedNames = previousNames;
     }
 
     const shadowedActive = active !== undefined && qualifiedNames.has(active.name) && !qualified.has(active.document.path) && !mentionedNames.has(active.name);

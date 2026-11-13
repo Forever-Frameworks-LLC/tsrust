@@ -124,6 +124,12 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
         strictEqual(excerpt.includes('return 51'), false);
         strictEqual(excerpt.includes('return 73'), true);
         strictEqual(answer.trim(), '73');
+        unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 84; }'));
+        const second = await ask(host, updates, 'I updated the file. What does the same function return now? Reply with the integer alone.');
+        const current = host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '';
+        strictEqual(current.includes('return 84'), true);
+        strictEqual(current.includes('return 51'), false);
+        strictEqual(second.trim(), '84');
         return;
       }
 
