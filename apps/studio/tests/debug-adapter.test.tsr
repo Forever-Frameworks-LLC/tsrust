@@ -59,6 +59,17 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
         } else if (reply.command === 'configurationDone') {
           strictEqual(reply.request_seq, 4);
           configured = true;
+        } else if (reply.command === 'threads') {
+          strictEqual(reply.request_seq, 5);
+          const threads = clone(reply.body?.threads) ?? [];
+          const selected = threads.find((entry) => entry.id === thread);
+
+          if (selected === undefined || selected.name === '') throw 'Stopped thread missing from adapter thread list.';
+          await writeFrame(writer, JSON.stringify({
+            seq: 6, type: 'request', command: 'stackTrace', arguments: {
+              threadId: selected.id
+            }
+          }));
         } else if (reply.command === 'stackTrace') {
           const frames = clone(reply.body?.stackFrames) ?? [];
           strictEqual(frames.length > 0, true);
@@ -66,63 +77,63 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
           const address = clone(frames[0].instructionPointerReference) ?? '';
           strictEqual(address !== '', true);
 
-          if (reply.request_seq === 5) {
+          if (reply.request_seq === 6) {
             initialAddress = clone(address);
             await writeFrame(writer, JSON.stringify({
-              seq: 6, type: 'request', command: 'next', arguments: {
+              seq: 7, type: 'request', command: 'next', arguments: {
                 threadId: thread, granularity: 'instruction'
               }
             }));
           } else {
-            strictEqual(reply.request_seq, 7);
+            strictEqual(reply.request_seq, 8);
             strictEqual(address !== initialAddress, true);
             steppedAddress = clone(address);
             await writeFrame(writer, JSON.stringify({
-              seq: 8, type: 'request', command: 'scopes', arguments: {
+              seq: 9, type: 'request', command: 'scopes', arguments: {
                 frameId: frames[0].id
               }
             }));
           }
         } else if (reply.command === 'scopes') {
-          strictEqual(reply.request_seq, 8);
+          strictEqual(reply.request_seq, 9);
           const scopes = clone(reply.body?.scopes) ?? [];
           const registers = scopes.find((scope) => scope.name === 'Registers');
 
           if (registers === undefined || registers.variablesReference <= 0) throw 'Frame has no register scope.';
           await writeFrame(writer, JSON.stringify({
-            seq: 9, type: 'request', command: 'variables', arguments: {
+            seq: 10, type: 'request', command: 'variables', arguments: {
               variablesReference: registers.variablesReference
             }
           }));
         } else if (reply.command === 'variables') {
           const variables = clone(reply.body?.variables) ?? [];
 
-          if (reply.request_seq === 9) {
+          if (reply.request_seq === 10) {
             const group = variables.find((item) => item.name === 'General Purpose Registers');
 
             if (group === undefined || group.variablesReference <= 0) throw 'General purpose registers missing.';
             await writeFrame(writer, JSON.stringify({
-              seq: 10, type: 'request', command: 'variables', arguments: {
+              seq: 11, type: 'request', command: 'variables', arguments: {
                 variablesReference: group.variablesReference
               }
             }));
           } else {
-            strictEqual(reply.request_seq, 10);
+            strictEqual(reply.request_seq, 11);
             const pc = variables.find((item) => item.name === 'pc' || item.name === 'rip');
 
             if (pc === undefined || pc.value === '') throw 'Program counter missing.';
             strictEqual(parseInt(pc.value.split(' ')[0], 16), parseInt(steppedAddress, 16));
             await writeFrame(writer, JSON.stringify({
-              seq: 11, type: 'request', command: 'continue', arguments: {
+              seq: 12, type: 'request', command: 'continue', arguments: {
                 threadId: thread
               }
             }));
           }
         } else if (reply.command === 'next') {
-          strictEqual(reply.request_seq, 6);
+          strictEqual(reply.request_seq, 7);
           stepAcknowledged = true;
         } else if (reply.command === 'continue') {
-          strictEqual(reply.request_seq, 11);
+          strictEqual(reply.request_seq, 12);
           resumed = true;
         }
       } else if (reply.event === 'initialized') {
@@ -135,11 +146,16 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
 
         if (!firstStop) strictEqual(stoppedThread, thread);
         thread = stoppedThread;
-        await writeFrame(writer, JSON.stringify({
-          seq: firstStop ? 5 : 7, type: 'request', command: 'stackTrace', arguments: {
-            threadId: thread
-          }
-        }));
+
+        if (firstStop) {
+          await writeFrame(writer, '{"seq":5,"type":"request","command":"threads"}');
+        } else {
+          await writeFrame(writer, JSON.stringify({
+            seq: 8, type: 'request', command: 'stackTrace', arguments: {
+              threadId: thread
+            }
+          }));
+        }
       } else if (reply.event === 'output' && reply.body?.category === 'stdout') {
         output += reply.body?.output ?? '';
       } else if (reply.event === 'exited') {
