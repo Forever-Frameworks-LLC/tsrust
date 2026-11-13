@@ -247,16 +247,16 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
             }}
           />
         </View>
-        <MessageScroller className="grow min-h-0" contentClassName="py-2" rowClassName="px-2 pb-1">
+        <MessageScroller className="grow min-h-0" contentClassName="py-2" rowClassName="px-3 pb-1">
           {...activeMessages(state.get().history).map(renderMessage)}
         </MessageScroller>
-        <View className="w-full shrink-0 min-w-0 flex-col">
+        <View className="w-full shrink-0 min-w-0 flex-col overflow-hidden">
           <View hidden={state.get().notice === ''} className="px-1 py-2">
             <Text className="text-destructive">
               {localizeError(state.get().notice)}
             </Text>
           </View>
-          <InputGroup size="small" className={'w-full rounded-none border-b-0 border-r-0 ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
+          <InputGroup size="small" className={'w-full rounded-none border-0 border-t ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
             <Textarea
               value={chatDraft(state.get().history)}
               placeholder={message('Ask anything')}

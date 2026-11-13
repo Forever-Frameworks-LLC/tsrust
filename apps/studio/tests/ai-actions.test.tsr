@@ -607,6 +607,8 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
     const model = unwrap(openWorkspace(folder));
     unwrap(openFile(model, path));
 
+    unwrap(writeTextFile(folder + '/example.tsr', 'const replacement = 2;'));
+
     for (const action of ['local_model_cancel', 'local_model_stop']) {
       const requests = new Channel<ModelRequest>(1);
       const updates = new Channel<ModelUpdate>(1);
@@ -616,13 +618,15 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
       const settings = signal(modelConfig());
       const host = context(state, settings, requests);
       host.workspace = signal(clone(model));
-      send(host, 'Edit: Change x to 2');
+      host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+      send(host, 'Edit: Change x to match example.tsr');
       const args = JSON.stringify({
         request: clone(state.get().active)
       });
       strictEqual(denied(invokeModelTool(host, action, args)), true);
       strictEqual(state.get().editTarget !== undefined, true);
       const generation = unwrap(requests.tryReceive());
+      strictEqual(generation.messages?.[0].content.includes('const replacement = 2;') ?? false, true);
       unwrap(invokeModelTool(host, action, args));
       strictEqual(state.get().editTarget === undefined, true);
       const reply = '{"before":"1","after":"2"}';

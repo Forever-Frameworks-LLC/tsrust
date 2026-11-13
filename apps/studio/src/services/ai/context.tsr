@@ -121,14 +121,14 @@ export interface EditorContextResult {
   unavailable: string[];
 }
 
-export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>): EditorContextResult {
+export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>, editing: boolean): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
   const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
   let result = '';
   const active = workspace.files.find((file) => file.document.path === workspace.active);
 
-  if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active)) {
+  if (!editing && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active)) {
     result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + contextExcerpt(unwrap(fromUtf8(active.document.text)));
   }
 
@@ -175,7 +175,7 @@ export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<Dir
           named += 1;
         }
 
-        if (paths.length >= 24 || size + path.length + 1 > 1024) continue;
+        if (editing || paths.length >= 24 || size + path.length + 1 > 1024) continue;
         size += path.length + 1;
         paths.push(path);
       }

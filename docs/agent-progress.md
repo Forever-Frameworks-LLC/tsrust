@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat composer and referenced files in edit requests
+
+The square, full-width composer uses a top separator and clips the native
+focus ring to its container. Message rows have a slightly wider inset.
+Edit requests include excerpts from explicitly named workspace files alongside
+the full active draft. Existing file access and ambiguity checks still apply.
+The AI action suite passed 17/17 in 28.47 ms. Native visual verification and
+project-wide semantic retrieval remain open.
+
 ## Model request rejection and retry
 
 A matching rejected generation settles the transport deadline, records the
