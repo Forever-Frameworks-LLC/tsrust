@@ -49,6 +49,12 @@ test('manual formatter launches the real CLI and applies only its unsaved snapsh
   const worker = formattingWorker(clone(program), requests, replies.sender()).start();
 
   try {
+    const batch = clone(request);
+    batch.mode = 'project-format';
+    await commands.send(batch);
+    const background = await replies.receive().timeout(5000);
+    strictEqual(background.task === undefined, true);
+    strictEqual(background.text, 'const value = 1;\n');
     await commands.send(request);
     const launch = await replies.receive().timeout(5000);
     const task = launch.task;

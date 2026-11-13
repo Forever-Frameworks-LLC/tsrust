@@ -65,7 +65,7 @@ export function canFormat(path: ReadOnly<string>): boolean {
 export function prepareFormatting(workspace: ReadOnly<Workspace>, policy: ReadOnly<EditorPolicy>, authority: ReadOnly<FormattingAuthority>, target: ReadOnly<FormattingTarget>, mode: string): Result<FormattingRequest, string> {
   if (!authority.allowPropose || (mode !== 'proposal' && !authority.allowApply) || (mode === 'save' && !authority.allowSave)) return Err('Formatting is not permitted by the host.');
 
-  if (!['proposal', 'format', 'save', 'focus'].includes(mode)) return Err('Unknown formatting action.');
+  if (!['proposal', 'format', 'project-format', 'save', 'focus'].includes(mode)) return Err('Unknown formatting action.');
   const index = workspace.files.findIndex((file) => file.document.path === target.path);
 
   if (index < 0) return Err('Formatting target is not open in this workspace.');
@@ -84,7 +84,7 @@ export function applyFormatting(workspace: Mutable<Workspace>, result: ReadOnly<
   if (result.error !== '') return Err(clone(result.error));
   const request = result.request;
 
-  if (request.root !== workspace.root || !['format', 'save', 'focus'].includes(request.mode)) return Err('Formatting reply is outside its apply scope.');
+  if (request.root !== workspace.root || !['format', 'project-format', 'save', 'focus'].includes(request.mode)) return Err('Formatting reply is outside its apply scope.');
   const index = workspace.files.findIndex((file) => file.document.path === request.document.path);
 
   if (index < 0) return Err('The formatted document was closed.');

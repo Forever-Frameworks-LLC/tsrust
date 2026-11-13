@@ -44,6 +44,8 @@ export function terminalCommands(): TerminalCommandDefinition[] {
   }, {
     name: 'copy', description: 'Copy the local terminal selection to the system clipboard.', effect: 'clipboard', text: false, lines: false
   }, {
+    name: 'copy-output', description: 'Copy retained terminal history and screen text to the system clipboard.', effect: 'clipboard', text: false, lines: false
+  }, {
     name: 'scroll', description: 'Scroll terminal history by signed lines; positive moves upward.', effect: 'navigation', text: false, lines: true
   }, {
     name: 'restart', description: 'Start a new shell after the old one has exited. Changes the session generation and clears its old grid.', effect: 'input', text: false, lines: false

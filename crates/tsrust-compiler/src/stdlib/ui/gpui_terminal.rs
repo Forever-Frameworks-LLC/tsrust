@@ -120,7 +120,7 @@ impl TerminalView {
     }
     fn mouse(&mut self, button: u8, position: Point<Pixels>, modifiers: Modifiers, released: bool, motion: bool, cx: &mut Context<Self>) -> bool {
         let mode = self.mode();
-        if modifiers.shift || !mode.intersects(TermMode::MOUSE_MODE) {return false;}
+        if self.session.as_ref().is_some_and(|session| session.status().exited) || modifiers.shift || !mode.intersects(TermMode::MOUSE_MODE) {return false;}
         if motion && !mode.intersects(TermMode::MOUSE_MOTION | TermMode::MOUSE_DRAG) {return true;}
         let column = ((position.x-self.bounds.left()).as_f32()/self.cell.width.as_f32()).floor().max(0.) as u32 + 1;
         let row = ((position.y-self.bounds.top()).as_f32()/self.cell.height.as_f32()).floor().max(0.) as u32 + 1;
@@ -179,6 +179,10 @@ impl TerminalView {
             "paste" => self.paste_text(value["text"].as_str().ok_or("Missing terminal paste text")?, cx)?,
             "interrupt" => self.write(vec![3], cx)?,
             "copy" => self.copy(cx),
+            "copy-output" => {
+                let text = self.session.as_ref().ok_or("Terminal session is unavailable")?.output();
+                cx.write_to_clipboard(ClipboardItem::new_string(text));
+            },
             "select" => {
                 let range = value["selection"].as_array().filter(|range| range.len()==4).ok_or("Terminal selection requires four viewport coordinates")?;
                 let coordinates = range.iter().map(|value| value.as_u64().and_then(|value| usize::try_from(value).ok()).ok_or("Invalid terminal selection coordinate")).collect::<Result<Vec<_>,_>>()?;
@@ -239,7 +243,7 @@ impl Render for TerminalView {
             .on_scroll(cx.listener(|this, event: &ScrollEvent, _, cx| {let delta = match event.delta {ScrollDelta::Lines(delta) => delta.y, ScrollDelta::Pixels(delta) => delta.y.as_f32() / this.cell.height.as_f32()}; this.scroll_remainder += delta; let lines = this.scroll_remainder.trunc() as i32; this.scroll_remainder -= lines as f32; if lines != 0 {
                 let reported = this.mouse(if lines>0 {64} else {65}, event.position, event.modifiers, false, false, cx);
                 if reported {for _ in 1..lines.unsigned_abs() {this.mouse(if lines>0 {64} else {65}, event.position, event.modifiers, false, false, cx);}}
-                else if this.mode().contains(TermMode::ALT_SCREEN | TermMode::ALTERNATE_SCROLL) && !event.modifiers.shift {for _ in 0..lines.unsigned_abs() {this.input(if lines>0 {b"\x1bOA".to_vec()} else {b"\x1bOB".to_vec()}, cx);}}
+                else if this.session.as_ref().is_some_and(|session| !session.status().exited) && this.mode().contains(TermMode::ALT_SCREEN | TermMode::ALTERNATE_SCROLL) && !event.modifiers.shift {for _ in 0..lines.unsigned_abs() {this.input(if lines>0 {b"\x1bOA".to_vec()} else {b"\x1bOB".to_vec()}, cx);}}
                 else if let Some(session) = &this.session {session.terminal.lock().scroll_display(Scroll::Delta(lines));}
             } cx.stop_propagation(); cx.notify();}))
             .child(canvas(move |bounds, window, cx| {
@@ -248,7 +252,7 @@ impl Render for TerminalView {
                     let width = window.text_system().em_advance(font_id, font_size).unwrap_or_else(|_| window.text_system().layout_width(font_id, font_size, 'm')).max(px(1.));
                     let height = px((window.text_system().ascent(font_id, font_size).as_f32().abs() + window.text_system().descent(font_id, font_size).as_f32().abs()) * 1.15).max(px(1.));
                     this.bounds = bounds; this.cell = size(width, height);
-                    if let Some(session) = &this.session {session.set_colors(packed(foreground), packed(background)); if !session.status().exited {if let Err(error) = session.resize(TerminalSize(WindowSize {num_cols: (bounds.size.width.as_f32() / width.as_f32()).floor().clamp(2., u16::MAX as f32) as u16, num_lines: (bounds.size.height.as_f32() / height.as_f32()).floor().clamp(1., u16::MAX as f32) as u16, cell_width: width.as_f32().round().clamp(1., u16::MAX as f32) as u16, cell_height: height.as_f32().round().clamp(1., u16::MAX as f32) as u16})) {this.error = error;}}}
+                    if let Some(session) = &this.session {session.set_colors(packed(foreground), packed(background)); if let Err(error) = session.resize(TerminalSize(WindowSize {num_cols: (bounds.size.width.as_f32() / width.as_f32()).floor().clamp(2., u16::MAX as f32) as u16, num_lines: (bounds.size.height.as_f32() / height.as_f32()).floor().clamp(1., u16::MAX as f32) as u16, cell_width: width.as_f32().round().clamp(1., u16::MAX as f32) as u16, cell_height: height.as_f32().round().clamp(1., u16::MAX as f32) as u16})) {this.error = error;}}
                 });
             }, move |bounds, _, window, cx| {
                 let (focus, cell_size, composition, content) = {

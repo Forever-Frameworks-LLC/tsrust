@@ -73,7 +73,7 @@ Usage:
   tsrust format [files/directories] [--check | --write]
   tsrust format --stdin-filepath <source-path> [--options <JSON>]
   tsrust check|format [--progress]   Print a task-start message before processing
-  tsrust check [files/directories] [--json]
+  tsrust check [files/directories] [--json] [--diagnostics-only]
   tsrust check|build|test|format [--project name]   At a tsrust.workspace.json root: every member, clients first
 
 Commands:

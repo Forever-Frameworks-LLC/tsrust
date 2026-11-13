@@ -3,10 +3,11 @@ use std::{collections::BTreeMap, env, fs, io::IsTerminal, path::PathBuf};
 use tsrust_compiler::{Diagnostic, Span, json_string, project_cli::{InputDiagnostic, check_input_diagnostics}};
 
 pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
-    let mut inputs=Vec::new();let mut json=false;let mut progress=false;let mut color="auto".to_owned();
+    let mut inputs=Vec::new();let mut json=false;let mut progress=false;let mut diagnostics_only=false;let mut color="auto".to_owned();
     while let Some(arg)=args.next() {
         match arg.as_str() {
             "--json" if !json => json=true,
+            "--diagnostics-only" if !diagnostics_only => diagnostics_only=true,
             "--progress" if !progress => progress=true,
             "--release" => return Err("--release applies only to build/run/test/dev".into()),
             "--color" => color=args.next().ok_or("--color requires auto, always or never")?,
@@ -24,7 +25,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let mut failed=false;let mut diagnostics=BTreeMap::new();let mut single_result=None;let mut suppressions=BTreeMap::new();
     for path in files {
         let (source,errors)=match fs::read_to_string(&path) {
-            Ok(source)=>{let error=match check_input_diagnostics(&path,&source){Ok(analysis)=>{let warnings=analysis.warnings();if single{single_result=Some(analysis);}warnings},Err(errors)=>errors};(source,error)},
+            Ok(source)=>{let error=match check_input_diagnostics(&path,&source){Ok(analysis)=>{let warnings=analysis.warnings();if single && !diagnostics_only{single_result=Some(analysis);}warnings},Err(errors)=>errors};(source,error)},
             Err(error)=>(String::new(),vec![InputDiagnostic::Single(Diagnostic::new("source-read",error.to_string(),Span::default()))]),
         };
         for error in errors {

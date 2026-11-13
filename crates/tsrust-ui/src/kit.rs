@@ -314,7 +314,8 @@ impl Node {
         let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node: &mut Node, target: u64, event: &str, value: &str) -> Result<bool, String> {
-            if node.collapsed {return Ok(false);}
+            // A mounted terminal can finish while another tab owns the viewport.
+            if node.collapsed && event != "exit" {return Ok(false);}
             if node.identity.get() == target {
                 let Some(kit) = node.kit.as_deref_mut() else {return Ok(false)};
                 let mut handled = false;
@@ -339,6 +340,19 @@ impl Node {
 #[cfg(test)]
 mod tests {
     use super::super::{Child, Node, Signal};
+    #[test]
+    fn hidden_terminal_receives_exit_but_not_navigation() {
+        let terminal = Node::kit("Terminal", vec![], String::new()).unwrap()
+            .with_kit_event("exit", |_| Ok(())).unwrap()
+            .with_kit_event("openLink", |_| Ok(())).unwrap();
+        let mut panel = Node::view(vec![Child::Node(terminal)], String::new()).unwrap()
+            .with_hidden(|| Ok(true)).unwrap();
+        panel.ensure_identities();
+        let id = panel.children[0].identity.get();
+        assert!(!panel.kit_event(id, "openLink", "example").unwrap());
+        assert!(panel.kit_event(id, "exit", "").unwrap());
+    }
+
     #[test]
     fn timer_refresh_distinguishes_idle_bindings_shared_writes_and_commands() {
         use super::super::{commands, state, Node, Signal, Child, TextBinding, TextPart};

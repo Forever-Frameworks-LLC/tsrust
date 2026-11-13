@@ -118,6 +118,12 @@ impl Session {
     pub fn set_colors(&self, foreground: u32, background: u32) { *self.proxy.colors.lock().unwrap() = palette(foreground, background); }
     pub fn colors(&self) -> [Rgb; 269] {*self.proxy.colors.lock().unwrap()}
 
+    pub fn output(&self) -> String {
+        use alacritty_terminal::index::{Column, Point};
+        let term = self.terminal.lock();
+        term.bounds_to_string(Point::new(term.topmost_line(), Column(0)), Point::new(term.bottommost_line(), term.last_column())).trim_end_matches('\n').to_owned()
+    }
+
     pub fn write(&self, bytes: Vec<u8>) -> Result<(), String> {
         if self.thread.is_none() || self.status().exited {return Err("Terminal session has exited".into());}
         self.sender.send(Msg::Input(Cow::Owned(bytes))).map_err(|error| error.to_string())
@@ -132,7 +138,9 @@ impl Session {
         }
         // The parser can request dimensions while holding the terminal lock.
         self.terminal.lock().resize(size);
-        self.sender.send(Msg::Resize(size.0)).map_err(|error| error.to_string())?;
+        if !self.status().exited {
+            self.sender.send(Msg::Resize(size.0)).or_else(|error| if self.status().exited {Ok(())} else {Err(error.to_string())})?;
+        }
         Ok(())
     }
 
@@ -198,7 +206,29 @@ mod tests {
         assert!(visible(&session).contains("answer:hello"));
         assert!(session.wake.len() <= 1);
         assert!(session.write(vec![b'x']).is_err());
+        session.resize(size(110, 40)).unwrap();
+        assert_eq!(session.terminal.lock().screen_lines(), 40);
+        assert!(visible(&session).contains("answer:hello"));
         assert!(session.resize(size(0, 0)).is_err());
+    }
+
+    #[test]
+    fn finished_output_keeps_scrollback_after_resize_and_selection() {
+        use alacritty_terminal::{grid::Scroll, index::{Column, Point, Side}, selection::{Selection, SelectionType}};
+        let shell = tty::Shell::new("/bin/sh".into(), vec!["-c".into(), "printf 'first\nsecond\nthird\nfourth\n'".into()]);
+        let session = Session::start(Path::new("/tmp"), Some(shell), size(30, 2), 100).unwrap();
+        wait(&session, |session| session.status().exited);
+        session.resize(size(30, 3)).unwrap();
+        let mut term = session.terminal.lock();
+        term.scroll_display(Scroll::Top);
+        assert!(term.grid().display_offset() > 0);
+        let first = term.topmost_line();
+        let mut selection = Selection::new(SelectionType::Simple, Point::new(first, Column(0)), Side::Left);
+        selection.update(Point::new(first, Column(4)), Side::Right);
+        term.selection = Some(selection);
+        assert_eq!(term.selection_to_string().as_deref(), Some("first"));
+        drop(term);
+        assert_eq!(session.output(), "first\nsecond\nthird\nfourth");
     }
 
     #[test]

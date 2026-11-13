@@ -61,7 +61,7 @@ function killTerminal(state: Signal<TerminalWorkspace>, id: string, error: Signa
 
 function humanTerminalAction(state: Signal<TerminalWorkspace>, id: string, name: string, error: Signal<string>): void {
   const restart = name === 'restart';
-  const toolName = 'terminal_' + name;
+  const toolName = 'terminal_' + (name === 'page-up' || name === 'page-down' ? 'scroll' : name);
   readTerminal(clone(id), (snapshot) => {
     const authority: TerminalAuthority = {
       sessionId: clone(id), allowRead: true, allowInput: true, allowNavigation: true, allowClipboard: true, allowTerminate: true
@@ -69,6 +69,8 @@ function humanTerminalAction(state: Signal<TerminalWorkspace>, id: string, name:
     const args: TerminalArguments = {
       id: clone(id), generation: snapshot.generation ?? 0
     };
+
+    if (name === 'page-up' || name === 'page-down') args.lines = name === 'page-up' ? (snapshot.rows ?? 1) : -(snapshot.rows ?? 1);
     const changedId = clone(id);
     invokeTerminalTool(authority, clone(toolName), JSON.stringify(args), (result) => {
       error.set(clone(result.error));
@@ -113,7 +115,7 @@ function sessionEnded(state: Signal<TerminalWorkspace>, id: string, workspace: S
       const files = workspace.get();
 
       for (let current = 0; current < files.files.length; current += 1) {
-        if (files.files[current].kind !== 'text' || dirty(files.files[current].document)) continue;
+        if (files.files[current].kind !== 'text' || dirty(files.files[current].document) || !(next.sessions[index].args ?? []).includes(files.files[current].document.path)) continue;
 
         match (readTextFile(files.files[current].document.path, 16 * 1024 * 1024)) {
           Ok(text) => {
@@ -210,6 +212,9 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
   const id = clone(session.id);
   const interruptId = clone(id);
   const copyId = clone(id);
+  const outputId = clone(id);
+  const upId = clone(id);
+  const downId = clone(id);
   const restartId = clone(id);
   const killId = clone(id);
   const ordinal = session.ordinal;
@@ -217,14 +222,19 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
   const name = computed<string>(() => clone(title) !== '' ? translate(clone(title)) : translateWith('Terminal {number}', {
     number: ordinal
   }));
+  const task = session.task !== undefined;
+  const statusId = clone(id);
+  const exited = computed<boolean>(() => state.get().sessions.find((item) => item.id === statusId)?.exited ?? false);
+  const failureId = clone(id);
+  const failed = computed<boolean>(() => state.get().sessions.find((item) => item.id === failureId)?.failed ?? false);
   const textClass = computed<string>(() => 'grow min-w-0 truncate text-[' + font.get().toString() + 'px]');
   return (
     <ListItem value={clone(id)} accessibilityLabel={name.get()} className="py-0 pr-1.5 border-b border-border rounded-none">
-      <View hidden={session.task === undefined || session.exited}>
+      <View hidden={!task || exited.get()}>
         <Spinner size="small" />
       </View>
-      <View hidden={session.task !== undefined && !session.exited}>
-        <Icon name={session.task !== undefined ? (session.failed ?? false) ? 'circle-x' : 'circle-check' : session.exited ? 'circle-stop' : 'terminal'} size="sm" className={(session.failed ?? false) ? 'text-destructive' : ''} />
+      <View hidden={task && !exited.get()}>
+        <Icon name={task ? failed.get() ? 'circle-x' : 'circle-check' : exited.get() ? 'circle-stop' : 'terminal'} size="sm" className={failed.get() ? 'text-destructive' : ''} />
       </View>
       <Text className={textClass.get()}>
         {name.get()}
@@ -234,9 +244,27 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
           <Button icon="ellipsis" variant="ghost" size="xsmall" tooltip={message("Terminal actions")} aria-label={accessibleName("Terminal actions")} />
           <MenuItem
             label={message("Interrupt terminal")}
-            disabled={session.exited}
+            disabled={exited.get()}
             onSelect={() => {
               humanTerminalAction(state, clone(interruptId), 'interrupt', error);
+            }}
+          />
+          <MenuItem
+            label={message("Copy terminal output")}
+            onSelect={() => {
+              humanTerminalAction(state, clone(outputId), 'copy-output', error);
+            }}
+          />
+          <MenuItem
+            label={message("Scroll up one page")}
+            onSelect={() => {
+              humanTerminalAction(state, clone(upId), 'page-up', error);
+            }}
+          />
+          <MenuItem
+            label={message("Scroll down one page")}
+            onSelect={() => {
+              humanTerminalAction(state, clone(downId), 'page-down', error);
             }}
           />
           <MenuItem
@@ -247,7 +275,7 @@ function SessionItem(session: ReadOnly<TerminalSession>, state: Signal<TerminalW
           />
           <MenuItem
             label={message("Restart exited shell")}
-            disabled={!session.exited || session.task !== undefined}
+            disabled={!exited.get() || task}
             onSelect={() => {
               humanTerminalAction(state, clone(restartId), 'restart', error);
             }}
@@ -307,7 +335,7 @@ export function TerminalPanel(
   });
   return (
     <View className={panelClass.get()}>
-      <Resizable className="grow min-h-0 min-w-0">
+      <Resizable className="size-full min-h-0 min-w-0">
         <ResizablePanel minSize={160}>
           <View className="size-full min-h-0">
             <View hidden={!empty.get()} className="p-2">

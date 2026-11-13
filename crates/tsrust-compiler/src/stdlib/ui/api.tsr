@@ -595,7 +595,7 @@ export function controlInput(id: string, action: InputAction, options?: InputAct
 }
 
 /** Native terminal commands. close force-terminates the foreground job and shell; hiding the node keeps them alive. */
-export type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'scroll' | 'close' | 'restart' | 'select';
+export type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'copy-output' | 'scroll' | 'close' | 'restart' | 'select';
 
 /** A command for the explicitly named terminal session. */
 export interface TerminalRequest {

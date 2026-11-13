@@ -76,7 +76,7 @@ export function prepareProjectTask(
 
     if (!canFormat(workspace.active)) return Err('Checking supports saved .tsr and .tsrx documents.');
     return Ok({
-      kind, title: 'Check document (saved)', program, args: ['check', clone(workspace.active), '--color=always', '--progress']
+      kind, title: 'Check document (saved)', program, args: ['check', clone(workspace.active), '--diagnostics-only', '--color=always', '--progress']
     });
   }
 
@@ -138,7 +138,7 @@ export function runProjectTask(
         const pending = queue.get();
         const current = workspace.get();
 
-        for (const file of current.files) enqueueFormatting(pending, current, file.document.path, 'format');
+        for (const file of current.files) enqueueFormatting(pending, current, file.document.path, 'project-format');
         queue.set(pending);
       }
 

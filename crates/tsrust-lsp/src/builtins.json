@@ -23381,8 +23381,8 @@
     },
     {
       "name": "TerminalAction",
-      "signature": "type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'scroll' | 'close' | 'restart' | 'select'",
-      "documentation": "Native terminal operations addressed by session id. focus changes keyboard focus; write sends exact UTF-8 bytes; paste normalizes line endings and uses bracketed paste when requested by the application; interrupt sends Ctrl+C through the PTY; copy copies local selection; scroll moves history by signed lines; close force-terminates foreground job and shell. Hiding a Terminal does not close it. Example: {action: 'interrupt'} stops a foreground program which handles Ctrl+C. Ownership: plain command data. restart starts a fresh shell only after exit; select sets an inclusive viewport cell range without sending PTY input."
+      "signature": "type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'copy-output' | 'scroll' | 'close' | 'restart' | 'select'",
+      "documentation": "Native terminal operations addressed by session id. focus changes keyboard focus; write sends exact UTF-8 bytes; paste normalizes line endings and uses bracketed paste when requested by the application; interrupt sends Ctrl+C through the PTY; copy copies local selection; copy-output copies retained scrollback and screen text; scroll moves history by signed lines; close force-terminates foreground job and shell. Hiding a Terminal does not close it. Example: {action: 'interrupt'} stops a foreground program which handles Ctrl+C. Ownership: plain command data. restart starts a fresh shell only after exit; select sets an inclusive viewport cell range without sending PTY input."
     },
     {
       "name": "TerminalRequest",

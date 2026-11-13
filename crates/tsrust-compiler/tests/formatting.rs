@@ -158,6 +158,9 @@ fn check_retains_contract_details_and_lint_is_removed() {
     support::success(&checked_text);
     assert!(String::from_utf8_lossy(&checked_text.stdout).contains("Check passed."));
     assert!(checked_text.stderr.is_empty());
+    let concise = support::run(support::cli().arg("check").arg(&path).arg("--diagnostics-only"), 10);
+    support::success(&concise);
+    assert_eq!(concise.stdout, b"Check passed.\n");
     let removed=support::run(support::cli().arg("lint").arg(&path),10);
     assert!(!removed.status.success());
     assert!(String::from_utf8_lossy(&removed.stderr).contains("Unknown command: lint"));

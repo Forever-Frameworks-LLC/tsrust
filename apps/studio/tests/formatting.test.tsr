@@ -259,7 +259,7 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
     true,
     false
   ));
-  strictEqual(documentTask.args.join(' '), 'check /project/main.tsrx --color=always --progress');
+  strictEqual(documentTask.args.join(' '), 'check /project/main.tsrx --diagnostics-only --color=always --progress');
   strictEqual(task.program, '/bin/tsrust');
   strictEqual(task.args.join(' '), 'check . --color=always --progress');
   const selected = problemSelection('first\n日本 value', 2, 3);

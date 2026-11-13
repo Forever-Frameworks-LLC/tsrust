@@ -4,6 +4,38 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full Studio goal is owner-paused for thread transfer; required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio terminal and check repairs — November 12
+
+Format Project uses one CLI terminal for unopened disk sources. Open buffers use
+stdin formatting and revision-checked background proposals. Explicit Format Document
+retains its named terminal. A file opened during a disk task is reloaded only when
+clean and included in that task. Mounted hidden terminals receive exit events.
+Session indicators observe current status. Check Document requests diagnostics-only
+text, retaining warnings/errors, normal exit codes and the CLI's existing default.
+
+Live and completed grids resize. Exited programs cannot intercept local mouse
+selection or wheel events. Session actions include page up/down and Copy terminal
+output (retained grid and scrollback), alongside Copy terminal selection.
+Clipboard and navigation grants still apply to the shared tool routes.
+
+Focused evidence: 11/11 Studio workflow/terminal cases in 113.37 ms, 6/6 UI kit
+cases under 0.01 s, 3/3 native PTY cases in 0.06 s, CLI regression 1/1 in 0.90 s.
+Direct check of conversations.tsr printed only progress and success. Locale check
+passed for 487 keys. Native Studio build passed. Logs use the prefix
+/tmp/studio-terminal-repair-. Whole-project format finished with 0 further changes,
+0 snippets, 0 fingerprints. No new model run. Exact real “Ready.” delivery and failed
+8 GiB pressure evidence below stand. Physical clipboard, mouse and divider MAT
+still require computer use. Owner edits to chat-panel.tsrx and editor.tsrx remain
+outside the checkpoint. Recovery journal read-only before supervisor restart
+showed 15 open files and 0 drafts. No editor or settings actions performed.
+
+Current one preview: supervisor 1088, app 1588, LSP 1639.
+Installed CLI/LSP pair built in 3m05s and installed by atomic replacement.
+Dev build 241460 ms; /tmp/studio-terminal-repair-dev.log. Current bundle:
+`/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-1088-1794532530949204000-0/Tsrust Studio.app`.
+Previous supervisor rejected copy-output with its stale embedded API and kept
+its preview alive until the SDK switch. No second supervisor remains.
+
 ## Current continuation — November 12, compiler traversal storage
 
 Response-budget implementation is checkpoint `1be743f6`. Its focused evidence
