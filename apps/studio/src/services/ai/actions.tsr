@@ -294,21 +294,17 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.targetChat = clone(next.history.active);
 
       if (next.history.chats[index].title === '') next.history.chats[index].title = prompt.trim().split('\n')[0].slice(0, 80);
-      next.history.chats[index].messages.push({
-        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: draftContext(next.history)
-      });
-      const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
-        role: clone(message.role), content: messageContent(message)
-      }));
       const workspace = context.workspace;
       const tree = context.projectTree;
-
-      if (context.allowRead && workspace !== undefined && workspace.get().root === next.history.root) {
-        const grounding = editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), draftContext(next.history), prompt);
-
-        if (grounding !== '') messages[messages.length - 1].content += '\n\n' + grounding;
-      }
-
+      const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
+      const attachments = draftContext(next.history);
+      const excerpt = canReadWorkspace && workspace !== undefined ? editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), attachments, prompt) : '';
+      next.history.chats[index].messages.push({
+        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: attachments, workspaceExcerpt: excerpt === '' ? undefined : excerpt
+      });
+      const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
+        role: clone(message.role), content: messageContent(message, canReadWorkspace)
+      }));
       const generation: ModelRequest = {
         kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens, messages
       };

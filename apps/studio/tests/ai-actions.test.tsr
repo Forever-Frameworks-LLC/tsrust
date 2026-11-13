@@ -421,6 +421,35 @@ test('ordinary chat sends workspace paths and the current unsaved editor excerpt
     strictEqual(messages[0].content.includes('large file tail'), false);
     strictEqual(messages[0].content.includes('unrelated suffix'), false);
     strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr');
+    const updates = new Channel<ModelUpdate>(4);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: clone(state.get().active), text: 'The helper reads the input.', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    unwrap(writeTextFile(folder + '/helper.tsr', 'changed on disk'));
+    const restored = unwrap(parseHistory(JSON.stringify(state.get().history), state.get().history.root));
+    const resumed = initialAiState(restored);
+    resumed.phase = 'ready';
+    state.set(resumed);
+    send(host, 'What did that helper read?');
+    const followUp = unwrap(requests.tryReceive()).messages;
+
+    if (followUp === undefined) throw 'missing follow-up';
+    strictEqual(followUp.length, 3);
+    strictEqual(followUp[0].content, messages[0].content);
+    strictEqual(followUp[1].content, 'The helper reads the input.');
+    strictEqual(followUp[2].content.includes('changed on disk'), false);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: clone(state.get().active), text: 'The original input.', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    host.allowRead = false;
+    send(host, 'Continue');
+    const withoutRead = unwrap(requests.tryReceive()).messages;
+
+    if (withoutRead === undefined) throw 'missing restricted follow-up';
+    strictEqual(withoutRead[0].content, 'Explain helper.tsr');
+    strictEqual(withoutRead[4].content, 'Continue');
   } finally {
     removeDirAll(folder);
   }

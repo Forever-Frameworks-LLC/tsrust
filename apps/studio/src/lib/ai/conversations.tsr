@@ -14,6 +14,7 @@ export interface AiMessage {
   request: string;
   status?: string;
   limited?: boolean;
+  workspaceExcerpt?: string;
   context?: ContextFragment[];
 }
 
@@ -112,7 +113,8 @@ export function setDraftContext(history: Mutable<ChatHistory>, fragments: Contex
   }
 }
 
-export function messageContent(message: ReadOnly<AiMessage>): string {
+export function messageContent(message: ReadOnly<AiMessage>, includeWorkspace: boolean): string {
   const context = message.context ?? [];
-  return context.length === 0 ? clone(message.text) : message.text + '\n\nUser-selected file and skill context (snapshots):\n' + JSON.stringify(context);
+  const content = context.length === 0 ? clone(message.text) : message.text + '\n\nUser-selected file and skill context (snapshots):\n' + JSON.stringify(context);
+  return includeWorkspace && message.workspaceExcerpt !== undefined ? content + '\n\n' + message.workspaceExcerpt : content;
 }

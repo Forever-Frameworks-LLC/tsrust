@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Workspace excerpts across chat turns
+
+Automatic excerpts now persist with the originating user turn in the local
+workspace chat history. This supersedes the earlier transient-excerpt behavior.
+Replaying them requires the current read grant and matching workspace root.
+Previously saved messages without this optional field still load. The AI action
+suite passed 11/11 in 15.71 ms, including a changed file, JSON history restore,
+a dependent follow-up and subsequent revocation of the read grant. This checks
+the request received by the model channel. Long-chat storage and inference memory
+have not been measured for this change.
+
 ## Named project file excerpts
 
 Unopened files named in a chat question now use a bounded 2,049-byte prefix read.
