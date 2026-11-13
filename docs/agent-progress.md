@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Submodule conflict inspection
 
+Desktop follow-up: the old Studio opened the gitlink diff, but Stage resolution rejected the directory and the index stayed unresolved. The service now allows directory actions only for the exact indexed gitlink and requires its own working tree for staging. The native fixture selected the incoming commit inside the submodule, then clicked Stage resolution in a rebuilt Studio window. Git reported a single stage-zero 160000 entry for the selected ID and the nested untracked sentinel remained untracked. The focused suite verifies staging, unstaging and ordinary directory rejection; all 14 cases passed in 2.021 seconds. The dev watcher launched PID 3053.
+
 A native Git fixture merges divergent mode-160000 index entries with no local submodule objects. From a nested workspace, Studio listed the unresolved path and returned the exact base, current and incoming commit IDs in stage order. Git's unmerged index records matched byte-for-byte before and after inspection. All 13 Studio Git cases passed in 1.562 seconds of execution. This covers the Git service on macOS. Desktop selection and resolution of a checked-out submodule remain open. The dev watcher retained the running app after the test-only edit.
 
 ## History patch boundaries and native cache housekeeping

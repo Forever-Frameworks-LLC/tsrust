@@ -381,7 +381,30 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
   match (lstat(root + separator() + path)) {
     Ok(info) => {
-      if (!info.isFile && !info.isSymlink) return Err('Choose a regular file.');
+      if (info.isDirectory) {
+        match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--stage', '-z', '--', clone(path)])) {
+          Err(reason) => {
+            return Err(reason);
+          },
+          Ok(entries) => {
+            const rows = entries.split('\0').filter((row) => row !== '');
+
+            if (rows.length === 0 || !rows.every((row) => row.startsWith('160000 ') && row.slice(row.indexOf('\t') + 1) === path)) return Err('Choose a regular file.');
+          }
+        }
+
+        if (action === 'stage') {
+          // An uninitialized submodule directory resolves Git commands against its parent.
+          match (await gitOutput(root, ['-C', clone(path), 'rev-parse', '--show-prefix'])) {
+            Err(reason) => {
+              return Err(reason);
+            },
+            Ok(prefix) => {
+              if (prefix !== '\n') return Err('Choose a regular file.');
+            }
+          }
+        }
+      } else if (!info.isFile && !info.isSymlink) return Err('Choose a regular file.');
     },
     Err(error) => {
       if (error.code !== 'not-found') return Err(clone(error.message));

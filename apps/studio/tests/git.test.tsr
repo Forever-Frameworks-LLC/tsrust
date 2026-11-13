@@ -440,6 +440,51 @@ test('submodule conflicts show both commit pointers without fetching objects or 
   }
 });
 
+test('stage the checked-out submodule commit without recursively staging files', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-submodule-stage-'));
+
+  try {
+    const library = root + '/library';
+    unwrap(mkdirAll(library));
+    strictEqual(await repoGit(root, ['init', '-qb', 'main']), true);
+    strictEqual(await repoGit(library, ['init', '-qb', 'main']), true);
+    strictEqual(await repoGit(library, ['commit', '--allow-empty', '-qm', 'base']), true);
+    strictEqual(await repoGit(root, ['add', 'library']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'base pointer']), true);
+    strictEqual(await repoGit(library, ['commit', '--allow-empty', '-qm', 'selected pointer']), true);
+    const id = unwrap(toUtf8(unwrap(await run('git', ['rev-parse', 'HEAD'], {
+      cwd: clone(library)
+    })).stdout)).trim();
+    unwrap(writeTextFile(library + '/unstaged.txt', 'local edit'));
+    unwrap(await gitRequest(root, {
+      mode: 'status', action: 'stage', path: 'library'
+    }));
+    const index = unwrap(toUtf8(unwrap(await run('git', ['ls-files', '--stage'], {
+      cwd: clone(root)
+    })).stdout));
+    strictEqual(index, '160000 ' + id + ' 0\tlibrary\n');
+    unwrap(await gitRequest(root, {
+      mode: 'status', action: 'unstage', path: 'library'
+    }));
+    strictEqual(unwrap(await readGitView(root, 'staged')), '');
+    unwrap(mkdirAll(root + '/ordinary'));
+    unwrap(writeTextFile(root + '/ordinary/sentinel', 'keep'));
+
+    match (await gitRequest(root, {
+      mode: 'status', action: 'stage', path: 'ordinary'
+    })) {
+      Ok(_) => {
+        throw 'Staged directory recursively';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'Choose a regular file.');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
 test('inspect binary modify/delete conflicts on either side without altering the index', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-binary-conflict-'));
 
