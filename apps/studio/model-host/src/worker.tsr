@@ -53,11 +53,11 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     const latest = starts.length === 0 ? -1 : starts[starts.length - 1];
     const boundary = request.workspaceStart;
 
-    if (boundary !== undefined && latest === messages.length - 1 && latest >= 0 && !unwrap(qwen_prompt_fits(model, conversationPrompt(messages.slice(latest))))) {
+    if ((boundary !== undefined || request.workspaceEnd !== undefined) && latest === messages.length - 1 && latest >= 0 && !unwrap(qwen_prompt_fits(model, conversationPrompt(messages.slice(latest))))) {
       const terms = recallTerms(request.prompt);
-      let shorter = excerptWorkspace(messages[latest].content, boundary, terms, true);
+      let shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, true, request.workspaceEnd);
 
-      if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) shorter = excerptWorkspace(messages[latest].content, boundary, terms);
+      if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, false, request.workspaceEnd);
 
       if (shorter !== '') {
         messages[latest].content = shorter;

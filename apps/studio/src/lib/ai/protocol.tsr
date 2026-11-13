@@ -9,6 +9,7 @@ export type ModelRequest = {
   tokenizerPath?: string;
   messages?: ChatMessage[];
   workspaceStart?: int;
+  workspaceEnd?: int;
 };
 
 export type ModelUpdate = {

@@ -4,6 +4,24 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Grounded question order and previous-answer replay
+
+Ordinary grounded chat sends the retrieved source before the question. The
+new workspaceEnd boundary keeps the question and explicit attachments intact
+when overflowing source is excerpted. The host still accepts workspaceStart
+from older request frames. When a follow-up explicitly says “previous answer”
+and has no new automatic excerpt, Studio supplies the preceding completed
+exchange and its workspace snapshot in the follow-up, with the read grant.
+
+In matched direct-host trials the original layout produced 14 then 14.
+Question-last produced 12 then 12. Repeating the previous question, answer
+and source together on the second turn produced 12 then 19. Removing the
+original exchange from history lost the improvement. Through Studio's real
+chat service the helper variant now passed in 2431 ms, alongside all 21 AI
+action cases. The index-only variant also returned 12 then 19 in 2208 ms.
+This deliberately duplicates context for that explicit reference. Broader
+wording, large follow-ups and held-out reasoning quality remain unqualified.
+
 ## Same-file helper retrieval and cross-function model evaluation
 
 Chat follows bare calls in selected function bodies to simple functions in the

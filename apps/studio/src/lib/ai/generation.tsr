@@ -5,6 +5,7 @@ import { ModelRequest } from './protocol.tsr';
 // Replace only the newest edit turn and exclude incomplete exchanges.
 export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<AiMessage[]>, includeWorkspace: boolean, editPrompt?: string): Result<boolean, string> {
   request.workspaceStart = undefined;
+  request.workspaceEnd = undefined;
   const messages: ChatMessage[] = [];
   const seen = new Set<string>();
   const lastUser = history.findLastIndex((entry) => entry.role === 'user' && entry.status !== 'rejected');
@@ -16,9 +17,21 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
 
     const excerpt = entry.workspaceExcerpt ?? '';
     const editing = editPrompt !== undefined && index === lastUser;
-    const content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace && !seen.has(excerpt));
+    let content = editing && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace && !seen.has(excerpt));
 
-    if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceStart = content.length - excerpt.length;
+    if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
+
+    // An explicit reference to the last answer can use that exchange as its working context.
+    if (index === lastUser && index >= 2 && includeWorkspace && !editing && excerpt === '' && entry.text.toLowerCase().includes('previous answer')) {
+      const question = history[index - 2];
+      const answer = history[index - 1];
+      const source = question.workspaceExcerpt ?? '';
+
+      if (source !== '' && question.role === 'user' && answer.role === 'assistant' && question.request === answer.request && answer.status === 'complete') {
+        content = source + '\n\nPrevious question: ' + question.text + '\nPrevious answer: ' + answer.text + '\n\n' + content;
+        request.workspaceEnd = source.length;
+      }
+    }
 
     if (includeWorkspace && excerpt !== '' && !editing) seen.add(clone(excerpt));
     messages.push({

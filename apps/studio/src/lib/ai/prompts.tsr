@@ -114,15 +114,20 @@ export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<str
 }
 
 // Only automatically attached workspace text can be excerpted on the newest turn.
-export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false): string {
-  if (start < 2 || start >= content.length || terms.size === 0 || !content.startsWith('\n\n', start - 2)) return '';
+export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false, end?: int): string {
+  if (end !== undefined && (end <= 0 || end >= content.length || !content.startsWith('\n\n', end))) return '';
+
+  if (end === undefined && (start < 2 || start >= content.length || !content.startsWith('\n\n', start - 2))) return '';
+
+  if (terms.size === 0) return '';
   const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
   const selected: string[] = [];
   let heading = '';
 
-  const lines = content.slice(start).split('\n');
+  const source = end === undefined ? content.slice(start) : content.slice(0, end);
+  const lines = source.split('\n');
   const fn = unwrap(compile('^(?:export\\s+)?(?:async\\s+)?function\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\('));
-  let offset = start;
+  let offset = 0;
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -143,7 +148,7 @@ export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: R
           const name = unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(line.trim())), capture.start, capture.end))));
 
           if (terms.has(name)) {
-            const body = functionExcerpt(content.slice(lineStart), name, true).trimEnd();
+            const body = functionExcerpt(source.slice(lineStart), name, true).trimEnd();
 
             if (body !== '' && body.startsWith(line.trim()) && body.includes('\n')) {
               const count = body.split('\n').length;
@@ -164,5 +169,7 @@ export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: R
     }
   }
 
-  return selected.length === 0 ? '' : content.slice(0, start) + '[Workspace excerpt]\n' + selected.join('\n');
+  if (selected.length === 0) return '';
+  const excerpt = '[Workspace excerpt]\n' + selected.join('\n');
+  return end === undefined ? content.slice(0, start) + excerpt : excerpt + content.slice(end);
 }
