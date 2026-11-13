@@ -619,13 +619,15 @@ export function editorContext(
   const active = workspace.files.find((file) => file.document.path === workspace.active);
 
   const question = prompt.toLowerCase();
+  // A numeric expression or a numeric continuation already carries its operands in chat.
+  const arithmetic = unwrap(compile('^(?:(?:what is|what is the result of|calculate|compute)\\s+)?[-+( ]*[0-9][-+()0-9.* /%]*[?! .]*$')).isMatch(question.trim()) || ((recentWorkspaceQuestion || hasPreviousAnswer) && unwrap(compile('^(?:(?:ok|and|now|then|please)[ ,]+)*(?:double|triple|halve|add|subtract|multiply|divide)\\b(?:\\s+(?:the|that|it|result|answer|by|from|to|[+-]?[0-9]+(?:\\.[0-9]+)?))*[.!?]*$')).isMatch(question.trim()));
   const answerReference = (recentWorkspaceQuestion || hasPreviousAnswer) && ['previous answer', 'last answer', 'result you just gave', 'answer you just gave'].some((phrase) => question.includes(phrase));
   const keepWholeFile = editing || ['whole file', 'entire file', 'full file', 'full source', 'arquivo inteiro', 'arquivo completo'].some((phrase) => question.includes(phrase));
 
   const useActive = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active);
   const wantsActive = keepWholeFile || question.includes('active file') || question.includes('active draft');
 
-  if (!editing && active !== undefined && useActive && ((!hasReferences && (!answerReference || wantsActive)) || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length)))) {
+  if (!editing && active !== undefined && useActive && ((!hasReferences && ((!answerReference && !arithmetic) || wantsActive)) || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length)))) {
     result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + active.document.text;
   }
 
