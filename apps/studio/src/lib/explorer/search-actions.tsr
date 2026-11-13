@@ -39,7 +39,7 @@ function matchesFile(root: ReadOnly<string>, file: ReadOnly<Entry>, normalized: 
 }
 
 export function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
-  if (search.query.startsWith('>')) return [];
+  if (search.open !== true || search.query.startsWith('>')) return [];
   const normalized = search.query.toLowerCase();
   return search.files.filter((file) => matchesFile(search.root, file, normalized));
 }
@@ -109,6 +109,7 @@ export function closeFileSearch(context: ReadOnly<SearchActionContext>, root: Re
   if (search === undefined || search.get().root !== root) return Err('File search is unavailable in this host.');
   const next = search.get();
   next.open = false;
+  next.files = [];
   search.set(next);
   return Ok();
 }
@@ -132,9 +133,7 @@ export function openFileSearchResult(context: ReadOnly<SearchActionContext>, roo
   }
 
   publishWorkspace(next, context.workspace, context.recovery);
-  const closed = search.get();
-  closed.open = false;
-  search.set(closed);
+  unwrap(closeFileSearch(context, root));
 
   if (context.focusEditor) controlInput(clone(path), 'focus');
   return Ok();

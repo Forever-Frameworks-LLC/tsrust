@@ -4,6 +4,14 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## File palette dismissal
+
+Selecting a file or dismissing the palette releases the file list held in
+palette state. Reopening refreshes that list and retains the query. The explorer
+suite passed 4/4 in 23.33 ms, covering both close paths and reopening a nested
+Unicode filename containing a space with an unsaved draft. This is a state
+lifetime check. Process memory and native keyboard interaction were not measured.
+
 ## Large content-search result lists
 
 The search panel now builds up to 50 native result rows per page. Existing

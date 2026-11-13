@@ -158,7 +158,7 @@ test('filename search shares explicit read presentation and open actions without
 
   try {
     unwrap(mkdirAll(root + '/src'));
-    unwrap(writeTextFile(root + '/src/é-main.tsr', 'const count = 8;'));
+    unwrap(writeTextFile(root + '/src/é main.tsr', 'const count = 8;'));
     unwrap(writeTextFile(root + '/other.txt', 'saved'));
     unwrap(writeTextFile(root + '/hidden.txt', 'ignored'));
     unwrap(writeTextFile(root + '/.ignore', 'hidden.txt\n'));
@@ -174,10 +174,10 @@ test('filename search shares explicit read presentation and open actions without
       workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch
     };
     const query = JSON.stringify({
-      root: clone(context.allowedRoot ?? ''), query: 'SRC/É-MAIN'
+      root: clone(context.allowedRoot ?? ''), query: 'SRC/É MAIN'
     });
     const result = unwrap(invokeEditorTool(context, 'search_files', query));
-    strictEqual(result.includes('é-main.tsr'), true);
+    strictEqual(result.includes('é main.tsr'), true);
     strictEqual(result.includes('other.txt'), false);
     strictEqual(context.fileSearch?.get().open ?? false, false);
     strictEqual(context.workspace.get().files.length, 0);
@@ -185,11 +185,11 @@ test('filename search shares explicit read presentation and open actions without
     deniedFileSearch(context, 'show_command_palette', '{"root":"' + (context.allowedRoot ?? '') + '","allowModal":true}');
     context.allowModal = true;
     unwrap(invokeEditorTool(context, 'show_file_search', query));
-    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É-MAIN');
+    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É MAIN');
     strictEqual(context.fileSearch?.get().files.some((file) => file.name === 'hidden.txt') ?? true, false);
     strictEqual(context.fileSearch?.get().open ?? false, true);
     const target = JSON.stringify({
-      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é-main.tsr'
+      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é main.tsr'
     });
     strictEqual(fileSearchLabel(separator(), separator() + 'first.tsr'), 'first.tsr');
     deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
@@ -201,8 +201,9 @@ test('filename search shares explicit read presentation and open actions without
     context.allowNavigation = true;
     deniedFileSearch(context, 'show_file_search', '{"root":"/other","allowNavigation":true}');
     unwrap(invokeEditorTool(context, 'open_file_search_result', target));
-    strictEqual(context.workspace.get().active.endsWith('/src/é-main.tsr'), true);
+    strictEqual(context.workspace.get().active.endsWith('/src/é main.tsr'), true);
     strictEqual(context.fileSearch?.get().open ?? false, false);
+    strictEqual(context.fileSearch?.get().files.length ?? -1, 0);
     deniedFileSearch(context, 'open_file_search_result', target);
     const next = context.workspace.get();
     next.files[0].document.text = 'unsaved draft';
@@ -211,10 +212,10 @@ test('filename search shares explicit read presentation and open actions without
     unwrap(invokeEditorTool(context, 'show_file_search', JSON.stringify({
       root: clone(context.allowedRoot ?? '')
     })));
-    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É-MAIN');
+    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É MAIN');
     unwrap(invokeEditorTool(context, 'open_file_search_result', target));
     strictEqual(context.workspace.get().files[0].document.text, 'unsaved draft');
-    strictEqual(unwrap(readTextFile((context.allowedRoot ?? '') + '/src/é-main.tsr', 100)), 'const count = 8;');
+    strictEqual(unwrap(readTextFile((context.allowedRoot ?? '') + '/src/é main.tsr', 100)), 'const count = 8;');
     const commandQuery = JSON.stringify({
       root: clone(context.allowedRoot ?? ''), query: 'terminal'
     });
@@ -229,6 +230,7 @@ test('filename search shares explicit read presentation and open actions without
       root: clone(context.allowedRoot ?? '')
     })));
     strictEqual(context.fileSearch?.get().open ?? true, false);
+    strictEqual(context.fileSearch?.get().files.length ?? -1, 0);
     unwrap(invokeEditorTool(context, 'show_file_search', JSON.stringify({
       root: clone(context.allowedRoot ?? ''), query: 'other.txt'
     })));
