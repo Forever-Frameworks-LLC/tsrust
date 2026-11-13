@@ -23,7 +23,9 @@ test('native model host pipes report startup failure and close cleanly', async (
 
   if (program === undefined) throw 'Set STUDIO_MODEL_HOST_BINARY to the built Studio model host.';
   const child = unwrap(spawn(program, [], {
-    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
+    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe', env: [{
+      name: 'TSRUST_TEST_REPORTER', value: 'plain'
+    }]
   }));
   const input = child.takeStdin();
   const output = child.takeStdout();

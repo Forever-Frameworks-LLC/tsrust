@@ -66,6 +66,9 @@ test('sending loads automatically and delivers a queued response to its exact co
   send(host, 'Hello');
   strictEqual(unwrap(requests.tryReceive()).kind, 'start');
   strictEqual(host.state.get().phase, 'starting');
+  const changed = settings.get();
+  changed.aiResponseTokens = 2048;
+  settings.set(changed);
   const request = clone(host.state.get().active);
   const chat = clone(host.state.get().history.active);
   unwrap(replies.trySend({
@@ -74,6 +77,7 @@ test('sending loads automatically and delivers a queued response to its exact co
   pollModel(host, updates);
   const generation = unwrap(requests.tryReceive());
   strictEqual(generation.kind, 'generate');
+  strictEqual(generation.maxTokens, 1024);
   strictEqual(generation.id, request);
   strictEqual(generation.messages?.length ?? 0, 1);
   strictEqual(host.state.get().phase, 'generating');

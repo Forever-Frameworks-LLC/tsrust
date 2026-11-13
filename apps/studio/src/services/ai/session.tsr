@@ -31,7 +31,7 @@ async function forward(writer: Writer, first: ModelRequest, requests: ReadOnly<C
 
   while (true) {
     let request: ModelRequest = {
-      kind: '', id: '', prompt: '', maxTokens: 32
+      kind: '', id: '', prompt: '', maxTokens: 0
     };
 
     if (busy) {
@@ -73,7 +73,7 @@ async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>, c
 
     if (update.kind === 'ready' || update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') {
       await controls.send({
-        kind: '__settled', id: clone(update.id), prompt: '', maxTokens: 32
+        kind: '__settled', id: clone(update.id), prompt: '', maxTokens: 0
       });
     }
 

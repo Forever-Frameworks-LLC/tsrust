@@ -478,5 +478,9 @@
   "This conversation is too long for the selected model. Start a new chat or remove some context.": "A conversa é longa demais para o modelo selecionado. Inicie outra conversa ou remova parte do contexto.",
   "The message and context are too large for the selected model. Shorten them and try again.": "A mensagem e o contexto são grandes demais para o modelo selecionado. Reduza-os e tente novamente.",
   "This message is too large. Shorten it before sending.": "A mensagem é grande demais. Reduza-a antes de enviar.",
-  "Enter a message before sending.": "Digite uma mensagem antes de enviar."
+  "Enter a message before sending.": "Digite uma mensagem antes de enviar.",
+  "Response token budget": "Limite de tokens por resposta",
+  "Maximum tokens per response (1–4096). New requests use this budget; context, output-byte and time limits still apply.": "Máximo de tokens por resposta (1–4096). Novas solicitações usam este limite; os limites de contexto, bytes de saída e tempo continuam válidos.",
+  "aiResponseTokens must be between 1 and 4096.": "aiResponseTokens deve estar entre 1 e 4096.",
+  "An explicit response token budget is required.": "É necessário um limite explícito de tokens por resposta."
 }

@@ -37,8 +37,11 @@ with an exact arithmetic oracle and strict embedded/external tokenizer agreement
 `inference.tsr` is a separate Tsrust worker entry
 that prints its buffered result; it does not stream tokens or execute tools.
 
-The inference boundary enforces exploratory limits of 2,048 input and 32 output
-tokens. These are admission limits, not Studio's final context or quality gates.
+The inference boundary accepts 2,048 input tokens and 1–4,096 output tokens,
+with a 16 KiB UTF-8 output ceiling and a cooperative 180-second deadline.
+Context allocation follows the prompt plus output budget and cannot exceed the
+model training context. Studio defaults to 1,024 response tokens through Settings.
+These safeguards do not qualify Studio's final context, quality or resource gates.
 Cancellation is checked between model operations, and owners drop on return.
 Hard deadlines and whole-machine memory supervision belong to the invoking
 proof run; do not treat these cooperative checks as crash/process isolation.
@@ -67,8 +70,9 @@ through its caller-owned worker. It performs no tools or workspace writes.
 Native thread code only evaluates tokens. Ordinary native cases verify prefix/
 final equality, cancellation and invalid-request recovery, abandonment/backend
 reload, real worker routing/shutdown and cancellation while blocked idle.
-Prefix detokenization is quadratic within the existing 32-token admission limit;
-an incremental decoder is required before increasing that limit. This remains
+Token pieces decode incrementally; incomplete UTF-8 bytes wait for the next piece.
+Malformed or truncated UTF-8 fails explicitly. Bounded prefix frames retain the
+existing worker protocol and cancellation-aware backpressure. This remains
 an experimental engine/worker boundary, not the editor's agent or a coding-quality
 qualification.
 

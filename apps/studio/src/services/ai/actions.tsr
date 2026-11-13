@@ -122,7 +122,7 @@ function startRequest(context: ReadOnly<AiContext>): Result<ModelRequest, string
 
   if (config.aiModelPath === '' || config.aiTokenizerPath === '') return Err('Choose a model and tokenizer in Application → Settings → AI before sending.');
   return Ok({
-    kind: 'start', id: '', prompt: '', maxTokens: 32, modelPath: clone(config.aiModelPath), tokenizerPath: clone(config.aiTokenizerPath)
+    kind: 'start', id: '', prompt: '', maxTokens: 0, modelPath: clone(config.aiModelPath), tokenizerPath: clone(config.aiTokenizerPath)
   });
 }
 
@@ -234,7 +234,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
     }
 
     let request: ModelRequest = {
-      kind: '', id: '', prompt: '', maxTokens: 32
+      kind: '', id: '', prompt: '', maxTokens: 0
     };
 
     if (name === 'local_model_send') {
@@ -273,7 +273,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         role: clone(message.role), content: messageContent(message)
       }));
       const generation: ModelRequest = {
-        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: 32, messages
+        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens, messages
       };
 
       if (length(unwrap(fromUtf8(JSON.stringify(generation)))) > 128 * 1024) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');

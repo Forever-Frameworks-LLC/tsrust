@@ -27,14 +27,14 @@ function resource(name: string): string {
 }
 
 test('invalid generation limits reject before reading local resources', () => {
-  for (const count of [0, -1, 33]) {
+  for (const count of [0, -1, 4097]) {
     const worker = unwrap(spawn((task) => qwen_generate(task, '/missing/model', '/missing/tokenizer', 'test', count)));
     let rejected = false;
 
     match (unwrap(worker.join())) {
       Ok(_) => {},
       Err(error) => {
-        rejected = error === 'admission max_tokens must be 1..=32';
+        rejected = error === 'max_tokens must be 1..=4096';
       }
     }
 
@@ -67,7 +67,7 @@ test('resident model handles independent requests without loading twice', () => 
         throw 'invalid request succeeded';
       },
       Err(error) => {
-        strictEqual(error, 'admission max_tokens must be 1..=32');
+        strictEqual(error, 'max_tokens must be 1..=4096');
       }
     }
 
@@ -136,7 +136,7 @@ test('streaming model returns prefixes, recovers cancellation and joins on drop'
       strictEqual(cancelled.error, 'cancelled');
       strictEqual(cancelled.generation.kind, 'none');
       const invalid = drain(unwrap(qwen_stream_start(cancelled.model, 'test', 0)));
-      strictEqual(invalid.error, 'admission max_tokens must be 1..=32');
+      strictEqual(invalid.error, 'max_tokens must be 1..=4096');
       const second = drain(unwrap(qwen_stream_start(invalid.model, chatPrompt('Reply with only the result of 3 + 4.'), 32)));
       strictEqual(second.error, '');
       strictEqual(second.generation.kind, 'some');

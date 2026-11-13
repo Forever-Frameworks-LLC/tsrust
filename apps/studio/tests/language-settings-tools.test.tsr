@@ -110,3 +110,44 @@ test('AI language settings bind the workspace and support absent settings withou
     unwrap(removeDirAll(root));
   }
 });
+
+
+test('AI response budgets use guarded settings proposals and never write directly', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-ai-settings-'));
+
+  try {
+    const path = join(root, 'settings.json');
+    const before = formatConfig(defaultConfig());
+    unwrap(writeTextFile(path, before));
+    const messages = new Channel<LanguageMessage>(1);
+    const requests = messages.sender();
+    const context: LanguageToolContext = {
+      root: '/workspace', generation: 1, status: '', problems: [], allowRead: true, allowRestart: false, settingsPath: clone(path)
+    };
+    const payload = '{"root":"/workspace","responseTokens":2048,"allowSettingsRead":true,"allowSettingsProposal":true}';
+    strictEqual(languageTools().some((tool) => tool.name === 'propose_ai_response_budget'), true);
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_ai_response_budget', payload)), true);
+    context.allowSettingsRead = true;
+    strictEqual(unwrap(invokeLanguageTool(context, requests, 'ai_response_configuration', '{"root":"/workspace"}')), '{"responseTokens":1024}');
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_ai_response_budget', payload)), true);
+    context.allowSettingsProposal = true;
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_ai_response_budget', '{"root":"/other","responseTokens":2048}')), true);
+    strictEqual(rejected(invokeLanguageTool(context, requests, 'propose_ai_response_budget', '{"root":"/workspace","responseTokens":4097}')), true);
+    const proposal = JSON.parse<SettingsProposal>(unwrap(invokeLanguageTool(context, requests, 'propose_ai_response_budget', payload)));
+    strictEqual(unwrap(parseConfig(proposal.after)).aiResponseTokens, 2048);
+    strictEqual(unwrap(readTextFile(path)), before);
+    unwrap(writeTextFile(path, before + '\n'));
+    let stale = false;
+
+    match (saveConfig(path, proposal.after, proposal.before)) {
+      Err(_) => {
+        stale = true;
+      },
+      Ok(_) => {}
+    }
+
+    strictEqual(stale, true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

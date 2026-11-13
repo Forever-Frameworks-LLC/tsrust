@@ -980,3 +980,23 @@ critical, so the owned model was stopped. No unchanged inference replay is plann
 The engine still limits responses to32tokens and2048prompt tokens; this is not
 useful-agent/8GiB qualification. Profile analysis/model allocations next, then an
 incremental decoder and guarded agent tools. No fake image/tool controls are shown.
+
+### Response-budget continuation — November 12
+
+Implemented persisted `aiResponseTokens` (default1024, integer1–4096) in categorized
+AI Settings and the shared guarded settings-proposal route. Requests snapshot that
+budget. Native Llama generation now decodes token bytes incrementally, rejects
+invalid/truncated UTF-8, bounds output bytes/serialized frames, checks the trained
+context and uses a cooperative deadline during output backpressure. This supersedes
+the prior current32-token implementation statement; historical acceptance is retained.
+
+Focused settings/chat/settings-tool suites pass16/16. Native decoder/transport
+controls pass, native invalid-budget rejection passes without reading model assets,
+and the rebuilt real-host startup-failure/EOF protocol passes. Exact setup/execution
+times, source/binary identities and limits are in the current section of
+[the continuation record](../agent-progress.md). No inference was replayed.
+
+The new Settings control's live MAT remains pending after computer-use tools became
+unavailable. Compiler/LSP traversal allocations and runtime-cache extraction remain
+open performance work. The earlier critical-pressure failure is still failed;
+long-response quality, combined-editor memory and full8GiB qualification remain open.

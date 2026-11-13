@@ -4,6 +4,73 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full Studio goal is owner-paused for thread transfer; required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Current continuation — November 12, response budget and memory work
+
+This section supersedes the transfer's immediate-next-step and process identities;
+the transfer and all earlier acceptance remain historical evidence. The old goal
+remains paused as requested. One writer is continuing the owner's direct request.
+Full Studio acceptance remains incomplete. Owner drafts, recovery files, chat
+history and settings have not been saved, discarded or rewritten through the UI.
+
+- Replaced the hardcoded Studio generation budget with persisted `aiResponseTokens`:
+  default 1024, integer range 1–4096, legacy-file migration, categorized AI Settings
+  NumberInput and shared `commitSettings` validation/conflict handling. Sending
+  snapshots the budget; later settings changes do not retarget queued requests.
+  Control messages use zero rather than a pretend generation budget.
+- Registered `ai_response_configuration` and `propose_ai_response_budget` through
+  the existing guarded settings-tool dispatch. Proposals require independent host
+  read/proposal grants and explicit root, validate through the same config parser,
+  and return before/after text without writing or approving their own change.
+- Llama now converts each token once with the pinned token-piece byte API and a
+  reusable piece buffer. The incremental decoder retains at most three incomplete
+  UTF-8 bytes, rejects malformed/truncated sequences, and retains bounded prefixes.
+  Removed the generated-token vector and repeated full-prefix detokenization.
+  Prompt plus output budget sizes the context, checked against `n_ctx_train()`.
+  Native safeguards: 2048 prompt tokens/65536 prompt bytes, 4096 output tokens,
+  16384 output bytes, cooperative 180-second deadline including queue backpressure.
+  EOS/length stop reasons and cancellation/model ownership stay intact. The host
+  checks serialized 128 KiB output frames. Candle's separate admission is unchanged.
+- Focused Studio suites PASS16/16; setup/build35254.0ms, plain reporter did not
+  retain individual execution durations. Log `/tmp/studio-response-tests.log`.
+  Decoder/transport native host witness PASS1/1 (four internal controls),0.26s
+  execution,2m37s Cargo setup; `/tmp/studio-output-native-tests.log`. It compiles
+  the actual decoder/helper source once without native model dependencies or weights.
+  Budget-rejection runner PASS1/1,4inference tests explicitly skipped;0.280584ms
+  selected test,6204.417542ms setup; `/tmp/studio-response-budget-native.log`.
+  Actual rebuilt host protocol PASS1/1,29.42525ms test,2240.891458ms setup;
+  `/tmp/studio-response-host-tests.log`. An initial JSON-reporter failure exposed
+  inherited `TSRUST_TEST_REPORTER=json` wrapping child stdout. The protocol test
+  now explicitly gives its child `plain`; real raw error/stopped frames were valid.
+- Model-host normal project build exposed its invalid `../../../target` config
+  output. It now uses a project-relative output; explicit build `-o` still installs
+  at the existing root target. Runtime caches are ignored under model-host/target;
+  Cargo continues using the single repository target. Real host rebuilt and
+  atomically installed SHA2568eec6e66c93081955c23f5820be5e775951e03f01471a6785c83e17e24f1122e.
+  No inference/model loading was replayed. No CLI/LSP rebuild was necessary.
+- Memory investigation: confirmed runtime-cache hits copy/unpack into private
+  per-build directories in runtime_build.rs, so the earlier unpack sample is
+  consistent with the current path, not evidence of a cache miss. No checksum,
+  path/symlink, offline or Windows-import safety was weakened. Confirmed regional
+  error annotation traverses every checked function and materializes expression
+  vectors. Shapes.matches deliberately checks in-place records/unions/families;
+  its guards remain unchanged. LSP scan caches retain observed inputs and deduplicate
+  equal source Arcs; no demonstrated leak or measured performance improvement.
+  One active-build machine observation: swap5314.31MiB, memory_pressure free39%.
+  This is not quiet baseline or 8GiB qualification. Earlier critical-pressure
+  failure remains failed. Next memory work: remove unnecessary traversal storage
+  without losing order/coverage, then measure affected analysis before inference.
+- Prior supervisor66933 and replacement77935 disappeared during chat interruptions;
+  no kill was issued. Rediscovery proved no preview remained. Started detached
+  supervisor86834 (parent1), cwd apps/studio, real-host override retained,
+  log `/tmp/studio-response-dev.log`; it is currently rebuilding, no app PID yet.
+  Do not launch another supervisor. Rediscover live identities before acting.
+  Computer-use tools became unavailable after read-only app inventory; new Settings
+  control MAT and recovered-draft verification remain pending. Do not claim them.
+- Locale checker PASS2catalogs/484keys. Whole-project formatter completed3files
+  then1file,0documentation snippets/0fingerprints. Final checkpoint formatting
+  completed1file,0documentation snippets/0fingerprints after the protocol-test edit. No full matrix, benchmarks,
+  push, tag, release or model-resource qualification has been performed.
+
 ## Thread transfer — 2026-11-12, authoritative restart instructions
 
 The owner requested a complete handoff to a fresh ChatGPT/Codex thread to reduce

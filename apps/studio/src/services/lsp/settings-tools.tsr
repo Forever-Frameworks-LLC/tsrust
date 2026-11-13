@@ -15,10 +15,15 @@ export interface LanguageSettingsAuthority {
 interface ConfigurationArguments {
   root: string;
   servers?: LanguageServer[];
+  responseTokens?: int;
 }
 
 export function languageSettingsTools(): EditorTool[] {
   return [{
+    name: 'ai_response_configuration', description: 'Read the persisted local AI response token budget for the explicit workspace. Requires the host settings-read grant. Does not load a model or write settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'propose_ai_response_budget', description: 'Return a validated before/after response-budget settings proposal (1–4096 tokens). Requires host settings-read and proposal grants. Never writes or approves settings; apply only through review against the unchanged baseline.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"responseTokens":{"type":"integer","minimum":1,"maximum":4096}},"required":["root","responseTokens"]}'
+  }, {
     name: 'language_server_configuration', description: 'Read registered external language servers and the Settings templates from the trusted global settings file and shared catalog. Requires a separate host settings-read grant and explicit workspace root. Does not read arbitrary paths or launch servers.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
   }, {
     name: 'propose_language_servers', description: 'Return a validated before/after global settings proposal for external language servers. Requires host settings-read and proposal grants. Uses the same configuration validation as Settings, including executable argv, file associations and conflicts. Never writes, approves, restarts or launches a process. The host must review executable changes and apply only against the unchanged before text and file presence.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"servers":{"type":"array","items":{"type":"object","required":["id","name","program","arguments","languages","files"]}}},"required":["root","servers"]}'
@@ -54,15 +59,28 @@ export function invokeLanguageSettingsTool(authority: ReadOnly<LanguageSettingsA
 
     const config = present ? unwrap(parseConfig(before)) : defaultConfig();
 
+    if (name === 'ai_response_configuration') return Ok(JSON.stringify({
+      responseTokens: config.aiResponseTokens
+    }));
+
     if (name === 'language_server_configuration') return Ok(JSON.stringify({
       servers: config.languageServers, presets: languagePresets()
     }));
 
     if (!authority.allowSettingsProposal) return Err('Language settings proposals are not permitted by the host.');
-    const servers = args.servers;
 
-    if (servers === undefined) return Err('Explicit language server definitions are required.');
-    config.languageServers = clone(servers);
+    if (name === 'propose_ai_response_budget') {
+      const tokens = args.responseTokens;
+
+      if (tokens === undefined) return Err('An explicit response token budget is required.');
+      config.aiResponseTokens = tokens;
+    } else {
+      const servers = args.servers;
+
+      if (servers === undefined) return Err('Explicit language server definitions are required.');
+      config.languageServers = clone(servers);
+    }
+
     const after = formatConfig(unwrap(parseConfig(formatConfig(config))));
     return Ok(JSON.stringify({
       path: clone(path), present, before, after

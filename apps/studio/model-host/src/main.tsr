@@ -1,3 +1,4 @@
+import { fromUtf8, length } from 'std:bytes';
 import { stdin, readLineStdin } from 'std:io';
 import { Channel, spawn } from 'std:threads';
 
@@ -13,7 +14,10 @@ function main(): void {
   const output = unwrap(spawn((): void => {
     while (true) {
       const update: ModelUpdate = unwrap(updates.receive());
-      console.log(JSON.stringify(update));
+      const frame = JSON.stringify(update);
+
+      if (length(unwrap(fromUtf8(frame))) > 128 * 1024) throw 'Model response exceeds 128 KiB.';
+      console.log(frame);
     }
   }));
   const input = stdin();

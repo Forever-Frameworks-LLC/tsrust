@@ -222,3 +222,39 @@ test('language servers persist explicit file associations and reject conflicting
 
   strictEqual(empty, true);
 });
+
+
+test('response budgets migrate, round trip and reject invalid values without writing', () => {
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).aiResponseTokens, 1024);
+  const root = unwrap(createTempDir(undefined, 'studio-response-budget-'));
+
+  try {
+    const path = root + '/settings.json';
+    const config = defaultConfig();
+
+    for (const tokens of [1, 1024, 4096]) {
+      config.aiResponseTokens = tokens;
+      unwrap(saveConfig(path, formatConfig(config)));
+      strictEqual(unwrap(loadConfig(path)).aiResponseTokens, tokens);
+    }
+
+    const before = unwrap(readTextFile(path));
+
+    for (const value of ['0', '-1', '4097', '1.5', '"1024"', 'null']) {
+      const text = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"aiResponseTokens":' + value + '}';
+      let rejected = false;
+
+      match (saveConfig(path, text)) {
+        Err(_) => {
+          rejected = true;
+        },
+        Ok(_) => {}
+      }
+
+      strictEqual(rejected, true);
+      strictEqual(unwrap(readTextFile(path)), before);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

@@ -27,8 +27,59 @@ fn check_cancel(task: &TaskContext) -> Result<(), String> {
     if task.cancellation_requested() { Err("cancelled".into()) } else { Ok(()) }
 }
 
+const MAX_OUTPUT_TOKENS: i64 = 4096;
+// A 16 KiB UTF-8 prefix fits the 128 KiB JSON frame even with control-byte escaping.
+const MAX_OUTPUT_BYTES: usize = 16 * 1024;
+
+#[derive(Default)]
+struct OutputDecoder {
+    text: String,
+    pending: Vec<u8>,
+}
+
+impl OutputDecoder {
+    fn push(&mut self, bytes: &[u8]) -> Result<bool, String> {
+        if self.text.len() + self.pending.len() + bytes.len() > MAX_OUTPUT_BYTES {
+            return Err("generated output exceeds 16384 UTF-8 bytes".into());
+        }
+        self.pending.extend_from_slice(bytes);
+        let valid = match std::str::from_utf8(&self.pending) {
+            Ok(text) => text.len(),
+            Err(error) if error.error_len().is_none() => error.valid_up_to(),
+            Err(_) => return Err("generated text is not valid UTF-8".into()),
+        };
+        self.text.push_str(std::str::from_utf8(&self.pending[..valid]).expect("validated prefix"));
+        self.pending.drain(..valid);
+        Ok(valid > 0)
+    }
+
+    fn finish(self) -> Result<String, String> {
+        if !self.pending.is_empty() { return Err("generated text ends with incomplete UTF-8".into()); }
+        Ok(self.text)
+    }
+}
+
+fn validate_budget(max_tokens: i64) -> Result<(), String> {
+    if !(1..=MAX_OUTPUT_TOKENS).contains(&max_tokens) {
+        return Err("max_tokens must be 1..=4096".into());
+    }
+    Ok(())
+}
+
+fn publish_prefix(sender: &mpsc::SyncSender<String>, bytes: &[u8], check: &dyn Fn() -> Result<(), String>) -> Result<(), String> {
+    let mut text = std::str::from_utf8(bytes).map_err(|error| error.to_string())?.to_owned();
+    loop {
+        check()?;
+        match sender.try_send(text) {
+            Ok(()) => return Ok(()),
+            Err(TrySendError::Full(value)) => { text = value; std::thread::sleep(std::time::Duration::from_millis(1)); },
+            Err(TrySendError::Disconnected(_)) => return Err("cancelled".into()),
+        }
+    }
+}
+
 fn request_tokens(tokenizer: &Tokenizer, prompt: &str, max_tokens: i64) -> Result<Vec<u32>, String> {
-    if !(1..=32).contains(&max_tokens) { return Err("admission max_tokens must be 1..=32".into()); }
+    validate_budget(max_tokens)?;
     if prompt.len() > 65536 { return Err("admission prompt exceeds 65536 UTF-8 bytes".into()); }
     let expected = tokenizer.encode(prompt, true).map_err(|error| error.to_string())?;
     if expected.get_ids().is_empty() || expected.get_ids().len() > 2048 { return Err("admission context must be 1..=2048 tokens".into()); }
@@ -58,7 +109,8 @@ pub fn qwen_load(task: &TaskContext, model_path: &str, tokenizer_path: &str) -> 
 /// Generate from an already loaded model without loading the model or tokenizer again.
 /// Each call has a fresh context, strict tokenizer agreement and no conversation state.
 /// Exclusive borrowing serializes context creation, which the pinned SDK cannot safely parallelize.
-/// Limits remain 1..=2048 prompt tokens, 65536 UTF-8 bytes and 1..=32 output tokens.
+/// Limits: 1..=2048 prompt tokens, 65536 prompt bytes, 1..=4096 output tokens,
+/// 16384 output bytes and 180 seconds. Prompt plus budget must fit the trained context.
 /// Returns buffered text/counts/stop reason; cancellation returns an error without partial text.
 pub fn qwen_generate_loaded(task: &TaskContext, model: &mut QwenModel, prompt: &str, max_tokens: i64) -> Result<Generation, String> {
     check_cancel(task)?;
@@ -71,7 +123,7 @@ pub fn qwen_generate_loaded(task: &TaskContext, model: &mut QwenModel, prompt: &
 pub fn qwen_generate(task: &TaskContext, model_path: &str, tokenizer_path: &str, prompt: &str, max_tokens: i64) -> Result<Generation, String> {
     check_cancel(task)?;
     // Reject cheap invalid requests before touching either artifact, preserving the original contract.
-    if !(1..=32).contains(&max_tokens) { return Err("admission max_tokens must be 1..=32".into()); }
+    validate_budget(max_tokens)?;
     if prompt.len() > 65536 { return Err("admission prompt exceeds 65536 UTF-8 bytes".into()); }
     let tokenizer = Tokenizer::from_file(tokenizer_path).map_err(|error| error.to_string())?;
     let expected = request_tokens(&tokenizer, prompt, max_tokens)?;
@@ -79,7 +131,7 @@ pub fn qwen_generate(task: &TaskContext, model_path: &str, tokenizer_path: &str,
     generate(&||check_cancel(task), &mut model, prompt, max_tokens, &expected, None)
 }
 
-fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, prompt: &str, max_tokens: i64, expected: &[u32], mut publish: Option<&mut dyn FnMut(&[u8]) -> Result<(), String>>) -> Result<Generation, String> {
+fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, prompt: &str, max_tokens: i64, expected: &[u32], mut publish: Option<&mut dyn FnMut(&[u8], &dyn Fn() -> Result<(), String>) -> Result<(), String>>) -> Result<Generation, String> {
     check()?;
     let model = &owner.model;
     let backend = &owner.backend;
@@ -88,7 +140,16 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
     if tokens.len() != expected.len() || tokens.iter().zip(expected).any(|(token, expected)| token.0 < 0 || token.0 as u32 != *expected) {
         return Err("embedded and external tokenizer IDs differ".into());
     }
-    let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(2080))
+    let context_tokens = tokens.len() as u32 + max_tokens as u32;
+    if context_tokens > model.n_ctx_train() { return Err("prompt plus response budget exceeds the model context".into()); }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(180);
+    let check_outer = check;
+    let check = || {
+        check_outer()?;
+        if std::time::Instant::now() >= deadline { return Err("generation exceeded its 180-second deadline".into()); }
+        Ok(())
+    };
+    let params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(context_tokens))
         .with_n_batch(2048).with_n_ubatch(128).with_n_threads(2).with_n_threads_batch(2);
     let mut context = model.new_context(backend, params).map_err(|error| error.to_string())?;
     let mut batch = LlamaBatch::new(2048, 1);
@@ -98,26 +159,29 @@ fn generate(check: &dyn Fn() -> Result<(), String>, owner: &mut QwenModel, promp
     check()?;
     context.decode(&mut batch).map_err(|error| error.to_string())?;
     let mut sampler = LlamaSampler::greedy();
-    let mut generated = Vec::new();
+    let mut generated = 0usize;
+    let mut decoder = OutputDecoder::default();
+    let mut piece = Vec::with_capacity(32);
     let mut stop = "length";
     for _ in 0..max_tokens {
         check()?;
         let token = sampler.sample(&context, batch.n_tokens() - 1);
         sampler.accept(token);
         if vocab.is_eog(token) { stop = "eos"; break; }
-        generated.push(token);
-        if let Some(publish) = publish.as_mut() {
-            // shortcut: bounded 32-token admission detokenizes prefixes; use an incremental decoder before raising this limit.
-            publish(&vocab.detokenize(&generated, false, true))?;
+        generated += 1;
+        piece.clear();
+        vocab.token_to_piece_into(token, &mut piece, false, None);
+        if decoder.push(&piece)? {
+            if let Some(publish) = publish.as_mut() { publish(decoder.text.as_bytes(), &check)?; }
         }
-        if generated.len() == max_tokens as usize { break; }
+        if generated == max_tokens as usize { break; }
         batch.clear();
-        batch.add(token, (tokens.len() + generated.len() - 1) as i32, &[0], true).map_err(|error| error.to_string())?;
+        batch.add(token, (tokens.len() + generated - 1) as i32, &[0], true).map_err(|error| error.to_string())?;
         context.decode(&mut batch).map_err(|error| error.to_string())?;
     }
     check()?;
-    let text = String::from_utf8(vocab.detokenize(&generated, false, true)).map_err(|error| error.to_string())?;
-    Ok(Generation { text, input_tokens: tokens.len() as i64, output_tokens: generated.len() as i64, stop: stop.into() })
+    let text = decoder.finish()?;
+    Ok(Generation { text, input_tokens: tokens.len() as i64, output_tokens: generated as i64, stop: stop.into() })
 }
 
 /// In-flight native token evaluation. Owns the model until qwen_stream_finish returns it.
@@ -167,20 +231,8 @@ pub fn qwen_stream_start(model: QwenModel, prompt: String, max_tokens: i64) -> R
         let result = (|| {
             check()?;
             let expected = request_tokens(&model.tokenizer, &prompt, max_tokens)?;
-            let mut publish = |bytes: &[u8]| -> Result<(), String> {
-                let mut text = match std::str::from_utf8(bytes) {
-                    Ok(text) => text.to_owned(),
-                    Err(error) if error.error_len().is_none() => return Ok(()),
-                    Err(_) => return Err("generated text is not valid UTF-8".into()),
-                };
-                loop {
-                    check()?;
-                    match sender.try_send(text) {
-                        Ok(()) => return Ok(()),
-                        Err(TrySendError::Full(value)) => { text = value; std::thread::sleep(std::time::Duration::from_millis(1)); },
-                        Err(TrySendError::Disconnected(_)) => return Err("cancelled".into()),
-                    }
-                }
+            let mut publish = |bytes: &[u8], check: &dyn Fn() -> Result<(), String>| -> Result<(), String> {
+                publish_prefix(&sender, bytes, check)
             };
             generate(&check, &mut model, &prompt, max_tokens, &expected, Some(&mut publish))
         })();
