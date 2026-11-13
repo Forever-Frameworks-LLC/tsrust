@@ -8,6 +8,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 Studio requests a first-parent patch from Git for merge commits, so the existing split diff can show the files and changes introduced onto the receiving branch. Extended the real Git conflict fixture to finish the merge, select it from History in a nested workspace, and verify the non-ASCII file header, removed first-parent line, added resolution and exclusion of the sibling file. The regression failed with the previous command. All 11 Git cases then passed in 1.705 seconds of execution. Project formatting passed.
 
+Desktop verification opened a two-file merge in an isolated workspace with the rebuilt Studio. Both file paths appeared, and one section collapsed and reopened independently. The dev watcher retained the old window after a native compile ran out of disk space. Pruning fourteen least-recently-used runtime cache entries recovered 3.6 GiB, and the watcher reused its checked application and launched PID 87027.
+
 ## Centered sidebar pagination and commit file sections
 
 History and content search center their numbered pager. Commit history uses the native split diff's per-file action bar with path, change counts and a disclosure. The live Studio watcher rebuilt and launched PID 79153. In its 248-pixel History sidebar, the midpoint between the outer paging buttons and the list midpoint both measured 467 logical pixels on screen. Opening a two-file commit exposed separate controls for `src/components/explorer/search-panel.tsrx` and `src/components/workbench/git-panel.tsrx`. Collapsing the first left the second expanded, and expanding the first restored its collapse control. Project formatting passed.
