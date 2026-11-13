@@ -311,22 +311,25 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
   }
 });
 
-if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1' || unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'excerpt' || unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'reply') test('local chat recalls a symbol decision across oversized history', async () => {
+const recallEval = unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) ?? '';
+
+if (['1', 'excerpt', 'reply', 'followup'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
   const history = emptyHistory('/workspace');
-  const reply = unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'reply';
+  const reply = recallEval === 'reply';
+  const followup = recallEval === 'followup';
   history.active = 'recall';
   history.chats.push({
     id: 'recall', title: 'Recall', revision: 1, draft: '', messages: [{
-      role: 'user', request: 'one', text: (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === 'excerpt' || reply ? ' preamble'.repeat(35000) + '\n' : '') + (reply ? 'What is the agreed crateFee in this repository?' : 'For this repository the agreed crateFee is 73.')
+      role: 'user', request: 'one', text: (recallEval === 'excerpt' || reply ? ' preamble'.repeat(35000) + '\n' : '') + (reply ? 'What is the agreed crateFee in this repository?' : 'For this repository the agreed crateFee is 73.')
     }, {
       role: 'assistant', request: 'one', text: reply ? 'The agreed value is 73.' : 'Understood.'
     }, {
       role: 'user', request: 'two', text: ' unrelated'.repeat(35000)
     }, {
-      role: 'assistant', request: 'two', text: 'Acknowledged.'
+      role: 'assistant', request: 'two', text: followup ? 'The result is 41.' : 'Acknowledged.'
     }]
   });
   const requests = new Channel<ModelRequest>(8);
@@ -337,8 +340,8 @@ if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1' || unwrap(get('TSRUST_S
   const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
   try {
-    const answer = await ask(host, updates, 'What is the previously agreed value of crateFee? Reply with just the number.');
-    strictEqual(answer.trim(), '73');
+    const answer = await ask(host, updates, followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
+    strictEqual(answer.trim(), followup ? '42' : '73');
     strictEqual(host.state.get().notice.includes('Earlier turns'), true);
     strictEqual(host.state.get().history.chats[0].messages.length, 6);
   } finally {

@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Answer-dependent follow-ups after context overflow
+
+When only the latest user turn fits and it has no explicit recall identifiers,
+the model host tries the previous assistant answer with an omission marker for
+its oversized question. One tokenizer fit check chooses that representation.
+The persisted conversation is untouched. Against 35000 unrelated words, the
+configured 1.5B Metal host extracted crateFee() = 73 and then answered 74 to
+“Add one to your previous answer” without a symbol hint. Both requests reported
+compaction. The two-turn run took 3.73 s, maximum RSS 2203598848 bytes, peak
+memory footprint 1182747096 bytes. This does not evaluate general prose recall
+or decide which historical answer to keep for ambiguous questions.
+The Studio chat-path regression passed in followup mode (1/1, 46.53 s build),
+checking 41 → 42, the compaction notice and preservation of all six messages.
+
+The current Studio source check passed in 156.90 s before the host change.
+The slow frontend check remains open.
+
 ## Dev builds survive unrelated source changes
 
 In-flight frontend checks, runtime/backend work and launch validation now

@@ -115,6 +115,19 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
         }
       }
 
+      // A follow-up can depend on the last answer even when its source-heavy question has fallen out.
+      if (terms.size === 0 && latest === messages.length - 1 && low === starts.length - 1 && low > 0 && starts[low] - starts[low - 1] === 2 && messages[starts[low] - 1].role === 'assistant') {
+        const previous: ChatMessage = {
+          role: 'user', content: '[Earlier question omitted]'
+        };
+        const exchange = [previous, clone(messages[latest - 1])].concat(retained);
+        const withAnswer = conversationPrompt(exchange);
+
+        if (unwrap(qwen_prompt_fits(model, withAnswer))) {
+          prompt = withAnswer;
+        }
+      }
+
       publish(updates, 'compacted', clone(request.id));
     }
   }
