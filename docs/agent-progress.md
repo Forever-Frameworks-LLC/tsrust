@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Nested workspace project checks
+
+The structured saved-project check now passes the selected directory explicitly,
+matching the terminal task. The real CLI previously discovered the parent
+tsrust.config.json and reported an unrelated sibling's error when Studio opened
+a nested folder. The new case reproduced that failure before the fix. Afterward
+the clean folder passed and a type error inside it produced one located problem.
+Project-check suite 2/2 passed in 93.13 ms of test execution. Background checks
+and the registered check_project tool use this service. Whole-tree formatter
+reported zero changes. Logs /tmp/studio-nested-check-{before,after,format}.log.
+
 ## Studio project formatter discovery
 
 Format Project and the registered format_project tool now share the compiler's

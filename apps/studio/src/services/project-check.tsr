@@ -60,7 +60,7 @@ export async function checkSavedProject(root: ReadOnly<string>, program: ReadOnl
     output: '', failed: true, problems: []
   };
 
-  match (await run(program, ['check', '--json', '--color=never'], {
+  match (await run(program, ['check', '.', '--json', '--color=never'], {
     cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
   })) {
     Ok(output) => {
