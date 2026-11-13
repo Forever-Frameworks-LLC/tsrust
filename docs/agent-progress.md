@@ -16,7 +16,11 @@ Ten Git and terminal-session tests passed after a 17.85 s build.
 The surviving dev watcher (63326) had 812.1 MiB physical footprint and a
 2.3 GiB peak. Relaunched Studio and LSP measured 208.6 and 566.8 MiB.
 No allocation trace for the exited process exists. This fix addresses the
-reproduced abort; watcher memory and GUI interaction require separate evidence.
+reproduced abort. The watcher rebuilt in 153.61 s. On the resulting Studio
+PID 96226, macOS AXPress opened Terminal 1 and then Source Control. The status
+text showed the branch and both existing owner drafts. After switching, Studio
+had a 231.1 MiB physical footprint (289.5 MiB peak). Watcher memory growth
+remains separate and unresolved.
 
 ## Project questions using ordinary words for compound function names
 
