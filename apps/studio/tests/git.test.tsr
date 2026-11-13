@@ -241,3 +241,30 @@ test('partial staging targets the reviewed occurrence after earlier line inserti
     unwrap(removeDirAll(root));
   }
 });
+
+test('unstaging a deleted executable restores its original index mode', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-mode-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const file = 'run tool';
+    unwrap(writeTextFile(root + '/' + file, 'echo ready\n'));
+    strictEqual(await repoGit(root, ['add', '--', clone(file)]), true);
+    strictEqual(await repoGit(root, ['update-index', '--chmod=+x', '--', clone(file)]), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'executable']), true);
+    strictEqual(await repoGit(root, ['rm', '-f', '--', clone(file)]), true);
+    const diff = unwrap(await readGitView(root, 'staged'));
+    const hunk = diffHunks(diff)[0];
+    const remaining = unwrap(await gitRequest(root, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(hunk.label), patch: hunk.header + diff.slice(hunk.start, hunk.end)
+    }));
+    strictEqual(remaining, '');
+    const index = unwrap(await run('git', ['ls-files', '--stage', '--', clone(file)], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(index.stdout)).startsWith('100755 '), true);
+    strictEqual(unwrap(await readGitView(root, 'working')).includes('deleted file mode 100755'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

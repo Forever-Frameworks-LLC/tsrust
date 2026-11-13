@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Executable mode in hunk review
+
+Unstaging a deleted executable via its hunk previously recreated the index
+entry with regular-file permissions. Studio now carries Git's new/deleted
+file mode headers through review and apply, including reverse apply. The real
+Git regression failed before the fix and passed afterward. It checks the
+restored index mode (100755), empty staged diff and unchanged working-tree
+deletion. All six Git cases passed (2.89 s build). Native button interaction
+and symlink-specific behavior were not tested in this run.
+
 ## Repeated context in partial staging
 
 A real repository reproduced a wrong-occurrence edit. An earlier unselected

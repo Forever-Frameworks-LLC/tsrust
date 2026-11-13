@@ -64,8 +64,11 @@ export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
       file = line.startsWith('diff --git ') ? line.slice(11) : '';
       header = '';
       active = false;
+    } else if (!active && file !== '' && (line.startsWith('new file mode ') || line.startsWith('deleted file mode '))) {
+      // Creating an index entry needs its original Git mode, including on reverse apply.
+      header = 'diff --git ' + file + '\n' + line + '\n';
     } else if (!active && line.startsWith('--- ')) {
-      header = line + '\n';
+      header += line + '\n';
     } else if (!active && header !== '' && line.startsWith('+++ ')) {
       header += line + '\n';
     } else if (file !== '' && line.startsWith('@@ ')) {
