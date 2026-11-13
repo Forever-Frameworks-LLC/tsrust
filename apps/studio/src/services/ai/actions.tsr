@@ -18,7 +18,8 @@ import {
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { readContext } from './context.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import { editorContext, readContext } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
 export interface AiState {
@@ -41,6 +42,7 @@ export interface AiContext {
   allowInference: boolean;
   allowDelete?: boolean;
   workspace?: Signal<Workspace>;
+  projectTree?: Signal<DirectoryTree>;
   allowedContextPaths?: string[];
 }
 
@@ -61,10 +63,11 @@ export function initialAiState(history: ChatHistory = emptyHistory(), notice: st
 }
 
 export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: boolean = false): AiContext {
+  const tree = context.projectTree;
   const store = context.store;
   const workspace = context.workspace;
   return {
-    state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+    projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
   };
 }
 
@@ -297,6 +300,15 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const messages: ChatMessage[] = next.history.chats[index].messages.filter((message) => message.text !== '' && (message.role !== 'user' || message.status === undefined || message.status === 'complete')).map((message): ChatMessage => ({
         role: clone(message.role), content: messageContent(message)
       }));
+      const workspace = context.workspace;
+      const tree = context.projectTree;
+
+      if (context.allowRead && workspace !== undefined && workspace.get().root === next.history.root) {
+        const grounding = editorContext(workspace.get(), tree === undefined ? undefined : tree.get(), draftContext(next.history), prompt);
+
+        if (grounding !== '') messages[messages.length - 1].content += '\n\n' + grounding;
+      }
+
       const generation: ModelRequest = {
         kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens, messages
       };

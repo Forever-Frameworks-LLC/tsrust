@@ -93,13 +93,11 @@ export function ProjectTree(
   font: Signal<int>,
   recovery: Signal<Recovery>,
   settings: Signal<StudioConfig>,
-  revision: Signal<int>
+  revision: Signal<int>,
+  snapshot: Signal<DirectoryTree>
 ): Node {
   const textClass = computed<string>(() => 'font-mono text-[' + font.get().toString() + 'px]');
   const treeClass = computed<string>(() => 'grow min-h-0 min-w-0 ' + textClass.get());
-  const snapshot = signal<DirectoryTree>({
-    root: clone(path), directories: []
-  });
   const error = signal('');
   const appliedRevision = signal(-1);
   const appliedPolicy = signal(settings.get().treeIncludeIgnored);

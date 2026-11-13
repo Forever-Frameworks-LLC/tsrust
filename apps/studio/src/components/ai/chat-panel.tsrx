@@ -255,7 +255,7 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
               {localizeError(state.get().notice)}
             </Text>
           </View>
-          <InputGroup size="small" className={'w-full rounded-none border-b-0 ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
+          <InputGroup size="small" className={'w-full rounded-none border-b-0 border-r-0 ' + inputStyle.get()} accessibilityLabel={message('AI composer')}>
             <Textarea
               value={chatDraft(state.get().history)}
               placeholder={message('Ask anything')}

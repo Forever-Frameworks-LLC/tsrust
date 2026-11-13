@@ -6,6 +6,12 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+Local chat context now includes visible explorer filenames, active editor text
+and bounded excerpts of explicitly named project files. The AI action suite
+and a separate local-host source question passed. Next, connect symbol-aware
+retrieval and model-generated edits to the revision-checked proposal review flow.
+Native chat interaction, change review and the full 8 GiB workload remain open.
+
 Interactive completion refinement, November12: declarations-only project replies
 now bypass single-document compiler cursor repair, preserving incomplete marking
 and the ordinary checked/recovery path. A bounded real-Studio-source probe performs

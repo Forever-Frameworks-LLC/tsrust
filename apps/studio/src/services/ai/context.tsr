@@ -1,9 +1,10 @@
-import { fromUtf8, length } from 'std:bytes';
+import { fromUtf8, length, at, toUtf8, view } from 'std:bytes';
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { basename, dirname, join, separator } from 'std:path';
 
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
 
@@ -56,4 +57,74 @@ export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<strin
   } catch (_) {
     return Err('Could not read the selected chat context file.');
   }
+}
+
+function contextExcerpt(source: ReadOnly<string>): string {
+  const bytes = unwrap(fromUtf8(source));
+  const count = length(bytes);
+  let end = count < 2048 ? count : 2048;
+
+  while (end < count && unwrap(at(bytes, end)) >= 128 && unwrap(at(bytes, end)) < 192) end -= 1;
+  return unwrap(toUtf8(unwrap(view(bytes, 0, end)))) + (end < count ? '\n…' : '');
+}
+
+function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean {
+  let offset = 0;
+
+  while (offset < prompt.length) {
+    const start = prompt.indexOf(path, offset);
+
+    if (start < 0) return false;
+    const end = start + path.length;
+    const before = start === 0 || [' ', '\n', '\t', '\r', '(', '[', '"', "'", '`'].some((mark) => prompt.slice(0, start).endsWith(mark));
+    const after = end === prompt.length || [' ', '\n', '\t', '\r', ')', ']', '"', "'", '`', ':', ',', '!', '?'].some((mark) => prompt.startsWith(mark, end)) || (prompt.startsWith('.', end) && (end + 1 === prompt.length || prompt.startsWith(' ', end + 1)));
+
+    if (before && after) return true;
+    offset = end;
+  }
+
+  return false;
+}
+
+export function editorContext(workspace: ReadOnly<Workspace>, tree: ReadOnly<DirectoryTree> | undefined, attached: ReadOnly<ContextFragment[]>, prompt: ReadOnly<string>): string {
+  const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+  let result = '';
+  const active = workspace.files.find((file) => file.document.path === workspace.active);
+
+  if (active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active)) {
+    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + contextExcerpt(active.document.text);
+  }
+
+  if (tree !== undefined && tree.root === workspace.root) {
+    const paths: string[] = [];
+    let size = 0;
+    let named = 0;
+
+    for (const directory of tree.directories) {
+      for (const file of directory.children) {
+        if (file.directory || !file.path.startsWith(prefix)) continue;
+        const path = file.path.slice(prefix.length);
+
+        if (named < 2 && file.path !== workspace.active && mentionsPath(prompt, path) && !attached.some((fragment) => fragment.path === file.path)) {
+          match (readContext(workspace, file.path, 'file', [])) {
+            Ok(fragment) => {
+              result += '\n\nReferenced workspace file: ' + path + '\n' + contextExcerpt(fragment.text);
+              named += 1;
+            },
+            Err(_) => {}
+          }
+        }
+
+        if (paths.length >= 24 || size + path.length + 1 > 1024) continue;
+        size += path.length + 1;
+        paths.push(path);
+
+      }
+
+    }
+
+    if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files (sample):\n' + paths.join('\n');
+  }
+
+  return result;
 }

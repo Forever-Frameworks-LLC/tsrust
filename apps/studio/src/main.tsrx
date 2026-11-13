@@ -26,6 +26,7 @@ import {
 
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree, RefreshExplorer } from './components/explorer/browser.tsrx';
+import { DirectoryTree } from './lib/explorer/tree.tsr';
 import { FileSearch } from './components/explorer/navigation.tsrx';
 import { FileSearchState } from './lib/explorer/search-actions.tsr';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
@@ -133,13 +134,17 @@ function App(
 
   const explorerRevision = signal(0);
   const refreshExplorer = RefreshExplorer(clone(workspace.get().root), workspace, recovery, explorerRevision);
+  const projectTree = signal<DirectoryTree>({
+    root: clone(workspace.get().root), directories: []
+  });
   const browser = ProjectTree(
     workspace.get().root,
     workspace,
     font,
     recovery,
     settings,
-    explorerRevision
+    explorerRevision,
+    projectTree.handle()
   );
   const contentSearch = ContentSearch(
     workspace,
@@ -221,7 +226,7 @@ function App(
     font
   );
   const aiContext: AiContext = {
-    state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
+    projectTree, state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
   };
   const chatView = ChatPanel(aiContext, font, aiState);
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');

@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Chat workspace context and composer edge
+
+Ordinary local chat sends now include a sample of the current explorer paths,
+up to 2 KiB of the active unsaved text, and excerpts for up to two explicit
+workspace-relative paths in the question. This uses the explorer snapshot and
+the existing guarded attachment reader. Automatic excerpts are transient.
+The AI action suite passed 11/11 (32.43 ms), including a Unicode excerpt
+boundary, unopened named file, unrelated suffix and preserved transcript.
+The configured 1.5B local host separately identified fileSearchLabel from a real
+2 KiB excerpt in 3.21 s including startup/shutdown. Peak sampled host RSS
+1215.47 MiB, peak pressure 1, observed swap delta 0 MiB. This was direct host
+inference. No window-driven chat or visual right-border acceptance claimed.
+Project-wide semantic retrieval and model-issued diff proposals remain open.
+The composer no longer draws a right border. Command-only palette open skips
+file enumeration; clearing the command prefix discovers new files. Explorer
+suite 4/4, 43.06 ms, checkpoint 5e58b1f9.
+
 ## File palette dismissal
 
 Selecting a file or dismissing the palette releases the file list held in

@@ -1,4 +1,5 @@
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { createTempDir, removeDirAll, readTextFile, writeTextFile, mkdirAll } from 'std:fs';
 import { Channel } from 'std:futures';
@@ -386,5 +387,40 @@ test('file and skill context use guarded snapshots, including unsaved editor tex
   } finally {
     removeDirAll(folder);
     removeDirAll(outside);
+  }
+});
+
+test('ordinary chat sends workspace paths and the current unsaved editor excerpt with a read grant', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-grounding-'));
+
+  try {
+    unwrap(writeTextFile(folder + '/main.tsr', 'disk version'));
+    unwrap(writeTextFile(folder + '/helper.tsr', 'unopened content'));
+    unwrap(writeTextFile(folder + '/per.tsr', 'unrelated suffix'));
+    const model = unwrap(openWorkspace(clone(folder)));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    edit(model.files[0].document, 'unsaved fact' + 'x'.repeat(2035) + '😀tail');
+    const requests = new Channel<ModelRequest>(4);
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const host = context(state, settings, requests);
+    host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+    host.workspace = signal(model);
+    const ready = state.get();
+    ready.phase = 'ready';
+    state.set(ready);
+    send(host, 'Explain helper.tsr');
+    const messages = unwrap(requests.tryReceive()).messages;
+
+    if (messages === undefined) throw 'missing generation';
+    strictEqual(messages[0].content.includes('Active editor file: main.tsr'), true);
+    strictEqual(messages[0].content.includes('unsaved fact'), true);
+    strictEqual(messages[0].content.includes('helper.tsr'), true);
+    strictEqual(messages[0].content.includes('tail'), false);
+    strictEqual(messages[0].content.includes('unopened content'), true);
+    strictEqual(messages[0].content.includes('unrelated suffix'), false);
+    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helper.tsr');
+  } finally {
+    removeDirAll(folder);
   }
 });
