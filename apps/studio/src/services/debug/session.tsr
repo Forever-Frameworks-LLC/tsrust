@@ -10,10 +10,12 @@ export interface DebugCommand {
   program?: string;
   stopOnEntry?: boolean;
   functionBreakpoint?: string;
+  watch?: string;
 }
 
 export interface DebugOutput {
   stopped?: boolean;
+  watchValue?: string;
   text: string;
   finished: boolean;
 }
@@ -38,13 +40,15 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     let seq = 5;
     let disconnectRequest = 0;
     let stackRequest = 0;
+    let watchRequest = 0;
+    const watch = (command.watch ?? '').trim();
     let thread = 0;
     let stopReason = '';
 
     while (true) {
       const reply = decodeAdapterReply(await readFrame(reader));
 
-      if (reply.success === false && reply.command !== 'stackTrace') throw reply.message ?? 'Debug request failed.';
+      if (reply.success === false && reply.command !== 'stackTrace' && reply.command !== 'evaluate') throw reply.message ?? 'Debug request failed.';
 
       if (reply.command === 'initialize') {
         if (breakpoint !== '' && reply.body?.supportsFunctionBreakpoints !== true) throw 'Adapter does not support function breakpoints.';
@@ -77,34 +81,59 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
           }
         }));
         seq += 1;
-      } else if (reply.command === 'stackTrace' && reply.request_seq === stackRequest) {
-        stackRequest = 0;
-        let text = '\nStopped: ' + stopReason + '\n';
+      } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest)) {
+        let watchValue: string | undefined = undefined;
+        let text = '';
 
-        if (reply.success === false) text += (reply.message ?? 'Call stack unavailable.') + '\n';
-        else {
-          const frames = clone(reply.body?.stackFrames) ?? [];
+        if (reply.command === 'evaluate') {
+          watchRequest = 0;
+          watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');
+        } else {
+          stackRequest = 0;
+          text = '\nStopped: ' + stopReason + '\n';
 
-          for (let i = 0; i < frames.length; i += 1) {
-            const frame = frames[i];
-            text += '#' + i.toString() + ' ' + frame.name;
-            const source = frame.source?.path ?? frame.source?.name ?? '';
+          if (reply.success === false) text += (reply.message ?? 'Call stack unavailable.') + '\n';
+          else {
+            const frames = clone(reply.body?.stackFrames) ?? [];
 
-            if (source !== '') {
-              text += '  ' + source;
-
-              if (frame.line > 0) text += ':' + frame.line.toString();
-
-              if (frame.line > 0 && frame.column > 0) text += ':' + frame.column.toString();
+            if (watch !== '' && frames.length > 0) {
+              watchRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'evaluate', arguments: {
+                  expression: clone(watch), context: 'watch', frameId: frames[0].id
+                }
+              }));
+              seq += 1;
             }
 
-            if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
-            text += '\n';
+            for (let i = 0; i < frames.length; i += 1) {
+              const frame = frames[i];
+              text += '#' + i.toString() + ' ' + frame.name;
+              const source = frame.source?.path ?? frame.source?.name ?? '';
+
+              if (source !== '') {
+                text += '  ' + source;
+
+                if (frame.line > 0) text += ':' + frame.line.toString();
+
+                if (frame.line > 0 && frame.column > 0) text += ':' + frame.column.toString();
+              }
+
+              if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
+              text += '\n';
+            }
+          }
+
+          if (watchRequest !== 0) {
+            await output.send({
+              text, finished: false
+            });
+            continue;
           }
         }
 
         await output.send({
-          text, stopped: true, finished: false
+          text, watchValue, stopped: true, finished: false
         });
         const control = await requests.receive();
 

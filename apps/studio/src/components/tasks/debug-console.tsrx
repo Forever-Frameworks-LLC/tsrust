@@ -53,6 +53,8 @@ export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies:
   const sender = requests.sender();
   const stopOnEntry = signal(false);
   const breakpoint = signal('');
+  const watch = signal('');
+  const watchValue = signal('');
   const stopped = signal(false);
   const chosen = signal('');
   const running = signal(false);
@@ -101,6 +103,21 @@ export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies:
             }}
           />
         </View>
+        <View hidden={running.get() && watch.get() === ''} className="flex-col w-full min-w-0">
+          <Input
+            className={'px-2 text-[' + font.get().toString() + 'px]'}
+            value={watch.get()}
+            disabled={running.get()}
+            placeholder={message('Watch expression')}
+            aria-label={accessibleName('Watch expression')}
+            onChange={(event) => {
+              watch.set(clone(event.target.value));
+            }}
+          />
+          <View hidden={!stopped.get() || watchValue.get() === ''}>
+            <Input readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'font-mono text-[' + font.get().toString() + 'px]'} />
+          </View>
+        </View>
         <View hidden={!stopped.get()} className="flex-col items-start">
           {DebugControl(
             requests,
@@ -132,13 +149,13 @@ export function DebugSidebar(requests: ReadOnly<Channel<DebugCommand>>, replies:
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get()})) {
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), watch: watch.get()})) {
             Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
             Err(error) => { output.set(clone(error.code)); return; }
           }
         }
         match (replies.tryReceive()) {
-          Ok(reply) => { output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
+          Ok(reply) => { output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />

@@ -266,25 +266,41 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       strictEqual(failed.includes('\nExit code ' + (control.status.code ?? -1).toString() + '\n'), true);
       unwrap(writeTextFileAtomic(marker, 'pass'));
       await commands.send({
-        action: 'launch', program: clone(program), stopOnEntry: true
+        action: 'launch', program: clone(program), stopOnEntry: true, watch: 'studio_missing_watch'
       });
 
+      let initialWatch = '';
+
       for (const action of ['stop', 'next', 'continue']) {
+        let stopText = '';
+
         while (true) {
           const update = await output.receive().timeout(10000);
+
+          stopText += update.text;
 
           if (update.finished) throw 'Target exited before the expected stop: ' + update.text;
 
           if (update.stopped === true) {
-            if (action === 'next') {
-              strictEqual(update.text.includes('Stopped: breakpoint'), true);
-              strictEqual(update.text.includes('#0 main'), true);
+            if (action === 'stop') strictEqual((update.watchValue ?? '').includes('studio_missing_watch'), true);
+
+            if (action !== 'stop') {
+              const value = update.watchValue ?? '';
+              strictEqual(value.includes('0x'), true);
+
+              if (action === 'continue') strictEqual(initialWatch !== '' && initialWatch !== value, true);
+              initialWatch = value;
             }
 
-            strictEqual(update.text.includes('\n#0 '), true);
-            strictEqual(update.text.includes('0x'), true);
+            if (action === 'next') {
+              strictEqual(stopText.includes('Stopped: breakpoint'), true);
+              strictEqual(stopText.includes('#0 main'), true);
+            }
 
-            if (action === 'continue') strictEqual(update.text.includes('Stopped: step'), true);
+            strictEqual(stopText.includes('\n#0 '), true);
+            strictEqual(stopText.includes('0x'), true);
+
+            if (action === 'continue') strictEqual(stopText.includes('Stopped: step'), true);
             break;
           }
         }
@@ -298,7 +314,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           strictEqual(stopped.includes('Debug session stopped.'), true);
           strictEqual(stopped.includes('Studio debugger fixture'), false);
           await commands.send({
-            action: 'launch', program: clone(program), functionBreakpoint: ' main '
+            action: 'launch', program: clone(program), functionBreakpoint: ' main ', watch: '$pc'
           });
         }
       }
