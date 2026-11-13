@@ -1,6 +1,6 @@
 import { Channel, Sender, TaskContext, cancellationRequested } from 'std:threads';
 
-import { chatPrompt, conversationPrompt, ChatMessage } from '../../src/lib/ai/prompts.tsr';
+import { chatPrompt, conversationPrompt, ChatMessage, recallTerms, turnMentions } from '../../src/lib/ai/prompts.tsr';
 import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 import {
   QwenModel,
@@ -53,7 +53,22 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     }
 
     if (low < starts.length) {
-      prompt = conversationPrompt(messages.slice(starts[low]));
+      let retained = messages.slice(starts[low]);
+      prompt = conversationPrompt(retained);
+      const question = request.prompt === '' ? clone(messages[starts[starts.length - 1]].content) : clone(request.prompt);
+      const terms = recallTerms(question);
+      // Restore relevant complete exchanges across gaps, newest first and in chronological order.
+      if (terms.size > 0) for (let index = low - 1; index >= 0; index -= 1) {
+        if (!turnMentions(messages, starts[index], starts[index + 1], terms)) continue;
+        const candidate = messages.slice(starts[index], starts[index + 1]).concat(retained);
+        const rendered = conversationPrompt(candidate);
+
+        if (unwrap(qwen_prompt_fits(model, rendered))) {
+          retained = candidate;
+          prompt = rendered;
+        }
+      }
+
       publish(updates, 'compacted', clone(request.id));
     }
   }

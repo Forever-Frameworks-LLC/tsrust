@@ -222,3 +222,41 @@ if (['1', 'default'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ??
     unwrap(removeDirAll(folder));
   }
 });
+
+if (unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) === '1') test('local chat recalls a symbol decision across an oversized unrelated exchange', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const history = emptyHistory('/workspace');
+  history.active = 'recall';
+  history.chats.push({
+    id: 'recall', title: 'Recall', revision: 1, draft: '', messages: [{
+      role: 'user', request: 'one', text: 'For this repository the agreed crateFee is 73.'
+    }, {
+      role: 'assistant', request: 'one', text: 'Understood.'
+    }, {
+      role: 'user', request: 'two', text: ' unrelated'.repeat(35000)
+    }, {
+      role: 'assistant', request: 'two', text: 'Acknowledged.'
+    }]
+  });
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(16);
+  const host: AiContext = {
+    state: signal(initialAiState(history)), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+  const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+  try {
+    const answer = await ask(host, updates, 'What is the previously agreed value of crateFee? Reply with just the number.');
+    strictEqual(answer.trim(), '73');
+    strictEqual(host.state.get().notice.includes('Earlier turns'), true);
+    strictEqual(host.state.get().history.chats[0].messages.length, 6);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});

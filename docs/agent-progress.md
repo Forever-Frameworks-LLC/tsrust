@@ -4,6 +4,23 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Recall across oversized unrelated exchanges
+
+After selecting a recent suffix with the model tokenizer, the host looks back
+for complete exchanges mentioning code identifiers in the current question.
+It restores fitting exchanges newest-first, preserving their original role
+and order. Matching uses exact Unicode identifiers, including backtick-quoted
+names, internal capitals and underscores. This runs only on overflow and does
+not modify the transcript. Natural-language paraphrase retrieval and summaries
+of oversized individual exchanges remain open.
+
+With crateFee agreed as 73, then 35000 unrelated words, the prior host returned
+10 and the updated host returned 73. Single-run sampled RSS was 1231248 KiB
+and 2103536 KiB respectively; this is not a memory optimization claim.
+The Studio chat-session evaluation confirmed the compaction notice, answer
+and six retained messages. Final focused suites passed 20/20 in 2621.83 ms.
+Use TSRUST_STUDIO_RUN_RECALL_EVAL=1 with the configured local host to replay.
+
 ## Default imports and extensionless chat retrieval
 
 Relative imports in the active draft now support default and combined bindings.

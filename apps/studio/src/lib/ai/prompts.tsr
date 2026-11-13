@@ -1,3 +1,6 @@
+import { compile } from 'std:regex';
+import { at, fromUtf8, toUtf8, view } from 'std:bytes';
+
 // Matches the pinned Qwen template's no-tools, system/user/assistant branch.
 export function chatPrompt(message: ReadOnly<string>): string {
   return '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n' + message + '<|im_end|>\n<|im_start|>assistant\n';
@@ -16,4 +19,46 @@ export function conversationPrompt(messages: ReadOnly<ChatMessage[]>): string {
   }
 
   return prompt + '<|im_start|>assistant\n';
+}
+
+// Only explicit code identifiers justify pulling an older exchange back into context.
+export function recallTerms(question: ReadOnly<string>): Set<string> {
+  const terms = new Set<string>();
+  const pattern = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const internalCapital = unwrap(compile('.\\p{Lu}'));
+  const bytes = unwrap(fromUtf8(question));
+
+  for (const token of pattern.findAll(question)) {
+    const word = unwrap(toUtf8(unwrap(view(bytes, token.start, token.end))));
+    const quoted = token.start > 0 && unwrap(at(bytes, token.start - 1)) === 96 && question.startsWith('`', token.end);
+
+    if (quoted || word.includes('_') || internalCapital.isMatch(word)) terms.add(word);
+  }
+
+  return terms;
+}
+
+export function turnMentions(messages: ReadOnly<ChatMessage[]>, start: int, end: int, terms: ReadOnly<Set<string>>): boolean {
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+
+  for (let index = start; index < end; index += 1) {
+    const content = messages[index].content;
+    let possible = false;
+
+    for (const term of terms) {
+      if (content.includes(term)) {
+        possible = true;
+        break;
+      }
+    }
+
+    if (!possible) continue;
+    const bytes = unwrap(fromUtf8(content));
+
+    for (const token of identifiers.findAll(content)) {
+      if (terms.has(unwrap(toUtf8(unwrap(view(bytes, token.start, token.end)))))) return true;
+    }
+  }
+
+  return false;
 }
