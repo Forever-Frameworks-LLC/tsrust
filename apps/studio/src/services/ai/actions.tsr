@@ -475,11 +475,14 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
 
               if (update.kind === 'complete') next.history.chats[chat].messages[message].limited = update.stop === 'length';
 
-              if (update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') next.history.chats[chat].messages[message].status = clone(update.kind);
+              if (update.kind === 'rejected') {
+                next.history.chats[chat].messages[message].text = modelNotice(update.error);
+                next.history.chats[chat].messages[message].status = 'rejected';
+              } else if (update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') next.history.chats[chat].messages[message].status = clone(update.kind);
             }
           }
 
-          if (['complete', 'cancelled', 'error'].includes(update.kind)) {
+          if (['complete', 'cancelled', 'error', 'rejected'].includes(update.kind)) {
             next.editTarget = undefined;
 
             if (next.phase !== 'stopping') next.phase = 'ready';

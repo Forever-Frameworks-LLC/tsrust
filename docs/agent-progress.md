@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Model request rejection and retry
+
+A matching rejected generation settles the transport deadline, records the
+reason on its transcript row and releases the active request. Generation skips
+that diagnostic row on later turns. A dormant service also emits stopped so
+the next send can start its host. The AI action and real-pipe session suites
+passed 18/18 in 46.96 ms. Coverage includes stale versus current rejection,
+retry history, a request before startup and subsequent fresh sessions.
+Native desktop rejection interaction was not replayed.
+
 ## Building long-chat requests
 
 Studio now reads the saved transcript backwards and renders eligible messages

@@ -71,7 +71,7 @@ async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>, c
 
     if (!['ready', 'prefix', 'complete', 'cancelled', 'error', 'stopped', 'rejected'].includes(update.kind)) throw 'Invalid model host response.';
 
-    if (update.kind === 'ready' || update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') {
+    if (update.kind === 'ready' || update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error' || update.kind === 'rejected') {
       await controls.send({
         kind: '__settled', id: clone(update.id), prompt: '', maxTokens: 0
       });
@@ -127,6 +127,9 @@ export async function modelService(program: string, requests: Channel<ModelReque
     if (request.kind !== 'start') {
       await updates.send({
         kind: 'rejected', id: request.id, text: '', error: 'Start the local model before sending a request.'
+      });
+      await updates.send({
+        kind: 'stopped', id: '', text: '', error: ''
       });
       continue;
     }

@@ -696,3 +696,34 @@ test('a long chat retains its transcript and sends only whole recent turns withi
     role: 'user', request: 'boundary', text: exact + '!'
   }], false)), true);
 });
+
+test('only a matching generation rejection ends the request and allows a retry', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'First question');
+  const request = unwrap(requests.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'rejected', id: 'older', text: '', error: 'stale'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().active, request.id);
+  strictEqual(state.get().phase, 'generating');
+  unwrap(updates.sender().trySend({
+    kind: 'rejected', id: clone(request.id), text: '', error: 'Request rejected by host'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().active, '');
+  const reply = state.get().history.chats[0].messages[1];
+  strictEqual(reply.status, 'rejected');
+  strictEqual(reply.text, 'Request rejected by host');
+  send(host, 'Try again');
+  const retry = unwrap(requests.tryReceive());
+  strictEqual(retry.kind, 'generate');
+  strictEqual((retry.messages ?? []).some((message) => message.content === 'Request rejected by host'), false);
+});

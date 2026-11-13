@@ -13,7 +13,7 @@ export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<
   for (let index = history.length - 1; index >= 0; index -= 1) {
     const entry = history[index];
 
-    if (entry.text === '' || (entry.role === 'user' && entry.status !== undefined && entry.status !== 'complete')) continue;
+    if (entry.text === '' || entry.status === 'rejected' || (entry.role === 'user' && entry.status !== undefined && entry.status !== 'complete')) continue;
     const content = recent.length === 0 && editPrompt !== undefined ? clone(editPrompt) : messageContent(entry, includeWorkspace);
     const message: ChatMessage = {
       role: clone(entry.role), content

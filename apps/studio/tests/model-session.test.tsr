@@ -14,6 +14,14 @@ if (platform() !== 'win32') test('closed stderr preserves replies and an unexpec
   const worker = modelService(program, requests, updates.sender()).start();
 
   try {
+    await commands.send({
+      kind: 'generate', id: 'offline', prompt: 'test', maxTokens: 4
+    });
+    const rejected = await updates.receive().timeout(5000);
+    strictEqual(rejected.kind, 'rejected');
+    strictEqual(rejected.id, 'offline');
+    strictEqual((await updates.receive().timeout(5000)).kind, 'stopped');
+
     for (let attempt = 0; attempt < 2; attempt += 1) {
       await commands.send({
         kind: 'start', id: '', prompt: '', maxTokens: 0
