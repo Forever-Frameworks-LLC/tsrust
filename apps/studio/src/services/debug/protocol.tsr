@@ -57,6 +57,8 @@ export interface DebugVariable {
 
 export interface AdapterBody {
   error?: AdapterError;
+  result?: string;
+  variablesReference?: int;
   scopes?: DebugScope[];
   variables?: DebugVariable[];
   supportsFunctionBreakpoints?: boolean;
@@ -94,7 +96,7 @@ export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
 
     if (envelope.type !== 'response' || command === '' || (envelope.request_seq ?? 0) <= 0 || envelope.success === undefined) throw 'Invalid debug adapter reply.';
 
-    if (envelope.success === true && !['initialize', 'setBreakpoints', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables'].includes(command)) {
+    if (envelope.success === true && !['initialize', 'setBreakpoints', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables', 'evaluate'].includes(command)) {
       return {
         type: 'response', command: clone(command), request_seq: envelope.request_seq, success: true
       };

@@ -24,6 +24,8 @@ Stack frames retain adapter source names, paths and references, line/column and 
 
 Xcode LLDB returned a breakpoint ID with verified=false for line 2 of the compiled fixture’s original debug-target.tsr; the native main function breakpoint verified and stopped. Studio now decodes source-breakpoint responses and breakpoint-change events with their IDs, verification, message and optional resolved source range. The stable regression requests an intentionally absent source so future .tsr line mapping can succeed without invalidating the test. A synthetic change event verifies the resolved range. Original .tsr breakpoint binding remains open.
 
+Studio decodes DAP evaluate results and their child variable references. After stepping the real fixture, LLDB evaluated $pc in the selected frame with watch context. Its numeric value matched the stack instruction address. The target resumed and exited normally. All six debugger cases passed (553.23 ms execution). Watch UI and Tsrust expression translation remain open.
+
 ## Image preview zoom accessibility
 
 On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
