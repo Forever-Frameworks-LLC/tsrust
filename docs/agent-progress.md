@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Stale diagnostic coordinates
+
+Terminal links, Problems rows and the registered open_problem action now reject
+a column past the current line before publishing workspace changes. A position
+at the end of a line or on the trailing empty line remains valid. Resolving a
+location scans up to the requested line and converts just that line's scalar
+column into a UTF-8 selection. Focused formatting and terminal suites passed
+10/10 in 138.15 ms, including Unicode offsets and no new tab on rejection.
+Whole-tree formatting completed. Logs /tmp/studio-diagnostic-navigation{,-format}.log.
+No physical click was replayed.
+
 ## Terminal diagnostic path navigation
 
 The terminal link parser preserves quoted relative filenames with spaces and

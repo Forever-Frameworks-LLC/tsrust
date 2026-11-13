@@ -12,7 +12,7 @@ import { createDocument, propose, edit } from '../src/lib/workspace/documents.ts
 import { FormattingRequest, FormattingResult, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { openProblem, ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
+import { openProblem, problemSelection, ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
 import { TerminalSession, terminalLocation } from '../src/lib/workspace/terminals.tsr';
 import { Workspace, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { formattingWorker } from '../src/services/formatting.tsr';
@@ -138,6 +138,15 @@ test('terminal diagnostics open absolute and relative paths with spaces and Unic
         path: join(root, 'journal.json'), baseline: '', ready: true
       }), allowNavigation: true, focusEditor: false
     };
+
+    strictEqual(rejected(openProblem(context, {
+      path: clone(path), line: 2, column: 5
+    })), true);
+    strictEqual(context.workspace.get().files.length, 0);
+    const atEnd = unwrap(problemSelection('🦀\n日本語\n', 2, 4));
+    strictEqual(atEnd.start, 14);
+    strictEqual(atEnd.end, 14);
+    strictEqual(unwrap(problemSelection('🦀\n日本語\n', 3, 1)).start, 15);
 
     for (const target of [name, clone(path)]) {
       unwrap(openProblem(context, {
