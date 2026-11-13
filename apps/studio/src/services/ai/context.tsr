@@ -194,8 +194,8 @@ interface ImportBinding {
 }
 
 // Match relative named import declarations before reading a file from the workspace tree.
-function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Map<string, ImportBinding> {
-  const paths = new Map<string, ImportBinding>();
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt: ReadOnly<string>): Map<string, ImportBinding[]> {
+  const paths = new Map<string, ImportBinding[]>();
   const bytes = unwrap(fromUtf8(source));
   const imports = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\s*((?:[\\p{L}_$][\\p{L}\\p{N}_$]*\\s*(?:,\\s*)?)?(?:\\{[^{};]*\\})?)\\s*from\\s*['\"](\\.\\.?/[^'\"\\r\\n]+)['\"]"));
 
@@ -225,12 +225,11 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, prompt:
 
             match (canonicalize(candidate)) {
               Ok(real) => {
-                if (paths.has(real)) paths.set(real, {
-                  local: '', exported: ''
-                });
-                else paths.set(real, {
+                const selected: ImportBinding[] = clone(paths.get(real)) ?? [];
+                selected.push({
                   local: clone(name), exported: name === defaultName ? 'default' : parts[0].trim()
                 });
+                paths.set(real, selected);
               },
               Err(_) => {}
             }
@@ -274,7 +273,7 @@ function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>): 
     }
   }
 
-  return clone(source);
+  return '';
 }
 
 export function editorContext(
@@ -299,7 +298,7 @@ export function editorContext(
     const question = prompt.toLowerCase();
     const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
     const paths: string[] = [];
-    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Map<string, ImportBinding>();
+    const imported = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, prompt) : new Map<string, ImportBinding[]>();
     const mentionedNames = new Map<string, int>();
 
     for (const directory of tree.directories) {
@@ -329,28 +328,36 @@ export function editorContext(
         if ((file.path !== workspace.active || active?.kind !== 'text') && referenced && !attached.some((fragment) => fragment.path === file.path)) {
           match (namedExcerpt(workspace, file.path, prefix)) {
             Ok(excerpt) => {
-              const binding = imported.get(file.path);
+              const bindings = imported.get(file.path);
               let signature = '';
-              let snippet = clone(excerpt);
+              const snippets: string[] = [];
+              let whole = nameCount > 0 || mentionsPath(prompt, path) || mentionsPath(prompt, './' + path);
 
-              if (binding !== undefined && binding.local !== '') {
-                if (nameCount === 0 && !mentionsPath(prompt, path) && !mentionsPath(prompt, './' + path)) snippet = functionExcerpt(excerpt, binding.exported);
+              if (bindings !== undefined) for (const binding of bindings) {
+                const selected = whole ? '' : functionExcerpt(excerpt, binding.exported);
+
+                if (selected === '') whole = true;
+                else if (!snippets.includes(selected)) snippets.push(clone(selected));
 
                 if (binding.exported !== 'default') {
-                  if (binding.local !== binding.exported) signature = 'Local name: ' + binding.local + ' refers to ' + binding.exported + '.\n';
+                  if (binding.local !== binding.exported) signature += 'Local name: ' + binding.local + ' refers to ' + binding.exported + '.\n';
                 } else {
+                  const snippet = selected === '' ? clone(excerpt) : clone(selected);
                   const declaration = unwrap(compile('(?m)^\\s*export\\s+default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(\\s*(?:<[^>]*>)?\\s*\\([^()]*\\)\\s*(?::[^{};]+)?)')).captures(snippet);
+
+                  let label = '';
 
                   if (declaration !== undefined) {
                     const parameters = declaration.groups[0];
 
-                    if (parameters !== undefined) signature = 'Local signature: ' + binding.local + unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(snippet)), parameters.start, parameters.end)))).trim() + '\n';
+                    if (parameters !== undefined) label = 'Local signature: ' + binding.local + unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(snippet)), parameters.start, parameters.end)))).trim() + '\n';
                   }
 
-                  if (signature === '') signature = 'The local name ' + binding.local + ' refers to the default export below.\n';
+                  signature += label === '' ? 'The local name ' + binding.local + ' refers to the default export below.\n' : label;
                 }
               }
 
+              const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
               result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
             },
             Err(_) => {

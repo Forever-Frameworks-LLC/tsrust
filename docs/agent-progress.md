@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Multiple imported functions in one chat question
+
+Studio keeps each requested relative import binding per resolved path. When
+all requested definitions can be extracted it sends their source once per
+distinct excerpt, with local alias labels. An explicit filename or a missing
+definition falls back to full source. The regression inspected the actual
+outgoing request for an unsaved draft with named, aliased and default imports
+across two modules. Both requested definitions from the same module were present
+and an unrelated export in that module was absent. The AI action suite passed
+19/19 in 47.13 ms. Model reasoning on the combined definitions is unmeasured.
+
 ## Named import source excerpts
 
 Chat resolves a named function import by its exported spelling and includes
