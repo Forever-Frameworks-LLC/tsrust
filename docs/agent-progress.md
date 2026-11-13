@@ -4,6 +4,13 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Source Control panel
+
+Studio reads workspace-scoped Git status, working diff and staged diff in a
+background worker. Git and localization tests passed 2/2 in 124.54 ms.
+Language-service integration passed 14/14 in 448.90 ms including worker
+shutdown. Native panel interaction, staging and hunk actions remain open.
+
 ## Chat composer and referenced files in edit requests
 
 The square, full-width composer uses a top separator and clips the native

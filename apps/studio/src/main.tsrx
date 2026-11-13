@@ -1,7 +1,7 @@
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
-import { Channel } from 'std:futures';
+import { Channel, Sender } from 'std:futures';
 import { extname, dirname, join } from 'std:path';
 import {
   View,
@@ -58,6 +58,8 @@ import { zoomFontSize } from './lib/workspace/zoom.tsr';
 import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
 import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
+import { GitPanel } from './components/workbench/git-panel.tsrx';
+import { GitReply } from './services/git.tsr';
 import { studioWorkers } from './services/workers.tsr';
 
 import { studioServers } from './lib/language/servers.tsr';
@@ -80,6 +82,8 @@ function App(
   searchRequests: ReadOnly<Channel<ContentSearchRequest>>,
   cancellations: ReadOnly<Channel<int>>,
   searchReplies: Channel<ContentSearchReply>,
+  gitRequests: Sender<string>,
+  gitReplies: Channel<GitReply>,
   initialConfig: StudioConfig,
   settingsError: string
 ): Node {
@@ -204,6 +208,7 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
+    GitPanel(panel, gitRequests, gitReplies, font),
     font
   );
   const formatBusy = signal(false);
@@ -485,6 +490,9 @@ async function main(): Task<void> {
   const searchRequests = new Channel<ContentSearchRequest>(1);
   const searchReplies = new Channel<ContentSearchReply>(1);
   const cancellations = new Channel<int>(1);
+  const gitRequests = new Channel<string>(1);
+  const gitReplies = new Channel<GitReply>(1);
+  const gitSender = gitReplies.sender();
   const searchSender = searchReplies.sender();
   const view = App(
     clone(path),
@@ -500,6 +508,8 @@ async function main(): Task<void> {
     searchRequests,
     cancellations,
     searchReplies,
+    gitRequests.sender(),
+    gitReplies,
     clone(startupConfig),
     startupError
   );
@@ -519,6 +529,8 @@ async function main(): Task<void> {
     searchRequests,
     searchSender,
     cancellations,
+    gitRequests,
+    gitSender,
     startupConfig.languageServers
   ).start();
 

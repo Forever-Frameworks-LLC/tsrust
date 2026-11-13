@@ -1,4 +1,10 @@
 {
+  "Status": "Status",
+  "Working diff": "Working diff",
+  "Staged diff": "Staged diff",
+  "Refresh source control": "Refresh source control",
+  "Reading repository\u2026": "Reading repository…",
+  "No changes in this view.": "No changes in this view.",
   "Earlier turns were omitted from this model request. The full conversation remains in chat.": "Earlier turns were omitted from this model request. The full conversation remains in chat.",
   "The proposed changes overlap in the original file.": "The proposed changes overlap in the original file.",
   "Review chat edit": "Review chat edit",

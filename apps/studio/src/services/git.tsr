@@ -1,0 +1,58 @@
+import { toUtf8 } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { run } from 'std:process';
+
+export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>): Task<Result<string, string>> {
+  const args = ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false'];
+
+  if (mode === 'status') {
+    for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
+  } else if (mode === 'working' || mode === 'staged') {
+    for (const arg of ['diff', '--relative', '--no-ext-diff', '--no-textconv']) args.push(clone(arg));
+
+    if (mode === 'staged') args.push('--cached');
+  } else return Err('Unknown source control view.');
+  args.push('--');
+  args.push('.');
+
+  match (await run('git', args, {
+    cwd: clone(root), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
+  })) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(output) => {
+      try {
+        if (!output.status.success) return Err(unwrap(toUtf8(output.stderr)).trim());
+        return Ok(unwrap(toUtf8(output.stdout)));
+      } catch (_) {
+        return Err('Git output is not valid UTF-8.');
+      }
+    }
+  }
+}
+
+export interface GitReply {
+  mode: string;
+  text: string;
+  failed: boolean;
+}
+
+export async function gitWorker(root: string, requests: Channel<string>, replies: Sender<GitReply>): Task<void> {
+  while (true) {
+    const mode = await requests.receive();
+
+    match (await readGitView(root, mode)) {
+      Ok(text) => {
+        await replies.send({
+          mode, text, failed: false
+        });
+      },
+      Err(error) => {
+        await replies.send({
+          mode, text: error, failed: true
+        });
+      }
+    }
+  }
+}

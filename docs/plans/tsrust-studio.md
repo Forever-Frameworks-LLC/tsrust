@@ -6,6 +6,9 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
+Source Control displays workspace-scoped status, working diff and staged diff.
+Staging operations and hunk controls remain open.
+
 Single-file chat editing now reaches the native review dialog via an explicit
 Edit: request. The configured local model produced a unique replacement from
 the active draft, and the approval handler updated the draft while preserving

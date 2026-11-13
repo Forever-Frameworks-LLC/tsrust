@@ -8,6 +8,7 @@ import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from '.
 import { formattingWorker } from './formatting.tsr';
 import { languageServices } from './lsp/registry.tsr';
 import { LanguageMessage, LanguageUpdate } from './lsp/session.tsr';
+import { GitReply, gitWorker } from './git.tsr';
 import { CheckResult, projectCheckWorker } from './project-check.tsr';
 
 // One owner cancels and settles every service when the application closes.
@@ -26,14 +27,18 @@ export async function studioWorkers(
   searchRequests: Channel<ContentSearchRequest>,
   searchReplies: Sender<ContentSearchReply>,
   cancellations: Channel<int>,
+  gitRequests: Channel<string>,
+  gitReplies: Sender<GitReply>,
   servers: LanguageServer[] = []
 ): Task<void> {
+  const gitRoot = clone(root);
   const languageRoot = clone(root);
   const checkProgram = clone(program);
   const language = languageServices(languageRoot, studioServers(program, servers), languageMessages, languageReplies).start();
+  const git = gitWorker(gitRoot, gitRequests, gitReplies).start();
   const checker = projectCheckWorker(root, checkProgram, requests, replies).start();
   const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
   const model = modelService(modelProgram, modelRequests, modelUpdates).start();
   const search = contentSearchWorker(searchRequests, searchReplies, cancellations).start();
-  await all([language, checker, formatter, model, search]);
+  await all([language, checker, formatter, model, search, git]);
 }

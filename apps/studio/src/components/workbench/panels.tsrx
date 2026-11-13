@@ -21,6 +21,7 @@ export function Panels(
   problems: Node,
   problemsActions: Node,
   references: Node,
+  git: Node,
   font: Signal<int>
 ): Node {
   const fontClass = computed<string>(() => 'flex-col size-full min-h-0 bg-muted text-[' + font.get().toString() + 'px]');
@@ -84,10 +85,8 @@ export function Panels(
             {t("Debugger integration is planned. No debug session is running.")}
           </Text>
         </View>
-        <View hidden={panel.get() !== 'git'}>
-          <Text>
-            {t("Repository status, diffs and staging are planned.")}
-          </Text>
+        <View hidden={panel.get() !== 'git'} className="size-full min-h-0">
+          {git}
         </View>
         <View hidden={panel.get() !== 'extensions'}>
           <Text>

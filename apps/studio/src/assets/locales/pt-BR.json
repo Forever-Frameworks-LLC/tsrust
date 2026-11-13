@@ -1,4 +1,10 @@
 {
+  "Status": "Status",
+  "Working diff": "Diferenças de trabalho",
+  "Staged diff": "Diferenças preparadas",
+  "Refresh source control": "Atualizar controle de versão",
+  "Reading repository\u2026": "Lendo repositório…",
+  "No changes in this view.": "Nenhuma alteração nesta visualização.",
   "Earlier turns were omitted from this model request. The full conversation remains in chat.": "As mensagens mais antigas foram omitidas desta solicitação ao modelo. A conversa completa continua no chat.",
   "The proposed changes overlap in the original file.": "As alterações propostas se sobrepõem no arquivo original.",
   "Review chat edit": "Revisar alteração do chat",

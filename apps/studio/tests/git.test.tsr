@@ -1,0 +1,46 @@
+import { createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { run } from 'std:process';
+import { strictEqual, test } from 'std:testing';
+import { readGitView } from '../src/services/git.tsr';
+
+test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+
+    match (await readGitView(sub, 'status')) {
+      Ok(_) => {
+        throw 'Expected non-repository error';
+      },
+      Err(error) => {
+        strictEqual(error !== '', true);
+      }
+    }
+
+    strictEqual(unwrap(await run('git', ['init', '-q'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(sub + '/ré view.txt', 'staged line\n'));
+    unwrap(writeTextFile(root + '/outside.txt', 'outside workspace'));
+    strictEqual(unwrap(await run('git', ['add', '--', '.'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(sub + '/ré view.txt', 'working line\n'));
+    unwrap(writeTextFile(sub + '/new.txt', 'untracked'));
+    const status = unwrap(await readGitView(sub, 'status'));
+    strictEqual(status.includes('AM '), true);
+    strictEqual(status.includes('ré view.txt'), true);
+    strictEqual(status.includes('?? new.txt'), true);
+    strictEqual(status.includes('outside.txt'), false);
+    const staged = unwrap(await readGitView(sub, 'staged'));
+    strictEqual(staged.includes('+staged line'), true);
+    strictEqual(staged.includes('working line') || staged.includes('outside.txt'), false);
+    const working = unwrap(await readGitView(sub, 'working'));
+    strictEqual(working.includes('-staged line'), true);
+    strictEqual(working.includes('+working line'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
