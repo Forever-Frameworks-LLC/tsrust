@@ -1,5 +1,6 @@
 import { fromUtf8, length, at, view, toUtf8 } from 'std:bytes';
 import { canonicalize, stat, readTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
 import { separator } from 'std:path';
 import { compile, escape } from 'std:regex';
 
@@ -23,9 +24,55 @@ export interface SearchResults {
   skipped: int;
 }
 
+export interface SearchDraft {
+  path: string;
+  kind: string;
+  text: string;
+}
+
+export interface SearchSnapshot {
+  root: string;
+  files: SearchDraft[];
+}
+
+export function searchSnapshot(workspace: ReadOnly<Workspace>): SearchSnapshot {
+  return {
+    root: clone(workspace.root), files: workspace.files.map((file): SearchDraft => ({
+      path: clone(file.document.path), kind: clone(file.kind), text: clone(file.document.text)
+    }))
+  };
+}
+
 export function searchContents(workspace: ReadOnly<Workspace>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {
+  return searchSnapshotContents(searchSnapshot(workspace), query, regex, caseSensitive, includeIgnored);
+}
+
+function cancelled(channel: Mutable<Channel<int>>, generation: int): boolean {
+  while (true) {
+    match (channel.tryReceive()) {
+      Ok(value) => {
+        if (value === generation) return true;
+      },
+      Err(error) => {
+        return error.code !== 'empty';
+      }
+    }
+  }
+}
+
+export function searchSnapshotContents(
+  workspace: ReadOnly<SearchSnapshot>,
+  query: string,
+  regex: boolean,
+  caseSensitive: boolean,
+  includeIgnored: boolean,
+  cancellations?: Mutable<Channel<int>>,
+  generation: int = 0
+): Result<SearchResults, string> {
   const hits: SearchHit[] = [];
   let skipped = 0;
+
+  if (cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
 
   if (query === '') return Ok({
     hits, skipped
@@ -44,12 +91,13 @@ export function searchContents(workspace: ReadOnly<Workspace>, query: string, re
         },
         Ok(files) => {
           for (const file of files) {
+            if (cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
             let text = '';
-            const opened = workspace.files.find((entry) => entry.document.path === file.path);
+            const opened = workspace.files.find((entry) => entry.path === file.path);
 
             if (opened !== undefined) {
               if (opened.kind !== 'text') continue;
-              text = clone(opened.document.text);
+              text = clone(opened.text);
             } else {
               try {
                 const resolved = unwrap(canonicalize(file.path));
@@ -74,26 +122,24 @@ export function searchContents(workspace: ReadOnly<Workspace>, query: string, re
               }
             }
 
-            const lines = text.split('\n');
             let offset = 0;
+            let line = 1;
 
-            for (let index = 0; index < lines.length; index += 1) {
-              const found = pattern.find(lines[index]);
+            while (true) {
+              if (line % 128 === 0 && cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
+              const newline = text.indexOf('\n', offset);
+              const preview = text.slice(offset, newline < 0 ? text.length : newline);
+              const found = pattern.find(preview);
 
               if (found !== undefined) hits.push({
-                path: clone(file.path), line: index + 1, offset, preview: clone(lines[index]), matches: [{
+                path: clone(file.path), line, offset, preview, matches: [{
                   start: found.start, end: found.end
                 }]
               });
 
-              match (fromUtf8(lines[index])) {
-                Ok(bytes) => {
-                  offset += length(bytes) + 1;
-                },
-                Err(error) => {
-                  return Err(clone(error.message));
-                }
-              }
+              if (newline < 0) break;
+              offset = newline + 1;
+              line += 1;
             }
           }
         }

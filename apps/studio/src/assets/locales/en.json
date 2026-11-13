@@ -416,6 +416,8 @@
   "Close all editors?": "Close all editors?",
   "Some editors have unsaved changes. Cancel and save them first, or explicitly discard all unsaved drafts.": "Some editors have unsaved changes. Cancel and save them first, or explicitly discard all unsaved drafts.",
   "Discard all and close": "Discard all and close",
+  "Cancel search": "Cancel search",
+  "Search cancelled.": "Search cancelled.",
   "Cancel": "Cancel",
   "Unknown editor close action.": "Unknown editor close action.",
   "Checking target has changed or is not open.": "Checking target has changed or is not open.",

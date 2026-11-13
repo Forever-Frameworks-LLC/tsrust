@@ -416,6 +416,8 @@
   "Close all editors?": "Fechar todos os editores?",
   "Some editors have unsaved changes. Cancel and save them first, or explicitly discard all unsaved drafts.": "Alguns editores têm alterações não salvas. Cancele e salve-as primeiro, ou descarte explicitamente todos os rascunhos não salvos.",
   "Discard all and close": "Descartar tudo e fechar",
+  "Cancel search": "Cancelar pesquisa",
+  "Search cancelled.": "Pesquisa cancelada.",
   "Cancel": "Cancelar",
   "Unknown editor close action.": "Ação de fechamento de editor desconhecida.",
   "Checking target has changed or is not open.": "O destino da verificação mudou ou não está aberto.",

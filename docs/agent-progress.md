@@ -4,6 +4,22 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Cancelling content searches
+
+The search button becomes a stop control while a submission is pending or
+running. An edit, stop or replacement invalidates the active generation. The
+worker checks cancellation before discovery, between files and every 128 lines;
+late requests for an older generation cannot cancel a newer one. Search jobs
+carry the root and open files' path, kind and current text. Line scanning uses
+UTF-8 offsets without splitting the entire document into an array. Search tests
+4/4 (32.76 ms) and shared service tests 14/14 (489.86 ms) passed, including
+a cancelled generation followed by a successful draft search, CRLF, Unicode and
+final empty-line matching. Both locale catalogs and the panel check passed;
+final formatter zero changes. Supervisor 36374 rebuilt in 141143 ms and
+launched preview 68305. Logs /tmp/studio-cancel-search-{final,lifecycle,panel-ok,
+format-ok}.log. Discovery, an ongoing read and a single regex operation still
+finish before the next cancellation check. No native click or memory measurement.
+
 ## Background content search
 
 Studio's content-search panel submits Enter, button and filter requests to a

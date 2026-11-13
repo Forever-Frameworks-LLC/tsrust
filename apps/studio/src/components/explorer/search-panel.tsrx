@@ -12,11 +12,12 @@ import {
   Signal,
   signal,
   computed,
+  translate,
   translateWith
 } from 'std:ui';
 
 import { SearchActionContext, openSearchResult } from '../../lib/explorer/search-actions.tsr';
-import { SearchHit, searchPreview } from '../../lib/explorer/search.tsr';
+import { SearchHit, searchSnapshot, searchPreview } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
@@ -79,22 +80,41 @@ interface ContentSearchState {
   generation: int;
   pending: boolean;
   running: boolean;
+  active: int;
+  cancelSent: boolean;
 }
 
-function submitContentSearch(search: Signal<ContentSearchState>): void {
+function submitContentSearch(search: Signal<ContentSearchState>, run: boolean = true): void {
   const next = search.get();
   next.generation += 1;
-  next.pending = next.query !== '';
+  next.pending = run && next.query !== '';
   next.searched = false;
   next.hits = [];
   next.error = '';
   search.set(next);
 }
 
-function pollContentSearch(workspace: Signal<Workspace>, settings: Signal<StudioConfig>, search: Signal<ContentSearchState>, requests: ReadOnly<Sender<ContentSearchRequest>>, replies: Mutable<Channel<ContentSearchReply>>): void {
+function pollContentSearch(
+  workspace: Signal<Workspace>,
+  settings: Signal<StudioConfig>,
+  search: Signal<ContentSearchState>,
+  requests: ReadOnly<Sender<ContentSearchRequest>>,
+  replies: Mutable<Channel<ContentSearchReply>>,
+  cancellations: ReadOnly<Sender<int>>
+): void {
   const next = search.get();
 
   if (next.running) {
+    if (next.active !== next.generation && !next.cancelSent) {
+      match (cancellations.trySend(next.active)) {
+        Ok(_) => {
+          next.cancelSent = true;
+          search.set(next);
+        },
+        Err(_) => {}
+      }
+    }
+
     match (replies.tryReceive()) {
       Ok(reply) => {
         next.running = false;
@@ -119,10 +139,12 @@ function pollContentSearch(workspace: Signal<Workspace>, settings: Signal<Studio
     next.pending = false;
 
     match (requests.trySend({
-      generation: next.generation, workspace: workspace.get(), query: clone(next.query), regex: next.regex, sensitive: next.sensitive, includeIgnored: settings.get().searchIncludeIgnored
+      generation: next.generation, workspace: searchSnapshot(workspace.get()), query: clone(next.query), regex: next.regex, sensitive: next.sensitive, includeIgnored: settings.get().searchIncludeIgnored
     })) {
       Ok(_) => {
         next.running = true;
+        next.active = next.generation;
+        next.cancelSent = false;
       },
       Err(error) => {
         next.error = clone(error.code);
@@ -139,14 +161,16 @@ export function ContentSearch(
   font: Signal<int>,
   settings: Signal<StudioConfig>,
   requests: ReadOnly<Channel<ContentSearchRequest>>,
+  cancellations: Sender<int>,
   replies: Channel<ContentSearchReply>
 ): Node {
   const sender = requests.sender();
   const fontClass = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
-    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false
+    query: '', regex: false, sensitive: false, hits: [], error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
   });
+  const runLabel = computed<string>(() => search.get().running || search.get().pending ? translate("Cancel search") : translate("Run content search"));
   const summary = computed<string>(() => translateWith('matchingLines', {
     count: search.get().hits.length
   }) + (search.get().skipped > 0 ? ' • ' + translateWith('skippedFiles', {
@@ -158,7 +182,14 @@ export function ContentSearch(
         interval={50}
         running={search.get().pending || search.get().running}
         onTick={(_frame) => {
-          pollContentSearch(workspace, settings, search, sender, replies);
+          pollContentSearch(
+            workspace,
+            settings,
+            search,
+            sender,
+            replies,
+            cancellations
+          );
         }}
       />
       <View className="shrink-0 h-8 min-w-0">
@@ -172,12 +203,8 @@ export function ContentSearch(
             onChange={(event) => {
               const next = search.get();
               next.query = clone(event.target.value);
-              next.generation += 1;
-              next.pending = false;
-              next.searched = false;
-              next.hits = [];
-              next.error = '';
               search.set(next);
+              submitContentSearch(search, false);
             }}
             onSubmit={(_secondary) => {
               submitContentSearch(search);
@@ -209,12 +236,11 @@ export function ContentSearch(
               }}
             />
             <InputGroupButton
-              icon="search"
-              loading={search.get().running || search.get().pending}
-              tooltip={message("Run content search")}
-              accessibilityLabel={message("Run content search")}
+              icon={search.get().running || search.get().pending ? 'square' : 'search'}
+              tooltip={runLabel.get()}
+              accessibilityLabel={runLabel.get()}
               onClick={() => {
-                submitContentSearch(search);
+                submitContentSearch(search, !(search.get().running || search.get().pending));
               }}
             />
           </InputGroupAddon>

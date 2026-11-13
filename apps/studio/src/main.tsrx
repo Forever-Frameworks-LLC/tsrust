@@ -76,6 +76,7 @@ function App(
   modelRequests: ReadOnly<Channel<ModelRequest>>,
   modelUpdates: Channel<ModelUpdate>,
   searchRequests: ReadOnly<Channel<ContentSearchRequest>>,
+  cancellations: ReadOnly<Channel<int>>,
   searchReplies: Channel<ContentSearchReply>,
   initialConfig: StudioConfig,
   settingsError: string
@@ -146,6 +147,7 @@ function App(
     font,
     settings,
     searchRequests,
+    cancellations.sender(),
     searchReplies
   );
   const initialTerminals = emptyTerminals();
@@ -475,6 +477,7 @@ async function main(): Task<void> {
   const modelReplies = modelUpdates.sender();
   const searchRequests = new Channel<ContentSearchRequest>(1);
   const searchReplies = new Channel<ContentSearchReply>(1);
+  const cancellations = new Channel<int>(1);
   const searchSender = searchReplies.sender();
   const view = App(
     clone(path),
@@ -488,6 +491,7 @@ async function main(): Task<void> {
     modelRequests,
     modelUpdates,
     searchRequests,
+    cancellations,
     searchReplies,
     clone(startupConfig),
     startupError
@@ -507,6 +511,7 @@ async function main(): Task<void> {
     modelReplies,
     searchRequests,
     searchSender,
+    cancellations,
     startupConfig.languageServers
   ).start();
 

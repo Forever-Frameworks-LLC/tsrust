@@ -152,7 +152,8 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     modelRequests,
     modelUpdates.sender(),
     searchRequests,
-    searchReplies.sender()
+    searchReplies.sender(),
+    new Channel<int>(1)
   ).start();
 
   try {

@@ -4,7 +4,7 @@ import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
-import { searchContents, searchPreview, SearchResults } from '../src/lib/explorer/search.tsr';
+import { searchContents, searchSnapshot, searchPreview, SearchResults } from '../src/lib/explorer/search.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
@@ -12,12 +12,14 @@ import { editorTools, invokeEditorTool } from '../src/services/editor-tools.tsr'
 
 import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from '../src/services/content-search.tsr';
 
-test('background content search returns the submitted draft and recovers after invalid regex', async () => {
+test('background search handles invalid regex, cancels the requested generation and finds the next draft', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-worker-search-'));
   const requests = new Channel<ContentSearchRequest>(1);
   const replies = new Channel<ContentSearchReply>(1);
   const commands = requests.sender();
-  const worker = contentSearchWorker(requests, replies.sender()).start();
+  const cancellations = new Channel<int>(1);
+  const cancel = cancellations.sender();
+  const worker = contentSearchWorker(requests, replies.sender(), cancellations).start();
 
   try {
     unwrap(writeTextFile(root + '/draft.txt', 'disk'));
@@ -25,16 +27,25 @@ test('background content search returns the submitted draft and recovers after i
     unwrap(openFile(workspace, root + '/draft.txt'));
     edit(workspace.files[0].document, 'needle in draft');
     await commands.send({
-      generation: 1, workspace: clone(workspace), query: '[', regex: true, sensitive: false, includeIgnored: false
+      generation: 1, workspace: searchSnapshot(workspace), query: '[', regex: true, sensitive: false, includeIgnored: false
     });
     const invalid = await replies.receive().timeout(5000);
     strictEqual(invalid.generation, 1);
     strictEqual(invalid.error !== '', true);
+    await cancel.send(2);
     await commands.send({
-      generation: 2, workspace, query: 'needle', regex: false, sensitive: true, includeIgnored: false
+      generation: 2, workspace: searchSnapshot(workspace), query: 'needle', regex: false, sensitive: true, includeIgnored: false
+    });
+    const stopped = await replies.receive().timeout(5000);
+    strictEqual(stopped.generation, 2);
+    strictEqual(stopped.error, 'Search cancelled.');
+    strictEqual(stopped.result.hits.length, 0);
+    await cancel.send(2);
+    await commands.send({
+      generation: 3, workspace: searchSnapshot(workspace), query: 'needle', regex: false, sensitive: true, includeIgnored: false
     });
     const found = await replies.receive().timeout(5000);
-    strictEqual(found.generation, 2);
+    strictEqual(found.generation, 3);
     strictEqual(found.error, '');
     strictEqual(found.result.hits.length, 1);
     strictEqual(found.result.hits[0].preview, 'needle in draft');
@@ -58,6 +69,10 @@ test('content search supports literal, case and regex matching with UTF-8 line o
     unwrap(writeTextFile(root + '/target/ignored', 'Alpha'));
     const workspace = unwrap(openWorkspace(root));
     const insensitive = unwrap(searchContents(workspace, 'alpha', false, false));
+    const emptyLines = unwrap(searchContents(workspace, '^$', true, true));
+    strictEqual(emptyLines.hits.length, 1);
+    strictEqual(emptyLines.hits[0].line, 4);
+    strictEqual(emptyLines.hits[0].offset, '🦀 first\r\nAlpha beta\nalpha.betA\n'.length);
     strictEqual(insensitive.hits.length, 2);
     strictEqual(insensitive.hits[0].line, 2);
     strictEqual(insensitive.hits[0].offset, 12);
