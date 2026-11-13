@@ -13,7 +13,7 @@ import {
   signal,
   t
 } from 'std:ui';
-import { accessibleName, message } from '../../lib/localization.tsr';
+import { accessibleName, localizeError, message } from '../../lib/localization.tsr';
 import { GitRequest, GitReply } from '../../services/git.tsr';
 
 import { Workspace } from '../../lib/workspace/workspace.tsr';
@@ -47,6 +47,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           <Tab value="status" label={message('Status')} />
           <Tab value="working" label={message('Working diff')} />
           <Tab value="staged" label={message('Staged diff')} />
+          <Tab value="history" label={message('History')} />
         </Tabs>
         <Button
           icon="plus"
@@ -93,7 +94,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
       </View>
       <View hidden={shown.get() !== mode.get() || failed.get() || output.get() !== ''}>
         <Text>
-          {t('No changes in this view.')}
+          {mode.get() === 'history' ? t('No commits in this workspace.') : t('No changes in this view.')}
         </Text>
       </View>
       <CodeEditor value={shown.get() === mode.get() ? output.get() : ''} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Source Control')} />
@@ -104,7 +105,7 @@ export function GitPanel(workspace: Signal<Workspace>, panel: Signal<string>, re
           if (busy.get()) {
             match (replies.tryReceive()) {
               Ok(reply) => {
-                output.set(reply.text);
+                output.set(reply.failed ? localizeError(reply.text) : reply.text);
                 failed.set(reply.failed);
                 shown.set(reply.mode);
                 busy.set(false);

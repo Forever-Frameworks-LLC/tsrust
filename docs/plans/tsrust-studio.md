@@ -6,7 +6,8 @@ implementation is not model quality, platform acceptance or release approval.
 See [the bounded capability audit](tsrust-studio-audit.md) for exact source
 identities, proof contracts, current checks and unresolved prerequisites.
 
-Source Control displays workspace-scoped status, working diff and staged diff.
+Source Control displays workspace-scoped status, working diff, staged diff and
+current-branch commit history.
 Active-file staging and unstaging use the saved file on disk. Change-list
 selection, deleted-file staging and hunk controls remain open.
 

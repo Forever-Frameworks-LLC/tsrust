@@ -4,6 +4,20 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Current Studio dev session and workspace commit history
+
+Supervisor 63326 uses the rebuilt optimized CLI and the existing model host.
+Startup took 217.84 s with a native runtime cache miss (110.60 s to build and
+publish it). A source change for the Source Control History tab rebuilt in
+132.91 s with a runtime hit, including 92.37 s checking and 36.85 s native
+compilation/linking. Preview 65566 was alive under the new supervisor after
+replacement. These are live observations, not matched benchmark samples.
+
+History lists abbreviated commit, author date and subject for HEAD commits
+affecting the open workspace. The real Git suite passed (3.04 s build) with
+an unborn branch and an outside-only commit. Both locale catalogs passed
+the 535-key check. Desktop interaction and large-history pagination are open.
+
 ## Studio compiler check profiling
 
 CPU samples of a full Studio check showed reused UI signal and result types

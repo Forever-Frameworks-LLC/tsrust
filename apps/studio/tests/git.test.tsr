@@ -22,6 +22,7 @@ test('source control reads status and separate staged and working diffs scoped t
     strictEqual(unwrap(await run('git', ['init', '-q'], {
       cwd: clone(root)
     })).status.success, true);
+    strictEqual(unwrap(await readGitView(sub, 'history')), '');
     unwrap(writeTextFile(sub + '/ré view.txt', 'staged line\n'));
     unwrap(writeTextFile(root + '/outside.txt', 'outside workspace'));
     strictEqual(unwrap(await run('git', ['add', '--', '.'], {
@@ -70,6 +71,13 @@ test('source control reads status and separate staged and working diffs scoped t
     strictEqual(unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'baseline'], {
       cwd: clone(root)
     })).status.success, true);
+    unwrap(writeTextFile(root + '/outside.txt', 'changed outside'));
+    strictEqual(unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'outside only', '--', 'outside.txt'], {
+      cwd: clone(root)
+    })).status.success, true);
+    const history = unwrap(await readGitView(sub, 'history'));
+    strictEqual(history.includes('baseline'), true);
+    strictEqual(history.includes('outside only'), false);
     unwrap(await gitRequest(sub, {
       mode: 'status', action: 'stage', path: 'ré view.txt'
     }));
