@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Language-server startup priority
+
+Studio recovery had one open source tab, main.tsrx. The language controller synchronizes changed session/revision identities on its 150 ms tick. The server previously scheduled a disk workspace scan immediately on initialization and could enter a synchronous compiler check before the first didOpen. It now debounces the initial workspace scan from the initialized notification using the configured debounce. Open documents remain immediately eligible. A framed regression received versioned diagnostics for an unsaved repaired module first and then the error from a separate closed file. All 17 stdio and nine workspace scan tests passed. One existing formatting assertion expected two spaces despite explicitly requesting four; its witness now checks the requested four-space indentation on both fields.
+
+In a standalone stdio replay against apps/studio, main.tsrx opened 150 ms after initialized. Opt-in timings identified the foreground job first. It produced declarations in 1.412 seconds, spent 110.818 seconds in the full compiler check, built the checked index in 1.713 seconds and returned zero diagnostics at 114.34 seconds. The workspace scan started afterward. These are observed wall times under concurrent machine load. This addresses startup ordering; sustained whole-workspace cost and compiler latency still require work. Studio's Language services → Restart action loaded the rebuilt LSP under the same live application (PID 71921).
+
 ## Accessible pagination menus
 
 The two ellipsis buttons now have localized accessible names and hover text identifying the pages available in each menu. In a rebuilt Studio window with a temporary 451-commit repository, page 5 exposed “Pages 2–3” and “Pages 7–9”. The latter accepted native focus. Return opened the menu and Down followed by Return selected page 7. The resulting pager showed 6, 7 and 8. This verifies the macOS English path.

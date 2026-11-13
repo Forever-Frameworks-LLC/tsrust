@@ -247,7 +247,7 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     let edits = response.result.unwrap();
     let formatted = edits[0]["newText"].as_str().unwrap();
     assert!(formatted.contains("interface Box<T>"), "{formatted}");
-    assert!(formatted.contains("value: T,\n  label?: string"), "{formatted}");
+    assert!(formatted.contains("    value: T,\n    label?: string"), "{formatted}");
     assert!(formatted.contains("new Map<string, int>()"), "{formatted}");
     assert!(tsrust_compiler::check(formatted).is_ok());
     server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
@@ -378,6 +378,37 @@ fn imported_unopened_file_publishes_multiple_syntax_errors_and_repairs() {
     assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
     server.finish(0);
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn startup_open_buffer_diagnostics_precede_the_closed_file_scan() {
+    let root = std::env::temp_dir().join(format!("tsrust-startup-priority-{}", std::process::id()));
+    std::fs::create_dir(&root).unwrap();
+    let root = root.canonicalize().unwrap();
+    let uri = |name: &str| tsrust_lsp::project_diagnostics::file_uri(
+        &tsrust_compiler::project::SourceId(root.join(name).to_string_lossy().into_owned())
+    ).unwrap().to_string();
+    std::fs::write(root.join("open.tsr"), "export function value(): int { return true; }").unwrap();
+    std::fs::write(root.join("closed.tsr"), "function broken() { const a: int = false; }").unwrap();
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"rootUri":uri(""), "initializationOptions":{"debounceMs":500}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    assert!(server.messages.recv_timeout(Duration::from_millis(50)).is_err());
+    server.notify("textDocument/didOpen", json!({"textDocument":{
+        "uri":uri("open.tsr"), "languageId":"tsrust", "version":1,
+        "text":"export function value(): int { return 1; }"
+    }}));
+    assert!(matches!(server.receive(), Message::Notification(n)
+        if n.method == "textDocument/publishDiagnostics" && n.params["uri"] == uri("open.tsr")
+        && n.params["version"] == 1 && n.params["diagnostics"] == json!([])));
+    assert!(matches!(server.receive(), Message::Notification(n)
+        if n.method == "textDocument/publishDiagnostics" && n.params["uri"] == uri("closed.tsr")
+        && n.params["diagnostics"].as_array().unwrap().len() == 1));
+    server.request(2, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

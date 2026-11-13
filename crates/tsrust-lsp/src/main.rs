@@ -235,6 +235,7 @@ fn run(
     let mut initialized = false;
     let mut ready = false;
     let mut shutdown = false;
+    let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
     let mut debounce = Duration::from_millis(200);
     loop {
         if shutdown && let Some((_,cancel))=&file_active {cancel.store(true,std::sync::atomic::Ordering::Relaxed);}
@@ -254,6 +255,7 @@ fn run(
             in_flight = Some(snapshot.uri.clone());
             in_flight_input = Some((snapshot.clone(), workspace.clone()));
             scan_interrupt.store(false, std::sync::atomic::Ordering::Relaxed);
+            if trace { eprintln!("[analysis] foreground {}", snapshot.uri); }
             jobs.send(Job::Document(DocumentJob {
                 cache_for_scan: scanner.covers(&snapshot.uri),
                 snapshot,
@@ -265,6 +267,7 @@ fn run(
         if ready && !shutdown && !busy && documents.pending_count()==0
             && let Some(job)=scanner.next(Instant::now(),projects.workspace.snapshot()) {
             scan_interrupt.store(false,std::sync::atomic::Ordering::Relaxed);
+            if trace { eprintln!("[analysis] workspace scan"); }
             jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
             busy=true;
         }
@@ -408,7 +411,14 @@ fn run(
                         if !initialized || shutdown { continue; }
                         let now = Instant::now();
                         let handled: Result<(), String> = match notification.method.as_str() {
-                            "initialized" => {ready=true;Ok(())},
+                            "initialized" => {
+                                if !ready {
+                                    // Let startup didOpen notifications arrive before checking the same files from disk.
+                                    scanner.dirty(now, debounce);
+                                    ready = true;
+                                }
+                                Ok(())
+                            },
                             "workspace/didChangeWorkspaceFolders" => {
                                 scanner.change_folders(&notification.params,now);
                                 if let Some((id,cancel))=&file_active && !cancel.swap(true,std::sync::atomic::Ordering::Relaxed) {
