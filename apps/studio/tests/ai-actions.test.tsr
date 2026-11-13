@@ -906,6 +906,9 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     const proposal = unwrap(replacementProposal(snapshot, '{"before":"two","after":"three"}'));
     strictEqual(unwrap(replacementProposal(snapshot, '[{"before":"one one","after":"one one"},{"before":"two","after":"three"}]')).after, proposal.after);
     strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"two"}]')), true);
+    strictEqual(denied(replacementProposal(snapshot, '[{"file":1,"before":"two","after":"wrong file"}]')), true);
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"three"},{"file":-1,"before":"one one","after":"other"}]')), true);
+    strictEqual(unwrap(replacementProposal(snapshot, '{"file":0,"before":"two","after":"three"}')).after, proposal.after);
     const swapped = unwrap(replacementProposal(snapshot, '[{"before":"two","after":"one one"},{"before":"one one","after":"two"}]'));
     strictEqual(swapped.after, 'two one one');
     togglePassage(swapped, 1);
@@ -969,6 +972,51 @@ test('chat edit review rejects ambiguous replacements, stale drafts and dismisse
     strictEqual(unwrap(readTextFile(path)), 'one one two');
   } finally {
     unwrap(removeDirAll(folder));
+  }
+});
+
+test('one attached edit target stays bound to its captured file when another tab is active', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-single-attached-'))));
+
+  try {
+    const model = unwrap(openWorkspace(clone(root)));
+
+    for (const name of ['attached', 'active']) {
+      unwrap(writeTextFile(root + '/' + name + '.tsr', 'same text'));
+      unwrap(openFile(model, root + '/' + name + '.tsr'));
+    }
+
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/attached.tsr'
+    })));
+    send(host, 'Edit files: Change file 0.');
+    const request = unwrap(requests.tryReceive());
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: '[{"file":0,"before":"same text","after":"updated"}]', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing single attached file proposal.';
+    strictEqual(review.files.length, 1);
+    strictEqual(review.files[0].path, root + '/attached.tsr');
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    reviewChatEdit(state, workspace, recovery, review, true);
+    strictEqual(workspace.get().files[0].document.text, 'updated');
+    strictEqual(workspace.get().files[1].document.text, 'same text');
+    strictEqual(unwrap(readTextFile(root + '/attached.tsr')), 'same text');
+  } finally {
+    unwrap(removeDirAll(root));
   }
 });
 

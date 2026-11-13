@@ -2,6 +2,7 @@ import { JsonLimits } from 'std:json';
 import { ProposedEdit, EditPassage } from '../workspace/documents.tsr';
 
 interface Replacement {
+  file?: int;
   before: string;
   after: string;
 }
@@ -41,7 +42,7 @@ export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: 
     };
     const changes = body.startsWith('[') ? JSON.parse<Replacement[]>(body, limits) : [JSON.parse<Replacement>(body, limits)];
 
-    if (changes.length === 0) return Err('The model did not return a valid edit proposal.');
+    if (changes.length === 0 || changes.some((change) => change.file !== undefined && change.file !== 0)) return Err('The model did not return a valid edit proposal.');
     const edits: EditPassage[] = [];
 
     for (const change of changes) {

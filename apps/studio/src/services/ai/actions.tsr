@@ -428,7 +428,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
             targets.push(propose(file.document, ''));
           }
 
-          if (targets.length < 2) return Err('Attach current open workspace files to edit them together.');
+          if (targets.length === 0) return Err('Attach current open workspace files to edit them together.');
           next.editTarget = {
             files: targets
           };
