@@ -607,7 +607,8 @@ export function editorContext(
   hasReferences: boolean,
   index: Mutable<Map<string, FileDeclarations>>,
   previousQuestion: ReadOnly<string> = '',
-  outline?: LanguageReadResult
+  outline?: LanguageReadResult,
+  recentWorkspaceQuestion: boolean = false
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -716,7 +717,7 @@ export function editorContext(
     const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|\\bconst\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|[{}]"));
     // In project questions, match spoken compound names such as "handling fee".
     const normalized = lookup.toLowerCase();
-    const proseLookup = !editing && !hasReferences && !hasExplicitSymbols && !listFiles && mentionedNames.size === 0 && qualified.size === 0 && unwrap(compile('\\b(project|workspace|repository|codebase)\\b')).isMatch(normalized);
+    const proseLookup = !editing && !hasReferences && !hasExplicitSymbols && !listFiles && mentionedNames.size === 0 && qualified.size === 0 && (recentWorkspaceQuestion || unwrap(compile('\\b(project|workspace|repository|codebase)\\b')).isMatch(normalized));
     const words = unwrap(compile('[^\\p{L}\\p{N}]+'));
     const phrase = proseLookup ? ' ' + words.replaceAll(normalized, ' ') + ' ' : '';
     const camel = unwrap(compile('([\\p{Ll}\\p{N}])([\\p{Lu}])'));

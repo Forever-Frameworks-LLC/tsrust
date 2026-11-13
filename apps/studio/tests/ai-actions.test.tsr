@@ -1374,6 +1374,21 @@ test('a closed file supplies a named constant and its initializer dependencies',
     strictEqual(result.excerpt.includes('const handlingFee = baseRate + 2;'), true);
     strictEqual(result.excerpt.includes('const baseRate = 7;'), true);
     strictEqual(result.excerpt.includes('function other'), false);
+    const followup = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'How does raising the base rate change the handling fee?',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(followup.excerpt.includes('const handlingFee = baseRate + 2;'), true);
+    strictEqual(followup.excerpt.includes('const baseRate = 7;'), true);
+    strictEqual(followup.excerpt.includes('function other'), false);
     const local = editorContext(
       workspace,
       tree,
