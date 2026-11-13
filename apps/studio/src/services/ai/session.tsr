@@ -79,8 +79,6 @@ async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>, c
 
     if (update.kind === 'stopped') return;
     await updates.send(update);
-
-
   }
 }
 
@@ -99,7 +97,18 @@ async function connected(program: ReadOnly<string>, first: ModelRequest, request
 
   try {
     if (input === undefined || output === undefined || errors === undefined) throw 'Could not open model host pipes.';
-    await race([forward(input, first, requests), receive(output, updates, requests.sender()), drain(errors)]);
+    // Hosts may close their diagnostic stream while the protocol is still active.
+    const diagnostics = drain(errors).start();
+
+    try {
+      await race([forward(input, first, requests), receive(output, updates, requests.sender())]);
+    } finally {
+      diagnostics.cancel();
+
+      try {
+        await diagnostics;
+      } catch (_) {}
+    }
   } finally {
     try {
       unwrap(await child.kill().timeout(5000));

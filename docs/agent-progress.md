@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Model host pipe lifetime and recovery
+
+Studio now keeps receiving protocol updates after a host closes stderr. A
+POSIX fixture closes stderr before readiness, streams a prefix, then exits with
+status 7. The model service delivered the prefix, reported unexpected stdout
+EOF, emitted stopped, and accepted a fresh start on the same service. The public
+model-session suite passed on macOS (1/1, 13.91 ms execution). Final project
+format reported zero changes. Logs: /tmp/studio-model-pipes-tests-final.log and
+/tmp/studio-model-pipes-format-final.log. Supervisor 1088 and its prior preview
+4521 were alive during validation. The fixture exercises process transport;
+desktop recovery and Windows coverage remain open.
+
 ## Chat startup cancellation and draft recovery
 
 A late ready update could override stopping and dispatch a cancelled generation.

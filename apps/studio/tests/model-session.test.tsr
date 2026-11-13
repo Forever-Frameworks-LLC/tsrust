@@ -1,0 +1,40 @@
+import { canonicalize } from 'std:fs';
+import { Channel } from 'std:futures';
+import { platform } from 'std:os';
+import { test, strictEqual } from 'std:testing';
+
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { modelService } from '../src/services/ai/session.tsr';
+
+if (platform() !== 'win32') test('closed stderr preserves replies and an unexpected stdout EOF permits a fresh model session', async () => {
+  const program = unwrap(canonicalize('tests/fixtures/model-closed-stderr.sh'));
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(8);
+  const commands = requests.sender();
+  const worker = modelService(program, requests, updates.sender()).start();
+
+  try {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await commands.send({
+        kind: 'start', id: '', prompt: '', maxTokens: 0
+      });
+      strictEqual((await updates.receive().timeout(5000)).kind, 'ready');
+      await commands.send({
+        kind: 'generate', id: 'turn', prompt: 'test', maxTokens: 4
+      });
+      const prefix = await updates.receive().timeout(5000);
+      strictEqual(prefix.kind, 'prefix');
+      strictEqual(prefix.text, 'partial');
+      const failure = await updates.receive().timeout(5000);
+      strictEqual(failure.kind, 'error');
+      strictEqual(failure.error.includes('closed its output'), true);
+      strictEqual((await updates.receive().timeout(5000)).kind, 'stopped');
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});
