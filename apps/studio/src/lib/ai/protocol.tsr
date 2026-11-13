@@ -15,4 +15,5 @@ export type ModelUpdate = {
   id: string;
   text: string;
   error: string;
+  stop?: string;
 };

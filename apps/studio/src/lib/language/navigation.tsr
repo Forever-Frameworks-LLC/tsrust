@@ -2,9 +2,9 @@ import { Signal, controlInput } from 'std:ui';
 
 import { SearchActionContext } from '../explorer/search-actions.tsr';
 import { publishWorkspace } from '../workspace/document-actions.tsr';
-import { Recovery } from '../workspace/recovery.tsr';
 import { ProblemSelection } from '../workspace/problem-actions.tsr';
 import { problemOffset } from '../workspace/problems.tsr';
+import { Recovery } from '../workspace/recovery.tsr';
 import { Workspace, openFile } from '../workspace/workspace.tsr';
 import { DiagnosticRange, diagnosticColumn, diagnosticPath } from './diagnostics.tsr';
 

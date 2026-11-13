@@ -1,0 +1,118 @@
+import { randomUuid, formatUuid } from 'std:uuid';
+
+export interface ContextFragment {
+  id: string;
+  kind: string;
+  path: string;
+  label: string;
+  text: string;
+}
+
+export interface AiMessage {
+  role: 'user' | 'assistant';
+  text: string;
+  request: string;
+  status?: string;
+  limited?: boolean;
+  context?: ContextFragment[];
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  revision: int;
+  draft: string;
+  messages: AiMessage[];
+  context?: ContextFragment[];
+}
+
+export interface ChatHistory {
+  schemaVersion: int;
+  root: string;
+  active: string;
+  draft: string;
+  chats: Conversation[];
+  context?: ContextFragment[];
+}
+
+export function emptyHistory(root: string = ''): ChatHistory {
+  return {
+    schemaVersion: 1, root, active: '', draft: '', chats: []
+  };
+}
+
+export function chatIdentity(): string {
+  return formatUuid(unwrap(randomUuid()));
+}
+
+export function createChat(history: Mutable<ChatHistory>): string {
+  const id = chatIdentity();
+  history.chats.push({
+    id: clone(id), title: '', revision: 0, draft: clone(history.draft), messages: [], context: clone(history.context) ?? []
+  });
+  history.draft = '';
+  history.context = [];
+  history.active = clone(id);
+  return id;
+}
+
+export function activeMessages(history: ReadOnly<ChatHistory>): AiMessage[] {
+  const chat = history.chats.find((chat) => chat.id === history.active);
+  return chat === undefined ? [] : clone(chat.messages);
+}
+
+export function chatDraft(history: ReadOnly<ChatHistory>): string {
+  const chat = history.chats.find((chat) => chat.id === history.active);
+  return chat === undefined ? clone(history.draft) : clone(chat.draft);
+}
+
+export function setChatDraft(history: Mutable<ChatHistory>, text: string): void {
+  const index = history.chats.findIndex((chat) => chat.id === history.active);
+
+  if (index < 0) history.draft = text;
+  else if (history.chats[index].draft !== text) {
+    history.chats[index].draft = text;
+    history.chats[index].revision += 1;
+  }
+}
+
+export function parseHistory(text: ReadOnly<string>, root: ReadOnly<string>): Result<ChatHistory, string> {
+  try {
+    const history = JSON.parse<ChatHistory>(text, {
+      maxBytes: 8 * 1024 * 1024, maxDepth: 16, maxEntries: 100000, maxNodes: 300000
+    });
+
+    if (history.schemaVersion !== 1 || history.root !== root) return Err('Chat history belongs to another workspace or version.');
+    const ids: string[] = [];
+
+    for (const chat of history.chats) {
+      if (chat.id === '' || ids.includes(chat.id) || chat.revision < 0) return Err('Chat history contains invalid conversation identities.');
+      ids.push(clone(chat.id));
+    }
+
+    if (history.active !== '' && !ids.includes(history.active)) return Err('The active chat is missing from chat history.');
+    return Ok(history);
+  } catch (_) {
+    return Err('Chat history could not be read. Its file was preserved.');
+  }
+}
+
+export function draftContext(history: ReadOnly<ChatHistory>): ContextFragment[] {
+  const index = history.chats.findIndex((chat) => chat.id === history.active);
+  return index < 0 ? clone(history.context) ?? [] : clone(history.chats[index].context) ?? [];
+}
+
+export function setDraftContext(history: Mutable<ChatHistory>, fragments: ContextFragment[]): void {
+  const index = history.chats.findIndex((chat) => chat.id === history.active);
+
+  if (index < 0) history.context = fragments;
+  else {
+    history.chats[index].context = fragments;
+    history.chats[index].revision += 1;
+  }
+}
+
+export function messageContent(message: ReadOnly<AiMessage>): string {
+  const context = message.context ?? [];
+  return context.length === 0 ? clone(message.text) : message.text + '\n\nUser-selected file and skill context (snapshots):\n' + JSON.stringify(context);
+}

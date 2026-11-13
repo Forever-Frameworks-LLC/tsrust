@@ -1,16 +1,16 @@
 import { get } from 'std:env';
-import { Channel } from 'std:futures';
 import { createTempDir, removeDirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
+import { Channel } from 'std:futures';
 import { run } from 'std:process';
 import { test, strictEqual } from 'std:testing';
 
 import { defaultFormatting } from '../src/lib/settings/formatting.tsr';
+import { closeEditors, planCloseEditors } from '../src/lib/workspace/close-editors.tsr';
 import { createDocument, propose, edit } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
-import { closeEditors, planCloseEditors } from '../src/lib/workspace/close-editors.tsr';
-import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
 import { TerminalSession, terminalLocation } from '../src/lib/workspace/terminals.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { formattingWorker } from '../src/services/formatting.tsr';
 
 function workspace(root: string): Workspace {

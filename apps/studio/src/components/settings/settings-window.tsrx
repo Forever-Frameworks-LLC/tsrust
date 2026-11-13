@@ -31,9 +31,9 @@ import {
   themes,
   StudioConfig
 } from '../../lib/settings/settings.tsr';
-import { LanguageSettings } from './language-settings.tsrx';
-import { AiSettings } from './ai-settings.tsrx';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { AiSettings } from './ai-settings.tsrx';
+import { LanguageSettings } from './language-settings.tsrx';
 
 function SettingsEditor(path: string, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): Node {
   let initial = defaultConfig();

@@ -9,12 +9,12 @@ import {
   t
 } from 'std:ui';
 
-import { Workspace } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { message } from '../../lib/localization.tsr';
 import { CloseEditorsPlan, planCloseEditors } from '../../lib/workspace/close-editors.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { invokeCloseEditorTool, CloseEditorsContext } from '../../services/close-editor-actions.tsr';
-import { message } from '../../lib/localization.tsr';
 
 export interface CloseEditorsState {
   open: boolean;

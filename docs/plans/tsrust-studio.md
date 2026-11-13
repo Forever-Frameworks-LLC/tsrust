@@ -957,3 +957,26 @@ file/line labels and cropped UTF-8-safe match highlights. Activation selects the
 exact matching range. Shared UI/tool actions and tested search tool adapters are
 implemented; live AI transport and full command parity are still pending. Native
 visual/navigation evidence and focused boundary tests are recorded in the audit.
+
+
+### Conversation interface — November12 owner correction
+
+The chat interface uses a single title-bar robot toggle, no redundant pane title
+or avatar chrome, right-aligned user messages and left-aligned assistant Markdown.
+Conversation history and independent drafts are workspace-bound and stored with
+expected-baseline atomic writes. All Chats owns explicit deletion confirmation;
+settings remain in the application Settings window. Sending automatically loads
+the configured model and queues the exact conversation request. Startup, response,
+errors and output limits are visible. Switching conversations does not retarget
+in-flight output. File and SKILL.md context uses bounded snapshots with trusted
+picker grants for outside paths; current engine is text-only.
+
+Focused shared-action acceptance passed7/7, including stale deletion, draft recovery,
+context grants and storage conflicts. Native streaming, chat switching, persistence,
+context selection, bounded composer growth, typography and deletion cancellation
+passed. The normal preview uses the real host; one automatic request returned exact
+“Ready.”. Resource acceptance failed: global swap rose658.12MiB and pressure reached
+critical, so the owned model was stopped. No unchanged inference replay is planned.
+The engine still limits responses to32tokens and2048prompt tokens; this is not
+useful-agent/8GiB qualification. Profile analysis/model allocations next, then an
+incremental decoder and guarded agent tools. No fake image/tool controls are shown.

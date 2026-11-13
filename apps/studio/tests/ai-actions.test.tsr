@@ -1,10 +1,46 @@
-import { test, strictEqual } from 'std:testing';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { createTempDir, removeDirAll, readTextFile, writeTextFile, mkdirAll } from 'std:fs';
 import { Channel } from 'std:futures';
-import { signal } from 'std:ui';
+import { test, strictEqual } from 'std:testing';
+import { Signal, signal } from 'std:ui';
 
-import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
-import { initialAiState, invokeModelTool, pollModel, AiContext } from '../src/services/ai/actions.tsr';
+import { emptyHistory, parseHistory, chatDraft } from '../src/lib/ai/conversations.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
+import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
+
+function modelConfig(): StudioConfig {
+  const config = defaultConfig();
+  config.aiModelPath = '/models/local.gguf';
+  config.aiTokenizerPath = '/models/tokenizer.json';
+  return config;
+}
+
+function context(state: ReadOnly<Signal<AiState>>, settings: ReadOnly<Signal<StudioConfig>>, commands: ReadOnly<Channel<ModelRequest>>): AiContext {
+  const result: AiContext = {
+    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+  return result;
+}
+
+function denied<T>(result: Result<T, string>): boolean {
+  match (result) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+function send(context: ReadOnly<AiContext>, prompt: string): void {
+  unwrap(invokeModelTool(context, 'local_model_send', JSON.stringify({
+    chat: context.state.get().history.active, prompt
+  })));
+}
 
 test('local model settings preserve legacy defaults and artifact paths', () => {
   const config = defaultConfig();
@@ -14,93 +50,225 @@ test('local model settings preserve legacy defaults and artifact paths', () => {
   const loaded = unwrap(parseConfig(formatConfig(config)));
   strictEqual(loaded.aiModelPath, config.aiModelPath);
   strictEqual(loaded.aiTokenizerPath, config.aiTokenizerPath);
-  const legacy = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}'));
-  strictEqual(legacy.aiModelPath, '');
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).aiModelPath, '');
 });
 
-test('shared model commands enforce host grants and reject stale responses', () => {
-  const commands = new Channel<ModelRequest>(2);
-  const updates = new Channel<ModelUpdate>(4);
+test('sending loads automatically and delivers a queued response to its exact conversation', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(8);
   const replies = updates.sender();
   const state = signal(initialAiState());
-  const config = defaultConfig();
-  config.aiModelPath = '/models/local.gguf';
-  config.aiTokenizerPath = '/models/tokenizer.json';
-  const settings = signal(config);
-  const denied: AiContext = {
-    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: false, allowControl: false, allowInference: false
-  };
-  const allowed: AiContext = {
-    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
-  };
-
-  match (invokeModelTool(denied, 'local_model_start', '{}')) {
-    Ok(_) => {
-      throw 'grant bypass';
-    },
-    Err(_) => {}
-  }
-
-  strictEqual(state.get().phase, 'stopped');
-  unwrap(invokeModelTool(allowed, 'local_model_start', '{}'));
-  strictEqual(unwrap(commands.tryReceive()).modelPath ?? '', '/models/local.gguf');
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  host.allowInference = false;
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  host.allowInference = true;
+  send(host, 'Hello');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  strictEqual(host.state.get().phase, 'starting');
+  const request = clone(host.state.get().active);
+  const chat = clone(host.state.get().history.active);
   unwrap(replies.trySend({
     kind: 'ready', id: '', text: '', error: ''
   }));
-  pollModel(state, updates);
-  unwrap(invokeModelTool(allowed, 'local_model_send', '{"prompt":"Hello"}'));
-  const request = unwrap(commands.tryReceive());
-  strictEqual(request.id, 'request-1');
-  strictEqual(state.get().messages.length, 2);
+  pollModel(host, updates);
+  const generation = unwrap(requests.tryReceive());
+  strictEqual(generation.kind, 'generate');
+  strictEqual(generation.id, request);
+  strictEqual(generation.messages?.length ?? 0, 1);
+  strictEqual(host.state.get().phase, 'generating');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const selected = clone(host.state.get().history.active);
+  strictEqual(selected === chat, false);
   unwrap(replies.trySend({
     kind: 'complete', id: 'stale', text: 'wrong', error: ''
   }));
   unwrap(replies.trySend({
-    kind: 'prefix', id: 'request-1', text: 'Hi', error: ''
+    kind: 'prefix', id: clone(request), text: 'Hi 🦀', error: ''
   }));
   unwrap(replies.trySend({
-    kind: 'complete', id: 'request-1', text: 'Hi there', error: ''
+    kind: 'complete', id: clone(request), text: 'Hi 日本語', error: '', stop: 'eos'
   }));
-  pollModel(state, updates);
-  strictEqual(state.get().phase, 'ready');
-  strictEqual(state.get().messages[1].text, 'Hi there');
-
-  match (invokeModelTool(allowed, 'local_model_cancel', '{"request":"request-1"}')) {
-    Ok(_) => {
-      throw 'stale cancellation accepted';
-    },
-    Err(_) => {}
-  }
-
-  unwrap(invokeModelTool(allowed, 'local_model_send', '{"prompt":"Next"}'));
-  const next = unwrap(commands.tryReceive());
-  strictEqual(next.id, 'request-2');
-  const messages = next.messages;
-
-  if (messages === undefined) throw 'history missing';
-  strictEqual(messages.length, 3);
-  strictEqual(messages[1].content, 'Hi there');
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.active, selected);
+  strictEqual(host.state.get().history.chats[0].messages[1].text, 'Hi 日本語');
+  strictEqual(host.state.get().phase, 'ready');
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: '', text: '', error: '{"cause":"The local model process closed its output.","code":"worker"}'
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().notice, 'The local model process closed its output.');
+  strictEqual(denied(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request
+  }))), true);
 });
 
-test('full command queues preserve conversation and request identity', () => {
-  const commands = new Channel<ModelRequest>(1);
-  const context: AiContext = {
-    state: signal(initialAiState()), settings: signal(defaultConfig()), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
-  };
-  const ready = context.state.get();
-  ready.phase = 'ready';
-  context.state.set(ready);
-  unwrap(context.commands.trySend({
-    kind: 'generate', id: 'occupied', prompt: '', maxTokens: 32
+test('cancelled startup restores the exact prompt and preserves newer chat selection', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'Keep my draft');
+  unwrap(requests.tryReceive());
+  const id = clone(host.state.get().active);
+  const original = clone(host.state.get().history.active);
+  strictEqual(denied(invokeModelTool(host, 'local_model_cancel', '{"request":"stale"}')), true);
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: id
+  })));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const selected = clone(host.state.get().history.active);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
   }));
-  const before = JSON.stringify(context.state.get());
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.active, selected);
+  strictEqual(host.state.get().history.chats[0].id, original);
+  strictEqual(host.state.get().history.chats[0].draft, 'Keep my draft');
+  strictEqual(host.state.get().history.chats[0].messages.length, 0);
+  strictEqual(host.state.get().phase, 'stopped');
+});
 
-  match (invokeModelTool(context, 'local_model_send', '{"prompt":"Hello"}')) {
-    Ok(_) => {
-      throw 'queue overflow accepted';
-    },
-    Err(_) => {}
+test('full queues and missing model paths preserve conversation drafts and identities', () => {
+  const requests = new Channel<ModelRequest>(1);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(host.commands.trySend({
+    kind: 'occupied', id: '', prompt: '', maxTokens: 32
+  }));
+  const before = JSON.stringify(host.state.get());
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  strictEqual(JSON.stringify(host.state.get()), before);
+  unwrap(requests.tryReceive());
+  const config = host.settings.get();
+  config.aiModelPath = '';
+  host.settings.set(config);
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  strictEqual(JSON.stringify(host.state.get()), before);
+});
+
+test('conversation actions persist drafts and require independent delete approval', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(invokeModelTool(host, 'chat_set_draft', '{"chat":"","prompt":"Unsent 🦀"}'));
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const id = clone(host.state.get().history.active);
+  strictEqual(chatDraft(host.state.get().history), 'Unsent 🦀');
+  unwrap(invokeModelTool(host, 'chat_show_all', '{}'));
+  strictEqual(host.state.get().view, 'all');
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision, allowDelete: true
+  }))), true);
+  send(host, 'Pending');
+  unwrap(requests.tryReceive());
+  host.allowDelete = true;
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision
+  }))), true);
+  const ready = host.state.get();
+  ready.phase = 'ready';
+  ready.active = '';
+  ready.targetChat = '';
+  ready.pending = undefined;
+  host.state.set(ready);
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision + 1
+  }))), true);
+  strictEqual(host.state.get().history.chats.length, 1);
+  unwrap(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: id, revision: host.state.get().history.chats[0].revision
+  })));
+  strictEqual(host.state.get().history.chats.length, 0);
+  strictEqual(host.state.get().view, 'all');
+});
+
+test('chat storage round-trips Unicode and rejects external history conflicts', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-history-'));
+
+  try {
+    const requests = new Channel<ModelRequest>(4);
+    const state = signal(initialAiState());
+    const settings = signal(modelConfig());
+    const host = context(state, settings, requests);
+    unwrap(invokeModelTool(host, 'chat_new', '{}'));
+    unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+      chat: host.state.get().history.active, prompt: '日本語 🦀'
+    })));
+    const history = host.state.get().history;
+    const store: ChatStore = {
+      path: folder + '/history.json', baseline: '', ready: true
+    };
+    unwrap(persistChats(history, store));
+    strictEqual(chatDraft(unwrap(parseHistory(unwrap(readTextFile(store.path)), ''))), '日本語 🦀');
+    strictEqual(denied(parseHistory(unwrap(readTextFile(store.path)), '/outside')), true);
+    const invalid = clone(history);
+    invalid.chats.push(clone(invalid.chats[0]));
+    strictEqual(denied(parseHistory(JSON.stringify(invalid), '')), true);
+    unwrap(writeTextFile(store.path, 'external bytes'));
+    history.draft = 'new value';
+    strictEqual(denied(persistChats(history, store)), true);
+    strictEqual(unwrap(readTextFile(store.path)), 'external bytes');
+  } finally {
+    removeDirAll(folder);
   }
+});
 
-  strictEqual(JSON.stringify(context.state.get()), before);
+test('file and skill context use guarded snapshots, including unsaved editor text', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-context-'));
+  const outside = unwrap(createTempDir(undefined, 'studio-chat-outside-'));
+
+  try {
+    unwrap(writeTextFile(folder + '/main.tsr', 'const disk = 1;'));
+    unwrap(writeTextFile(outside + '/outside.txt', 'outside private text'));
+    unwrap(mkdirAll(folder + '/.agents/skills/review'));
+    unwrap(writeTextFile(folder + '/.agents/skills/review/SKILL.md', '# Review\nRead carefully.'));
+    const model = unwrap(openWorkspace(clone(folder)));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    edit(model.files[0].document, 'const edited = 2;');
+    const workspace = signal(clone(model));
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const requests = new Channel<ModelRequest>(4);
+    const host = context(state, settings, requests);
+    host.workspace = workspace.handle();
+    strictEqual(denied(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: outside + '/outside.txt', kind: 'file', allowOutside: true
+    }))), true);
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/main.tsr', kind: 'file'
+    })));
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/.agents/skills/review/SKILL.md', kind: 'skill'
+    })));
+    host.allowRead = false;
+    strictEqual(denied(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/main.tsr', kind: 'file'
+    }))), true);
+    host.allowRead = true;
+    host.allowedContextPaths = [outside + '/outside.txt'];
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: outside + '/outside.txt', kind: 'file'
+    })));
+    const ready = host.state.get();
+    ready.phase = 'ready';
+    host.state.set(ready);
+    send(host, 'Explain these references');
+    const request = unwrap(requests.tryReceive());
+    const messages = request.messages;
+
+    if (messages === undefined) throw 'context missing';
+    strictEqual(messages[0].content.includes('const edited = 2;'), true);
+    strictEqual(messages[0].content.includes('Read carefully.'), true);
+    strictEqual(messages[0].content.includes('outside private text'), true);
+    strictEqual(unwrap(readTextFile(folder + '/main.tsr')), 'const disk = 1;');
+    strictEqual((host.state.get().history.context ?? []).length, 0);
+  } finally {
+    removeDirAll(folder);
+    removeDirAll(outside);
+  }
 });

@@ -1,3 +1,4 @@
+import { Sender } from 'std:futures';
 import {
   View,
   Text,
@@ -14,15 +15,13 @@ import {
 } from 'std:ui';
 
 import { FileSearchState, SearchActionContext, showFileSearch, closeFileSearch, openFileSearchResult } from '../../lib/explorer/search-actions.tsr';
+import { message } from '../../lib/localization.tsr';
 import { PaletteCommand, paletteCommands } from '../../lib/workspace/commands.tsr';
-import { Workspace, Entry } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { Sender } from 'std:futures';
+import { Workspace, Entry } from '../../lib/workspace/workspace.tsr';
+import { languageControlAvailable, requestLanguageControl } from '../../services/lsp/actions.tsr';
 import { LanguageState } from '../../services/lsp/controller.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
-import { languageControlAvailable, requestLanguageControl } from '../../services/lsp/actions.tsr';
-
-import { message } from '../../lib/localization.tsr';
 
 export function openPalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, search: Signal<FileSearchState>, commands: boolean = false): void {
   const context: SearchActionContext = {

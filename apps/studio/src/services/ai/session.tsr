@@ -1,3 +1,4 @@
+import { fromUtf8, length } from 'std:bytes';
 import { Channel, Sender, race } from 'std:futures';
 import {
   Reader,
@@ -8,10 +9,9 @@ import {
   writeAll,
   flush
 } from 'std:io';
-import { fromUtf8, length } from 'std:bytes';
+import { toInt } from 'std:numeric';
 import { spawn } from 'std:process';
 import { monotonicNow } from 'std:time';
-import { toInt } from 'std:numeric';
 
 import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
 

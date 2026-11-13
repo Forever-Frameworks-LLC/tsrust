@@ -6356,7 +6356,7 @@ export function List(props: ListProps): Node {
 }
 
 export interface ListItemProps {
-  /** Value List events report for this row; defaults to the row index. */
+  /** Value List events report for this row; defaults to the row index. In reactive lists, distinct nonempty values also preserve row identity when rows move or are removed. */
   value?: ReactiveValue<string> | TextBinding;
   /** Extra words the search matches. Expressions reading component signals update live; plain arrays are read at construction. */
   keywords?: ReactiveValue<string[]>;

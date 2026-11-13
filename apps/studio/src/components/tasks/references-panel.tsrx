@@ -1,5 +1,4 @@
 import { Sender } from 'std:futures';
-import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { toInt } from 'std:numeric';
 import {
   View,
@@ -20,14 +19,15 @@ import {
 } from 'std:ui';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
-import { clearLanguageReferences, requestFileReferences, pollFileReferences } from '../../services/lsp/references.tsr';
 import { documentUri } from '../../lib/language/diagnostics.tsr';
-import { message, accessibleName } from '../../lib/localization.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { LanguageReferences, ReferenceLocation, referenceLabel } from '../../lib/language/references.tsr';
-import { LanguageState } from '../../services/lsp/controller.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageState } from '../../services/lsp/controller.tsr';
+import { clearLanguageReferences, requestFileReferences, pollFileReferences } from '../../services/lsp/references.tsr';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
 
 function ReferenceRow(root: ReadOnly<string>, location: ReadOnly<ReferenceLocation>, index: int, font: Signal<int>): Node {
   const label = referenceLabel(root, location);

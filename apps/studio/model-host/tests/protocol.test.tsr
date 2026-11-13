@@ -1,6 +1,5 @@
-import { test, strictEqual } from 'std:testing';
+import { fromUtf8, length } from 'std:bytes';
 import { get } from 'std:env';
-import { spawn } from 'std:process';
 import {
   lines,
   readLine,
@@ -10,7 +9,8 @@ import {
   read,
   Reader
 } from 'std:io';
-import { fromUtf8, length } from 'std:bytes';
+import { spawn } from 'std:process';
+import { test, strictEqual } from 'std:testing';
 
 import { ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 

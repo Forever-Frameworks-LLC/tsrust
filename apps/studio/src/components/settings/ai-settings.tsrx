@@ -11,9 +11,9 @@ import {
   signal
 } from 'std:ui';
 
-import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { SettingsSession, commitSettings, settingsSessionHandles } from '../../lib/settings/settings-actions.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
+import { SettingsSession, commitSettings, settingsSessionHandles } from '../../lib/settings/settings-actions.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
 
 function ArtifactPath(session: SettingsSession, model: boolean, font: Signal<int>): Node {
   const path = signal(model ? session.draft.get().aiModelPath : session.draft.get().aiTokenizerPath);

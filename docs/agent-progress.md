@@ -8,6 +8,86 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ### Tsrust Studio active implementation — 2026-11-11
 
+Active owner update — November12 17:47, supersedes earlier AI composer controls:
+Remove the AI Chat/X header and all avatars. Alternate messages left/right, with a
+subtle user background. Support multiple persistent chats and an All Chats page;
+trash/deletion belongs there. Model startup must be automatic on Send with clear
+readiness/errors; no manual model Start/Stop/settings/clear buttons in composer.
+Settings stay in Application→Settings. Remove left-rail AI toggle; use bot icon on
+single title-bar AI toggle. Real file/skill context and eventually image/tool
+controls are desired, but no nonfunctional filler. Current text-only engine cannot
+consume images; do not pretend it can. Full agent/tool integration remains scope.
+
+Chat section — source based on feb9fa82/c68528df, local checkpoint pending:
+- Implemented avatar-free alternating messages, one title-bar bot toggle, no
+  redundant AI Chat/X or manual model lifecycle/settings/trash composer controls.
+  All Chats/New/open/delete-confirmation use shared executable guarded actions.
+  Workspace UUID histories, revisions, independent drafts and context snapshots
+  persist with bounded typed parsing and expected-baseline atomic writes; storage
+  conflicts/corruption preserve disk. Automatic Send loads then queues generation
+  for the exact chat; switching does not redirect replies. Startup cancellation
+  restores original prompt/context. Read/control/inference/deletion grants are
+  host supplied, not model arguments. File/SKILL.md reads use bounded UTF-8 snapshots
+  (unsaved open text preferred), with trusted picker grants outside workspace.
+- Native MAT passed synthetic streamed Unicode prefixes through final12-paragraph
+  Markdown response; correct alignment/background, configured body/code typography,
+  All Chats/New/open, independent draft/context through switching, @ file picker,
+  skill picker/Escape, deletion confirmation/Cancel, suffix actions no longer
+  select/confirm their parent. Composer12pasted lines caps at8visible rows; actual
+  native draft persisted to history. Saved conversations survived real-host restart.
+  Owner used chat2 during MAT; its sent prompt consumed the earlier test draft.
+  Do not restore that old draft over the owner's newer conversation.
+- One REAL local request through UI automatically loaded Qwen and returned exact
+  “Ready.”. Delivery works. Resource qualification FAILED: monitor baseline swap
+  4988.69MiB, maximum5646.81MiB,+658.12MiB,critical pressure4; sampled model RSS
+  1074400KiB (not GPU/total footprint). Guard SIGTERM'd only the owned model child;
+  child gone, editor alive, response retained. No unchanged replay. LSP was still
+  scanning at~99%CPU; no manual CLI/compiler build was running at inference start.
+  This is a bounded delivery observation, not an8GiB/quality acceptance claim.
+- The forced stop exposed raw {cause,code} worker JSON in the notice. ModelFailure
+  now unwraps cause/message into plain text. Focused changed-case test1/1 passed,1.20ms execution,
+  log/tmp/studio-chat-error-test.log; dev is rebuilding this UI-only
+  service fix. No model replay needed for error formatting. Whole-project formatter
+  after fix passed1file,0documentation/benchmark fingerprint changes.
+- Shared ListItem value-key identity fix: branch::tests11/11 passed,5.03s setup,
+  <.01s tests, including removal/reorder/duplicate-key callback witness. ListItem
+  catalog/generated Kit/builtins refreshed. Native shifted-row regression originally
+  reproduced in terminal rail. Shared Markdown direct style/code font and streaming
+  MessageScroller changed-row remeasurement compiled in final native runtime and
+  were visually observed. Suffix click/mouseDown propagation repair MAT passed.
+- Shared chat suite7/7 passed,12.68ms execution, including stale delete revision;
+  preceding context slice7/7,19.23ms tests/18224.8ms setup. Component check passed.
+  Locale check2catalogs/480keys passed. No full compiler/LSP/benchmark matrix replay.
+  Paired SDK final build3m29s, atomic install: CLI
+  7b5e97055c303c0c4dfa66c6d70fb0c1342044f22e76a77afca436e7f18de8f8;
+  LSP89051e62168607cad2f4a783fc0321c9be359a77cdd4ac63588b2a00c40268ff.
+  Real model-host rebuilt1b23f85dc409be87d9bd82fddd45a1cd015aad81cd8419742e3b02543a004f27.
+- ONE normal dev supervisor66933/PTY53832, log/tmp/studio-chat-real-dev.log,
+  TSRUST_STUDIO_MODEL_HOST=/repo/target/studio-model-host. Initial final app67346,
+  LSP67347,bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-66933-1794528394528091000-0/Tsrust Studio.app.
+  Latest service fix may replace it: rediscover exact PID/path before CUA getApp.
+  Native cold build420734ms (check155555ms,runtime228781ms,native+link258867ms).
+  Removed29obsolete private Studio artifact dirs (~8GiB) and stopped synthetic
+  executable; cleanup made native runtime cold. Keep current runtime artifacts;
+  do not rebuild just to repopulate caches. Stable fixture source remains in tests.
+- Protected current owner state13tabs,active src/lib/ai/prompts.tsr,3drafts:
+  main.tsrx,editor.tsrx,services/ai/actions.tsr; themeAlduin/font11/zoom-1. No saves,
+  discards or source restoration through UI. Older11tab/0draft records are history.
+- Owned LSP one-second sample67347,19:17:47: footprint276.8MiB,peak365.1MiB;
+  diagnostic worker in check_graph_diagnostics/check_graph_entry/recursive analysis.
+  Frontend was idle on its transport selector, so background analysis rather than
+  main-thread UI dispatch occupied this sample. Further hotspot extraction pending.
+- Performance clue: one-second old-app sample221MiB footprint/442.9MiB peak found
+  215/417main-thread samples in settle_event/refresh work. AI polling now stopped
+  while unloaded,1s ready/150ms loading/50ms generation. Build sample316.1MiB peak
+  339.1MiB found region_caller_error_effects/annotate_partial_with_callers repeatedly
+  scanning functions. Not benchmark/leak attribution. Next: profile/cut repeated
+  analysis and model allocation before another inference; graduate32-token admission
+  with an incremental decoder, then real guarded agent tool/proposal loop. Current
+  engine remains2048prompt/32output tokens, text only; no fake vision/tool buttons.
+- CUA phase completed “Verified real local chat response.” New CUA phase should
+  inspect the plain-error reload and confirm13tabs/3drafts; don't replay inference.
+
 Current accepted Studio section — November12, source checkpoint feb9fa82:
 - Footer Format/Check now open Document/Project menus using the SAME command IDs
   as native menus. Manual Check is independent of background-check busy state.

@@ -13,12 +13,11 @@ import {
   translate
 } from 'std:ui';
 
+import { languagePresets } from '../../lib/language/presets.tsr';
 import { LanguageServer } from '../../lib/language/servers.tsr';
-import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { message } from '../../lib/localization.tsr';
 import { SettingsSession, commitSettings, settingsSessionHandles } from '../../lib/settings/settings-actions.tsr';
-
-import { languagePresets } from '../../lib/language/presets.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
 
 function ServerExecutable(session: SettingsSession, server: ReadOnly<LanguageServer>, font: Signal<int>): Node {
   const program = signal(clone(server.program));

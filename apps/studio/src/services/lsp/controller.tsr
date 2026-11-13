@@ -1,9 +1,9 @@
 import { Channel, Sender } from 'std:futures';
 import { Signal, answerEditorLanguage } from 'std:ui';
 
+import { LanguageIdentity, LanguageDocument, DiagnosticPosition, languageIdentity } from '../../lib/language/diagnostics.tsr';
 import { LanguageReferences, referenceSymbol } from '../../lib/language/references.tsr';
 import { LanguageServer, languageRoute, tsrustServer } from '../../lib/language/servers.tsr';
-import { LanguageIdentity, LanguageDocument, DiagnosticPosition, languageIdentity } from '../../lib/language/diagnostics.tsr';
 import { Problem, replaceProblems, operationProblem } from '../../lib/workspace/problems.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { LanguageMessage, LanguageUpdate, LanguageQuery } from './session.tsr';

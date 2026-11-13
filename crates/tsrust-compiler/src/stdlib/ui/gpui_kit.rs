@@ -72,7 +72,7 @@ use gpui_kit::component::message::{Message, MessageAlignment, MessageAvatar, Mes
 use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::searchable_list::SearchableVec;
 use gpui_kit::component::status_bar::StatusBar;
-use gpui_kit::component::text::TextView;
+use gpui_kit::component::text::{TextView, TextViewStyle};
 use gpui_kit::component::time_field::{HourCycle, TimeField, TimeFieldEvent, TimeFieldState, TimePrecision};
 use gpui_kit::component::toolbar::{Toolbar, ToolbarGroup};
 use gpui_kit::component::tree::{TreeEvent, TreeItem, TreeState, tree};
@@ -147,6 +147,17 @@ impl CompletionProvider for EditorLanguageProvider {
     }
 }
 
+
+/// Exact displayed row content: streaming changes must invalidate virtual-list height measurements.
+fn scroller_rows(node:&Node)->Vec<String> {
+    fn snapshot(node:&Node,out:&mut String){
+        use std::fmt::Write;
+        let _=write!(out,"{:?}|{:?}|{:?}|{:?}",node.identity.get(),node.kind,node.class_name,node.text);
+        if let Some(kit)=&node.kit {let _=write!(out,"{:?}|{:?}",kit.name,kit.props);}
+        for child in node.visible_children(){snapshot(child,out);}
+    }
+    node.visible_children().map(|row|{let mut content=String::new();snapshot(row,&mut content);content}).collect()
+}
 
 /// One List row: a ListItem (or ListSeparator) node with its searchable text.
 #[derive(Clone)]
@@ -288,7 +299,7 @@ enum KitState {
     List(Entity<ListState<TsrustList>>),
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
-    Scroller(Entity<MessageScrollerState>, usize),
+    Scroller(Entity<MessageScrollerState>, Vec<String>),
     Dock(DockState),
     Questionnaire(Entity<QuestionnaireState>),
     Speech(Entity<SpeechState>),
@@ -591,7 +602,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["Markdown", "InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -1460,7 +1471,10 @@ impl Root {
         let root = cx.entity().downgrade();
         if let Some(part) = suffix {
             let root = root.clone();
-            item = item.suffix(move |_, cx| div().flex().items_center().gap_1().children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
+            item = item.suffix(move |_, cx| div().id(ElementId::Name(format!("list-suffix-{row}").into())).flex().items_center().gap_1()
+                .on_mouse_down(MouseButton::Left,|_,_,cx|cx.stop_propagation())
+                .on_click(|_,_,cx|cx.stop_propagation())
+                .children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
         }
         let emit = move |event: &'static str| {
             let root = root.clone();
@@ -1805,12 +1819,18 @@ impl Root {
                             if let Some(display) = display && state.read(cx).selected_row() != Some(display) {state.update(cx, |state, cx| {state.set_selected_row(display, cx); state.scroll_to_row(display, cx);});}
                         }
                     }
-                    KitState::Scroller(state, count) => {
-                        let current = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
-                        if *count != current {
-                            let previous = *count;
-                            state.update(cx, |state, cx| if current > previous {state.append(current - previous, cx);} else {state.reset(current, cx);});
-                            if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
+                    KitState::Scroller(state, previous) => {
+                        let rows = find(&self.node,id).map(scroller_rows).unwrap_or_default();
+                        if *previous != rows {
+                            let old_count=previous.len();let count=rows.len();
+                            let changed=previous.iter().zip(&rows).enumerate().filter_map(|(index,(old,new))|(old!=new).then_some(index)).collect::<Vec<_>>();
+                            state.update(cx,|state,cx| {
+                                if count<old_count {state.reset(count,cx);} else {
+                                    if count>old_count {state.append(count-old_count,cx);}
+                                    for index in changed {state.remeasure_items(index..index+1,cx);}
+                                }
+                            });
+                            if let Some(KitState::Scroller(_,previous))=self.states.get_mut(&id){*previous=rows;}
                         }
                     }
                     KitState::Ticker(_, shape) => {
@@ -2245,8 +2265,8 @@ impl Root {
                     KitState::Questionnaire(state)
                 }
                 "MessageScroller" => {
-                    let count = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
-                    KitState::Scroller(cx.new(|cx| MessageScrollerState::new(count, cx)), count)
+                    let rows=find(&self.node,id).map(scroller_rows).unwrap_or_default();
+                    KitState::Scroller(cx.new(|cx| MessageScrollerState::new(rows.len(),cx)),rows)
                 }
                 "Tree" => {
                     let items = find(&self.node, id).map(|node|tree_items(node,&HashMap::new())).unwrap_or_default();
@@ -3217,7 +3237,13 @@ impl Root {
                 }
                 table.into_any_element()
             }
-            "Markdown" => TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content"))).into_any_element(),
+            "Markdown" => {
+                let mut code = StyleRefinement::default();
+                code.text.font_size = style.text.font_size.clone();
+                code.text.line_height = style.text.line_height.clone();
+                TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content")))
+                    .style(TextViewStyle::default().code_block(code)).refine_style(&style).into_any_element()
+            },
             "Html" => TextView::html(element_id, text("content")).into_any_element(),
             "Image" => {
                 if kit.prop("zoom").is_some() {

@@ -1,5 +1,7 @@
 import { Channel, Sender, TaskContext, cancellationRequested } from 'std:threads';
 
+import { chatPrompt, conversationPrompt, ChatMessage } from '../../src/lib/ai/prompts.tsr';
+import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
 import {
   QwenModel,
   qwen_load,
@@ -9,18 +11,21 @@ import {
   qwen_stream_finish
 } from '@engine';
 
-import { chatPrompt, conversationPrompt, ChatMessage } from '../../src/lib/ai/prompts.tsr';
-
-import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
-
 type RequestOutcome = {
   model: QwenModel;
   stopping: boolean;
 };
 
-function publish(updates: ReadOnly<Sender<ModelUpdate>>, kind: string, id: string, text: string = '', error: string = ''): void {
+function publish(
+  updates: ReadOnly<Sender<ModelUpdate>>,
+  kind: string,
+  id: string,
+  text: string = '',
+  error: string = '',
+  stop: string = ''
+): void {
   unwrap(updates.send({
-    kind, id, text, error
+    kind, id, text, error, stop
   }));
 }
 
@@ -65,7 +70,14 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
   if (result.kind === 'some') {
     const some = result;
     const generation = some.value;
-    publish(updates, 'complete', request.id, generation.text);
+    publish(
+      updates,
+      'complete',
+      request.id,
+      generation.text,
+      '',
+      generation.stop
+    );
   } else {
     publish(updates, finished.error === 'cancelled' ? 'cancelled' : 'error', request.id, '', finished.error);
   }

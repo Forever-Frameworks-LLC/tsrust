@@ -10,13 +10,13 @@ import {
 import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
-import { defaultConfig } from '../src/lib/settings/settings.tsr';
-import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
-import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
-import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
-import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
-import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { SearchActionContext, FileSearchState } from '../src/lib/explorer/search-actions.tsr';
+import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
+import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
+import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { invokeEditorTool } from '../src/services/editor-tools.tsr';
 
 test('explorer groups a single snapshot by parent without losing prefix siblings or hidden config files', () => {

@@ -1,10 +1,10 @@
 import { fromUtf8, toUtf8 } from 'std:bytes';
-import { Channel, Sender, delay } from 'std:futures';
-import { createTempDir, removeDirAll, writeTextFileAtomic, readTextFile } from 'std:fs';
 import { tempDir } from 'std:env';
+import { createTempDir, removeDirAll, writeTextFileAtomic, readTextFile } from 'std:fs';
+import { Channel, Sender, delay } from 'std:futures';
 import { basename, join } from 'std:path';
-import { monotonicNow } from 'std:time';
 import { run } from 'std:process';
+import { monotonicNow } from 'std:time';
 
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
 

@@ -1,0 +1,57 @@
+import { fromUtf8, length } from 'std:bytes';
+
+import { canonicalize, stat, readTextFile } from 'std:fs';
+import { basename, dirname, join, separator } from 'std:path';
+
+import { ContextFragment } from '../../lib/ai/conversations.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { chatIdentity } from '../../lib/ai/conversations.tsr';
+
+// Only trusted picker results may extend a read beyond the bound workspace.
+export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, kind: ReadOnly<string>, allowedPaths: ReadOnly<string[]>): Result<ContextFragment, string> {
+  try {
+    if (kind !== 'file' && kind !== 'skill') return Err('Unknown chat context type.');
+    const resolved = unwrap(canonicalize(path.startsWith('/') ? clone(path) : join(workspace.root, path)));
+    const root = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
+    if (!resolved.startsWith(root)) {
+      let approved = false;
+
+      for (const allowed of allowedPaths) {
+        match (canonicalize(allowed)) {
+          Ok(real) => {
+            if (real === resolved) approved = true;
+          },
+          Err(_) => {}
+        }
+      }
+
+      if (!approved) return Err('Choose outside-workspace attachments through the file picker.');
+    }
+
+    if (!unwrap(stat(resolved)).isFile) return Err('Choose a regular text file.');
+
+    if (kind === 'skill' && basename(resolved) !== 'SKILL.md') return Err('Choose a SKILL.md file for skill context.');
+    const opened = workspace.files.find((file) => file.document.path === resolved);
+    let text = '';
+
+    if (opened !== undefined) {
+      if (opened.kind !== 'text') return Err('The selected model accepts text context. Image attachments need a vision model.');
+      text = clone(opened.document.text);
+    } else match (readTextFile(resolved, 32768)) {
+      Ok(source) => {
+        text = clone(source);
+      },
+      Err(_) => {
+        return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+      }
+    }
+
+    if (length(unwrap(fromUtf8(text))) > 32768) return Err('Choose a UTF-8 text file smaller than 32 KiB for context.');
+    return Ok({
+      id: chatIdentity(), kind: clone(kind), path: clone(resolved), label: kind === 'skill' ? basename(dirname(resolved)) : basename(resolved), text
+    });
+  } catch (_) {
+    return Err('Could not read the selected chat context file.');
+  }
+}

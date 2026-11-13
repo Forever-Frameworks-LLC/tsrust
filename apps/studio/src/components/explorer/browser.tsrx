@@ -12,10 +12,10 @@ import {
   computed
 } from 'std:ui';
 
+import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
+import { requestTreeRefresh } from '../../lib/explorer/tree-actions.tsr';
 import { TreeSession, refreshTree, pollTree } from '../../lib/explorer/tree-controller.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { requestTreeRefresh } from '../../lib/explorer/tree-actions.tsr';
-import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
 import { localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';

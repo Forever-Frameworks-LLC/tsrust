@@ -104,7 +104,7 @@ export function Chrome(
       </View>
       <View className="absolute right-2 top-0 bottom-0 flex-row items-center gap-2">
         <Button
-          icon="sparkles"
+          icon="bot"
           variant="ghost"
           size="small"
           selected={chat.get()}

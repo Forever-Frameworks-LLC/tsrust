@@ -1,15 +1,15 @@
 import { Sender } from 'std:futures';
-import { useId } from 'std:ui';
-import { LanguageMessage } from './session.tsr';
-import { LanguageState, queueLanguageRead, cancelLanguageRead } from './controller.tsr';
-import { FileReferences } from '../../lib/language/references.tsr';
 import { separator } from 'std:path';
+import { useId } from 'std:ui';
 import { Signal } from 'std:ui';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { FileReferences } from '../../lib/language/references.tsr';
 import { LanguageReferences, ReferenceLocation } from '../../lib/language/references.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageState, queueLanguageRead, cancelLanguageRead } from './controller.tsr';
+import { LanguageMessage } from './session.tsr';
 
 export function presentLanguageReferences(context: ReadOnly<SearchActionContext>, result: ReadOnly<LanguageReferences>): Result<void, string> {
   if (!context.allowNavigation || context.allowedRoot !== context.workspace.get().root || result.root !== context.workspace.get().root) return Err('Language results are not permitted for this workspace.');

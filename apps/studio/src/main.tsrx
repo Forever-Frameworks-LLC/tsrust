@@ -1,3 +1,4 @@
+import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
 import { Channel } from 'std:futures';
@@ -39,7 +40,7 @@ import { Region } from './components/workbench/layout.tsrx';
 import { Panels } from './components/workbench/panels.tsrx';
 import { ChatPanel } from './components/ai/chat-panel.tsrx';
 import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
-import { initialAiState, pollModel } from './services/ai/actions.tsr';
+import { AiContext, initialAiState, pollModel } from './services/ai/actions.tsr';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
 import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
@@ -112,7 +113,9 @@ function App(
   const checking = signal(false);
   const checkOutput = signal('');
   const chat = signal(false);
-  const aiState = signal(initialAiState());
+  const restoredChats = restoreChats(workspace.get().root);
+  const aiStore = signal(clone(restoredChats.store));
+  const aiState = signal(initialAiState(clone(restoredChats.history), clone(restoredChats.error)));
   setLocale(initialConfig.locale);
   font.set(zoomFontSize(initialConfig.fontSize, workspace.get().zoomLevel));
   useTheme(clone(initialConfig.theme));
@@ -205,14 +208,10 @@ function App(
     formatFocus,
     font
   );
-  const chatView = ChatPanel(
-    chat,
-    aiState,
-    settings,
-    modelRequests,
-    font,
-    workspace
-  );
+  const aiContext: AiContext = {
+    state: aiState.handle(), settings: settings.handle(), commands: modelRequests.sender(), store: aiStore.handle(), workspace: workspace.handle(), allowRead: true, allowControl: true, allowInference: true
+  };
+  const chatView = ChatPanel(aiContext, font, aiState);
   const statusClass = computed<string>(() => 'flex-row items-center gap-3 px-2 h-6 shrink-0 bg-muted border-t border-border text-[' + font.get().toString() + 'px]');
   const status = computed<string>(() => {
     const state = workspace.get();
@@ -349,24 +348,14 @@ function App(
         panel.set(panel.get() === 'extensions' ? '' : 'extensions');
       }}
     />
-    <Button
-      icon="bot"
-      variant="ghost"
-      selected={chat.get()}
-      tooltip={message("AI Chat")}
-      aria-label={accessibleName("AI Chat")}
-      onPress={() => {
-        chat.set(!chat.get());
-      }}
-    />
   </View>;
   return (
     <View className="flex-col size-full bg-background text-foreground">
       <Ticker
-        interval={50}
-        running={true}
+        interval={aiState.get().phase === 'generating' ? 50 : aiState.get().phase === 'ready' ? 1000 : 150}
+        running={aiState.get().phase !== 'stopped'}
         onTick={(_frame) => {
-          pollModel(aiState, modelUpdates);
+          pollModel(aiContext, modelUpdates);
         }}
       />
       {referenceControls}

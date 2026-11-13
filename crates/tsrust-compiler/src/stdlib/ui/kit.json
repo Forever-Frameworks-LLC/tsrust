@@ -4188,7 +4188,7 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Value List events report for this row; defaults to the row index."
+          "doc": "Value List events report for this row; defaults to the row index. In reactive lists, distinct nonempty values also preserve row identity when rows move or are removed."
         },
         {
           "name": "keywords",

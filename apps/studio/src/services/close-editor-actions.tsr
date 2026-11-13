@@ -1,9 +1,9 @@
 import { Signal } from 'std:ui';
 
-import { Workspace } from '../lib/workspace/workspace.tsr';
-import { Recovery } from '../lib/workspace/recovery.tsr';
-import { publishWorkspace } from '../lib/workspace/document-actions.tsr';
 import { CloseEditorsPlan, planCloseEditors, closeEditors } from '../lib/workspace/close-editors.tsr';
+import { publishWorkspace } from '../lib/workspace/document-actions.tsr';
+import { Recovery } from '../lib/workspace/recovery.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
 import { EditorTool } from './editor-tools.tsr';
 
 interface CloseEditorsArguments {

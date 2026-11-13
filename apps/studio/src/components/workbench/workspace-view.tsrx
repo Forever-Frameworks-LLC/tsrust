@@ -12,17 +12,17 @@ import {
 
 import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
+import { planCloseEditors } from '../../lib/workspace/close-editors.tsr';
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState } from '../../services/lsp/controller.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
-import { openPalette } from '../explorer/navigation.tsrx';
-import { FilePanel } from '../editor/editor.tsrx';
-import { closeTab } from './chrome.tsrx';
 import { CloseEditorsState, CloseEditorsDialog, requestCloseEditors } from '../editor/close-editors.tsrx';
-import { planCloseEditors } from '../../lib/workspace/close-editors.tsr';
+import { FilePanel } from '../editor/editor.tsrx';
+import { openPalette } from '../explorer/navigation.tsrx';
+import { closeTab } from './chrome.tsrx';
 
 export function EditorWorkspace(
   workspace: Signal<Workspace>,

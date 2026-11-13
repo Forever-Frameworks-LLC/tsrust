@@ -4,13 +4,13 @@ import { signal } from 'std:ui';
 
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import { documentUri } from '../src/lib/language/diagnostics.tsr';
-import { LanguageReferences, referenceLabel, referenceSymbol } from '../src/lib/language/references.tsr';
 import { LanguageLocation, languageSelection, openLanguageLocation } from '../src/lib/language/navigation.tsr';
+import { LanguageReferences, referenceLabel, referenceSymbol } from '../src/lib/language/references.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
-import { showNativeLanguageReferences } from '../src/services/lsp/references.tsr';
 import { invokeEditorTool } from '../src/services/editor-tools.tsr';
+import { showNativeLanguageReferences } from '../src/services/lsp/references.tsr';
 
 function rejected(result: Result<void, string>): void {
   match (result) {

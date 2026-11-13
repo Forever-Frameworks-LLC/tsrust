@@ -9,13 +9,13 @@ import {
   runContentSearch,
   openSearchResult
 } from '../lib/explorer/search-actions.tsr';
-import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
-import { LanguageReferences } from '../lib/language/references.tsr';
-import { presentLanguageReferences, clearLanguageReferences } from './lsp/references.tsr';
-import { LanguageLocation, openLanguageLocation } from '../lib/language/navigation.tsr';
 import { SearchHit } from '../lib/explorer/search.tsr';
+import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
+import { LanguageLocation, openLanguageLocation } from '../lib/language/navigation.tsr';
+import { LanguageReferences } from '../lib/language/references.tsr';
 import { paletteCommands } from '../lib/workspace/commands.tsr';
 import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
+import { presentLanguageReferences, clearLanguageReferences } from './lsp/references.tsr';
 
 export interface EditorTool {
   name: string;

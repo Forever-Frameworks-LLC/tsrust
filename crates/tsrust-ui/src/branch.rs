@@ -166,6 +166,30 @@ mod tests {
         }
     }
     #[test]
+    fn list_item_values_keep_callbacks_when_neighbors_are_removed() {
+        let rows=Signal::new(vec![String::from("one"),String::from("two"),String::from("three")]);let read=rows.handle();
+        let selected=Rc::new(RefCell::new(String::new()));let picked=selected.clone();
+        let slot=Node::each(move||{
+            let items=read.get()?.into_iter().map(|value|{
+                let label=value.clone();let clicked=value.clone();let selected=picked.clone();
+                Ok(Child::Node(Node::kit("ListItem",vec![Child::Node(Node::text(vec![TextPart::Signal(crate::TextBinding::computed(Box::new(move||Ok(label.clone()))))],String::new())?)],String::new())?
+                    .with_kit_binding("value",crate::TextBinding::computed(Box::new(move||Ok(value.clone()))))?
+                    .with_kit_event("click",move|_|{*selected.borrow_mut()=clicked.clone();Ok(())})?))
+            }).collect::<Result<Vec<_>,String>>()?;
+            Ok(Some(Node::view(items,String::new())?))
+        }).unwrap();
+        let mut root=Node::view(vec![Child::Node(slot)],String::new()).unwrap();root.refresh().unwrap();
+        let ids=root.visible_children().map(|row|row.identity.get()).collect::<Vec<_>>();
+        rows.set(vec!["one".into(),"three".into()]).unwrap();root.refresh().unwrap();
+        let third=root.visible_children().nth(1).unwrap();
+        assert_eq!(third.identity.get(),ids[2]);assert_eq!(third.kit.as_deref().unwrap().prop("value"),Some("three"));
+        assert!(root.kit_event(ids[2],"click","").unwrap());assert_eq!(&*selected.borrow(),"three");
+        assert!(!root.kit_event(ids[1],"click","").unwrap());
+        rows.set(vec!["three".into(),"one".into()]).unwrap();root.refresh().unwrap();
+        assert_eq!(root.visible_children().next().unwrap().identity.get(),ids[2]);
+        rows.set(vec!["three".into(),"three".into()]).unwrap();assert!(root.refresh().unwrap_err().contains("distinct IDs"));
+    }
+    #[test]
     fn filtered_command_rows_keep_their_own_snapshot_bindings() {
         let files=Signal::new(vec![String::from(".gitignore"),String::from("src/main.tsrx")]);let read=files.handle();
         let slot=Node::each(move||{
@@ -264,7 +288,7 @@ impl Node {
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     fn row_key(&self)->&str {
         if !self.semantics.id.is_empty(){return &self.semantics.id;}
-        self.kit.as_deref().and_then(|kit|match kit.name.as_str(){"DockPanel"|"CommandItem"=>kit.prop("value"),"TreeItem"=>kit.prop("id"),_=>None}).unwrap_or("")
+        self.kit.as_deref().and_then(|kit|match kit.name.as_str(){"DockPanel"|"CommandItem"|"ListItem"=>kit.prop("value"),"TreeItem"=>kit.prop("id"),_=>None}).unwrap_or("")
     }
     /// A structural fingerprint: kind, static classes/text and component props, ignoring live values.
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]

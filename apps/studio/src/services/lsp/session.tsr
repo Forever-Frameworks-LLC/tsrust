@@ -14,8 +14,8 @@ import {
   documentUri,
   DiagnosticPosition
 } from '../../lib/language/diagnostics.tsr';
-import { Problem } from '../../lib/workspace/problems.tsr';
 import { LanguageServer, validateLanguageServer } from '../../lib/language/servers.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
 import { readFrame, writeFrame } from './transport.tsr';
 
 export interface LanguageQuery {
