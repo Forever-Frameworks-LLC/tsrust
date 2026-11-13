@@ -4,6 +4,15 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Large conflict objects
+
+The conflict reader asks Git for each blob's exact size before requesting
+its contents. Objects over the Git worker's existing 2 MiB output allowance
+show their byte count and leave the other stages visible. The real merge
+fixture included a 2,097,153-byte binary version, a two-byte base and an
+absent side. All seven Git cases passed after 4.42 s build, including exact
+index comparison. This gate covers the worker and excludes desktop input.
+
 ## Binary and modify/delete conflict previews
 
 Conflict previews render the base, ours and theirs stages in order, with an

@@ -220,6 +220,7 @@ test('inspect binary modify/delete conflicts on either side without altering the
         const path = root + '/' + file;
 
         if (branch === file) unwrap(removeFile(path));
+        else if (file === 'main' && branch === 'topic') unwrap(writeTextFile(path, '\0'.repeat(2097153)));
         else unwrap(writeFile(path, unwrap(fromHex(branch === 'base' ? '0041' : 'ffab12'))));
       }
 
@@ -239,7 +240,7 @@ test('inspect binary modify/delete conflicts on either side without altering the
       const surviving = file === 'main' ? '3' : '2';
       strictEqual(preview.includes(':1:' + file + '\nBinary blob (2 bytes)'), true);
       strictEqual(preview.includes(':' + missing + ':' + file + '\n(absent)'), true);
-      strictEqual(preview.includes(':' + surviving + ':' + file + '\nBinary blob (3 bytes)'), true);
+      strictEqual(preview.includes(':' + surviving + ':' + file + (file === 'main' ? '\nPreview omitted (2097153 bytes)' : '\nBinary blob (3 bytes)')), true);
     }
 
     strictEqual(unwrap(toUtf8(unwrap(await run('git', indexArgs, {

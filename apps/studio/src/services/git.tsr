@@ -5,6 +5,10 @@ import { lstat, stat } from 'std:fs';
 import { compile } from 'std:regex';
 import { run } from 'std:process';
 
+function gitOutputBytes(): int {
+  return 2 * 1024 * 1024;
+}
+
 function workspaceFile(path: ReadOnly<string>): boolean {
   const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
   return path !== '' && !isAbsolute(path) && !parts.some((part) => part === '' || part === '.' || part === '..');
@@ -35,6 +39,20 @@ export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>
             if (fields[0] === '160000') {
               sections.set(clone(fields[2]), heading + '\nSubproject commit ' + fields[1]);
               continue;
+            }
+
+            match (await gitOutput(root, ['cat-file', '-s', clone(fields[1])])) {
+              Ok(result) => {
+                const size = result.trim();
+
+                if (Number(size) > Number(gitOutputBytes())) {
+                  sections.set(clone(fields[2]), heading + '\nPreview omitted (' + size + ' bytes)');
+                  continue;
+                }
+              },
+              Err(reason) => {
+                return Err(reason);
+              }
             }
 
             match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
@@ -291,7 +309,7 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
 
 async function gitOutput(root: ReadOnly<string>, args: string[], input: string = '', diffExit: boolean = false, blob: boolean = false): Task<Result<string, string>> {
   match (await run('git', args, {
-    cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: 2 * 1024 * 1024
+    cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: gitOutputBytes()
   })) {
     Err(error) => {
       return Err(clone(error.message));
