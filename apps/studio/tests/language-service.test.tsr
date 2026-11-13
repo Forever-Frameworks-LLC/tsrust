@@ -8,6 +8,7 @@ import { test, strictEqual, startOutputCapture, finishOutputCapture } from 'std:
 import { signal } from 'std:ui';
 
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { DebugOutput } from '../src/services/debug/session.tsr';
 import { GitReply, GitRequest } from '../src/services/git.tsr';
 import { ContentSearchRequest, ContentSearchReply } from '../src/services/content-search.tsr';
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
@@ -151,6 +152,7 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
   const searchRequests = new Channel<ContentSearchRequest>(1);
   const searchReplies = new Channel<ContentSearchReply>(1);
   const gitReplies = new Channel<GitReply>(1);
+  const debugReplies = new Channel<DebugOutput>(1);
   const downloadReplies = new Channel<string>(1);
   const worker = studioWorkers(
     clone(root),
@@ -170,7 +172,9 @@ test('real Studio service jobs diagnose unsaved buffers, clear corrections, rest
     new Channel<GitRequest>(1),
     gitReplies.sender(),
     new Channel<string>(1),
-    downloadReplies.sender()
+    downloadReplies.sender(),
+    new Channel<string>(1),
+    debugReplies.sender()
   ).start();
 
   try {

@@ -1,3 +1,5 @@
+import { Channel } from 'std:futures';
+import { DebugOutput, debugWorker } from '../src/services/debug/session.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll } from 'std:fs';
 import { run, spawn } from 'std:process';
@@ -227,7 +229,43 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
     const compiler = unwrap(get('TSRUST')) ?? 'tsrust';
     const build = unwrap(await run(compiler, ['build', source, '-o', clone(program)], {}));
     strictEqual(build.status.success, true);
-    await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', program).timeout(30000);
+    await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(program)).timeout(30000);
+    const requests = new Channel<string>(1);
+    const output = new Channel<DebugOutput>(16);
+    const commands = requests.sender();
+    const worker = debugWorker(clone(folder), requests, output.sender()).start();
+
+    try {
+      await commands.send(folder + '/missing');
+      let consoleText = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        consoleText += update.text;
+
+        if (update.finished) break;
+      }
+
+      strictEqual(consoleText.includes(folder + '/missing'), true);
+      await commands.send(clone(program));
+      consoleText = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        consoleText += update.text;
+
+        if (update.finished) break;
+      }
+
+      strictEqual(consoleText.includes('Studio debugger fixture'), true);
+      strictEqual(consoleText.includes('Exit code 0'), true);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
   } finally {
     unwrap(removeDirAll(folder));
   }

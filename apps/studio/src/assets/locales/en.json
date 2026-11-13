@@ -95,7 +95,7 @@
   "Close AI Chat": "Close AI Chat",
   "Terminal integration is planned. No shell session is running.": "Terminal integration is planned. No shell session is running.",
   "Language-service diagnostics are not connected yet.": "Language-service diagnostics are not connected yet.",
-  "Debugger integration is planned. No debug session is running.": "Debugger integration is planned. No debug session is running.",
+  "Launch executable…": "Launch executable…",
   "Repository status, diffs and staging are planned.": "Repository status, diffs and staging are planned.",
   "Extension management is planned.": "Extension management is planned.",
   "Agent chat and proposed-change review are planned. No agent is running.": "Agent chat and proposed-change review are planned. No agent is running.",

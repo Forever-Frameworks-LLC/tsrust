@@ -1,3 +1,5 @@
+import { DebugConsole } from './components/tasks/debug-console.tsrx';
+import { DebugOutput } from './services/debug/session.tsr';
 import { ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
@@ -88,6 +90,8 @@ function App(
   gitReplies: Channel<GitReply>,
   downloads: Sender<string>,
   downloadReplies: Channel<string>,
+  debugRequests: ReadOnly<Channel<string>>,
+  debugResults: Channel<DebugOutput>,
   initialConfig: StudioConfig,
   settingsError: string
 ): Node {
@@ -215,6 +219,7 @@ function App(
     ),
     CopyProblems(workspace, problems, terminalError),
     ReferencesPanel(workspace, recovery, references, languageState, font),
+    DebugConsole(debugRequests, debugResults, font),
     ModelExtensions(
       settings,
       modelPaths,
@@ -429,7 +434,7 @@ function App(
       icon="bug"
       variant="ghost"
       selected={panel.get() === 'debug'}
-      tooltip={message("Run and Debug (planned)")}
+      tooltip={message("Run and Debug")}
       aria-label={accessibleName("Run and Debug")}
       onPress={() => {
         panel.set(panel.get() === 'debug' ? '' : 'debug');
@@ -572,6 +577,9 @@ async function main(): Task<void> {
   const downloadSender = downloadChannel.sender();
   const downloadReplies = new Channel<string>(1);
   const downloadResults = downloadReplies.sender();
+  const debugRequests = new Channel<string>(1);
+  const debugResults = new Channel<DebugOutput>(16);
+  const debugReplies = debugResults.sender();
   const view = App(
     clone(path),
     requests,
@@ -590,6 +598,8 @@ async function main(): Task<void> {
     gitReplies,
     downloadSender,
     downloadReplies,
+    debugRequests,
+    debugResults,
     clone(startupConfig),
     startupError
   );
@@ -613,6 +623,8 @@ async function main(): Task<void> {
     gitSender,
     downloadChannel,
     downloadResults,
+    debugRequests,
+    debugReplies,
     startupConfig.languageServers
   ).start();
 

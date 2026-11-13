@@ -1,14 +1,12 @@
 import {
   View,
-  Text,
   Button,
   Tabs,
   Tab,
   TabsSuffix,
   Node,
   Signal,
-  computed,
-  t
+  computed
 } from 'std:ui';
 
 import { accessibleName, message } from '../../lib/localization.tsr';
@@ -31,6 +29,7 @@ export function Panels(
   problems: Node,
   problemsActions: Node,
   references: Node,
+  debug: Node,
   extensions: Node,
   font: Signal<int>
 ): Node {
@@ -89,10 +88,8 @@ export function Panels(
         <View hidden={panel.get() !== 'output'} className="size-full min-h-0">
           {output}
         </View>
-        <View hidden={panel.get() !== 'debug'}>
-          <Text>
-            {t("Debugger integration is planned. No debug session is running.")}
-          </Text>
+        <View hidden={panel.get() !== 'debug'} className="size-full min-h-0">
+          {debug}
         </View>
         <View hidden={panel.get() !== 'extensions'} className="size-full min-h-0">
           {extensions}

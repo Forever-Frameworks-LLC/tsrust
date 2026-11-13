@@ -1,0 +1,73 @@
+import { get } from 'std:env';
+import { Channel, Sender } from 'std:futures';
+import { spawn } from 'std:process';
+
+import { readFrame, writeFrame } from '../lsp/transport.tsr';
+import { decodeAdapterReply } from './protocol.tsr';
+
+export interface DebugOutput {
+  text: string;
+  finished: boolean;
+}
+
+async function launchDebugTarget(adapter: string, root: string, program: string, output: ReadOnly<Sender<DebugOutput>>): Task<void> {
+  const child = unwrap(spawn(adapter, [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
+  }));
+
+  try {
+    const writer = child.takeStdin();
+    const reader = child.takeStdout();
+
+    if (writer === undefined || reader === undefined) throw 'Missing adapter pipes.';
+    await writeFrame(writer, '{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"lldb","clientID":"tsrust-studio","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true}}');
+
+    while (true) {
+      const reply = decodeAdapterReply(await readFrame(reader));
+
+      if (reply.success === false) throw reply.message ?? 'Debug request failed.';
+
+      if (reply.command === 'initialize') {
+        await writeFrame(writer, JSON.stringify({
+          seq: 2, type: 'request', command: 'launch', arguments: {
+            program: clone(program), cwd: clone(root)
+          }
+        }));
+      } else if (reply.event === 'initialized') {
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"configurationDone","arguments":{}}');
+      } else if (reply.event === 'output') {
+        await output.send({
+          text: clone(reply.body?.output ?? ''), finished: false
+        });
+      } else if (reply.event === 'exited') {
+        await output.send({
+          text: '\nExit code ' + (reply.body?.exitCode ?? 0).toString() + '\n', finished: false
+        });
+      } else if (reply.event === 'terminated') return;
+    }
+  } finally {
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    unwrap(await child.wait());
+  }
+}
+
+export async function debugWorker(root: string, requests: Channel<string>, output: Sender<DebugOutput>): Task<void> {
+  while (true) {
+    const program = await requests.receive();
+    let error = '';
+
+    try {
+      await launchDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(root), program, output);
+    } catch (reason) {
+      if (typeof reason === 'string') error = reason;
+      else error = JSON.stringify(reason);
+    }
+
+    await output.send({
+      text: error, finished: true
+    });
+  }
+}
