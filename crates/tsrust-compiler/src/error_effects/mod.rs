@@ -576,39 +576,42 @@ pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedF
 /// Include calls in the currently checked region before its callable is stored.
 /// Callback-only cycles retain an unknown contract until a concrete origin exists.
 #[inline(never)]
-pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
+pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:(&[Stmt],&[crate::analysis::Binding]),unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
     for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
-    for function in functions.iter().filter_map(|function|function.as_deref()).chain(std::iter::once(caller)).chain(closures.iter().map(|closure|&closure.function)).chain(closures.iter().flat_map(|closure|closure.methods.iter().map(|method|&method.function))) {
-        for expression in checked_expressions(function) {
-            let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
-            if matches!(expression.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,arguments,closures,invocations) {
-                for (id,ty) in selected {origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});}
-                continue;
+    fn parts_of(function:&CheckedFunction)->(&[Stmt],&[crate::analysis::Binding]) {(&function.body,&function.bindings)}
+    let regions=functions.iter().filter_map(|function|function.as_deref()).map(parts_of)
+        .chain(std::iter::once(caller))
+        .chain(closures.iter().map(|closure|parts_of(&closure.function)))
+        .chain(closures.iter().flat_map(|closure|closure.methods.iter()).map(|method|parts_of(&method.function)));
+    for expression in regions.flat_map(|(body,bindings)|walk_checked_expressions(body,bindings.iter().filter_map(|binding|binding.initializer.as_deref()))) {
+        let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
+        if matches!(expression.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,arguments,closures,invocations) {
+            for (id,ty) in selected {origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});}
+            continue;
+        }
+        let parameters=match expression.target {
+            Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
+            Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
+                let origin=match expression.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>expression.closure_origin()};
+                origin.and_then(|id|closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
             }
-            let parameters=match expression.target {
-                Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
-                Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
-                    let origin=match expression.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>expression.closure_origin()};
-                    origin.and_then(|id|closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
-                }
-                Some(CallTarget::ClosureMethod(method))=>{
-                    let origin=match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None};
-                    origin.and_then(|id|closures.get(id)).and_then(|closure|{
-                        let closure=if let Some(ClosureForward::Once(id))=closure.forward {closures.get(id)?}else{closure};
-                        let method=closure.methods.get(method)?;
-                        Some(method.parameters.iter().map(|id|&method.function.bindings[*id]).collect())
-                    })
-                }
-                _=>None,
-            };
-            let Some(parameters)=parameters else {continue;};
-            for (formal,actual) in parameters.into_iter().zip(arguments) {
-                if let Type::Callback(id)=formal.ty {
-                    let ty=actual.ty.unwrap_or(Type::Void);
-                    origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});
-                }
+            Some(CallTarget::ClosureMethod(method))=>{
+                let origin=match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None};
+                origin.and_then(|id|closures.get(id)).and_then(|closure|{
+                    let closure=if let Some(ClosureForward::Once(id))=closure.forward {closures.get(id)?}else{closure};
+                    let method=closure.methods.get(method)?;
+                    Some(method.parameters.iter().map(|id|&method.function.bindings[*id]).collect())
+                })
+            }
+            _=>None,
+        };
+        let Some(parameters)=parameters else {continue;};
+        for (formal,actual) in parameters.into_iter().zip(arguments) {
+            if let Type::Callback(id)=formal.ty {
+                let ty=actual.ty.unwrap_or(Type::Void);
+                origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});
             }
         }
     }
@@ -1534,7 +1537,7 @@ mod tests {
         let (before,remaining)=program.functions.split_at_mut(main);
         let (caller,after)=remaining.split_first_mut().unwrap();
         let mut functions=before.iter_mut().map(Some).chain(std::iter::once(None)).chain(after.iter_mut().map(Some)).collect::<Vec<_>>();
-        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations,&[],&[]);
+        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],(&caller.body,&caller.bindings),&unions,&program.polymorphic_invocations,&[],&[]);
         let contract=regional.callback_errors.get(&callback).expect("regional selected callback origin");
         assert!(contract.runtime && !contract.opaque,"regional selected method must receive the failing argument: {contract:?}");
         let effects=annotate_inferred_callbacks(&mut program);

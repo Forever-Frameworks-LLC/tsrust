@@ -4,6 +4,25 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio rebuild analysis — borrowed exception-region inputs
+
+The Studio save profile showed repeated partial error-contract analysis. The checker
+now reads the current region body and bindings directly during callback-origin
+discovery. It formerly cloned both into a synthetic CheckedFunction used only for
+iteration. Initializers, caller position in traversal, closure methods and the
+fixed-point analysis retain their ordering. Catch and finally phases borrow the
+retained effects when refresh is unnecessary. A refreshing body computes the
+current effects directly without first copying the discarded snapshot.
+
+Focused compiler error effects 54/54 passed in 0.92 s (setup 3m38s), native
+exception regions 3/3 in 1.05 s, unreachable catch bodies 3/3 in 2.33 s (shared
+setup including target lock wait 5m53s). Logs /tmp/studio-borrow-region-tests-final.log
+and /tmp/studio-borrow-region-native.log. Whole-project format 0 files, snippets
+or fingerprints. Verified the existing dev 1088 and Studio 4521 alive; no restart
+or installed toolchain switch. No matched speed or memory measurements yet.
+Next compare identical saved-edit inputs with the prior compiler and separate
+the remaining fixed-point body scans from cloning and native preparation costs.
+
 ## Studio coding conversation and active language analysis — November 12
 
 The owner selected a direct model-host test because desktop controls were unavailable.

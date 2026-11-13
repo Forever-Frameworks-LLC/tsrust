@@ -3968,7 +3968,7 @@ impl Analyzer {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
         self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
-            self.region_caller_error_effects(context,body,result)
+            self.region_caller_error_effects(context,body)
         }else{self.region_error_effects(context)?};
         let contract=crate::error_effects::annotate_region_body(body,&effects);
         let points=crate::error_effects::OperationEffects::for_body(body);
@@ -3977,14 +3977,13 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
+    fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt])->crate::error_effects::ErrorEffects {
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
     }
 
     #[inline(never)]
