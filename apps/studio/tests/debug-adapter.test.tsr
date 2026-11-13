@@ -1,7 +1,7 @@
 import { Channel } from 'std:futures';
-import { DebugOutput, debugWorker } from '../src/services/debug/session.tsr';
+import { DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
 import { get } from 'std:env';
-import { canonicalize, createTempDir, removeDirAll } from 'std:fs';
+import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
 import { run, spawn } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 
@@ -220,6 +220,17 @@ async function runDebugTarget(adapter: string, program: string): Task<void> {
   }
 }
 
+async function consoleResult(output: ReadOnly<Channel<DebugOutput>>): Task<string> {
+  let text = '';
+
+  while (true) {
+    const update = await output.receive().timeout(10000);
+    text += update.text;
+
+    if (update.finished) return text;
+  }
+}
+
 test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
 
@@ -237,28 +248,23 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
     try {
       await commands.send(folder + '/missing');
-      let consoleText = '';
-
-      while (true) {
-        const update = await output.receive().timeout(10000);
-        consoleText += update.text;
-
-        if (update.finished) break;
-      }
-
-      strictEqual(consoleText.includes(folder + '/missing'), true);
+      const missing = await consoleResult(output);
+      strictEqual(missing.includes(folder + '/missing'), true);
+      const marker = folder + '/studio-debug-mode';
+      unwrap(writeTextFileAtomic(marker, 'fail'));
+      const control = unwrap(await run(clone(program), [], {
+        cwd: clone(folder)
+      }));
+      strictEqual(control.status.success, false);
       await commands.send(clone(program));
-      consoleText = '';
-
-      while (true) {
-        const update = await output.receive().timeout(10000);
-        consoleText += update.text;
-
-        if (update.finished) break;
-      }
-
-      strictEqual(consoleText.includes('Studio debugger fixture'), true);
-      strictEqual(consoleText.includes('Exit code 0'), true);
+      const failed = await consoleResult(output);
+      strictEqual(failed.includes('Requested fixture failure'), true);
+      strictEqual(failed.includes('\nExit code ' + (control.status.code ?? -1).toString() + '\n'), true);
+      unwrap(writeTextFileAtomic(marker, 'pass'));
+      await commands.send(clone(program));
+      const succeeded = await consoleResult(output);
+      strictEqual(succeeded.includes('Studio debugger fixture'), true);
+      strictEqual(succeeded.includes('\nExit code 0\n'), true);
     } finally {
       worker.cancel();
 
@@ -269,6 +275,11 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
   } finally {
     unwrap(removeDirAll(folder));
   }
+});
+
+test('an exited event without a status cannot report success', () => {
+  const event = decodeAdapterReply('{"type":"event","event":"exited","body":{}}');
+  strictEqual(exitStatusText(event.body?.exitCode), '\nExit status unavailable.\n');
 });
 
 test('debug adapter errors identify the command and adapter explanation', () => {

@@ -1,3 +1,12 @@
+import { readTextFile } from 'std:fs';
+
 function main(): void {
+  match (readTextFile('studio-debug-mode', 64)) {
+    Ok(mode) => {
+      if (mode === 'fail') throw 'Requested fixture failure';
+    },
+    Err(_) => {}
+  }
+
   console.log('Studio debugger fixture');
 }

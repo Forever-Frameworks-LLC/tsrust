@@ -10,6 +10,10 @@ export interface DebugOutput {
   finished: boolean;
 }
 
+export function exitStatusText(code: int | undefined): string {
+  return code === undefined ? '\nExit status unavailable.\n' : '\nExit code ' + code.toString() + '\n';
+}
+
 async function launchDebugTarget(adapter: string, root: string, program: string, output: ReadOnly<Sender<DebugOutput>>): Task<void> {
   const child = unwrap(spawn(adapter, [], {
     stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
@@ -41,7 +45,7 @@ async function launchDebugTarget(adapter: string, root: string, program: string,
         });
       } else if (reply.event === 'exited') {
         await output.send({
-          text: '\nExit code ' + (reply.body?.exitCode ?? 0).toString() + '\n', finished: false
+          text: exitStatusText(reply.body?.exitCode), finished: false
         });
       } else if (reply.event === 'terminated') return;
     }
