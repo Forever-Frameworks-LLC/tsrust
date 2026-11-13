@@ -4,6 +4,16 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Long chat requests at the host frame limit
+
+The send action now fills the 128 KiB model frame with recent messages,
+starting at a user turn and keeping the current request intact. Older messages
+remain in the transcript and the chat shows a notice when context was omitted.
+Sizing counts serialized UTF-8 bytes including the terminating newline. The
+AI action and session suites passed 17/17 in 52.01 ms, including an oversized
+historical turn, an exact-limit frame and a current turn one byte over.
+Model tokenizer context limits and long-session memory remain separate work.
+
 ## Unicode chat typing and titles
 
 Chat titles take up to 80 Unicode scalar values from the first trimmed line.

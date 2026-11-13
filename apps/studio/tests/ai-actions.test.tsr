@@ -17,7 +17,7 @@ import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
 import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } from '../src/lib/ai/conversations.tsr';
-import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { ModelRequest, ModelUpdate, fitGeneration } from '../src/lib/ai/protocol.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
 import { initialAiState, invokeModelTool, pollModel, AiContext, AiState } from '../src/services/ai/actions.tsr';
 import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
@@ -636,4 +636,49 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
   } finally {
     unwrap(removeDirAll(folder));
   }
+});
+
+test('a long chat retains its transcript and sends only whole recent turns within the framed byte limit', () => {
+  const requests = new Channel<ModelRequest>(2);
+  const initial = initialAiState();
+  initial.phase = 'ready';
+  initial.history.active = 'chat';
+  initial.history.chats.push({
+    id: 'chat', title: 'Long chat', revision: 1, draft: '', messages: [{
+      role: 'user', request: 'first', text: '界'.repeat(44000)
+    }, {
+      role: 'assistant', request: 'first', text: 'orphaned if sent alone'
+    }, {
+      role: 'user', request: 'second', text: 'Keep this question'
+    }, {
+      role: 'assistant', request: 'second', text: 'Keep this answer'
+    }]
+  });
+  const state = signal(initial);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'Follow up');
+  const generation = unwrap(requests.tryReceive());
+  const messages = generation.messages ?? [];
+  strictEqual(messages.length, 3);
+  strictEqual(messages[0].content, 'Keep this question');
+  strictEqual(messages[1].content, 'Keep this answer');
+  strictEqual(messages[2].content, 'Follow up');
+  strictEqual(state.get().history.chats[0].messages.length, 6);
+  strictEqual(state.get().history.chats[0].messages[0].text.length, 132000);
+  strictEqual(state.get().notice.includes('Earlier turns'), true);
+  const frame: ModelRequest = {
+    kind: 'generate', id: 'boundary', prompt: '', maxTokens: 1, messages: [{
+      role: 'user', content: ''
+    }]
+  };
+  const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
+  const exact = 'x'.repeat(capacity);
+  strictEqual(unwrap(fitGeneration(frame, [{
+    role: 'user', content: clone(exact)
+  }])), false);
+  strictEqual(JSON.stringify(frame).length + 1, 128 * 1024);
+  strictEqual(denied(fitGeneration(frame, [{
+    role: 'user', content: exact + '!'
+  }])), true);
 });

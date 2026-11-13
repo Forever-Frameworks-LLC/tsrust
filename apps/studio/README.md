@@ -196,3 +196,6 @@ To request a change to the active text file, start a chat message with
 `Edit: `, followed by the change you want. Studio shows the proposed
 replacement in a diff. **Apply to draft** updates the open buffer. **Reject**
 discards the proposal. Save the draft separately when ready.
+
+When a long chat exceeds the model host’s 128 KiB request limit, Studio sends
+the most recent complete turns that fit and keeps the full transcript in chat.

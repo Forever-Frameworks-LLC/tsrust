@@ -15,7 +15,7 @@ import {
   setDraftContext,
   messageContent
 } from '../../lib/ai/conversations.tsr';
-import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
+import { ModelRequest, ModelUpdate, fitGeneration } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
@@ -320,10 +320,9 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       }
 
       const generation: ModelRequest = {
-        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens, messages
+        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: context.settings.get().aiResponseTokens
       };
 
-      if (length(unwrap(fromUtf8(JSON.stringify(generation)))) > 128 * 1024) return Err('The conversation and attachments are too large. Start a new chat or remove some context.');
       let reply = '';
 
       if (grounding.candidates.length > 0) reply = translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n');
@@ -343,6 +342,15 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         next.targetChat = '';
         unwrap(publish(context, next));
         return Ok('{"accepted":true}');
+      }
+
+      match (fitGeneration(generation, messages)) {
+        Err(error) => {
+          return Err(error);
+        },
+        Ok(shortened) => {
+          if (shortened) next.notice = 'Earlier turns were omitted from this model request. The full conversation remains in chat.';
+        }
       }
 
       if (next.phase === 'stopped') match (startRequest(context)) {
