@@ -1350,6 +1350,7 @@ impl Root {
         for node in removed {if let Some(panel)=state.panels.remove(&node){area.update(cx,|area,cx|area.remove_panel(panel,window,cx));}}
         for (node,value,title,closable,padded,split_controls) in panels {
             let value=if value.is_empty(){node.to_string()}else{value};
+            let activate = selected.is_empty() || value == selected;
             if !values.insert(value.clone()){fail(&self.failure,"Dock panels require distinct values".into());}
             if let Some(panel)=state.panels.get(&node) {
                 panel.update(cx,|panel,cx|{
@@ -1359,11 +1360,11 @@ impl Root {
                         panel.value=value;panel.title=title;panel.closable=closable;panel.padded=padded;panel.split_controls=split_controls;panel.last_close=last_close;panel.can_split=can_split;cx.notify();
                     }
                 });
-                if controlled && area.read(cx).panel(PanelId::from(panel.entity_id())).is_none(){area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));}
+                if controlled && area.read(cx).panel(PanelId::from(panel.entity_id())).is_none(){area.update(cx,|area,cx|area.add_panel_view_with_activation(panel_handle(panel.clone()),DockPlacement::Center,None,activate,window,cx));}
             }else{
                 let weak=root.downgrade();
                 let panel=cx.new(|cx|{cx.observe(&root,|_,_,cx|cx.notify()).detach();DockContent{root:weak,dock:id,node,value,title:title.into(),closable,padded,split_controls,can_split:false,last_close,area:area.downgrade(),group:None,focus:cx.focus_handle()}});
-                area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));
+                area.update(cx,|area,cx|area.add_panel_view_with_activation(panel_handle(panel.clone()),DockPlacement::Center,None,activate,window,cx));
                 state.panels.insert(node,panel);
             }
         }

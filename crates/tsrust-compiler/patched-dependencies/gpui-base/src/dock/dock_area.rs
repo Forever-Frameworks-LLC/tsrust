@@ -377,7 +377,7 @@ impl DockArea {
         cx: &mut Context<Self>,
     ) {
         let id = PanelId::from(panel.entity_id());
-        self.add_panel_inner(id, Arc::new(panel), placement, size, window, cx);
+        self.add_panel_inner(id, Arc::new(panel), placement, size, true, window, cx);
     }
 
     /// Add an already-wrapped panel handle to a region.
@@ -394,8 +394,21 @@ impl DockArea {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.add_panel_view_with_activation(panel, placement, size, true, window, cx);
+    }
+
+    /// Insert a tab while optionally preserving the currently selected panel.
+    pub fn add_panel_view_with_activation(
+        &mut self,
+        panel: Arc<dyn PanelView>,
+        placement: DockPlacement,
+        size: Option<Pixels>,
+        activate: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let id = panel.panel_id(cx);
-        self.add_panel_inner(id, panel, placement, size, window, cx);
+        self.add_panel_inner(id, panel, placement, size, activate, window, cx);
     }
 
     fn add_panel_inner(
@@ -404,6 +417,7 @@ impl DockArea {
         panel: Arc<dyn PanelView>,
         placement: DockPlacement,
         size: Option<Pixels>,
+        activate: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -434,7 +448,7 @@ impl DockArea {
             Some(node) => InsertTarget::Tabs {
                 node,
                 ix: None,
-                activate: true,
+                activate,
             },
             // An empty region has no container to merge into, so the panel
             // makes one beside the root. `normalize` then removes the emptied
