@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Dev cache lookup allocation
+
+A cache hit used to read the full identity file into a second buffer. The
+cache now compares exact bytes in 64 KiB chunks and preallocates its framed
+identity once. A standalone release probe of eight validated lookups using
+the actual 20,981,826-byte Studio identity and retained input bytes measured
+64,356,832 versus 43,303,344 bytes peak physical footprint. Cache and retention
+tests passed 16/16, including length mismatches and corruption beyond the
+first chunk. The unchanged running watcher later measured 239 MiB idle. The
+2.3 GiB build peak remains unaccounted for by this isolated measurement.
+
 ## Source-control worker stack overflow in Studio
 
 macOS reported SIGABRT for Studio PID 70197 at 05:59; the dev log recorded

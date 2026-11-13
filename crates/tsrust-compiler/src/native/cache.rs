@@ -34,7 +34,7 @@ pub struct NativeCache {
 }
 impl NativeCache {
     pub fn new(root: &Path, fields: &[&[u8]]) -> Self {
-        let mut identity = Vec::new();
+        let mut identity = Vec::with_capacity(fields.iter().map(|field| 8 + field.len()).sum());
         for field in fields {
             identity.extend_from_slice(&(field.len() as u64).to_le_bytes());
             identity.extend_from_slice(field);
@@ -54,11 +54,23 @@ impl NativeCache {
     /// Compare complete build inputs, rather than the possibly colliding directory hash.
     pub fn same_inputs(&self,other:&Self)->bool {self.identity==other.identity}
 
+    fn identity_matches(&self) -> std::io::Result<bool> {
+        use std::io::Read;
+        let mut file = std::fs::File::open(self.directory.join("identity"))?;
+        if file.metadata()?.len() != self.identity.len() as u64 { return Ok(false); }
+        let mut buffer = [0; 65536];
+        for expected in self.identity.chunks(buffer.len()) {
+            let chunk = &mut buffer[..expected.len()];
+            file.read_exact(chunk)?;
+            if chunk != expected { return Ok(false); }
+        }
+        Ok(file.read(&mut buffer[..1])? == 0)
+    }
     pub fn lookup(&self) -> Option<PathBuf> {
         let executable = self
             .directory
             .join(format!("program{}", std::env::consts::EXE_SUFFIX));
-        (std::fs::read(self.directory.join("identity")).ok()? == self.identity
+        (self.identity_matches().ok()?
             && std::fs::read(self.directory.join("checksum")).ok()?
                 == checksum(&executable).ok()?)
         .then_some(executable)

@@ -1,6 +1,26 @@
 mod support;
 use tsrust_compiler::native_cache::NativeCache;
 #[test]
+fn lookup_checks_identity_length_and_bytes_past_the_first_chunk() {
+    let dir = support::TempDirectory::new();
+    let artifact = dir.0.join("artifact");
+    std::fs::write(&artifact, b"program").unwrap();
+    let cache = NativeCache::new(&dir.0, &[&vec![7; 131072]]);
+    cache.publish(&artifact).unwrap();
+    let identity = cache.lookup().unwrap().parent().unwrap().join("identity");
+    let mut bytes = std::fs::read(&identity).unwrap();
+    bytes[65536] ^= 1;
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+    bytes[65536] ^= 1;
+    bytes.push(0);
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+    bytes.truncate(bytes.len() - 2);
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+}
+#[test]
 fn streamed_checksums_preserve_existing_cache_bytes_across_buffer_boundaries() {
     use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
     let directory=support::TempDirectory::new();
