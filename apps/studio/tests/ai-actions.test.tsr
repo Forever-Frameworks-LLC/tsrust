@@ -1066,3 +1066,20 @@ test('overflow can keep every exchange by retiring historical workspace snapshot
   strictEqual(compact[4].content, messages[4].content);
   strictEqual(withoutEarlierWorkspace(compact).length, 0);
 });
+
+test('overflow retains a named historical source when the follow-up has no current snapshot', () => {
+  const source = 'Active editor file: fees.tsr\nfunction serviceFee() {\n  return 73;\n}\nconst unrelated = 999;';
+  const messages: ChatMessage[] = [{
+    role: 'user', content: source + '\n\nInspect this file.', workspaceEnd: source.length
+  }, {
+    role: 'assistant', content: 'Reviewed.'
+  }, {
+    role: 'user', content: 'What did serviceFee() return?'
+  }];
+  const terms = recallTerms(messages[2].content);
+  const retained = withoutEarlierWorkspace(messages, terms);
+  strictEqual(retained[0].content, '[Workspace excerpt]\nActive editor file: fees.tsr\nfunction serviceFee() {\n  return 73;\n}\n\nInspect this file.');
+  messages[2].content = 'new source\n\nWhat does serviceFee() return now?';
+  messages[2].workspaceEnd = 10;
+  strictEqual(withoutEarlierWorkspace(messages, terms)[0].content, 'Inspect this file.');
+});

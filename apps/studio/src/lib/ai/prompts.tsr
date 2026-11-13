@@ -128,7 +128,7 @@ export function replaceWorkspace(content: ReadOnly<string>, start: int, end: int
 }
 
 // Drop only superseded automatic context. Explicit attachments live after the boundary.
-export function withoutEarlierWorkspace(messages: ReadOnly<ChatMessage[]>): ChatMessage[] {
+export function withoutEarlierWorkspace(messages: ReadOnly<ChatMessage[]>, terms?: ReadOnly<Set<string>>): ChatMessage[] {
   const latest = messages.findLastIndex((message) => message.role === 'user');
   const compact: ChatMessage[] = [];
   let changed = false;
@@ -138,8 +138,9 @@ export function withoutEarlierWorkspace(messages: ReadOnly<ChatMessage[]>): Chat
     const end = entry.workspaceEnd;
 
     if (index < latest && entry.role === 'user' && end !== undefined && validWorkspace(entry.content, 0, end)) {
+      const relevant = terms !== undefined && messages[latest].workspaceEnd === undefined ? excerptWorkspace(entry.content, 0, terms, true, end) : '';
       compact.push({
-        role: 'user', content: entry.content.slice(end + 2)
+        role: 'user', content: relevant === '' ? entry.content.slice(end + 2) : relevant
       });
       changed = true;
     } else compact.push(clone(entry));

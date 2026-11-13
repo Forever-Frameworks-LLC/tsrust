@@ -78,12 +78,18 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
     let compactHistory: ChatMessage[] = [];
 
     if (low !== 0) {
-      const compact = withoutEarlierWorkspace(messages);
+      const terms = recallTerms(request.prompt);
+      let compact = withoutEarlierWorkspace(messages, terms);
 
       if (compact.length > 0) {
-        const candidate = conversationPrompt(compact);
+        let fits = unwrap(qwen_prompt_fits(model, conversationPrompt(compact)));
 
-        if (unwrap(qwen_prompt_fits(model, candidate))) {
+        if (!fits && latest >= 0 && messages[latest].workspaceEnd === undefined && terms.size > 0) {
+          compact = withoutEarlierWorkspace(messages);
+          fits = unwrap(qwen_prompt_fits(model, conversationPrompt(compact)));
+        }
+
+        if (fits) {
           compactHistory = compact;
           low = 0;
         }

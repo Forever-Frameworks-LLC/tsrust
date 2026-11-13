@@ -359,11 +359,13 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback'].includes(unwrap(get('TS
 
 const recallEval = unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) ?? '';
 
-if (['1', 'excerpt', 'reply', 'followup'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
+if (['1', 'excerpt', 'reply', 'followup', 'historical-source'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
-  const history = emptyHistory('/workspace');
+  const workspace = unwrap(openWorkspace('.'));
+  const history = emptyHistory(clone(workspace.root));
+  const historical = recallEval === 'historical-source';
   const reply = recallEval === 'reply';
   const followup = recallEval === 'followup';
   history.active = 'recall';
@@ -378,18 +380,27 @@ if (['1', 'excerpt', 'reply', 'followup'].includes(recallEval)) test('local chat
       role: 'assistant', request: 'two', text: followup ? 'The result is 41.' : 'Acknowledged.'
     }]
   });
+
+  if (historical) {
+    history.chats[0].messages = [{
+      role: 'user', request: 'one', text: 'Acknowledge receipt.', workspaceExcerpt: 'Active editor file: fees.tsr\n' + '// unrelated\n'.repeat(35000) + 'function serviceFee() {\n  return 73;\n}'
+    }, {
+      role: 'assistant', request: 'one', text: 'OK'
+    }];
+  }
+
   const requests = new Channel<ModelRequest>(8);
   const updates = new Channel<ModelUpdate>(16);
   const host: AiContext = {
-    state: signal(initialAiState(history)), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    workspace: signal(workspace), state: signal(initialAiState(history)), settings: signal(unwrap(loadConfig(unwrap(configPath())))), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
   };
   const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
   try {
-    const answer = await ask(host, updates, followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
+    const answer = await ask(host, updates, historical ? 'In the earlier file, what did serviceFee() return? Reply with only the number.' : followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
     strictEqual(answer.trim(), followup ? '42' : '73');
     strictEqual(host.state.get().notice.includes('Context was shortened'), true);
-    strictEqual(host.state.get().history.chats[0].messages.length, 6);
+    strictEqual(host.state.get().history.chats[0].messages.length, historical ? 4 : 6);
   } finally {
     worker.cancel();
 

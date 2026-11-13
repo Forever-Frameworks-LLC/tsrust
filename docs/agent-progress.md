@@ -4,6 +4,19 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Recalling code from earlier workspace snapshots
+
+When the latest question has no automatic workspace snapshot and names a code
+identifier, overflow compaction now tries attributed matches from earlier
+snapshots before removing them. A current snapshot takes precedence. The host
+checks actual token fit and can still drop the historical excerpts to preserve
+the conversation. All 24 AI action tests passed after 40.90 s build. The
+historical-source recall evaluation passed through the Studio chat action with
+a 35,000-line historical snapshot, no active file, a compaction notice and all
+four transcript messages intact. The direct 1.5B host conversation returned OK
+then 73 for serviceFee(), with 2,251,390,976 bytes peak RSS. This verifies a
+named historical symbol and does not establish recall from unnamed concepts.
+
 ## Context compaction and multi-file undo
 
 On actual tokenizer overflow the host can now strip historical automatic
