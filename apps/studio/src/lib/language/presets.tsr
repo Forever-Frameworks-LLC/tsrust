@@ -13,6 +13,10 @@ export function languagePresets(): LanguageServer[] {
     "id": "typescript", "name": "TypeScript / JavaScript", "program": "typescript-language-server", "arguments": ["--stdio"], "languages": ["typescript", "typescriptreact", "javascript", "javascriptreact"], "files": [{
       "extension": "ts", "language": "typescript"
     }, {
+      "extension": "mts", "language": "typescript"
+    }, {
+      "extension": "cts", "language": "typescript"
+    }, {
       "extension": "tsx", "language": "typescriptreact"
     }, {
       "extension": "js", "language": "javascript"

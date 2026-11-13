@@ -3,6 +3,8 @@ import { Channel } from 'std:futures';
 import { join } from 'std:path';
 import { strictEqual, test } from 'std:testing';
 
+import { languagePresets } from '../src/lib/language/presets.tsr';
+import { languageRoute } from '../src/lib/language/servers.tsr';
 import { defaultConfig, formatConfig, parseConfig, saveConfig } from '../src/lib/settings/settings.tsr';
 import { LanguageToolContext, invokeLanguageTool, languageTools } from '../src/services/lsp/actions.tsr';
 import { LanguageMessage } from '../src/services/lsp/session.tsr';
@@ -24,6 +26,21 @@ function rejected(result: Result<string, string>): boolean {
     }
   }
 }
+
+test('configured TypeScript preset routes module and declaration files after a settings round trip', () => {
+  const config = defaultConfig();
+  config.languageServers = languagePresets();
+  const servers = unwrap(parseConfig(formatConfig(config))).languageServers;
+
+  for (const name of ['main.mts', 'main.cts', 'lib.d.mts', 'lib.d.CTS']) {
+    const route = languageRoute(servers, name);
+    strictEqual(route?.server, 'typescript');
+    strictEqual(route?.language, 'typescript');
+  }
+
+  strictEqual(languageRoute(servers, 'main.cjs')?.language, 'javascript');
+  strictEqual(languageRoute(servers, 'main.tsx')?.language, 'typescriptreact');
+});
 
 test('AI language settings require separate host grants and return isolated validated proposals', () => {
   const root = unwrap(createTempDir(undefined, 'studio-language-settings-'));

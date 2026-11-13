@@ -4,6 +4,21 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## TypeScript module files and cross-file navigation
+
+Studio's TypeScript server preset and Explorer icons recognize .mts, .cts and
+their declaration forms. Explicit saved server associations remain user-owned.
+The shared editor highlighter resolves .mts/.cts and .mjs/.cjs aliases.
+File icon and settings tests passed 6/6 in 2.97 ms. GPUI grammar test passed
+1/1 in under 10 ms with 2m56s setup. With typescript-language-server 4.3.4
+and TypeScript 5.9.3 installed under /tmp/studio-typescript-lsp-qualification,
+the checked Studio registry resolved a .mjs import in an unsaved .mts file
+to the exact identifier in its .mts source via NodeNext. Initial replies can
+point to the local alias before semantic loading finishes. Regression 1/1 in
+528.33 ms; set TYPESCRIPT_LANGUAGE_SERVER to the executable to reproduce.
+Supervisor 36374 rebuilt and launched preview 95076. Physical TypeScript
+navigation and highlighting in the live window remain unverified.
+
 ## Real Rust language service
 
 The Rustup proxy on this Mac has no rust-analyzer component. The installed VS
