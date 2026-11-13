@@ -1,10 +1,13 @@
-export interface AdapterReply {
+interface AdapterEnvelope {
   type: string;
   command?: string;
   event?: string;
   request_seq?: int;
   success?: boolean;
   message?: string;
+}
+
+export interface AdapterReply extends AdapterEnvelope {
   body?: AdapterBody;
 }
 
@@ -49,13 +52,31 @@ interface AdapterError {
 }
 
 export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
+  const envelope = JSON.parse<AdapterEnvelope>(frame);
+
+  if (envelope.type === 'event') {
+    const event = envelope.event ?? '';
+
+    if (event === '') throw 'Invalid debug adapter event.';
+
+    if (event !== 'stopped' && event !== 'output' && event !== 'exited') return {
+      type: 'event', event: clone(event)
+    };
+  } else {
+    const command = envelope.command ?? '';
+
+    if (envelope.type !== 'response' || command === '' || (envelope.request_seq ?? 0) <= 0 || envelope.success === undefined) throw 'Invalid debug adapter reply.';
+
+    if (envelope.success === true && !['initialize', 'setFunctionBreakpoints', 'stackTrace', 'scopes', 'variables'].includes(command)) {
+      return {
+        type: 'response', command: clone(command), request_seq: envelope.request_seq, success: true
+      };
+    }
+  }
+
   const reply = JSON.parse<AdapterReply>(frame);
 
-  if (reply.type === 'event' && (reply.event ?? '') !== '') return reply;
-
-  if (reply.type !== 'response' || (reply.command ?? '') === '' || (reply.request_seq ?? 0) <= 0) throw 'Invalid debug adapter reply.';
-
-  if (reply.success !== true) {
+  if (reply.type === 'response' && reply.success === false) {
     const reason = reply.body?.error?.format ?? reply.message ?? 'Request failed.';
     throw(reply.command ?? '') + ': ' + reason;
   }

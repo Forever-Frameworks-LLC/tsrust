@@ -203,3 +203,19 @@ test('real adapter rejects a missing executable before the session runs', async 
     unwrap(removeDirAll(folder));
   }
 });
+
+test('adapter extension bodies cannot break unrelated debugger events or acknowledgements', () => {
+  const custom = decodeAdapterReply('{"type":"event","event":"adapterTelemetry","body":{"variables":"custom representation"}}');
+  strictEqual(custom.event, 'adapterTelemetry');
+  const response = decodeAdapterReply('{"type":"response","command":"customCommand","request_seq":17,"success":true,"body":[1,2]}');
+  strictEqual(response.request_seq, 17);
+  let rejected = false;
+
+  try {
+    decodeAdapterReply('{"type":"response","command":"launch","request_seq":17}');
+  } catch (_) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
