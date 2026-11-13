@@ -1,66 +1,16 @@
-import { canonicalize } from 'std:fs';
-import { separator } from 'std:path';
 import { Signal, useId, controlTerminal } from 'std:ui';
 
 import { FormattingOptions } from '../lib/settings/formatting.tsr';
 import { StudioConfig } from '../lib/settings/settings.tsr';
 import { QueuedFormatting, enqueueFormatting, canFormat } from '../lib/workspace/formatting-actions.tsr';
 import { TerminalWorkspace, addTerminal } from '../lib/workspace/terminals.tsr';
-import { Workspace, entries } from '../lib/workspace/workspace.tsr';
+import { Workspace, projectFiles } from '../lib/workspace/workspace.tsr';
 
 export interface ProjectTask {
   kind: string;
   title: string;
   program: string;
   args: string[];
-}
-
-// Open buffers are formatted through revisioned proposals, never by a disk task.
-function unopenedSources(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, visited: Mutable<string[]>): Result<string[], string> {
-  match (canonicalize(path)) {
-    Err(error) => {
-      return Err(clone(error.message));
-    },
-    Ok(real) => {
-      const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
-
-      if ((real !== workspace.root && !real.startsWith(prefix)) || visited.includes(real)) return Ok([]);
-      visited.push(clone(real));
-
-      match (entries(real)) {
-        Err(error) => {
-          return Err(clone(error));
-        },
-        Ok(children) => {
-          const paths: string[] = [];
-
-          for (const child of children) {
-            if (child.directory) {
-              match (unopenedSources(workspace, child.path, visited)) {
-                Ok(nested) => {
-                  for (const file of nested) paths.push(clone(file));
-                },
-                Err(error) => {
-                  return Err(clone(error));
-                }
-              }
-            } else if (canFormat(child.path) && !workspace.files.some((file) => file.document.path === child.path)) {
-              match (canonicalize(child.path)) {
-                Ok(file) => {
-                  if (file.startsWith(prefix) && !workspace.files.some((open) => open.document.path === file) && !paths.includes(file)) paths.push(clone(file));
-                },
-                Err(error) => {
-                  return Err(clone(error.message));
-                }
-              }
-            }
-          }
-
-          return Ok(paths);
-        }
-      }
-    }
-  }
 }
 
 export function prepareProjectTask(
@@ -91,16 +41,16 @@ export function prepareProjectTask(
 
   if (!allowWrite) return Err('Project formatting requires a workspace write grant.');
 
-  const visited: string[] = [];
-
-  match (unopenedSources(workspace, workspace.root, visited)) {
+  // Match compiler discovery, including ignored sources. Open drafts use revisioned proposals.
+  match (projectFiles(workspace.root, true)) {
     Err(error) => {
       return Err(clone(error));
     },
-    Ok(paths) => {
-      const args: string[] = paths.length === 0 ? [] : ['format', '--write', '--options', JSON.stringify(options), '--color=always', '--progress'];
+    Ok(files) => {
+      const unopened = files.filter((file) => canFormat(file.path) && !workspace.files.some((open) => open.document.path === file.path));
+      const args: string[] = unopened.length === 0 ? [] : ['format', '--write', '--options', JSON.stringify(options), '--color=always', '--progress'];
 
-      for (const path of paths) args.push(clone(path));
+      for (const file of unopened) args.push(clone(file.path));
       return Ok({
         kind, title: 'Format project', program, args
       });

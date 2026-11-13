@@ -4,6 +4,17 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Studio project formatter discovery
+
+Format Project and the registered format_project tool now share the compiler's
+filesystem walker through projectFiles. Explicit project formatting includes
+ignored sources, skips generated target directories and avoids following symlinks.
+The formatting suite passed 6/6 in 56.40 ms execution. The real host tool wrote
+a nested ignored source, skipped a target source and returned a revision-matched
+proposal for an open draft while preserving its disk copy. Whole-tree formatter
+reported zero further changes. Logs /tmp/studio-format-discovery-{final,fmt-final}.log.
+Menu and terminal interaction were not replayed for this change.
+
 ## Unimported source edits in dev
 
 The frontend worker retains its last successful Rust output. It reuses that

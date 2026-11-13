@@ -1,5 +1,12 @@
 import { get } from 'std:env';
-import { canonicalize, createTempDir, removeDirAll, writeTextFile, readTextFile } from 'std:fs';
+import {
+  canonicalize,
+  mkdirAll,
+  createTempDir,
+  removeDirAll,
+  writeTextFile,
+  readTextFile
+} from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 
 import { EditorPolicy, defaultFormatting, projectEditorPolicy } from '../src/lib/settings/formatting.tsr';
@@ -18,6 +25,11 @@ import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { prepareProjectTask } from '../src/services/project-tasks.tsr';
 import { WorkflowToolContext, workflowTools, invokeWorkflowTool } from '../src/services/workflow-tools.tsr';
+
+interface ProjectFormatResponse {
+  success: boolean;
+  proposals: ProposedEdit[];
+}
 
 function workspace(root: string, source: string): Workspace {
   const path = root + '/main.tsrx';
@@ -267,15 +279,20 @@ test('focus formatting leaves disk and tab selection intact; terminal tasks enfo
   strictEqual(selected.end, 18);
 });
 
-test('project formatting preserves open drafts while selecting unopened disk sources', () => {
+test('project formatting preserves open drafts while selecting unopened disk sources', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-project-format-'));
 
   try {
     const actual = unwrap(canonicalize(root));
-    const state = workspace(clone(actual), 'disk version');
-    unwrap(writeTextFile(state.active, 'disk version'));
-    edit(state.files[0].document, 'unsaved draft');
-    const closed = actual + '/closed.tsr';
+    const state = workspace(clone(actual), 'const disk=1;');
+    unwrap(writeTextFile(state.active, 'const disk=1;'));
+    edit(state.files[0].document, 'const draft=2;');
+    unwrap(mkdirAll(actual + '/src'));
+    unwrap(mkdirAll(actual + '/target'));
+    unwrap(writeTextFile(actual + '/.gitignore', 'src/\n'));
+    const generated = actual + '/target/generated.tsr';
+    unwrap(writeTextFile(generated, 'const generated=1;'));
+    const closed = actual + '/src/closed.tsr';
     unwrap(writeTextFile(closed, 'const value=1;'));
     const task = unwrap(prepareProjectTask(
       state,
@@ -286,6 +303,7 @@ test('project formatting preserves open drafts while selecting unopened disk sou
       true
     ));
     strictEqual(task.args.includes(closed), true);
+    strictEqual(task.args.includes(generated), false);
     strictEqual(task.args.includes(state.active), false);
     strictEqual(task.args.includes('--write'), true);
     const pending: QueuedFormatting[] = [];
@@ -293,8 +311,21 @@ test('project formatting preserves open drafts while selecting unopened disk sou
     strictEqual(pending.length, 1);
     strictEqual(pending[0].target.session, state.files[0].document.session);
     strictEqual(pending[0].target.revision, 1);
-    strictEqual(state.files[0].document.text, 'unsaved draft');
-    strictEqual(unwrap(readTextFile(state.active)), 'disk version');
+    const configured = unwrap(get('TSRUST'));
+    const context: WorkflowToolContext = {
+      workspace: clone(state), policy: policy(), program: configured ?? 'tsrust', formatAuthority: {
+        allowPropose: true, allowApply: false, allowSave: false
+      }, allowCheck: false, allowProjectWrite: true
+    };
+    const response = JSON.parse<ProjectFormatResponse>(unwrap(await invokeWorkflowTool(context, 'format_project', '{}')));
+    strictEqual(response.success, true);
+    strictEqual(response.proposals.length, 1);
+    strictEqual(response.proposals[0].revision, 1);
+    strictEqual(response.proposals[0].after, 'const draft = 2;\n');
+    strictEqual(state.files[0].document.text, 'const draft=2;');
+    strictEqual(unwrap(readTextFile(state.active)), 'const disk=1;');
+    strictEqual(unwrap(readTextFile(closed)), 'const value = 1;\n');
+    strictEqual(unwrap(readTextFile(generated)), 'const generated=1;');
   } finally {
     unwrap(removeDirAll(root));
   }
