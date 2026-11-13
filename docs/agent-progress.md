@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Imported constants in chat context
+
+Workspace retrieval follows imported identifiers used as values in selected
+bodies and extracts exported const declarations through the terminating
+semicolon. The focused action suite passed 21/21 in 154.24 ms, including
+an aliased constant used by an imported helper and exclusion of an adjacent
+export and commented decoy. The compiler accepted the two-file calculation.
+TSRUST_STUDIO_RUN_MODEL_EVAL=constant verified both source paths and an
+exact constant declaration. The local 1.5B model answered 12 for handlingFee(5)
+but repeated 12 when asked to pass that result back in (expected 19).
+This opt-in case remains red. Name matching still lacks binding scope.
+
 ## Workspace chat import trivia
 
 Chat recognizes named aliases across whitespace, line comments and block

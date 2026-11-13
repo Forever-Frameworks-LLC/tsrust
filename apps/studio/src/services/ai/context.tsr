@@ -6,7 +6,7 @@ import {
 
 import { canonicalize, stat, readTextFile } from 'std:fs';
 import { s } from 'std:schema';
-import { compile, Regex } from 'std:regex';
+import { compile, escape, Regex } from 'std:regex';
 import {
   basename,
   dirname,
@@ -359,9 +359,30 @@ function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols
   return paths;
 }
 
+// Capture the initializer through its terminating semicolon, including nested expressions.
+function exportedExcerpt(source: ReadOnly<string>, name: ReadOnly<string>): string {
+  const body = functionExcerpt(source, name);
+
+  if (body !== '' || name === 'default') return body;
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*?\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bexport\\s+const\\s+" + escape(name) + "\\s*[:=]|[(){}\\[\\];]"));
+  let start = -1;
+  let depth = 0;
+
+  for (const token of tokens.findAll(source)) {
+    if (start < 0) {
+      if (source.startsWith('export', token.start)) start = token.start;
+    } else if (source.startsWith(';', token.start) && depth === 0) {
+      return unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(source)), start, token.end))));
+    } else if (['(', '{', '['].some((mark) => source.startsWith(mark, token.start))) depth += 1;
+    else if ([')', '}', ']'].some((mark) => source.startsWith(mark, token.start))) depth -= 1;
+  }
+
+  return '';
+}
+
 // Extend selected bodies with bare calls to functions declared in the same source.
 function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>): Set<string> {
-  const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\("));
+  const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)(\\s*\\()?"));
   const visited = new Set<string>();
   const external = new Set<string>();
 
@@ -374,6 +395,11 @@ function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>
 
       if (group === undefined || token.groups[0] !== undefined) continue;
       const name = unwrap(toUtf8(unwrap(view(bytes, group.start, group.end))));
+
+      if (token.groups[2] === undefined) {
+        external.add(clone(name));
+        continue;
+      }
 
       if (visited.has(name)) continue;
       visited.add(clone(name));
@@ -540,7 +566,7 @@ export function editorContext(
               let whole = nameCount > 0 || mentionsPath(prompt, path) || mentionsPath(prompt, './' + path);
 
               if (bindings !== undefined) for (const binding of bindings) {
-                const selected = whole ? '' : functionExcerpt(excerpt, binding.exported);
+                const selected = whole ? '' : exportedExcerpt(excerpt, binding.exported);
 
                 if (selected === '') whole = true;
                 else if (!snippets.includes(selected)) snippets.push(clone(selected));
@@ -599,7 +625,7 @@ export function editorContext(
 
       match (namedExcerpt(workspace, call.path, prefix)) {
         Ok(source) => {
-          const definition = functionExcerpt(source, call.binding.exported);
+          const definition = exportedExcerpt(source, call.binding.exported);
 
           if (definition === '') continue;
           const parts = [definition];

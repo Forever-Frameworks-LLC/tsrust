@@ -49,7 +49,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (['1', 'index', 'helpers', 'imports'].includes(workspaceEval)) test(workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant'].includes(workspaceEval)) test(workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -61,7 +61,10 @@ if (['1', 'index', 'helpers', 'imports'].includes(workspaceEval)) test(workspace
     unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
     const indexCase = workspaceEval !== '1';
 
-    if (workspaceEval === 'imports') {
+    if (workspaceEval === 'constant') {
+      unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge; }'));
+      unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export const baseCharge: int = 7;\nexport const unrelated: int = 999;'));
+    } else if (workspaceEval === 'imports') {
       unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge(); }'));
       unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
     } else if (workspaceEval === 'helpers') unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + baseCharge(); }\nfunction baseCharge(): int { return 7; }\nfunction unrelated(): int { return 999; }'));
@@ -82,8 +85,8 @@ if (['1', 'index', 'helpers', 'imports'].includes(workspaceEval)) test(workspace
         console.log(first);
         strictEqual(excerpt.includes('lib/pricing-policy.tsr'), true);
 
-        if (workspaceEval === 'imports') strictEqual(excerpt.includes('lib/rates.tsr'), true);
-        strictEqual(excerpt.includes(workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+        if (workspaceEval === 'imports' || workspaceEval === 'constant') strictEqual(excerpt.includes('lib/rates.tsr'), true);
+        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = 7;' : workspaceEval !== 'index' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
         strictEqual(excerpt.includes('999'), false);
         const second = await ask(host, updates, 'Pass your previous answer to the same function. What does it return now? Reply with the integer alone.');
         console.log(second);
