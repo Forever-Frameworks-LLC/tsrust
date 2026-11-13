@@ -6,6 +6,13 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Source-control sidebar and editor comparison
 
+Source Control now follows the sidebar content-search input and result-row
+styling. In the same running window both input groups occupied (351, 225)
+at 232 by 32 logical pixels. A changed-file row measured 232 by 53 and
+opened the chat-panel.tsrx diff. A separate temporary UD binary conflict
+verified that Stage resolution kept the surviving bytes in the Git index,
+cleared the unmerged entries and exposed neither merge text nor marker choices.
+
 Owner removed the diff viewer toolbar. Source Control opens ordinary diffs
 directly below the workbench title bar. The guarded Stage resolution control
 now sits below the merge result and appears only for conflicts. The live

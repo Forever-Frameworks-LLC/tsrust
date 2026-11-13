@@ -36,14 +36,14 @@ function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<
   const file = clone(row.path);
   const staged = row.mode === 'staged';
   return (
-    <ListItem className="h-[22px] px-1 py-0 rounded-none" value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+    <ListItem className={'px-3 py-2 rounded-none border-b border-border hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px]'} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
       <Tooltip text={clone(row.path)} className="grow min-w-0">
-        <View className="w-full min-w-0 flex-row gap-1 items-center">
-          <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
-            {basename(row.path)}
+        <View className="w-full min-w-0 flex-col gap-1 items-stretch justify-center">
+          <Text className={'w-full truncate text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+            {dirname(row.path)}
           </Text>
-          <Text className={'min-w-0 truncate text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-            {dirname(row.path) === '.' ? '' : dirname(row.path)}
+          <Text className={'w-full truncate font-mono text-[' + font.get().toString() + 'px]'}>
+            {basename(row.path)}
           </Text>
         </View>
       </Tooltip>
@@ -192,61 +192,58 @@ export function GitPanel(
   const checkingBusy = busy.handle();
   const checkingPending = pending.handle();
   const locked = computed<boolean>(() => checkingBusy.get() || checkingPending.get().mode !== '');
-  const sidebar: Node = <View className="size-full flex-col min-h-0 min-w-0 overflow-hidden">
-    <InputGroup size="small" className="w-full min-w-0 shrink-0 rounded-none border-0 border-b">
-      <Input
-        className={'grow min-w-0 text-[' + font.get().toString() + 'px]'}
-        value={messageText.get()}
-        placeholder={message('Commit message')}
-        aria-label={accessibleName('Commit message')}
-        onChange={(event) => {
-          messageText.set(clone(event.target.value));
-        }}
-      />
-      <InputGroupAddon align="inline-end">
-        <InputGroupButton
-          icon="check"
-          size="xsmall"
-          variant="ghost"
-          tooltip={message('Commit staged changes')}
-          accessibilityLabel={message('Commit staged changes')}
-          disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
-          onClick={() => {
-            pending.set({
-              mode: 'status', action: 'commit-staged', message: messageText.get()
-            });
+  const panelClass = computed<string>(() => 'flex-col size-full min-h-0 p-2 gap-2 text-[' + font.get().toString() + 'px]');
+  const sidebar: Node = <View className={panelClass.get()}>
+    <View className="shrink-0 h-8 min-w-0">
+      <InputGroup size="small" className="w-full h-full min-w-0">
+        <Input
+          className={'text-[' + font.get().toString() + 'px]'}
+          value={messageText.get()}
+          placeholder={message('Commit message')}
+          aria-label={accessibleName('Commit message')}
+          onChange={(event) => {
+            messageText.set(clone(event.target.value));
           }}
         />
-        <InputGroupButton
-          icon="history"
-          variant="ghost"
-          size="xsmall"
-          tooltip={message('History')}
-          accessibilityLabel={message('History')}
-          disabled={locked.get()}
-          onClick={() => {
-            history.set(!history.get());
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            icon="check"
+            tooltip={message('Commit staged changes')}
+            accessibilityLabel={message('Commit staged changes')}
+            disabled={locked.get() || messageText.get().trim() === '' || !changes.get().some((row: ReadOnly<GitChange>) => row.mode === 'staged')}
+            onClick={() => {
+              pending.set({
+                mode: 'status', action: 'commit-staged', message: messageText.get()
+              });
+            }}
+          />
+          <InputGroupButton
+            icon="history"
+            tooltip={message('History')}
+            accessibilityLabel={message('History')}
+            disabled={locked.get()}
+            onClick={() => {
+              history.set(!history.get());
 
-            if (history.get()) pending.set({
-              mode: 'history'
-            });
-          }}
-        />
-        <InputGroupButton
-          icon="refresh-cw"
-          variant="ghost"
-          size="xsmall"
-          tooltip={message('Refresh source control')}
-          accessibilityLabel={message('Refresh source control')}
-          disabled={locked.get()}
-          onClick={() => {
-            pending.set({
-              mode: 'status'
-            });
-          }}
-        />
-      </InputGroupAddon>
-    </InputGroup>
+              if (history.get()) pending.set({
+                mode: 'history'
+              });
+            }}
+          />
+          <InputGroupButton
+            icon="refresh-cw"
+            tooltip={message('Refresh source control')}
+            accessibilityLabel={message('Refresh source control')}
+            disabled={locked.get()}
+            onClick={() => {
+              pending.set({
+                mode: 'status'
+              });
+            }}
+          />
+        </InputGroupAddon>
+      </InputGroup>
+    </View>
     <View hidden={!history.get()}>
       <Select
         items={commits.get()}
