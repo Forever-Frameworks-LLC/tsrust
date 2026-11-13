@@ -63,7 +63,7 @@ test('document actions expose unsaved files and conflicts without trusting model
       path: clone(path)
     }))).includes('external'), true);
     const forged = JSON.stringify({
-      target, action: 'overwrite', allowOverwrite: true
+      target: clone(target), action: 'overwrite', allowOverwrite: true
     });
     strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
     strictEqual(unwrap(readTextFile(path)), 'external');
@@ -77,6 +77,13 @@ test('document actions expose unsaved files and conflicts without trusting model
     const listed = collectProblems(context.workspace.get(), problemContext.problems.get(), problemContext.terminalError.get());
     strictEqual(listed.length >= 1, true);
     strictEqual(formatProblems([operationProblem('save', clone(path), 'message')]), path + ' [save/save] message');
+    const dismiss = JSON.stringify({
+      target: clone(target), action: 'keep-editing'
+    });
+    unwrap(invokeDocumentTool(context, 'resolve_save_conflict', dismiss));
+    context.allowOverwrite = true;
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
     const changed = context.workspace.get();
     edit(changed.files[0].document, 'newer draft');
     context.workspace.set(changed);

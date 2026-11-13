@@ -28,17 +28,13 @@ export function resolveDocumentConflict(context: ReadOnly<DocumentActionContext>
 
   if (index < 0) return Err('This conflict belongs to a closed or replaced document.');
 
-  if (action === 'keep-editing') {
-    next.files[index].document.saveConflict = undefined;
-  } else {
-    match (resolveSaveConflict(next.files[index].document, target, action, context.allowDiscard, context.allowOverwrite)) {
-      Err(error) => {
-        next.error = clone(error);
-        publishWorkspace(next, context.workspace, context.recovery);
-        return Err(clone(error));
-      },
-      Ok(_) => {}
-    }
+  match (resolveSaveConflict(next.files[index].document, target, action, context.allowDiscard, context.allowOverwrite)) {
+    Err(error) => {
+      next.error = clone(error);
+      publishWorkspace(next, context.workspace, context.recovery);
+      return Err(clone(error));
+    },
+    Ok(_) => {}
   }
 
   next.error = '';

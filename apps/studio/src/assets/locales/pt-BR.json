@@ -5,6 +5,8 @@
   "Settings": "Configurações",
   "This server sends diagnostics without document versions. Studio cannot verify their locations.": "Este servidor envia diagnósticos sem a versão do documento. O Studio não pode verificar suas localizações.",
   "Unversioned report": "Relatório sem versão",
+  "No matching save conflict is available for this document.": "Não há conflito de salvamento correspondente a este documento.",
+  "The saved file cannot be compared as text. Use Save a Copy to keep your draft.": "Não é possível comparar o arquivo salvo como texto. Use Salvar uma cópia para preservar seu rascunho.",
   "Files": "Arquivos",
   "Search contents": "Pesquisar conteúdo",
   "Source Control": "Controle de versão",

@@ -1,6 +1,35 @@
-import { FsError, readTextFile, writeTextFileAtomic } from 'std:fs';
+import { FsError, lstat, readTextFile, writeTextFileAtomic } from 'std:fs';
 
 import { Document, SaveConflict, dirty, markSaved, edit } from './documents.tsr';
+
+import { maxEditableBytes } from './workspace.tsr';
+
+export function saveError(document: ReadOnly<Document>, error: ReadOnly<FsError>): string {
+  if (error.code !== 'conflict') return 'Save failed: ' + error.message;
+  return document.saveConflict === undefined ? 'The saved file cannot be compared as text. Use Save a Copy to keep your draft.' : 'This file changed on disk. Compare the versions before saving.';
+}
+
+function refreshConflict(document: Mutable<Document>): void {
+  document.saveConflict = undefined;
+
+  match (lstat(document.path)) {
+    Ok(info) => {
+      if (!info.isFile || info.size > maxEditableBytes()) return;
+    },
+    Err(_) => {
+      return;
+    }
+  }
+
+  match (readTextFile(document.path, maxEditableBytes())) {
+    Ok(diskText) => {
+      if (!diskText.includes('\0')) document.saveConflict = {
+        path: clone(document.path), session: clone(document.session), revision: document.revision, diskText: clone(diskText)
+      };
+    },
+    Err(_) => {}
+  }
+}
 
 function writeDocument(document: Mutable<Document>, expected: ReadOnly<string>): Result<void, FsError> {
   const text = clone(document.text);
@@ -12,16 +41,7 @@ function writeDocument(document: Mutable<Document>, expected: ReadOnly<string>):
       return Ok();
     },
     Err(error) => {
-      if (error.code === 'conflict') {
-        match (readTextFile(document.path, 16 * 1024 * 1024)) {
-          Ok(diskText) => {
-            document.saveConflict = {
-              path: clone(document.path), session: clone(document.session), revision: document.revision, diskText: clone(diskText)
-            };
-          },
-          Err(_) => {}
-        }
-      }
+      if (error.code === 'conflict') refreshConflict(document);
 
       if (error.code === 'committed-not-durable') markSaved(document, text, false);
       return Err(error);
@@ -39,6 +59,13 @@ export function saveDocument(document: Mutable<Document>): Result<void, FsError>
 export function resolveSaveConflict(document: Mutable<Document>, target: ReadOnly<SaveConflict>, action: ReadOnly<string>, allowDiscard: boolean, allowOverwrite: boolean): Result<void, string> {
   if (document.path !== target.path || document.session !== target.session || document.revision !== target.revision) return Err('The draft changed. Compare the current versions before resolving this conflict.');
 
+  if (document.saveConflict === undefined || document.saveConflict.revision !== target.revision || document.saveConflict.diskText !== target.diskText) return Err('No matching save conflict is available for this document.');
+
+  if (action === 'keep-editing') {
+    document.saveConflict = undefined;
+    return Ok();
+  }
+
   if (action === 'overwrite') {
     if (!allowOverwrite) return Err('Overwriting the file is not permitted by the host.');
 
@@ -47,6 +74,7 @@ export function resolveSaveConflict(document: Mutable<Document>, target: ReadOnl
         return Ok();
       },
       Err(error) => {
+        if (error.code === 'conflict' && document.saveConflict === undefined) return Err(saveError(document, error));
         return Err(error.code === 'conflict' ? 'The file changed again on disk. Compare the current versions before continuing.' : clone(error.message));
       }
     }
@@ -56,16 +84,14 @@ export function resolveSaveConflict(document: Mutable<Document>, target: ReadOnl
 
   if (!allowDiscard) return Err('Discarding the draft is not permitted by the host.');
 
-  match (readTextFile(document.path, 16 * 1024 * 1024)) {
-    Err(error) => {
-      return Err(clone(error.message));
-    },
-    Ok(diskText) => {
-      if (diskText !== target.diskText) return Err('The file changed again on disk. Compare the current versions before continuing.');
-      edit(document, clone(diskText));
-      markSaved(document, clone(diskText), true);
-      document.saveConflict = undefined;
-      return Ok();
-    }
-  }
+  refreshConflict(document);
+  const latest = clone(document.saveConflict);
+
+  if (latest === undefined) return Err('The saved file cannot be compared as text. Use Save a Copy to keep your draft.');
+
+  if (latest.diskText !== target.diskText) return Err('The file changed again on disk. Compare the current versions before continuing.');
+  edit(document, clone(latest.diskText));
+  markSaved(document, clone(latest.diskText), true);
+  document.saveConflict = undefined;
+  return Ok();
 }

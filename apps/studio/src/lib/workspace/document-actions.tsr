@@ -5,7 +5,7 @@ import { Signal } from 'std:ui';
 import { edit } from './documents.tsr';
 import { FormattingTarget } from './formatting-actions.tsr';
 import { Recovery, persistRecovery } from './recovery.tsr';
-import { saveDocument } from './storage.tsr';
+import { saveDocument, saveError } from './storage.tsr';
 import { Workspace } from './workspace.tsr';
 
 // All document navigation and edits persist the same workspace snapshot.
@@ -62,7 +62,7 @@ export function saveTarget(next: Mutable<Workspace>, target: ReadOnly<Formatting
       return Ok();
     },
     Err(error) => {
-      return Err(error.code === 'conflict' ? 'This file changed on disk. Compare the versions before saving.' : 'Save failed: ' + error.message);
+      return Err(saveError(next.files[index].document, error));
     }
   }
 }

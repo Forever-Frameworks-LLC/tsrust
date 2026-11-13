@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Save conflict comparison freshness
+
+Keep Editing, Reload and Overwrite now require a matching comparison still
+held by the document. Dismissal or a new edit invalidates an older request.
+Reload refreshes the comparison when disk contents change again. Comparisons
+accept regular UTF-8 text without NUL up to the editor's 4 MiB limit. A missing,
+binary or oversized replacement clears the old comparison and directs the user
+to Save a Copy. Storage, action and formatting tests passed 14/14 in 139.69 ms,
+including an overwrite request after dismissal and exact preservation of a
+local draft and replacement bytes. Locale parity passed for 501 keys. The
+native conflict dialog interaction has not been replayed.
+
 ## Protect read-only previews during project formatting
 
 Reproduced the previous CLI rewriting closed .tsr files with NUL bytes in a

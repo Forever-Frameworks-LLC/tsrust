@@ -11,7 +11,7 @@ import { platform } from 'std:os';
 import { test, strictEqual } from 'std:testing';
 
 import { createDocument, edit, dirty, markSaved } from '../src/lib/workspace/documents.tsr';
-import { saveDocument, resolveSaveConflict } from '../src/lib/workspace/storage.tsr';
+import { saveDocument, saveError, resolveSaveConflict } from '../src/lib/workspace/storage.tsr';
 
 test('saving writes exact draft bytes and advances only the disk baseline', () => {
   const root = unwrap(createTempDir(undefined, 'studio-save-'));
@@ -215,6 +215,59 @@ test('save conflict choices retain drafts and reject stale or unapproved overwri
     unwrap(resolveSaveConflict(document, reloaded, 'reload', true, false));
     strictEqual(document.text, 'new external');
     strictEqual(dirty(document), false);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('comparison refresh preserves drafts when the external file becomes binary or oversized', () => {
+  if (platform() === 'win32') return;
+  const root = unwrap(createTempDir(undefined, 'studio-conflict-preview-'));
+
+  try {
+    const path = root + '/source.tsr';
+    const document = unwrap(createDocument(clone(path), 'baseline'));
+    edit(document, 'unsaved');
+
+    for (const replacement of ['binary\0text', 'x'.repeat(4 * 1024 * 1024 + 1)]) {
+      unwrap(writeTextFile(path, 'external'));
+
+      match (saveDocument(document)) {
+        Ok(_) => {
+          throw 'expected conflict';
+        },
+        Err(_) => {}
+      }
+
+      const captured = clone(document.saveConflict);
+
+      if (captured === undefined) throw 'missing text comparison';
+      unwrap(writeTextFile(path, replacement));
+
+      match (resolveSaveConflict(document, captured, 'reload', true, false)) {
+        Ok(_) => {
+          throw 'read-only replacement was loaded into the text draft';
+        },
+        Err(message) => {
+          strictEqual(message.includes('Save a Copy'), true);
+        }
+      }
+
+      strictEqual(document.saveConflict === undefined, true);
+
+      match (saveDocument(document)) {
+        Ok(_) => {
+          throw 'read-only replacement was overwritten';
+        },
+        Err(error) => {
+          strictEqual(saveError(document, error).includes('Save a Copy'), true);
+        }
+      }
+
+      strictEqual(document.text, 'unsaved');
+      strictEqual(document.savedText, 'baseline');
+      strictEqual(unwrap(readTextFile(path, 5 * 1024 * 1024)) === replacement, true);
+    }
   } finally {
     unwrap(removeDirAll(root));
   }

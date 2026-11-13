@@ -2,7 +2,7 @@ import { extname } from 'std:path';
 
 import { FormattingOptions, EditorPolicy } from '../settings/formatting.tsr';
 import { ProposedEdit, propose, apply } from './documents.tsr';
-import { saveDocument } from './storage.tsr';
+import { saveDocument, saveError } from './storage.tsr';
 import { Workspace } from './workspace.tsr';
 
 export interface FormattingTarget {
@@ -101,7 +101,7 @@ export function applyFormatting(workspace: Mutable<Workspace>, result: ReadOnly<
     match (saveDocument(workspace.files[index].document)) {
       Ok(_) => {},
       Err(error) => {
-        return Err(error.code === 'conflict' ? 'This file changed on disk. Compare the versions before saving.' : 'Save failed: ' + error.message);
+        return Err(saveError(workspace.files[index].document, error));
       }
     }
   }

@@ -5,6 +5,8 @@
   "Settings": "Settings",
   "This server sends diagnostics without document versions. Studio cannot verify their locations.": "This server sends diagnostics without document versions. Studio cannot verify their locations.",
   "Unversioned report": "Unversioned report",
+  "No matching save conflict is available for this document.": "No matching save conflict is available for this document.",
+  "The saved file cannot be compared as text. Use Save a Copy to keep your draft.": "The saved file cannot be compared as text. Use Save a Copy to keep your draft.",
   "Files": "Files",
   "Search contents": "Search contents",
   "Source Control": "Source Control",

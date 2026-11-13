@@ -60,6 +60,7 @@ export function edit(document: Mutable<Document>, text: string): void {
   if (document.text !== text) {
     document.text = text;
     document.revision += 1;
+    document.saveConflict = undefined;
   }
 }
 
