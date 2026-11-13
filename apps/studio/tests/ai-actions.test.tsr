@@ -104,6 +104,32 @@ test('inline inference uses both sides of the caret and cancels by editor reques
   strictEqual(state.get().history.chats.length, 0);
 });
 
+test('fatal inline decode waits for host shutdown before the next model start', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  requestInline(state, host.commands, '{"id":37,"prefix":"return ","suffix":";"}');
+  const request = unwrap(commands.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: request.id, error: 'Decode Error -3: unknown', text: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopping');
+  strictEqual(state.get().inlineRequest, undefined);
+  strictEqual(state.get().notice.includes('Restart the model'), true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopped');
+  send(host, 'Retry from chat');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+});
+
 test('typing code starts the configured host and retains the latest caret through startup', () => {
   const state = signal(initialAiState());
   const commands = new Channel<ModelRequest>(4);

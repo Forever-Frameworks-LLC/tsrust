@@ -573,5 +573,6 @@
   "Open the repository root to commit staged files outside this workspace.": "Abra a raiz do repositório para confirmar arquivos preparados fora deste projeto.",
   "Choose a conflict resolution.": "Escolha uma resolução de conflito.",
   "Edit incomplete conflict markers manually.": "Edite manualmente os marcadores de conflito incompletos.",
-  "No complete conflict markers found.": "Nenhum marcador de conflito completo encontrado."
+  "No complete conflict markers found.": "Nenhum marcador de conflito completo encontrado.",
+  "The inference backend failed during generation. Restart the model or select another model.": "O mecanismo de inferência falhou durante a geração. Reinicie o modelo ou selecione outro modelo."
 }

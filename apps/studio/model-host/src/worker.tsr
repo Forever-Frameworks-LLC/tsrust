@@ -11,7 +11,7 @@ import {
   replaceWorkspace,
   excerptWorkspace
 } from '../../src/lib/ai/prompts.tsr';
-import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
+import { ModelRequest, ModelUpdate, failedModelBackend } from '../../src/lib/ai/protocol.tsr';
 import {
   QwenModel,
   qwen_load,
@@ -296,6 +296,7 @@ function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Ch
       generation.stop
     );
   } else {
+    if (failedModelBackend(finished.error)) stopping = true;
     publish(updates, finished.error === 'cancelled' ? 'cancelled' : 'error', request.id, '', finished.error);
   }
 

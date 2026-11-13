@@ -15,7 +15,7 @@ import {
   draftContext,
   setDraftContext
 } from '../../lib/ai/conversations.tsr';
-import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
+import { ModelRequest, ModelUpdate, failedModelBackend } from '../../lib/ai/protocol.tsr';
 import { EditorTool } from '../editor-tools.tsr';
 import { Problem } from '../../lib/workspace/problems.tsr';
 import { Workspace } from '../../lib/workspace/workspace.tsr';
@@ -641,6 +641,11 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
       Ok(update) => {
         changed = true;
 
+        if (update.kind === 'error' && failedModelBackend(update.error)) {
+          next.phase = 'stopping';
+          next.notice = modelNotice(update.error);
+        }
+
         const inline = next.inlineRequest;
 
         if (inline !== undefined && (update.id === 'inline:' + inline.toString() || update.kind === 'stopped')) {
@@ -824,6 +829,8 @@ function modelNotice(error: ReadOnly<string>): string {
       text = failure.message ?? failure.cause ?? clone(error);
     } catch (_) {}
   }
+
+  if (failedModelBackend(text)) return 'The inference backend failed during generation. Restart the model or select another model.';
 
   if (text.includes('admission context')) return 'This conversation is too long for the selected model. Start a new chat or remove some context.';
 

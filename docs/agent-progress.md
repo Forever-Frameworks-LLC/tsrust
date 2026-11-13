@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Failed inference backend recovery
+
+The 9B Q4 Metal log reported that the failed backend needed recreation. Studio previously returned this model to the ready loop. The worker now releases it and emits stopped after publishing the request error for the pinned llama.cpp allocation/compute decode failures (-2/-3). The Studio controller enters stopping on that error, including inline errors, and displays a localized restart or model-selection notice. A fresh chat request after stopped issues a new start. All 34 AI action tests passed including separate error and stopped deliveries; the native host subprocess startup-failure/retry test passed with the rebuilt host. The dev watcher rebuilt and launched Studio (PID 18246). No live OOM induced for this change.
+
 ## Studio model host on 8 GB
 
 Qwen2.5-Coder-7B-Instruct Q4_K_M was added to the model extension catalog. Three extension tests passed with the opt-in install, including SHA-256 verification of the 4,683,073,536-byte artifact. The normal dev watcher rebuilt Studio. A separate Studio host attempted to load these weights with the application still running. System pressure went from normal to critical before ready. The trial terminated its host at 7.41 seconds. System swap grew from 2486.62 to 3134.50 MiB. Peak sampled host RSS was 1573 MiB, while Metal logged 4594.94 MiB allocated. These are different accounting measures. No prompts ran. This is a loaded-machine observation. The owner wants Studio-alone viability assessed separately. Codex was also running, and its memory was not isolated. The harness stopped the test host before a natural load result. Treat 7B Q4 chat quality, load success and responsiveness on a quiet 8 GB machine as open. This sample does not justify a catalog restriction or a production memory threshold.

@@ -573,5 +573,6 @@
   "Open the repository root to commit staged files outside this workspace.": "Open the repository root to commit staged files outside this workspace.",
   "Choose a conflict resolution.": "Choose a conflict resolution.",
   "Edit incomplete conflict markers manually.": "Edit incomplete conflict markers manually.",
-  "No complete conflict markers found.": "No complete conflict markers found."
+  "No complete conflict markers found.": "No complete conflict markers found.",
+  "The inference backend failed during generation. Restart the model or select another model.": "The inference backend failed during generation. Restart the model or select another model."
 }

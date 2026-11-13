@@ -20,3 +20,8 @@ export type ModelUpdate = {
   error: string;
   stop?: string;
 };
+
+// The pinned llama.cpp wrapper surfaces allocation and compute failures as unknown decode codes.
+export function failedModelBackend(error: ReadOnly<string>): boolean {
+  return error === 'Decode Error -2: unknown' || error === 'Decode Error -3: unknown';
+}
