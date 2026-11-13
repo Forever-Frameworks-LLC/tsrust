@@ -4,6 +4,18 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Real Rust language service
+
+The Rustup proxy on this Mac has no rust-analyzer component. The installed VS
+Code Rust extension contains rust-analyzer 0.3.3105 (b98172d80f). The new
+rust-language-service.test.tsr selects the existing Rust preset, routes a .rs
+file through Studio's lazy registry and launches the configured executable.
+Hover resolves an unsaved function name and return type. Definition resolves
+its exact URI and identifier range. Disk contents stay at the original revision.
+The real service passed 1/1 in 4.37 s execution. Set RUST_ANALYZER to the server
+executable to reproduce with a non-PATH installation. Native Rust hover and
+navigation gestures, diagnostics and completion remain unverified.
+
 ## Save a copy of a recovered draft
 
 File → Save a Copy… and the command palette open a native destination picker
