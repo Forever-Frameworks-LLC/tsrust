@@ -37,7 +37,7 @@ function ResultRow(
 ): Node {
   const key = clone(hit.path) + ':' + hit.offset.toString();
   const rowKey = clone(key);
-  const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-2 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]' + (selected.get() === rowKey ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-2 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]' + (selected.get() === rowKey ? ' bg-accent text-accent-foreground' : ''));
   const parts = searchPreview(hit);
   const location = hit.path.slice(root.length + 1) + ':' + hit.line.toString();
   const label = clone(location) + ' ' + parts.map((part) => clone(part.text)).join('');
@@ -209,7 +209,7 @@ export function ContentSearch(
         }}
       />
       <View className="shrink-0 h-8 min-w-0">
-        <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border-0 border-b border-border">
+        <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border border-transparent">
           <Input
             id="content-search"
             value={search.get().query}
@@ -283,17 +283,12 @@ export function ContentSearch(
           selected.handle()
         ))}
       </View>
-      <View hidden={pages.get() <= 1} className="flex-row shrink-0 items-center">
-        <Text className="grow px-2">
-          {translateWith('searchResultPage', {
-            page: search.get().page, total: pages.get()
-          })}
-        </Text>
+      <View hidden={pages.get() <= 1} className="shrink-0 min-w-0 overflow-x-auto">
         <Pagination
           page={search.get().page}
           total={pages.get() > 0 ? pages.get() : 1}
-          size="small"
-          compact={true}
+          size="xsmall"
+          visiblePages={5}
           onChange={(page) => {
             const next = search.get();
 

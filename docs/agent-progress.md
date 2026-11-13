@@ -4,6 +4,12 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## History typography, search focus and numbered sidebar pagination
+
+The History search uses the same full-width 32-pixel input group as the Changes and search fields. History tabs, input and row labels use the Studio font setting. The field group's resting border is transparent and its focus edge uses the theme ring. File picker focus uses the theme ring inside the query frame. Git and search rows use the command picker's accent and foreground selection colors. Native list selection respects the row style.
+
+In the rebuilt macOS Studio the four-page history showed each page. In an isolated 451-commit repository, choosing page 5 exposed Previous, 1, ellipsis, 4, 5, 6, ellipsis, 10, Next within a 248-pixel panel. The 20-pixel History field was centered in its 32-pixel row. Native focus was observed on History search, content search and the file picker query. macOS window capture failed, so no pixel comparison of theme colors was obtained.
+
 ## Source Control symbolic links
 
 Stage and unstage now inspect the link itself. An untracked link to a directory exposed a separate Git no-index preview failure. Studio now previews untracked links with an isolated intent-to-add index. On macOS the regression checked directory and dangling targets with a non-ASCII link name, exact target blobs, mode 120000, a clean real index after preview, and unstaging. All 11 formatted Git cases passed in 1.72 seconds after a 7.45-second build. The native Stage file button in an isolated Studio workspace staged the link to a sibling directory and preserved its sentinel file.

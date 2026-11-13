@@ -957,8 +957,12 @@ impl Render for CommandState {
                     div()
                         .flex_none()
                         .px_3()
-                        .border_b_1()
-                        .border_color(cx.theme().border)
+                        .border_1()
+                        .border_color(if self.query_input.focus_handle(cx).is_focused(window) {
+                            cx.theme().ring
+                        } else {
+                            gpui::transparent_black()
+                        })
                         .child(
                             Input::new(&self.query_input)
                                 .prefix(

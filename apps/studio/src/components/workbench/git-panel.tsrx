@@ -35,14 +35,14 @@ import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr
 import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
 import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
-function CommitRow(line: ReadOnly<string>, selected: Signal<GitChange>): Node {
+function CommitRow(line: ReadOnly<string>, selected: Signal<GitChange>, font: Signal<int>): Node {
   const label = clone(line);
   const active = computed<boolean>(() => selected.get().mode === 'commit' && selected.get().path === label);
-  const style = computed<string>(() => 'px-2 border-b border-border' + (active.get() ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  const style = computed<string>(() => 'px-2 border-b border-border' + (active.get() ? ' bg-accent text-accent-foreground' : ''));
   return (
-    <ListItem confirmed={active.get()} className={style.get()} value={clone(line)} accessibilityLabel={clone(line)}>
+    <ListItem className={style.get()} value={clone(line)} accessibilityLabel={clone(line)}>
       <Tooltip text={clone(line)} className="grow min-w-0">
-        <Text className="truncate">
+        <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
           {clone(line)}
         </Text>
       </Tooltip>
@@ -55,10 +55,10 @@ function ChangeRow(row: ReadOnly<GitChange>, selected: Signal<GitChange>, font: 
   const mode = clone(row.mode);
   const selectedPath = clone(file);
   const active = computed<boolean>(() => selected.get().mode === mode && selected.get().path === selectedPath);
-  const rowStyle = computed<string>(() => 'px-2 py-[6px] rounded-none border-b border-border hover:bg-accent' + (active.get() ? ' bg-primary/20 text-foreground border-l-2 border-primary pl-[6px]' : ''));
+  const rowStyle = computed<string>(() => 'px-2 py-[6px] rounded-none border-b border-border hover:bg-accent' + (active.get() ? ' bg-accent text-accent-foreground' : ''));
   const staged = row.mode === 'staged';
   return (
-    <ListItem confirmed={active.get()} className={rowStyle.get()} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+    <ListItem className={rowStyle.get()} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
       <Tooltip text={clone(row.path)} className="grow min-w-0">
         <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
           {clone(row.path)}
@@ -216,6 +216,7 @@ export function GitPanel(
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   const sidebar: Node = <View className={panelClass.get()}>
     <Tabs
+      className={'text-[' + font.get().toString() + 'px]'}
       variant="underline"
       size="small"
       value={history.get() ? 'history' : 'changes'}
@@ -235,7 +236,7 @@ export function GitPanel(
       <Tab value="history" label={message('History')} />
     </Tabs>
     <View hidden={history.get()} className="shrink-0 h-8 min-w-0">
-      <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border-0 border-b border-border">
+      <InputGroup size="small" className="w-full h-full min-w-0 rounded-none border border-transparent">
         <Input
           className={'px-2 text-[' + font.get().toString() + 'px]'}
           value={messageText.get()}
@@ -272,18 +273,19 @@ export function GitPanel(
       </InputGroup>
     </View>
     <View hidden={!history.get()} className="grow flex-col min-h-0">
-      <Input
-        size="small"
-        className="w-full px-2 rounded-none border-0 border-b border-border"
-        placeholder={message('Search commits')}
-        aria-label={accessibleName('Search commits')}
-        value={query.get()}
-        onChange={(event) => {
-          query.set(clone(event.target.value));
-          matches.set(commits.get().filter((line: ReadOnly<string>) => line.toLowerCase().includes(query.get().trim().toLowerCase())));
-          page.set(1);
-        }}
-      />
+      <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
+        <Input
+          className={'px-2 text-[' + font.get().toString() + 'px]'}
+          placeholder={message('Search commits')}
+          aria-label={accessibleName('Search commits')}
+          value={query.get()}
+          onChange={(event) => {
+            query.set(clone(event.target.value));
+            matches.set(commits.get().filter((line: ReadOnly<string>) => line.toLowerCase().includes(query.get().trim().toLowerCase())));
+            page.set(1);
+          }}
+        />
+      </InputGroup>
       <List
         className="grow min-h-0"
         size="small"
@@ -299,12 +301,12 @@ export function GitPanel(
           });
         }}
       >
-        {...matches.get().slice((page.get() - 1) * 50, page.get() * 50).map((line: ReadOnly<string>) => CommitRow(line, selected.handle()))}
+        {...matches.get().slice((page.get() - 1) * 50, page.get() * 50).map((line: ReadOnly<string>) => CommitRow(line, selected.handle(), font.handle()))}
       </List>
-      <View hidden={pages.get() <= 1}>
+      <View hidden={pages.get() <= 1} className="shrink-0 min-w-0 overflow-x-auto">
         <Pagination
-          size="small"
-          compact={true}
+          size="xsmall"
+          visiblePages={5}
           page={page.get()}
           total={pages.get() > 0 ? pages.get() : 1}
           onChange={(value) => {

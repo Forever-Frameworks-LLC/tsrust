@@ -127,14 +127,15 @@ impl Pagination {
             state.next_page()
         };
 
+        let icon_only = self.compact || self.size == Size::XSmall;
         Button::new(id)
             .ghost()
             .compact()
             .with_size(self.size)
             .disabled(target_page.is_none())
             .tooltip(label.clone())
-            .when(self.compact, |this| this.icon(icon.clone()))
-            .when(!self.compact, |this| {
+            .when(icon_only, |this| this.icon(icon.clone()).accessibility_label(label.to_string()))
+            .when(!icon_only, |this| {
                 this.child(
                     h_flex()
                         .w_full()

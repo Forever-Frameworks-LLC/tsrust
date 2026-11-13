@@ -206,7 +206,6 @@ impl RenderOnce for ListItem {
             .relative()
             .items_center()
             .justify_between()
-            .refine_style(&self.style)
             .when_some(accessibility_label, |this, label| this.aria_label(label))
             .when(is_selectable, |this| {
                 this.when_some(self.on_click, |this, on_click| this.on_click(on_click))
@@ -266,6 +265,7 @@ impl RenderOnce for ListItem {
 
                 this.bg(bg)
             })
+            .refine_style(&self.style)
             .when(is_selectable && self.secondary_selected, |this| {
                 this.child(
                     div()
