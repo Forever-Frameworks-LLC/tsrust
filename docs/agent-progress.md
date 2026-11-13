@@ -4,6 +4,10 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Source Control file picker rows
+
+Source Control now uses the file picker’s single-line relative path, leading file icon and row padding. In rebuilt Studio PID 9776, the first changed row measured 232 × 32 logical pixels and opened the diff for src/components/ai/chat-panel.tsrx. The previous content-search row measured 232 × 53.
+
 ## Local fill-in-the-middle model host
 
 Studio's model service accepts a complete-code request with the source before

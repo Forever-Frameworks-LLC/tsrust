@@ -1,10 +1,11 @@
 import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
-import { join, extname, basename, dirname } from 'std:path';
+import { join, extname } from 'std:path';
 import {
   Button,
   CodeEditor,
   DiffGutterMarker,
+  Icon,
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
@@ -36,14 +37,12 @@ function ChangeRow(row: ReadOnly<GitChange>, font: Signal<int>, pending: Signal<
   const file = clone(row.path);
   const staged = row.mode === 'staged';
   return (
-    <ListItem className={'px-3 py-2 rounded-none border-b border-border hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px]'} value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
+    <ListItem className="px-2 py-[6px] rounded-sm hover:bg-accent" value={row.mode + '/' + row.path} accessibilityLabel={clone(row.path)}>
       <Tooltip text={clone(row.path)} className="grow min-w-0">
-        <View className="w-full min-w-0 flex-col gap-1 items-stretch justify-center">
-          <Text className={'w-full truncate text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-            {dirname(row.path)}
-          </Text>
-          <Text className={'w-full truncate font-mono text-[' + font.get().toString() + 'px]'}>
-            {basename(row.path)}
+        <View className="flex-row items-center gap-2 w-full min-w-0">
+          <Icon name="file" className="size-4 shrink-0 text-muted-foreground" />
+          <Text className={'grow min-w-0 truncate text-[' + font.get().toString() + 'px]'}>
+            {clone(row.path)}
           </Text>
         </View>
       </Tooltip>
