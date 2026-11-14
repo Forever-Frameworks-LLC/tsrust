@@ -74,6 +74,31 @@ test('explorer create, rename and move retain open drafts; delete requires clean
 });
 
 
+test('renaming a clean open file switches image and text viewers while a draft stays editable', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-rename-viewer-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const text = ws.root + '/icon.txt';
+    const image = ws.root + '/icon.svg';
+    unwrap(writeTextFile(text, '<svg/>'));
+    unwrap(openFile(ws, text));
+    unwrap(changeExplorerEntry(ws, 'Rename', text, 'icon.svg'));
+    strictEqual(ws.files[0].kind, 'image');
+    strictEqual(ws.active, image);
+    unwrap(changeExplorerEntry(ws, 'Rename', image, 'icon.txt'));
+    strictEqual(ws.files[0].kind, 'text');
+    strictEqual(ws.files[0].document.text, '<svg/>');
+    edit(ws.files[0].document, '<svg>draft</svg>');
+    unwrap(changeExplorerEntry(ws, 'Rename', text, 'icon.svg'));
+    strictEqual(ws.files[0].kind, 'text');
+    strictEqual(ws.files[0].document.text, '<svg>draft</svg>');
+    strictEqual(unwrap(readTextFile(image)), '<svg/>');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
 if (platform() !== 'win32') test('explorer moves directory links and deletes their containing folder without changing the linked files', async () => {
   const temp = unwrap(createTempDir(undefined, 'studio-explorer-links-'));
 

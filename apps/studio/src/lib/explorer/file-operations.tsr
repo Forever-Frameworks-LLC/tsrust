@@ -11,7 +11,7 @@ import {
 import { basename, dirname, join, separator } from 'std:path';
 
 import { dirty } from '../workspace/documents.tsr';
-import { Workspace } from '../workspace/workspace.tsr';
+import { OpenFile, Workspace, imagePath, readWorkspaceFile } from '../workspace/workspace.tsr';
 
 function within(path: ReadOnly<string>, parent: ReadOnly<string>): boolean {
   return path === parent || path.startsWith(parent.endsWith(separator()) ? parent : parent + separator());
@@ -87,7 +87,23 @@ export function changeExplorerEntry(workspace: Mutable<Workspace>, action: ReadO
       if (within(target, source)) return Err('A folder cannot be moved inside itself.');
 
       if (hasOpenDestination(workspace, target, true)) return Err('An open editor uses this destination. Close the affected editor before continuing.');
+      const index = workspace.files.findIndex((file) => file.document.path === source);
+      let replacement: OpenFile | undefined = undefined;
+
+      if (index >= 0 && !dirty(workspace.files[index].document) && workspace.files[index].document.saveConflict === undefined && (workspace.files[index].kind === 'image') !== imagePath(target)) {
+        match (readWorkspaceFile(source, imagePath(target))) {
+          Ok(file) => {
+            replacement = file;
+          },
+          Err(reason) => {
+            return Err(reason);
+          }
+        }
+      }
+
       unwrap(renameNew(source, target));
+
+      if (replacement !== undefined) workspace.files[index] = replacement;
 
       for (let index = 0; index < workspace.files.length; index += 1) {
         const old = clone(workspace.files[index].document.path);

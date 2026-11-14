@@ -119,12 +119,35 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
       return Ok();
     }
 
+    match (readWorkspaceFile(resolved, imagePath(resolved))) {
+      Ok(file) => {
+        workspace.files.push(file);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    workspace.active = clone(resolved);
+    workspace.error = '';
+    return Ok();
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function imagePath(path: ReadOnly<string>): boolean {
+  const extension = extname(path).toLowerCase();
+  return ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
+}
+
+// Read the current bytes using the viewer selected by the destination name.
+export function readWorkspaceFile(resolved: ReadOnly<string>, image: boolean): Result<OpenFile, string> {
+  try {
     const info = unwrap(stat(resolved));
 
     if (!info.isFile) return Err('Choose a regular file.');
     // shortcut: initial text reads are bounded to 4 MiB; add a streaming document path for large-file editing.
-    const extension = extname(resolved).toLowerCase();
-    const image = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
     let text = '';
     let kind = image ? 'image' : 'text';
     let binaryPreview: string | undefined = undefined;
@@ -170,15 +193,12 @@ export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>):
         return Err(clone(message));
       },
       Ok(document) => {
-        workspace.files.push({
+        return Ok({
           document, name: basename(resolved), kind, binaryPreview, byteSize, previewBytes
         });
       }
     }
 
-    workspace.active = clone(resolved);
-    workspace.error = '';
-    return Ok();
   } catch (error) {
     return Err(clone(error.message));
   }
