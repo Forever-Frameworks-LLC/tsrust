@@ -534,6 +534,16 @@ if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage', '
       }
 
       if (!result.status.success) throw unwrap(toUtf8(result.stderr)) + unwrap(toUtf8(result.stdout));
+      // Changing the policy after approval distinguishes delegation from copied pricing logic.
+      const revisedPolicy = file.replace('17 + units * 3', '31 + units * 5').replace('5 + units * 2', '11 + units * 4');
+      unwrap(writeTextFile(folder + '/policy.tsr', revisedPolicy));
+      const policyCases = cases.replace('quote(4, true), 29', combined ? 'quote(7, true), 76' : 'quote(7, true), 66').replace('quote(4, false), 13', combined ? 'quote(1, false), 23' : 'quote(1, false), 15');
+      unwrap(writeTextFile(folder + '/quote.test.tsr', policyCases));
+      const delegated = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+        cwd: clone(folder)
+      }));
+
+      if (!delegated.status.success) throw unwrap(toUtf8(delegated.stderr)) + unwrap(toUtf8(delegated.stdout));
     } finally {
       worker.cancel();
 
