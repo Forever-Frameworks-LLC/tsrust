@@ -574,7 +574,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         request.kind = 'shutdown';
         next.phase = 'stopping';
       } else {
-        if (next.pending !== undefined && next.phase !== 'starting' && args.request === next.active && next.active !== '') {
+        if (next.pending !== undefined && (next.phase !== 'starting' || (context.settings.get().inlineCompletions && next.warmModel === context.settings.get().aiModelPath)) && args.request === next.active && next.active !== '') {
           restorePending(next, 'cancelled');
           next.editTarget = undefined;
           unwrap(publish(context, next));

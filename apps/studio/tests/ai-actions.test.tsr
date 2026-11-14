@@ -309,6 +309,28 @@ test('cancelling a chat waiting on inline inference restores its draft', () => {
   strictEqual(state.get().active, '');
 });
 
+test('cancelling chat during inline warmup restores the draft and keeps the same host', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(1);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  send(host, 'Keep this question');
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: state.get().active
+  })));
+  strictEqual(state.get().history.chats[0].draft, 'Keep this question');
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  requestInline(state, host.commands, '{"id":71,"prefix":"return ","suffix":";"}');
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:71');
+});
+
 test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
   const ready = initialAiState();
   ready.phase = 'ready';
