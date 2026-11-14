@@ -1411,7 +1411,8 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
     const model = unwrap(openWorkspace(folder));
     unwrap(openFile(model, path));
 
-    unwrap(writeTextFile(folder + '/example.tsr', 'const replacement = 2;'));
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/lib/example.tsr', 'const replacement = 2;'));
 
     for (const action of ['local_model_cancel', 'local_model_stop']) {
       const requests = new Channel<ModelRequest>(1);
@@ -1431,6 +1432,7 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
       strictEqual(state.get().editTarget !== undefined, true);
       const generation = unwrap(requests.tryReceive());
       strictEqual(generation.messages?.[0].content.includes('const replacement = 2;') ?? false, true);
+      strictEqual(generation.messages?.[0].content.includes('Editable file: main.tsr') ?? false, true);
       unwrap(invokeModelTool(host, action, args));
       strictEqual(state.get().editTarget === undefined, true);
       const reply = '{"before":"1","after":"2"}';
@@ -1835,7 +1837,7 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
     unwrap(mkdirAll(root + '/lib'));
     unwrap(writeTextFile(root + '/quote.tsr', 'export function handlingFee() { return 999; }'));
     unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return fee(); }\nfunction fee() { return réglage; }\nconst réglage = baseFee + 1;\nconst baseFee = 72;\nconst unrelatedValue = 25;\nfunction unrelated() { return 400; }'));
-    unwrap(writeTextFile(root + '/example.tsr', 'import { handlingFee as cost, unrelated as skip } from "./lib/quote";\nexport function total() { return cost(); }'));
+    unwrap(writeTextFile(root + '/lib/example.tsr', 'import { handlingFee as cost, unrelated as skip } from "./quote";\nexport function total() { return cost(); }'));
     const workspace = unwrap(openWorkspace(root));
     const tree = unwrap(scanTree(clone(workspace.root), false));
     const index = new Map<string, FileDeclarations>();
@@ -1849,6 +1851,8 @@ test('qualified chat paths exclude homonymous active and indexed definitions', (
       false,
       index
     );
+    strictEqual(edit.namedEditReference, true);
+    strictEqual(edit.excerpt.includes('Referenced workspace file: lib/example.tsr'), true);
     strictEqual(edit.excerpt.includes('export function total()'), true);
     strictEqual(edit.excerpt.includes('Local name: cost refers to handlingFee.'), true);
     strictEqual(edit.excerpt.includes('const baseFee = 72'), true);

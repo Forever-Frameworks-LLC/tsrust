@@ -524,7 +524,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
             files: [propose(file.document, '')]
           };
 
-          if (attachments.length === 0 && file.document.text !== '' && excerpt.split('Referenced workspace file: ').slice(1).some((section) => task.includes(section.split('\n')[0]))) {
+          if (attachments.length === 0 && file.document.text !== '' && grounding.namedEditReference === true) {
             editPrompt = 'Reference code (read only):\n' + excerpt.trim() + '\nTask: ' + task + '\nEditable file: ' + file.name + '\n' + file.document.text.trimEnd() + '\nReturn JSON. Both fields are strings: {"before":"exact statement from editable file","after":"replacement statement"}. Use the smallest unique passage. For multiple replacements return an array of these objects.';
           } else {
             const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';

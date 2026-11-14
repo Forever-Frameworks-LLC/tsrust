@@ -252,6 +252,7 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
 }
 
 export interface EditorContextResult {
+  namedEditReference?: boolean;
   saveStatus?: string;
   functionLookup?: string;
   excerpt: string;
@@ -645,6 +646,7 @@ export function editorContext(
   hasPreviousAnswer: boolean = false,
   editedPaths: ReadOnly<string[]> = []
 ): EditorContextResult {
+  let namedEditReference = false;
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
   const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
@@ -702,7 +704,9 @@ export function editorContext(
       }
     }
 
-    if (qualified.size === 0 && mentionedNames.size === 0) {
+    const currentNames = qualified.size > 0 || mentionedNames.size > 0;
+
+    if (!currentNames) {
       qualified = previousPaths;
       qualifiedNames = previousNames;
     }
@@ -860,6 +864,8 @@ export function editorContext(
                 if (!whole && snippets.length > 0) includeWorkspaceDependencies(excerpt, file.path, workspace.root, snippets, pending);
 
                 const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
+
+                if (editing && currentNames && explicitFile) namedEditReference = true;
                 result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
               }
             },
@@ -930,6 +936,6 @@ export function editorContext(
   }
 
   return {
-    excerpt: result, candidates: ambiguous, unavailable, functionLookup, saveStatus
+    excerpt: result, candidates: ambiguous, unavailable, functionLookup, saveStatus, namedEditReference
   };
 }
