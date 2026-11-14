@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+The native Text renderer exposed no accessibility label for extension descriptions marked as notes. The selected detail now presents its description as status text. In separate native English and Brazilian Portuguese profiles, keyboard selection of all four catalog rows exposed the complete matching description after each selection. Each check also verified that the other three descriptions were absent from the window's accessibility tree. No model download or inference was involved.
+
 Verified Cmd+S window routing in the rebuilt macOS Studio with two dirty workspace files. In Edit settings JSON, submitted a malformed draft consisting of an opening brace. The settings file stayed byte-for-byte unchanged and the editor retained the invalid text. Corrected the JSON and changed fontSize, then Cmd+S persisted the new size while both workspace files still matched their original bytes. After closing Settings, Cmd+S in the workbench wrote both expected drafts. This replay used a disposable profile and did not identify the owner's earlier visible error.
 
 Cmd+P file results use the explorer glyph catalog and current File icons preference. The original path remains the command value and accessible label. Two isolated macOS runs searched for go.mod, pressed Enter and verified its module declaration in the editor, once with file icons enabled and once disabled. The fixture-window pixel check could not run because ScreenCaptureKit returned -3801 (screen capture permission declined). Rendered Go pixels remain unverified.
