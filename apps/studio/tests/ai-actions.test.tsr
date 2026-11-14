@@ -1,5 +1,5 @@
 import { attachPickedContext } from '../src/components/ai/context-picker.tsrx';
-import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
+import { editorContext, FileDeclarations, referenceContext, referenceLiteral } from '../src/services/ai/context.tsr';
 import {
   recallTerms,
   turnMentions,
@@ -1447,6 +1447,18 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
     }
   } finally {
     unwrap(removeDirAll(folder));
+  }
+});
+
+test('single reference literals preserve quoted source and exclude expressions', () => {
+  const prefix = 'Referenced workspace file: lib/é.tsr\nexport const résumé: string = ';
+
+  for (const value of ['"clé=a;b"', "'it\\'s ready'", '""', '"a\\"b"']) {
+    strictEqual(referenceLiteral(prefix + value + ';'), value);
+  }
+
+  for (const expression of ['"a" + "b"', '`value`', '"a"; const other = "b"']) {
+    strictEqual(referenceLiteral(prefix + expression + ';'), '');
   }
 });
 

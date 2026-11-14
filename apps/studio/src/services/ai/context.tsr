@@ -251,6 +251,15 @@ export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnl
   return rows.length === 0 ? '' : '\n\nLast Find References results for ' + query.symbol + ':\n' + rows.join('\n');
 }
 
+export function referenceLiteral(excerpt: ReadOnly<string>): string {
+  const source = excerpt.trim();
+  const declaration = "^Referenced workspace file: [^\\n]+\\n(?:export\\s+)?const\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*:\\s*(?:int|number|boolean|string))?\\s*=\\s*";
+  const literal = "(-?[0-9]+(?:\\.[0-9]+)?|true|false|\"(?:\\\\.|[^\"\\\\\\r\\n])*\"|'(?:\\\\.|[^'\\\\\\r\\n])*')\\s*;?$";
+  const match = unwrap(compile(declaration + literal)).captures(source);
+  const value = match?.groups[0];
+  return value === undefined ? '' : unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(source)), value.start, value.end))));
+}
+
 export interface EditorContextResult {
   namedEditReference?: boolean;
   saveStatus?: string;
