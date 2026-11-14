@@ -2046,11 +2046,15 @@ test('a leading workspace path in a chat edit targets the named closed file and 
     const requests = new Channel<ModelRequest>(2);
     const host = context(state, signal(modelConfig()), requests);
     host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/active.tsr'
+    })));
     strictEqual(denied(invokeModelTool(host, 'local_model_send', JSON.stringify({
       chat: '', prompt: 'Update ./src/missing.tsr: replace same text with revised.'
     }))), true);
     send(host, 'Please update "./src/other.tsr": replace same text with revised.');
     const request = unwrap(requests.tryReceive());
+    strictEqual(request.messages?.[0].content.includes('User-selected files (reference only):') ?? false, true);
     const target = state.get().editTarget;
 
     if (target === undefined) throw 'Missing edit target';

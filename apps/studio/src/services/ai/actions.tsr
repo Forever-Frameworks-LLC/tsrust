@@ -349,7 +349,9 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const explicitEdit = prompt.toLowerCase().startsWith('edit: ');
       const editing = explicitBatch || explicitEdit || requestsEdit(prompt);
 
-      if (editing && !explicitEdit && !explicitBatch && !attachments.some((item) => item.kind === 'file')) {
+      let namedTarget = '';
+
+      if (editing && !explicitEdit && !explicitBatch) {
         const instruction = editInstruction(prompt);
         const delimiter = instruction.indexOf(':');
 
@@ -365,7 +367,11 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
             match (readContext(workspace.get(), path, 'file', [])) {
               Ok(file) => {
-                attachments.push(file);
+                namedTarget = clone(file.path);
+                const existing = attachments.findIndex((item) => item.kind === 'file' && item.path === namedTarget);
+
+                if (existing < 0) attachments.push(file);
+                else attachments[existing] = file;
               },
               Err(reason) => {
                 return Err(reason);
@@ -480,7 +486,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           const sources: string[] = [];
 
           for (const attachment of attachments) {
-            if (attachment.kind !== 'file') continue;
+            if (attachment.kind !== 'file' || (namedTarget !== '' && attachment.path !== namedTarget)) continue;
             const path = clone(attachment.path);
 
             if (targets.some((target) => target.path === path)) continue;
@@ -504,7 +510,9 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           };
           const skills = attachments.filter((item) => item.kind === 'skill');
           const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
-          editPrompt = sources.join('\n\n') + skillContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
+          const references = attachments.filter((item) => namedTarget !== '' && item.kind === 'file' && item.path !== namedTarget);
+          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + JSON.stringify(references);
+          editPrompt = sources.join('\n\n') + skillContext + fileContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
         } else {
           const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
 
