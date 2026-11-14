@@ -240,6 +240,22 @@ export function DebugSidebar(
             requests,
             stopped,
             output,
+            'stepIn',
+            'Step into',
+            font
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stepOut',
+            'Step out',
+            font
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
             'next',
             'Step instruction',
             font

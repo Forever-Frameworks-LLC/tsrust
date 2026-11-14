@@ -205,6 +205,8 @@ function App(
   const debuggerRunning = signal(false);
   const debugTarget = signal('');
   const debuggerPaused = signal(false);
+  const stepIntoControl = debugRequests.sender();
+  const stepOutControl = debugRequests.sender();
   const debugControls = debugRequests.sender();
   const continueControl = debugRequests.sender();
   const stopControl = debugRequests.sender();
@@ -523,6 +525,20 @@ function App(
         keys="f10"
         onTrigger={() => {
           sendDebugControl(debugControls, debuggerPaused, debugOutput, 'stepOver');
+        }}
+      />
+      <Shortcut
+        command="debug-stepIn"
+        keys="f11"
+        onTrigger={() => {
+          sendDebugControl(stepIntoControl, debuggerPaused, debugOutput, 'stepIn');
+        }}
+      />
+      <Shortcut
+        command="debug-stepOut"
+        keys="shift-f11"
+        onTrigger={() => {
+          sendDebugControl(stepOutControl, debuggerPaused, debugOutput, 'stepOut');
         }}
       />
       <Shortcut

@@ -118,6 +118,8 @@
   "Function breakpoint": "Function breakpoint",
   "Pause debugging": "Pause debugging",
   "Stop debugging": "Stop debugging",
+  "Step into": "Step into",
+  "Step out": "Step out",
   "Step over": "Step over",
   "Step instruction": "Step instruction",
   "Launch executable…": "Launch executable…",

@@ -119,6 +119,7 @@ async function launchDebugTarget(
     let currentLine = '';
     let currentAddress = '';
     let steppingLine = '';
+    let stepCommand = 'next';
     let stepAddresses = new Set<string>();
     const requested = clone(command.sourceBreakpoints) ?? [];
     const owners: int[] = [];
@@ -161,15 +162,17 @@ async function launchDebugTarget(
                 terminateDebuggee: true
               }
             }));
-          } else if (control.action === 'next' || control.action === 'stepOver') {
-            if (control.action === 'stepOver') {
+          } else if (['next', 'stepOver', 'stepIn', 'stepOut'].includes(control.action)) {
+            stepCommand = control.action === 'stepIn' || control.action === 'stepOut' ? clone(control.action) : 'next';
+
+            if (control.action === 'stepOver' || control.action === 'stepIn') {
               steppingLine = clone(currentLine);
               stepAddresses = new Set<string>();
               stepAddresses.add(clone(currentAddress));
             }
 
             await writeFrame(writer, JSON.stringify({
-              seq, type: 'request', command: 'next', arguments: {
+              seq, type: 'request', command: clone(stepCommand), arguments: {
                 threadId: thread, granularity: control.action === 'next' ? 'instruction' : 'line'
               }
             }));
@@ -379,7 +382,7 @@ async function launchDebugTarget(
               if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
                 stepAddresses.add(clone(currentAddress));
                 await writeFrame(writer, JSON.stringify({
-                  seq, type: 'request', command: 'next', arguments: {
+                  seq, type: 'request', command: clone(stepCommand), arguments: {
                     threadId: thread, granularity: 'line'
                   }
                 }));

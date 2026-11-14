@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Step into (F11) and Step out (Shift+F11) use LLDB line stepping and the existing source map. In a rebuilt isolated macOS Studio window, F11 at the call to twice(6) reached the helper return, Shift+F11 restored the caller frame, and F5 completed with exit code zero. The worker regression checked the mapped original paths and lines for all three stops. Debugger suite passed 8/8 (8.25 s execution); localization also passed. This verifies an ordinary Tsrust helper call on macOS arm64.
+
 Run and Debug can pause a running target before it reaches a breakpoint. Studio requests the adapter thread list, pauses the first reported thread, then inspects the thread reported by the stopped event. An isolated macOS Studio replay launched the delayed fixture without breakpoints, clicked Pause debugging, observed a stack frame in the console, clicked Continue and stopped the running program with Shift+F5. Real LLDB and localization suites passed 9/9 (7.49 s execution). Thread selection and native Windows/Linux acceptance remain open.
 
 Stop debugging and Shift+F5 now terminate a running target as well as a paused one. The worker reads complete DAP frames independently and handles controls while the program runs. The real Xcode LLDB suite passed 8/8 (6.82 s execution), including stopping a target after its ready message during a 30-second delay and launching another session. In an isolated rebuilt Studio window, F5 launched the delayed fixture without breakpoints, its ready message appeared in the Debug Console, and Shift+F5 produced “Debug session stopped.” Verified on macOS arm64.

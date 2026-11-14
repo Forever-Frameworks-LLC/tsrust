@@ -10,4 +10,11 @@ function main(): void {
 
   console.log('Studio debugger fixture');
   console.log('');
+  const answer = twice(6);
+
+  if (answer !== 12) throw 'Unexpected result';
+}
+
+function twice(n: int): int {
+  return n * 2;
 }
