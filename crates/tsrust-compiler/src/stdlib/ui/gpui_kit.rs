@@ -2361,6 +2361,11 @@ impl Root {
             self.states.insert(id, state);
         }
         let root = cx.entity().downgrade();
+        // Kit stacks dialogs. A changed declarative id replaces the previous modal.
+        if self.dialog.is_some() && self.dialog != dialog {
+            window.close_dialog(cx);
+            self.dialog = None;
+        }
         match (dialog, self.dialog) {
             (Some(id), current) if current != Some(id) && find(&self.node, id).and_then(|node| node.kit.as_deref()).is_some_and(|kit| kit.name == "AlertDialog") => {
                 self.dialog = Some(id);
@@ -2464,7 +2469,6 @@ impl Root {
                     })
                 });
             }
-            (None, Some(_)) => {self.dialog = None; window.close_dialog(cx);}
             _ => {}
         }
         match (sheet, self.sheet) {
