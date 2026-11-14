@@ -6472,7 +6472,7 @@
         {
           "name": "sortable",
           "type": "boolean",
-          "doc": "A header click cycles ascending, descending and original order. Numbers sort numerically."
+          "doc": "A header click cycles ascending, descending and original order. Local sorting puts numbers before text ascending, with stable ties. Signed 128-bit integer strings compare exactly; other numeric strings use 64-bit floats, including their total order for signed zero, infinities and NaN. Text compares lexically. Descending reverses that order without reversing ties."
         },
         {
           "name": "defaultSort",

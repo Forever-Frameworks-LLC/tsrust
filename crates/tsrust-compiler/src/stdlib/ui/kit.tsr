@@ -9791,7 +9791,7 @@ export interface DataTableColumnProps {
   minWidth?: ReactiveValue<number>;
   /** Widest width a resize allows. */
   maxWidth?: ReactiveValue<number>;
-  /** A header click cycles ascending, descending and original order. Numbers sort numerically. */
+  /** A header click cycles ascending, descending and original order. Local sorting puts numbers before text ascending, with stable ties. Signed 128-bit integer strings compare exactly; other numeric strings use 64-bit floats, including their total order for signed zero, infinities and NaN. Text compares lexically. Descending reverses that order without reversing ties. */
   sortable?: ReactiveValue<boolean>;
   /** Initial sort direction when sort is omitted. Later row refreshes preserve user sorting. Use sort for controlled updates; defaults to none. */
   defaultSort?: ReactiveValue<'ascending' | 'descending' | 'none'>;

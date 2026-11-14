@@ -4,6 +4,30 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Mixed numeric sorting accepted; zoom repair next — 2026-11-14
+
+Shared widget repairs are checkpoint 88d2b576f. The next audit reproduced a real
+comparator defect: pairwise integer/float/text fallback produced inconsistent order
+and rounded mixed large integers. A retained witness failed before the repair.
+Local table sorting now parses each key once, preserves exact i128 comparisons,
+compares integers against floats without first rounding the integer, and consistently
+orders numbers before lexical text ascending. Stable ties, signed zero, infinities,
+NaN and descending order are documented. Focused table-related UI tests pass 16/16
+(0.01 s execution, 3.48 s setup), including original row identities, numeric range
+boundaries and exhaustive antisymmetry/transitivity over the boundary corpus.
+These changes do not affect Worklist's remote sorting. Compiler consumer rebuild
+for this pure runtime repair remains pending; native widget boundary acceptance from
+88d2b576f stays preserved, not relabeled as acceptance of this new comparator.
+
+Maximum Worklist zoom (14 to 24 via existing shortcuts) exposed incomplete shared
+sizing: native Buttons grow to 40px but escape the fixed 34px TitleBar; input editor
+bounds stay 20px, Select bounds 24px and DataTable rows 30px. Select, Pagination,
+DataTable and TitleBar currently get class wrappers rather than native refinements;
+the input frame has fixed-rem line height. Investigate shared typography forwarding
+and geometry, keep the full zoom range and all controls. Restored baseline zoom14
+after observation. No pixels are available; do not infer font appearance from bounds
+alone. No source changes for zoom yet. The Zed palette-focus question remains pending.
+
 ## Shared framework audit accepted section — 2026-11-14
 
 Checkpoint d518e47fd preserves the Worklist/table section. The following shared

@@ -5,20 +5,40 @@
 use super::{Child, Node, TextBinding};
 use std::collections::BTreeMap;
 
+enum TableSortKey<'a> { Integer(i128), Float(f64), Text(&'a str) }
+impl<'a> TableSortKey<'a> {
+    fn new(value:&'a str)->Self {
+        if let Ok(value)=value.trim().parse::<i128>() {Self::Integer(value)}
+        else if let Ok(value)=value.trim().parse::<f64>() {Self::Float(value)}
+        else {Self::Text(value)}
+    }
+    fn compare(&self,other:&Self)->std::cmp::Ordering {
+        use std::cmp::Ordering;
+        match (self,other) {
+            (Self::Integer(left),Self::Integer(right))=>left.cmp(right),
+            (Self::Float(left),Self::Float(right))=>left.total_cmp(right),
+            (Self::Integer(left),Self::Float(right))=>{
+                // Converting the integer first would lose bits above 2^53.
+                if !right.is_finite() {return (*left as f64).total_cmp(right);}
+                if *right< i128::MIN as f64 {return Ordering::Greater;}
+                if *right>= -(i128::MIN as f64) {return Ordering::Less;}
+                left.cmp(&(*right as i128)).then_with(||(*left as f64).total_cmp(right))
+            }
+            (Self::Float(_),Self::Integer(_))=>other.compare(self).reverse(),
+            (Self::Text(left),Self::Text(right))=>left.cmp(right),
+            (Self::Text(_),_)=>Ordering::Greater,
+            (_,Self::Text(_))=>Ordering::Less,
+        }
+    }
+}
+
 /// Stable display indices; the underlying rows and rich-cell identities never move.
 pub(crate) fn table_row_order<T: AsRef<str>>(rows:&[Vec<T>], sort:Option<(usize,bool)>)->Vec<usize> {
     let mut order=(0..rows.len()).collect::<Vec<_>>();
     if let Some((column,descending))=sort {
+        let keys=rows.iter().map(|row|TableSortKey::new(row.get(column).map_or("",|value|value.as_ref()))).collect::<Vec<_>>();
         order.sort_by(|left,right| {
-            let left=rows[*left].get(column).map_or("",|value|value.as_ref());
-            let right=rows[*right].get(column).map_or("",|value|value.as_ref());
-            let compared=match (left.trim().parse::<i128>(),right.trim().parse::<i128>()) {
-                (Ok(left),Ok(right))=>left.cmp(&right),
-                _=>match (left.trim().parse::<f64>(),right.trim().parse::<f64>()) {
-                    (Ok(left),Ok(right))=>left.total_cmp(&right),
-                    _=>left.cmp(right),
-                },
-            };
+            let compared=keys[*left].compare(&keys[*right]);
             if descending {compared.reverse()}else{compared}
         });
     }
@@ -372,6 +392,31 @@ mod tests {
         assert_eq!(super::table_row_order(&words,Some((0,false))),vec![1,0,2]);
         assert_eq!(super::table_row_order(&words,Some((0,true))),vec![0,2,1]);
         assert_eq!(super::table_row_order(&words,Some((1,false))),vec![0,1,2]);
+    }
+
+    #[test]
+    fn table_sorting_mixed_numbers_and_text_has_consistent_stable_order() {
+        let rows=vec![vec!["9007199254740993"],vec!["9007199254740992.0"],vec!["9007199254740992"],vec!["2"],vec!["10"],vec!["1x"]];
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),vec![3,4,1,2,0,5]);
+        assert_eq!(super::table_row_order(&rows,Some((0,true))),vec![5,0,1,2,4,3]);
+    }
+
+    #[test]
+    fn table_numeric_sort_covers_boundaries_signed_zero_and_total_order() {
+        let values=["-NaN","-inf","-1e40","-170141183460469231731687303715884105728","-1.5","-1","-0.0","0","00","0.0","0.5","2","9007199254740992.0","9007199254740992","9007199254740993","170141183460469231731687303715884105727","170141183460469231731687303715884105728.0","1e40","inf","NaN","","1x","a"];
+        let rows=values.iter().map(|value|vec![*value]).collect::<Vec<_>>();
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),(0..values.len()).collect::<Vec<_>>());
+        let keys=values.iter().map(|value|super::TableSortKey::new(value)).collect::<Vec<_>>();
+        for (i,left) in keys.iter().enumerate() {
+            for (j,middle) in keys.iter().enumerate() {
+                assert_eq!(left.compare(middle),middle.compare(left).reverse(),"{i}, {j}");
+                for (k,right) in keys.iter().enumerate() {
+                    if left.compare(middle).is_le() && middle.compare(right).is_le() {
+                        assert!(left.compare(right).is_le(),"{i}, {j}, {k}");
+                    }
+                }
+            }
+        }
     }
 
     #[test]
