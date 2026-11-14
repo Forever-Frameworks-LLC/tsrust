@@ -22,6 +22,10 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Watch results and locals use borderless selectable fields with the configured monospace size and the sidebar row inset. Isolated macOS sessions at font settings 12 and 20 hit twice(6), switched frames with live watch updates, stepped out and exited zero. Six toolbar controls remained adjacent. The native accessibility text-field bounds for both watch and local values measured 216 by 20 points at both sizes. The local field moved down 42 points at the larger setting. These measurements establish layout, not exact glyph size.
+
+Workspace recovery now saves source breakpoints. A three-launch native macOS replay set line 2 with F9, found and removed its row after reopening, then verified it stayed absent on the third launch. Recovery and debugger suites passed 11/11 (9.61 s execution), including an older journal and a deleted source file. Breakpoints store a path and line number.
+
 Breakpoint rows now open the source line through the same workspace navigation used by stopped frames. A separate labeled × removes an individual breakpoint before launch. In an isolated native Studio on macOS, set lines 2 and 4, removed line 4, then clicked line 2. Its breakpoint remained and a saved marker confirmed the editor caret at the beginning of line 2. The focused language navigation suite passed 4/4 (15.26 ms execution).
 
 Watch expressions can now be added, replaced or cleared with Enter while paused. The worker checks the current stop identity and evaluates in the selected adapter frame. Watch-only replies omit the navigation location. In an isolated macOS Studio window, launched without a watch, stopped in an imported twice(6), submitted $pc and observed a hexadecimal value, then submitted n and observed 6. Switching to the caller and back refreshed the watch and the program resumed to exit zero. The debugger and localization suites passed 9/9 (8.68 s execution), including clearing an expression and updating in the selected caller.

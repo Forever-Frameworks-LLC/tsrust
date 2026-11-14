@@ -9,19 +9,7 @@ import { readFrame, writeFrame } from '../lsp/transport.tsr';
 import { decodeAdapterReply } from './protocol.tsr';
 import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
 
-export interface SourceBreakpoint {
-  path: string;
-  line: int;
-}
-
-export function toggleSourceBreakpoint(points: Mutable<SourceBreakpoint[]>, path: string, line: int): void {
-  const index = points.findIndex((point) => point.path === path && point.line === line);
-
-  if (index < 0) points.push({
-    path, line
-  });
-  else points.splice(index, 1);
-}
+import { SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
 
 export interface DebugCommand {
   action: string;

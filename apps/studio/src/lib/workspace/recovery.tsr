@@ -12,7 +12,7 @@ import {
 import { basename, dirname, join, separator } from 'std:path';
 
 import { createDocument, dirty, edit } from './documents.tsr';
-import { Workspace, openFile, selectFile } from './workspace.tsr';
+import { Workspace, SourceBreakpoint, openFile, selectFile } from './workspace.tsr';
 
 interface Draft {
   path: string;
@@ -29,6 +29,7 @@ interface Journal {
   active?: string;
   dockLayout?: string;
   zoomLevel?: int;
+  sourceBreakpoints?: SourceBreakpoint[];
 }
 
 export interface Recovery {
@@ -146,6 +147,20 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     const active = journal.active;
 
     if (active !== undefined) selectFile(next, active);
+    const points: SourceBreakpoint[] = [];
+
+    for (const point of clone(journal.sourceBreakpoints) ?? []) {
+      if (point.line < 1 || !point.path.startsWith(prefix)) continue;
+
+      match (canonicalize(point.path)) {
+        Ok(path) => {
+          if (path === point.path && !points.some((entry) => entry.path === path && entry.line === point.line)) points.push(clone(point));
+        },
+        Err(_) => {}
+      }
+    }
+
+    workspace.sourceBreakpoints = points;
     workspace.files = next.files;
     workspace.active = next.active;
     workspace.dockLayout = journal.dockLayout ?? '';
@@ -169,7 +184,7 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
   }
 
   const journal: Journal = {
-    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel
+    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel, sourceBreakpoints: clone(workspace.sourceBreakpoints)
   };
   const text = JSON.stringify(journal);
 

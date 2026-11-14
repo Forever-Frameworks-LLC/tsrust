@@ -1,5 +1,5 @@
 import { DebugConsole, DebugSidebar, chooseDebugTarget, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
-import { DebugCommand, DebugOutput, SourceBreakpoint } from './services/debug/session.tsr';
+import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
 import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
 import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
@@ -59,7 +59,7 @@ import { QueuedFormatting, FormattingRequest, FormattingResult } from './lib/wor
 import { Problem, collectProblems } from './lib/workspace/problems.tsr';
 import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recovery.tsr';
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
-import { openWorkspace } from './lib/workspace/workspace.tsr';
+import { openWorkspace, SourceBreakpoint } from './lib/workspace/workspace.tsr';
 import { zoomFontSize } from './lib/workspace/zoom.tsr';
 import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
@@ -201,7 +201,7 @@ function App(
     downloadReplies
   );
   const debugOutput = signal('');
-  const sourceBreakpoints = signal<SourceBreakpoint[]>([]);
+  const sourceBreakpoints = signal<SourceBreakpoint[]>(clone(workspace.get().sourceBreakpoints) ?? []);
   const debuggerRunning = signal(false);
   const debugTarget = signal('');
   const debuggerPaused = signal(false);
@@ -545,7 +545,7 @@ function App(
         command="toggle-source-breakpoint"
         keys="f9"
         onTrigger={() => {
-          if (mode.get() !== 'extensions') toggleCursorBreakpoint(workspace.get().active, sourceBreakpoints, debuggerRunning.get());
+          if (mode.get() !== 'extensions') toggleCursorBreakpoint(workspace, recovery, sourceBreakpoints, debuggerRunning.get());
         }}
       />
       <Shortcut

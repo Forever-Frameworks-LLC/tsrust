@@ -35,7 +35,13 @@ export interface OpenFile {
   imageScroll?: ImageScroll;
 }
 
+export interface SourceBreakpoint {
+  path: string;
+  line: int;
+}
+
 export interface Workspace {
+  sourceBreakpoints?: SourceBreakpoint[];
   root: string;
   files: OpenFile[];
   active: string;

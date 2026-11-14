@@ -21,9 +21,15 @@ import { SearchActionContext, fileSearchLabel } from '../../lib/explorer/search-
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput, SourceFrame, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput, SourceFrame } from '../../services/debug/session.tsr';
 
-export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<SourceBreakpoint[]>, running: boolean): void {
+import { Workspace, SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+
+export function toggleCursorBreakpoint(workspace: Signal<Workspace>, recovery: Signal<Recovery>, listed: Signal<SourceBreakpoint[]>, running: boolean): void {
+  const active = workspace.get().active;
+
   if (running || active === '') return;
   const path = clone(active);
   readInput(clone(path), (field) => {
@@ -31,9 +37,18 @@ export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<S
     const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
 
     if (caret === undefined || field.value === undefined) return;
-    const points = lines.get();
-    toggleSourceBreakpoint(points, clone(path), field.value.slice(0, caret).split('\n').length);
-    lines.set(points);
+    const next = workspace.get();
+    const points = clone(next.sourceBreakpoints) ?? [];
+    const line = field.value.slice(0, caret).split('\n').length;
+    const index = points.findIndex((item) => item.path === path && item.line === line);
+
+    if (index < 0) points.push({
+      path: clone(path), line
+    });
+    else points.splice(index, 1);
+    listed.set(clone(points));
+    next.sourceBreakpoints = points;
+    publishWorkspace(next, workspace, recovery);
   });
 }
 
@@ -96,14 +111,16 @@ function openDebugLocation(navigation: ReadOnly<SearchActionContext>, path: Read
 
 function BreakpointRow(
   target: SourceBreakpoint,
+  listed: Signal<SourceBreakpoint[]>,
   root: ReadOnly<string>,
-  lines: Signal<SourceBreakpoint[]>,
   running: Signal<boolean>,
   font: Signal<int>,
   navigation: SearchActionContext,
   output: Signal<string>
 ): Node {
   const label = fileSearchLabel(root, target.path) + ':' + target.line.toString();
+  const rowWorkspace = navigation.workspace.handle();
+  const rowRecovery = navigation.recovery.handle();
   const file = clone(target.path);
   const line = target.line;
   return (
@@ -130,11 +147,14 @@ function BreakpointRow(
         tooltip={message('Remove breakpoint')}
         aria-label={translate('Remove breakpoint') + ' ' + fileSearchLabel(root, target.path) + ':' + target.line.toString()}
         onPress={() => {
-          const points = lines.get();
+          const next = rowWorkspace.get();
+          const points = clone(next.sourceBreakpoints) ?? [];
           const index = points.findIndex((item) => item.path === target.path && item.line === target.line);
 
           if (index >= 0) points.splice(index, 1);
-          lines.set(points);
+          listed.set(clone(points));
+          next.sourceBreakpoints = points;
+          publishWorkspace(next, rowWorkspace, rowRecovery);
         }}
       />
     </View>
@@ -199,7 +219,7 @@ export function DebugSidebar(
   output: Signal<string>,
   panel: Signal<string>,
   navigation: SearchActionContext,
-  lines: Signal<SourceBreakpoint[]>,
+  listed: Signal<SourceBreakpoint[]>,
   running: Signal<boolean>,
   stopped: Signal<boolean>,
   chosen: Signal<string>
@@ -229,7 +249,10 @@ export function DebugSidebar(
   const breakpointRecovery = navigation.recovery.handle();
   const breakpointOutput = output.handle();
   const listFont = font.handle();
-  const listLines = lines.handle();
+  const toggleRecovery = navigation.recovery.handle();
+  const launchWorkspace = workspace.handle();
+  const listHandle = listed.handle();
+  const toggleList = listed.handle();
   return (
     <View className="flex-col size-full min-h-0">
       <View className="shrink-0 flex-row items-center w-full min-w-0 border-b border-border">
@@ -272,7 +295,7 @@ export function DebugSidebar(
             tooltip={message('Toggle source breakpoint at cursor')}
             aria-label={accessibleName('Toggle source breakpoint at cursor')}
             onPress={() => {
-              toggleCursorBreakpoint(selectedWorkspace.get().active, lines, running.get());
+              toggleCursorBreakpoint(selectedWorkspace, toggleRecovery, toggleList, running.get());
             }}
           />
         </View>
@@ -340,10 +363,10 @@ export function DebugSidebar(
         </View>
       </View>
       <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
-        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(
+        {...listed.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(
           clone(point),
+          listHandle.handle(),
           root,
-          listLines.handle(),
           listRunning.handle(),
           listFont.handle(),
           {
@@ -393,7 +416,7 @@ export function DebugSidebar(
             />
           </InputGroup>
           <View hidden={!stopped.get() || watchValue.get() === ''}>
-            <Input readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'font-mono text-[' + font.get().toString() + 'px]'} />
+            <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
           </View>
         </View>
         <View hidden={!stopped.get() || frames.get().length === 0} className="w-full flex-col min-w-0">
@@ -416,7 +439,7 @@ export function DebugSidebar(
             {t('Local variables')}
           </Text>
           {...locals.get().map((value: ReadOnly<string>) => (
-            <Input readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'px-2 font-mono text-[' + font.get().toString() + 'px]'} />
+            <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
           ))}
         </View>
       </View>
@@ -424,7 +447,7 @@ export function DebugSidebar(
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoints: lines.get(), watch: watch.get()})) {
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoints: clone(launchWorkspace.get().sourceBreakpoints), watch: watch.get()})) {
             Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
             Err(error) => { output.set(clone(error.code)); return; }
           }
