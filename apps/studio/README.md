@@ -218,3 +218,12 @@ drafts together while they still match the accepted edit.
 
 When a long chat exceeds the model’s context window, Studio selects context
 for the request and keeps the full transcript in chat.
+
+
+### Extensions and debugging
+
+Open Extensions from the activity bar or press Cmd+Shift+X (Ctrl+Shift+X on other platforms). Search the catalog in the sidebar and select a model to see its details and installation actions in the main view.
+
+In a source editor, press F9 to toggle a breakpoint on the caret line before launch. Run and Debug lists the selected locations and lets you remove individual entries. Build the target with `tsrust build <entry> --debug -o <executable>`, then choose **Launch executable…**. Keep the adjacent debug artifacts with the executable so Studio can map stopped frames to source. When paused, use Continue, Step instruction, or Stop debugging.
+
+Studio launches LLVM's `lldb-dap` on PATH. Set `LLDB_DAP` to the full adapter executable path to override it. Native debugging has been exercised on macOS with Xcode LLDB. Linux and Windows debugger sessions still need native validation.

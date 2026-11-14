@@ -21,6 +21,20 @@ import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
 
+export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<SourceBreakpoint[]>, running: boolean): void {
+  if (running || active === '') return;
+  const path = clone(active);
+  readInput(clone(path), (field) => {
+    if (!field.found) return;
+    const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
+
+    if (caret === undefined || field.value === undefined) return;
+    const points = lines.get();
+    toggleSourceBreakpoint(points, clone(path), field.value.slice(0, caret).split('\n').length);
+    lines.set(points);
+  });
+}
+
 function DebugControl(
   requests: ReadOnly<Channel<DebugCommand>>,
   stopped: Signal<boolean>,
@@ -32,6 +46,7 @@ function DebugControl(
   const sender = requests.sender();
   return (
     <Button
+      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
       variant="ghost"
       size="small"
       onPress={() => {
@@ -58,6 +73,7 @@ function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: 
   const label = target.path.slice(root.length + 1) + ':' + target.line.toString();
   return (
     <Button
+      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
       variant="ghost"
       size="small"
       disabled={running.get()}
@@ -83,27 +99,28 @@ export function DebugSidebar(
   font: Signal<int>,
   output: Signal<string>,
   panel: Signal<string>,
-  navigation: SearchActionContext
+  navigation: SearchActionContext,
+  lines: Signal<SourceBreakpoint[]>,
+  running: Signal<boolean>
 ): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
   const workspace = navigation.workspace.handle();
   const selectedWorkspace = workspace.handle();
   const root = clone(workspace.get().root);
-  const lines = signal<SourceBreakpoint[]>([]);
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
   const stopped = signal(false);
   const chosen = signal('');
-  const running = signal(false);
   const listRunning = running.handle();
   const listFont = font.handle();
   const listLines = lines.handle();
   return (
     <View className="flex-col size-full min-h-0">
-      <View className="flex-col w-full min-w-0 items-start gap-1 px-2 py-1">
+      <View className="flex-col w-full min-w-0 min-h-0 overflow-y-auto">
         <Button
+          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
           icon="play"
           variant="ghost"
           size="small"
@@ -122,6 +139,7 @@ export function DebugSidebar(
           </Text>
         </Button>
         <Button
+          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
           selected={stopOnEntry.get()}
           disabled={running.get()}
           variant="ghost"
@@ -134,22 +152,21 @@ export function DebugSidebar(
             {t('Stop on entry')}
           </Text>
         </Button>
-        <Button variant="ghost" size="small"
+        <Button
+          variant="ghost"
+          size="small"
+          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
           disabled={running.get() || workspace.get().active === ''}
+          tooltipCommand="toggle-source-breakpoint"
           tooltip={message('Toggle source breakpoint at cursor')}
           aria-label={accessibleName('Toggle source breakpoint at cursor')}
           onPress={() => {
-            const path = clone(selectedWorkspace.get().active);
-            readInput(clone(path), (field) => {
-              if (!field.found) return;
-              const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
-              if (caret === undefined || field.value === undefined) return;
-              const points = lines.get();
-              toggleSourceBreakpoint(points, clone(path), field.value.slice(0, caret).split('\n').length);
-              lines.set(points);
-            });
-          }}>
-          <Text className={'text-[' + font.get().toString() + 'px]'}>{t('Break at cursor')}</Text>
+            toggleCursorBreakpoint(selectedWorkspace.get().active, lines, running.get());
+          }}
+        >
+          <Text className={'text-[' + font.get().toString() + 'px]'}>
+            {t('Break at cursor')}
+          </Text>
         </Button>
         {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(clone(point), root, listLines.handle(), listRunning.handle(), listFont.handle()))}
         <View hidden={running.get()} className="w-full min-w-0">

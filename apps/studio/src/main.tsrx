@@ -1,6 +1,6 @@
-import { DebugConsole, DebugSidebar } from './components/tasks/debug-console.tsrx';
-import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
-import { modelExtensions } from './services/ai/model-extensions.tsr';
+import { DebugConsole, DebugSidebar, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
+import { DebugCommand, DebugOutput, SourceBreakpoint } from './services/debug/session.tsr';
+import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
 import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
@@ -10,6 +10,7 @@ import { extname, dirname, join } from 'std:path';
 import {
   View,
   Ticker,
+  Shortcut,
   Text,
   Button,
   Resizable,
@@ -200,6 +201,8 @@ function App(
     downloadReplies
   );
   const debugOutput = signal('');
+  const sourceBreakpoints = signal<SourceBreakpoint[]>([]);
+  const debuggerRunning = signal(false);
   const debugSidebar = DebugSidebar(
     debugRequests,
     debugResults,
@@ -208,8 +211,9 @@ function App(
     panel,
     {
       workspace: workspace.handle(), recovery: recovery.handle(), allowedRoot: clone(workspace.get().root), allowNavigation: true, focusEditor: true
-    }
-
+    },
+    sourceBreakpoints.handle(),
+    debuggerRunning.handle()
   );
   const panelView = Panels(
     panel,
@@ -470,6 +474,7 @@ function App(
       icon="blocks"
       variant="ghost"
       selected={sidebar.get() && mode.get() === 'extensions'}
+      tooltipCommand="show-extensions"
       tooltip={message("Extensions")}
       aria-label={accessibleName("Extensions")}
       onPress={() => {
@@ -485,6 +490,23 @@ function App(
         onTick={(_frame) => {
           syncInlinePreference(aiContext);
           pollModel(aiContext, modelUpdates);
+        }}
+      />
+      <Shortcut
+        command="toggle-source-breakpoint"
+        keys="f9"
+        onTrigger={() => {
+          if (mode.get() !== 'extensions') toggleCursorBreakpoint(workspace.get().active, sourceBreakpoints, debuggerRunning.get());
+        }}
+      />
+      <Shortcut
+        command="show-extensions"
+        keys="secondary-shift-x"
+        onTrigger={() => {
+          mode.set('extensions');
+          sidebar.set(true);
+          modelPaths.set(availableModelPaths(settings.get()));
+          controlInput('extension-search', 'focus');
         }}
       />
       {referenceControls}

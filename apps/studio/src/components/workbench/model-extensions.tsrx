@@ -66,6 +66,7 @@ export function ExtensionBrowser(selected: Signal<string>, font: Signal<int>, pa
     <View className="flex-col size-full min-h-0">
       <InputGroup size="small" className="w-full min-w-0 rounded-none border border-transparent">
         <Input
+          id="extension-search"
           value={query.get()}
           className={'px-2 text-[' + font.get().toString() + 'px]'}
           placeholder={message('Search extensions')}
