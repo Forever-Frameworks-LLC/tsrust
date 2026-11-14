@@ -12,11 +12,13 @@ const USAGE: &str = "usage: tsrust package [entry.tsrx] [--name NAME] [--id com.
 #[derive(Default,serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PackageConfig {
+    #[serde(default,rename="opensFolders")] pub opens_folders:bool,
     pub name:Option<String>,pub id:Option<String>,pub version:Option<String>,pub icon:Option<PathBuf>,
     pub repo:Option<String>,pub out:Option<PathBuf>,pub sign:Option<String>,pub notarize:Option<String>,
 }
 
 struct Options {
+    opens_folders: bool,
     companion: Option<PathBuf>, entry: PathBuf, name: String, id: String, version: String, icon: Option<PathBuf>,
     repo: String, out: PathBuf, sign: Option<String>, notarize: Option<String>,
 }
@@ -58,7 +60,7 @@ fn options_for_project(args:impl Iterator<Item=String>, project:Option<super::pr
     if version.split('.').count() != 3 || version.split('.').any(|part| part.parse::<u64>().is_err()) {return Err(format!("Version must be MAJOR.MINOR.PATCH, got {version}"));}
     if notarize.is_some() && sign.is_none() {return Err("--notarize requires --sign".into());}
     if !repo.is_empty() && repo.split('/').count() != 2 {return Err(format!("--repo must be owner/name, got {repo}"));}
-    Ok(Options {companion, entry, name, id, version, icon, repo, out, sign, notarize})
+    Ok(Options {opens_folders: config.opens_folders, companion, entry, name, id, version, icon, repo, out, sign, notarize})
 }
 
 #[cfg(test)]
@@ -70,6 +72,7 @@ mod tests {
     #[test]
     fn config_defaults_and_cli_overrides_use_their_own_path_roots() {
         let defaults=options_for_project(std::iter::empty(),Some(project())).unwrap();
+        assert!(!plist(&defaults).contains("CFBundleDocumentTypes"));
         assert_eq!(defaults.entry,Path::new("/project/src/main.tsrx"));
         assert_eq!((defaults.name.as_str(),defaults.id.as_str(),defaults.version.as_str(),defaults.repo.as_str()),("Notes","dev.notes","1.2.3","owner/notes"));
         assert_eq!(defaults.icon.unwrap(),Path::new("/project/assets/icon.png"));
@@ -108,7 +111,7 @@ mod tests {
     fn development_bundle_is_valid_native_metadata_without_release_side_effects(){
         let directory=crate::TempDirectory::new().unwrap();
         let input=directory.0.join("program");fs::write(&input,b"executable control").unwrap();
-        let mut project=project();project.package.name=Some("Notes & Café".into());
+        let mut project=project();project.package.opens_folders=true;project.package.name=Some("Notes & Café".into());
         project.package.sign=None;project.package.version=Some("supplied at package time".into());
         project.package.repo=Some("supplied at package time".into());
         let binary=development_bundle(project,&input).unwrap();
@@ -117,7 +120,7 @@ mod tests {
         let metadata=contents.join("Info.plist");
         assert!(Command::new("/usr/bin/plutil").args(["-lint"]).arg(&metadata).status().unwrap().success());
         let text=fs::read_to_string(metadata).unwrap();
-        assert!(text.contains("dev.notes.dev"));assert!(text.contains("Notes &amp; Café"));
+        assert!(text.contains("public.folder"));assert!(text.contains("dev.notes.dev"));assert!(text.contains("Notes &amp; Café"));
         assert!(!contents.join("Resources/app.json").exists());
         assert!(!directory.0.join("dist").exists());
     }
@@ -194,6 +197,14 @@ fn copy_companion(source: Option<&Path>, directory: &Path) -> Result<(), String>
 
 fn plist(options: &Options) -> String {
     let escape = |text: &str| text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    let documents = if options.opens_folders {r#"
+  <key>CFBundleDocumentTypes</key>
+  <array><dict>
+    <key>CFBundleTypeName</key><string>Folder</string>
+    <key>CFBundleTypeRole</key><string>Editor</string>
+    <key>LSHandlerRank</key><string>Alternate</string>
+    <key>LSItemContentTypes</key><array><string>public.folder</string></array>
+  </dict></array>"#} else {""};
     format!(r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -202,7 +213,7 @@ fn plist(options: &Options) -> String {
   <key>CFBundleIdentifier</key><string>{id}</string>
   <key>CFBundleName</key><string>{name}</string>
   <key>CFBundleDisplayName</key><string>{name}</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundlePackageType</key><string>APPL</string>{documents}
   <key>CFBundleShortVersionString</key><string>{version}</string>
   <key>CFBundleVersion</key><string>{version}</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
@@ -220,8 +231,8 @@ fn plist(options: &Options) -> String {
 #[cfg(target_os="macos")]
 pub(crate) fn development_bundle(mut project:super::project_config::Project,executable:&Path)->Result<PathBuf,String>{
     // Dev needs identity only; release options can be supplied later on the CLI.
-    let PackageConfig{name,id,..}=project.package;
-    project.package=PackageConfig{name,id,..PackageConfig::default()};
+    let PackageConfig{name,id,opens_folders,..}=project.package;
+    project.package=PackageConfig{name,id,opens_folders,..PackageConfig::default()};
     let mut options=options_for_project(std::iter::empty(),Some(project))?;
     options.id.push_str(".dev");
     let contents=executable.parent().ok_or("Missing development executable directory")?.join(format!("{}.app/Contents",options.name));

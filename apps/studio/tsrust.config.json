@@ -6,7 +6,8 @@
   "name": "studio",
   "package": {
     "name": "Tsrust Studio",
-    "id": "dev.tsrust.studio"
+    "id": "dev.tsrust.studio",
+    "opensFolders": true
   },
   "schemaVersion": 1
 }

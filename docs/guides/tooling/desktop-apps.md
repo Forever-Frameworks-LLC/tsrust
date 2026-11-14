@@ -58,6 +58,13 @@ and `out` paths are relative to the project root; CLI paths are relative to the
 current directory. Keep signing credentials in the system keychain; `notarize`
 names its profile.
 
+For a macOS folder-based app, set `package.opensFolders` to `true` to
+advertise folder support in the development and release bundles. Pass
+`opensFolders: true` in the main window’s `run` options to handle folder-open
+events. Each requested local directory starts another instance of the executable
+with the canonical directory as its first argument and working directory.
+Both settings default to false.
+
 | Option | Meaning |
 | --- | --- |
 | `--name` | Display and file name. Defaults to the entry file name, capitalized. |

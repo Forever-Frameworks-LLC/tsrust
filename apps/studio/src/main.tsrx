@@ -736,7 +736,7 @@ async function main(): Task<void> {
 
   try {
     unwrap(run(view, 'Tsrust Studio', {
-      titlebar: 'custom', width: 1120, height: 780, minWidth: 720, minHeight: 520
+      titlebar: 'custom', opensFolders: true, width: 1120, height: 780, minWidth: 720, minHeight: 520
     }));
   } finally {
 

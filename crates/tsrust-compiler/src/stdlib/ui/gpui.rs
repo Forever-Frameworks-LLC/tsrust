@@ -26,7 +26,22 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     node.ensure_identities();
     let failure = std::rc::Rc::new(std::cell::RefCell::new(None::<String>));
     let reported = failure.clone();
-    application().with_assets(assets::Assets).run(move |cx| {
+    let app = application().with_assets(assets::Assets);
+    #[cfg(target_os="macos")]
+    if options.opens_folders {
+        let executable = std::env::current_exe().map_err(|error| error.to_string())?;
+        app.on_open_urls(move |urls| {
+            for raw in urls {
+                let Some(folder) = url::Url::parse(&raw).ok().filter(|url| url.scheme() == "file").and_then(|url| url.to_file_path().ok())
+                    .and_then(|path| path.canonicalize().ok()).filter(|path| path.is_dir()) else {continue;};
+                match std::process::Command::new(&executable).arg(&folder).current_dir(&folder).spawn() {
+                    Ok(mut child) => {std::thread::spawn(move || {let _ = child.wait();});}
+                    Err(error) => eprintln!("Cannot open folder {}: {error}", folder.display()),
+                }
+            }
+        });
+    }
+    app.run(move |cx| {
         init(cx);
         cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-k cmd-i"} else {"ctrl-k ctrl-i"}, gpui_kit::base::input::ShowHover, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);
