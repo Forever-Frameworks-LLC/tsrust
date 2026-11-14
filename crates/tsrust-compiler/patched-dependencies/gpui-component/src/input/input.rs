@@ -304,13 +304,13 @@ impl Input {
         self
     }
 
-    /// Set full height of the input (Multi-line only).
+    /// Set full height of the input.
     pub fn h_full(mut self) -> Self {
         self.height = Some(relative(1.));
         self
     }
 
-    /// Set height of the input (Multi-line only).
+    /// Set height of the input.
     pub fn h(mut self, height: impl Into<DefiniteLength>) -> Self {
         self.height = Some(height.into());
         self
@@ -802,10 +802,8 @@ impl RenderOnce for Input {
             .input_h(self.size)
             .input_text_size(self.size)
             .items_center()
-            .when(presentation.is_multi_line(), |this| {
-                this.h_auto()
-                    .when_some(self.height, |this, height| this.h(height))
-            })
+            .when(presentation.is_multi_line(), |this| this.h_auto())
+            .when_some(self.height, |this, height| this.h(height))
             .when(self.appearance, |this| {
                 this.bg(bg)
                     .rounded(cx.theme().radius)
@@ -1016,6 +1014,44 @@ mod tests {
             RoleOverride::Role(Role::Button)
         );
         assert_eq!(RoleOverride::from(None), RoleOverride::Presentational);
+    }
+
+    #[gpui::test]
+    fn single_line_input_honors_explicit_height(cx: &mut gpui::TestAppContext) {
+        use gpui::{AppContext as _, Render};
+
+        struct Probe(Entity<InputState>, f32);
+        impl Render for Probe {
+            fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+                div().flex().flex_col().w(px(240.)).child(
+                    div()
+                        .id("input-height-probe")
+                        .debug_selector(|| "input-height-probe".to_string())
+                        .child(Input::new(&self.0).h(px(self.1))),
+                )
+            }
+        }
+
+        cx.update(crate::init);
+        let (probe, cx) = cx.add_window_view(|window, cx| {
+            Probe(
+                cx.new(|cx| InputState::new(window, cx).default_value("n = 6")),
+                24.,
+            )
+        });
+        for height in [24., 32.] {
+            probe.update(cx, |probe, cx| {
+                probe.1 = height;
+                cx.notify();
+            });
+            cx.update(|window, cx| {
+                let _ = window.draw(cx);
+            });
+            assert_eq!(
+                cx.debug_bounds("input-height-probe").unwrap().size.height,
+                px(height)
+            );
+        }
     }
 
     #[gpui::test]

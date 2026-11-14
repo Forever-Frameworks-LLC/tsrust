@@ -261,7 +261,7 @@ export function DebugSidebar(
       <View className="shrink-0 flex-row items-center w-full min-w-0 border-b border-border">
         <View hidden={running.get()} className="grow flex-row items-center min-w-0">
           <Button
-            className="grow min-w-0 justify-start rounded-none px-2"
+            className={'grow min-w-0 justify-start rounded-none px-2 min-h-[' + (font.get() + 12).toString() + 'px]'}
             aria-label={translate(lastTarget.get() === '' ? 'Launch executable…' : 'Run last executable')}
             tooltipCommand="debug-continue"
             tooltip={lastTarget.get() === '' ? translate('Launch executable…') : lastTarget.get()}
@@ -435,6 +435,14 @@ export function DebugSidebar(
             <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
           </View>
         </View>
+        <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
+          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
+            {t('Local variables')}
+          </Text>
+          {...locals.get().map((value: ReadOnly<string>) => (
+            <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
+          ))}
+        </View>
         <View hidden={!stopped.get() || frames.get().length === 0} className="w-full flex-col min-w-0">
           <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
             {t('Call stack')}
@@ -448,14 +456,6 @@ export function DebugSidebar(
             frameStopped.handle(),
             frameOutput.handle(),
             frameFont.handle()
-          ))}
-        </View>
-        <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
-          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-            {t('Local variables')}
-          </Text>
-          {...locals.get().map((value: ReadOnly<string>) => (
-            <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
           ))}
         </View>
       </View>
