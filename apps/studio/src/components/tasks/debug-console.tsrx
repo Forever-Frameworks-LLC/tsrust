@@ -13,7 +13,8 @@ import {
   readInput,
   pickFilePaths,
   signal,
-  t
+  t,
+  translate
 } from 'std:ui';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
@@ -173,6 +174,7 @@ export function DebugSidebar(
   const frameOutput = output.handle();
   const frameFont = font.handle();
   const breakpoint = signal('');
+  const watchSender = requests.sender();
   const watch = signal('');
   const watchValue = signal('');
   const frames = signal<SourceFrame[]>([]);
@@ -309,16 +311,31 @@ export function DebugSidebar(
             />
           </InputGroup>
         </View>
-        <View hidden={running.get() && watch.get() === ''} className="flex-col w-full min-w-0">
+        <View hidden={running.get() && !stopped.get() && watch.get() === ''} className="flex-col w-full min-w-0">
           <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
             <Input
               className={'px-2 text-[' + font.get().toString() + 'px]'}
               value={watch.get()}
-              disabled={running.get()}
-              placeholder={message('Watch expression')}
+              disabled={running.get() && !stopped.get()}
+              placeholder={translate(stopped.get() ? 'Press Enter to evaluate the watch' : 'Watch expression')}
               aria-label={accessibleName('Watch expression')}
               onChange={(event) => {
                 watch.set(clone(event.target.value));
+                watchValue.set('');
+              }}
+              onSubmit={(_secondary) => {
+                if (!stopped.get()) return;
+
+                match (watchSender.trySend({
+                  action: 'setWatch', stopId: frameStop.get(), watch: watch.get()
+                })) {
+                  Ok(_) => {
+                    stopped.set(false);
+                  },
+                  Err(error) => {
+                    output.set(output.get() + error.code);
+                  }
+                }
               }}
             />
           </InputGroup>

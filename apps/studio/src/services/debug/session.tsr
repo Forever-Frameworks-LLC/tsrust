@@ -139,13 +139,14 @@ async function launchDebugTarget(
     let sourceFrames: SourceFrame[] = [];
     let selectedFrame = -1;
     let stopId = 0;
+    let refreshWatch = false;
     let pausedText = '';
     let pausedLocation: OriginalPosition | undefined = undefined;
     let scopesRequest = 0;
     let variablesRequest = 0;
     let locals: string[] = [];
     let watchValue: string | undefined = undefined;
-    const watch = (command.watch ?? '').trim();
+    let watch = (command.watch ?? '').trim();
     let thread = 0;
     let stopReason = '';
     let currentLine = '';
@@ -191,14 +192,28 @@ async function launchDebugTarget(
             continue;
           }
 
-          if (control.action === 'selectFrame') {
+          if (control.action === 'selectFrame' || control.action === 'setWatch') {
             if (!paused || control.stopId !== stopId) continue;
-            const frame = sourceFrames.find((entry) => entry.id === control.frameId);
+            refreshWatch = control.action === 'setWatch';
 
-            if (frame === undefined) continue;
+            if (refreshWatch) {
+              if (selectedFrame < 0) {
+                await output.send({
+                  text: 'No stack frame available.\n', frames: clone(sourceFrames), selectedFrame, stopId, locals: clone(locals), stopped: true, finished: false
+                });
+                continue;
+              }
+
+              watch = (control.watch ?? '').trim();
+            } else {
+              const frame = sourceFrames.find((entry) => entry.id === control.frameId);
+
+              if (frame === undefined) continue;
+              selectedFrame = frame.id;
+              pausedLocation = clone(frame.location);
+            }
+
             paused = false;
-            selectedFrame = frame.id;
-            pausedLocation = clone(frame.location);
             pausedText = '';
             locals = [];
             watchValue = undefined;
@@ -541,8 +556,9 @@ async function launchDebugTarget(
           }
 
           await output.send({
-            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: refreshWatch ? undefined : clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
           });
+          refreshWatch = false;
           paused = true;
         } else if (reply.event === 'output') {
           await output.send({
