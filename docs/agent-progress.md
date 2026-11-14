@@ -90,11 +90,12 @@ limit4. Four histories were ingested and independently verified at
 `2026-11-14T22:10:01.901804+00:00`,3 samples each; SQLite integrity=ok. Native controls
 and emitted inputs are unchanged. No toolchain/wrapper checks were bypassed.
 
-This section is ready for a selective local source checkpoint after formatting.
-Stage only the new propagation/traversal/mod source, frontend benchmark/guards,
-README, shared harness tests, measurements and progress, plus the DirEntry.path
-builtins hunk. Never stage the owner's other SDK or Studio edits. Remove closed
-raw reports after verifying the checkpoint; no source/binary archives were made.
+Accepted source checkpoint is `7cd18d091`. It contains only this propagation,
+benchmark, measurement and progress section plus the DirEntry.path documentation
+hunk. Owner SDK selection additions, Studio drafts and service-test import ordering
+remain unstaged. Closed raw reports were removed after independent ingestion
+verification; no source/binary archives were made. One shared Cargo target remains;
+benchmark temporary source/output trees clean themselves up.
 Keep Worklist 87431/87575, API 33729/45647 and Zed LSP 75803 alive. Next: investigate
 native idle waiting in dev (retain debounce, cancellation and external dependency
 polling) or a proven backend-probe optimization preserving wrappers and full pinned
