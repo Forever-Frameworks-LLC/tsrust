@@ -69,6 +69,7 @@ export interface AdapterBody {
   mimeType?: string;
   threads?: DebugThread[];
   stackFrames?: DebugFrame[];
+  hitBreakpointIds?: int[];
   reason?: string;
   threadId?: int;
   supportsConfigurationDoneRequest?: boolean;

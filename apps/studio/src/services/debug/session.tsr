@@ -150,6 +150,10 @@ async function launchDebugTarget(
     let stopReason = '';
     let currentLine = '';
     let currentAddress = '';
+    let continuingLine = '';
+    const continuedAddresses = new Set<string>();
+    const sourceIds = new Set<int>();
+    let sourceHit = false;
     let steppingLine = '';
     let stepCommand = 'next';
     let stepAddresses = new Set<string>();
@@ -229,6 +233,9 @@ async function launchDebugTarget(
               }
             }));
           } else if (control.action === 'continue') {
+            continuingLine = sourceHit ? clone(currentLine) : '';
+            continuedAddresses.clear();
+            continuedAddresses.add(clone(currentAddress));
             await writeFrame(writer, JSON.stringify({
               seq, type: 'request', command: 'continue', arguments: {
                 threadId: thread
@@ -326,7 +333,12 @@ async function launchDebugTarget(
           const points = clone(reply.body?.breakpoints) ?? [];
 
           for (let i = 0; i < points.length && i < owners.length; i += 1) {
-            if (points[i].verified) verified.add(owners[i]);
+            if (points[i].verified) {
+              verified.add(owners[i]);
+              const id = points[i].id;
+
+              if (id !== undefined) sourceIds.add(id);
+            }
           }
 
           for (let i = 0; i < requested.length; i += 1) {
@@ -385,6 +397,8 @@ async function launchDebugTarget(
 
           if (thread <= 0) throw 'Stopped thread unavailable.';
           stopReason = clone(reply.body?.reason ?? 'unknown');
+          const hits = clone(reply.body?.hitBreakpointIds) ?? [];
+          sourceHit = stopReason === 'breakpoint' && hits.length > 0 && hits.every((id) => sourceIds.has(id));
           sourceFrames = [];
           selectedFrame = -1;
           stopId = seq;
@@ -482,6 +496,18 @@ async function launchDebugTarget(
               currentLine = location === undefined || frames.length === 0 ? '' : JSON.stringify([thread.toString(), frames.length.toString(), clone(frames[0].name), clone(location.path), location.line.toString()]);
               currentAddress = frames.length === 0 ? '' : clone(frames[0].instructionPointerReference ?? '');
 
+              // Continuing through additional locations of the same line must still expose a loop revisit.
+              if (sourceHit && continuingLine !== '' && continuingLine === currentLine && currentAddress !== '' && !continuedAddresses.has(currentAddress)) {
+                continuedAddresses.add(clone(currentAddress));
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'continue', arguments: {
+                    threadId: thread
+                  }
+                }));
+                seq += 1;
+                continue;
+              }
+
               if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
                 stepAddresses.add(clone(currentAddress));
                 await writeFrame(writer, JSON.stringify({
@@ -502,6 +528,7 @@ async function launchDebugTarget(
 
             }
 
+            continuingLine = '';
             steppingLine = '';
             pausedLocation = clone(location);
 

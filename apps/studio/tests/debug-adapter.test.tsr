@@ -429,7 +429,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       await commands.send({
         action: 'launch', program: clone(program), functionBreakpoint: 'twice', watch: 'n', sourceBreakpoints: [{
-          path: clone(source), line: 13
+          path: clone(source), line: 11
         }]
       });
       let namedStops: int[] = [];
@@ -450,7 +450,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         });
       }
 
-      strictEqual(JSON.stringify(namedStops), '[13,19]');
+      strictEqual(JSON.stringify(namedStops), '[11,19]');
       strictEqual(namedText.includes('Breakpoint verified: twice'), true);
       strictEqual(namedText.includes('Exit code 0'), true);
       strictEqual(continued && stepOutput.includes('Exit code 0'), true);
