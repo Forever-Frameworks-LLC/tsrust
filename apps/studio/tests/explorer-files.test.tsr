@@ -4,6 +4,7 @@ import {
   readLink,
   readTextFile,
   removeDirAll,
+  removeFile,
   writeTextFile
 } from 'std:fs';
 import { platform } from 'std:os';
@@ -129,6 +130,54 @@ test('deleting a folder selects the next surviving editor and preserves unrelate
     strictEqual(selectFile(ws, root + '/last'), true);
     unwrap(changeExplorerEntry(ws, 'Delete', root + '/last', ''));
     strictEqual(ws.active, root + '/next');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('a missing destination with an open draft keeps its identity during explorer mutations', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-draft-'));
+
+  try {
+    unwrap(mkdirAll(temp + '/repo/project/dest'));
+    const ws = unwrap(openWorkspace(temp + '/repo/project'));
+    const root = clone(ws.root);
+    const dest = root + '/dest';
+    const path = dest + '/a.tsr';
+    unwrap(writeTextFile(path, 'original'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[0].document, 'keep draft');
+    unwrap(removeFile(path));
+    unwrap(writeTextFile(root + '/a.tsr', 'moving'));
+
+    for (const result of [changeExplorerEntry(ws, 'Move', root + '/a.tsr', dest), changeExplorerEntry(ws, 'New file', dest, 'a.tsr')]) {
+      match (result) {
+        Ok(_) => {
+          throw 'Reused an open draft path';
+        },
+        Err(reason) => {
+          strictEqual(reason, 'An open editor uses this destination. Close the affected editor before continuing.');
+        }
+      }
+    }
+
+    unwrap(removeDirAll(dest));
+    unwrap(mkdirAll(root + '/src'));
+
+    match (changeExplorerEntry(ws, 'Rename', root + '/src', 'dest')) {
+      Ok(_) => {
+        throw 'Replaced an open draft parent';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'An open editor uses this destination. Close the affected editor before continuing.');
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'dest'));
+    strictEqual(ws.active, path);
+    strictEqual(ws.files[0].document.text, 'keep draft');
+    strictEqual(unwrap(readTextFile(root + '/a.tsr', 32)), 'moving');
   } finally {
     unwrap(removeDirAll(temp));
   }

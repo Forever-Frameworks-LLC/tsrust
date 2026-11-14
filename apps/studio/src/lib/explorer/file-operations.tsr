@@ -22,6 +22,10 @@ function destination(parent: ReadOnly<string>, name: ReadOnly<string>): string {
   return join(parent, name);
 }
 
+function hasOpenDestination(workspace: ReadOnly<Workspace>, target: ReadOnly<string>, includeChildren: boolean): boolean {
+  return workspace.files.some((file) => includeChildren ? within(file.document.path, target) : file.document.path === target);
+}
+
 // Resolve the parent, not the leaf: renaming or deleting a symlink acts on the link itself.
 function checkedPath(root: ReadOnly<string>, path: ReadOnly<string>): string {
   if (path === root) return clone(root);
@@ -39,6 +43,8 @@ export function changeExplorerEntry(workspace: Mutable<Workspace>, action: ReadO
     if (action === 'New file' || action === 'New folder') {
       const parent = metadata.isDirectory ? clone(source) : dirname(source);
       const target = destination(parent, value);
+
+      if (hasOpenDestination(workspace, target, action === 'New file')) return Err('An open editor uses this destination. Close the affected editor before continuing.');
 
       if (action === 'New folder') unwrap(mkdir(target));
       else unwrap(close(unwrap(openFile(target, {
@@ -80,6 +86,7 @@ export function changeExplorerEntry(workspace: Mutable<Workspace>, action: ReadO
 
       if (within(target, source)) return Err('A folder cannot be moved inside itself.');
 
+      if (hasOpenDestination(workspace, target, true)) return Err('An open editor uses this destination. Close the affected editor before continuing.');
       unwrap(renameNew(source, target));
 
       for (let index = 0; index < workspace.files.length; index += 1) {

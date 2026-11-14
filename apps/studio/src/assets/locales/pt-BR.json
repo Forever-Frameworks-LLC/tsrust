@@ -644,5 +644,6 @@
   "Save or discard changes in the affected files before deleting.": "Salve ou descarte as alterações nos arquivos afetados antes de excluir.",
   "Unknown explorer action.": "Ação desconhecida no explorador.",
   "A folder cannot be moved inside itself.": "Uma pasta não pode ser movida para dentro de si mesma.",
-  "A file or folder already exists at the destination.": "Já existe um arquivo ou pasta no destino."
+  "A file or folder already exists at the destination.": "Já existe um arquivo ou pasta no destino.",
+  "An open editor uses this destination. Close the affected editor before continuing.": "Um editor aberto usa este destino. Feche o editor afetado antes de continuar."
 }

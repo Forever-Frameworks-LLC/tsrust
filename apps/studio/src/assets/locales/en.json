@@ -644,5 +644,6 @@
   "Save or discard changes in the affected files before deleting.": "Save or discard changes in the affected files before deleting.",
   "Unknown explorer action.": "Unknown explorer action.",
   "A folder cannot be moved inside itself.": "A folder cannot be moved inside itself.",
-  "A file or folder already exists at the destination.": "A file or folder already exists at the destination."
+  "A file or folder already exists at the destination.": "A file or folder already exists at the destination.",
+  "An open editor uses this destination. Close the affected editor before continuing.": "An open editor uses this destination. Close the affected editor before continuing."
 }
