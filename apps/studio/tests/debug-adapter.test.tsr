@@ -430,7 +430,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       strictEqual(continued && stepOutput.includes('Exit code 0'), true);
       await commands.send({
-        action: 'launch', program: clone(program), sourceBreakpoints: [{
+        action: 'launch', program: clone(program), watch: 'n', sourceBreakpoints: [{
           path: clone(source), line: 13
         }]
       });
@@ -445,6 +445,27 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           const line = update.location?.line ?? 0;
 
           if (update.location?.path !== source || (action === 'stepIn' && line !== 13) || (action === 'stepOut' && line !== 19) || (action === 'continue' && line !== 13 && line !== 15)) throw 'Unexpected stop before ' + action + ': ' + update.text;
+
+          if (action === 'stepOut') {
+            strictEqual(update.watchValue, '6');
+            const frames = clone(update.frames) ?? [];
+            strictEqual(frames[1].location.line, 13);
+            await commands.send({
+              action: 'selectFrame', stopId: update.stopId, frameId: frames[1].id
+            });
+            const caller = await output.receive().timeout(10000);
+            strictEqual(caller.selectedFrame, frames[1].id);
+            strictEqual(caller.location?.line, 13);
+            strictEqual(caller.watchValue === '6', false);
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: frames[0].id
+            });
+            const helper = await output.receive().timeout(10000);
+            strictEqual(helper.location?.line, 19);
+            strictEqual(helper.watchValue, '6');
+            strictEqual((clone(helper.locals) ?? []).includes('n = 6'), true);
+          }
+
           await commands.send({
             action: clone(action)
           });

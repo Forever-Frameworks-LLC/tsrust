@@ -118,6 +118,7 @@
   "Function breakpoint": "Ponto de interrupção de função",
   "Pause debugging": "Pausar depuração",
   "Stop debugging": "Encerrar depuração",
+  "Call stack": "Pilha de chamadas",
   "Step into": "Entrar na função",
   "Step out": "Sair da função",
   "Step over": "Avançar uma linha",

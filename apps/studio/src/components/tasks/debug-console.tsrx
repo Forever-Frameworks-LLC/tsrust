@@ -15,7 +15,7 @@ import {
   t
 } from 'std:ui';
 import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput, SourceFrame, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
@@ -102,6 +102,47 @@ function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: 
   );
 }
 
+function StackFrameRow(
+  frame: SourceFrame,
+  root: ReadOnly<string>,
+  stopId: int,
+  selected: Signal<int>,
+  requests: Sender<DebugCommand>,
+  stopped: Signal<boolean>,
+  output: Signal<string>,
+  font: Signal<int>
+): Node {
+  const frameId = frame.id;
+  const path = frame.location.path;
+  const label = '#' + frame.depth.toString() + ' ' + (path.startsWith(root + '/') ? path.slice(root.length + 1) : clone(path)) + ':' + frame.location.line.toString();
+  return (
+    <Button
+      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
+      variant="ghost"
+      size="small"
+      selected={selected.get() === frameId}
+      tooltip={clone(label)}
+      aria-label={clone(label)}
+      onPress={() => {
+        match (requests.trySend({
+          action: 'selectFrame', frameId, stopId
+        })) {
+          Ok(_) => {
+            stopped.set(false);
+          },
+          Err(reason) => {
+            output.set(output.get() + reason.code);
+          }
+        }
+      }}
+    >
+      <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
+        {label}
+      </Text>
+    </Button>
+  );
+}
+
 export function chooseDebugTarget(chosen: Signal<string>): void {
   const target = chosen.handle();
   pickFilePaths((paths) => {
@@ -128,9 +169,19 @@ export function DebugSidebar(
   const workspace = navigation.workspace.handle();
   const selectedWorkspace = workspace.handle();
   const root = clone(workspace.get().root);
+  const frameRoot = clone(root);
+  const frameStopped = stopped.handle();
+  const frameOutput = output.handle();
+  const frameFont = font.handle();
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
+  const frames = signal<SourceFrame[]>([]);
+  const frameStop = signal(0);
+  const selectedFrame = signal(-1);
+  const rowEpoch = frameStop.handle();
+  const rowSelection = selectedFrame.handle();
+  const frameRequests = requests.sender();
   const locals = signal<string[]>([]);
   const listRunning = running.handle();
   const listFont = font.handle();
@@ -210,6 +261,21 @@ export function DebugSidebar(
           <View hidden={!stopped.get() || watchValue.get() === ''}>
             <Input readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'font-mono text-[' + font.get().toString() + 'px]'} />
           </View>
+        </View>
+        <View hidden={!stopped.get() || frames.get().length === 0} className="w-full flex-col min-w-0">
+          <Text className={'px-2 font-semibold text-[' + font.get().toString() + 'px]'}>
+            {t('Call stack')}
+          </Text>
+          {...frames.get().map((frame: ReadOnly<SourceFrame>) => StackFrameRow(
+            clone(frame),
+            frameRoot,
+            rowEpoch.get(),
+            rowSelection.handle(),
+            frameRequests.share(),
+            frameStopped.handle(),
+            frameOutput.handle(),
+            frameFont.handle()
+          ))}
         </View>
         <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
           <Text className={'px-2 font-semibold text-[' + font.get().toString() + 'px]'}>
@@ -293,6 +359,11 @@ export function DebugSidebar(
         }
         match (replies.tryReceive()) {
           Ok(reply) => {
+            if (reply.stopped === true) {
+              frameStop.set(reply.stopId ?? 0);
+              selectedFrame.set(reply.selectedFrame ?? -1);
+              frames.set(clone(reply.frames) ?? []);
+            }
             const location = reply.location;
             if (location !== undefined) {
               const point: DiagnosticPosition = {line: location.line - 1, character: location.column - 1};

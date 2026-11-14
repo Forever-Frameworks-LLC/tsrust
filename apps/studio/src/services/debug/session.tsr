@@ -1,4 +1,4 @@
-import { Reader } from 'std:io';
+import { Reader, Writer } from 'std:io';
 import { basename } from 'std:path';
 import { canonicalize } from 'std:fs';
 import { get } from 'std:env';
@@ -25,6 +25,8 @@ export function toggleSourceBreakpoint(points: Mutable<SourceBreakpoint[]>, path
 
 export interface DebugCommand {
   action: string;
+  frameId?: int;
+  stopId?: int;
   generation?: int;
   frame?: string;
   program?: string;
@@ -34,7 +36,16 @@ export interface DebugCommand {
   watch?: string;
 }
 
+export interface SourceFrame {
+  id: int;
+  depth: int;
+  location: OriginalPosition;
+}
+
 export interface DebugOutput {
+  frames?: SourceFrame[];
+  selectedFrame?: int;
+  stopId?: int;
   locals?: string[];
   stopped?: boolean;
   location?: OriginalPosition;
@@ -73,6 +84,24 @@ async function readAdapter(reader: Reader, events: Sender<DebugCommand>, generat
   }
 }
 
+async function inspectFrame(writer: Mutable<Writer>, seq: int, frameId: int, watch: ReadOnly<string>, location: ReadOnly<OriginalPosition | undefined>): Task<int> {
+  await writeFrame(writer, JSON.stringify({
+    seq, type: 'request', command: 'scopes', arguments: {
+      frameId
+    }
+  }));
+
+  if (watch === '') return seq + 1;
+  const names = clone(location?.parameters) ?? [];
+  const slot = names.findIndex((name) => name === watch);
+  await writeFrame(writer, JSON.stringify({
+    seq: seq + 1, type: 'request', command: 'evaluate', arguments: {
+      expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId
+    }
+  }));
+  return seq + 2;
+}
+
 async function launchDebugTarget(
   adapter: string,
   root: string,
@@ -107,6 +136,9 @@ async function launchDebugTarget(
     let pauseRequest = 0;
     let stackRequest = 0;
     let watchRequest = 0;
+    let sourceFrames: SourceFrame[] = [];
+    let selectedFrame = -1;
+    let stopId = 0;
     let pausedText = '';
     let pausedLocation: OriginalPosition | undefined = undefined;
     let scopesRequest = 0;
@@ -149,6 +181,23 @@ async function launchDebugTarget(
               seq += 1;
             }
 
+            continue;
+          }
+
+          if (control.action === 'selectFrame') {
+            if (!paused || control.stopId !== stopId) continue;
+            const frame = sourceFrames.find((entry) => entry.id === control.frameId);
+
+            if (frame === undefined) continue;
+            paused = false;
+            selectedFrame = frame.id;
+            pausedLocation = clone(frame.location);
+            pausedText = '';
+            locals = [];
+            watchValue = undefined;
+            scopesRequest = seq;
+            seq = await inspectFrame(writer, seq, selectedFrame, watch, pausedLocation);
+            watchRequest = watch === '' ? 0 : seq - 1;
             continue;
           }
 
@@ -290,6 +339,9 @@ async function launchDebugTarget(
 
           if (thread <= 0) throw 'Stopped thread unavailable.';
           stopReason = clone(reply.body?.reason ?? 'unknown');
+          sourceFrames = [];
+          selectedFrame = -1;
+          stopId = seq;
           stackRequest = seq;
           await writeFrame(writer, JSON.stringify({
             seq, type: 'request', command: 'stackTrace', arguments: {
@@ -363,6 +415,10 @@ async function launchDebugTarget(
                 if (original !== undefined) {
                   text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();
 
+                  sourceFrames.push({
+                    id: frame.id, depth: i, location: clone(original)
+                  });
+
                   if (i === 0) location = clone(original);
                 } else if (source !== '') {
                   text += '  ' + source;
@@ -391,25 +447,10 @@ async function launchDebugTarget(
               }
 
               if (frames.length > 0) {
+                selectedFrame = frames[0].id;
                 scopesRequest = seq;
-                await writeFrame(writer, JSON.stringify({
-                  seq, type: 'request', command: 'scopes', arguments: {
-                    frameId: frames[0].id
-                  }
-                }));
-                seq += 1;
-              }
-
-              if (watch !== '' && frames.length > 0) {
-                const parameters = clone(location?.parameters) ?? [];
-                const slot = parameters.findIndex((name) => name === watch);
-                watchRequest = seq;
-                await writeFrame(writer, JSON.stringify({
-                  seq, type: 'request', command: 'evaluate', arguments: {
-                    expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId: frames[0].id
-                  }
-                }));
-                seq += 1;
+                seq = await inspectFrame(writer, seq, selectedFrame, watch, location);
+                watchRequest = watch === '' ? 0 : seq - 1;
               }
 
             }
@@ -426,7 +467,7 @@ async function launchDebugTarget(
           }
 
           await output.send({
-            text: clone(pausedText), location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
           });
           paused = true;
         } else if (reply.event === 'output') {
