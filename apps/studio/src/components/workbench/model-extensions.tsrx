@@ -34,7 +34,7 @@ export function toggleExtensions(sidebar: Signal<boolean>, mode: Signal<string>,
   sidebar.set(mode.get() !== 'extensions' || !sidebar.get());
   mode.set('extensions');
 
-  if (sidebar.get()) modelPaths.set(availableModelPaths(settings.get()));
+  if (sidebar.get()) modelPaths.set(availableModelPaths(settings.get(), modelPaths.get()));
 }
 
 function ExtensionItem(name: string, label: string, selected: Signal<string>, font: Signal<int>, query: Signal<string>): Node {
@@ -184,7 +184,7 @@ export function ModelExtensions(
               errorOwner.set(pending.get());
               pending.set('');
               error.set(result);
-              paths.set(availableModelPaths(settings.get()));
+              paths.set(availableModelPaths(settings.get(), paths.get()));
             },
             Err(reason) => {
               if (reason.code !== 'empty') {

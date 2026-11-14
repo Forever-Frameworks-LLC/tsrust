@@ -48,10 +48,10 @@ export function modelTokenizer(config: ReadOnly<StudioConfig>, path: ReadOnly<st
   return join(dirname(path), 'tokenizer.json');
 }
 
-export function availableModelPaths(config: ReadOnly<StudioConfig>): string[] {
+export function availableModelPaths(config: ReadOnly<StudioConfig>, previous: ReadOnly<string[]> = []): string[] {
   const paths: string[] = [];
 
-  for (const path of [clone(config.aiModelPath), clone(config.priorLocalModel) ?? '']) {
+  for (const path of [clone(config.aiModelPath), clone(config.priorLocalModel) ?? '', ...clone(previous)]) {
     if (path === '' || paths.includes(path)) continue;
 
     if (modelFilesAvailable(path, modelTokenizer(config, path))) paths.push(clone(path));

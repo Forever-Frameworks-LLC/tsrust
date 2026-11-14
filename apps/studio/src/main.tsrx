@@ -560,7 +560,7 @@ function App(
         onTrigger={() => {
           mode.set('extensions');
           sidebar.set(true);
-          modelPaths.set(availableModelPaths(settings.get()));
+          modelPaths.set(availableModelPaths(settings.get(), modelPaths.get()));
           controlInput('extension-search', 'focus');
         }}
       />

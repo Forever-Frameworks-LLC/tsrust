@@ -66,6 +66,24 @@ test('reopening Extensions discovers model files added after startup', () => {
   }
 });
 
+test('refresh keeps an unactivated local pair until its files disappear', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-local-refresh-'));
+  const path = folder + '/local.gguf';
+  const config = defaultConfig();
+
+  try {
+    unwrap(writeTextFile(path, 'weights'));
+    unwrap(writeTextFile(folder + '/tokenizer.json', 'tokenizer'));
+    const available = availableModelPaths(config, [clone(path), clone(path)]);
+    const expected = clone(path);
+    strictEqual(available.filter((entry) => entry === expected).length, 1);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+
+  strictEqual(availableModelPaths(config, [clone(path)]).includes(path), false);
+});
+
 test('7B quantizations install independently with the same tokenizer', () => {
   const models = modelExtensions();
   const q4 = models.filter((entry) => entry.name === 'Qwen2.5-Coder-7B-Instruct');
