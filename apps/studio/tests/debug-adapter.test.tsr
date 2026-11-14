@@ -509,17 +509,19 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
             const returned = await output.receive().timeout(10000);
             strictEqual(returned.location?.line, 13);
 
-            for (const expression of ['$pc', '', 'n']) {
+            for (const expression of ['studio_unknown_local', '$pc', '', 'n']) {
               await commands.send({
                 action: 'setWatch', stopId: caller.stopId, watch: clone(expression)
               });
               const evaluated = await output.receive().timeout(10000);
               strictEqual(evaluated.stopped, true);
+              strictEqual(evaluated.watchExpression, clone(expression));
               strictEqual(evaluated.selectedFrame, frames[1].id);
               strictEqual(evaluated.location === undefined, true);
               const value = evaluated.watchValue ?? '';
 
-              if (expression === '$pc') strictEqual(value.includes('0x'), true);
+              if (expression === 'studio_unknown_local') strictEqual(value.includes(expression), true);
+              else if (expression === '$pc') strictEqual(value.includes('0x'), true);
               else if (expression === '') strictEqual(value, '');
               else strictEqual(value === '6', false);
             }

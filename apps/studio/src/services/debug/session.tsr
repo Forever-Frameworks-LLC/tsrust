@@ -40,6 +40,7 @@ export interface DebugOutput {
   locals?: string[];
   stopped?: boolean;
   location?: OriginalPosition;
+  watchExpression?: string;
   watchValue?: string;
   text: string;
   finished: boolean;
@@ -570,7 +571,7 @@ async function launchDebugTarget(
           }
 
           await output.send({
-            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: refreshWatch ? undefined : clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: refreshWatch ? undefined : clone(pausedLocation), watchExpression: clone(watch), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
           });
           refreshWatch = false;
           paused = true;

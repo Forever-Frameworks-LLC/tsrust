@@ -460,10 +460,15 @@ export function DebugSidebar(
               frameStop.set(reply.stopId ?? 0);
               selectedFrame.set(reply.selectedFrame ?? -1);
               frames.set(clone(reply.frames) ?? []);
+              locals.set(clone(reply.locals) ?? []);
+              watchValue.set(reply.watchExpression === watch.get().trim() ? clone(reply.watchValue ?? '') : '');
             }
             const location = reply.location;
             if (location !== undefined) openDebugLocation(navigation, location.path, location.line, location.column, output);
-            output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) locals.set(clone(reply.locals) ?? []); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
+            output.set(output.get() + reply.text);
+            running.set(!reply.finished);
+            if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false);
+          },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />
