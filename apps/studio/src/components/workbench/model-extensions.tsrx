@@ -38,11 +38,14 @@ function ExtensionItem(name: string, label: string, selected: Signal<string>, fo
 
   const selectedName = clone(name);
   const searchName = label.toLowerCase();
-  const style = computed<string>(() => 'flex-row items-center w-full min-w-0 px-2 py-[6px] border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]' + (selected.get() === selectedName ? ' bg-accent text-accent-foreground' : ''));
+  const active = computed<boolean>(() => selected.get() === selectedName);
+  const style = computed<string>(() => 'flex-row items-center w-full min-w-0 px-2 py-[6px] border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]' + (active.get() ? ' bg-accent text-accent-foreground' : ''));
   return (
     <View hidden={!searchName.includes(query.get().trim().toLowerCase())}>
       <Button
         className={style.get()}
+        variant="ghost"
+        selected={active.get()}
         tooltip={clone(label)}
         aria-label={clone(label)}
         onPress={() => {
@@ -57,11 +60,21 @@ function ExtensionItem(name: string, label: string, selected: Signal<string>, fo
   );
 }
 
+function modelQuantization(model: ReadOnly<ModelExtension>): string {
+  const parts = model.filename.split('-');
+  return parts[parts.length - 1].split('.')[0].toUpperCase();
+}
+
+function modelLabel(model: ReadOnly<ModelExtension>): string {
+  const quant = modelQuantization(model);
+  return model.name.endsWith(' ' + quant) ? clone(model.name) : model.name + ' ' + quant;
+}
+
 export function ExtensionBrowser(selected: Signal<string>, font: Signal<int>, paths: Signal<string[]>): Node {
   const query = signal('');
   const rows: Node[] = [];
 
-  for (const model of modelExtensions()) rows.push(ExtensionItem(clone(model.name), clone(model.name), selected.handle(), font.handle(), query.handle()));
+  for (const model of modelExtensions()) rows.push(ExtensionItem(clone(model.name), modelLabel(model), selected.handle(), font.handle(), query.handle()));
   return (
     <View className="flex-col size-full min-h-0">
       <InputGroup size="small" className="w-full min-w-0 rounded-none border border-transparent">
@@ -103,7 +116,7 @@ export function ModelExtensions(
     rows.push(
       <View hidden={selected.get() !== rowName} className="flex-col gap-2">
         <Text className={'font-semibold text-[' + font.get().toString() + 'px]'}>
-          {clone(model.name)}
+          {modelLabel(model)}
         </Text>
         {ModelRow(
           model,
@@ -280,8 +293,7 @@ function ModelRow(
   const statusName = clone(name);
   const status = computed<string>(() => pending.get() === statusName ? translate('Downloading') : activePath.get() === '' ? translate('Download') : activePath.get() === settings.get().aiModelPath ? translate('Active model') : translate('Use model'));
   const size = model.filename.split('-')[2].toUpperCase();
-  const parts = model.filename.split('-');
-  const quant = parts[parts.length - 1].split('.')[0].toUpperCase();
+  const quant = modelQuantization(model);
   const style = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   return (
     <View className="flex-col items-start gap-2 min-w-0">
