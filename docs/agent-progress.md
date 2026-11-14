@@ -2192,6 +2192,8 @@ preview 63162. Logs /tmp/studio-worker-{search-test,language-test,search-panel,
 search-format-final}.log. In-flight filesystem scans currently run to completion;
 interactive Enter, cancellation latency and large-workspace memory remain open.
 
+Native macOS replay on 2026-11-14 with 64 files containing 16,001 lines each plus 20 open documents. Enter on the content-search input found the known marker on line 16,001. Resubmitted, activated Cancel search, and observed the run control return after 0.169 seconds (one UI observation, not a benchmark). Checked that the cancelled marker results stayed absent after idle. A replacement Enter search found a marker present only in a recovered unsaved tab. Clicking that result switched from page-00 to page-19 and persisted the active path. All 20 open files retained their original disk bytes. Large-workspace peak memory remains unmeasured.
+
 ## Content-search result freshness
 
 The shared UI and editor tool navigation action verifies the full preview line,
