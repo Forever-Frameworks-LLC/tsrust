@@ -357,6 +357,41 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       if (lines.size !== 2) throw 'Missing mapped stop: ' + transcript;
       strictEqual(transcript.includes('Exit code 0'), true);
+      await commands.send({
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }]
+      });
+      let stepped = false;
+      let continued = false;
+      let stepOutput = '';
+
+      while (true) {
+        const reply = await output.receive().timeout(10000);
+        stepOutput += reply.text;
+
+        if (reply.finished) break;
+
+        if (reply.stopped !== true) continue;
+
+        if (!stepped) {
+          strictEqual(reply.location?.line, 11);
+          await commands.send({
+            action: 'stepOver'
+          });
+          stepped = true;
+        } else {
+          if (reply.location?.line !== 12) throw 'Unexpected source step: ' + reply.text;
+          strictEqual(reply.location?.path, clone(source));
+          strictEqual(reply.text.includes('Stopped: step'), true);
+          await commands.send({
+            action: 'continue'
+          });
+          continued = true;
+        }
+      }
+
+      strictEqual(continued && stepOutput.includes('Exit code 0'), true);
     } finally {
       worker.cancel();
 

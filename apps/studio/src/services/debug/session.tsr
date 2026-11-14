@@ -73,6 +73,10 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     const watch = (command.watch ?? '').trim();
     let thread = 0;
     let stopReason = '';
+    let currentLine = '';
+    let currentAddress = '';
+    let steppingLine = '';
+    let stepAddresses = new Set<string>();
     const requested = clone(command.sourceBreakpoints) ?? [];
     const owners: int[] = [];
     let mappedUnit = '';
@@ -162,16 +166,6 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
           else {
             const frames = clone(reply.body?.stackFrames) ?? [];
 
-            if (watch !== '' && frames.length > 0) {
-              watchRequest = seq;
-              await writeFrame(writer, JSON.stringify({
-                seq, type: 'request', command: 'evaluate', arguments: {
-                  expression: clone(watch), context: 'watch', frameId: frames[0].id
-                }
-              }));
-              seq += 1;
-            }
-
             for (let i = 0; i < frames.length; i += 1) {
               const frame = frames[i];
               text += '#' + i.toString() + ' ' + frame.name;
@@ -199,7 +193,34 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
               if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
               text += '\n';
             }
+
+            currentLine = location === undefined || frames.length === 0 ? '' : JSON.stringify([thread.toString(), frames.length.toString(), clone(frames[0].name), clone(location.path), location.line.toString()]);
+            currentAddress = frames.length === 0 ? '' : clone(frames[0].instructionPointerReference ?? '');
+
+            if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
+              stepAddresses.add(clone(currentAddress));
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'next', arguments: {
+                  threadId: thread, granularity: 'line'
+                }
+              }));
+              seq += 1;
+              continue;
+            }
+
+            if (watch !== '' && frames.length > 0) {
+              watchRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'evaluate', arguments: {
+                  expression: clone(watch), context: 'watch', frameId: frames[0].id
+                }
+              }));
+              seq += 1;
+            }
+
           }
+
+          steppingLine = '';
 
           if (watchRequest !== 0) {
             await output.send({
@@ -221,10 +242,16 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
               terminateDebuggee: true
             }
           }));
-        } else if (control.action === 'next') {
+        } else if (control.action === 'next' || control.action === 'stepOver') {
+          if (control.action === 'stepOver') {
+            steppingLine = clone(currentLine);
+            stepAddresses = new Set<string>();
+            stepAddresses.add(clone(currentAddress));
+          }
+
           await writeFrame(writer, JSON.stringify({
             seq, type: 'request', command: 'next', arguments: {
-              threadId: thread, granularity: 'instruction'
+              threadId: thread, granularity: control.action === 'next' ? 'instruction' : 'line'
             }
           }));
         } else if (control.action === 'continue') {

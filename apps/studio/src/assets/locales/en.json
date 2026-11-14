@@ -115,6 +115,7 @@
   "Continue": "Continue",
   "Function breakpoint": "Function breakpoint",
   "Stop debugging": "Stop debugging",
+  "Step over": "Step over",
   "Step instruction": "Step instruction",
   "Launch executable…": "Launch executable…",
   "Repository status, diffs and staging are planned.": "Repository status, diffs and staging are planned.",
