@@ -577,30 +577,39 @@ export function DebugSidebar(
             Err(error) => { output.set(clone(error.code)); return; }
           }
         }
-        match (replies.tryReceive()) {
-          Ok(reply) => {
-            if (reply.finished) unresolved.set([]);
-            else if (reply.verifiedBreakpoint !== undefined) {
-              const point = clone(reply.verifiedBreakpoint);
-              unresolved.set(unresolved.get().filter((entry) => entry.path !== point.path || entry.line !== point.line));
-            } else if (reply.unresolvedBreakpoint !== undefined) {
-              unresolved.set([...unresolved.get(), clone(reply.unresolvedBreakpoint)]);
-            }
-            if (reply.stopped === true) {
-              frameStop.set(reply.stopId ?? 0);
-              selectedFrame.set(reply.selectedFrame ?? -1);
-              frames.set(clone(reply.frames) ?? []);
-              locals.set(clone(reply.locals) ?? []);
-              watchValue.set(reply.watchExpression === watch.get().trim() ? clone(reply.watchValue ?? '') : '');
-            }
-            const location = reply.location;
-            if (location !== undefined) openDebugLocation(navigation, location.path, location.line, location.column, output);
-            output.set(output.get() + reply.text);
-            running.set(!reply.finished);
-            if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false);
-          },
-          Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
+        let batch = '';
+        for (let count = 0; count < 16; count += 1) {
+          match (replies.tryReceive()) {
+            Ok(reply) => {
+              if (reply.finished) unresolved.set([]);
+              else if (reply.verifiedBreakpoint !== undefined) {
+                const point = clone(reply.verifiedBreakpoint);
+                unresolved.set(unresolved.get().filter((entry) => entry.path !== point.path || entry.line !== point.line));
+              } else if (reply.unresolvedBreakpoint !== undefined) {
+                unresolved.set([...unresolved.get(), clone(reply.unresolvedBreakpoint)]);
+              }
+              if (reply.stopped === true) {
+                frameStop.set(reply.stopId ?? 0);
+                selectedFrame.set(reply.selectedFrame ?? -1);
+                frames.set(clone(reply.frames) ?? []);
+                locals.set(clone(reply.locals) ?? []);
+                watchValue.set(reply.watchExpression === watch.get().trim() ? clone(reply.watchValue ?? '') : '');
+              }
+              const location = reply.location;
+              if (location !== undefined) {
+                if (batch !== '') output.set(output.get() + batch);
+                batch = '';
+                openDebugLocation(navigation, location.path, location.line, location.column, output);
+              }
+              batch += reply.text;
+              running.set(!reply.finished);
+              if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false);
+              if (reply.finished) break;
+            },
+            Err(error) => { if (error.code !== 'empty') { batch += error.code; running.set(false); } break; }
+          }
         }
+        if (batch !== '') output.set(output.get() + batch);
       }} />
     </View>
   );
