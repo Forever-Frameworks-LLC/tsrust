@@ -11,6 +11,12 @@ test('file glyphs recognize names and extensions without decorating folders', ()
   strictEqual(fileDecoration('lib.d.mts', false).svg, fileDecoration('script.ts', false).svg);
   strictEqual(fileDecoration('main.CTS', false).svg, fileDecoration('script.ts', false).svg);
   strictEqual(fileDecoration('Cargo.toml', false).svg, fileDecoration('main.rs', false).svg);
+
+  for (const name of ['main.go', 'main.GO', 'go.mod', 'go.sum', 'go.work', 'go.work.sum']) {
+    strictEqual(fileDecoration(name, false).svg.includes('<title>Go</title>'), true);
+  }
+
+  strictEqual(fileDecoration('other.mod', false).svg, '');
   strictEqual(fileDecoration('README.md', false).svg.length > 0, true);
   strictEqual(fileDecoration('icon.png', false).icon, 'image');
   strictEqual(fileDecoration('unknown.extension', false).svg, '');

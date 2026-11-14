@@ -65,7 +65,7 @@
   "Working diff": "Diferenças de trabalho",
   "Staged diff": "Diferenças preparadas",
   "Refresh source control": "Atualizar controle de versão",
-  "Reading repository\u2026": "Lendo repositório…",
+  "Reading repository…": "Lendo repositório…",
   "No changes in this view.": "Nenhuma alteração nesta visualização.",
   "Context was shortened to fit this model request. The full conversation remains in chat.": "O contexto foi reduzido para caber nesta solicitação ao modelo. A conversa completa continua no chat.",
   "The proposed changes overlap in the original file.": "As alterações propostas se sobrepõem no arquivo original.",
@@ -624,5 +624,10 @@
   "Choose a conflict resolution.": "Escolha uma resolução de conflito.",
   "Edit incomplete conflict markers manually.": "Edite manualmente os marcadores de conflito incompletos.",
   "No complete conflict markers found.": "Nenhum marcador de conflito completo encontrado.",
-  "The inference backend failed during generation. Restart the model or select another model.": "O mecanismo de inferência falhou durante a geração. Reinicie o modelo ou selecione outro modelo."
+  "The inference backend failed during generation. Restart the model or select another model.": "O mecanismo de inferência falhou durante a geração. Reinicie o modelo ou selecione outro modelo.",
+  "A compact local coding model for inline suggestions and short coding questions.": "Um modelo de código local compacto para sugestões em linha e perguntas curtas.",
+  "A mid-sized local coding model for code completion, explanation and chat.": "Um modelo de código local de porte intermediário para completar e explicar código e conversar.",
+  "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.": "Modelo de código de sete bilhões de parâmetros com quantização de quatro bits para conversas e sugestões locais.",
+  "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.": "O mesmo modelo de código 7B com quantização de cinco bits. Preserva mais precisão nos pesos e ocupa mais espaço em disco que a versão Q4.",
+  "Inline completions": "Sugestões em linha"
 }

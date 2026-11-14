@@ -318,6 +318,9 @@ function ModelRow(
   const style = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
   return (
     <View className="flex-col items-start gap-2 min-w-0">
+      <Text role="note" className={style.get()}>
+        {translate(clone(model.description))}
+      </Text>
       <Text className={style.get()}>
         {size + ' · ' + quant + ' · GGUF'}
       </Text>

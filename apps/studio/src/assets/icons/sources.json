@@ -59,6 +59,11 @@
         "path": "icons/python.svg",
         "sha256": "ad9468e1c4903f73ae7eebfbe980f0f727a10db695be3d914e7d8bd25356a862",
         "packagedSha256": "ad9468e1c4903f73ae7eebfbe980f0f727a10db695be3d914e7d8bd25356a862"
+      },
+      {
+        "path": "icons/go.svg",
+        "sha256": "36a745fe15584bf138d02ae6abcbdd155bc1cd4f4976634ad34861b2059db559",
+        "packagedSha256": "36a745fe15584bf138d02ae6abcbdd155bc1cd4f4976634ad34861b2059db559"
       }
     ],
     "adaptation": "Trailing whitespace removed when embedding SVG strings; colors are applied by the native icon tint."

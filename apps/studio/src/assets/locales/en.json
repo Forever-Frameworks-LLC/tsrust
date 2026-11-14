@@ -65,7 +65,7 @@
   "Working diff": "Working diff",
   "Staged diff": "Staged diff",
   "Refresh source control": "Refresh source control",
-  "Reading repository\u2026": "Reading repository…",
+  "Reading repository…": "Reading repository…",
   "No changes in this view.": "No changes in this view.",
   "Context was shortened to fit this model request. The full conversation remains in chat.": "Context was shortened to fit this model request. The full conversation remains in chat.",
   "The proposed changes overlap in the original file.": "The proposed changes overlap in the original file.",
@@ -624,5 +624,10 @@
   "Choose a conflict resolution.": "Choose a conflict resolution.",
   "Edit incomplete conflict markers manually.": "Edit incomplete conflict markers manually.",
   "No complete conflict markers found.": "No complete conflict markers found.",
-  "The inference backend failed during generation. Restart the model or select another model.": "The inference backend failed during generation. Restart the model or select another model."
+  "The inference backend failed during generation. Restart the model or select another model.": "The inference backend failed during generation. Restart the model or select another model.",
+  "A compact local coding model for inline suggestions and short coding questions.": "A compact local coding model for inline suggestions and short coding questions.",
+  "A mid-sized local coding model for code completion, explanation and chat.": "A mid-sized local coding model for code completion, explanation and chat.",
+  "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.": "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.",
+  "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.": "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.",
+  "Inline completions": "Inline completions"
 }

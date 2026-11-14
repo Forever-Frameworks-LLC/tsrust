@@ -250,17 +250,6 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                   }}
                 />
               </SettingItem>
-              <SettingItem title={message("AI inline completions")} description={message("Keep the selected model loaded for suggestions while typing.")}>
-                <Switch
-                  checked={draft.get().inlineCompletions}
-                  accessibilityLabel={message("AI inline completions")}
-                  onChange={(enabled) => {
-                    const config = draft.get();
-                    config.inlineCompletions = enabled;
-                    commitSettings(inlineSession, config);
-                  }}
-                />
-              </SettingItem>
               <SettingItem title={message("File icons")} description={message("Show language and file-type symbols in the explorer.")}>
                 <Switch
                   checked={draft.get().fileIcons}
@@ -314,6 +303,40 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                 >
                   <SelectItem value="en" label="English" />
                   <SelectItem value="pt-BR" label="Português (Brasil)" />
+                </Select>
+              </SettingItem>
+            </SettingsGroup>
+          </SettingsPage>
+          <SettingsPage title={message("AI")} icon="bot" resettable={false}>
+            <SettingsGroup title={message("Inline completions")}>
+              <SettingItem title={message("AI inline completions")} description={message("Keep the selected model loaded for suggestions while typing.")}>
+                <Switch
+                  checked={draft.get().inlineCompletions}
+                  accessibilityLabel={message("AI inline completions")}
+                  onChange={(enabled) => {
+                    const config = draft.get();
+                    config.inlineCompletions = enabled;
+                    commitSettings(inlineSession, config);
+                  }}
+                />
+              </SettingItem>
+            </SettingsGroup>
+            <SettingsGroup title={message("AI Chat")}>
+              <SettingItem title={message("AI chat position")}>
+                <Select
+                  value={draft.get().chatPosition}
+                  accessibilityLabel={message("AI chat position")}
+                  size="small"
+                  className="w-40"
+                  onChange={(value) => {
+                    const config = draft.get();
+                    config.chatPosition = clone(value);
+                    commitSettings(chatSession, config);
+                  }}
+                >
+                  <SelectItem value="right" label={message("Right")} />
+                  <SelectItem value="left" label={message("Left")} />
+                  <SelectItem value="bottom" label={message("Bottom")} />
                 </Select>
               </SettingItem>
             </SettingsGroup>
@@ -534,23 +557,6 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
                   <SelectItem value="right" label={message("Right")} />
                 </Select>
               </SettingItem>
-              <SettingItem title={message("AI chat position")}>
-                <Select
-                  value={draft.get().chatPosition}
-                  accessibilityLabel={message("AI chat position")}
-                  size="small"
-                  className="w-40"
-                  onChange={(value) => {
-                    const config = draft.get();
-                    config.chatPosition = clone(value);
-                    commitSettings(chatSession, config);
-                  }}
-                >
-                  <SelectItem value="right" label={message("Right")} />
-                  <SelectItem value="left" label={message("Left")} />
-                  <SelectItem value="bottom" label={message("Bottom")} />
-                </Select>
-              </SettingItem>
             </SettingsGroup>
           </SettingsPage>
         </Settings>
@@ -574,7 +580,7 @@ function SettingsEditor(path: string, font: Signal<int>, settings: Signal<Studio
         </Text>
       </View>
       <Shortcut
-        command="save-file"
+        command="save-all"
         keys="secondary-s"
         onTrigger={() => {
           if (raw.get()) saveSettings(shortcutSession);
