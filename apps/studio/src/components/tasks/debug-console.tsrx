@@ -1,4 +1,4 @@
-import { Channel } from 'std:futures';
+import { Channel, Sender } from 'std:futures';
 import {
   Button,
   CodeEditor,
@@ -35,6 +35,21 @@ export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<S
   });
 }
 
+export function sendDebugControl(sender: ReadOnly<Sender<DebugCommand>>, stopped: Signal<boolean>, output: Signal<string>, action: string): void {
+  if (!stopped.get()) return;
+
+  match (sender.trySend({
+    action
+  })) {
+    Ok(_) => {
+      stopped.set(false);
+    },
+    Err(error) => {
+      output.set(output.get() + error.code);
+    }
+  }
+}
+
 function DebugControl(
   requests: ReadOnly<Channel<DebugCommand>>,
   stopped: Signal<boolean>,
@@ -44,22 +59,16 @@ function DebugControl(
   font: Signal<int>
 ): Node {
   const sender = requests.sender();
+  const command = 'debug-' + action;
   return (
     <Button
       className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
       variant="ghost"
       size="small"
+      tooltip={message(clone(label))}
+      tooltipCommand={command}
       onPress={() => {
-        match (sender.trySend({
-          action: clone(action)
-        })) {
-          Ok(_) => {
-            stopped.set(false);
-          },
-          Err(error) => {
-            output.set(output.get() + error.code);
-          }
-        }
+        sendDebugControl(sender, stopped, output, clone(action));
       }}
     >
       <Text className={'text-[' + font.get().toString() + 'px]'}>
@@ -101,7 +110,8 @@ export function DebugSidebar(
   panel: Signal<string>,
   navigation: SearchActionContext,
   lines: Signal<SourceBreakpoint[]>,
-  running: Signal<boolean>
+  running: Signal<boolean>,
+  stopped: Signal<boolean>
 ): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
@@ -111,7 +121,6 @@ export function DebugSidebar(
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
-  const stopped = signal(false);
   const chosen = signal('');
   const listRunning = running.handle();
   const listFont = font.handle();

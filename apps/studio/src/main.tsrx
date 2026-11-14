@@ -1,4 +1,4 @@
-import { DebugConsole, DebugSidebar, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
+import { DebugConsole, DebugSidebar, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
 import { DebugCommand, DebugOutput, SourceBreakpoint } from './services/debug/session.tsr';
 import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
 import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
@@ -203,6 +203,8 @@ function App(
   const debugOutput = signal('');
   const sourceBreakpoints = signal<SourceBreakpoint[]>([]);
   const debuggerRunning = signal(false);
+  const debuggerPaused = signal(false);
+  const debugControls = debugRequests.sender();
   const debugSidebar = DebugSidebar(
     debugRequests,
     debugResults,
@@ -213,7 +215,8 @@ function App(
       workspace: workspace.handle(), recovery: recovery.handle(), allowedRoot: clone(workspace.get().root), allowNavigation: true, focusEditor: true
     },
     sourceBreakpoints.handle(),
-    debuggerRunning.handle()
+    debuggerRunning.handle(),
+    debuggerPaused.handle()
   );
   const panelView = Panels(
     panel,
@@ -490,6 +493,13 @@ function App(
         onTick={(_frame) => {
           syncInlinePreference(aiContext);
           pollModel(aiContext, modelUpdates);
+        }}
+      />
+      <Shortcut
+        command="debug-stepOver"
+        keys="f10"
+        onTrigger={() => {
+          sendDebugControl(debugControls, debuggerPaused, debugOutput, 'stepOver');
         }}
       />
       <Shortcut
