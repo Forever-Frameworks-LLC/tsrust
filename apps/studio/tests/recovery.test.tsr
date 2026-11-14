@@ -5,6 +5,9 @@ import {
   createTempDir,
   writeTextFile,
   readTextFile,
+  stat,
+  mkdirAll,
+  rename,
   removeDirAll,
   removeFile
 } from 'std:fs';
@@ -82,10 +85,11 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     unwrap(writeTextFile(root + '/a.tsr', 'a'));
     unwrap(writeTextFile(root + '/b.tsr', 'b'));
     unwrap(writeTextFile(root + '/deleted.tsr', 'deleted'));
+    unwrap(writeTextFile(root + '/renamed.tsr', 'original'));
     const workspace = unwrap(openWorkspace(root));
     const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
 
-    for (const file of ['a.tsr', 'b.tsr', 'deleted.tsr']) unwrap(openFile(workspace, root + '/' + file));
+    for (const file of ['a.tsr', 'b.tsr', 'deleted.tsr', 'renamed.tsr']) unwrap(openFile(workspace, root + '/' + file));
     const first = clone(workspace.files[0].document.path);
     const second = clone(workspace.files[1].document.path);
     const oldSession = clone(workspace.files[0].document.session);
@@ -96,11 +100,15 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
       path: clone(first), line: 2
     }, {
       path: clone(workspace.files[2].document.path), line: 1
+    }, {
+      path: clone(workspace.files[3].document.path), line: 1
     }];
     edit(workspace.files[1].document, 'draft 日本語 🦀\r\n');
     unwrap(persistRecovery(workspace, recovery));
     unwrap(writeTextFile(root + '/a.tsr', 'changed on disk'));
     unwrap(removeFile(root + '/deleted.tsr'));
+    unwrap(rename(root + '/renamed.tsr', root + '/moved.tsr'));
+    unwrap(mkdirAll(root + '/renamed.tsr'));
     const reopened = unwrap(openWorkspace(root));
     const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
     strictEqual(reopened.files.length, 2);
@@ -161,14 +169,14 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
   }
 });
 
-test('recovery opens journaled text drafts after disk files become binary, oversized or missing', () => {
+test('recovery opens journaled text drafts after disk files become binary, oversized, missing or directories', () => {
   const root = unwrap(createTempDir(undefined, 'studio-replaced-drafts-'));
 
   try {
     const workspace = unwrap(openWorkspace(root));
     const journal = root + '/journal.json';
     const recovery = unwrap(restoreRecovery(workspace, clone(journal)));
-    const paths = [root + '/binary.dat', root + '/removed.txt', root + '/large.txt'];
+    const paths = [root + '/binary.dat', root + '/removed.txt', root + '/large.txt', root + '/folder.txt'];
 
     for (const path of paths) {
       unwrap(writeTextFile(path, 'original'));
@@ -180,9 +188,12 @@ test('recovery opens journaled text drafts after disk files become binary, overs
     unwrap(writeFile(paths[0], unwrap(fromHex('00ff'))));
     unwrap(writeTextFile(paths[2], 'x'.repeat(4194305)));
     unwrap(removeFile(paths[1]));
+    unwrap(removeFile(paths[3]));
+    unwrap(mkdirAll(paths[3]));
+    unwrap(writeTextFile(paths[3] + '/keep', 'directory contents'));
     const restored = unwrap(openWorkspace(root));
     unwrap(restoreRecovery(restored, journal));
-    strictEqual(restored.files.length, 3);
+    strictEqual(restored.files.length, 4);
 
     for (let index = 0; index < restored.files.length; index += 1) {
       strictEqual(restored.files[index].document.path, workspace.files[index].document.path);
@@ -195,7 +206,7 @@ test('recovery opens journaled text drafts after disk files become binary, overs
           throw 'Recovery replaced external file contents';
         },
         Err(error) => {
-          strictEqual(error.code, 'conflict');
+          if (index !== 3) strictEqual(error.code, 'conflict');
         }
       }
     }
@@ -209,6 +220,8 @@ test('recovery opens journaled text drafts after disk files become binary, overs
       }
     }
 
+    strictEqual(unwrap(stat(paths[3])).isDirectory, true);
+    strictEqual(unwrap(readTextFile(paths[3] + '/keep')), 'directory contents');
     strictEqual(unwrap(toHex(unwrap(readFile(paths[0])))), '00ff');
     strictEqual(unwrap(readTextFile(paths[2])).length, 4194305);
   } finally {

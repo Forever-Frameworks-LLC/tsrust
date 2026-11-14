@@ -56,22 +56,26 @@ function openRecoveredDraft(workspace: Mutable<Workspace>, draft: ReadOnly<Draft
   if (selectFile(workspace, clone(draft.path))) return;
 
   match (lstat(draft.path)) {
-    Ok(_) => {
-      unwrap(openFile(workspace, draft.path));
+    Ok(info) => {
+      if (!info.isDirectory) {
+        unwrap(openFile(workspace, draft.path));
+        return;
+      }
     },
     Err(error) => {
       if (error.code !== 'not-found') throw clone(error.message);
-      // Only restore an absent leaf under its original canonical parent.
-      const parent = unwrap(canonicalize(dirname(draft.path)));
-      const name = basename(draft.path);
-
-      if (name === '.' || name === '..' || join(parent, name) !== draft.path || !unwrap(stat(parent)).isDirectory) throw 'Invalid recovery document.';
-      workspace.files.push({
-        name, kind: 'text', document: unwrap(createDocument(clone(draft.path), clone(draft.savedText)))
-      });
-      workspace.active = clone(draft.path);
     }
   }
+
+  // Keep the draft at its original leaf even when a directory now occupies it.
+  const parent = unwrap(canonicalize(dirname(draft.path)));
+  const name = basename(draft.path);
+
+  if (name === '.' || name === '..' || join(parent, name) !== draft.path || !unwrap(stat(parent)).isDirectory) throw 'Invalid recovery document.';
+  workspace.files.push({
+    name, kind: 'text', document: unwrap(createDocument(clone(draft.path), clone(draft.savedText)))
+  });
+  workspace.active = clone(draft.path);
 }
 
 // Validate the complete journal before changing any open buffers.
@@ -106,20 +110,20 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
         if (!file.startsWith(prefix)) return Err('This file is outside the open project directory.');
         // Restore missing dirty tabs in their saved positions.
         match (stat(file)) {
-          Ok(_) => {},
-          Err(error) => {
-            if (error.code === 'not-found') {
-              const draft = journal.drafts.find((entry) => entry.path === file);
-
-              if (draft !== undefined) openRecoveredDraft(next, draft);
+          Ok(info) => {
+            if (info.isFile) {
+              unwrap(openFile(next, file));
               continue;
             }
-
-            return Err(clone(error.message));
+          },
+          Err(error) => {
+            if (error.code !== 'not-found') return Err(clone(error.message));
           }
         }
 
-        unwrap(openFile(next, file));
+        const draft = journal.drafts.find((entry) => entry.path === file);
+
+        if (draft !== undefined) openRecoveredDraft(next, draft);
       }
     }
 
@@ -154,7 +158,14 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
 
       match (canonicalize(point.path)) {
         Ok(path) => {
-          if (path === point.path && !points.some((entry) => entry.path === path && entry.line === point.line)) points.push(clone(point));
+          if (path !== point.path || points.some((entry) => entry.path === path && entry.line === point.line)) continue;
+
+          match (stat(path)) {
+            Ok(info) => {
+              if (info.isFile) points.push(clone(point));
+            },
+            Err(_) => {}
+          }
         },
         Err(_) => {}
       }
