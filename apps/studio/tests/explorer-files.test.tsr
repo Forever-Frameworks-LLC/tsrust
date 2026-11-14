@@ -1,4 +1,13 @@
-import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
+import {
+  createTempDir,
+  mkdirAll,
+  readLink,
+  readTextFile,
+  removeDirAll,
+  writeTextFile
+} from 'std:fs';
+import { platform } from 'std:os';
+import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
@@ -58,6 +67,40 @@ test('explorer create, rename and move retain open drafts; delete requires clean
     strictEqual(ws.files.length, 0);
     strictEqual(ws.active, '');
     strictEqual((clone(ws.sourceBreakpoints) ?? []).length, 0);
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+if (platform() !== 'win32') test('explorer moves directory links and deletes their containing folder without changing the linked files', async () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-links-'));
+
+  try {
+    unwrap(mkdirAll(temp + '/project/dest'));
+    unwrap(mkdirAll(temp + '/outside'));
+    unwrap(writeTextFile(temp + '/outside/sentinel', 'keep'));
+    const ws = unwrap(openWorkspace(temp + '/project'));
+    const root = clone(ws.root);
+    const outside = temp + '/outside';
+    strictEqual(unwrap(await run('ln', ['-s', clone(outside), 'link'], {
+      cwd: clone(root)
+    })).status.success, true);
+
+    match (changeExplorerEntry(ws, 'Delete', root + '/link/sentinel', '')) {
+      Ok(_) => {
+        throw 'Deleted a file outside the open project';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'This file is outside the open project directory.');
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'Rename', root + '/link', 'alias'));
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/alias', root + '/dest'));
+    strictEqual(unwrap(readLink(root + '/dest/alias')), outside);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/dest', ''));
+    strictEqual(unwrap(readTextFile(outside + '/sentinel', 32)), 'keep');
   } finally {
     unwrap(removeDirAll(temp));
   }

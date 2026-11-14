@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Explorer filesystem suite passed 2/2 on macOS with a real directory symlink. Deletion through an external parent link was rejected. Renaming and moving the link, then deleting its containing project folder, preserved the external file contents. This exercises the filesystem service. Pruned nine superseded Studio program/runtime cache entries under the namespace locks and recovered 5.43 GiB while the dev session stayed running.
+
 Native macOS folder-drop replay: dragging a nested folder onto empty explorer space with a same-named root folder exposed the collision in the accessibility tree and preserved both directories. After clearing that conflict in the fixture, dragging the same folder to root moved its open dirty child. Targeted Save wrote the draft at its moved path. The recovery journal recorded the moved active tab and breakpoint and retained an unrelated unsaved draft. Explorer errors now use the same accessible status role as the dialog.
 
 Follow-up on explorer keyboard confirmation. Reproduced Return dismissing New folder with no directory on disk. Return and the footer action now share the native Dialog confirmation callback. Native macOS replay verified create directory, create file and rename with Return. A filename collision retained the dialog and original bytes. Separate pointer replay verified the styled confirmation button, cancel and recursive delete. Explorer filesystem regression passed in 2.06 ms. The earlier Return limitation below describes the prior build.
