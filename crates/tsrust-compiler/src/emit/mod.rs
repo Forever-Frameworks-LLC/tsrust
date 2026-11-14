@@ -4095,7 +4095,10 @@ impl Emitter<'_> {
                         .chain(text.match_indices('\n').map(|(offset, _)| offset + 1)).collect());
                     let line = lines.partition_point(|offset| *offset <= start);
                     let column = text[lines[line-1]..start].encode_utf16().count() + 1;
-                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column}}}", crate::json_string(path));
+                    let names = fun.bindings.iter().take(fun.parameter_count)
+                        .map(|binding| binding.name.as_str()).collect::<Vec<_>>();
+                    let parameters = serde_json::to_string(&names).expect("parameter names serialize");
+                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column},\"parameters\":{parameters}}}", crate::json_string(path));
                     let _ = writeln!(output, "\n// tsrust-source [{},{start},{end}]", crate::json_string(path));
                 }
             }

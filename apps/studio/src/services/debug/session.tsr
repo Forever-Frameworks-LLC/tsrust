@@ -197,7 +197,22 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
           variablesRequest = 0;
 
           if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
-          else for (const variable of clone(reply.body?.variables) ?? []) locals.push(variable.name + ' = ' + variable.value);
+          else {
+            const names = clone(pausedLocation?.parameters) ?? [];
+
+            for (const variable of clone(reply.body?.variables) ?? []) {
+              let name = clone(variable.name);
+
+              for (let slot = 0; slot < names.length; slot += 1) {
+                if (variable.name === 'value' + slot.toString()) {
+                  name = clone(names[slot]);
+                  break;
+                }
+              }
+
+              locals.push(name + ' = ' + variable.value);
+            }
+          }
         } else if (reply.command === 'evaluate') {
           watchRequest = 0;
           watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');

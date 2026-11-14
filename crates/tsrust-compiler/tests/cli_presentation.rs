@@ -122,6 +122,9 @@ fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
             assert_eq!(pos["path"], path);
             assert_eq!(pos["line"], prefix.bytes().filter(|&b| b == b'\n').count() + 1);
             assert_eq!(pos["column"], prefix.rsplit('\n').next().unwrap().encode_utf16().count() + 1);
+            if path == helper.canonicalize().unwrap().to_str().unwrap_or("") && &text[start..end] == "return" {
+                assert_eq!(pos["parameters"], serde_json::json!(["n"]));
+            }
             passages.push((std::path::PathBuf::from(path), text[start..end].to_owned()));
         }
         assert!(passages.iter().any(|(file, text)| file == &entry.canonicalize().unwrap() && text == "console"), "{passages:?}");
