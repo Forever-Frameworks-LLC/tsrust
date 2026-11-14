@@ -381,7 +381,7 @@ export function ProjectTree(
             />
           </View>
           <View hidden={action.get() !== 'Delete'}>
-            <Text className={dialogText.get()}>
+            <Text role="alert" aria-label={translate('Permanently delete this item and any contents?') + ' ' + target.get()} className={dialogText.get()}>
               {translate('Permanently delete this item and any contents?')}
             </Text>
           </View>
