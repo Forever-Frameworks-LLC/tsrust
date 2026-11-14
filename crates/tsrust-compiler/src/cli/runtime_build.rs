@@ -82,9 +82,6 @@ impl Prepared {
   cache_parts.push(profiles(gpui).as_bytes());
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
-  // Cargo primary aliases/fingerprints can otherwise collide across support workspaces.
-  // A stable external alias is supplied when linking the application.
-  let library_name=format!("tsrust_runtime_{}",cache.identity_key());
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
@@ -93,6 +90,7 @@ impl Prepared {
   let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(gpui))).map_err(|e|e.to_string())?;
   if gpui{identity.extend(crate::backend_sources::GPUI_LOCK.as_bytes());identity.extend(gpui_patch.as_bytes());}
   if let Some(binding)=binding{identity.extend(serde_json::to_vec(&(&binding.manifest,&binding.lock)).map_err(|e|e.to_string())?);}
+  let library_name=runtime_library_name(&crate::native_workspace::Workspace::location(root,&identity),runtime);
   let workspace=crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?;
   let build_root=workspace.as_ref().map(|workspace|workspace.root.as_path()).unwrap_or(temporary);
   let package=build_root.join("native-support");
@@ -190,6 +188,14 @@ impl Prepared {
  }if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}Ok(())}
 }
 
+// Keep Cargo graph/body aliases distinct without renaming them for environment-only misses.
+fn runtime_library_name(workspace:&Path,runtime:&str)->String {
+ use std::hash::{Hash,Hasher};
+ let mut hash=std::collections::hash_map::DefaultHasher::new();
+ (workspace,runtime).hash(&mut hash);
+ format!("tsrust_runtime_{:016x}",hash.finish())
+}
+
 /// Match the native UI support profile in application code as well. Large retained
 /// component compositions otherwise keep every debug temporary on the Windows
 /// main thread stack, even while the separately built renderer is optimized.
@@ -265,6 +271,22 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
     if index>0 {prepared.publish();}
    }else{assert_eq!(prepared.state,"hit");assert!(prepared.command.is_none());assert!(prepared.cargo.is_none());}
    let binary=temporary.join(format!("program{}",std::env::consts::EXE_SUFFIX));let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
+  }
+ }
+ #[test] fn stable_library_alias_keeps_cargo_compile_time_environment_invalidation(){
+  let directory=crate::TempDirectory::new().unwrap();let application=directory.0.join("program.rs");
+  fs::write(&application,"fn main(){println!(\"{}\",tsrust_runtime::tsrust_native_files::witness());}").unwrap();
+  let runtime=r#"pub mod tsrust_native_files {pub fn witness()->i64{env!("TSRUST_TEST_CARGO_TRACKED").parse().unwrap()}}"#;
+  let cache=directory.0.join("cache");let binary=directory.0.join(format!("program{}",std::env::consts::EXE_SUFFIX));
+  for value in [41,42] {
+   let temporary=directory.0.join(format!("build-{value}"));fs::create_dir(&temporary).unwrap();
+   let mut prepared=Prepared::with_dependencies(application.clone(),runtime,"tracked-env-alias-test",&cache,&temporary,false,false).unwrap();
+   assert_eq!(prepared.state,"miss");let mut command=prepared.command.take().unwrap();command.env("TSRUST_TEST_CARGO_TRACKED",value.to_string());
+   prepared.acquire_target(true).unwrap();let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
+   prepared.finish().unwrap();let mut command=crate::backend_command();prepared.link(&mut command).unwrap();
+   let output=command.arg("--edition=2024").arg(&application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+   let output=Command::new(&binary).output().unwrap();assert!(output.status.success());assert_eq!(String::from_utf8(output.stdout).unwrap(),format!("{value}\n"));
+   // Child-only test overrides must not be published under the parent environment key.
   }
  }
  #[test] fn changed_runtime_reuses_dependency_builds_and_links_current_values() {

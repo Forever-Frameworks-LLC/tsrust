@@ -4,6 +4,71 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Stable Cargo runtime alias accepted — 2026-11-14
+
+The runtime alias fix follows checkpoint `78ecc064c`; its source and measured
+acceptance are ready for the next local checkpoint. Installed CLI and release
+candidate match SHA-256 `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`.
+Worklist release supervisor 87431 / native child 87575 is running with its normal
+persisted data and API at localhost:4317. Its fresh unused caller context required
+full cache misses and launched in 14.997s, with runtime-build+publish 3.056s.
+Accessibility inspection confirms populated task rows, full-width table, search,
+filter, view buttons and Updated descending state. This is a launch smoke check,
+not a repeat of the earlier full interaction acceptance. API supervisor 33729
+remains running. Zed LSP 75803 remains untouched. Studio remains stopped.
+
+The previous Worklist refresh observed 47.161s runtime-build+publish despite
+identical runtime source, GPUI patch, lock, profile and backend identity. Comparing
+runtime entries `db651e4f75413488` and `7255d802ad702903` proved only field 10 (full
+environment/Cargo configuration digest) differed. Naming Cargo libraries by the
+full artifact-cache key forced recompilation even when Cargo could reuse unchanged
+inputs. Libraries now use dependency-workspace identity plus runtime body, with
+the existing 16-hex name width. Full cache keys, environment/configuration validation,
+source guards, locks, reported artifacts and checksums remain unchanged. Distinct
+graph/body aliases remain distinct; Cargo still invalidates actual changed inputs.
+
+The retained native_json_build witness failed before the fix on unequal library
+names for an environment-only miss. Candidate validation passes 5 runtime preparation
+unit tests (3.83s execution; 9.26s setup), 6 JSON/artifact integration cases (5.96s),
+3 public cache cases (3.18s), and runtime-cancellation replay 1/1 (3.66s). Existing
+A/B/A fresh-graph/current-output witnesses pass. A new unchanged-source Cargo env!
+witness produces 41 then 42 under changed child compiler environment; child-only
+test overrides are never published into parent-keyed caches. Release pair built
+in 22.61s. Nine benchmark harness tests pass in 0.013s, including malformed identity,
+included Cargo config changes and public CLI timing/cache-miss parsing.
+
+The maintained benchmarks/dev/worklist_runtime_context.py driver uses existing
+Worklist, one shared Cargo target, one untimed setup per engine and 3 samples per
+engine. Every invocation changes a unique unused caller value, requires app/support
+cache misses, verifies unchanged task sources and Cargo config/include contents,
+and verifies identical support inputs except the expected environment/config digest.
+Quiet loads were 2.1963–3.105 against established limit 4. Source guards passed.
+
+| Three-sample median, milliseconds | Before | After |
+| --- | --- | --- |
+| Total public CLI build | 58135.524 | 12919.275 |
+| Native compilation/linking phase | 55522.100 | 10349.800 |
+
+Total median reduction is 77.78 percent; native phase reduction is 81.36 percent.
+The native phase includes support and application compilation/linking, not support
+alone. Untimed setup was 57041.5ms before and 59014.6ms after. These are this caller-
+context workload's results, not matched-Rust <10% acceptance or general UI latency.
+Four workload/engine histories were ingested, independently verified with 3 samples
+each and SQLite integrity=ok. Existing histories remain intact. Eight comparison
+app entries, eight support entries and 30 obsolete baseline/failed-setup Cargo
+alias paths were selectively removed under namespace/target locks. The stable
+candidate alias and all unrelated artifacts were retained. No byte-reclamation
+claim is made because hard links exist. Disposable raw reports are removed after
+recording this evidence. Earlier driver setup/parser failures produced no accepted
+measurements and their two entries were removed separately.
+
+Next: checkpoint this accepted section after whole-project formatting, then inspect
+sampled overbroad AnalysisProgram revision bumps on function-only mutation, preserving
+all in-place record/union/scoped-family invalidation checks. Watcher/debounce costs,
+matched Rust <10%, full regression/platform acceptance and final PR remain open.
+Preserve unrelated owner edits, including apps/tasks/desktop/tests/service.test.tsr
+import ordering, Studio drafts, relocated Go fixtures and SDK selection additions.
+
 ## Cancellable dev probe overlap validated — 2026-11-14
 
 The existing backend probe now starts alongside frontend work. Its same Process

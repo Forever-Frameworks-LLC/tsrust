@@ -67,3 +67,19 @@ per graph size and startup/edit scenario. Ingest them with the same store:ingest
 command as matched builds; completed samples retain their original durations.
 The dev backend phase is now the probe's wall span and can overlap frontend work;
 do not add overlapping phase durations to estimate end-to-end latency.
+
+## Worklist environment-context rebuilds
+
+Run `python3 benchmarks/dev/worklist_runtime_context.py --before-compiler /absolute/before/tsrust --after-compiler /absolute/after/tsrust`.
+This builds the existing Worklist without launching another application window.
+Each engine has one untimed setup build and three measured context changes. The
+before group runs first, then the after group, retaining the same dependency
+workspace and shared Cargo target. Every build changes a unique unused caller
+variable, requires both native application and support-cache misses, and verifies
+identical runtime/dependency/profile identity plus unchanged task sources. Cargo's
+normal freshness and compile-time environment checks remain active. The full quiet
+machine guard runs before each build; setup and samples are recorded separately.
+Reports use the shared SQLite format and list created cache keys for selective
+cleanup after ingestion. The native phase includes support work and application Rust compilation/linking.
+This is a dependency-context rebuild comparison, not the matched Rust-overhead
+protocol or proof of application interaction behavior.

@@ -65,5 +65,42 @@ class RustControlTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             rust_control.build_timings('missing build timings')
 
+class WorklistContextTests(unittest.TestCase):
+    def test_context_phases_use_the_public_build_log_without_dev_only_metrics(self):
+        import worklist_runtime_context as context
+        stderr = '[build] runtime=miss\n[build] check=1ms emit=2ms backend=3ms cache=miss (0.1ms) native+link=4ms'
+        self.assertEqual(context.context_build_timings(stderr)['nativeBuildMs'], 4)
+        with self.assertRaises(ValueError):
+            context.context_build_timings(stderr.replace('runtime=miss', 'runtime=hit'))
+
+    def test_context_guard_tracks_included_cargo_configuration(self):
+        import worklist_runtime_context as context
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            config = root / '.cargo'
+            config.mkdir()
+            (config / 'config.toml').write_text('include = ["extra.toml"]')
+            extra = config / 'extra.toml'
+            extra.write_text('include = [{path="missing.toml", optional=true}]')
+            with mock.patch.object(context, 'ROOT', root), mock.patch.object(context, 'PROJECT', root):
+                with mock.patch.object(context, 'CACHE', root / 'target/cache'), mock.patch.dict('os.environ', {'CARGO_HOME': str(root / 'home')}):
+                    first = context.source_snapshot()
+                    extra.write_text('[build]\nrustflags = ["--cfg=changed"]')
+                    self.assertNotEqual(context.source_snapshot(), first)
+
+    def test_context_comparison_preserves_runtime_inputs_and_rejects_truncation(self):
+        import worklist_runtime_context as context
+        fields = [b'runtime-dependencies-abi-test'] + [str(index).encode() for index in range(10)]
+        encode = lambda values: b''.join(len(value).to_bytes(8, 'little') + value for value in values)
+        original = context.support_identity(encode(fields))
+        changed = list(fields)
+        changed[-1] = b'new caller environment'
+        self.assertEqual(context.support_identity(encode(changed)), original)
+        changed[6] = b'changed runtime source'
+        self.assertNotEqual(context.support_identity(encode(changed)), original)
+        for data in [b'broken', encode(fields)[:-1], encode(fields[:-1])]:
+            with self.assertRaises(ValueError):
+                context.support_identity(data)
+
 if __name__ == '__main__':
     unittest.main()
