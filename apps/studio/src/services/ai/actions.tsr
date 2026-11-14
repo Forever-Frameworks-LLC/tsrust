@@ -1,4 +1,5 @@
 import { separator } from 'std:path';
+import { compile } from 'std:regex';
 import { Sender, Channel } from 'std:futures';
 import { Signal, answerEditorLanguage, translate } from 'std:ui';
 
@@ -479,6 +480,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.editTarget = undefined;
 
       if (editing) {
+        const referenceValueInstruction = 'When asked for a literal value, copy its initializer from the reference source. A name declared only in a reference file is outside the target file\'s scope.';
+
         if (next.review !== undefined) return Err('Review the previous edit proposal first.');
 
         if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
@@ -514,7 +517,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           const skills = attachments.filter((item) => item.kind === 'skill');
           const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
           const references = attachments.filter((item) => namedTarget !== '' && item.kind === 'file' && item.path !== namedTarget);
-          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + references.map((item) => item.path + '\n' + item.text).join('\n\n') + '\nWhen asked for a literal value, copy its initializer from the reference source. A name declared only in a reference file is outside the target file\'s scope.';
+          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + references.map((item) => item.path + '\n' + item.text).join('\n\n') + '\n' + referenceValueInstruction;
           editPrompt = sources.join('\n\n') + skillContext + fileContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
         } else {
           const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
@@ -525,7 +528,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           };
 
           if (attachments.length === 0 && file.document.text !== '' && grounding.namedEditReference === true) {
-            editPrompt = 'Reference code (read only):\n' + excerpt.trim() + '\nTask: ' + task + '\nEditable file: ' + file.name + '\n' + file.document.text.trimEnd() + '\nReturn JSON. Both fields are strings: {"before":"exact statement from editable file","after":"replacement statement"}. Use the smallest unique passage. For multiple replacements return an array of these objects.';
+            const initializer = task.toLowerCase().includes(' from ') && unwrap(compile('^Referenced workspace file: [^\\n]+\\n(?:export\\s+)?const\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*:\\s*(?:int|number|boolean))?\\s*=\\s*(?:-?[0-9]+(?:\\.[0-9]+)?|true|false)\\s*;?$')).isMatch(excerpt.trim());
+            editPrompt = 'Reference code (read only):\n' + excerpt.trim() + '\n' + referenceValueInstruction + '\nTask: ' + task + '\nEditable file: ' + file.name + '\n' + file.document.text.trimEnd() + '\nReturn JSON. Both fields are strings: {"before":"exact statement from editable file","after":"replacement statement"}. Use the smallest unique passage. For multiple replacements return an array of these objects.' + (initializer ? ' Copy the right-hand side of the referenced declaration verbatim into the target initializer.' : '');
           } else {
             const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
             const delegation = prompt.toLowerCase().includes('delegate to the imported') ? ' Delegate the entire operation to the requested function. Return its result directly.' : '';
