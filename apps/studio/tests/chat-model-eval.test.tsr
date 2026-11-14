@@ -68,7 +68,7 @@ async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpda
 
 const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
 
-if (workspaceEval === 'reference-draft') test('local chat edits one of two attached drafts using the other as an unsaved reference', async () => {
+if (workspaceEval === 'reference-draft' || workspaceEval === 'named-reference') test('local chat uses an unsaved reference value in the requested file', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
@@ -83,7 +83,8 @@ if (workspaceEval === 'reference-draft') test('local chat edits one of two attac
     const workspace = unwrap(openWorkspace(folder));
     unwrap(openFile(workspace, reference));
     edit(workspace.files[0].document, 'export const defaultTimeout: int = 47;');
-    unwrap(openFile(workspace, target));
+
+    if (workspaceEval === 'reference-draft') unwrap(openFile(workspace, target));
     const opened = signal(workspace);
     const requests = new Channel<ModelRequest>(8);
     const updates = new Channel<ModelUpdate>(16);
@@ -96,10 +97,11 @@ if (workspaceEval === 'reference-draft') test('local chat edits one of two attac
       unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
         chat: '', path: clone(reference), kind: 'file'
       })));
-      unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+
+      if (workspaceEval === 'reference-draft') unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
         chat: '', path: clone(target), kind: 'file'
       })));
-      const reply = await ask(host, updates, 'Edit files: Only change file 1. Set its timeout to the numeric value of defaultTimeout from file 0. Keep the existing declaration. File 0 is reference only.');
+      const reply = await ask(host, updates, workspaceEval === 'named-reference' ? 'Update ./settings.tsr: set timeout to the numeric literal assigned to defaultTimeout in the attached defaults.tsr. Preserve all other code.' : 'Edit files: Only change file 1. Set its timeout to the numeric value of defaultTimeout from file 0. Keep the existing declaration. File 0 is reference only.');
       console.log(reply);
       const review = host.state.get().review;
 

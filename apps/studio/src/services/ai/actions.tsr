@@ -511,7 +511,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           const skills = attachments.filter((item) => item.kind === 'skill');
           const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
           const references = attachments.filter((item) => namedTarget !== '' && item.kind === 'file' && item.path !== namedTarget);
-          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + JSON.stringify(references);
+          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + references.map((item) => item.path + '\n' + item.text).join('\n\n') + '\nWhen asked for a literal value, copy its initializer from the reference source. A name declared only in a reference file is outside the target file\'s scope.';
           editPrompt = sources.join('\n\n') + skillContext + fileContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
         } else {
           const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
