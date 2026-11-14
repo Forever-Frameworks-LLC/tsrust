@@ -66,3 +66,23 @@ pass `tests ../desktop/tests` to the test command above. The crash case launches
 this already compiled runner with a runtime test filter, holds an uncommitted
 SQLite transaction, and lets its parent terminate the child before reopening and
 replaying the page. It creates no separate native program or source tree.
+
+## Desktop review
+
+Run `../../../target/release/tsrust dev` from `apps/tasks/desktop` while the API
+is running. `WORKLIST_API_URL` selects the endpoint; `WORKLIST_DATA_DIR` overrides
+the persistent cache and draft location. The title-bar toggle switches light/dark
+themes. Cmd/Ctrl with +, - and 0 changes/reset text zoom.
+
+The database starts empty. The retained changes feed includes deleted test rows
+and is not the current task list. To populate 300 clearly marked review tasks,
+run this explicit command from `apps/tasks/api`:
+
+```sh
+DATABASE_URL=postgres://worklist:worklist-local@127.0.0.1:5443/worklist \
+  ../../../target/release/tsrust run tools/seed-review.tsr
+```
+
+The seed preserves all existing ids and edits on repeated runs. It uses external
+database writes so the running desktop receives the rows through CDC. It is never
+run automatically at application startup.

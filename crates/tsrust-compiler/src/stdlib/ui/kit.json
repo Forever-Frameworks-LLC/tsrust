@@ -4150,6 +4150,16 @@
           "name": "autoFocus",
           "type": "boolean",
           "doc": "Focuses the list (or its search field) when it mounts."
+        },
+        {
+          "name": "scrollResetKey",
+          "type": "string",
+          "doc": "Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection."
+        },
+        {
+          "name": "minItemWidth",
+          "type": "number",
+          "doc": "Positive minimum card width in logical pixels enables a responsive virtualized grid of flat ListItem children. Columns follow the measured list width; each card remains clickable and keyboard focusable. Use selectable=false and onConfirm for card activation. Omit for ordinary list selection and sections."
         }
       ],
       "events": [
@@ -5543,6 +5553,11 @@
             "large"
           ],
           "doc": "Control size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "focusRing",
+          "type": "boolean",
+          "doc": "false removes the native outer focus ring. Defaults to true. Focus and keyboard input remain enabled."
         }
       ],
       "children": "One Input or Textarea and InputGroupAddon",
@@ -6244,7 +6259,7 @@
         {
           "name": "columnSelectable",
           "type": "boolean",
-          "doc": "Clicking a header selects the column."
+          "doc": "Clicking a non-sortable header selects the column. Sortable headers change the sort instead."
         },
         {
           "name": "cellSelectable",
@@ -6335,6 +6350,16 @@
             "large"
           ],
           "doc": "Row size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "scrollResetKey",
+          "type": "string",
+          "doc": "Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection."
+        },
+        {
+          "name": "manualSorting",
+          "type": "boolean",
+          "doc": "When true, sortable headers emit onSort and show direction without rearranging the supplied rows. Sort the full dataset in onSort before pagination. Defaults to false, which sorts the supplied rows locally."
         }
       ],
       "events": [
@@ -6410,7 +6435,7 @@
         }
       ],
       "example": "<DataTable className=\"h-72\" rows={JSON.stringify(rows)} stripe={true} onSelect={(row) => { selected.set(row); }}>\n  <DataTableColumn key=\"0\" width={160} fixed=\"left\">Name</DataTableColumn>\n  <DataTableColumn key=\"1\" sortable={true}>Role</DataTableColumn>\n  <DataTableColumn key=\"2\" sortable={true} align=\"right\">Salary</DataTableColumn>\n  <DataTableEmpty><Text variant=\"muted\">No people.</Text></DataTableEmpty>\n</DataTable>",
-      "children": "DataTableColumn, DataTableEmpty and DataTableMenu"
+      "children": "DataTableColumn, DataTableCell, DataTableEmpty and DataTableMenu"
     },
     {
       "name": "DataTableColumn",
@@ -6453,9 +6478,10 @@
           "name": "defaultSort",
           "type": [
             "ascending",
-            "descending"
+            "descending",
+            "none"
           ],
-          "doc": "Sort indicator shown at first."
+          "doc": "Initial sort direction when sort is omitted. Later row refreshes preserve user sorting. Use sort for controlled updates; defaults to none."
         },
         {
           "name": "align",
@@ -6492,9 +6518,42 @@
           "name": "padding",
           "type": "number",
           "doc": "Cell padding in pixels; 0 removes it."
+        },
+        {
+          "name": "fill",
+          "type": "boolean",
+          "doc": "Expands this column into unused table width, keeping its width/minWidth as a minimum. Use on one column; narrower tables retain horizontal scrolling. Defaults to false."
+        },
+        {
+          "name": "sort",
+          "type": [
+            "ascending",
+            "descending",
+            "none"
+          ],
+          "doc": "Controlled sort direction. Bind none on inactive columns. After onSort, the indicator and local row order follow this value even when the handler retains its previous value. Without it, defaultSort initializes an uncontrolled three-state sort."
         }
       ],
       "example": "<DataTableColumn key=\"2\" sortable={true} align=\"right\" width={120}>Salary</DataTableColumn>"
+    },
+    {
+      "name": "DataTableCell",
+      "item": true,
+      "children": true,
+      "doc": "Rich content for one DataTable cell. Row is the original zero-based index in rows; column is its DataTableColumn key. Sorting preserves the association. The rows value remains the accessible text and local sort value. Unspecified cells keep their plain text. Example: <DataTableCell row={0} column=\"1\"><Tag variant=\"success\">Done</Tag></DataTableCell>.",
+      "props": [
+        {
+          "name": "row",
+          "type": "int",
+          "doc": "Zero-based row index in rows, before local sorting. Omitted, negative and out-of-range indices leave the original text cell unchanged."
+        },
+        {
+          "name": "column",
+          "type": "string",
+          "doc": "DataTableColumn key, such as \"0\" for the first column. An omitted or unknown key leaves the original text cell unchanged."
+        }
+      ],
+      "example": "<DataTableCell row={0} column=\"1\"><Tag variant=\"success\">Done</Tag></DataTableCell>"
     },
     {
       "name": "DataTableEmpty",

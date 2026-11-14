@@ -37,3 +37,10 @@ text; default-size tabs retain their normal geometry. This lets editor and panel
 labels follow Studio zoom through the shared renderer. Remove this patch when an
 admitted upstream version preserves custom tab text sizes and passes native zoom
 and clipping checks.
+
+Sortable table headers now activate across the full header, including when column
+selection is disabled. Clicking the sort icon stops propagation so it cycles once.
+The cycle is ascending, descending, then original order, matching the public SDK
+contract. A focused native TableState regression verifies the cycle without column
+selection and preserves one active sort column. Remove when upstream
+provides equivalent header activation and cycle behavior.

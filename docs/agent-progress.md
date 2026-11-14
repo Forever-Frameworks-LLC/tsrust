@@ -4,6 +4,62 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Owner correction: preserve capabilities — 2026-11-14
+
+The owner rejected reducing sort behavior to two states to avoid a controlled-state
+edge case. Restore ascending, descending and genuinely unsorted source order. Fix
+controlled/uncontrolled synchronization in the shared table, including handlers
+that retain the same bound value. Add coverage for Updated and every other column.
+Audit this section for similar shortcuts; do not disable or remove a capability to
+make acceptance pass. The older two-state acceptance note below is superseded.
+Current source restores an original-order query and adds a corresponding model
+witness, but the complete framework repair and new validation remain in progress.
+Card view also needs its own sort controls because removing the redundant table
+sort menu accidentally removed card-mode access to sorting. Keep one toolbar.
+Core nullable repair is checkpoint af1cbfeca; UI/SDK changes remain uncommitted.
+
+The current repair adds an explicit controlled DataTableColumn.sort while keeping
+defaultSort initial-only. Delegate refresh preserves uncontrolled sorting, column
+widths and reordered columns; controlled sort events invalidate the delegate even
+when a handler retains the same bound value. Local sorting now preserves original
+row identities, stable ties and exact i128 integer comparisons. The focused
+tsrust-ui unit passed (1/1, 0.00 s); the rebuilt debug compiler checks Worklist and
+the new ui-table-state native fixture successfully. Compiler setup took 2m29s.
+Native controlled/uncontrolled acceptance and the changed four-case model suite
+have now passed: the native fixture retained controlled descending through three
+same-value handler attempts, preserved uncontrolled asc/desc/unsorted on row
+replacement, sorted exact large integers, retained stable ties and reported original
+source indices. Resizing 420 to 360 px and moving the second column first both
+survived a row refresh with the active sort. The four-case model runner passed in
+3.18 ms execution with 2.912 s build/setup. Public UI authoring passed 1/1 in 1.37 s
+with 2m30s host setup, including rejection of an invalid controlled direction.
+The fixture supervisor was stopped after acceptance. Its first sandboxed launch
+failed on macOS pasteboard access; a direct unbundled launch lacked a usable AX
+content tree. Acceptance used the normal bundled dev flow (53.365 s setup).
+The whole-project formatter was idempotent at this point.
+The audit also confirmed that typography-only Button classes bypass semantic
+variants/selection in the shared renderer; that repair remains required. Keep
+custom card layouts, semantic variants and zoom rather than removing capabilities.
+The same audit found Grid.source uses the current display position as a fallback
+for nonnumeric column keys. Use the original source_columns position so reordering
+named keys cannot switch their cell data. Include named keys in the retained native
+fixture when repairing this alongside the Button renderer. This is pending, not
+covered by the current numeric-key native acceptance.
+
+Worklist native replay passed every header (Task, Status, Priority, Assignee,
+Due date and Updated) through ascending, descending and unsorted. Each active
+indicator and first displayed task matched an independent sort of the live API
+snapshot; Task used full-header pointer clicks. Inactive indicators stayed
+unsorted. LSP library replay passed 36/36 in 2.05 s (2m30s setup).
+Card mode exposes the restored selector and direction control, but opening its
+selector did not expose menu options in the AX tree through either activation
+or pointer clicks. Investigate this before claiming the restored card sort flow
+accepted; do not remove the selector. Screen capture remains unavailable.
+Current Worklist dev supervisor is 35538, exec session 80718, native child 37735.
+API dev supervisor 33729 remains running. The Worklist SDK refresh rebuilt its
+runtime (163.624 s) and launched in 183.385 s total; these are development
+observations, not matched performance results. Studio remains stopped.
+
 ## Worklist focused acceptance complete; goal remains open — 2026-11-14
 
 All requested core flows now have native acceptance: one native TitleBar with

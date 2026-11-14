@@ -1,0 +1,148 @@
+import { Channel, Sender, race, delay } from 'std:futures';
+import { Client, request } from 'std:http';
+import { encodeURIComponent } from 'std:url';
+
+import { Snapshot, TaskRecord, WriteTask, TaskConflict, ApiFailure } from '../../shared/tasks.tsr';
+import { openCache, readCache } from './cache.tsr';
+import { syncPage } from './sync.tsr';
+
+interface RefreshCommand {
+  kind: 'refresh';
+}
+
+interface SaveCommand {
+  kind: 'save';
+  requestId: int;
+  id: string;
+  value: WriteTask;
+}
+
+interface DeleteCommand {
+  kind: 'delete';
+  requestId: int;
+  id: string;
+  expectedVersion: int;
+}
+
+export type TaskCommand = RefreshCommand | SaveCommand | DeleteCommand;
+
+export interface TaskUpdate {
+  snapshot: Snapshot;
+  ready: boolean;
+  connected: boolean;
+  message: string;
+  requestId: int;
+  outcome: 'none' | 'saved' | 'deleted' | 'failed' | 'conflict';
+  current: TaskRecord | null;
+}
+
+async function refreshLater(): Task<TaskCommand> {
+  await delay(1500);
+  return {
+    kind: 'refresh'
+  };
+}
+
+async function nextCommand(commands: ReadOnly<Channel<TaskCommand>>): Task<TaskCommand> {
+  return await commands.receive();
+}
+
+async function runService(base: string, cacheUrl: string, commands: Channel<TaskCommand>, updates: ReadOnly<Sender<TaskUpdate>>): Task<void> {
+  const cache = await openCache(cacheUrl);
+  const client = new Client({
+    timeoutMs: 5000, connectTimeoutMs: 1500, noProxy: true
+  });
+  const local = await readCache(cache);
+  let state: TaskUpdate = {
+    snapshot: local.snapshot, ready: local.initialized, connected: false, message: local.initialized ? 'Showing saved tasks. Connecting…' : 'Connecting to Worklist…', requestId: 0, outcome: 'none', current: null
+  };
+  await updates.send(clone(state));
+  let command: TaskCommand = {
+    kind: 'refresh'
+  };
+
+  try {
+    while (true) {
+      state.requestId = 0;
+      state.outcome = 'none';
+      state.current = null;
+
+      try {
+        if (command.kind !== 'refresh') {
+          state.requestId = command.requestId;
+          const method = command.kind === 'save' ? 'PUT' : 'DELETE';
+          const body = command.kind === 'save' ? JSON.stringify(command.value) : JSON.stringify({
+            expectedVersion: command.expectedVersion
+          });
+          const response = await client.send(request(method, base + '/tasks/' + encodeURIComponent(command.id), body));
+
+          if (response.status() === 409) {
+            const conflict = JSON.parse<TaskConflict>(await response.text());
+            state.outcome = 'conflict';
+            state.current = conflict.current;
+            state.message = clone(conflict.message);
+          } else if (response.status() !== 200 && response.status() !== 201) {
+            const failure = JSON.parse<ApiFailure>(await response.text());
+            state.outcome = 'failed';
+            state.message = clone(failure.message);
+          } else if (command.kind === 'save') {
+            state.outcome = 'saved';
+            state.current = JSON.parse<TaskRecord>(await response.text());
+            state.message = 'Task saved.';
+          } else {
+            state.outcome = 'deleted';
+            state.message = 'Task deleted.';
+          }
+        }
+
+        let synchronized = await syncPage(cache, client, base);
+        state.snapshot = synchronized.snapshot;
+        state.ready = true;
+        state.connected = true;
+
+        if (state.outcome === 'none') state.message = 'All changes synced';
+
+        while (synchronized.hasMore) {
+          const progress = clone(state);
+          progress.requestId = 0;
+          progress.outcome = 'none';
+          progress.message = 'Catching up…';
+          await updates.send(progress);
+          synchronized = await syncPage(cache, client, base);
+          state.snapshot = synchronized.snapshot;
+        }
+      } catch (error) {
+        state.connected = false;
+
+        if (state.requestId !== 0 && state.outcome === 'none') state.outcome = 'failed';
+
+        if (typeof error === 'string') state.message = clone(error);
+        else {
+          console.error('Worklist sync failed:', JSON.stringify(error));
+          state.message = 'The request failed. Last synced tasks remain available.';
+        }
+
+        if (state.outcome === 'saved' || state.outcome === 'deleted') state.message = 'Saved on the server. Reconnecting to refresh local tasks.';
+        else if (state.requestId !== 0) state.message = 'Could not confirm this write. Reconnect and review the current version before retrying. ' + state.message;
+      }
+
+      await updates.send(clone(state));
+      command = await race([nextCommand(commands), refreshLater()]);
+    }
+  } finally {
+    await cache.close();
+  }
+}
+
+export async function taskService(base: string, cacheUrl: string, commands: Channel<TaskCommand>, updates: Sender<TaskUpdate>): Task<void> {
+  try {
+    await runService(base, cacheUrl, commands, updates);
+  } catch (error) {
+    console.error('Worklist background service stopped:', JSON.stringify(error));
+    await updates.send({
+      snapshot: {
+        cursor: 0, tasks: []
+      }, ready: false, connected: false, message: 'The background service could not start. Check local storage and restart Worklist.', requestId: 0, outcome: 'none', current: null
+    });
+  }
+}

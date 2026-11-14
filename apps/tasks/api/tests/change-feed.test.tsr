@@ -1,5 +1,5 @@
-import { connect } from 'std:sql';
 import { get } from 'std:env';
+import { connect } from 'std:sql';
 import { test, strictEqual } from 'std:testing';
 
 test('database changes retain versions and tombstones and roll back atomically', async () => {

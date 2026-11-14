@@ -67,6 +67,7 @@ use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
 use gpui_kit::component::command::{Command as CommandPalette, CommandGroup, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
 use gpui_kit::component::input::{Editor, EditorState};
+use gpui_kit::component::FocusableExt;
 use gpui_kit::component::list::{List, ListDelegate, ListEvent, ListItem, ListState};
 use gpui_kit::component::message::{Message, MessageAlignment, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader};
 use gpui_kit::component::scroll::ScrollableElement;
@@ -188,6 +189,8 @@ struct ListRow {id: u64, text: String, separator: bool, disabled: bool}
 struct TsrustList {
     root: WeakEntity<Root>,
     list: u64,
+    scroll_reset_key: String,
+    columns: usize, min_item_width: f32,
     sections: Vec<(String, Vec<ListRow>)>,
     query: String,
     empty: Option<u64>,
@@ -267,8 +270,29 @@ impl ListDelegate for TsrustList {
         Task::ready(())
     }
     fn sections_count(&self, _: &App) -> usize {self.sections.len().max(1)}
-    fn items_count(&self, section: usize, _: &App) -> usize {self.visible(section).len()}
+    fn items_count(&self, section: usize, _: &App) -> usize {self.visible(section).len().div_ceil(self.columns)}
     fn render_item(&mut self, index: IndexPath, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Option<ListItem> {
+        if self.min_item_width > 0. {
+            let rows = self.visible(index.section).into_iter().skip(index.row*self.columns).take(self.columns).cloned().collect::<Vec<_>>();
+            let values=rows.iter().map(|row|(row.id,self.values.get(&row.id).cloned().unwrap_or_default())).collect::<HashMap<_,_>>();
+            let (list, columns)=(self.list,self.columns);
+            return self.root.update(cx, |root,cx| {
+                let mut content=div().flex().gap(px(12.)).w_full();
+                for row in &rows {
+                    let value=values.get(&row.id).cloned().unwrap_or_default();
+                    if let Some(node)=find(&root.node,row.id) {
+                        let owner=cx.entity().downgrade();
+                        let button=gpui_kit::base::Button::new(ElementId::Name(format!("card-{}",row.id).into()))
+                            .flex().w_full().min_w_0().disabled(row.disabled).accessibility_label(node.kit.as_deref().map(|kit|kit.text("accessibilityLabel")).filter(|label|!label.is_empty()).unwrap_or_else(||row.text.clone()))
+                            .refine_style(&root.node_style(node)).children(root.content(node,cx))
+                            .on_click(move|_,_,cx|{let _=owner.update(cx,|root,cx|root.emit(list,"confirm",value.clone(),cx));});
+                        content=content.child(div().flex_1().min_w_0().child(button));
+                    }
+                }
+                for _ in rows.len()..columns {content=content.child(div().flex_1());}
+                Some(ListItem::new(ElementId::Name(format!("grid-row-{}-{}",list,index.row).into())).p_0().child(content))
+            }).ok().flatten();
+        }
         let row = self.row(index)?;
         self.root.update(cx, |root, cx| root.list_item(row.id, cx)).ok().flatten()
     }
@@ -934,7 +958,7 @@ impl Render for DockContent {
 /// What rebuilds a DataTable's delegate: its rows, columns, parts and load state.
 fn grid_shape(node: &Node) -> String {
     let kit = node.kit.as_deref().expect("DataTable");
-    let mut out = ["rows", "columns", "sortable", "loading", "hasMore", "loadMoreThreshold"].map(|key| kit.text(key)).join("\u{1}");
+    let mut out = ["rows", "columns", "sortable", "loading", "hasMore", "loadMoreThreshold", "manualSorting", "scrollResetKey"].map(|key| kit.text(key)).join("\u{1}");
     for (child, part) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
         out.push('\u{2}'); out.push_str(&part.name);
         for (key, value) in &part.props {out.push_str(key); out.push('='); out.push_str(value); out.push(';');}
@@ -946,7 +970,7 @@ fn grid_shape(node: &Node) -> String {
 /// One DataTable column from a DataTableColumn child.
 #[derive(Clone, PartialEq)]
 struct GridColumn {
-    key: SharedString, label: SharedString, width: Option<f32>, min: Option<f32>, max: Option<f32>, sortable: bool, sort: String,
+    key: SharedString, label: SharedString, width: Option<f32>, min: Option<f32>, max: Option<f32>, sortable: bool, sort: String, controlled_sort: bool, declared_width: Option<f32>, preferred_width: Option<f32>, fill: bool,
     align: String, fixed: bool, resizable: bool, movable: bool, selectable: bool, padding: Option<f32>,
 }
 
@@ -954,6 +978,7 @@ struct GridColumn {
 /// order), a sort order over the rows, and the table's empty, loading, load-more and menu parts.
 struct Grid {
     columns: Vec<GridColumn>, rows: Vec<Vec<SharedString>>, order: Vec<usize>,
+    source_columns: Vec<SharedString>, viewport_width: f32, cells: HashMap<(usize, String), u64>, manual_sorting: bool, scroll_reset_key: String,
     root: WeakEntity<Root>, table: u64, empty: Option<u64>, menu: Vec<MenuEntry>, loading: bool, has_more: bool, threshold: usize,
 }
 
@@ -965,7 +990,7 @@ impl Grid {
             GridColumn {
                 key: column.prop("key").map_or_else(|| index.to_string(), str::to_owned).into(), label: label.into(),
                 width: column.number("width").map(|value| value as f32), min: column.number("minWidth").map(|value| value as f32), max: column.number("maxWidth").map(|value| value as f32),
-                sortable: column.flag("sortable"), sort: column.text("defaultSort"), align: column.text("align"), fixed: column.text("fixed") == "left",
+                sortable: column.flag("sortable"), sort: column.prop("sort").map(str::to_owned).unwrap_or_else(||column.text("defaultSort")), controlled_sort: column.prop("sort").is_some(), declared_width: column.number("width").map(|width|width as f32), preferred_width: column.number("width").map(|width|width as f32), fill: column.flag("fill"), align: column.text("align"), fixed: column.text("fixed") == "left",
                 resizable: column.prop("resizable") != Some("false"), movable: column.prop("movable") != Some("false"), selectable: column.prop("selectable") != Some("false"),
                 padding: column.number("padding").map(|value| value as f32),
             }
@@ -973,16 +998,57 @@ impl Grid {
         // Without DataTableColumn children, the `columns` prop names the columns.
         if columns.is_empty() {
             columns = kit.text("columns").split('\n').filter(|name| !name.is_empty()).enumerate().map(|(index, name)| GridColumn {
-                key: index.to_string().into(), label: name.to_owned().into(), width: None, min: None, max: None, sortable: kit.flag("sortable"), sort: String::new(),
+                key: index.to_string().into(), label: name.to_owned().into(), width: None, min: None, max: None, sortable: kit.flag("sortable"), sort: String::new(), controlled_sort: false, declared_width: None, preferred_width: None, fill: false,
                 align: String::new(), fixed: false, resizable: true, movable: true, selectable: true, padding: None,
             }).collect();
         }
         let rows = serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&kit.text("rows")).unwrap_or_default().into_iter()
             .map(|row| row.into_iter().map(|cell| SharedString::from(match cell {serde_json::Value::String(text) => text, serde_json::Value::Null => String::new(), other => other.to_string()})).collect()).collect::<Vec<Vec<_>>>();
-        Self {
+        let source_columns=columns.iter().map(|column|column.key.clone()).collect();
+        let mut grid=Self {
+            source_columns, viewport_width: 0., cells: items(node, "DataTableCell").filter_map(|(child, cell)| cell.index("row").map(|row| ((row, cell.text("column")), child.identity.get()))).collect(),
+            manual_sorting: kit.flag("manualSorting"), scroll_reset_key: kit.text("scrollResetKey"),
             order: (0..rows.len()).collect(), columns, rows, root, table: node.identity.get(),
             empty: first_item(node, "DataTableEmpty").map(|empty| empty.identity.get()), menu: first_item(node, "DataTableMenu").map(menu_entries).unwrap_or_default(),
             loading: kit.flag("loading"), has_more: kit.flag("hasMore"), threshold: kit.index("loadMoreThreshold").unwrap_or(20),
+        };
+        grid.apply_sort();
+        grid
+    }
+    fn apply_sort(&mut self) {
+        let active=self.columns.iter().position(|column|column.controlled_sort && matches!(column.sort.as_str(),"ascending"|"descending"))
+            .or_else(||self.columns.iter().position(|column|matches!(column.sort.as_str(),"ascending"|"descending")));
+        for (index,column) in self.columns.iter_mut().enumerate() {if Some(index)!=active && !column.sort.is_empty() {column.sort="none".into();}}
+        let sort=if self.manual_sorting {None}else{active.map(|column|(self.source(column),self.columns[column].sort=="descending"))};
+        self.order=super::kit::table_row_order(&self.rows,sort);
+    }
+    fn inherit_state(&mut self, previous:&Self) {
+        for column in &mut self.columns {
+            if let Some(old)=previous.columns.iter().find(|old|old.key==column.key) {
+                if !column.controlled_sort {column.sort=old.sort.clone();}
+                if column.declared_width==old.declared_width && column.min==old.min && column.max==old.max {
+                    column.preferred_width=old.preferred_width;column.width=old.width;
+                }
+            }
+        }
+        if self.source_columns==previous.source_columns {
+            self.columns.sort_by_key(|column|previous.columns.iter().position(|old|old.key==column.key).unwrap_or(usize::MAX));
+        }
+        self.apply_sort();
+        self.fill_width(previous.viewport_width);
+    }
+    fn capture_widths(&mut self, widths:&[Pixels]) {
+        for (column,width) in self.columns.iter_mut().zip(widths) {
+            let width=f32::from(*width);
+            if (column.width.unwrap_or(120.)-width).abs()>0.25 {column.width=Some(width);column.preferred_width=Some(width);}
+        }
+    }
+    fn fill_width(&mut self, width:f32) {
+        self.viewport_width=width;
+        if let Some(index)=self.columns.iter().position(|column|column.fill) {
+            let other=self.columns.iter().enumerate().filter(|(i,_)|*i!=index).map(|(_,column)|column.width.unwrap_or(120.)).sum::<f32>();
+            let column=&mut self.columns[index];
+            column.width=Some((width-other).max(column.preferred_width.unwrap_or(120.)).max(column.min.unwrap_or(20.)).min(column.max.unwrap_or(f32::INFINITY)));
         }
     }
     /// The column index into each row for a display column.
@@ -993,7 +1059,12 @@ impl Grid {
     fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(self.source(column))).cloned().unwrap_or_default()}
     fn emit(&self, event: &'static str, value: String, cx: &mut App) {
         let (root, table) = (self.root.clone(), self.table);
-        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| root.emit(table, event, value, cx));});
+        let controlled_sort = event == "sort" && self.columns.iter().any(|column|column.controlled_sort);
+        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| {
+            root.emit(table, event, value, cx);
+            // A controlled handler may retain the same value; restore its indicators after the native transition too.
+            if controlled_sort && let Some(KitState::Table(_, shape)) = root.states.get_mut(&table) {shape.clear();cx.notify();}
+        });});
     }
 }
 
@@ -1014,24 +1085,22 @@ impl TableDelegate for Grid {
         entry
     }
     fn perform_sort(&mut self, column: usize, sort: ColumnSort, _: &mut Window, cx: &mut Context<TableState<Self>>) {
-        self.order = (0..self.rows.len()).collect();
-        let direction = match sort {ColumnSort::Ascending => "ascending", ColumnSort::Descending => "descending", _ => ""};
-        self.emit("sort", format!("{}\n{direction}", self.columns[column].key), cx);
-        if direction.is_empty() {return;}
-        let (rows, source) = (&self.rows, self.source(column));
-        // Numbers compare numerically; anything else compares as text.
-        self.order.sort_by(|left, right| {
-            let (left, right) = (rows[*left].get(source).map(|cell| cell.as_ref()).unwrap_or(""), rows[*right].get(source).map(|cell| cell.as_ref()).unwrap_or(""));
-            match (left.trim().parse::<f64>(), right.trim().parse::<f64>()) {(Ok(left), Ok(right)) => left.total_cmp(&right), _ => left.cmp(right)}
-        });
-        if matches!(sort, ColumnSort::Descending) {self.order.reverse();}
+        let direction = match sort {ColumnSort::Ascending => "ascending", ColumnSort::Descending => "descending", _ => "none"};
+        for (index,spec) in self.columns.iter_mut().enumerate() {spec.sort=if index==column {direction.into()}else{"none".into()};}
+        self.apply_sort();
+        self.emit("sort", format!("{}\n{}", self.columns[column].key, if direction=="none" {""}else{direction}), cx);
     }
+
     fn context_menu(&mut self, row: usize, menu: gpui_kit::component::menu::PopupMenu, _: &mut Window, cx: &mut Context<TableState<Self>>) -> gpui_kit::component::menu::PopupMenu {
         if self.menu.is_empty() {return menu;}
         if let Some(index) = self.order.get(row) {self.emit("contextMenu", index.to_string(), cx);}
         flat_menu(menu, &self.menu, &self.root)
     }
-    fn render_td(&mut self, row: usize, column: usize, _: &mut Window, _: &mut Context<TableState<Self>>) -> impl IntoElement {self.cell(row, column)}
+    fn render_td(&mut self, row: usize, column: usize, _: &mut Window, cx: &mut Context<TableState<Self>>) -> impl IntoElement {
+        let part = self.order.get(row).and_then(|row| self.cells.get(&(*row, self.columns[column].key.to_string())));
+        if let Some(part) = part && let Ok(content) = self.root.update(cx, |root, cx| root.content_of(*part, cx)) {return div().children(content).into_any_element();}
+        div().child(self.cell(row, column)).into_any_element()
+    }
     fn cell_label(&self, row: usize, column: usize, _: &App) -> Option<SharedString> {Some(self.cell(row, column))}
     fn move_column(&mut self, from: usize, to: usize, _: &mut Window, cx: &mut Context<TableState<Self>>) {
         let column = self.columns.remove(from);
@@ -1743,7 +1812,12 @@ impl Root {
                         let (searchable, selectable) = (text("searchable") == "true", text("selectable") != "false");
                         state.update(cx, |state, cx| {
                             let list = state.delegate_mut();
+                            list.min_item_width = number("minItemWidth").unwrap_or(0.) as f32;
+                            if list.min_item_width <= 0. {list.columns=1;}
+                            let reset = list.scroll_reset_key != text("scrollResetKey");
+                            list.scroll_reset_key = text("scrollResetKey").to_owned();
                             (list.sections, list.values, list.empty, list.loading, list.has_more, list.threshold) = (sections, values, empty, loading, has_more, threshold);
+                            if reset {state.scroll_to_item(IndexPath::new(0).section(0), gpui::ScrollStrategy::Top, window, cx);}
                             state.set_searchable(searchable, cx);
                             state.set_selectable(selectable, cx);
                             cx.notify();
@@ -1849,8 +1923,9 @@ impl Root {
                         let current = grid_shape(node);
                         if *shape != current {
                             // Rows and columns changed: keep the sort direction by re-sorting the new rows.
-                            let grid = Grid::new(node, cx.entity().downgrade());
-                            state.update(cx, |state, cx| {*state.delegate_mut() = grid; state.refresh(cx); state.refresh_header_layout(cx);});
+                            let mut grid = Grid::new(node, cx.entity().downgrade());
+                            grid.inherit_state(state.read(cx).delegate());
+                            state.update(cx, |state, cx| {let reset = state.delegate().scroll_reset_key != grid.scroll_reset_key; *state.delegate_mut() = grid; state.refresh(cx); state.refresh_header_layout(cx); if reset {state.scroll_to_row(0, cx);}});
                             if let Some(KitState::Table(_, shape)) = self.states.get_mut(&id) {*shape = current;}
                         }
                         if let Some(KitState::Table(state, _)) = self.states.get(&id) && let Some(selected) = number("selectedRow").map(|row| row as usize) {
@@ -2160,11 +2235,12 @@ impl Root {
                         .select_on_modifier_click(flag("selectOnModifierClick", false)).col_selectable(flag("columnSelectable", false))
                         .cell_selectable(flag("cellSelectable", false)).row_header(flag("rowHeader", true)));
                     // Rows report their index in `rows`, whatever the sort; columns report their key.
-                    cx.subscribe_in(&state, window, move |this, state, event: &TableEvent, _, cx| {
+                    cx.subscribe_in(&state, window, move |this, state, table_event: &TableEvent, _, cx| {
+                        let (event,value) = {
                         let grid = state.read(cx).delegate();
                         let row = |display: usize| grid.order.get(display).map_or(String::new(), usize::to_string);
                         let key = |column: usize| grid.columns.get(column).map_or(String::new(), |column| column.key.to_string());
-                        let (event, value) = match event {
+                        let (event, value) = match table_event {
                             TableEvent::SelectRow(display) => ("select", row(*display)),
                             TableEvent::DoubleClickedRow(display) => ("activate", row(*display)),
                             TableEvent::SelectColumn(column) => ("selectColumn", key(*column)),
@@ -2175,6 +2251,9 @@ impl Root {
                             TableEvent::ClearSelection => ("clearSelection", String::new()),
                             _ => return,
                         };
+                        (event,value)
+                        };
+                        if let TableEvent::ColumnWidthsChanged(widths)=table_event {state.update(cx,|state,_|state.delegate_mut().capture_widths(widths));}
                         this.emit(id, event, value, cx);
                     }).detach();
                     KitState::Table(state, grid_shape(node))
@@ -2341,7 +2420,7 @@ impl Root {
                 "List" => {
                     let Some(node) = find(&self.node, id) else {continue};
                     let delegate = TsrustList {
-                        root: cx.entity().downgrade(), list: id, sections: list_sections(node), query: String::new(),
+                        root: cx.entity().downgrade(), list: id, columns: 1, min_item_width: number("minItemWidth").unwrap_or(0.) as f32, scroll_reset_key: text("scrollResetKey").to_owned(), sections: list_sections(node), query: String::new(),
                         empty: first_item(node, "ListEmpty").map(|empty| empty.identity.get()), loading: text("loading") == "true",
                         has_more: text("hasMore") == "true", threshold: number("loadMoreThreshold").map_or(20, |rows| rows as usize), selected: None, values: list_values(node),
                     };
@@ -2512,7 +2591,7 @@ impl Root {
                         let description = description.map(|description| div().text_sm().font_weight(FontWeight::NORMAL).text_color(muted).children(description));
                         sheet = sheet.title(div().flex().flex_col().gap_1().children(title).children(description));
                     }
-                    if let Some(footer) = footer {sheet = sheet.footer(div().flex().justify_end().gap_2().children(footer));}
+                    if let Some(footer) = footer {sheet = sheet.footer(div().flex().w_full().justify_end().gap_2().children(footer));}
                     sheet.child(div().flex().flex_col().gap_3().children(body))
                 });
             }
@@ -3497,6 +3576,14 @@ impl Root {
                     if let Some(bounce) = kit.prop("scrollBounce") {list = list.scroll_bounce(bounce == "true");}
                     if let Some(placeholder) = kit.prop("placeholder") {list = list.search_placeholder(placeholder.to_owned());}
                     if let Some(size) = kit_size(kit) {list = list.with_size(size);}
+                    let minimum=kit.number("minItemWidth").unwrap_or(0.) as f32;
+                    if minimum>0. {
+                        let state=state.downgrade();
+                        return div().relative().size_full().child(list).child(canvas(move|bounds,_,cx|{let _=state.update(cx,|state,cx|{
+                            let count=((f32::from(bounds.size.width)+12.)/(minimum+12.)).floor().max(1.) as usize;
+                            if state.delegate().columns!=count {state.delegate_mut().columns=count;cx.notify();}
+                        });},|_,_,_,_|{}).absolute().size_full()).into_any_element();
+                    }
                     list.into_any_element()
                 }
                 _ => div().into_any_element(),
@@ -3781,7 +3868,7 @@ impl Root {
             }
             "InputGroup" => {
                 // shadcn composition: one Input or Textarea child and InputGroupAddon children.
-                let mut group = InputGroup::new(element_id).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid")).refine_style(&self.node_style(node));
+                let mut group = InputGroup::new(element_id).focus_ring(kit.prop("focusRing") != Some("false")).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid")).refine_style(&self.node_style(node));
                 if let Some(size) = kit_size(kit) {group = group.with_size(size);}
                 if let Some(label) = kit.prop("accessibilityLabel") {group = group.aria_label(label.to_owned());}
                 for child in node.visible_children() {
@@ -3890,6 +3977,13 @@ impl Root {
                     if let Some(bounce) = kit.prop("scrollBounce") {table = table.scroll_bounce(bounce == "true");}
                     if let Some(height) = kit.number("headerRowHeight") {table = table.header_row_height(px(height as f32));}
                     if let Some(size) = kit_size(kit) {table = table.with_size(size);}
+                    if state.read(cx).delegate().columns.iter().any(|column|column.fill) {
+                        let state=state.downgrade();
+                        return div().relative().size_full().child(table).child(canvas(move|bounds,_,cx|{let _=state.update(cx,|state,cx|{
+                            let width=f32::from(bounds.size.width);
+                            if (state.delegate().viewport_width-width).abs()>0.5 {state.delegate_mut().fill_width(width);state.refresh(cx);cx.notify();}
+                        });},|_,_,_,_|{}).absolute().size_full()).into_any_element();
+                    }
                     table.into_any_element()
                 }
                 _ => div().into_any_element(),

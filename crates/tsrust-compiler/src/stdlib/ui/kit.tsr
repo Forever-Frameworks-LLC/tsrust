@@ -6229,6 +6229,10 @@ export interface ListProps {
   query?: ReactiveValue<string> | TextBinding;
   /** Focuses the list (or its search field) when it mounts. */
   autoFocus?: ReactiveValue<boolean>;
+  /** Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection. */
+  scrollResetKey?: ReactiveValue<string> | TextBinding;
+  /** Positive minimum card width in logical pixels enables a responsive virtualized grid of flat ListItem children. Columns follow the measured list width; each card remains clickable and keyboard focusable. Use selectable=false and onConfirm for card activation. Omit for ordinary list selection and sections. */
+  minItemWidth?: ReactiveValue<number>;
   /** Receives the highlighted row's value (or its index) as the highlight moves. */
   onSelect?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Receives the row's value (or its index) on click or Enter. */
@@ -6326,6 +6330,18 @@ export function List(props: ListProps): Node {
 
   if (prop_autoFocus !== undefined) {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
+  }
+
+  const prop_scrollResetKey = props.scrollResetKey;
+
+  if (prop_scrollResetKey !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'scrollResetKey', prop_scrollResetKey));
+  }
+
+  const prop_minItemWidth = props.minItemWidth;
+
+  if (prop_minItemWidth !== undefined) {
+    node = kitNumber(node, 'minItemWidth', prop_minItemWidth);
   }
 
   const event_onSelect = props.onSelect;
@@ -8388,6 +8404,8 @@ export interface InputGroupProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Control size: xsmall, small, medium (default) or large. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** false removes the native outer focus ring. Defaults to true. Focus and keyboard input remain enabled. */
+  focusRing?: ReactiveValue<boolean>;
   /** One Input or Textarea and InputGroupAddon elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -8454,6 +8472,12 @@ export function InputGroupAddon(props: InputGroupAddonProps): Node {
     } else {
       node = unwrapNode(nativeKitBind(node, 'align', nativeBindText(prop_align.evaluate)));
     }
+  }
+
+  const prop_focusRing = props.focusRing;
+
+  if (prop_focusRing !== undefined) {
+    node = kitFlag(node, 'focusRing', prop_focusRing);
   }
 
   return node;
@@ -9443,7 +9467,7 @@ export interface DataTableProps {
   sortable?: ReactiveValue<boolean>;
   /** false turns off row selection. Defaults to true. */
   rowSelectable?: ReactiveValue<boolean>;
-  /** Clicking a header selects the column. */
+  /** Clicking a non-sortable header selects the column. Sortable headers change the sort instead. */
   columnSelectable?: ReactiveValue<boolean>;
   /** Selects single cells instead of rows; arrow keys move between cells. */
   cellSelectable?: ReactiveValue<boolean>;
@@ -9479,6 +9503,10 @@ export interface DataTableProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Row size: xsmall, small, medium (default) or large. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
+  /** Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection. */
+  scrollResetKey?: ReactiveValue<string> | TextBinding;
+  /** When true, sortable headers emit onSort and show direction without rearranging the supplied rows. Sort the full dataset in onSort before pagination. Defaults to false, which sorts the supplied rows locally. */
+  manualSorting?: ReactiveValue<boolean>;
   /** Receives the selected row's index in `rows` (sorting does not change it). */
   onSelect?: Owned<Function<void, [row: int]>>;
   /** Receives a double-clicked row's index. */
@@ -9503,7 +9531,7 @@ export interface DataTableProps {
   onClearSelection?: Owned<Function<void>>;
   /** Runs when scrolling nears the end while hasMore is true. */
   onLoadMore?: Owned<Function<void>>;
-  /** DataTableColumn, DataTableEmpty and DataTableMenu elements. */
+  /** DataTableColumn, DataTableCell, DataTableEmpty and DataTableMenu elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
@@ -9665,6 +9693,18 @@ export function DataTable(props: DataTableProps): Node {
     }
   }
 
+  const prop_scrollResetKey = props.scrollResetKey;
+
+  if (prop_scrollResetKey !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'scrollResetKey', prop_scrollResetKey));
+  }
+
+  const prop_manualSorting = props.manualSorting;
+
+  if (prop_manualSorting !== undefined) {
+    node = kitFlag(node, 'manualSorting', prop_manualSorting);
+  }
+
   const event_onSelect = props.onSelect;
 
   if (event_onSelect !== undefined) {
@@ -9753,8 +9793,8 @@ export interface DataTableColumnProps {
   maxWidth?: ReactiveValue<number>;
   /** A header click cycles ascending, descending and original order. Numbers sort numerically. */
   sortable?: ReactiveValue<boolean>;
-  /** Sort indicator shown at first. */
-  defaultSort?: ReactiveValue<'ascending' | 'descending'>;
+  /** Initial sort direction when sort is omitted. Later row refreshes preserve user sorting. Use sort for controlled updates; defaults to none. */
+  defaultSort?: ReactiveValue<'ascending' | 'descending' | 'none'>;
   /** Cell alignment: left (default), center or right. */
   align?: ReactiveValue<'left' | 'center' | 'right'>;
   /** left keeps the column in place while scrolling sideways. */
@@ -9767,6 +9807,10 @@ export interface DataTableColumnProps {
   selectable?: ReactiveValue<boolean>;
   /** Cell padding in pixels; 0 removes it. */
   padding?: ReactiveValue<number>;
+  /** Expands this column into unused table width, keeping its width/minWidth as a minimum. Use on one column; narrower tables retain horizontal scrolling. Defaults to false. */
+  fill?: ReactiveValue<boolean>;
+  /** Controlled sort direction. Bind none on inactive columns. After onSort, the indicator and local row order follow this value even when the handler retains its previous value. Without it, defaultSort initializes an uncontrolled three-state sort. */
+  sort?: ReactiveValue<'ascending' | 'descending' | 'none'>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
@@ -9864,6 +9908,51 @@ export function DataTableColumn(props: DataTableColumnProps): Node {
 
   if (prop_padding !== undefined) {
     node = kitNumber(node, 'padding', prop_padding);
+  }
+
+  const prop_fill = props.fill;
+
+  if (prop_fill !== undefined) {
+    node = kitFlag(node, 'fill', prop_fill);
+  }
+
+  const prop_sort = props.sort;
+
+  if (prop_sort !== undefined) {
+    if (typeof prop_sort === 'string') {
+      node = unwrapNode(nativeKitSet(node, 'sort', `${prop_sort}`));
+    } else {
+      node = unwrapNode(nativeKitBind(node, 'sort', nativeBindText(prop_sort.evaluate)));
+    }
+  }
+
+  return node;
+}
+
+export interface DataTableCellProps {
+  /** Zero-based row index in rows, before local sorting. Omitted, negative and out-of-range indices leave the original text cell unchanged. */
+  row?: ReactiveValue<int>;
+  /** DataTableColumn key, such as "0" for the first column. An omitted or unknown key leaves the original text cell unchanged. */
+  column?: ReactiveValue<string> | TextBinding;
+  /** Content shown inside the component. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** Rich content for one DataTable cell. Row is the original zero-based index in rows; column is its DataTableColumn key. Sorting preserves the association. The rows value remains the accessible text and local sort value. Unspecified cells keep their plain text. Example: <DataTableCell row={0} column="1"><Tag variant="success">Done</Tag></DataTableCell>. */
+export function DataTableCell(props: DataTableCellProps): Node {
+  let node = kitNode('DataTableCell', props.children ?? [], props.className);
+  const prop_row = props.row;
+
+  if (prop_row !== undefined) {
+    node = kitInt(node, 'row', prop_row);
+  }
+
+  const prop_column = props.column;
+
+  if (prop_column !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'column', prop_column));
   }
 
   return node;

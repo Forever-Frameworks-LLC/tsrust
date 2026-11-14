@@ -174,3 +174,16 @@ fn asynchronous_native_ui_keeps_the_process_main_thread() {
     let cli=tsrust_compiler::check("async function main():Task<void>{}").unwrap().emit_rust();
     assert!(cli.contains("tsrust_main_thread(tsrust_entry_main)"));
 }
+
+#[test]
+fn paginated_tables_accept_rich_cells_manual_sorting_and_scroll_resets() {
+    let directory=tempfile::tempdir().unwrap();let path=directory.path().join("main.tsrx");
+    let source="import {DataTable,DataTableColumn,DataTableCell,Tag,List,ListItem,signal} from 'std:ui';function main(){const page=signal(1);const table=<DataTable rows='[[\"Done\"]]' manualSorting={true} scrollResetKey={page.get().toString()} onSort={(sort)=>{console.log(sort[0],sort[1]);}}><DataTableColumn key='0' sortable={true} fill={true} defaultSort='ascending' sort='none'>Status</DataTableColumn><DataTableCell row={0} column='0'><Tag variant='success'>Done</Tag></DataTableCell></DataTable>;const cards=<List selectable={false} minItemWidth={340} scrollResetKey={page.get().toString()}><ListItem value='one'>One</ListItem></List>;}";
+    std::fs::write(&path,support::format_round_trip(source)).unwrap();
+    let rust=check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).unwrap().emit_rust();
+    assert!(rust.contains("DataTableCell"));
+    std::fs::write(&path,source.replace("sort='none'","sort='sideways'")).unwrap();
+    assert!(check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).is_err(),"controlled sorting must retain its direction contract");
+    std::fs::write(&path,source.replace("row={0}","row={'wrong'}")).unwrap();
+    assert!(check_graph(load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap()).is_err());
+}

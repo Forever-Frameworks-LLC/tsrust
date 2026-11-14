@@ -1,8 +1,10 @@
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+
 export interface TaskRecord {
   id: string;
   title: string;
   description: string;
-  status: 'todo' | 'in_progress' | 'done';
+  status: TaskStatus;
   priority: int;
   assignee: string;
   due_date: string | null;
@@ -18,7 +20,7 @@ export interface Snapshot {
 export interface WriteTask {
   title: string;
   description: string;
-  status: 'todo' | 'in_progress' | 'done';
+  status: TaskStatus;
   priority: int;
   assignee: string;
   due_date: string | null;

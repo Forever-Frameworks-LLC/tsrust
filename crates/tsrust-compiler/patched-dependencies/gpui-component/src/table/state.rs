@@ -881,7 +881,11 @@ where
         self.select_on_modifier_click || !(modifiers.secondary(cx) || modifiers.shift)
     }
 
-    fn on_col_head_click(&mut self, col_ix: usize, _: &mut Window, cx: &mut Context<Self>) {
+    fn on_col_head_click(&mut self, col_ix: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.sortable && self.col_groups.get(col_ix).is_some_and(|column| column.column.sort.is_some()) {
+            self.perform_sort(col_ix, window, cx);
+            return;
+        }
         if !self.col_selectable {
             return;
         }
@@ -1367,9 +1371,9 @@ where
 
         let sort = sort.unwrap();
         let sort = match sort {
-            ColumnSort::Ascending => ColumnSort::Default,
-            ColumnSort::Descending => ColumnSort::Ascending,
-            ColumnSort::Default => ColumnSort::Descending,
+            ColumnSort::Ascending => ColumnSort::Descending,
+            ColumnSort::Descending => ColumnSort::Default,
+            ColumnSort::Default => ColumnSort::Ascending,
         };
 
         for (ix, col_group) in self.col_groups.iter_mut().enumerate() {
@@ -1852,6 +1856,7 @@ where
                 .test_support()
                 .role(gpui::Role::Button)
                 .aria_label(t!("Table.SortBy", column = col_group.column.name).to_string())
+                .aria_description(match sort {ColumnSort::Ascending=>t!("Table.SortAscending"),ColumnSort::Descending=>t!("Table.SortDescending"),ColumnSort::Default=>t!("Table.SortNone")}.to_string())
                 .p(px(2.))
                 .rounded(cx.theme().radius / 2.)
                 .map(|this| match is_on {
@@ -1861,7 +1866,7 @@ where
                 .hover(|this| this.bg(cx.theme().tokens.secondary).opacity(7.))
                 .active(|this| this.bg(cx.theme().tokens.secondary_active).opacity(1.))
                 .on_click(
-                    cx.listener(move |table, _, window, cx| table.perform_sort(col_ix, window, cx)),
+                    cx.listener(move |table, _, window, cx| {cx.stop_propagation(); table.perform_sort(col_ix, window, cx)}),
                 )
                 .child(
                     Icon::new(icon)
@@ -2889,6 +2894,32 @@ mod tests {
     use gpui::{App, Entity, TestAppContext};
 
     use super::*;
+
+    struct SortDelegate { changes: Vec<ColumnSort> }
+    impl TableDelegate for SortDelegate {
+        fn columns_count(&self, _: &App) -> usize {2}
+        fn rows_count(&self, _: &App) -> usize {1}
+        fn column(&self, index:usize, _: &App) -> Column {Column::new(index.to_string(), index.to_string()).sortable()}
+        fn render_td(&mut self, _:usize, _:usize, _: &mut Window, _: &mut Context<TableState<Self>>) -> impl IntoElement {div().child("row")}
+        fn perform_sort(&mut self, _:usize, sort:ColumnSort, _: &mut Window, _: &mut Context<TableState<Self>>) {self.changes.push(sort);}
+    }
+    #[gpui::test]
+    fn whole_header_sorts_without_column_selection_and_cycles_once(cx: &mut TestAppContext) {
+        cx.update(crate::init);
+        let (state,cx)=cx.add_window_view(|window,cx|TableState::new(SortDelegate{changes:vec![]},window,cx).col_selectable(false));
+        cx.update(|window,cx|window.draw(cx).clear(cx));
+        state.update_in(cx,|state,window,cx| {
+            for expected in [ColumnSort::Ascending,ColumnSort::Descending,ColumnSort::Default] {
+                state.on_col_head_click(0,window,cx);
+                assert_eq!(state.col_groups[0].column.sort,Some(expected));
+                assert_eq!(state.delegate().changes.last(),Some(&expected));
+            }
+            assert_eq!(state.delegate().changes.len(),3);
+            state.on_col_head_click(1,window,cx);
+            assert_eq!(state.col_groups[0].column.sort,Some(ColumnSort::Default));
+            assert_eq!(state.col_groups[1].column.sort,Some(ColumnSort::Ascending));
+        });
+    }
 
     struct WidthsDelegate;
 

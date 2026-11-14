@@ -21,8 +21,8 @@ navigation availability, stale-result rejection and retained memory.
 
 Worklist lives in apps/tasks with separate desktop and API roots and shared
 Tsrust contracts. Use .tsr/.tsrx for application and orchestration logic and the
-existing checked native bindings. Two views provide a main task workspace and
-task details. The main workspace supports virtualized table and card modes,
+existing checked native bindings. The main task workspace opens task details in a side sheet for both creation and
+editing (owner update, 2026-11-14). The main workspace supports virtualized table and card modes,
 sorting, filtering, search, sticky columns and pagination. Details support
 creating, editing and deleting tasks with explicit conflict/error feedback.
 Choose coherent native product styling, consistent zoom, compact controls and
@@ -62,8 +62,16 @@ with an uncommitted cache transaction. The discovered exceptional-borrow compile
 issue is repaired with internal and public SQL regression witnesses. Exact counts
 and preserved reruns are in agent-progress.md. One API dev session remains running.
 
-Desktop rendering and worker integration remain next. The main/detail views,
-table/cards, sorting, filters, search, sticky columns, virtualization, pagination,
-actual UI interaction/resize validation and simultaneous desktop/API dev sessions
-are not yet implemented or accepted. The <10 percent matched Rust overhead target
-and final local/platform/merge acceptance remain open.
+The native desktop now integrates the background worker, persistent local drafts,
+virtualized table/cards, global search/status filtering and header sorting, sticky
+title column, numbered pagination and light/dark themes. New/edit forms use a side
+sheet with conflict feedback and visible discard/delete confirmation. Focused
+acceptance includes the 13-case application runner, a native table-header regression,
+actual sheet create/reopen/delete actions, single-row activation, sort cycling,
+table/card page scroll reset, measured two/three-column resizing and full table
+width. Exact evidence and remaining limits are in agent-progress.md.
+
+Remaining acceptance includes broader stress/zoom and visual review, compiler/LSP
+performance, the <10 percent matched Rust overhead target, complete milestone
+regressions and supported-platform CI/merge. These focused passes do not complete
+the owner goal. Preserve unrelated Studio and selection-recovery edits.

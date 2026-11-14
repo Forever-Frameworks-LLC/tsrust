@@ -114,6 +114,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
     let window = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         window_min_size: Some(size(px(options.min_width as f32), px(options.min_height as f32))),
+        app_owns_titlebar_drag: matches!(options.titlebar, super::window::Titlebar::Custom),
         // A custom titlebar draws the app's own TitleBar over a transparent native one.
         titlebar: Some(match options.titlebar {
             super::window::Titlebar::Custom => TitlebarOptions {title: Some(title.into()), ..gpui_kit::component::TitleBar::title_bar_options()},

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "name": "worklist-desktop",
+  "build": { "entry": "src/main.tsrx", "output": "target/worklist" },
+  "package": { "name": "Worklist", "id": "dev.tsrust.worklist" }
+}

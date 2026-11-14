@@ -1,10 +1,11 @@
-import { get } from 'std:env';
-import { randomBytes } from 'std:crypto';
 import { toHex } from 'std:bytes';
+import { randomBytes } from 'std:crypto';
+import { get } from 'std:env';
+import { Channel, Sender, all, delay } from 'std:futures';
 import { Client, request } from 'std:http';
 import { Pool, Transaction, connect } from 'std:sql';
-import { Channel, Sender, all, delay } from 'std:futures';
 import { test, strictEqual } from 'std:testing';
+
 import { Snapshot, ChangeBatch } from '../../shared/tasks.tsr';
 import { routes } from '../src/application.tsr';
 

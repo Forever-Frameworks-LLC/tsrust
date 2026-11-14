@@ -570,6 +570,27 @@ Carousel:
     zh-HK: 前往第 %{current} 張
     zh-TW: 前往第 %{current} 張
 Table:
+  SortAscending:
+    en: Sorted ascending
+    pt-BR: Ordem crescente
+    ru: По возрастанию
+    zh-CN: 升序
+    zh-HK: 升冪
+    zh-TW: 升冪
+  SortDescending:
+    en: Sorted descending
+    pt-BR: Ordem decrescente
+    ru: По убыванию
+    zh-CN: 降序
+    zh-HK: 降冪
+    zh-TW: 降冪
+  SortNone:
+    en: Unsorted
+    pt-BR: Sem ordenação
+    ru: Без сортировки
+    zh-CN: 未排序
+    zh-HK: 未排序
+    zh-TW: 未排序
   SortBy:
     en: Sort by %{column}
     pt-BR: "Ordenar por %{column}"

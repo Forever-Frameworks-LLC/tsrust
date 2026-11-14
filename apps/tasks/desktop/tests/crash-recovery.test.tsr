@@ -1,9 +1,10 @@
 import { get, currentExe } from 'std:env';
 import { createTempDir, removeDirAll, readTextFile, writeTextFile } from 'std:fs';
+import { delay } from 'std:futures';
 import { join } from 'std:path';
 import { spawn } from 'std:process';
-import { delay } from 'std:futures';
 import { test, strictEqual } from 'std:testing';
+
 import { Snapshot, ChangeBatch } from '../../shared/tasks.tsr';
 import { openCache, readCache, replaceSnapshot, applyChanges } from '../src/cache.tsr';
 

@@ -5,6 +5,26 @@
 use super::{Child, Node, TextBinding};
 use std::collections::BTreeMap;
 
+/// Stable display indices; the underlying rows and rich-cell identities never move.
+pub(crate) fn table_row_order<T: AsRef<str>>(rows:&[Vec<T>], sort:Option<(usize,bool)>)->Vec<usize> {
+    let mut order=(0..rows.len()).collect::<Vec<_>>();
+    if let Some((column,descending))=sort {
+        order.sort_by(|left,right| {
+            let left=rows[*left].get(column).map_or("",|value|value.as_ref());
+            let right=rows[*right].get(column).map_or("",|value|value.as_ref());
+            let compared=match (left.trim().parse::<i128>(),right.trim().parse::<i128>()) {
+                (Ok(left),Ok(right))=>left.cmp(&right),
+                _=>match (left.trim().parse::<f64>(),right.trim().parse::<f64>()) {
+                    (Ok(left),Ok(right))=>left.total_cmp(&right),
+                    _=>left.cmp(right),
+                },
+            };
+            if descending {compared.reverse()}else{compared}
+        });
+    }
+    order
+}
+
 pub(crate) type Predicate = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(&str)->Result<bool,String>>>>;
 pub(crate) type NumberStep = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(f64,bool)->Result<f64,String>>>>;
 pub(crate) fn predicate(handler:&Predicate,value:&str)->Result<bool,String> {
@@ -340,6 +360,20 @@ impl Node {
 #[cfg(test)]
 mod tests {
     use super::super::{Child, Node, Signal};
+    #[test]
+    fn table_sorting_keeps_exact_integers_stable_ties_and_original_row_identity() {
+        let rows=vec![vec!["9007199254740993"],vec!["9007199254740992"],vec!["2"],vec!["02"]];
+        let original=rows.clone();
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),vec![2,3,1,0]);
+        assert_eq!(super::table_row_order(&rows,Some((0,true))),vec![0,1,2,3]);
+        assert_eq!(super::table_row_order(&rows,None),vec![0,1,2,3]);
+        assert_eq!(rows,original);
+        let words=vec![vec!["b"],vec!["a"],vec!["b"]];
+        assert_eq!(super::table_row_order(&words,Some((0,false))),vec![1,0,2]);
+        assert_eq!(super::table_row_order(&words,Some((0,true))),vec![0,2,1]);
+        assert_eq!(super::table_row_order(&words,Some((1,false))),vec![0,1,2]);
+    }
+
     #[test]
     fn hidden_terminal_receives_exit_but_not_navigation() {
         let terminal = Node::kit("Terminal", vec![], String::new()).unwrap()

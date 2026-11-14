@@ -1,5 +1,6 @@
 import { get } from 'std:env';
 import { connect } from 'std:sql';
+
 import { routes } from './application.tsr';
 
 async function main(): Task<void> {

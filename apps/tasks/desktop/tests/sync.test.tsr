@@ -1,12 +1,13 @@
-import { get } from 'std:env';
-import { randomBytes } from 'std:crypto';
 import { toHex } from 'std:bytes';
+import { randomBytes } from 'std:crypto';
+import { get } from 'std:env';
 import { Client } from 'std:http';
 import { connect } from 'std:sql';
 import { test, strictEqual } from 'std:testing';
+
+import { routes } from '../../api/src/application.tsr';
 import { openCache, readCache, replaceSnapshot } from '../src/cache.tsr';
 import { syncPage } from '../src/sync.tsr';
-import { routes } from '../../api/src/application.tsr';
 
 test('HTTP synchronization retains cached tasks offline and catches up after reconnect', async () => {
   const configured = unwrap(get('DATABASE_URL'));
