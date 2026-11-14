@@ -1449,6 +1449,47 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
   }
 });
 
+test('ambiguous edit references retain the request and attachments for correction', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-clarify-'));
+
+  try {
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/main.tsr', 'const x = 1;'));
+    unwrap(writeTextFile(folder + '/example.tsr', 'const value = 2;'));
+    unwrap(writeTextFile(folder + '/lib/example.tsr', 'const value = 3;'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    const requests = new Channel<ModelRequest>(1);
+    const ready = initialAiState(emptyHistory(clone(model.root)));
+    ready.phase = 'ready';
+    ready.history.context = [{
+      id: 'note', kind: 'file', path: model.root + '/main.tsr', label: 'main.tsr', text: 'const x = 1;'
+    }];
+    const state = signal(ready);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = signal(clone(model));
+    host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+    const prompt = 'Edit: Change x to match example.tsr';
+    send(host, clone(prompt));
+    const chat = state.get().history.chats[0];
+    strictEqual(chat.messages[1].text.includes('./lib/example.tsr'), true);
+    strictEqual(chat.messages[1].text.includes('./example.tsr'), true);
+    strictEqual(chat.draft, prompt);
+    strictEqual(chat.context?.[0].id, 'note');
+    strictEqual(state.get().active, '');
+    strictEqual(state.get().editTarget === undefined, true);
+    send(host, 'Edit: Change x to match ./lib/example.tsr');
+    const generation = unwrap(requests.tryReceive());
+    const messages = clone(generation.messages) ?? [];
+    const content = clone(messages[messages.length - 1].content);
+    strictEqual(content.includes('const value = 3;'), true);
+    strictEqual(content.includes('const value = 2;'), false);
+    strictEqual(state.get().history.chats[0].draft, '');
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
 test('a long chat retains its transcript and sends all complete turns beyond the old frame limit', () => {
   const requests = new Channel<ModelRequest>(2);
   const initial = initialAiState();

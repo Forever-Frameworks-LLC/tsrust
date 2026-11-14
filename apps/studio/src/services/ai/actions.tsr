@@ -549,8 +549,9 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       next.history.chats[index].messages.push({
         role: 'assistant', text: clone(reply), request: clone(next.active), status: reply === '' ? 'pending' : 'complete'
       });
-      next.history.chats[index].draft = '';
-      next.history.chats[index].context = [];
+      const clarifyEdit = editing && grounding.candidates.length > 0;
+      next.history.chats[index].draft = clarifyEdit ? clone(prompt) : '';
+      next.history.chats[index].context = clarifyEdit ? clone(attachments) : [];
       next.history.chats[index].revision += 1;
       next.history.draft = '';
 
