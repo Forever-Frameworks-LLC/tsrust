@@ -65,7 +65,7 @@ function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, ba
   };
 }
 
-function recordOutcome(chat: Mutable<AiState>, batch: ReadOnly<EditBatch>, text: string): void {
+function recordOutcome(chat: Mutable<AiState>, batch: ReadOnly<EditBatch>, text: string, applied: boolean = false): void {
   if (batch.request === undefined) return;
 
   for (let i = 0; i < chat.history.chats.length; i += 1) {
@@ -73,6 +73,7 @@ function recordOutcome(chat: Mutable<AiState>, batch: ReadOnly<EditBatch>, text:
 
     if (message < 0) continue;
     chat.history.chats[i].messages[message].text = text;
+    chat.history.chats[i].messages[message].editedPaths = applied ? batch.files.filter((file) => file.before !== file.after).map((file) => clone(file.path)) : undefined;
     chat.history.chats[i].revision += 1;
     return;
   }
@@ -130,7 +131,7 @@ export function reviewChatEdit(
   const text = translate(outcome);
 
   if (proposal.stale === true && chat.notice === text) chat.notice = '';
-  recordOutcome(chat, proposal, text);
+  recordOutcome(chat, proposal, text, accept);
   unwrap(publishChat(state, chat, persistence));
 }
 

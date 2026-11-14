@@ -2077,6 +2077,11 @@ test('a leading workspace path in a chat edit targets the named closed file and 
     strictEqual(workspace.get().files[0].document.text, 'same text');
     strictEqual(workspace.get().files[1].document.text, 'revised');
     strictEqual(unwrap(readTextFile(root + '/src/other.tsr')), 'same text');
+    send(host, 'Is that edit saved to disk?');
+    const status = state.get().history.chats[0].messages[3].text;
+    strictEqual(status.includes('Current disk comparison for src/other.tsr:'), true);
+    strictEqual(status.includes('In editor (changed region):\nrevised'), true);
+    strictEqual(status.includes('active.tsr'), false);
   } finally {
     unwrap(removeDirAll(root));
   }

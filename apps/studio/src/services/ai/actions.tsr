@@ -390,6 +390,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
       if (canReadWorkspace && storeIndex !== undefined) for (const file of storeIndex.get()) declarations.set(clone(file.path), clone(file));
       let previousQuestion = '';
+      let editedPaths: string[] = [];
 
       let recentWorkspaceQuestion = false;
       let hasPreviousAnswer = false;
@@ -403,6 +404,7 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
 
           if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') {
             hasPreviousAnswer = true;
+            editedPaths = clone(answer.editedPaths) ?? [];
             recentWorkspaceQuestion = previous.workspaceExcerpt !== undefined;
 
             if (prompt.toLowerCase().includes('same function')) previousQuestion = clone(previous.functionLookup ?? previous.text);
@@ -425,7 +427,8 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
         previousQuestion,
         outline,
         recentWorkspaceQuestion,
-        hasPreviousAnswer
+        hasPreviousAnswer,
+        editedPaths
       ) : {
         excerpt: '', candidates: [], unavailable: []
       };

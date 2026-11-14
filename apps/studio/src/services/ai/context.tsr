@@ -642,7 +642,8 @@ export function editorContext(
   previousQuestion: ReadOnly<string> = '',
   outline?: LanguageReadResult,
   recentWorkspaceQuestion: boolean = false,
-  hasPreviousAnswer: boolean = false
+  hasPreviousAnswer: boolean = false,
+  editedPaths: ReadOnly<string[]> = []
 ): EditorContextResult {
   const ambiguous: string[] = [];
   const unavailable: string[] = [];
@@ -913,7 +914,8 @@ export function editorContext(
     const qualified = opened.filter((file) => mentionsPath(prompt, file.document.path.slice(prefix.length)) && file.document.path.slice(prefix.length) !== file.name);
     const named = qualified.length > 0 ? qualified : opened.filter((file) => mentionsPath(prompt, file.name));
     const hasNamedFile = named.length > 0;
-    const targets = hasNamedFile ? named : opened.filter((file) => file.document.path === workspace.active);
+    const refersToEdit = editedPaths.length > 0 && unwrap(compile('\\b(?:that|this|the|those|these|your) (?:edit|change)s?\\b')).isMatch(question);
+    const targets = hasNamedFile ? named : opened.filter((file) => refersToEdit ? editedPaths.includes(file.document.path) : file.document.path === workspace.active);
 
     const comparisons = targets.map((file) => diskComparison(file.document.path, file.document.text, prefix)).join('\n\n');
 
