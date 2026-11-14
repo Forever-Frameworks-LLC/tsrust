@@ -629,5 +629,20 @@
   "A mid-sized local coding model for code completion, explanation and chat.": "Um modelo de código local de porte intermediário para completar e explicar código e conversar.",
   "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.": "Modelo de código de sete bilhões de parâmetros com quantização de quatro bits para conversas e sugestões locais.",
   "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.": "O mesmo modelo de código 7B com quantização de cinco bits. Preserva mais precisão nos pesos e ocupa mais espaço em disco que a versão Q4.",
-  "Inline completions": "Sugestões em linha"
+  "Inline completions": "Sugestões em linha",
+  "New file": "Novo arquivo",
+  "New folder": "Nova pasta",
+  "Rename": "Renomear",
+  "Delete": "Excluir",
+  "Name": "Nome",
+  "Reveal in Finder": "Mostrar no Finder",
+  "Reveal in File Explorer": "Mostrar no Explorador de Arquivos",
+  "Reveal in file manager": "Mostrar no gerenciador de arquivos",
+  "Permanently delete this item and any contents?": "Excluir permanentemente este item e todo o seu conteúdo?",
+  "Enter a single file or folder name.": "Digite apenas um nome de arquivo ou pasta.",
+  "The project root cannot be moved or deleted.": "A raiz do projeto não pode ser movida nem excluída.",
+  "Save or discard changes in the affected files before deleting.": "Salve ou descarte as alterações nos arquivos afetados antes de excluir.",
+  "Unknown explorer action.": "Ação desconhecida no explorador.",
+  "A folder cannot be moved inside itself.": "Uma pasta não pode ser movida para dentro de si mesma.",
+  "A file or folder already exists at the destination.": "Já existe um arquivo ou pasta no destino."
 }

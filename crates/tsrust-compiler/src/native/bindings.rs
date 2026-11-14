@@ -654,6 +654,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::REMOVE_DIR,
     crate::stdlib::fs::bindings::REMOVE_DIR_ALL,
     crate::stdlib::fs::bindings::RENAME,
+    crate::stdlib::fs::bindings::RENAME_NEW,
     crate::stdlib::fs::bindings::COPY_FILE,
     crate::stdlib::fs::bindings::HARD_LINK,
     crate::stdlib::fs::bindings::CANONICALIZE,

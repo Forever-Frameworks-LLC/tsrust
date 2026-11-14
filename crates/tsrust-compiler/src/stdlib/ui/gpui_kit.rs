@@ -315,7 +315,7 @@ enum KitState {
     Terminal(Entity<terminal_view::TerminalView>),
     Image(Entity<ImageViewport>),
     Editor(Entity<EditorState>, std::collections::BTreeMap<String,String>),
-    Tree(Entity<TreeState>, String),
+    Tree(Entity<TreeState>, String, std::rc::Rc<std::cell::RefCell<Option<SharedString>>>),
     List(Entity<ListState<TsrustList>>),
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
@@ -733,6 +733,14 @@ impl gpui_kit::base::dock::DockAreaRenderer for TsrustDockSkin {
     fn tab_group_renderer(&self) -> std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer> {std::rc::Rc::new(TsrustDockTabs(self.0.tab_group_renderer(),ScrollHandle::new(),std::cell::Cell::new(None),self.1.clone()))}
 }
 struct TsrustDockTabs(std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer>, ScrollHandle, std::cell::Cell<Option<(PanelId,usize)>>, std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>);
+#[derive(Clone)]
+struct TreeRowDrag { tree: u64, source: String }
+struct TreeDragIcon {icon: Icon, offset: Point<Pixels>}
+impl Render for TreeDragIcon {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().absolute().left(self.offset.x + px(12.)).top(self.offset.y + px(12.)).child(self.icon.clone())
+    }
+}
 struct DockDragCaption(SharedString);
 impl Render for DockDragCaption {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -1792,7 +1800,7 @@ impl Root {
                             if let Some(KitState::Editor(_,current))=self.states.get_mut(&id) {*current=props.clone();}
                         }
                     }
-                    KitState::Tree(state, shape) => {
+                    KitState::Tree(state, shape, _) => {
                         // Rebuild the items when the TreeItem children change.
                         let current = tree_shape(&self.node, id);
                         if *shape != current {
@@ -1810,9 +1818,9 @@ impl Root {
                                 state.set_items(items, cx);
                                 state.set_selected_index(selected.as_ref().and_then(|id|state.index_of(id)),cx);
                             });
-                            if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                            if let Some(KitState::Tree(_, shape, _)) = self.states.get_mut(&id) {*shape = current;}
                         }
-                        if let Some(KitState::Tree(state, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
+                        if let Some(KitState::Tree(state, _, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
                             let selected: SharedString = selected.clone().into();
                             if state.read(cx).selected_item().map(|item| &item.id) != Some(&selected) {
                                 state.update(cx, |state, cx| tree_select(state, &selected, cx));
@@ -2306,7 +2314,7 @@ impl Root {
                         TreeEvent::Collapsed(item) => this.emit(id, "collapse", item.to_string(), cx),
                     }).detach();
                     if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
-                    KitState::Tree(state, tree_shape(&self.node, id))
+                    KitState::Tree(state, tree_shape(&self.node, id), Default::default())
                 }
                 "List" => {
                     let Some(node) = find(&self.node, id) else {continue};
@@ -2546,6 +2554,7 @@ impl Root {
                         "close" => window.remove_window(),
                         "quit" => cx.quit(),
                         "open-url" => cx.open_url(&text("url")),
+                        "reveal-path" => cx.reveal_path(std::path::Path::new(&text("path"))),
                         "input" => self.control_input(&value, window, cx),
                         "editor-language-wake" => {},
                         "relaunch" => match super::update::relaunch() {Ok(()) => cx.quit(), Err(error) => window.push_notification(Notification::error(error), cx)},
@@ -3459,11 +3468,14 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Tree" => match self.states.get(&id) {
-                Some(KitState::Tree(state, _)) => {
+                Some(KitState::Tree(state, _, source)) => {
                     let mut icons = HashMap::new();
                     tree_icons(node, &mut icons);
                     let row = root.clone();
                     let text_size=style.text.font_size.clone();
+                    let source = source.clone();
+                    let menu_size = text_size;
+                    let movable=kit.events.iter().any(|(event,_)|event=="itemDrop");
                     let mut view = tree(state, move |index, entry, selected, _, cx| {
                         let item = entry.item();
                         let item_id = item.id.to_string();
@@ -3472,24 +3484,67 @@ impl Root {
                         let mut icon = match decoration.filter(|icon| !icon.svg.is_empty()) {Some(icon) => Icon::empty().data(icon.svg.as_bytes()), None => Icon::new(named)};
                         if let Some(color) = decoration.and_then(|icon| theme_color(&icon.color, cx)) {icon = icon.text_color(color);}
                         let root = row.clone();
+                        let icon = icon.size_4();
+                        let preview = icon.clone();
                         let mut line = ListItem::new(index).selected(selected).disabled(entry.is_disabled()).pl(px(12. * entry.depth() as f32 + 8.))
                             .min_w_0().overflow_hidden()
-                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(icon.size_4())
+                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(icon)
                                 .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(item.label.clone())));
                         if let Some(size)=text_size.clone(){line=line.text_size(size);}
-                        line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
+                        let target=item_id.clone();
+                        let receiver=root.clone();
+                        let drag=TreeRowDrag {tree:id,source:item_id.clone()};
+                        let source=source.clone();
+                        if !cx.has_active_drag() {source.borrow_mut().take();}
+                        if source.borrow().as_ref()==Some(&item.id) {line=line.bg(cx.theme().list_active);}
+                        let grabbed=item.id.clone();
+                        let line=line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));});
+                        if !movable {return line;}
+                        line
+                            .on_drag(drag,move |_,offset,_,cx| {
+                                *source.borrow_mut()=Some(grabbed.clone());
+                                cx.new(|_|TreeDragIcon {icon:preview.clone(),offset})
+                            })
+                            .drag_over::<TreeRowDrag>(|row,_,_,cx|row.border_b_2().border_color(cx.theme().drag_border))
+                            .on_drop(move |drag:&TreeRowDrag,_,cx| {
+                                cx.stop_propagation();
+                                if drag.tree==id && drag.source!=target {
+                                    let payload=serde_json::json!([drag.source,target]).to_string();
+                                    let _=receiver.update(cx,|root,cx|root.emit(id,"itemDrop",payload,cx));
+                                }
+                            })
                     }).refine_style(&style);
                     if let Some(bounce) = kit.prop("scrollBounce") {view = view.scroll_bounce(bounce == "true");}
                     if let Some(menu) = first_item(node, "TreeMenu") {
                         let (entries, root) = (menu_entries(menu), root.clone());
-                        view = view.context_menu(move |_, entry, menu, _, cx| {
+                        view = view.context_menu(move |_, entry, mut menu, window, cx| {
+                            if let Some(size)=menu_size {menu=menu.font_size(size.to_pixels(window.rem_size()));}
                             let item = entry.item().id.to_string();
                             let target = root.clone();
                             cx.defer(move |cx| {let _ = target.update(cx, |root, cx| root.emit(id, "contextMenu", item, cx));});
                             flat_menu(menu, &entries, &root)
                         });
                     }
-                    view.into_any_element()
+                    let background = first_item(node, "TreeBackgroundMenu");
+                    let destination = kit.prop("backgroundDropTarget").map(str::to_owned);
+                    if background.is_none() && destination.is_none() {return view.into_any_element();}
+                    let mut surface = div().id(element_id).size_full().child(view);
+                    if let Some(target) = destination {
+                        let receiver = root.clone();
+                        surface = surface.on_drop(move |drag: &TreeRowDrag, _, cx| {
+                            if drag.tree == id && drag.source != target {
+                                let payload = serde_json::json!([drag.source, target]).to_string();
+                                let _ = receiver.update(cx, |root, cx| root.emit(id, "itemDrop", payload, cx));
+                            }
+                        });
+                    }
+                    if let Some(menu) = background {
+                        let (entries, receiver) = (menu_entries(menu), root.clone());
+                        surface.context_menu(move |mut menu, window, _| {
+                            if let Some(size)=menu_size {menu=menu.font_size(size.to_pixels(window.rem_size()));}
+                            flat_menu(menu, &entries, &receiver)
+                        }).into_any_element()
+                    } else {surface.into_any_element()}
                 }
                 _ => div().into_any_element(),
             },

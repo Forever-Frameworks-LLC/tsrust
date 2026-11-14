@@ -4295,6 +4295,11 @@
           "name": "autoFocus",
           "type": "boolean",
           "doc": "Focuses the tree for keyboard navigation when it mounts."
+        },
+        {
+          "name": "backgroundDropTarget",
+          "type": "string",
+          "doc": "Destination id passed to onItemDrop when an item is dropped in empty tree space."
         }
       ],
       "example": "<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>",
@@ -4322,9 +4327,15 @@
           "value": "string",
           "param": "id",
           "doc": "Receives the right-clicked item's id as its TreeMenu opens."
+        },
+        {
+          "prop": "onItemDrop",
+          "value": "string",
+          "param": "items",
+          "doc": "Receives a JSON array [sourceId, targetId] when one row is dropped on another row in this tree. The application decides how to move it."
         }
       ],
-      "children": "TreeItem and TreeMenu"
+      "children": "TreeItem, TreeMenu and TreeBackgroundMenu"
     },
     {
       "name": "TreeItem",
@@ -4383,6 +4394,14 @@
       "doc": "The right-click menu for every Tree row; onContextMenu on the Tree tells which row opened it.",
       "props": [],
       "example": "<TreeMenu><MenuItem>Rename</MenuItem><MenuItem>Delete</MenuItem></TreeMenu>"
+    },
+    {
+      "name": "TreeBackgroundMenu",
+      "item": true,
+      "children": "MenuItem, MenuSeparator and MenuLabel",
+      "doc": "The right-click menu for empty space around the tree rows.",
+      "props": [],
+      "example": "<TreeBackgroundMenu><MenuItem>New file</MenuItem></TreeBackgroundMenu>"
     },
     {
       "name": "Calendar",

@@ -1680,6 +1680,13 @@ export function openUrl(url: string): void {
   })));
 }
 
+/** Reveals an existing local path in the desktop file manager. */
+export function revealPath(path: string): void {
+  unwrap(nativeCommand('reveal-path', JSON.stringify({
+    path: path
+  })));
+}
+
 /** Copies text to the system clipboard. */
 export function writeClipboard(text: string): void {
   unwrap(nativeCommand('write-clipboard', JSON.stringify({

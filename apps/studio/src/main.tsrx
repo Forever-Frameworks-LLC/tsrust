@@ -148,6 +148,7 @@ function App(
     workspace.set(next);
   }
 
+  const formatFocus = signal<QueuedFormatting[]>([]);
   const explorerRevision = signal(0);
   const refreshExplorer = RefreshExplorer(clone(workspace.get().root), workspace, recovery, explorerRevision);
   const projectTree = signal<DirectoryTree>({
@@ -160,7 +161,8 @@ function App(
     recovery,
     settings,
     explorerRevision,
-    projectTree.handle()
+    projectTree.handle(),
+    formatFocus.handle()
   );
   const contentSearch = ContentSearch(
     workspace,
@@ -262,7 +264,6 @@ function App(
     font
   );
   const formatBusy = signal(false);
-  const formatFocus = signal<QueuedFormatting[]>([]);
   const workflows = WorkflowControls(
     workspace,
     recovery,

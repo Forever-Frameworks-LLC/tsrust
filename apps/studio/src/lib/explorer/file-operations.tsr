@@ -1,0 +1,108 @@
+import {
+  canonicalize,
+  close,
+  lstat,
+  mkdir,
+  openFile,
+  removeDirAll,
+  removeFile,
+  renameNew
+} from 'std:fs';
+import { basename, dirname, join, separator } from 'std:path';
+
+import { dirty } from '../workspace/documents.tsr';
+import { Workspace } from '../workspace/workspace.tsr';
+
+function within(path: ReadOnly<string>, parent: ReadOnly<string>): boolean {
+  return path === parent || path.startsWith(parent.endsWith(separator()) ? parent : parent + separator());
+}
+
+function destination(parent: ReadOnly<string>, name: ReadOnly<string>): string {
+  if (name.trim() === '' || name === '.' || name === '..' || name.includes('/') || name.includes('\\') || name.includes('\0')) throw 'Enter a single file or folder name.';
+  return join(parent, name);
+}
+
+// Resolve the parent, not the leaf: renaming or deleting a symlink acts on the link itself.
+function checkedPath(root: ReadOnly<string>, path: ReadOnly<string>): string {
+  if (path === root) return clone(root);
+  const real = destination(unwrap(canonicalize(dirname(path))), basename(path));
+
+  if (!within(real, root) || real === root) throw 'This file is outside the open project directory.';
+  return real;
+}
+
+export function changeExplorerEntry(workspace: Mutable<Workspace>, action: ReadOnly<string>, path: ReadOnly<string>, value: ReadOnly<string>): Result<void, string> {
+  try {
+    const source = checkedPath(workspace.root, path);
+    const metadata = unwrap(lstat(source));
+
+    if (action === 'New file' || action === 'New folder') {
+      const parent = metadata.isDirectory ? clone(source) : dirname(source);
+      const target = destination(parent, value);
+
+      if (action === 'New folder') unwrap(mkdir(target));
+      else unwrap(close(unwrap(openFile(target, {
+        write: true, createNew: true
+      }))));
+      return Ok();
+    }
+
+    if (source === workspace.root) return Err('The project root cannot be moved or deleted.');
+
+    if (action === 'Delete') {
+      if (workspace.files.some((file) => within(file.document.path, source) && dirty(file.document))) return Err('Save or discard changes in the affected files before deleting.');
+
+      if (metadata.isDirectory) unwrap(removeDirAll(source));
+      else unwrap(removeFile(source));
+      workspace.files = workspace.files.filter((file) => !within(file.document.path, source));
+
+      if (within(workspace.active, source)) workspace.active = workspace.files.length === 0 ? '' : clone(workspace.files[workspace.files.length - 1].document.path);
+      workspace.sourceBreakpoints = (workspace.sourceBreakpoints ?? []).filter((point) => !within(point.path, source));
+    } else {
+      if (action !== 'Rename' && action !== 'Move') return Err('Unknown explorer action.');
+      let target = '';
+
+      if (action === 'Move') {
+        const row = checkedPath(workspace.root, value);
+        const parent = unwrap(lstat(row)).isDirectory ? clone(row) : dirname(row);
+        target = destination(parent, basename(source));
+      } else target = destination(dirname(source), value);
+
+      if (target === source) return Ok();
+
+      if (within(target, source)) return Err('A folder cannot be moved inside itself.');
+
+      unwrap(renameNew(source, target));
+
+      for (let index = 0; index < workspace.files.length; index += 1) {
+        const old = clone(workspace.files[index].document.path);
+
+        if (!within(old, source)) continue;
+        const moved = target + old.slice(source.length);
+        workspace.files[index].document.path = clone(moved);
+        workspace.files[index].name = basename(moved);
+        const conflict = clone(workspace.files[index].document.saveConflict);
+
+        if (conflict !== undefined) {
+          conflict.path = clone(moved);
+          workspace.files[index].document.saveConflict = conflict;
+        }
+
+      }
+
+      if (within(workspace.active, source)) workspace.active = target + workspace.active.slice(source.length);
+      const points = clone(workspace.sourceBreakpoints) ?? [];
+
+      for (let index = 0; index < points.length; index += 1) {
+        if (within(points[index].path, source)) points[index].path = target + points[index].path.slice(source.length);
+      }
+
+      workspace.sourceBreakpoints = points;
+    }
+
+    return Ok();
+  } catch (error) {
+    if (typeof error === 'string') return Err(error);
+    return Err(error.code === 'already-exists' ? 'A file or folder already exists at the destination.' : clone(error.message));
+  }
+}

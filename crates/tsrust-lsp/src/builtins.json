@@ -8913,6 +8913,21 @@
       ]
     },
     {
+      "name": "renameNew",
+      "signature": "renameNew(path: string, destination: string): Result<void, FsError>",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Existing file, directory or symlink to move."
+        },
+        {
+          "label": "destination: string",
+          "documentation": "New path with an existing parent on the same filesystem."
+        }
+      ],
+      "documentation": "Moves an entry only if the destination is absent. An existing destination gives already-exists and both entries remain intact. Cross-filesystem moves can fail. Paths are relative to the working directory unless absolute. Returns Ok on success. Example: unwrap(renameNew('draft.txt', 'final.txt')) moves the draft to a new final.txt. Ownership: reads both path arguments."
+    },
+    {
       "name": "rename",
       "signature": "rename(path: string, destination: string): Result<void, FsError>",
       "parameters": [
@@ -23097,6 +23112,17 @@
       "documentation": "Opens a URL with the system's default handler, such as a browser for https links or a mail client for mailto links.\n\n```tsrx\n<Button onPress={() => { openUrl('https://example.com/docs'); }}>Docs</Button>\n```\n\nOwnership: arguments are read; nothing is retained after the call except an owned callback, which runs once."
     },
     {
+      "name": "revealPath",
+      "signature": "revealPath(path: string): void",
+      "parameters": [
+        {
+          "label": "path: string",
+          "documentation": "Absolute path to the existing file or directory to show."
+        }
+      ],
+      "documentation": "Requests that the desktop file manager reveal the local file or folder at path. Returns immediately. The platform chooses how to present the location.\n\n```tsrx\n<Button onPress={() => { revealPath(document.path); }}>Reveal file</Button>\n```\n\nOwnership: the request owns its path."
+    },
+    {
       "name": "writeClipboard",
       "signature": "writeClipboard(text: string): void",
       "parameters": [
@@ -25808,12 +25834,12 @@
           "documentation": "Component props; every prop is optional."
         }
       ],
-      "documentation": "A keyboard-navigable tree of nested TreeItem rows: arrow keys move and expand, Enter selects. Give it a height with className.\n\nProps:\n- `selected`: Selected item id, controlled; the tree expands to reveal it.\n- `defaultSelected`: Initially selected item id when `selected` is unset.\n- `scrollBounce`: Elastic overscroll at the ends.\n- `autoFocus`: Focuses the tree for keyboard navigation when it mounts.\n- `onSelect`: Receives the clicked item's id.\n- `onExpand`: Receives a folder's id when it opens.\n- `onCollapse`: Receives a folder's id when it closes.\n- `onContextMenu`: Receives the right-clicked item's id as its TreeMenu opens.\n- `children`: TreeItem and TreeMenu elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A keyboard-navigable tree of nested TreeItem rows: arrow keys move and expand, Enter selects. Give it a height with className.\n\nProps:\n- `selected`: Selected item id, controlled; the tree expands to reveal it.\n- `defaultSelected`: Initially selected item id when `selected` is unset.\n- `scrollBounce`: Elastic overscroll at the ends.\n- `autoFocus`: Focuses the tree for keyboard navigation when it mounts.\n- `backgroundDropTarget`: Destination id passed to onItemDrop when an item is dropped in empty tree space.\n- `onSelect`: Receives the clicked item's id.\n- `onExpand`: Receives a folder's id when it opens.\n- `onCollapse`: Receives a folder's id when it closes.\n- `onContextMenu`: Receives the right-clicked item's id as its TreeMenu opens.\n- `onItemDrop`: Receives a JSON array [sourceId, targetId] when one row is dropped on another row in this tree. The application decides how to move it.\n- `children`: TreeItem, TreeMenu and TreeBackgroundMenu elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "TreeProps",
       "signature": "interface TreeProps",
-      "documentation": "A keyboard-navigable tree of nested TreeItem rows: arrow keys move and expand, Enter selects. Give it a height with className.\n\nProps:\n- `selected`: Selected item id, controlled; the tree expands to reveal it.\n- `defaultSelected`: Initially selected item id when `selected` is unset.\n- `scrollBounce`: Elastic overscroll at the ends.\n- `autoFocus`: Focuses the tree for keyboard navigation when it mounts.\n- `onSelect`: Receives the clicked item's id.\n- `onExpand`: Receives a folder's id when it opens.\n- `onCollapse`: Receives a folder's id when it closes.\n- `onContextMenu`: Receives the right-clicked item's id as its TreeMenu opens.\n- `children`: TreeItem and TreeMenu elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+      "documentation": "A keyboard-navigable tree of nested TreeItem rows: arrow keys move and expand, Enter selects. Give it a height with className.\n\nProps:\n- `selected`: Selected item id, controlled; the tree expands to reveal it.\n- `defaultSelected`: Initially selected item id when `selected` is unset.\n- `scrollBounce`: Elastic overscroll at the ends.\n- `autoFocus`: Focuses the tree for keyboard navigation when it mounts.\n- `backgroundDropTarget`: Destination id passed to onItemDrop when an item is dropped in empty tree space.\n- `onSelect`: Receives the clicked item's id.\n- `onExpand`: Receives a folder's id when it opens.\n- `onCollapse`: Receives a folder's id when it closes.\n- `onContextMenu`: Receives the right-clicked item's id as its TreeMenu opens.\n- `onItemDrop`: Receives a JSON array [sourceId, targetId] when one row is dropped on another row in this tree. The application decides how to move it.\n- `children`: TreeItem, TreeMenu and TreeBackgroundMenu elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "TreeItem",
@@ -25846,6 +25872,22 @@
       "name": "TreeMenuProps",
       "signature": "interface TreeMenuProps",
       "documentation": "The right-click menu for every Tree row; onContextMenu on the Tree tells which row opened it.\n\nProps:\n- `children`: MenuItem, MenuSeparator and MenuLabel elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<TreeMenu><MenuItem>Rename</MenuItem><MenuItem>Delete</MenuItem></TreeMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TreeBackgroundMenu",
+      "signature": "TreeBackgroundMenu(props: TreeBackgroundMenuProps): Node",
+      "parameters": [
+        {
+          "label": "props: TreeBackgroundMenuProps",
+          "documentation": "Component props; every prop is optional."
+        }
+      ],
+      "documentation": "The right-click menu for empty space around the tree rows.\n\nProps:\n- `children`: MenuItem, MenuSeparator and MenuLabel elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<TreeBackgroundMenu><MenuItem>New file</MenuItem></TreeBackgroundMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
+    },
+    {
+      "name": "TreeBackgroundMenuProps",
+      "signature": "interface TreeBackgroundMenuProps",
+      "documentation": "The right-click menu for empty space around the tree rows.\n\nProps:\n- `children`: MenuItem, MenuSeparator and MenuLabel elements.\n- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.\n\n```tsrx\n<TreeBackgroundMenu><MenuItem>New file</MenuItem></TreeBackgroundMenu>\n```\n\nLive props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.\n\nOwnership: consumes its props and children; handlers are owned by the returned Node."
     },
     {
       "name": "Calendar",

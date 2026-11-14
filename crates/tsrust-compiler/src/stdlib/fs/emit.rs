@@ -9,7 +9,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
     let mut output = crate::native_runtime::files_module();
     if bindings.iter().any(|binding|binding.name=="walkDir") {output.push_str(&crate::native_runtime::discovery_module());}
     if bindings.iter().any(|binding|binding.name=="createTempDir") {output.push_str(&crate::native_runtime::tempfiles_module());}
-    if bindings.iter().any(|binding|binding.name=="writeTextFileAtomic") {output.push_str(&crate::native_runtime::atomic_files_module());}
+    if bindings.iter().any(|binding|matches!(binding.name,"writeTextFileAtomic"|"renameNew")) {output.push_str(&crate::native_runtime::atomic_files_module());}
     output.push_str("trait TsrFileRead { fn read_bytes(&mut self,length:i64)->Result<Vec<u8>,tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileWrite { fn write_bytes(&mut self,bytes:&[u8])->Result<i64,tsrust_native_files::fs::FsFailure>; fn write_all_bytes(&mut self,bytes:&[u8])->Result<(),tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileClose { fn close_file(self)->Result<(),tsrust_native_files::fs::FsFailure>; }\n");
     for (index,record) in program.records.iter().enumerate() {
         let Some(id @ (NativeTypeId::File | NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter))=record.native_type else {continue;};
@@ -100,6 +100,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding], ord
             "appendFile" => ("path:&String,bytes:&impl TsrReadableBytes".into(),"tsrust_native_files::fs::append_file(path.as_ref(),bytes.readable_bytes())".into(),"success".into()),
             "readTextFile" => ("path:&String,limit:Option<i64>".into(),"tsrust_native_files::fs::read_text_file(path.as_ref(),limit)".into(),"String::Owned(success)".into()),
             "writeTextFile" => ("path:&String,text:&String".into(),"tsrust_native_files::fs::write_text_file(path.as_ref(),text.as_ref())".into(),"success".into()),
+            "renameNew" => ("path:&String,destination:&String".into(),"tsrust_native_atomic_files::rename_new(path.as_ref(),destination.as_ref())".into(),"success".into()),
             "writeTextFileAtomic" => ("path:&String,text:&String,expected:Option<&String>".into(),"tsrust_native_atomic_files::write_text_file_atomic(path.as_ref(),text.as_ref(),expected.map(|value|value.as_ref()))".into(),"success".into()),
             "truncate" => (format!("file:&mut {file},length:i64"),"tsrust_native_files::fs::truncate(&mut file.handle,length)".into(),"success".into()),
             "syncAll" | "syncData" => {

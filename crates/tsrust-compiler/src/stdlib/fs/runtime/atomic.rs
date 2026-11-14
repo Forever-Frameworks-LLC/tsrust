@@ -1,6 +1,32 @@
 //! Staged text replacement selected independently from ordinary file operations.
 use crate::stdlib::fs::runtime::fs::FsFailure;
 
+pub fn rename_new(path: &str, destination: &str) -> Result<(), FsFailure> {
+    let io = |error| FsFailure::io("renameNew", error);
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    {
+        use std::ffi::CString;
+        let source = CString::new(path).map_err(|e| io(e.into()))?;
+        let target = CString::new(destination).map_err(|e| io(e.into()))?;
+        #[cfg(target_os = "macos")]
+        let result = unsafe { nix::libc::renamex_np(source.as_ptr(), target.as_ptr(), nix::libc::RENAME_EXCL) };
+        #[cfg(target_os = "linux")]
+        let result = unsafe { nix::libc::syscall(nix::libc::SYS_renameat2, nix::libc::AT_FDCWD, source.as_ptr(), nix::libc::AT_FDCWD, target.as_ptr(), nix::libc::RENAME_NOREPLACE) };
+        if result == 0 { Ok(()) } else { Err(io(std::io::Error::last_os_error())) }
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        #[link(name = "kernel32")]
+        unsafe extern "system" { fn MoveFileW(existing: *const u16, new: *const u16) -> i32; }
+        let wide = |s: &str| std::ffi::OsStr::new(s).encode_wide().chain(Some(0)).collect::<Vec<_>>();
+        if path.contains('\0') || destination.contains('\0') { return Err(io(std::io::ErrorKind::InvalidInput.into())); }
+        if unsafe { MoveFileW(wide(path).as_ptr(), wide(destination).as_ptr()) } != 0 { Ok(()) } else { Err(io(std::io::Error::last_os_error())) }
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
+    Err(io(std::io::ErrorKind::Unsupported.into()))
+}
+
 fn atomic_failure(code:&'static str,message:&str)->FsFailure {
     FsFailure {code,operation:"writeTextFileAtomic",message:message.into(),os_code:None}
 }

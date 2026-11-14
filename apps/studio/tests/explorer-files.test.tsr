@@ -1,0 +1,64 @@
+import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
+import { strictEqual, test } from 'std:testing';
+import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+
+test('explorer create, rename and move retain open drafts; delete requires clean descendants', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'src'));
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'lib'));
+    unwrap(changeExplorerEntry(ws, 'New file', root + '/src', 'a.tsr'));
+    unwrap(openFile(ws, root + '/src/a.tsr'));
+    edit(ws.files[0].document, 'draft');
+    ws.sourceBreakpoints = [{
+      path: root + '/src/a.tsr', line: 1
+    }];
+    unwrap(changeExplorerEntry(ws, 'New file', root + '/lib', 'a.tsr'));
+
+    match (changeExplorerEntry(ws, 'Move', root + '/src/a.tsr', root + '/lib')) {
+      Ok(_) => {
+        throw 'Move replaced an existing file';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'A file or folder already exists at the destination.');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/lib/a.tsr', 32)), '');
+    unwrap(changeExplorerEntry(ws, 'Rename', root + '/src/a.tsr', 'b.tsr'));
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/src', root + '/lib'));
+    strictEqual(ws.active, root + '/lib/src/b.tsr');
+    strictEqual(ws.files[0].document.text, 'draft');
+    strictEqual((clone(ws.sourceBreakpoints) ?? [])[0].path, ws.active);
+    strictEqual(unwrap(readTextFile(ws.active, 32)), '');
+
+    for (const result of [changeExplorerEntry(ws, 'Delete', root + '/lib', ''), changeExplorerEntry(ws, 'Move', root + '/lib', root + '/lib/src'), changeExplorerEntry(ws, 'New file', root, '../outside'), changeExplorerEntry(ws, 'New file', root + '/lib/src', 'b.tsr'), changeExplorerEntry(ws, 'Delete', root, '')]) {
+      match (result) {
+        Ok(_) => {
+          throw 'Unexpected filesystem mutation';
+        },
+        Err(_) => {}
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/lib/src', root));
+    strictEqual(ws.active, root + '/src/b.tsr');
+    strictEqual((clone(ws.sourceBreakpoints) ?? [])[0].path, ws.active);
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/src/b.tsr', root));
+    strictEqual(ws.active, root + '/b.tsr');
+    strictEqual(ws.files[0].document.text, 'draft');
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/b.tsr', root + '/lib'));
+    edit(ws.files[0].document, '');
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/lib', ''));
+    strictEqual(ws.files.length, 0);
+    strictEqual(ws.active, '');
+    strictEqual((clone(ws.sourceBreakpoints) ?? []).length, 0);
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});

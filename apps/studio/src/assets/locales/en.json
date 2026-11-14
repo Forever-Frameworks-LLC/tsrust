@@ -629,5 +629,20 @@
   "A mid-sized local coding model for code completion, explanation and chat.": "A mid-sized local coding model for code completion, explanation and chat.",
   "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.": "The seven-billion-parameter coding model in four-bit quantization for local chat and completions.",
   "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.": "The same 7B coding model in five-bit quantization. It retains more weight precision and uses more disk space than the Q4 build.",
-  "Inline completions": "Inline completions"
+  "Inline completions": "Inline completions",
+  "New file": "New file",
+  "New folder": "New folder",
+  "Rename": "Rename",
+  "Delete": "Delete",
+  "Name": "Name",
+  "Reveal in Finder": "Reveal in Finder",
+  "Reveal in File Explorer": "Reveal in File Explorer",
+  "Reveal in file manager": "Reveal in file manager",
+  "Permanently delete this item and any contents?": "Permanently delete this item and any contents?",
+  "Enter a single file or folder name.": "Enter a single file or folder name.",
+  "The project root cannot be moved or deleted.": "The project root cannot be moved or deleted.",
+  "Save or discard changes in the affected files before deleting.": "Save or discard changes in the affected files before deleting.",
+  "Unknown explorer action.": "Unknown explorer action.",
+  "A folder cannot be moved inside itself.": "A folder cannot be moved inside itself.",
+  "A file or folder already exists at the destination.": "A file or folder already exists at the destination."
 }

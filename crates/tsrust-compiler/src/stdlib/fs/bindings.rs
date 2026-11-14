@@ -182,6 +182,16 @@ pub const RENAME: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_rename" }, features: &["fs"],
 };
 
+pub const RENAME_NEW: NativeBinding = NativeBinding {
+    module: "std:fs", name: "renameNew", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "destination", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_rename_new" }, features: &["fs"],
+};
+
 pub const COPY_FILE: NativeBinding = NativeBinding {
     module: "std:fs", name: "copyFile", returned_borrow: None,
     parameters: &[

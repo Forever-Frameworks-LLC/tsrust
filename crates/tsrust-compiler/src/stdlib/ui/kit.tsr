@@ -6516,6 +6516,8 @@ export interface TreeProps {
   scrollBounce?: ReactiveValue<boolean>;
   /** Focuses the tree for keyboard navigation when it mounts. */
   autoFocus?: ReactiveValue<boolean>;
+  /** Destination id passed to onItemDrop when an item is dropped in empty tree space. */
+  backgroundDropTarget?: ReactiveValue<string> | TextBinding;
   /** Receives the clicked item's id. */
   onSelect?: Owned<Function<void, [id: ReadOnly<string>]>>;
   /** Receives a folder's id when it opens. */
@@ -6524,7 +6526,9 @@ export interface TreeProps {
   onCollapse?: Owned<Function<void, [id: ReadOnly<string>]>>;
   /** Receives the right-clicked item's id as its TreeMenu opens. */
   onContextMenu?: Owned<Function<void, [id: ReadOnly<string>]>>;
-  /** TreeItem and TreeMenu elements. */
+  /** Receives a JSON array [sourceId, targetId] when one row is dropped on another row in this tree. The application decides how to move it. */
+  onItemDrop?: Owned<Function<void, [items: ReadOnly<string>]>>;
+  /** TreeItem, TreeMenu and TreeBackgroundMenu elements. */
   children?: Child[];
   /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
   className?: ReactiveValue<string>;
@@ -6557,6 +6561,12 @@ export function Tree(props: TreeProps): Node {
     node = kitFlag(node, 'autoFocus', prop_autoFocus);
   }
 
+  const prop_backgroundDropTarget = props.backgroundDropTarget;
+
+  if (prop_backgroundDropTarget !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'backgroundDropTarget', prop_backgroundDropTarget));
+  }
+
   const event_onSelect = props.onSelect;
 
   if (event_onSelect !== undefined) {
@@ -6579,6 +6589,12 @@ export function Tree(props: TreeProps): Node {
 
   if (event_onContextMenu !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'contextMenu', event_onContextMenu));
+  }
+
+  const event_onItemDrop = props.onItemDrop;
+
+  if (event_onItemDrop !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'itemDrop', event_onItemDrop));
   }
 
   return node;
@@ -6675,6 +6691,19 @@ export interface TreeMenuProps {
 /** The right-click menu for every Tree row; onContextMenu on the Tree tells which row opened it. */
 export function TreeMenu(props: TreeMenuProps): Node {
   let node = kitNode('TreeMenu', props.children ?? [], props.className);
+  return node;
+}
+
+export interface TreeBackgroundMenuProps {
+  /** MenuItem, MenuSeparator and MenuLabel elements. */
+  children?: Child[];
+  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  className?: ReactiveValue<string>;
+}
+
+/** The right-click menu for empty space around the tree rows. */
+export function TreeBackgroundMenu(props: TreeBackgroundMenuProps): Node {
+  let node = kitNode('TreeBackgroundMenu', props.children ?? [], props.className);
   return node;
 }
 
