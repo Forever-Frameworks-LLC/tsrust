@@ -53,7 +53,7 @@ export async function run(): Promise<void> {
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'clone clears ownership diagnostic');
   await replace(editor, 'function main(){console.log("\u{1f600}");}');
   await vscode.commands.executeCommand('tsrust.formatDocument');
-  assert.ok(document.getText().includes('\n  console.log'), 'format command expands block with two-space indentation');
+  await waitFor(() => document.getText().includes('\n  console.log'), 'format command expands block with two-space indentation');
   assert.equal(await vscode.commands.executeCommand('tsrust.checkFile',uri),0, 'file checks from command');
   const taskEnd = new Promise<number | undefined>(resolve => {
     const subscription=vscode.tasks.onDidEndTaskProcess(event => { if(event.execution.task.source === 'Tsrust') {subscription.dispose();resolve(event.exitCode);} });

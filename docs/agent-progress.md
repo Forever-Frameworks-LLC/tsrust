@@ -4,6 +4,47 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## External editor direction — 2026-11-14
+
+Owner paused the full Studio goal and requested stopping its running application,
+cleaning generated builds, implementing Zed support and checking VS Code. Sent
+SIGINT to verified dev supervisor 72328; its log confirmed Stopped and subsequent
+process inspection found no Studio app/watcher. Retained the two newest entries
+in each cache while removing 109 obsolete Studio application entries, 137 Studio
+runtime entries and 131 root runtime entries under their namespace locks. Free
+disk increased from approximately 4 GiB to 92 GiB.
+
+Added editors/zed with a Rust WASI adapter for the existing tsrust-lsp, .tsr/.tsrx
+registration, highlighting, brackets and outline queries. Uses Zed's built-in
+TSX grammar. A dedicated Tsrust grammar remains pending for match and ownership
+syntax. Cargo check and release wasm32-wasip2 build passed with API 0.7.0.
+Installed the generated adapter through Zed's dev symlink layout and configured
+an absolute tsrust-lsp path alongside the owner's existing Zed settings. Zed
+opened apps/studio and launched the exact configured server as its child.
+Initial highlight query used anonymous true/false nodes and was rejected;
+changed to named nodes before reloading. Zed's automatic dev compiler initially
+lacked its WASI target, so the adapter was built with the pinned toolchain into
+the shared target and copied to ignored extension.wasm. Removed its redundant
+254 MiB nested target afterward. Visible Zed hover/completion gestures remain
+unverified because accessibility exposed only window chrome.
+
+Installed the existing local VS Code VSIX, opened apps/studio and configured the
+same current compiler/server paths in user settings. Rebuilt tsrust-lsp.
+The installed VS Code extension-host integration passed against that rebuilt
+server, including unsaved ownership/type/syntax errors, UTF-16, quick fixes,
+completion/hover/signatures, definitions/references, imports, multiple documents,
+formatting and format-on-save, CLI checks/native execution, restart and recovery.
+One run failed by inspecting formatted text immediately after the command;
+the test now waits for the asynchronous edit and the complete rerun passed.
+
+A direct public LSP session opened the real apps/studio/src/main.tsrx and received
+two versioned diagnostics after 120.25 seconds. Trace reported declarations
+1.912 s, compiler check 116.953 s and index 1.154 s. Foreground analysis preceded
+workspace scanning. This establishes a shared large-project analysis bottleneck
+across editor clients. It does not establish clean Studio diagnostics or good
+interactive latency. Previous selection-recovery source changes and owner edits
+remain outside this editor integration checkpoint. Full Studio goal stays paused.
+
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
 Replayed the invoice-policy task in a disposable native Studio window with the installed Qwen2.5-Coder-3B Q4. Its reviewed draft changed only the return statement to shelfCharge(fragile, billableUnits(units)). The target retained its original bytes until File > Save; both reference files remained byte-identical. A native test of the saved caller passed all four assertions for positive fragile/non-fragile orders and zero/negative orders (0.13 ms test execution). Post-response model-host RSS was 1,709,040 KiB; peak was not sampled. The earlier 1.5B native attempt on this task was rejected. A separate 7B Q4 production-host trial intended to run the identical captured prompt stopped at critical system pressure during model load, before ready. Baseline swap was 2861.50 MiB, maximum sampled increase 494.44 MiB, sampled peak host RSS 1852.27 MiB, elapsed 7.4 seconds. No 7B answer was obtained. The editor and Codex were running; this does not establish Studio-alone capacity. The owner’s model selection and development session were preserved.

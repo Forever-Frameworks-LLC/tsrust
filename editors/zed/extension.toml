@@ -1,0 +1,14 @@
+id = "tsrust"
+name = "Tsrust"
+version = "0.1.0"
+schema_version = 1
+authors = ["Tsrust contributors"]
+description = "Tsrust compiler diagnostics, completion, documentation and navigation."
+
+[language_servers.tsrust-lsp]
+name = "Tsrust"
+languages = ["Tsrust"]
+
+[lib]
+kind = "Rust"
+version = "0.7.0"
