@@ -28,6 +28,17 @@ class BaselineTests(unittest.TestCase):
                     baseline.sample('unused-compiler', 4, 3)
                 dev.assert_not_called()
 
+    def test_completed_dev_samples_export_to_the_shared_measurement_format(self):
+        metrics = ['coldStartMs', 'warmStartMs', 'leafEditMs', 'sharedEditMs', 'configEditMs']
+        rows = [{'modules': 6, 'observations': dict.fromkeys(metrics, value)} for value in [10, 12, 11]]
+        manifest, execution = baseline.measurement_records(rows)
+        self.assertEqual(len(manifest['workloads']), 5)
+        self.assertTrue(all(row['iterations'] == 1 for row in manifest['workloads']))
+        self.assertEqual({row['engine'] for row in execution}, {'tsrust-dev'})
+        cold = [row['durations'][0] for row in execution if row['workload'] == 'dev-loop-6-modules-coldStartMs']
+        self.assertEqual(cold, [10, 12, 11])
+        self.assertEqual(baseline.measurement_records([]), ({'workloads': []}, []))
+
     def test_cpu_time_conversion(self):
         self.assertEqual(baseline.cpu_seconds('1:02.50'), 62.5)
         self.assertEqual(baseline.cpu_seconds('02:01:02'), 7262)

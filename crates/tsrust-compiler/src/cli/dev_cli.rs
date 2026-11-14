@@ -95,6 +95,14 @@ mod platform {
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
         report(Status::Info,format_args!("Checking {}…", project.entry.strip_prefix(root).unwrap_or(&project.entry).display()));
+        // Keep the same probe and teardown, but overlap it with frontend work.
+        let files=TempDirectory::new().map_err(|e|e.to_string())?;
+        let backend_started=Instant::now();
+        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
+        let mut command=crate::backend_command();command.arg("--version")
+            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
+            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
+        let probe=Process::spawn(&mut command);
         let (reply,response)=mpsc::channel();
         struct CancelCheck(std::sync::Arc<std::sync::atomic::AtomicBool>);
         impl Drop for CancelCheck {fn drop(&mut self){self.0.store(true,Ordering::Relaxed);}}
@@ -126,13 +134,7 @@ mod platform {
         if !watcher.still_current(root,expected) {return Ok(None);}
         if verbose && reused_frontend {eprintln!("[build] Reused checked application.");}
         else if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
-        let files=TempDirectory::new().map_err(|e|e.to_string())?;
-        let backend_started=Instant::now();
-        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
-        let mut command=crate::backend_command();command.arg("--version")
-            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
-            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
-        let mut probe=Process::spawn(&mut command)?;
+        let mut probe=probe?;
         let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
         let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
         let backend_elapsed=backend_started.elapsed();

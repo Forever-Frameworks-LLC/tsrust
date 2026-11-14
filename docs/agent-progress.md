@@ -4,6 +4,48 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Cancellable dev probe overlap validated — 2026-11-14
+
+The existing backend probe now starts alongside frontend work. Its same Process
+owner still kills/reaps descendants on cancellation or frontend failure. Spawn
+errors are deferred until the frontend result, retaining source-error precedence.
+Version/output validation, wrappers and cache integrity checks remain unchanged.
+The backend phase is its overlapping wall span; do not sum it with frontend time.
+Alias tests passed 3/3 in 4.75s, cancellation 6/6 in 14.97s (including the new invalid-edit
+pending-probe descendant witness), colors 1/1 in 1.33s. Setup 153s. Release pair build
+passed in 22.50s. Six benchmark harness tests pass. Dev-loop reports now export the
+shared measurement schema, including partial completed sample sets; no duration is
+replaced or inferred. The earlier completed baseline's timestamp comes from its
+report completion mtime because that version lacked an explicit timestamp.
+
+Quiet-gated 3-sample medians (before to after, milliseconds):
+
+| Modules | Cold start | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| 6 | 594.15 to 497.55 | 107.56 to 109.66 | 460.86 to 469.79 | 452.26 to 430.39 | 264.33 to 288.36 |
+| 130 | 521.76 to 473.11 | 128.75 to 109.58 | 517.49 to 515.99 | 458.39 to 455.69 | 296.63 to 297.95 |
+
+The result is mixed: startup improved, especially the 130-module warm case; edit
+latency is dominated by watcher/debounce/polling delays and the 6-module config
+median regressed 9.09 percent. Do not claim a universal or stable speedup from three
+samples. All completed program-output oracles passed; after-run idle CPU deltas were
+0/0.01s with stable supervisor RSS (about 21/27MiB). These are short observations,
+not a retained-memory leak proof. Twenty dev workload/engine history entries were
+ingested, independently verified with 3 samples each, and SQLite integrity passed.
+Existing matched-build and probe histories remain intact. Raw results are disposable.
+
+A two-second,5ms macOS sample of successful Worklist emission captured 329 active
+compiler-thread samples, mostly within analysis/check_graph. Recursive native-view
+shape refresh/index construction and record matching appear repeatedly alongside
+call checking and allocation. Physical footprint was 99.3M, observed peak 119.5M.
+This is an early-window diagnostic sample, not full-workload attribution or a
+benchmark. Raw sample /tmp/tsrust-worklist-frontend-sample.txt is temporary while the
+next cause is investigated. Next: inspect overbroad AnalysisProgram revision bumps
+on function-only mutation; preserve all in-place record, union and scoped-family
+invalidation witnesses. Do not bypass checks or weaken existing assertions. Keep
+Worklist 65742/67828 and API33729 running, and preserve all owner edits. The <10%
+matched Rust target and full goal remain unaccepted.
+
 ## Quiet-gated compiler/dev profiling — 2026-11-14
 
 Previous goal turn made progress: accepted shared UI sections are checkpointed.

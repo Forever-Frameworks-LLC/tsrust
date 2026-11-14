@@ -61,3 +61,9 @@ established load threshold and timeout, and refuses to start timed work if the
 machine stays busy. Records include the observed load and threshold for each
 sample. This requires Node for the shared guard; sample counts, generated graphs,
 compiler flags and independent output assertions are unchanged.
+
+Dev-loop results also expose the shared manifest/execution format, with one workload
+per graph size and startup/edit scenario. Ingest them with the same store:ingest
+command as matched builds; completed samples retain their original durations.
+The dev backend phase is now the probe's wall span and can overlap frontend work;
+do not add overlapping phase durations to estimate end-to-end latency.

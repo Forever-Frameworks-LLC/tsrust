@@ -1,5 +1,6 @@
 """Reproducible dev-loop latency samples; writes one JSON record to stdout."""
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -142,6 +143,15 @@ def sample(compiler, count, idle):
         return {'modules': count + 2, 'sources': sources, 'quietMachine': quiet, 'observations': rows, 'coldLog': cold.lines, 'warmLog': warm.lines}
 
 
+def measurement_records(rows):
+    metrics = ['coldStartMs', 'warmStartMs', 'leafEditMs', 'sharedEditMs', 'configEditMs']
+    execution = [{'workload': f"dev-loop-{row['modules']}-modules-{metric}",
+                  'engine': 'tsrust-dev', 'durations': [row['observations'][metric]]}
+                 for row in rows for metric in metrics]
+    workloads = dict.fromkeys(row['workload'] for row in execution)
+    return {'workloads': [{'id': name, 'iterations': 1} for name in workloads]}, execution
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--compiler', required=True)
@@ -152,13 +162,14 @@ def main():
     if args.samples < 1 or any(n < 1 for n in args.modules) or args.idle_seconds <= 0:
         parser.error('positive sample, module and idle values required')
     compiler = str(pathlib.Path(args.compiler).resolve(strict=True))
-    result = {'protocol': 'dev-loop-v1', 'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'compilerSha256': hashlib.sha256(pathlib.Path(compiler).read_bytes()).hexdigest(), 'harnessSha256': hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'host': platform.platform(), 'samplesPerShape': args.samples, 'idleSecondsPerSample': args.idle_seconds, 'rows': []}
+    result = {'protocol': 'dev-loop-v1', 'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'compilerSha256': hashlib.sha256(pathlib.Path(compiler).read_bytes()).hexdigest(), 'harnessSha256': hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'host': platform.platform(), 'samplesPerShape': args.samples, 'idleSecondsPerSample': args.idle_seconds, 'rows': []}
     try:
         for count in args.modules:
             for repetition in range(args.samples):
                 result['rows'].append({'repetition': repetition, **sample(compiler, count, args.idle_seconds)})
     finally:
         # Preserve completed samples even when a later sample fails.
+        result['manifest'], result['execution'] = measurement_records(result['rows'])
         print(json.dumps(result, indent=2))
 
 
