@@ -21,7 +21,7 @@ import { SearchActionContext, fileSearchLabel } from '../../lib/explorer/search-
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput, SourceFrame, UnmappedBreakpoint } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput, SourceFrame, UnresolvedBreakpoint } from '../../services/debug/session.tsr';
 
 import { Workspace, SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -114,7 +114,7 @@ function openDebugLocation(navigation: ReadOnly<SearchActionContext>, path: Read
 
 function BreakpointRow(
   target: SourceBreakpoint,
-  unmapped: Signal<UnmappedBreakpoint[]>,
+  unresolved: Signal<UnresolvedBreakpoint[]>,
   listed: Signal<SourceBreakpoint[]>,
   root: ReadOnly<string>,
   running: Signal<boolean>,
@@ -130,7 +130,7 @@ function BreakpointRow(
   const markerPath = clone(file);
   const rowLabel = clone(label);
   const description = computed<string>(() => {
-    const point = unmapped.get().find((item) => item.path === markerPath && item.line === line);
+    const point = unresolved.get().find((item) => item.path === markerPath && item.line === line);
     return point === undefined ? clone(rowLabel) : translate(clone(point.reason)) + ' · ' + clone(rowLabel);
   });
   return (
@@ -277,8 +277,8 @@ export function DebugSidebar(
   const locals = signal<string[]>([]);
   const localsOpen = signal(true);
   const stackOpen = signal(true);
-  const unmapped = signal<UnmappedBreakpoint[]>([]);
-  const rowUnmapped = unmapped.handle();
+  const unresolved = signal<UnresolvedBreakpoint[]>([]);
+  const rowUnresolved = unresolved.handle();
   const listRunning = running.handle();
   const breakpointWorkspace = navigation.workspace.handle();
   const breakpointRecovery = navigation.recovery.handle();
@@ -413,7 +413,7 @@ export function DebugSidebar(
       <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
         {...listed.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(
           clone(point),
-          rowUnmapped.handle(),
+          rowUnresolved.handle(),
           listHandle.handle(),
           root,
           listRunning.handle(),
@@ -498,7 +498,7 @@ export function DebugSidebar(
           chosen.set('');
           match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoints: clone(launchWorkspace.get().sourceBreakpoints), watch: watch.get()})) {
             Ok(_) => {
-              unmapped.set([]);
+              unresolved.set([]);
               lastTarget.set(clone(path));
               output.set(path + '\n');
               running.set(true);
@@ -509,8 +509,8 @@ export function DebugSidebar(
         }
         match (replies.tryReceive()) {
           Ok(reply) => {
-            if (reply.finished) unmapped.set([]);
-            else if (reply.unmappedBreakpoint !== undefined) unmapped.set([...unmapped.get(), clone(reply.unmappedBreakpoint)]);
+            if (reply.finished) unresolved.set([]);
+            else if (reply.unresolvedBreakpoint !== undefined) unresolved.set([...unresolved.get(), clone(reply.unresolvedBreakpoint)]);
             if (reply.stopped === true) {
               frameStop.set(reply.stopId ?? 0);
               selectedFrame.set(reply.selectedFrame ?? -1);

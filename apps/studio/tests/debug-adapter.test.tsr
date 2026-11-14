@@ -268,10 +268,10 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         const update = await output.receive().timeout(10000);
         strictEqual(update.finished, false);
 
-        if (update.unmappedBreakpoint !== undefined) {
-          strictEqual(update.unmappedBreakpoint.path, clone(source));
-          strictEqual(update.unmappedBreakpoint.line, 11);
-          strictEqual(update.unmappedBreakpoint.reason, 'Source map unavailable');
+        if (update.unresolvedBreakpoint !== undefined) {
+          strictEqual(update.unresolvedBreakpoint.path, clone(source));
+          strictEqual(update.unresolvedBreakpoint.line, 11);
+          strictEqual(update.unresolvedBreakpoint.reason, 'Source map unavailable');
           sourceMapWarning = true;
         }
 
@@ -568,6 +568,33 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       }
 
       strictEqual((await consoleResult(output)).includes('Exit code 0'), true);
+
+      if (platform() === 'darwin') {
+        unwrap(removeDirAll(program + '.dSYM'));
+        await commands.send({
+          action: 'launch', program: clone(program), sourceBreakpoints: [{
+            path: clone(source), line: 11
+          }]
+        });
+        let rejected = false;
+
+        while (true) {
+          const update = await output.receive().timeout(10000);
+
+          if (update.unresolvedBreakpoint !== undefined) {
+            strictEqual(update.unresolvedBreakpoint.path, clone(source));
+            strictEqual(update.unresolvedBreakpoint.line, 11);
+            strictEqual(update.unresolvedBreakpoint.reason, 'Breakpoint not verified');
+            rejected = true;
+          }
+
+          if (update.stopped === true) throw 'A target without line symbols unexpectedly bound the breakpoint.';
+
+          if (update.finished) break;
+        }
+
+        strictEqual(rejected, true);
+      }
     } finally {
       worker.cancel();
 

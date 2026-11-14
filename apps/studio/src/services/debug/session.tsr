@@ -33,14 +33,14 @@ export interface SourceFrame {
   location?: OriginalPosition;
 }
 
-export interface UnmappedBreakpoint {
+export interface UnresolvedBreakpoint {
   path: string;
   line: int;
   reason: string;
 }
 
 export interface DebugOutput {
-  unmappedBreakpoint?: UnmappedBreakpoint;
+  unresolvedBreakpoint?: UnresolvedBreakpoint;
   frames?: SourceFrame[];
   selectedFrame?: int;
   stopId?: int;
@@ -344,7 +344,7 @@ async function launchDebugTarget(
           if (positions.size === 0) {
             for (const point of requested) {
               await output.send({
-                unmappedBreakpoint: {
+                unresolvedBreakpoint: {
                   path: clone(point.path), line: point.line, reason: 'Source map unavailable'
                 }, text: 'Source map unavailable: ' + point.path + ':' + point.line.toString() + '\n', finished: false
               });
@@ -402,8 +402,8 @@ async function launchDebugTarget(
               const mapped = owners.includes(i);
               const reason = mapped ? 'The debugger could not resolve ' : 'No executable statement at ';
               await output.send({
-                unmappedBreakpoint: mapped ? undefined : {
-                  path: clone(requested[i].path), line: requested[i].line, reason: 'No executable statement'
+                unresolvedBreakpoint: {
+                  path: clone(requested[i].path), line: requested[i].line, reason: mapped ? 'Breakpoint not verified' : 'No executable statement'
                 }, text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
               });
             }
