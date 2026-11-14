@@ -120,6 +120,7 @@ fn emitted_locations_preserve_single_and_linked_source_byte_ranges() {
             let text = std::fs::read_to_string(&path).unwrap();
             let prefix = &text[..start];
             assert_eq!(pos["path"], path);
+            assert_eq!(pos["functionName"], if path == helper.canonicalize().unwrap().to_str().unwrap() { "twice" } else { "main" });
             assert_eq!(pos["line"], prefix.bytes().filter(|&b| b == b'\n').count() + 1);
             assert_eq!(pos["column"], prefix.rsplit('\n').next().unwrap().encode_utf16().count() + 1);
             if path == helper.canonicalize().unwrap().to_str().unwrap_or("") && &text[start..end] == "return" {

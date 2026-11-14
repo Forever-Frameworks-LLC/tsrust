@@ -449,6 +449,9 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           if (action === 'stepOut') {
             strictEqual(update.watchValue, '6');
             const frames = clone(update.frames) ?? [];
+            strictEqual(frames[0].location.functionName, 'twice');
+            strictEqual(frames[1].location.functionName, 'main');
+            strictEqual(update.text.includes('#0 twice  '), true);
             strictEqual(frames[1].location.line, 13);
             await commands.send({
               action: 'selectFrame', stopId: update.stopId, frameId: frames[1].id

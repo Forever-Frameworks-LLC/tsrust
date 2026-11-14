@@ -402,7 +402,6 @@ async function launchDebugTarget(
 
               for (let i = 0; i < frames.length; i += 1) {
                 const frame = frames[i];
-                text += '#' + i.toString() + ' ' + frame.name;
                 const source = frame.source?.path ?? frame.source?.name ?? '';
 
                 if (source.endsWith('.rs') && source.includes('.tsrust-debug') && source !== mappedUnit) {
@@ -411,6 +410,8 @@ async function launchDebugTarget(
                 }
 
                 const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
+
+                text += '#' + i.toString() + ' ' + (original?.functionName ?? frame.name);
 
                 if (original !== undefined) {
                   text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();

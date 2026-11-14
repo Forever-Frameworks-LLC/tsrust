@@ -4080,16 +4080,16 @@ impl Emitter<'_> {
             if let Some((entry, text)) = self.debug_source {
                 let span = stmt.span;
                 let location = match self.source_graph {
-                    None => Some((entry, text, span.start, span.end)),
+                    None => Some((entry, text, span.start, span.end, None)),
                     Some(graph) => self.source_segments.partition_point(|(_, base, _)| *base <= span.start)
                         .checked_sub(1).and_then(|index| {
                             let (id, base, _) = &self.source_segments[index];
                             let module = &graph.modules[id];
                             (module.rust.is_none() && module.data.is_none() && span.end <= base + module.source.text.len())
-                                .then(|| (id.0.as_str(), module.source.text.as_str(), span.start - base, span.end - base))
+                                .then(|| (id.0.as_str(), module.source.text.as_str(), span.start - base, span.end - base, Some(index)))
                         }),
                 };
-                if let Some((path, text, start, end)) = location.filter(|(_, text, start, end)| start < end && *end <= text.len() && text.is_char_boundary(*start)) {
+                if let Some((path, text, start, end, module)) = location.filter(|(_, text, start, end, _)| start < end && *end <= text.len() && text.is_char_boundary(*start)) {
                     let mut files = self.debug_lines.borrow_mut();
                     let lines = files.entry(path).or_insert_with(|| std::iter::once(0)
                         .chain(text.match_indices('\n').map(|(offset, _)| offset + 1)).collect());
@@ -4098,7 +4098,10 @@ impl Emitter<'_> {
                     let names = fun.bindings.iter().take(fun.parameter_count)
                         .map(|binding| binding.name.as_str()).collect::<Vec<_>>();
                     let parameters = serde_json::to_string(&names).expect("parameter names serialize");
-                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column},\"parameters\":{parameters}}}", crate::json_string(path));
+                    let name = fun.name.strip_prefix("local#").and_then(|s| s.split_once('#')).map_or(fun.name.as_str(), |(_, name)| name);
+                    let name = module.and_then(|i| name.strip_prefix(&format!("{}{i}_", crate::type_aliases::LINKED_PREFIX))).unwrap_or(name);
+                    let function = crate::json_string(name);
+                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column},\"parameters\":{parameters},\"functionName\":{function}}}", crate::json_string(path));
                     let _ = writeln!(output, "\n// tsrust-source [{},{start},{end}]", crate::json_string(path));
                 }
             }

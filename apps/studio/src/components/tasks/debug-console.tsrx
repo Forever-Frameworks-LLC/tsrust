@@ -113,8 +113,9 @@ function StackFrameRow(
   font: Signal<int>
 ): Node {
   const frameId = frame.id;
+  const name = frame.location.functionName ?? '';
   const path = frame.location.path;
-  const label = '#' + frame.depth.toString() + ' ' + (path.startsWith(root + '/') ? path.slice(root.length + 1) : clone(path)) + ':' + frame.location.line.toString();
+  const label = '#' + frame.depth.toString() + ' ' + (name === '' ? '' : name + '  ') + (path.startsWith(root + '/') ? path.slice(root.length + 1) : clone(path)) + ':' + frame.location.line.toString();
   return (
     <Button
       className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
