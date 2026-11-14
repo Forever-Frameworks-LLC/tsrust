@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Explorer deletion now selects the next surviving tab to the right of a removed active editor, falling back to the previous tab at the end. Unrelated selections stay active. The regression previously selected the last tab instead of its nearer sibling. Seven explorer and recovery tests passed in 79.14 ms. In native macOS Studio, confirming deletion of a folder with two open files selected the adjacent surviving editor and persisted the expected selection and remaining tab order.
+
 A real explorer rename from drawing.txt to drawing.svg with unsaved text previously made restart reject the whole journal. Recovery now restores journaled text regardless of the viewer selected by the new extension, preserving the original save baseline. Formatted recovery and explorer suites passed 6/6 (64.42 ms), including an unrelated dirty tab and clean SVG reopening in the image viewer. A native macOS Studio restored the exact SVG draft into an editable field and saved it through the explorer, retaining the other draft in recovery.
 
 Explorer filesystem suite passed 2/2 on macOS with a real directory symlink. Deletion through an external parent link was rejected. Renaming and moving the link, then deleting its containing project folder, preserved the external file contents. This exercises the filesystem service. Pruned nine superseded Studio program/runtime cache entries under the namespace locks and recovered 5.43 GiB while the dev session stayed running.

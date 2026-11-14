@@ -11,7 +11,7 @@ import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
-import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { openWorkspace, openFile, selectFile } from '../src/lib/workspace/workspace.tsr';
 
 test('explorer create, rename and move retain open drafts; delete requires clean descendants', () => {
   const temp = unwrap(createTempDir(undefined, 'studio-explorer-'));
@@ -101,6 +101,34 @@ if (platform() !== 'win32') test('explorer moves directory links and deletes the
     strictEqual(unwrap(readLink(root + '/dest/alias')), outside);
     unwrap(changeExplorerEntry(ws, 'Delete', root + '/dest', ''));
     strictEqual(unwrap(readTextFile(outside + '/sentinel', 32)), 'keep');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('deleting a folder selects the next surviving editor and preserves unrelated selection', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-tabs-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    unwrap(mkdirAll(root + '/nested'));
+
+    for (const name of ['left', 'nested/a', 'nested/b', 'next', 'last']) {
+      const path = root + '/' + name;
+      unwrap(writeTextFile(path, name));
+      unwrap(openFile(ws, path));
+    }
+
+    strictEqual(selectFile(ws, root + '/nested/a'), true);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/nested', ''));
+    strictEqual(ws.active, root + '/next');
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/left', ''));
+    strictEqual(ws.active, root + '/next');
+    strictEqual(selectFile(ws, root + '/last'), true);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/last', ''));
+    strictEqual(ws.active, root + '/next');
   } finally {
     unwrap(removeDirAll(temp));
   }

@@ -54,9 +54,17 @@ export function changeExplorerEntry(workspace: Mutable<Workspace>, action: ReadO
 
       if (metadata.isDirectory) unwrap(removeDirAll(source));
       else unwrap(removeFile(source));
+      const removedActive = within(workspace.active, source);
+
+      if (removedActive) {
+        const active = workspace.files.findIndex((file) => file.document.path === workspace.active);
+        const right = workspace.files.findIndex((file, index) => index > active && !within(file.document.path, source));
+        workspace.active = right < 0 ? '' : clone(workspace.files[right].document.path);
+      }
+
       workspace.files = workspace.files.filter((file) => !within(file.document.path, source));
 
-      if (within(workspace.active, source)) workspace.active = workspace.files.length === 0 ? '' : clone(workspace.files[workspace.files.length - 1].document.path);
+      if (removedActive && workspace.active === '' && workspace.files.length > 0) workspace.active = clone(workspace.files[workspace.files.length - 1].document.path);
       workspace.sourceBreakpoints = (workspace.sourceBreakpoints ?? []).filter((point) => !within(point.path, source));
     } else {
       if (action !== 'Rename' && action !== 'Move') return Err('Unknown explorer action.');
