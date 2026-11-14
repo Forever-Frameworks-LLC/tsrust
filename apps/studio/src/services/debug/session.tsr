@@ -34,6 +34,8 @@ export interface SourceFrame {
 }
 
 export interface DebugOutput {
+  // A source line with no generated statement in the selected executable.
+  unmappedBreakpoint?: SourceBreakpoint;
   frames?: SourceFrame[];
   selectedFrame?: int;
   stopId?: int;
@@ -383,9 +385,10 @@ async function launchDebugTarget(
             if (verified.has(i)) {
               if (functionPoints.has(i)) functionVerified = true;
             } else {
-              const reason = owners.includes(i) ? 'The debugger could not resolve ' : 'No executable statement at ';
+              const mapped = owners.includes(i);
+              const reason = mapped ? 'The debugger could not resolve ' : 'No executable statement at ';
               await output.send({
-                text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
+                unmappedBreakpoint: mapped ? undefined : clone(requested[i]), text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
               });
             }
           }

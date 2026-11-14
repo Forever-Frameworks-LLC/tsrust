@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Unresolved original-source breakpoints — 2026-11-13
 
+Run and Debug now marks a listed breakpoint when the selected executable has no generated statement for its source line. The worker sends the original path and line, and the sidebar supplies a warning icon, localized tooltip and accessible name. The indication clears on session exit. In an isolated macOS Studio at font size 20, set F9 on a blank line, launched, hit twice(6) and observed the sidebar button named “No executable statement · fixture.tsr:3”. After stepping out and continuing to exit zero the row reverted to “fixture.tsr:3”. Localization passed 1/1. The watcher recovered from disk exhaustion after removing an interrupted duplicate Cargo target and pruning 2,615 MiB of old executable cache under lock. The editor gutter and dynamic adapter re-verification remain open.
+
 Launching a mapped Tsrust executable with a breakpoint on a blank line now reports its source path and line in the Debug Console and continues configuring the other breakpoints. A mapped function breakpoint reports verification only when the adapter verifies one of its generated locations. The real LLDB suite passed 9/9 in 8.48 seconds, including a blank line alone and a blank line alongside two executable lines. Both executable lines stopped and the target exited zero. In a disposable native macOS Studio, F9 on a blank line followed by F5 reported fixture.tsr line 3, hit the named twice breakpoint, showed watch n = 6 and resumed to exit zero. Breakpoint editing during a running session and visual distinction for unresolved markers remain open.
 
 ## Debugger inspection sections — 2026-11-13
