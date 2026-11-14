@@ -2024,3 +2024,51 @@ test('chat compares open drafts to current disk contents for save questions', ()
     unwrap(removeDirAll(root));
   }
 });
+
+test('a leading workspace path in a chat edit targets the named closed file and leaves the active draft alone', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-path-edit-'))));
+
+  try {
+    const model = unwrap(openWorkspace(root));
+    unwrap(mkdirAll(root + '/src'));
+    unwrap(writeTextFile(root + '/active.tsr', 'same text'));
+    unwrap(writeTextFile(root + '/src/other.tsr', 'same text'));
+    unwrap(openFile(model, root + '/active.tsr'));
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    strictEqual(denied(invokeModelTool(host, 'local_model_send', JSON.stringify({
+      chat: '', prompt: 'Update ./src/missing.tsr: replace same text with revised.'
+    }))), true);
+    send(host, 'Please update "./src/other.tsr": replace same text with revised.');
+    const request = unwrap(requests.tryReceive());
+    const target = state.get().editTarget;
+
+    if (target === undefined) throw 'Missing edit target';
+    strictEqual(target.files.length, 1);
+    strictEqual(target.files[0].path, root + '/src/other.tsr');
+    strictEqual(target.files[0].unopened, true);
+    strictEqual(workspace.get().files.length, 1);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: '[{"file":0,"before":"same text","after":"revised"}]', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing edit review';
+    reviewChatEdit(state, workspace, signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    }), review, true);
+    strictEqual(workspace.get().active, root + '/active.tsr');
+    strictEqual(workspace.get().files[0].document.text, 'same text');
+    strictEqual(workspace.get().files[1].document.text, 'revised');
+    strictEqual(unwrap(readTextFile(root + '/src/other.tsr')), 'same text');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

@@ -126,7 +126,7 @@ if (workspaceEval === 'reference-draft') test('local chat edits one of two attac
   }
 });
 
-if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified', 'prose'].includes(workspaceEval)) test(workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified', 'prose', 'named-edit'].includes(workspaceEval)) test(workspaceEval === 'named-edit' ? 'local chat edits a named unopened file with a same-name tab active' : workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
   const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
 
   if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
@@ -157,6 +157,8 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
       unwrap(openFile(workspace, folder + '/answer.tsr'));
     }
 
+    if (workspaceEval === 'named-edit') unwrap(openFile(workspace, folder + '/answer.tsr'));
+
     if (workspaceEval === 'batch') {
       unwrap(openFile(workspace, folder + '/answer.tsr'));
       unwrap(openFile(workspace, folder + '/lib/answer.tsr'));
@@ -176,6 +178,24 @@ if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualifi
     const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
 
     try {
+      if (workspaceEval === 'named-edit') {
+        await ask(host, updates, 'Update ./lib/answer.tsr: change the return value from 73 to 84.');
+        const review = host.state.get().review;
+
+        if (review === undefined) throw 'Missing review: ' + host.state.get().notice;
+        strictEqual(review.files.length, 1);
+        strictEqual(review.files[0].path, workspace.root + '/lib/answer.tsr');
+        strictEqual(opened.get().files.length, 1);
+        reviewChatEdit(host.state, opened, signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        }), review, true);
+        strictEqual(opened.get().active, workspace.root + '/answer.tsr');
+        strictEqual(opened.get().files[0].document.text, 'export function answer(): int { return 51; }');
+        strictEqual(opened.get().files[1].document.text, 'export function answer(): int { return 84; }');
+        strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), 'export function answer(): int { return 73; }');
+        return;
+      }
+
       if (workspaceEval === 'batch') {
         for (const path of ['answer.tsr', 'lib/answer.tsr']) unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
           chat: '', path: folder + '/' + path, kind: 'file'

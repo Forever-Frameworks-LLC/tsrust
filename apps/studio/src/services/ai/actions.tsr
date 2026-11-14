@@ -28,20 +28,24 @@ import { ChatStore, persistChats } from './history.tsr';
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
 import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
 
-function requestsEdit(prompt: ReadOnly<string>): boolean {
-  let instruction = prompt.trim().toLowerCase();
+function editInstruction(prompt: ReadOnly<string>): string {
+  let instruction = prompt.trim();
 
   for (const prefix of ['can you ', 'could you ', 'would you ']) {
-    if (instruction.startsWith(prefix)) {
+    if (instruction.toLowerCase().startsWith(prefix)) {
       instruction = instruction.slice(prefix.length);
       break;
     }
   }
 
-  if (instruction.startsWith('please ')) instruction = instruction.slice(7);
+  return instruction.toLowerCase().startsWith('please ') ? instruction.slice(7) : instruction;
+}
+
+function requestsEdit(prompt: ReadOnly<string>): boolean {
+  const instruction = editInstruction(prompt).toLowerCase();
 
   if (instruction.startsWith('not insert that ') && instruction.endsWith('?')) return true;
-  return ['add ', 'insert ', 'replace ', 'remove ', 'rename ', 'change ', 'update ', 'fix ', 'refactor ', 'implement ', 'delete '].some((verb) => instruction.startsWith(verb));
+  return ['edit ', 'add ', 'insert ', 'replace ', 'remove ', 'rename ', 'change ', 'update ', 'fix ', 'refactor ', 'implement ', 'delete '].some((verb) => instruction.startsWith(verb));
 }
 
 export interface AiState {
@@ -145,7 +149,7 @@ export function modelTools(): EditorTool[] {
   }, {
     name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
   }, {
-    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft or Edit files: for attached workspace text files, followed by the change requested. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft, Edit files: for attached workspace text files, or Update ./path: followed by the change requested for a named workspace file. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
   }, {
     name: 'local_model_cancel', description: 'Cancel the explicit active request, including automatic model startup. Rejects stale identities. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
   }, {
@@ -344,6 +348,33 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
       const explicitBatch = prompt.toLowerCase().startsWith('edit files: ');
       const explicitEdit = prompt.toLowerCase().startsWith('edit: ');
       const editing = explicitBatch || explicitEdit || requestsEdit(prompt);
+
+      if (editing && !explicitEdit && !explicitBatch && !attachments.some((item) => item.kind === 'file')) {
+        const instruction = editInstruction(prompt);
+        const delimiter = instruction.indexOf(':');
+
+        if (delimiter > 0) {
+          let path = instruction.slice(instruction.indexOf(' ') + 1, delimiter).trim();
+
+          for (const quote of ['"', "'", '`']) {
+            if (path.startsWith(quote) && path.endsWith(quote)) path = path.slice(1, -1);
+          }
+
+          if (path.startsWith('./')) {
+            if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
+
+            match (readContext(workspace.get(), path, 'file', [])) {
+              Ok(file) => {
+                attachments.push(file);
+              },
+              Err(reason) => {
+                return Err(reason);
+              }
+            }
+          }
+        }
+      }
+
       const batch = explicitBatch || (editing && !explicitEdit && attachments.some((item) => item.kind === 'file'));
       const task = explicitBatch ? prompt.slice('Edit files: '.length) : explicitEdit ? prompt.slice(6) : clone(prompt);
       const references = context.references;
