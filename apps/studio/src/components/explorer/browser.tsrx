@@ -242,9 +242,7 @@ export function ProjectTree(
           publishWorkspace(next, workspace, recovery);
         }}
       >
-        <TreeItem id={clone(path)} label={basename(path) === '' ? clone(path) : basename(path)} defaultExpanded={true} icon="folder-open">
-          {...directoryItems(0, snapshot.get(), workspace, settings)}
-        </TreeItem>
+        {...directoryItems(0, snapshot.get(), workspace, settings)}
         <TreeMenu>
           <MenuItem
             label={message('New file')}
