@@ -45,6 +45,7 @@ export interface DebugBreakpoint {
 }
 
 export interface DebugScope {
+  presentationHint?: string;
   name: string;
   variablesReference: int;
 }

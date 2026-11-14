@@ -2,6 +2,8 @@
   "Remove breakpoint": "Remove breakpoint",
   "Break at cursor": "Break at cursor",
   "Toggle source breakpoint at cursor": "Toggle source breakpoint at cursor",
+  "Local variable": "Local variable",
+  "Local variables": "Local variables",
   "Watch value": "Watch value",
   "Watch expression": "Watch expression",
   "No edit was proposed.": "No edit was proposed.",

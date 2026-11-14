@@ -121,6 +121,7 @@ export function DebugSidebar(
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
+  const locals = signal<string[]>([]);
   const chosen = signal('');
   const listRunning = running.handle();
   const listFont = font.handle();
@@ -204,6 +205,14 @@ export function DebugSidebar(
             <Input readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'font-mono text-[' + font.get().toString() + 'px]'} />
           </View>
         </View>
+        <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
+          <Text className={'px-2 font-semibold text-[' + font.get().toString() + 'px]'}>
+            {t('Local variables')}
+          </Text>
+          {...locals.get().map((value: ReadOnly<string>) => (
+            <Input readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'px-2 font-mono text-[' + font.get().toString() + 'px]'} />
+          ))}
+        </View>
         <View hidden={!stopped.get()} className="flex-col items-start">
           {DebugControl(
             requests,
@@ -261,7 +270,7 @@ export function DebugSidebar(
                 Err(error) => { output.set(output.get() + error + '\n'); }
               }
             }
-            output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
+            output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) locals.set(clone(reply.locals) ?? []); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
       }} />

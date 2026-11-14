@@ -32,6 +32,7 @@ export interface DebugCommand {
 }
 
 export interface DebugOutput {
+  locals?: string[];
   stopped?: boolean;
   location?: OriginalPosition;
   watchValue?: string;
@@ -82,6 +83,12 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     let disconnectRequest = 0;
     let stackRequest = 0;
     let watchRequest = 0;
+    let pausedText = '';
+    let pausedLocation: OriginalPosition | undefined = undefined;
+    let scopesRequest = 0;
+    let variablesRequest = 0;
+    let locals: string[] = [];
+    let watchValue: string | undefined = undefined;
     const watch = (command.watch ?? '').trim();
     let thread = 0;
     let stopReason = '';
@@ -97,7 +104,7 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     while (true) {
       const reply = decodeAdapterReply(await readFrame(reader));
 
-      if (reply.success === false && reply.command !== 'stackTrace' && reply.command !== 'evaluate') throw reply.message ?? 'Debug request failed.';
+      if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
 
       if (reply.command === 'setBreakpoints' && reply.request_seq === 3) {
         const verified = new Set<int>();
@@ -151,6 +158,10 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
 
         await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
       } else if (reply.event === 'stopped') {
+        pausedText = '';
+        pausedLocation = undefined;
+        locals = [];
+        watchValue = undefined;
         thread = reply.body?.threadId ?? 0;
 
         if (thread <= 0) throw 'Stopped thread unavailable.';
@@ -162,12 +173,32 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
           }
         }));
         seq += 1;
-      } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest)) {
-        let watchValue: string | undefined = undefined;
+      } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest) || (reply.command === 'scopes' && reply.request_seq === scopesRequest) || (reply.command === 'variables' && reply.request_seq === variablesRequest)) {
         let text = '';
         let location: OriginalPosition | undefined = undefined;
 
-        if (reply.command === 'evaluate') {
+        if (reply.command === 'scopes') {
+          scopesRequest = 0;
+          const scopes = clone(reply.body?.scopes) ?? [];
+          const scope = scopes.find((entry) => entry.presentationHint === 'locals' || entry.name.toLowerCase() === 'locals');
+
+          if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+
+          if (scope !== undefined && scope.variablesReference > 0) {
+            variablesRequest = seq;
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'variables', arguments: {
+                variablesReference: scope.variablesReference
+              }
+            }));
+            seq += 1;
+          }
+        } else if (reply.command === 'variables') {
+          variablesRequest = 0;
+
+          if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+          else for (const variable of clone(reply.body?.variables) ?? []) locals.push(variable.name + ' = ' + variable.value);
+        } else if (reply.command === 'evaluate') {
           watchRequest = 0;
           watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');
         } else {
@@ -220,6 +251,16 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
               continue;
             }
 
+            if (frames.length > 0) {
+              scopesRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'scopes', arguments: {
+                  frameId: frames[0].id
+                }
+              }));
+              seq += 1;
+            }
+
             if (watch !== '' && frames.length > 0) {
               watchRequest = seq;
               await writeFrame(writer, JSON.stringify({
@@ -233,17 +274,18 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
           }
 
           steppingLine = '';
+          pausedLocation = clone(location);
 
-          if (watchRequest !== 0) {
-            await output.send({
-              text, location, finished: false
-            });
-            continue;
-          }
+        }
+
+        pausedText += text;
+
+        if (watchRequest !== 0 || scopesRequest !== 0 || variablesRequest !== 0) {
+          continue;
         }
 
         await output.send({
-          text, location, watchValue, stopped: true, finished: false
+          text: clone(pausedText), location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
         });
         const control = await requests.receive();
 

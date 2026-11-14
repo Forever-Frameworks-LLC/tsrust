@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Run and Debug reads the stopped top frame’s locals scope and displays its immediate values alongside the watch. Stack location, watch and locals are delivered together before the worker accepts the next control. Scope/variables request failures go to the console and leave stepping available. Native macOS Studio replay launched twice(6), stopped on the return line with a watch, and observed the local “value0 = 6” in the sidebar. LLDB exposes the generated parameter name rather than the Tsrust name n. Nested variable expansion and original-name mapping remain open. Debugger and localization suites passed 9/9 (5.60 s execution).
+
 Missing adapter launch now identifies the attempted executable and explains PATH and LLDB_DAP setup in the Debug Console. An isolated native Studio with a nonexistent configured path containing a space displayed that path and setup message. Existing launches and the new worker failure case passed 8/8 debugger tests (5.58 s execution). Host was macOS arm64. The configured desktop-linux Docker socket was absent; no native Linux or Windows session was validated.
 
 F10 invokes Step over from the focused editor. The button and shortcut share paused-state dispatch, which clears the paused flag once the command is queued. In an isolated rebuilt Studio on macOS, launched a two-line fixture under Xcode LLDB with a breakpoint and watch, focused the editor, pressed F10, then saved a marker at the resulting caret. The only changed text was the marker immediately before the second console call.
