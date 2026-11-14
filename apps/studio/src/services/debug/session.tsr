@@ -8,7 +8,7 @@ import { basename } from 'std:path';
 import { Child, run, spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
-import { decodeAdapterReply } from './protocol.tsr';
+import { DebugBreakpoint, decodeAdapterReply } from './protocol.tsr';
 import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
 
 import { SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
@@ -39,8 +39,42 @@ export interface UnresolvedBreakpoint {
   reason: string;
 }
 
+export interface BreakpointBinding {
+  owner: int;
+  id?: int;
+  verified: boolean;
+}
+
+// Several generated lines may bind the same original line, or share an adapter ID.
+export function updateBreakpointBindings(bindings: Mutable<BreakpointBinding[]>, point: ReadOnly<DebugBreakpoint>, reason: ReadOnly<string>): int[] {
+  const affected = new Set<int>();
+  const id = point.id;
+
+  if (id === undefined || (reason !== 'changed' && reason !== 'removed')) return [];
+
+  for (const binding of bindings) {
+    if (binding.id === id) affected.add(binding.owner);
+  }
+
+  const previouslyVerified = new Set<int>();
+
+  for (const binding of bindings) {
+    if (binding.verified && affected.has(binding.owner)) previouslyVerified.add(binding.owner);
+  }
+
+  for (let i = 0; i < bindings.length; i += 1) {
+    if (bindings[i].id !== id) continue;
+    bindings[i].verified = reason !== 'removed' && point.verified;
+
+    if (reason === 'removed') bindings[i].id = undefined;
+  }
+
+  return Array.from(affected).filter((owner) => previouslyVerified.has(owner) !== bindings.some((entry) => entry.owner === owner && entry.verified));
+}
+
 export interface DebugOutput {
   unresolvedBreakpoint?: UnresolvedBreakpoint;
+  verifiedBreakpoint?: SourceBreakpoint;
   frames?: SourceFrame[];
   selectedFrame?: int;
   stopId?: int;
@@ -174,7 +208,7 @@ async function launchDebugTarget(
     let currentAddress = '';
     let continuingLine = '';
     const continuedAddresses = new Set<string>();
-    const sourceIds = new Set<int>();
+    const bindings: BreakpointBinding[] = [];
     let sourceHit = false;
     let steppingLine = '';
     let stepCommand = 'next';
@@ -321,6 +355,32 @@ async function launchDebugTarget(
           continue;
         }
 
+        if (reply.event === 'breakpoint') {
+          const point = reply.body?.breakpoint;
+
+          if (point !== undefined) {
+            const reason = reply.body?.reason ?? '';
+
+            for (const owner of updateBreakpointBindings(bindings, point, reason)) {
+              const target = requested[owner];
+
+              if (reason !== 'removed' && point.verified) {
+                await output.send({
+                  verifiedBreakpoint: clone(target), text: '', finished: false
+                });
+              } else {
+                await output.send({
+                  unresolvedBreakpoint: {
+                    path: clone(target.path), line: target.line, reason: 'Breakpoint not verified'
+                  }, text: '', finished: false
+                });
+              }
+            }
+          }
+
+          continue;
+        }
+
         if (reply.command === 'threads') continue;
 
         if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
@@ -387,12 +447,11 @@ async function launchDebugTarget(
           const points = clone(reply.body?.breakpoints) ?? [];
 
           for (let i = 0; i < points.length && i < owners.length; i += 1) {
-            if (points[i].verified) {
-              verified.add(owners[i]);
-              const id = points[i].id;
+            bindings.push({
+              owner: owners[i], id: points[i].id, verified: points[i].verified
+            });
 
-              if (id !== undefined) sourceIds.add(id);
-            }
+            if (points[i].verified) verified.add(owners[i]);
           }
 
           for (let i = 0; i < requested.length; i += 1) {
@@ -460,7 +519,7 @@ async function launchDebugTarget(
           if (thread <= 0) throw 'Stopped thread unavailable.';
           stopReason = clone(reply.body?.reason ?? 'unknown');
           const hits = clone(reply.body?.hitBreakpointIds) ?? [];
-          sourceHit = stopReason === 'breakpoint' && hits.length > 0 && hits.every((id) => sourceIds.has(id));
+          sourceHit = stopReason === 'breakpoint' && hits.length > 0 && hits.every((id) => bindings.some((entry) => entry.verified && entry.id === id));
           sourceFrames = [];
           selectedFrame = -1;
           stopId = seq;

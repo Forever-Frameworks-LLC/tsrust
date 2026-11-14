@@ -510,7 +510,12 @@ export function DebugSidebar(
         match (replies.tryReceive()) {
           Ok(reply) => {
             if (reply.finished) unresolved.set([]);
-            else if (reply.unresolvedBreakpoint !== undefined) unresolved.set([...unresolved.get(), clone(reply.unresolvedBreakpoint)]);
+            else if (reply.verifiedBreakpoint !== undefined) {
+              const point = clone(reply.verifiedBreakpoint);
+              unresolved.set(unresolved.get().filter((entry) => entry.path !== point.path || entry.line !== point.line));
+            } else if (reply.unresolvedBreakpoint !== undefined) {
+              unresolved.set([...unresolved.get(), clone(reply.unresolvedBreakpoint)]);
+            }
             if (reply.stopped === true) {
               frameStop.set(reply.stopId ?? 0);
               selectedFrame.set(reply.selectedFrame ?? -1);

@@ -7,7 +7,15 @@ import { run, spawn } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 
 import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
-import { DebugCommand, DebugOutput, debugWorker, debugAdapterCommand, exitStatusText } from '../src/services/debug/session.tsr';
+import {
+  BreakpointBinding,
+  updateBreakpointBindings,
+  DebugCommand,
+  DebugOutput,
+  debugWorker,
+  debugAdapterCommand,
+  exitStatusText
+} from '../src/services/debug/session.tsr';
 import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
 
 async function runDebugTarget(adapter: string, program: string): Task<void> {
@@ -726,4 +734,29 @@ test('breakpoint change events retain adapter identity, resolved range and expla
   strictEqual(point.line, 9);
   strictEqual(point.column, 3);
   strictEqual(point.endColumn, 8);
+});
+
+test('breakpoint changes reconcile original lines across multiple generated bindings', () => {
+  const bindings: BreakpointBinding[] = [{
+    owner: 0, id: 3, verified: false
+  }, {
+    owner: 0, id: 4, verified: true
+  }, {
+    owner: 1, id: 3, verified: false
+  }];
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: true
+  }, 'changed')), '[1]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: false
+  }, 'removed')), '[1]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: true
+  }, 'changed')), '[]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 4, verified: false
+  }, 'changed')), '[0]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 4, verified: true
+  }, 'changed')), '[0]');
 });
