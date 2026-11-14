@@ -16,6 +16,12 @@ test('file glyphs recognize names and extensions without decorating folders', ()
     strictEqual(fileDecoration(name, false).svg.includes('<title>Go</title>'), true);
   }
 
+  for (const name of ['view.swift', 'hello.JAVA', 'main.cpp', 'widget.hpp', 'main.c', 'Example.cs', 'schema.sql', 'component.vue', 'config.yml', 'app.kt', 'build.zig']) {
+    strictEqual(fileDecoration(name, false).svg.length > 0, true);
+  }
+
+  strictEqual(fileDecoration('package.json', false).svg.includes('<title>npm</title>'), true);
+  strictEqual(fileDecoration('CMakeLists.txt', false).svg.includes('<title>CMake</title>'), true);
   strictEqual(fileDecoration('other.mod', false).svg, '');
   strictEqual(fileDecoration('README.md', false).svg.length > 0, true);
   strictEqual(fileDecoration('icon.png', false).icon, 'image');

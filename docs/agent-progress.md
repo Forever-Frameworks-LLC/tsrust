@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Added 28 pinned Simple Icons families to explorer and quick-open file decoration. Exact filenames take priority over extensions, including package.json and CMakeLists.txt. Verified all 40 embedded upstream glyph hashes. Focused icon and localization suites passed 3/3 in 1.38 ms. This checks the mappings and assets; individual glyph pixels were not sampled.
+
 Debug Console drains up to the channel capacity per tick and coalesces adjacent console updates. An isolated macOS Studio attached LLDB to a disposable target; a relay injected 120 ordered output events immediately before the real stopped event. The previous build showed all lines and paused controls after 6.52 s, the rebuilt app after 0.54 s. Detach left the target running.
 
 Cancelling a chat queued during inline warmup now restores the composer immediately while the shared host finishes loading. Chat-only startup cancellation still shuts down its host. In a disposable macOS Studio, held the real 1.5B Q4 host's ready notification, sent a question and pressed Stop response. The original draft returned. Released readiness, then resent the restored draft; the answer was 14 for 8 plus 6. Observed exactly one host launch and two inbound frames, start followed by generate after resend. AI action tests passed 43/43 in 308.03 ms.

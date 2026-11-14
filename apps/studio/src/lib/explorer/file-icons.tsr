@@ -12,11 +12,20 @@ export function fileDecoration(name: ReadOnly<string>, directory: boolean): File
   if (!directory) {
     const extension = extname(name).slice(1).toLowerCase();
 
+    let byExtension: FileDecoration | undefined = undefined;
+
     for (const entry of catalog.icons) {
-      if (entry.filenames.includes(name) || entry.extensions.includes(extension)) return {
+      if (!entry.filenames.includes(name) && !entry.extensions.includes(extension)) continue;
+      const decoration: FileDecoration = {
         svg: clone(entry.svg), icon: clone(entry.icon), color: clone(entry.color)
       };
+
+      if (entry.filenames.includes(name)) return decoration;
+
+      if (byExtension === undefined) byExtension = decoration;
     }
+
+    if (byExtension !== undefined) return byExtension;
   }
 
   return {

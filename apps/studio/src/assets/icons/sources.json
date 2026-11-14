@@ -64,6 +64,146 @@
         "path": "icons/go.svg",
         "sha256": "36a745fe15584bf138d02ae6abcbdd155bc1cd4f4976634ad34861b2059db559",
         "packagedSha256": "36a745fe15584bf138d02ae6abcbdd155bc1cd4f4976634ad34861b2059db559"
+      },
+      {
+        "path": "icons/c.svg",
+        "sha256": "fde4284070eedf24f3acc2f78368b8c25a204f9a1b8831caaae4652c3e716c88",
+        "packagedSha256": "fde4284070eedf24f3acc2f78368b8c25a204f9a1b8831caaae4652c3e716c88"
+      },
+      {
+        "path": "icons/cplusplus.svg",
+        "sha256": "adf33f5026f3f70d54f1068cb5d1a790c37b2105cbe728edd170251759d13f18",
+        "packagedSha256": "adf33f5026f3f70d54f1068cb5d1a790c37b2105cbe728edd170251759d13f18"
+      },
+      {
+        "path": "icons/dotnet.svg",
+        "sha256": "3b7e1243fb2389116b0a5237c9f07e82f6d2eb18ee40bd232f28abccd7956993",
+        "packagedSha256": "3b7e1243fb2389116b0a5237c9f07e82f6d2eb18ee40bd232f28abccd7956993"
+      },
+      {
+        "path": "icons/openjdk.svg",
+        "sha256": "31c94bd8f864b018d9733c251df186f36e9a0036e43f78d0656895108d438bb3",
+        "packagedSha256": "31c94bd8f864b018d9733c251df186f36e9a0036e43f78d0656895108d438bb3"
+      },
+      {
+        "path": "icons/kotlin.svg",
+        "sha256": "909d1ba63b4bea5843be4579fa68a398c310c3d4748e8e6ba9ea295403984b3b",
+        "packagedSha256": "909d1ba63b4bea5843be4579fa68a398c310c3d4748e8e6ba9ea295403984b3b"
+      },
+      {
+        "path": "icons/swift.svg",
+        "sha256": "b3d5f49cc459b7a3417db134ec70052c30305c3799d0f854796544c52c18a4bc",
+        "packagedSha256": "b3d5f49cc459b7a3417db134ec70052c30305c3799d0f854796544c52c18a4bc"
+      },
+      {
+        "path": "icons/ruby.svg",
+        "sha256": "956992a81b988b916efdd6f7a78b9f19fe352b5c04f2019af2ce1a89e390ac9d",
+        "packagedSha256": "956992a81b988b916efdd6f7a78b9f19fe352b5c04f2019af2ce1a89e390ac9d"
+      },
+      {
+        "path": "icons/php.svg",
+        "sha256": "cd1beaa0dde7e765b5d2cbae786c1f6db967f72073eb7b9f9bbc63da55b9d0f6",
+        "packagedSha256": "cd1beaa0dde7e765b5d2cbae786c1f6db967f72073eb7b9f9bbc63da55b9d0f6"
+      },
+      {
+        "path": "icons/dart.svg",
+        "sha256": "e02868488ff4ac8e8b22440c6b021e6539f9df21271e0ffb8a7bf92ada0126bb",
+        "packagedSha256": "e02868488ff4ac8e8b22440c6b021e6539f9df21271e0ffb8a7bf92ada0126bb"
+      },
+      {
+        "path": "icons/scala.svg",
+        "sha256": "5202637eaff2e7362af3743313c21f6c074d4ff80ab6335ca5e87608b7a12a21",
+        "packagedSha256": "5202637eaff2e7362af3743313c21f6c074d4ff80ab6335ca5e87608b7a12a21"
+      },
+      {
+        "path": "icons/lua.svg",
+        "sha256": "ea6e362187dd07d589930f3bb12e5c624253c60767a554d9ecbea4585cc29a60",
+        "packagedSha256": "ea6e362187dd07d589930f3bb12e5c624253c60767a554d9ecbea4585cc29a60"
+      },
+      {
+        "path": "icons/haskell.svg",
+        "sha256": "46f753c4116bdbfd1e478c5c3101b969e5a8b9f472969b74346d67c6f2975847",
+        "packagedSha256": "46f753c4116bdbfd1e478c5c3101b969e5a8b9f472969b74346d67c6f2975847"
+      },
+      {
+        "path": "icons/clojure.svg",
+        "sha256": "f23b610b539189e4dd680473a1fe73f20a1e5e3ad1d93400b987abde9ba571d7",
+        "packagedSha256": "f23b610b539189e4dd680473a1fe73f20a1e5e3ad1d93400b987abde9ba571d7"
+      },
+      {
+        "path": "icons/elixir.svg",
+        "sha256": "d660279eaad792683d6e8cee70b225935e856f6b7aae4327d30f4a7f69e71c34",
+        "packagedSha256": "d660279eaad792683d6e8cee70b225935e856f6b7aae4327d30f4a7f69e71c34"
+      },
+      {
+        "path": "icons/fsharp.svg",
+        "sha256": "4d80db70f031efafad08be2690af3ffbe867f3b1d8ccab44daf0e081efab2198",
+        "packagedSha256": "4d80db70f031efafad08be2690af3ffbe867f3b1d8ccab44daf0e081efab2198"
+      },
+      {
+        "path": "icons/ocaml.svg",
+        "sha256": "e973034bce8a78e914959696254bc9f55ab28fd3eba72f856bce87a1bd21e0d4",
+        "packagedSha256": "e973034bce8a78e914959696254bc9f55ab28fd3eba72f856bce87a1bd21e0d4"
+      },
+      {
+        "path": "icons/zig.svg",
+        "sha256": "1cd8fe569c641c0229c3717f2f883b88cf9beaa3b2adc255799ea3e014ee1955",
+        "packagedSha256": "1cd8fe569c641c0229c3717f2f883b88cf9beaa3b2adc255799ea3e014ee1955"
+      },
+      {
+        "path": "icons/julia.svg",
+        "sha256": "d7471ddca5a25f72c43f433726b00c324175f0fe1b80011ff3e77e750f273f9d",
+        "packagedSha256": "d7471ddca5a25f72c43f433726b00c324175f0fe1b80011ff3e77e750f273f9d"
+      },
+      {
+        "path": "icons/r.svg",
+        "sha256": "3f2e47349d136c4a75cf081318b72c08ecf816c70c99d08a694a43ed5e10bf81",
+        "packagedSha256": "3f2e47349d136c4a75cf081318b72c08ecf816c70c99d08a694a43ed5e10bf81"
+      },
+      {
+        "path": "icons/perl.svg",
+        "sha256": "6f1d3f3ac779079b0306437550cf1bc7532e1aa161ddf5934e8f109d006a7fca",
+        "packagedSha256": "6f1d3f3ac779079b0306437550cf1bc7532e1aa161ddf5934e8f109d006a7fca"
+      },
+      {
+        "path": "icons/yaml.svg",
+        "sha256": "1b76155a5dce1e412ba98b5ef4081bcce729efe1e7fa68bf783f6559d7d56e64",
+        "packagedSha256": "1b76155a5dce1e412ba98b5ef4081bcce729efe1e7fa68bf783f6559d7d56e64"
+      },
+      {
+        "path": "icons/sqlite.svg",
+        "sha256": "71d4153bc9661dfe6b92dad70f737ec2b6c7c839311e502b4ca66fe664fe12b6",
+        "packagedSha256": "71d4153bc9661dfe6b92dad70f737ec2b6c7c839311e502b4ca66fe664fe12b6"
+      },
+      {
+        "path": "icons/svelte.svg",
+        "sha256": "a38cef0f4fc36bc63519ce34d24a91022f19ec6998ea402c5e155c7479a46f4c",
+        "packagedSha256": "a38cef0f4fc36bc63519ce34d24a91022f19ec6998ea402c5e155c7479a46f4c"
+      },
+      {
+        "path": "icons/vuedotjs.svg",
+        "sha256": "2a57b59bd3ff2880f971f7f6cce2378d20bdfb1a54150a0a7ca9fd2fe1bfa781",
+        "packagedSha256": "2a57b59bd3ff2880f971f7f6cce2378d20bdfb1a54150a0a7ca9fd2fe1bfa781"
+      },
+      {
+        "path": "icons/docker.svg",
+        "sha256": "65571291c261ef869c31540a38f3ca0f0ee3bb73f179c172211c8860f19a6359",
+        "packagedSha256": "65571291c261ef869c31540a38f3ca0f0ee3bb73f179c172211c8860f19a6359"
+      },
+      {
+        "path": "icons/cmake.svg",
+        "sha256": "06757bccadf0459aca0a4c6a3898bd58e2dd71ea552bf7058cd406adc32fefa9",
+        "packagedSha256": "06757bccadf0459aca0a4c6a3898bd58e2dd71ea552bf7058cd406adc32fefa9"
+      },
+      {
+        "path": "icons/gradle.svg",
+        "sha256": "1ae785093daee910b4bc6ee351742976e441dfcd9bdb13e82a88c0c0ef37022e",
+        "packagedSha256": "1ae785093daee910b4bc6ee351742976e441dfcd9bdb13e82a88c0c0ef37022e"
+      },
+      {
+        "path": "icons/npm.svg",
+        "sha256": "00b410dc2c839cfa62910a065eaf28a48cbdb4babe503cf34d475cc94ba03be1",
+        "packagedSha256": "00b410dc2c839cfa62910a065eaf28a48cbdb4babe503cf34d475cc94ba03be1"
       }
     ],
     "adaptation": "Trailing whitespace removed when embedding SVG strings; colors are applied by the native icon tint."
