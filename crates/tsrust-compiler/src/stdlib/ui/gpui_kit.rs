@@ -2423,6 +2423,14 @@ impl Root {
                         if handles_ok {let confirm = root.clone(); dialog = dialog.on_ok(move |_, _, cx| {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx)); true});}
                         if handles_cancel {let cancel = root.clone(); dialog = dialog.on_cancel(move |_, _, cx| {let _ = cancel.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx)); true});}
                     }
+                    if ok.is_empty() && cancel.is_empty() && handles_ok {
+                        // A custom footer owns validation and closes its controlled dialog on success.
+                        let confirm = root.clone();
+                        dialog = dialog.on_ok(move |_, _, cx| {
+                            let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx));
+                            false
+                        });
+                    }
                     let parts = root.clone();
                     let (ok, cancel) = (ok.clone(), cancel.clone());
                     let cancelled = root.clone();

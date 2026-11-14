@@ -3744,7 +3744,7 @@ export interface DialogProps {
   onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** Runs after it closes. */
   onClose?: Owned<Function<void>>;
-  /** Runs when the okText button is pressed. */
+  /** Runs on Return or confirmation. With a custom footer and no shorthand buttons, set open to false in the handler after validation succeeds. */
   onOk?: Owned<Function<void>>;
   /** Runs when the cancelText button is pressed. */
   onCancel?: Owned<Function<void>>;

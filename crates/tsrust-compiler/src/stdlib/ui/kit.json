@@ -2543,7 +2543,7 @@
         {
           "prop": "onOk",
           "value": "void",
-          "doc": "Runs when the okText button is pressed."
+          "doc": "Runs on Return or confirmation. With a custom footer and no shorthand buttons, set open to false in the handler after validation succeeds."
         },
         {
           "prop": "onCancel",

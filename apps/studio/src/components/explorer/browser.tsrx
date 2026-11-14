@@ -17,6 +17,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogAction,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -169,6 +170,18 @@ export function ProjectTree(
   const name = signal('');
   const problem = signal('');
   const reveal = platform() === 'darwin' ? 'Reveal in Finder' : platform() === 'win32' ? 'Reveal in File Explorer' : 'Reveal in file manager';
+  const confirm = () => {
+    applyExplorerAction(
+      workspace,
+      recovery,
+      revision,
+      action,
+      problem,
+      action.get(),
+      target.get(),
+      name.get()
+    );
+  };
   refreshTree(session);
   const errorText = computed<string>(() => localizeError(error.get()));
   return (
@@ -340,6 +353,7 @@ export function ProjectTree(
       <Dialog
         open={action.get() !== ''}
         width={420}
+        onOk={confirm}
         onOpenChange={(opened) => {
           if (!opened) action.set('');
         }}
@@ -365,18 +379,6 @@ export function ProjectTree(
               onChange={(event) => {
                 name.set(clone(event.target.value));
               }}
-              onSubmit={(_secondary) => {
-                applyExplorerAction(
-                  workspace,
-                  recovery,
-                  revision,
-                  action,
-                  problem,
-                  action.get(),
-                  target.get(),
-                  name.get()
-                );
-              }}
             />
           </View>
           <View hidden={action.get() !== 'Delete'}>
@@ -398,23 +400,11 @@ export function ProjectTree(
             >
               {translate('Cancel')}
             </Button>
-            <Button
-              className={dialogButton.get() + ' bg-accent'}
-              onPress={() => {
-                applyExplorerAction(
-                  workspace,
-                  recovery,
-                  revision,
-                  action,
-                  problem,
-                  action.get(),
-                  target.get(),
-                  name.get()
-                );
-              }}
-            >
-              {translate(action.get())}
-            </Button>
+            <DialogAction>
+              <Button className={dialogButton.get() + ' bg-accent'}>
+                {translate(action.get())}
+              </Button>
+            </DialogAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
