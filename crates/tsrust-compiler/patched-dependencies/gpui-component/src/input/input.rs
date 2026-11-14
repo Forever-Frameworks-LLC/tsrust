@@ -801,6 +801,7 @@ impl RenderOnce for Input {
             })
             .input_h(self.size)
             .input_text_size(self.size)
+            .when_some(self.style.text.font_size,|this,font|this.min_h(font.to_pixels(window.rem_size())*1.5+px(4.)).line_height(relative(1.25)))
             .items_center()
             .when(presentation.is_multi_line(), |this| this.h_auto())
             .when_some(self.height, |this, height| this.h(height))

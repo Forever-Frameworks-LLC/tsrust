@@ -648,7 +648,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["Markdown", "InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["TitleBar", "Pagination", "Markdown", "InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -1146,7 +1146,7 @@ fn items<'a>(node: &'a Node, name: &'a str) -> impl Iterator<Item = (&'a Node, &
 }
 
 /// Select element options from its props; a SelectEmpty child replaces the empty list.
-macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, $cx:expr) => {{
+macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, $style:expr, $cx:expr) => {{
     let kit: &Kit = $kit;
     let mut select = $select.placeholder(kit.text("placeholder")).disabled(kit.flag("disabled")).cleanable(kit.flag("cleanable"));
     if let Some(label) = kit.prop("accessibilityLabel") {select = select.accessibility_label(label.to_owned());}
@@ -1158,6 +1158,7 @@ macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, 
     if let Some(width) = kit.number("menuWidth") {select = select.menu_width(px(width as f32));}
     if let Some(height) = kit.number("menuMaxHeight") {select = select.menu_max_h(px(height as f32));}
     if let Some(size) = kit_size(kit) {select = select.with_size(size);}
+    select.style().text = $style.text.clone();
     // Kit renders the empty state from &App, so a SelectEmpty child contributes its text.
     if let Some(empty) = $empty {
         let message = SharedString::from(find(&$root.node, empty).map(|node| node.content_text()).unwrap_or_default());
@@ -3064,7 +3065,7 @@ impl Root {
             "Pagination" => {
                 // page is controlled; without it the pagination keeps its own page (from defaultPage).
                 let page = kit.index("page").or(kit.index("defaultPage")).unwrap_or(1);
-                let mut pages = Pagination::new(element_id).current_page(page).total_pages(kit.index("total").unwrap_or(1)).disabled(kit.flag("disabled"));
+                let mut pages = Pagination::new(element_id).refine_style(&style).current_page(page).total_pages(kit.index("total").unwrap_or(1)).disabled(kit.flag("disabled"));
                 if kit.flag("compact") {pages = pages.compact();}
                 if let Some(visible) = kit.index("visiblePages") {pages = pages.visible_pages(visible);}
                 if let Some(size) = kit_size(kit) {pages = pages.with_size(size);}
@@ -3157,8 +3158,8 @@ impl Root {
             "Select" => {
                 let empty = items(node, "SelectEmpty").next().map(|(empty, _)| empty.identity.get());
                 match self.states.get(&id) {
-                    Some(KitState::Select(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
-                    Some(KitState::SelectGroups(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
+                    Some(KitState::Select(state, _)) => select_options!(self, Select::new(state), kit, empty, style, cx).into_any_element(),
+                    Some(KitState::SelectGroups(state, _)) => select_options!(self, Select::new(state), kit, empty, style, cx).into_any_element(),
                     _ => div().into_any_element(),
                 }
             }
@@ -3420,7 +3421,7 @@ impl Root {
             // Commands and timers stay mounted without contributing flex gaps or intrinsic size.
             "Shortcut" | "Ticker" => div().absolute().size_0().into_any_element(),
             "TitleBar" => {
-                let mut bar = TitleBar::new().children(self.content(node, cx));
+                let mut bar = TitleBar::new().refine_style(&style).children(self.content(node, cx));
                 if kit.handles("closeWindow") {bar = bar.on_close_window(cx.listener(move |this, _, _, cx| this.emit(id, "closeWindow", String::new(), cx)));}
                 bar.into_any_element()
             }
@@ -3978,6 +3979,10 @@ impl Root {
                     if let Some(bounce) = kit.prop("scrollBounce") {table = table.scroll_bounce(bounce == "true");}
                     if let Some(height) = kit.number("headerRowHeight") {table = table.header_row_height(px(height as f32));}
                     if let Some(size) = kit_size(kit) {table = table.with_size(size);}
+                    if let Some(AbsoluteLength::Pixels(font))=style.text.font_size {
+                        let height=kit_size(kit).unwrap_or(KitSize::Medium).table_row_height().max(font*1.5+px(8.));
+                        table=table.with_size(KitSize::Size(height));
+                    }
                     if state.read(cx).delegate().columns.iter().any(|column|column.fill) {
                         let state=state.downgrade();
                         return div().relative().size_full().child(table).child(canvas(move|bounds,_,cx|{let _=state.update(cx,|state,cx|{

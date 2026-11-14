@@ -649,7 +649,8 @@ impl RenderOnce for Button {
         let normal_style = style.normal(self.outline, cx);
         let selected_style = style.selected(self.outline, cx);
         let disabled_style = style.disabled(self.outline, cx);
-        let icon_size = self.icon_size.unwrap_or_else(|| match self.size {
+        let font=instance_style.text.font_size.map(|font|font.to_pixels(window.rem_size()));
+        let icon_size = self.icon_size.or_else(||font.map(Size::Size)).unwrap_or_else(|| match self.size {
             Size::Size(v) => Size::Size(v * 0.75),
             _ => self.size,
         });
@@ -722,6 +723,10 @@ impl RenderOnce for Button {
                             .when(self.compact, |this| this.min_w_8().px_2()),
                     }
                 }
+            })
+            .when_some(font.filter(|_|!style.no_padding()),|this,font| {
+                let this=this.min_h(font*1.5+gpui::px(4.));
+                if self.label.is_none() && children.is_empty() {this.min_w(font*1.5+gpui::px(4.))} else {this}
             })
             .when(self.border_corners.top_left, |this| {
                 this.rounded_tl(rounding)

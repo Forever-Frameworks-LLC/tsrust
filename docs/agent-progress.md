@@ -4,6 +4,61 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Shared zoom repairs accepted section — 2026-11-14
+
+Numeric sorting is checkpoint f73795b21. Current zoom source forwards Select
+trigger/option/group typography, Pagination button typography and TitleBar styles.
+Native Button/Input/Select frames fit explicit fonts and icons; TitleBar grows to
+its contents, centers macOS traffic lights and keeps the full bar draggable.
+DataTable plain cells inherit explicit fonts and default rows grow to fit. Worklist
+retains its full 11–24 zoom range; toolbar/footer heights grow with their contents.
+No controls, sorting states, validations or accessibility checks were removed.
+
+Managed widget batch passed 79/79 (0.13 s execution, 30.23 s setup), including the
+new 24px native Button/Input/Select/TitleBar geometry witness. After the final group
+label refinement, affected Select/searchable-list/TitleBar replay passed 12/12
+(0.03 s execution, 30.71 s setup). All tsrust-ui library tests passed 167/167
+(0.08 s execution, 0.24 s setup), retaining negative structural/validation controls.
+Initial newly introduced test import/selector errors were repaired before executed
+passes. Managed Cargo.lock registry metadata is restored. Whole-project formatter
+reports 0 files/snippets/fingerprints changed. Debug compiler built in 2m24s.
+
+Native Worklist replay passed zoom24 at 1180px and minimum 860px width, popup
+selection Done/All statuses, two-column cards, unchanged task-sheet open/close,
+zoom11 and reset14. At zoom24 the title bar contains 40px controls, toolbar/footer
+are 56px, search editor bounds are 36px, Select triggers 40px, popup rows 43px and
+DataTable rows 44px. Sheet fields and Save/Delete controls remain inside the sheet.
+Dragging at y=39 within the enlarged 41px title bar moved the window 27px and reverse
+drag restored its position within 1px. Three-state Task header replay again showed
+ascending/descending/unsorted, then restored Updated descending. A temporary host
+probe first matched AXApplication instead of AXWindow and failed before any drag;
+its corrected window-scoped replay passed. An earlier ambiguous Done target matched
+a table cell; only the subsequent popup-scoped selection replay is accepted. An
+unexpected intervening zoom11 observation did not recur in scoped replay; do not
+silently attribute it to application source or claim the earlier sequence passed.
+These are native geometry/interaction checks, not pixel/screenshot acceptance.
+No task data was changed. Preserve prior full-header/API-oracle acceptance.
+
+Worklist supervisor 65742 / exec 79888 / child 67828 remains running, Table / Updated
+descending / zoom14, 1180x821. API supervisor 33729 / exec 48973 remains running;
+Studio remains stopped. Desktop log /tmp/tsrust-worklist-desktop-dev.log. Native
+SDK refresh was 185.164s setup (runtime 165.155s); unchanged follow-up reused the
+checked application and program in 621ms. These are diagnostic observations, not
+matched Rust benchmark results. Release compiler/LSP refresh is exec 36889, log
+/tmp/tsrust-widget-zoom-release-build.log. Prior accepted release pair remains
+installed until this build succeeds. Owner restarted Zed; process 67536 replaces
+37383 and uses configured target/release/tsrust-lsp. Open-document diagnostic
+contents are not accessible through the available desktop tools; no live-clear
+claim. VS Code is not running; its ignored overrides still select release binaries.
+
+Cleanup pruned closed fixture workspaces 5e25d46347b5a780 and 5e1bab3b875173d5 while
+retaining lock inodes, and their two obsolete runtime bundles under nonblocking
+locks. Current reusable fixture support and unknown application entries remain.
+Next: finish/install the release pair, checkpoint this accepted section, then
+profile backend verification/runtime invalidation and resume the matched Rust
+performance matrix. <10 percent overhead, stress/pixel/platform checks, complete
+compiler/LSP milestone regressions and final PR merge remain required and open.
+
 ## Mixed numeric sorting accepted; zoom repair next — 2026-11-14
 
 Shared widget repairs are checkpoint 88d2b576f. The next audit reproduced a real

@@ -114,6 +114,10 @@ impl Pagination {
         self
     }
 
+    fn styled_button(&self,button:Button)->Button {
+        button.refine_style(&StyleRefinement{text:self.style.text.clone(),..Default::default()})
+    }
+
     fn render_nav_button(&self, state: &PaginationState, is_prev: bool) -> Button {
         let (id, label, icon) = if is_prev {
             ("prev", t!("Pagination.previous"), IconName::ChevronLeft)
@@ -128,7 +132,7 @@ impl Pagination {
         };
 
         let icon_only = self.compact || self.size == Size::XSmall;
-        Button::new(id)
+        self.styled_button(Button::new(id))
             .ghost()
             .compact()
             .with_size(self.size)
@@ -208,7 +212,7 @@ impl RenderOnce for Pagination {
                     PageItem::Page(page) => {
                         let is_selected = page == current_page;
 
-                        Button::new(page)
+                        self.styled_button(Button::new(page))
                             .with_size(self.size)
                             .map(|this| {
                                 if is_selected {
@@ -235,10 +239,10 @@ impl RenderOnce for Pagination {
                             first = pages.start,
                             last = pages.end - 1
                         );
-                        Button::new(SharedString::from(format!(
+                        self.styled_button(Button::new(SharedString::from(format!(
                             "ellipsis-{}-{}",
                             range.start, range.end
-                        )))
+                        ))))
                         .ghost()
                         .with_size(self.size)
                         .compact()

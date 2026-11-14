@@ -1,7 +1,7 @@
 use gpui::{AnyElement, App, Context, IntoElement, ParentElement as _, Styled as _, Window, div};
 
 use crate::{
-    ActiveTheme, Disableable as _, Icon, IconName, IndexPath, Sizable as _, Size, StyleSized as _,
+    ActiveTheme, StyledExt as _, Disableable as _, Icon, IconName, IndexPath, Sizable as _, Size, StyleSized as _,
     list::{ListDelegate, ListState},
 };
 
@@ -31,6 +31,7 @@ pub(crate) struct SearchableListAdapter<D: SearchableListDelegate + 'static> {
     /// Renders the empty-state placeholder.
     on_render_empty: Box<dyn Fn(&mut Window, &mut App) -> AnyElement + 'static>,
     pub(crate) size: Size,
+    pub(crate) text_style: gpui::TextStyleRefinement,
     /// Override the trailing check icon; defaults to `IconName::Check`.
     pub(crate) check_icon: Option<Icon>,
 }
@@ -51,6 +52,7 @@ impl<D: SearchableListDelegate + 'static> SearchableListAdapter<D> {
             on_cancel: Box::new(on_cancel),
             on_render_empty: Box::new(on_render_empty),
             size: Size::default(),
+            text_style: gpui::TextStyleRefinement::default(),
             check_icon: None,
         }
     }
@@ -96,6 +98,7 @@ impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter
                 .px_2()
                 .list_size(self.size)
                 .text_sm()
+                .refine_style(&gpui::StyleRefinement{text:self.text_style.clone(),..Default::default()})
                 .text_color(cx.theme().muted_foreground)
                 .child(item)
                 .into_any_element(),
@@ -125,6 +128,7 @@ impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter
                     .accessibility_label(item.title())
                     .disabled(disabled)
                     .with_size(size)
+                    .refine_style(&gpui::StyleRefinement{text:self.text_style.clone(),..Default::default()})
                     .child(el),
             );
         }
@@ -146,6 +150,7 @@ impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter
                 .check_icon(check_icon)
                 .disabled(disabled)
                 .with_size(size)
+                .refine_style(&gpui::StyleRefinement{text:self.text_style.clone(),..Default::default()})
                 .child(content.into_any_element()),
         )
     }

@@ -60,3 +60,12 @@ path to assistive technology as to pointer input. Disabled rows expose disabled
 semantics and offer no press action; delegate confirmation keeps its existing
 enabled-item guard. This repairs Select, ComboBox and MultiComboBox together.
 Remove when upstream provides equivalent named, actionable and disabled rows.
+
+Explicit control typography now reaches Select option rows and Pagination buttons.
+Inputs and Selects grow their native frames and line heights to fit explicit font
+sizes; native Buttons also size their icons and hit targets. TitleBar grows to fit
+its controls and updates macOS traffic-light placement to the measured height.
+A native geometry witness exercises 24px Button/Input/Select controls in a TitleBar.
+The SDK forwards typography into these controls and uses a font-aware DataTable
+row height without replacing stable sorting, column state or rich cells. Remove
+when upstream preserves equivalent typography, measured sizing and zoom behavior.

@@ -379,7 +379,7 @@ function App(commands: Sender<TaskCommand>, updates: Channel<TaskUpdate>, journa
         </Text>
       </View>
       <View className="flex-col grow min-h-0 min-w-0">
-        <InputGroup focusRing={false} size="small" accessibilityLabel="Task search and filters" className={'w-full h-12 shrink-0 border-0 border-b border-border rounded-none bg-[' + (themeState.get() === 'light' ? '#fafafa' : '#17171766') + '] text-[' + fontState.get().toString() + 'px]'}>
+        <InputGroup focusRing={false} size="small" accessibilityLabel="Task search and filters" className={'w-full h-[' + (fontState.get() > 18 ? (fontState.get() as number) * 1.5 + 20 : 48).toString() + 'px] shrink-0 border-0 border-b border-border rounded-none bg-[' + (themeState.get() === 'light' ? '#fafafa' : '#17171766') + '] text-[' + fontState.get().toString() + 'px]'}>
           <Input
             size="small"
             appearance={false}
@@ -584,7 +584,7 @@ function App(commands: Sender<TaskCommand>, updates: Channel<TaskUpdate>, journa
             </ListEmpty>
           </List>
         </View>
-        <View className="h-12 shrink-0 px-3 flex-row items-center gap-3">
+        <View className={'h-[' + (fontState.get() > 18 ? (fontState.get() as number) * 1.5 + 20 : 48).toString() + 'px] shrink-0 px-3 flex-row items-center gap-3'}>
           <Text className="text-muted-foreground">
             {pageState.get().total.toString() + ' tasks'}
           </Text>

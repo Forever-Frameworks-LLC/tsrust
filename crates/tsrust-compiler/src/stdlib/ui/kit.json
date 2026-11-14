@@ -1155,7 +1155,7 @@
     },
     {
       "name": "Pagination",
-      "doc": "Page navigation buttons. Pages are numbered from 1.",
+      "doc": "Page navigation buttons. Pages are numbered from 1. Text-size classes also size the numbered, previous, next and ellipsis buttons.",
       "props": [
         {
           "name": "page",
@@ -1714,7 +1714,7 @@
     },
     {
       "name": "Select",
-      "doc": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop.",
+      "doc": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop. Text-size classes reach both the trigger and option rows; the trigger grows to fit the text.",
       "props": [
         {
           "name": "items",
@@ -3609,7 +3609,7 @@
     },
     {
       "name": "TitleBar",
-      "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option.",
+      "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option. Its height grows to fit its controls, keeping macOS window buttons centered and the full bar draggable.",
       "props": [],
       "example": "<TitleBar><Text>My App</Text></TitleBar>",
       "children": true,
@@ -6224,7 +6224,7 @@
     },
     {
       "name": "DataTable",
-      "doc": "A virtualized table over many rows: sortable, resizable and movable columns, fixed columns, row, column or cell selection, a right-click menu and incremental loading. Columns come from DataTableColumn children; give it a height with className.",
+      "doc": "A virtualized table over many rows: sortable, resizable and movable columns, fixed columns, row, column or cell selection, a right-click menu and incremental loading. Columns come from DataTableColumn children; give it a height with className. Explicit text-size classes size plain cells and grow the default row height to fit; headerRowHeight remains an explicit override.",
       "props": [
         {
           "name": "rows",

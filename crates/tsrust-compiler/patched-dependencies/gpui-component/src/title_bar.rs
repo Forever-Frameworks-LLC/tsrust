@@ -10,7 +10,7 @@ use gpui::{
     WindowControlArea, WindowOptions, div, linear_color_stop, linear_gradient,
     prelude::FluentBuilder as _, px,
 };
-use gpui_base::TestSupportExt as _;
+use gpui_base::{TestSupportExt as _, ElementExt as _};
 use smallvec::SmallVec;
 
 pub const TITLE_BAR_HEIGHT: Pixels = px(34.);
@@ -335,7 +335,8 @@ impl RenderOnce for TitleBar {
                 .flex_row()
                 .items_center()
                 .justify_between()
-                .h(TITLE_BAR_HEIGHT)
+                .min_h(TITLE_BAR_HEIGHT)
+                .h_auto()
                 .pl(TITLE_BAR_LEFT_PADDING)
                 .border_b_1()
                 .border_color(cx.theme().title_bar_border)
@@ -344,6 +345,9 @@ impl RenderOnce for TitleBar {
                     cx.theme().background,
                 ))
                 .refine_style(&self.style)
+                .on_prepaint(|bounds,window,_| {
+                    window.set_traffic_light_position(gpui::point(px(9.),(bounds.size.height-px(16.))/2.));
+                })
                 .when(is_linux, |this| {
                     this.on_double_click(|_, window, _| window.zoom_window())
                 })
@@ -435,5 +439,37 @@ mod tests {
                 linear_color_stop(title_bar, 1.),
             )
         );
+    }
+}
+
+#[cfg(test)]
+mod typography_tests {
+    use super::*;
+    use gpui::{Entity, SharedString, AppContext as _};
+    use crate::{button::Button, input::{Input, InputState}, select::{Select, SelectState}, searchable_list::SearchableVec};
+
+    #[gpui::test]
+    fn explicit_typography_fits_button_input_select_and_title_bar(cx:&mut gpui::TestAppContext) {
+        struct Harness { input:Entity<InputState>, select:Entity<SelectState<SearchableVec<SharedString>>> }
+        impl Render for Harness {
+            fn render(&mut self,_:&mut Window,_:&mut Context<Self>)->impl IntoElement {
+                div().flex().flex_col().items_start()
+                    .child(div().debug_selector(||"title-shell".into()).child(TitleBar::new().child(
+                        Button::new("title-action").small().text_size(px(24.)).label("Title action")
+                    )))
+                    .child(div().debug_selector(||"input-shell".into()).child(Input::new(&self.input).small().text_size(px(24.))))
+                    .child(div().debug_selector(||"select-shell".into()).w(px(200.)).child(Select::new(&self.select).small().text_size(px(24.))))
+            }
+        }
+        cx.update(crate::init);
+        let (_,cx)=cx.add_window_view(|window,cx|Harness {
+            input:cx.new(|cx|InputState::new(window,cx)),
+            select:cx.new(|cx|SelectState::new(SearchableVec::new(vec![SharedString::from("One")]),None,window,cx)),
+        });
+        cx.update(|window,cx|window.draw(cx).clear(cx));
+        for selector in ["title-shell","input-shell","select-shell"] {
+            let bounds=cx.debug_bounds(selector).expect(selector);
+            assert!(bounds.size.height>=px(40.),"{selector}: {:?}",bounds.size);
+        }
     }
 }

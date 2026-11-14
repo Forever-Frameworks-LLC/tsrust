@@ -549,6 +549,7 @@ where
         self.state.list.update(cx, |list, cx| {
             list.set_searchable(searchable, cx);
             list.delegate_mut().size = self.state.size;
+            list.delegate_mut().text_style = self.state.style.text.clone();
         });
 
         div().size_full().relative().child(
@@ -577,6 +578,7 @@ where
                         })
                         .input_size(self.state.size)
                         .input_text_size(self.state.size)
+                        .when_some(self.state.style.text.font_size,|this,font|this.min_h(font.to_pixels(window.rem_size())*1.5+gpui::px(4.)).line_height(gpui::relative(1.25)))
                         .refine_style(&self.state.style)
                         .when(outline_visible && self.state.appearance, |this| {
                             this.border_1().border_color(cx.theme().ring)
