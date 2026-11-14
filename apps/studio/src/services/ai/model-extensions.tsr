@@ -122,7 +122,16 @@ async function installModel(name: string): Task<string> {
       const target = join(temp, file);
       const result = unwrap(await run('curl', ['--disable', '--fail', '--silent', '--show-error', '--location', '--proto', '=https', '--proto-redir', '=https', '--output', clone(target), url]));
 
-      if (!result.status.success) return unwrap(toUtf8(result.stderr));
+      if (!result.status.success) {
+        match (toUtf8(result.stderr)) {
+          Ok(message) => {
+            if (message.trim() !== '') return message.trim();
+          },
+          Err(_) => {}
+        }
+
+        return 'Model download failed.';
+      }
 
       if (artifactChecksum(target) !== (tokenizer ? 'c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539' : model.checksum)) return 'Model download checksum mismatch.';
     }

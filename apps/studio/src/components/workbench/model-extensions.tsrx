@@ -147,7 +147,7 @@ export function ModelExtensions(
         )}
       </View>
       <View hidden={error.get() === ''}>
-        <Text className={'text-destructive text-[' + font.get().toString() + 'px]'}>
+        <Text role="status" className={'text-destructive text-[' + font.get().toString() + 'px]'}>
           {localizeError(error.get())}
         </Text>
       </View>
