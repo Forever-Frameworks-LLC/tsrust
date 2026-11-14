@@ -86,7 +86,7 @@ export function FilePanel(
     return (
       <DockPanel value={clone(path)} title={label.get()} padded={false} splitControls={true} closable={closable.get()}>
         <View id={clone(file.document.session)} className="flex-col size-full min-w-0 min-h-0">
-          <Text className="px-2 py-1 text-muted-foreground">
+          <Text role="status" className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
             {translateWith('binaryPreviewSize', {
               count, shown
             })}
