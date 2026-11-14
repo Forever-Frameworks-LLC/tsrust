@@ -23,14 +23,15 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def source_snapshot():
+def source_snapshot(roots=None):
     result = {}
-    for directory, children, files in os.walk(ROOT / 'apps/tasks'):
-        children[:] = [name for name in children if name not in {'.git', 'target', 'node_modules'}]
-        for name in files:
-            path = Path(directory) / name
-            if path.suffix in {'.tsr', '.tsrx'} or name == 'tsrust.config.json' or name.endswith('.bindings.json'):
-                result[str(path.relative_to(ROOT))] = digest(path)
+    for project in roots or [ROOT / 'apps/tasks']:
+        for directory, children, files in os.walk(project):
+            children[:] = [name for name in children if name not in {'.git', 'target', 'node_modules'}]
+            for name in files:
+                path = Path(directory) / name
+                if path.suffix in {'.tsr', '.tsrx', '.rs'} or name == 'tsrust.config.json' or name.endswith('.bindings.json'):
+                    result[str(path.relative_to(ROOT))] = digest(path)
     home = Path(os.environ.get('CARGO_HOME', Path.home() / '.cargo'))
     if not home.is_absolute():
         home = PROJECT / home

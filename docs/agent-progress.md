@@ -4,6 +4,104 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Error-effect body reuse validated — 2026-11-14
+
+The new candidate caches function, closure-body and method-body effects only
+within one propagate_partial_contracts solve. A local Reader records actual
+contract lookups by function/closure/storage/callback/method/invocation category.
+Category versions invalidate bodies when a contract grows; new forwarded method
+keys also invalidate readers even if their empty contract does not grow. Original
+iteration order, failure payload ordering, caller discovery, family/forwarding and
+invocation propagation remain intact. Every solve starts fresh. No caller state or
+checked body is retained across solves. ErrorEffects layout and Send/Sync properties
+are unchanged; tracking lives in a stack-local Cell-based Reader.
+
+In test builds each cached solve is compared with the full original traversal,
+including all contract vectors/maps, expression own/aggregate/check flags and catch
+payload contracts. The focused witness proves unrelated category changes reuse a
+body while changed callee contracts recheck it. All 55 error-effect cases pass in
+0.88s after 3m30s setup. An initial helper-rename compile error was fixed before
+this pass and is not counted as acceptance. Full compiler library: 1527 passed,
+30 sandbox failures,8 pre-existing ignored in 247.51s. Exact replay of those 30
+outside the sandbox passed in 0.52s (loopback listeners and working-directory
+boundary). All 1557 non-ignored cases are accepted across these two runs, not a
+fabricated single green run. Stress depths and existing ignored cases unchanged.
+Three existing fs helper dead-code warnings remain.
+
+LSP library passed 36/36 in 2.39s after 2m26s setup. Compiler/LSP all-target offline
+checking passed in 1m32s with retained test/deprecation warnings; none target this
+module. Editor-consistency integration initially passed 30/31 in 87.65s (23.66s
+setup). The filesystem-hover witness exposed an existing wording mismatch.
+DirEntry.path now explicitly says relative readDir input yields a relative path,
+while walkDir retains canonical absolute semantics. Existing assertions remain.
+Exact replay passed 1/1 in 9.54s after 20.45s setup. Stdio passed 17/17 in 1.57s;
+workspace scan 9/9 in 0.05s (2.76s combined setup). Only the DirEntry.path doc hunk
+in builtins.json belongs here; leave owner's initialAnchor/selectionChange hunks
+unstaged. Release compiler/LSP pair built in 3m40s.
+
+The maintained benchmarks/dev/worklist_frontend.py compares both existing app
+entries through public emit CLI, one untimed setup and 3 samples per engine/app,
+unchanged source/config/compiler guards and identical emitted Rust required. It
+uses the established shared quiet guard and SQLite format, retaining completed
+samples on failure. Source guards accept additional roots and include native .rs
+binding inputs. All 12 harness cases pass (0.020s), including changed-emission
+rejection, partial samples, empty caches and additional-root/native-input guards.
+
+| Three-sample frontend emission median, milliseconds | Before | Candidate |
+| --- | --- | --- |
+| Worklist | 2401.147750 | 2364.092458 |
+| Studio | 73558.160375 | 58297.722208 |
+
+Studio reduction is 20.75 percent; Worklist reduction is 1.54 percent. These are
+this grouped quiet diagnostic comparison, not a universal or stable-speed claim.
+Observed loads 2.6382–3.5689, established limit 4. Setup excluded: Worklist
+2428.75/2876.79ms; Studio 76269.80/58554.39ms. No native Rust toolchain executes in
+this workload. Every output Rust file was byte-identical within and across engines.
+Four histories were ingested and independently verified at
+`2026-11-14T21:55:25.990354+00:00`, 3 samples each; SQLite integrity=ok. Existing
+negative experiment histories remain intact. Source/config aggregate SHA-256:
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Emitted Rust: Worklist `e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`,
+Studio `fd9592913c7c63a1ee321f434f1755389154a49e7fa6be8031876cb687f7974e`.
+Baseline CLI `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`;
+candidate CLI `44dfbdd7549b4aae8fa90ac5ac2ad34f42a779ae9bbce28ed5d5dfbe1a10b06e`;
+LSP `7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+Installed pair was staged, version/hash verified and atomically replaced per file.
+Zed's existing server was not restarted. Existing Worklist/API sessions remain
+running, using their previously loaded supervisor code. No buffers were changed.
+
+Current-source Worklist combined suite passes all 14 cases in 10 files,699.60ms
+execution,22.33s build/setup, with the real development Postgres/API and one normal native runner.
+This covers retained worker/channel, stale edits, offline/reconnect, CDC and crash
+replay. Whole-project formatting passed 0 source files /0 snippets /0 fingerprints.
+Acceptance uses current worktree including protected owner SDK additions; do not
+claim an immutable clean-HEAD app run excluding those hunks. Preserve all owner
+Studio edits and task service-test import ordering.
+
+Matched Rust regression comparison completed with the original 3-sample 6/130
+module protocol, independent integer outputs, matched Rust arguments/runtime and
+required application misses/support hits. Medians: 6 modules 135.784250ms Tsrust /
+98.164708ms Rust (38.32 percent overhead);130 modules 175.636500/117.783750ms
+(49.12 percent). Check/emit/backend medians were 1.3/0.4/26.4ms and14.5/1.9/26.6ms.
+The <10 percent target remains unmet. Compared with retained earlier 136.81/97.11
+and178.13/119.11ms medians this shows no new broad regression; three samples do not
+establish a stable tiny-workload speedup. All observed quiet loads were 2.2075,
+limit4. Four histories were ingested and independently verified at
+`2026-11-14T22:10:01.901804+00:00`,3 samples each; SQLite integrity=ok. Native controls
+and emitted inputs are unchanged. No toolchain/wrapper checks were bypassed.
+
+This section is ready for a selective local source checkpoint after formatting.
+Stage only the new propagation/traversal/mod source, frontend benchmark/guards,
+README, shared harness tests, measurements and progress, plus the DirEntry.path
+builtins hunk. Never stage the owner's other SDK or Studio edits. Remove closed
+raw reports after verifying the checkpoint; no source/binary archives were made.
+Keep Worklist 87431/87575, API 33729/45647 and Zed LSP 75803 alive. Next: investigate
+native idle waiting in dev (retain debounce, cancellation and external dependency
+polling) or a proven backend-probe optimization preserving wrappers and full pinned
+version validation. Further cross-region effect reuse needs complete typed-input
+invalidation; this candidate intentionally retains only per-solve state. Full goal,
+<10 percent target, remaining milestone/platform checks and PR merge stay open.
+
 ## Function-body revision experiment rejected — 2026-11-14
 
 Accepted runtime-alias optimization is checkpoint `06b18babb`. The subsequent

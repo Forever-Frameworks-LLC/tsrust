@@ -83,3 +83,16 @@ Reports use the shared SQLite format and list created cache keys for selective
 cleanup after ingestion. The native phase includes support work and application Rust compilation/linking.
 This is a dependency-context rebuild comparison, not the matched Rust-overhead
 protocol or proof of application interaction behavior.
+
+## Application frontend emission
+
+Run `python3 benchmarks/dev/worklist_frontend.py --before-compiler /absolute/before/tsrust --after-compiler /absolute/after/tsrust`.
+The driver checks and emits existing Worklist and Studio entries in fresh CLI
+processes without native compilation or another application window. For each app,
+it runs one untimed setup and three before samples, then one untimed setup and
+three candidate samples. The shared quiet-machine guard runs outside each timer.
+Every emitted Rust file must match the first emission byte for byte. Application
+sources, native binding sources, project configuration and compiler hashes must
+remain unchanged. Reports retain completed samples on failure and use the shared
+SQLite format. This measures frontend process/check/emission time, separately from
+native Rust build overhead, editor response time and whole-folder diagnostic scans.

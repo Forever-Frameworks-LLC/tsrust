@@ -66,6 +66,23 @@ class RustControlTests(unittest.TestCase):
             rust_control.build_timings('missing build timings')
 
 class WorklistContextTests(unittest.TestCase):
+    def test_source_guard_covers_additional_roots_and_native_binding_sources(self):
+        import worklist_runtime_context as context
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            project = root / 'studio'
+            project.mkdir()
+            native = project / 'binding.rs'
+            native.write_text('fn initial() {}')
+            (project / 'target').mkdir()
+            (project / 'target/ignored.tsr').write_text('not an input')
+            with mock.patch.object(context, 'ROOT', root), mock.patch.object(context, 'CACHE', root / 'cache'), mock.patch.dict('os.environ', {'CARGO_HOME': str(root / 'home')}):
+                first = context.source_snapshot([project])
+                self.assertIn('studio/binding.rs', first)
+                self.assertNotIn('studio/target/ignored.tsr', first)
+                native.write_text('fn changed() {}')
+                self.assertNotEqual(context.source_snapshot([project]), first)
+
     def test_context_comparison_accepts_an_initially_empty_cache(self):
         import worklist_runtime_context as context
         with tempfile.TemporaryDirectory() as directory:
@@ -113,6 +130,38 @@ class WorklistContextTests(unittest.TestCase):
         for data in [b'broken', encode(fields)[:-1], encode(fields[:-1])]:
             with self.assertRaises(ValueError):
                 context.support_identity(data)
+
+class FrontendComparisonTests(unittest.TestCase):
+    def test_comparison_preserves_samples_and_rejects_changed_emission(self):
+        import contextlib
+        import io
+        import json
+        import worklist_frontend as frontend
+        for changed in [False, True]:
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                before, after = root / 'before', root / 'after'
+                before.write_bytes(b'before compiler')
+                after.write_bytes(b'after compiler')
+                output_paths = []
+                def run(command, project, env):
+                    output = pathlib.Path(command[-1])
+                    output_paths.append(output)
+                    output.write_text('changed Rust' if changed and command[0] == str(after) else 'same Rust')
+                    return 42, None, {'load': 1, 'limit': 4}
+                captured = io.StringIO()
+                with mock.patch.object(frontend, 'PROJECTS', [('worklist', root)]), mock.patch.object(frontend.context, 'source_snapshot', return_value={'source': 'stable'}):
+                    with mock.patch.object(frontend.rust_control, 'run', side_effect=run), contextlib.redirect_stdout(captured), contextlib.redirect_stderr(io.StringIO()):
+                        if changed:
+                            with self.assertRaisesRegex(AssertionError, 'Emitted Rust changed'):
+                                frontend.compare(before, after, 3)
+                        else:
+                            frontend.compare(before, after, 3)
+                report = json.loads(captured.getvalue())
+                self.assertEqual(len(report['execution']), 3 if changed else 6)
+                self.assertEqual(len(report['setup']), 1 if changed else 2)
+                self.assertTrue(all(row['durations'] == [42] for row in report['execution']))
+                self.assertTrue(all(not path.exists() for path in output_paths))
 
 if __name__ == '__main__':
     unittest.main()

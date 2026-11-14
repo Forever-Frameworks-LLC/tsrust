@@ -1,7 +1,11 @@
 //! Heap continuations retain regional failure contracts without a source-depth cutoff.
 use super::*;
 
+#[cfg(test)]
 pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> FailureSet {
+    expression_effect_with(root,&propagation::Reader::new(effects))
+}
+pub(super) fn expression_effect_with(root: &mut Expr, effects: &propagation::Reader<'_>) -> FailureSet {
     enum Work<'a> {
         Visit(&'a mut Expr),
         Finish { may_fail: &'a mut bool, own: FailureSet, start: usize, reverse: bool },
@@ -24,7 +28,7 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                 if *may_fail { results.push(own); }
             }
             Work::Visit(value) => {
-                let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect(body, effects) } else { own_expression_effect(value, effects) };
+                let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect_with(body, effects) } else { own_expression_effect(value, effects) };
                 value.own_may_fail = own.may_fail();
                 value.effects_checked = true;
                 let reverse = matches!(&value.kind, ExprKind::SpreadCall(_) | ExprKind::Array(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..) | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Template(_) | ExprKind::Sequence(_) | ExprKind::Record(_));
@@ -73,6 +77,9 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
 }
 
 pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureSet {
+    body_effect_with(root,&propagation::Reader::new(effects))
+}
+pub(super) fn body_effect_with(root: &mut [Stmt], effects: &propagation::Reader<'_>) -> FailureSet {
     if root.is_empty() { return FailureSet::default(); }
     enum Work<'a> {
         Body(&'a mut [Stmt]),
@@ -92,7 +99,7 @@ pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureS
                 pending.push(Work::Join(body.len()));
                 pending.extend(body.iter_mut().rev().map(Work::Statement));
             }
-            Work::Expression(value) => results.push(expression_effect(value, effects)),
+            Work::Expression(value) => results.push(expression_effect_with(value, effects)),
             Work::Join(count) => {
                 let mut found = FailureSet::default();
                 for child in results.drain(results.len() - count..) { found |= child; }
@@ -127,14 +134,14 @@ pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureS
                 let operation_failure = statement_operation_effect(statement).is_some_and(|(_, fails)| fails);
                 match &mut statement.kind {
                     StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                    StmtKind::Throw(value) => results.push(expression_effect(value, effects) | FailureSet::thrown(value.ty)),
+                    StmtKind::Throw(value) => results.push(expression_effect_with(value, effects) | FailureSet::thrown(value.ty)),
                     StmtKind::Try(region) => {
                         pending.push(Work::AfterTry(region.catch.as_mut(), region.finally.as_mut()));
                         pending.push(Work::Body(&mut region.body));
                     }
                     StmtKind::Let { value, .. } | StmtKind::Expr(value) => pending.push(Work::Expression(value)),
-                    StmtKind::Return(value) => results.push(value.as_mut().map(|value| expression_effect(value, effects)).unwrap_or_default()),
-                    StmtKind::Assign { target, value, .. } => results.push((if operation_failure { FailureSet::runtime() } else { FailureSet::default() }) | expression_effect(target, effects) | expression_effect(value, effects)),
+                    StmtKind::Return(value) => results.push(value.as_mut().map(|value| expression_effect_with(value, effects)).unwrap_or_default()),
+                    StmtKind::Assign { target, value, .. } => results.push((if operation_failure { FailureSet::runtime() } else { FailureSet::default() }) | expression_effect_with(target, effects) | expression_effect_with(value, effects)),
                     StmtKind::Block(body) => pending.push(Work::Body(body)),
                     StmtKind::If { condition, then_body, else_body } => {
                         pending.extend([Work::Join(3), Work::Body(else_body), Work::Body(then_body), Work::Expression(condition)]);

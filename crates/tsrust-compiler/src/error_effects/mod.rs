@@ -1,7 +1,9 @@
 //! Checked error effects are separate from scheduling and native representation.
 mod generic_invocation_effects;
 mod traversal;
-use traversal::{body_effect,expression_effect};
+mod propagation;
+use traversal::body_effect;
+#[cfg(test)] use traversal::expression_effect;
 use crate::analysis::{CheckedProgram,CheckedFunction,ClosureForward};
 use crate::syntax::*;
 
@@ -686,6 +688,28 @@ fn storage_grounding(families:&[(usize,Vec<usize>)],uninhabited:&std::collection
 }
 
 fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+    #[cfg(test)] let mut cold=effects.clone();
+    propagate_contracts::<true>(functions,closures,families,invocations,grounded,stored_fields,effects);
+    #[cfg(test)] {
+        let before=functions.iter().filter_map(|function|function.as_deref()).chain(closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).map(propagation::annotations).collect::<Vec<_>>();
+        propagate_contracts::<false>(functions,closures,families,invocations,grounded,stored_fields,&mut cold);
+        assert_eq!(effects.function_errors,cold.function_errors);
+        assert_eq!(effects.closure_errors,cold.closure_errors);
+        assert_eq!(effects.callback_errors,cold.callback_errors);
+        assert_eq!(effects.method_errors,cold.method_errors);
+        assert_eq!(effects.storage_errors,cold.storage_errors);
+        assert_eq!(effects.invocation_errors,cold.invocation_errors);
+        assert_eq!(effects.functions,cold.functions);assert_eq!(effects.closures,cold.closures);
+        let after=functions.iter().filter_map(|function|function.as_deref()).chain(closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).map(propagation::annotations).collect::<Vec<_>>();
+        assert_eq!(before,after,"cached solving must refresh all expression and catch annotations");
+    }
+}
+fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+    let mut versions=propagation::Versions::default();
+    let mut function_cache=(0..functions.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
+    let mut closure_cache=(0..closures.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
+    let mut method_cache=closures.iter().map(|closure|(0..closure.methods.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>()).collect::<Vec<_>>();
+
     let mut methods_by_origin=vec![Vec::new();closures.len()];
     for &(origin,method) in effects.method_errors.keys() {
         methods_by_origin[origin].push(method);
@@ -696,15 +720,15 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
         let mut changed=false;
         for (id,function) in functions.iter_mut().enumerate() {
             let Some(function)=function else {continue;};
-            let next=function_effect(function,&effects);
-            changed |= effects.function_errors[id].join(next);
+            let next=if CACHED {function_cache[id].effect(function,effects,&versions)}else{function_effect(function,effects)};
+            changed |= propagation::grow(&mut versions,propagation::FUNCTION,effects.function_errors[id].join(next));
             effects.functions[id]=effects.function_errors[id].may_fail();
         }
         for (id,closure) in closures.iter_mut().enumerate() {
-            let mut next=function_effect(&mut closure.function,&effects);
+            let mut next=if CACHED {closure_cache[id].effect(&mut closure.function,effects,&versions)}else{function_effect(&mut closure.function,effects)};
             for (method_id,method) in closure.methods.iter_mut().enumerate() {
-                let found=function_effect(&mut method.function,&effects);
-                changed|=effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone());
+                let found=if CACHED {method_cache[id][method_id].effect(&mut method.function,effects,&versions)}else{function_effect(&mut method.function,effects)};
+                changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone()));
                 next |= found;
             }
             next |= match closure.forward {
@@ -720,7 +744,7 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
                 Some(ClosureForward::Native(id))=>native_binding_effect(id),
                 None=>FailureSet::default(),
             };
-            changed |= effects.closure_errors[id].join(next);
+            changed |= propagation::grow(&mut versions,propagation::CLOSURE,effects.closure_errors[id].join(next));
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
@@ -735,7 +759,7 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
                     _=>FailureSet::unknown(),
                 };
             }
-            changed |= effects.storage_errors.get_mut(id).expect("initialized family effects").join(next);
+            changed |= propagation::grow(&mut versions,propagation::STORAGE,effects.storage_errors.get_mut(id).expect("initialized family effects").join(next));
         }
         // A consuming wrapper calls the selected method on its inner environment.
         // Preserve that identity for effect lookup without merging other methods.
@@ -751,20 +775,24 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
                 for method in methods {
                     let contract=effects.method_errors[&(inner,method)].clone();
                     if !methods_by_origin[id].contains(&method) {methods_by_origin[id].push(method);}
-                    changed|=effects.method_errors.entry((id,method)).or_default().join(contract);
+                    if !effects.method_errors.contains_key(&(id,method)) {versions[propagation::METHOD]+=1;}
+                    changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.entry((id,method)).or_default().join(contract));
                 }
             }
         }
-        changed |= effects.refresh_invocation_errors(invocations);
+        changed |= propagation::grow(&mut versions,propagation::INVOCATION,effects.refresh_invocation_errors(invocations));
         if !changed {break;}
     }
 }
 fn function_effect(function:&mut CheckedFunction,effects:&ErrorEffects)->FailureSet {
+    function_effect_with(function,&propagation::Reader::new(effects))
+}
+fn function_effect_with(function:&mut CheckedFunction,effects:&propagation::Reader<'_>)->FailureSet {
     let mut failure=FailureSet::default();
     for binding in &mut function.bindings {
-        if let Some(value)=&mut binding.initializer {failure |= expression_effect(value,effects);}
+        if let Some(value)=&mut binding.initializer {failure |= traversal::expression_effect_with(value,effects);}
     }
-    failure | body_effect(&mut function.body,effects)
+    failure | traversal::body_effect_with(&mut function.body,effects)
 }
 #[inline(never)]
 pub(crate) fn annotate_region_body(body:&mut [Stmt],effects:&ErrorEffects)->FailureSet {body_effect(body,effects)}
@@ -872,18 +900,18 @@ fn native_binding_effect(id:usize)->FailureSet {
         _=>FailureSet::unknown(),
     }
 }
-fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSet {
+fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)->FailureSet {
     use CallTarget::*;
     match target {
-        Callback(_)=>value.callback_contract().and_then(|id|effects.callback_errors.get(&id).cloned()).unwrap_or_else(FailureSet::unknown),
-        ConditionalCallback(id)=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+        Callback(_)=>value.callback_contract().map(|id|effects.read(propagation::CALLBACK,effects.callback_errors.get(&id))).unwrap_or_else(FailureSet::unknown),
+        ConditionalCallback(id)=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
         NativeBinding(id) if matches!(crate::native_bindings::BINDINGS[id].name,"invokeRegistration"|"invokeSuite") && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
             let suite=crate::native_bindings::BINDINGS[id].name=="invokeSuite";
             let callback = match &value.kind { ExprKind::Call(_, args) => args.get(usize::from(suite)).and_then(|value| value.ty), _ => None };
             let callback=match callback {
-                Some(Type::Closure(id)) => effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::Callback(id)) => effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::Closure(id)) => effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+                Some(Type::Callback(id)) => effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
                 _ => FailureSet::unknown(),
             };
             if suite {callback|FailureSet::runtime()}else{callback}
@@ -891,13 +919,13 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         NativeBinding(id)=>native_binding_effect(id),
         ClosureMethod(method)=>{
             if let ExprKind::Call(callee,_)=&value.kind && let Some(id)=callee.generic_invocation {
-                return effects.invocation_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown);
+                return effects.read(propagation::INVOCATION,effects.invocation_errors.get(id));
             }
             let origin=match &value.kind {ExprKind::Call(callee,_)=>match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None},_=>None};
-            origin.and_then(|id|effects.method_errors.get(&(id,method)).cloned()).unwrap_or_else(FailureSet::unknown)
+            origin.map(|id|effects.read(propagation::METHOD,effects.method_errors.get(&(id,method)))).unwrap_or_else(FailureSet::unknown)
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
-        SchemaConstraint(id)=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+        SchemaConstraint(id)=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
         // Push itself only transfers an element into storage. Allocation failure
         // is outside checked transport; receiver/argument effects are folded by
         // expression traversal and must still retain their exceptional paths.
@@ -905,7 +933,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         MatchYield(_)=>FailureSet::default(),
         ResultUnwrap(error)=>FailureSet::thrown(Some(error)),
         SchemaExport(id)=>FailureSet { explicit:vec![Type::Record(id)],runtime:false,opaque:false },
-        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),
+        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.read(propagation::STORAGE,effects.storage_errors.get(family))),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
         SchemaAddIssue(_)|SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
@@ -914,9 +942,9 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         ArrayReduceRight|ArraySort|ArrayToSorted=>{
             let callback=match &value.kind {ExprKind::Call(_,args)=>args.first(),_=>None};
             let invoked=match callback.and_then(|value|value.ty) {
-                Some(Type::Closure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::Callback(id))=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::Closure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+                Some(Type::Callback(id))=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
                 None if matches!(target,ArraySort|ArrayToSorted)=>FailureSet::default(),
                 _=>FailureSet::unknown(),
             };
@@ -925,7 +953,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         _=>FailureSet::runtime(),
     }
 }
-fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
+fn own_expression_effect(value:&Expr,effects:&propagation::Reader<'_>)->FailureSet {
     let runtime=match &value.kind {
         ExprKind::SpreadCall(plan)=>plan.segments.iter().any(|segment|segment.length.is_none()) && (plan.minimum>0 || plan.maximum.is_some()),
         ExprKind::Index(_,_)=>true,
@@ -937,11 +965,11 @@ fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
     };
     if runtime {FailureSet::runtime()}else {
         match value.target {
-            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::Closure(_))=>value.closure_origin().and_then(|origin|effects.closure_errors.get(origin).cloned()).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::ConditionalClosure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::StoredCallable(_))=>value.storage_family().and_then(|family|effects.storage_errors.get(&family).cloned()).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::StoredCallableField(family))=>effects.storage_errors.get(&family).cloned().unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
+            Some(CallTarget::Closure(_))=>value.closure_origin().map(|origin|effects.read(propagation::CLOSURE,effects.closure_errors.get(origin))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::ConditionalClosure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+            Some(CallTarget::StoredCallable(_))=>value.storage_family().map(|family|effects.read(propagation::STORAGE,effects.storage_errors.get(&family))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::StoredCallableField(family))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&family)),
             Some(target)=>native_effect(target,value,effects),
             None=>FailureSet::default(),
         }
@@ -1023,7 +1051,7 @@ mod tests {
         let effects=super::annotate(&mut checked.program);
         assert!(!effects.closure_errors[0].opaque,"lexical basename has no unresolved invocation");
         assert!(!effects.closures[0]);
-        assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
+        assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&super::propagation::Reader::new(&effects)),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
             let audited=matches!(binding.module,
