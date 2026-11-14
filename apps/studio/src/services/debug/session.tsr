@@ -187,6 +187,7 @@ async function launchDebugTarget(
     const breakpoint = (command.functionBreakpoint ?? '').trim();
     let seq = 6;
     let disconnectRequest = 0;
+    let resumeRequest = 0;
     let threadRequest = 0;
     let pauseRequest = 0;
     let stackRequest = 0;
@@ -291,6 +292,7 @@ async function launchDebugTarget(
               }
             }));
           } else if (['next', 'stepOver', 'stepIn', 'stepOut'].includes(control.action)) {
+            resumeRequest = seq;
             stepCommand = control.action === 'stepIn' || control.action === 'stepOut' ? clone(control.action) : 'next';
 
             if (control.action === 'stepOver' || control.action === 'stepIn') {
@@ -305,6 +307,7 @@ async function launchDebugTarget(
               }
             }));
           } else if (control.action === 'continue') {
+            resumeRequest = seq;
             continuingLine = sourceHit ? clone(currentLine) : '';
             continuedAddresses.clear();
             continuedAddresses.add(clone(currentAddress));
@@ -322,6 +325,40 @@ async function launchDebugTarget(
         const reply = decodeAdapterReply(control.frame ?? '');
 
         if (disconnectRequest !== 0 && reply.request_seq !== disconnectRequest) continue;
+
+        if (reply.event === 'continued' || reply.event === 'stopped' || reply.event === 'exited') resumeRequest = 0;
+
+        if (['continue', 'next', 'stepIn', 'stepOut'].includes(reply.command ?? '')) {
+          if (resumeRequest !== 0 && reply.request_seq === resumeRequest) {
+            resumeRequest = 0;
+
+            if (reply.success === false) {
+              continuingLine = '';
+              steppingLine = '';
+              const message = (reply.message ?? 'Could not resume the target.') + '\n';
+
+              if (selectedFrame < 0 && sourceFrames.length > 0) {
+                // Automatic source stepping can fail before the new stop has been inspected.
+                pausedText = message;
+                sourceFrames = [];
+                stackRequest = seq;
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'stackTrace', arguments: {
+                    threadId: thread
+                  }
+                }));
+                seq += 1;
+              } else {
+                paused = true;
+                await output.send({
+                  text: message, frames: clone(sourceFrames), selectedFrame, stopId, watchExpression: clone(watch), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+                });
+              }
+            }
+          }
+
+          continue;
+        }
 
         if (reply.command === 'threads' && reply.request_seq === threadRequest) {
           threadRequest = 0;
@@ -620,6 +657,7 @@ async function launchDebugTarget(
 
               // Continuing through additional locations of the same line must still expose a loop revisit.
               if (sourceHit && continuingLine !== '' && continuingLine === currentLine && currentAddress !== '' && !continuedAddresses.has(currentAddress)) {
+                resumeRequest = seq;
                 continuedAddresses.add(clone(currentAddress));
                 await writeFrame(writer, JSON.stringify({
                   seq, type: 'request', command: 'continue', arguments: {
@@ -631,6 +669,7 @@ async function launchDebugTarget(
               }
 
               if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
+                resumeRequest = seq;
                 stepAddresses.add(clone(currentAddress));
                 await writeFrame(writer, JSON.stringify({
                   seq, type: 'request', command: clone(stepCommand), arguments: {
