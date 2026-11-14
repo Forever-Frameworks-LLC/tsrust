@@ -55,10 +55,11 @@ function FileTreeItem(
   const label = computed<string>(() => name + (workspace.get().files.some((file) => file.document.path === labelPath && dirty(file.document)) ? ' ●' : ''));
   const glyph = clone(decoration.svg);
   const tint = clone(decoration.color);
-  const named = directory && children.length === 0 ? 'folder' : clone(decoration.icon);
+  const emptyFolder = directory && children.length === 0;
+  const named = clone(decoration.icon);
   const svg = computed<string>(() => settings.get().fileIcons ? clone(glyph) : '');
   const color = computed<string>(() => settings.get().fileIcons ? clone(tint) : '');
-  const icon = computed<string>(() => settings.get().fileIcons ? clone(named) : '');
+  const icon = computed<string>(() => emptyFolder ? 'folder' : settings.get().fileIcons ? clone(named) : '');
   return (
     <TreeItem id={path} label={label.get()} iconSvg={svg.get()} iconColor={color.get()} icon={icon.get()}>
       {...children}
