@@ -94,11 +94,25 @@ impl Events {
   Ok(changed)
  }
 }
+#[cfg(any(target_os="macos",target_os="linux"))]
+impl Events {
+ pub(crate) fn wait(&mut self,timeout:std::time::Duration)->io::Result<()> {
+  let millis=timeout.as_millis().try_into().map_err(|_|io::Error::new(io::ErrorKind::InvalidInput,"Watch timeout exceeds native range"))?;
+  let mut descriptor=libc::pollfd{fd:self.queue.as_raw_fd(),events:libc::POLLIN,revents:0};
+  // Readiness leaves notifications queued for the exact snapshot reconciliation.
+  // SAFETY: one initialized descriptor, owned queue and finite native timeout.
+  let ready=unsafe{libc::poll(&mut descriptor,1,millis)};
+  if ready<0 {let error=io::Error::last_os_error();return if error.kind()==io::ErrorKind::Interrupted{Ok(())}else{Err(error)};}
+  if descriptor.revents & (libc::POLLERR|libc::POLLHUP|libc::POLLNVAL)!=0 {return Err(io::Error::other("Native watch descriptor failed"));}
+  Ok(())
+ }
+}
 #[cfg(not(any(target_os="macos",target_os="linux")))]
 pub(crate) struct Events;
 #[cfg(not(any(target_os="macos",target_os="linux")))]
 impl Events {
  pub(crate) fn new(_: &Path)->io::Result<Self>{Err(io::Error::new(io::ErrorKind::Unsupported,"native watching unavailable"))}
+ pub(crate) fn wait(&mut self,timeout:std::time::Duration)->io::Result<()>{std::thread::sleep(timeout);Ok(())}
  pub(crate) fn refresh(&mut self,_:&Path)->io::Result<()>{Ok(())}
  pub(crate) fn changed(&mut self)->io::Result<bool>{Ok(true)}
 }

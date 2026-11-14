@@ -1,6 +1,6 @@
 //! Recursive Windows notifications request exact source reconciliation.
 use std::{fs,io,os::windows::{ffi::OsStrExt,fs::MetadataExt},path::{Path,PathBuf}};
-use windows_sys::Win32::{Foundation::*,Storage::FileSystem::*,System::Threading::WaitForSingleObject};
+use windows_sys::Win32::{Foundation::*,Storage::FileSystem::*,System::Threading::{WaitForSingleObject,INFINITE}};
 pub(crate) struct Events {handle:HANDLE,root:PathBuf,created:u64,#[cfg(test)] pub(crate) refreshes:usize}
 impl Events {
     pub(crate) fn new(root:&Path)->io::Result<Self>{
@@ -17,6 +17,17 @@ impl Events {
     }
     fn validate(&self)->io::Result<()>{
         if fs::metadata(&self.root)?.creation_time()!=self.created{return Err(io::Error::new(io::ErrorKind::NotFound,"Watched root was replaced"));}Ok(())
+    }
+    pub(crate) fn wait(&mut self,timeout:std::time::Duration)->io::Result<()>{
+        let millis:u32=timeout.as_millis().try_into().map_err(|_|io::Error::new(io::ErrorKind::InvalidInput,"Watch timeout exceeds native range"))?;
+        if millis==INFINITE{return Err(io::Error::new(io::ErrorKind::InvalidInput,"Watch timeout must be finite"));}
+        self.validate()?;
+        // Rearming belongs to changed(), after the supervisor observes readiness.
+        // SAFETY: live notification handle owned by this Events, with finite timeout.
+        match unsafe{WaitForSingleObject(self.handle,millis)} {
+            WAIT_TIMEOUT|WAIT_OBJECT_0=>Ok(()),
+            _=>Err(io::Error::last_os_error()),
+        }
     }
     pub(crate) fn changed(&mut self)->io::Result<bool>{
         // The notification does not cover removal/replacement of the root itself.

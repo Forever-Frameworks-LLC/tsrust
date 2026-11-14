@@ -302,7 +302,7 @@ mod platform {
                     running.take();
                 }
             }
-            std::thread::sleep(Duration::from_millis(100));
+            watcher.wait(Duration::from_millis(100));
         }
         drop(running);report(Status::Info,"Stopped.");Ok(0)
     }

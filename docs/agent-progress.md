@@ -4,6 +4,88 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Native dev idle wait accepted — 2026-11-14
+
+New CLI-only source replaces the unconditional idle sleep with bounded native
+notification waiting. POSIX poll observes kqueue/inotify readiness without consuming
+events; Windows WaitForSingleObject leaves rearming to changed(). The supervisor
+still times out after 100ms to poll external source/config/binding dependencies and
+observe child exit/signals. Debounce and in-flight cancellation intervals remain
+unchanged. Wait failures fall back for only the remaining original timeout. Empty
+native reconciliations retain one polling interval of backoff, preventing repeated
+scans under unchanged-byte/irrelevant notification storms while preserving later
+real edits. All source reconciliation and backend validation checks remain intact.
+
+Only dev_cli.rs, dev_events.rs, dev_windows_events.rs and dev_watch.rs changed.
+All 22 dev unit cases passed in 0.54s. After fixture formatting, watcher 8/8 passed
+in 0.45s; final remaining-time refinement replay passed 8/8 in 0.44s (9.07s setup)
+and cancellation integration 6/6 in 16.04s (12.29s setup). Earlier unchanged alias/
+cache integration 3/3 passed in 4.89s and colors 1/1 in 1.20s. Native event/frontend/
+dependency cases from the 22-case run remain accepted. Tests prove early wakeup,
+queued-event preservation, unchanged-notification backoff with a queued real edit,
+polling fallback and external imports after timeout. Successful source fixtures
+exercise formatting/idempotence. Initial compilation used an invalid CLI-bin
+formatting path and was repaired; a filter typo ran zero cases and is not counted.
+The external-import witness initially supplied a noncanonical private Watcher
+root; it now mirrors the public supervisor's canonical-root contract and retains
+its dependency assertion. Windows INFINITE import was checked against windows-sys;
+Windows/Linux execution is not verified here. Release CLI built in 23.72s;
+compiler all-target checking passed in 11.19s with existing warnings. Core/LSP
+source and APIs are unchanged; preserve the previous full regression evidence.
+
+Established benchmarks/dev/baseline.py ran the original default 3-sample 6/130
+module protocol with the shared quiet guard, independent program-output checks and
+idle observations. Source fingerprints and harness SHA-256 match every before/
+after run. No builds/tests ran concurrently with timing.
+
+| Modules | Cold start ms, before/after | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| 6 | 536.33 /583.93 | 113.01 /99.21 | 391.93 /373.24 | 440.97 /374.59 | 308.63 /223.09 |
+| 130 | 563.56 /493.13 | 106.04 /104.67 | 406.68 /389.48 | 496.14 /389.29 | 310.01 /217.60 |
+
+Shared-edit reductions were 15.05/21.54 percent; configuration-edit reductions
+27.72/29.81 percent. Leaf reductions were smaller, 4.77/4.23 percent. The 6-module
+cold median initially regressed 8.87 percent. Individual cold samples were noisy:
+before 1130.18/477.61/536.33ms, after 1694.84/502.01/583.93ms, with large backend/native
+phase variation. The wait is after initial program spawn; no startup speed claim
+is made. Follow-up reran only the affected 6-module graph, preserving 3 samples,
+after untimed version launches of both binaries and with no intervening build:
+
+| 6-module follow-up | Cold start | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| Before, ms | 498.54 | 176.82 | 443.11 | 448.21 | 248.09 |
+| After, ms | 487.47 | 114.31 | 373.38 | 364.56 | 224.85 |
+
+The cold regression did not repeat; retain both runs rather than selecting one.
+Edit latency improved in both comparisons. Original before loads 3.0874–3.9058,
+after 2.1440–2.5059; follow-up before 1.9194–2.0059,after 2.2983–2.4346,all below existing
+limit 4. These grouped three-sample diagnostics do not establish universal/stable
+startup or edit speed. Idle supervisor CPU deltas were 0–0.02s over about 3s and
+within-sample RSS stayed fixed (roughly 21/27 MiB). These short observations are not
+a retained-memory leak proof. Thirty workload/engine history entries were ingested
+and independently verified, 3 samples each; SQLite integrity=ok. All prior histories
+remain intact. Run timestamps: 2026-11-14T22:30:33.840973+00:00,
+22:34:36.856110+00:00,22:40:17.966898+00:00,22:40:35.659644+00:00.
+Baseline CLI SHA-256 `44dfbdd7549b4aae8fa90ac5ac2ad34f42a779ae9bbce28ed5d5dfbe1a10b06e`;
+candidate `39221534341ccac3a786d6b26296dd368cce0953dda37b010c32b4d4f998738a`.
+Release/installed LSP remain identical at
+`7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+
+Whole-project formatting passed: 0 source files, 0 snippets, 0 fingerprints changed.
+Installed CLI was staged, version/hash verified and atomically replaced. LSP is
+unchanged. This section completes local dev-wait acceptance; the source checkpoint
+contains only its four CLI files, measurements and this progress record. Owner
+Studio/SDK drafts and service-test import ordering remain unstaged. Benchmark
+temporary projects/children cleaned themselves up; closed raw results are removed
+after checkpoint and independent SQLite verification. Keep Worklist 87431/87575,
+API 33729/45647 and Zed LSP 75803 running. They retain previously loaded supervisor
+code until a later authorized refresh; no buffer/app restart is required for this
+non-language change. Next: a proven backend-probe optimization preserving wrappers
+and full pinned-version validation, or further profiled frontend work. The <10%
+matched Rust target remains unmet (last accepted core comparison 38.32/49.12 percent
+for 6/130 modules; not remeasured for this dev-only edit). Full application/platform
+milestones and PR merge remain pending. No remote action.
+
 ## Error-effect body reuse validated — 2026-11-14
 
 The new candidate caches function, closure-body and method-body effects only
