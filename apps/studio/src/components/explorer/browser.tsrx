@@ -193,7 +193,7 @@ export function ProjectTree(
         }}
       />
       <View hidden={errorText.get() === ''} className="shrink-0">
-        <Text className={textClass.get() + ' text-destructive px-2 py-1'}>
+        <Text role="status" className={textClass.get() + ' text-destructive px-2 py-1'}>
           {errorText.get()}
         </Text>
       </View>
