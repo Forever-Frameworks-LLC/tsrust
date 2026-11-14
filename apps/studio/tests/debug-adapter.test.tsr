@@ -416,6 +416,33 @@ test('debug adapter errors identify the command and adapter explanation', () => 
   strictEqual(reply.message, 'launch: Executable missing');
 });
 
+test('missing debug adapter reports the configured path and setup action', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-missing-adapter-'));
+  const commands = new Channel<DebugCommand>(1);
+  const sender = commands.sender();
+  const output = new Channel<DebugOutput>(1);
+  const adapter = folder + '/missing lldb-dap';
+  const worker = debugWorker(clone(folder), commands, output.sender(), clone(adapter)).start();
+
+  try {
+    await sender.send({
+      action: 'launch', program: folder + '/target'
+    });
+    const failure = await output.receive().timeout(10000);
+    strictEqual(failure.finished, true);
+    strictEqual(failure.text.includes(adapter), true);
+    strictEqual(failure.text.includes('set LLDB_DAP'), true);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(folder));
+  }
+});
+
 test('real adapter rejects a missing executable before the session runs', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-debug-missing-'));
 

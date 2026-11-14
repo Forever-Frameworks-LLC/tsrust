@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Missing adapter launch now identifies the attempted executable and explains PATH and LLDB_DAP setup in the Debug Console. An isolated native Studio with a nonexistent configured path containing a space displayed that path and setup message. Existing launches and the new worker failure case passed 8/8 debugger tests (5.58 s execution). Host was macOS arm64. The configured desktop-linux Docker socket was absent; no native Linux or Windows session was validated.
+
 F10 invokes Step over from the focused editor. The button and shortcut share paused-state dispatch, which clears the paused flag once the command is queued. In an isolated rebuilt Studio on macOS, launched a two-line fixture under Xcode LLDB with a breakpoint and watch, focused the editor, pressed F10, then saved a marker at the resulting caret. The only changed text was the marker immediately before the second console call.
 
 Step over now requests LLDB line stepping. Within the same thread and mapped source frame, successive native addresses for the same original line are stepped past; revisiting an address exposes the stop. Distinct original lines, unmapped frames and other stop reasons remain visible. The real adapter regression set a breakpoint only at line 11, stepped to mapped line 12 and continued to exit zero. Debugger and localization passed 8/8 (6.32 s execution). An isolated native Studio replay set a breakpoint on the first console call, entered a watch, pressed Step over and saved a marker at the editor caret immediately before the second console call. Verified on macOS with Xcode LLDB.

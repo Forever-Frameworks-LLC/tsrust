@@ -2,7 +2,7 @@ import { basename } from 'std:path';
 import { canonicalize } from 'std:fs';
 import { get } from 'std:env';
 import { Channel, Sender } from 'std:futures';
-import { spawn } from 'std:process';
+import { Child, spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
 import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
@@ -43,6 +43,20 @@ export function exitStatusText(code: int | undefined): string {
   return code === undefined ? '\nExit status unavailable.\n' : '\nExit code ' + code.toString() + '\n';
 }
 
+function startDebugAdapter(adapter: ReadOnly<string>): Child {
+  match (spawn(clone(adapter), [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
+  })) {
+    Ok(child) => {
+      return child;
+    },
+    Err(error) => {
+      if (error.code === 'not-found') throw 'Debug adapter not found: ' + adapter + '. Install LLVM lldb-dap on PATH or set LLDB_DAP to its executable path.';
+      throw 'Could not start debug adapter ' + adapter + ': ' + error.message;
+    }
+  }
+}
+
 async function launchDebugTarget(adapter: string, root: string, command: ReadOnly<DebugCommand>, requests: ReadOnly<Channel<DebugCommand>>, output: ReadOnly<Sender<DebugOutput>>): Task<void> {
   const selected = command.program ?? '';
   let program = clone(selected);
@@ -54,9 +68,7 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     Err(_) => {}
   }
 
-  const child = unwrap(spawn(adapter, [], {
-    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
-  }));
+  const child = startDebugAdapter(adapter);
 
   try {
     const writer = child.takeStdin();
@@ -287,14 +299,15 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
   }
 }
 
-export async function debugWorker(root: string, requests: Channel<DebugCommand>, output: Sender<DebugOutput>): Task<void> {
+export async function debugWorker(root: string, requests: Channel<DebugCommand>, output: Sender<DebugOutput>, configuredAdapter?: string): Task<void> {
   while (true) {
     const command = await requests.receive();
     let error = '';
 
     try {
       if (command.action !== 'launch' || !command.program) throw 'Select an executable to debug.';
-      await launchDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(root), command, requests, output);
+      const adapter = clone(configuredAdapter) ?? unwrap(get('LLDB_DAP')) ?? 'lldb-dap';
+      await launchDebugTarget(adapter === '' ? 'lldb-dap' : clone(adapter), clone(root), command, requests, output);
     } catch (reason) {
       if (typeof reason === 'string') error = reason;
       else error = JSON.stringify(reason);
