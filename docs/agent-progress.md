@@ -6,7 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Shared zoom repairs accepted section — 2026-11-14
 
-Numeric sorting is checkpoint f73795b21. Current zoom source forwards Select
+Numeric sorting is checkpoint f73795b21; accepted zoom repairs are f3c3dea2d.
+The zoom source forwards Select
 trigger/option/group typography, Pagination button typography and TitleBar styles.
 Native Button/Input/Select frames fit explicit fonts and icons; TitleBar grows to
 its contents, centers macOS traffic lights and keeps the full bar draggable.
@@ -44,18 +45,21 @@ descending / zoom14, 1180x821. API supervisor 33729 / exec 48973 remains running
 Studio remains stopped. Desktop log /tmp/tsrust-worklist-desktop-dev.log. Native
 SDK refresh was 185.164s setup (runtime 165.155s); unchanged follow-up reused the
 checked application and program in 621ms. These are diagnostic observations, not
-matched Rust benchmark results. Release compiler/LSP refresh is exec 36889, log
-/tmp/tsrust-widget-zoom-release-build.log. Prior accepted release pair remains
-installed until this build succeeds. Owner restarted Zed; process 67536 replaces
-37383 and uses configured target/release/tsrust-lsp. Open-document diagnostic
-contents are not accessible through the available desktop tools; no live-clear
-claim. VS Code is not running; its ignored overrides still select release binaries.
+matched Rust benchmark results. Release compiler/LSP refresh passed in 3m47s, log
+/tmp/tsrust-widget-zoom-release-build.log. Both default installed binaries were
+atomically replaced and independently verified against release SHA256 and versions;
+no staging/rollback copies remain. The final release compiler also checks Worklist
+main cleanly. Owner restarted Zed: process 67536 replaces
+37383 and uses configured target/release/tsrust-lsp, but predates this final rebuild.
+Its open-document diagnostic contents are not accessible through available desktop
+tools; no live-clear claim or final-image reload acceptance. VS Code is not running;
+its ignored overrides still select release binaries. Preserve the newly observed
+owner import-order edit in apps/tasks/desktop/tests/service.test.tsr unstaged.
 
 Cleanup pruned closed fixture workspaces 5e25d46347b5a780 and 5e1bab3b875173d5 while
 retaining lock inodes, and their two obsolete runtime bundles under nonblocking
 locks. Current reusable fixture support and unknown application entries remain.
-Next: finish/install the release pair, checkpoint this accepted section, then
-profile backend verification/runtime invalidation and resume the matched Rust
+Next: profile backend verification/runtime invalidation and resume the matched Rust
 performance matrix. <10 percent overhead, stress/pixel/platform checks, complete
 compiler/LSP milestone regressions and final PR merge remain required and open.
 
