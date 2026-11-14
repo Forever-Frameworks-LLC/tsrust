@@ -1,0 +1,43 @@
+import { Client, request } from 'std:http';
+import { Pool } from 'std:sql';
+import { Snapshot, ChangeBatch, ApiFailure } from '../../shared/tasks.tsr';
+import { readCache, replaceSnapshot, applyChanges } from './cache.tsr';
+
+export interface SyncPage {
+  snapshot: Snapshot;
+  hasMore: boolean;
+}
+
+async function fetchSnapshot(pool: ReadOnly<Pool>, client: ReadOnly<Client>, base: ReadOnly<string>): Task<SyncPage> {
+  const response = await client.send(request('GET', base + '/snapshot', ''));
+
+  if (response.status() !== 200) throw 'Worklist snapshot returned HTTP ' + response.status().toString();
+  const snapshot = JSON.parse<Snapshot>(await response.text());
+  await replaceSnapshot(pool, snapshot);
+  return {
+    snapshot, hasMore: false
+  };
+}
+
+export async function syncPage(pool: ReadOnly<Pool>, client: ReadOnly<Client>, base: ReadOnly<string>): Task<SyncPage> {
+  const cached = await readCache(pool);
+
+  if (!cached.initialized) return await fetchSnapshot(pool, client, base);
+  const after = cached.snapshot.cursor;
+  const response = await client.send(request('GET', base + '/changes?after=' + after.toString(), ''));
+
+  if (response.status() === 409) {
+    const error = JSON.parse<ApiFailure>(await response.text());
+
+    if (error.code === 'reset-required') return await fetchSnapshot(pool, client, base);
+    throw 'Worklist change history is unavailable.';
+  }
+
+  if (response.status() !== 200) throw 'Worklist changes returned HTTP ' + response.status().toString();
+  const batch = JSON.parse<ChangeBatch>(await response.text());
+  await applyChanges(pool, after, batch);
+  const state = await readCache(pool);
+  return {
+    snapshot: state.snapshot, hasMore: batch.hasMore
+  };
+}

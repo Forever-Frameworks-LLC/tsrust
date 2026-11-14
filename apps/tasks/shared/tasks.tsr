@@ -14,3 +14,42 @@ export interface Snapshot {
   cursor: int;
   tasks: TaskRecord[];
 }
+
+export interface WriteTask {
+  title: string;
+  description: string;
+  status: 'todo' | 'in_progress' | 'done';
+  priority: int;
+  assignee: string;
+  due_date: string | null;
+  expectedVersion: int;
+}
+
+export interface RemoveTask {
+  expectedVersion: int;
+}
+
+export interface TaskChange {
+  sequence: int;
+  operation: 'upsert' | 'delete';
+  id: string;
+  version: int;
+  task: TaskRecord | null;
+}
+
+export interface ChangeBatch {
+  cursor: int;
+  hasMore: boolean;
+  changes: TaskChange[];
+}
+
+export interface TaskConflict {
+  code: string;
+  message: string;
+  current: TaskRecord | null;
+}
+
+export interface ApiFailure {
+  code: string;
+  message: string;
+}

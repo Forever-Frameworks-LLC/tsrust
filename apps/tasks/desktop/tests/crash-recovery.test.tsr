@@ -1,0 +1,99 @@
+import { get, currentExe } from 'std:env';
+import { createTempDir, removeDirAll, readTextFile, writeTextFile } from 'std:fs';
+import { join } from 'std:path';
+import { spawn } from 'std:process';
+import { delay } from 'std:futures';
+import { test, strictEqual } from 'std:testing';
+import { Snapshot, ChangeBatch } from '../../shared/tasks.tsr';
+import { openCache, readCache, replaceSnapshot, applyChanges } from '../src/cache.tsr';
+
+test('cache crash recovery replays a page after abrupt process termination', async () => {
+  const childUrl = unwrap(get('WORKLIST_CRASH_URL'));
+  const childReady = unwrap(get('WORKLIST_CRASH_READY'));
+
+  if (childUrl !== undefined && childReady !== undefined) {
+    const pool = await openCache(childUrl);
+    const transaction = await pool.begin();
+    await transaction.execute("UPDATE cached_tasks SET payload = json_set(payload, '$.title', 'Uncommitted') WHERE id = 'one'");
+    await transaction.execute('UPDATE cache_state SET cursor = 5 WHERE id = 1');
+    unwrap(writeTextFile(childReady, 'ready'));
+    await delay(60000);
+    await transaction.rollback();
+    await pool.close();
+    throw 'Parent did not terminate the crash worker.';
+  }
+
+  const folder = unwrap(createTempDir(undefined, 'worklist-crash-'));
+  const url = 'sqlite:' + join(folder, 'tasks.sqlite') + '?mode=rwc';
+  const ready = join(folder, 'ready');
+
+  try {
+    const pool = await openCache(clone(url));
+    const snapshot: Snapshot = {
+      cursor: 3, tasks: [{
+        id: 'one', title: 'Before', description: '', status: 'todo', priority: 2, assignee: '', due_date: null, version: 1, updated_at: '2026-11-14T12:00:00Z'
+      }]
+    };
+    await replaceSnapshot(pool, snapshot);
+    await pool.close();
+    // Reuse this compiled runner; the runtime filter selects only this child branch.
+    const child = unwrap(spawn(unwrap(currentExe()), [], {
+      stdout: 'null', stderr: 'null', env: [{
+        name: 'TSRUST_TEST_FILTER', value: 'cache crash recovery replays a page'
+      }, {
+        name: 'WORKLIST_CRASH_URL', value: clone(url)
+      }, {
+        name: 'WORKLIST_CRASH_READY', value: clone(ready)
+      }]
+    }));
+
+    try {
+      let observed = false;
+
+      for (let attempt = 0; attempt < 500 && !observed; attempt++) {
+        match (readTextFile(ready)) {
+          Ok(text) => {
+            observed = text === 'ready';
+          },
+          Err(error) => {
+            if (error.code !== 'not-found') throw clone(error.message);
+          }
+        }
+
+        if (!observed) await delay(10);
+      }
+
+      strictEqual(observed, true);
+      unwrap(await child.kill());
+      const status = unwrap(await child.wait());
+      strictEqual(status.success, false);
+    } finally {
+      if (unwrap(child.tryWait()) === undefined) unwrap(await child.kill());
+    }
+
+    const reopened = await openCache(url);
+
+    try {
+      const recovered = await readCache(reopened);
+      strictEqual(recovered.snapshot.cursor, 3);
+      strictEqual(recovered.snapshot.tasks[0].title, 'Before');
+      const page: ChangeBatch = {
+        cursor: 5, hasMore: false, changes: [{
+          sequence: 5, operation: 'upsert', id: 'one', version: 2, task: {
+            id: 'one', title: 'Replayed', description: '', status: 'done', priority: 1, assignee: '', due_date: null, version: 2, updated_at: '2026-11-14T12:01:00Z'
+          }
+        }]
+      };
+      strictEqual(await applyChanges(reopened, 3, page), true);
+      strictEqual(await applyChanges(reopened, 3, page), false);
+      const replayed = await readCache(reopened);
+      strictEqual(replayed.snapshot.cursor, 5);
+      strictEqual(replayed.snapshot.tasks.length, 1);
+      strictEqual(replayed.snapshot.tasks[0].title, 'Replayed');
+    } finally {
+      await reopened.close();
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

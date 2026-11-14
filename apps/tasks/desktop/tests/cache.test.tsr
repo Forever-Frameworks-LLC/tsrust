@@ -1,0 +1,124 @@
+import { createTempDir, removeDirAll } from 'std:fs';
+import { join } from 'std:path';
+import { test, strictEqual } from 'std:testing';
+import { TaskRecord, ChangeBatch, Snapshot } from '../../shared/tasks.tsr';
+import { openCache, readCache, replaceSnapshot, applyChanges } from '../src/cache.tsr';
+
+function task(id: string, title: string, version: int): TaskRecord {
+  return {
+    id, title, description: '', status: 'todo', priority: 2, assignee: '', due_date: null, version, updated_at: '2026-11-14T12:00:00Z'
+  };
+}
+
+test('persistent cache applies pages and tombstones atomically and survives duplicate delivery and reopen', async () => {
+  const folder = unwrap(createTempDir(undefined, 'worklist-cache-'));
+  const url = 'sqlite:' + join(folder, 'tasks.sqlite') + '?mode=rwc';
+
+  try {
+    const pool = await openCache(clone(url));
+    const initial = await readCache(pool);
+    strictEqual(initial.initialized, false);
+    const snapshot: Snapshot = {
+      cursor: 10, tasks: [task('one', 'Before', 1)]
+    };
+    await replaceSnapshot(pool, snapshot);
+    const page: ChangeBatch = {
+      cursor: 14, hasMore: true, changes: [{
+        sequence: 12, operation: 'upsert', id: 'one', version: 2, task: task('one', 'After', 2)
+      }, {
+        sequence: 14, operation: 'upsert', id: 'two', version: 1, task: task('two', 'New task', 1)
+      }]
+    };
+    strictEqual(await applyChanges(pool, 10, page), true);
+    strictEqual(await applyChanges(pool, 10, page), false);
+    await pool.close();
+    const reopened = await openCache(clone(url));
+    const state = await readCache(reopened);
+    strictEqual(state.initialized, true);
+    strictEqual(state.snapshot.cursor, 14);
+    strictEqual(state.snapshot.tasks.length, 2);
+    strictEqual(state.snapshot.tasks[0].title, 'After');
+    const deletion: ChangeBatch = {
+      cursor: 20, hasMore: false, changes: [{
+        sequence: 20, operation: 'delete', id: 'one', version: 2, task: null
+      }]
+    };
+    strictEqual(await applyChanges(reopened, 14, deletion), true);
+    strictEqual(await applyChanges(reopened, 10, page), false);
+    const deleted = await readCache(reopened);
+    strictEqual(deleted.snapshot.cursor, 20);
+    strictEqual(deleted.snapshot.tasks.length, 1);
+    strictEqual(deleted.snapshot.tasks[0].id, 'two');
+    await reopened.close();
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('cache rejects corrupt and out-of-order pages and rolls back incomplete snapshot replacement', async () => {
+  const pool = await openCache('sqlite::memory:');
+
+  try {
+    const snapshot: Snapshot = {
+      cursor: 3, tasks: [task('one', 'Retained', 1)]
+    };
+    await replaceSnapshot(pool, snapshot);
+    const invalidPages: ChangeBatch[] = [{
+      cursor: 8, hasMore: false, changes: [{
+        sequence: 7, operation: 'delete', id: 'one', version: 1, task: null
+      }]
+    }, {
+      cursor: 8, hasMore: false, changes: [{
+        sequence: 8, operation: 'upsert', id: 'one', version: 2, task: task('wrong-id', 'Wrong', 2)
+      }]
+    }, {
+      cursor: 3, hasMore: true, changes: []
+    }];
+
+    for (const page of invalidPages) {
+      let rejected = false;
+
+      try {
+        await applyChanges(pool, 3, page);
+      } catch (_) {
+        rejected = true;
+      }
+
+      strictEqual(rejected, true);
+    }
+
+    let outOfOrder = false;
+    const later: ChangeBatch = {
+      cursor: 12, hasMore: false, changes: [{
+        sequence: 12, operation: 'delete', id: 'one', version: 1, task: null
+      }]
+    };
+
+    try {
+      await applyChanges(pool, 8, later);
+    } catch (_) {
+      outOfOrder = true;
+    }
+
+    strictEqual(outOfOrder, true);
+    let rolledBack = false;
+    const duplicate: Snapshot = {
+      cursor: 9, tasks: [task('two', 'First', 1), task('two', 'Duplicate', 1)]
+    };
+
+    try {
+      await replaceSnapshot(pool, duplicate);
+    } catch (_) {
+      rolledBack = true;
+    }
+
+    strictEqual(rolledBack, true);
+    const retained = await readCache(pool);
+    strictEqual(retained.snapshot.cursor, 3);
+    strictEqual(retained.snapshot.tasks.length, 1);
+    strictEqual(retained.snapshot.tasks[0].id, 'one');
+    strictEqual(retained.snapshot.tasks[0].title, 'Retained');
+  } finally {
+    await pool.close();
+  }
+});

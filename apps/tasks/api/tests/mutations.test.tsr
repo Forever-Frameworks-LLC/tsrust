@@ -1,0 +1,137 @@
+import { get } from 'std:env';
+import { randomBytes } from 'std:crypto';
+import { toHex } from 'std:bytes';
+import { Client, request } from 'std:http';
+import { connect } from 'std:sql';
+import { test, strictEqual } from 'std:testing';
+import { Snapshot, TaskRecord, WriteTask, ChangeBatch, TaskConflict } from '../../shared/tasks.tsr';
+import { routes } from '../src/application.tsr';
+
+test('versioned HTTP mutations and resumable CDC preserve external changes and reject stale edits', async () => {
+  const url = unwrap(get('DATABASE_URL'));
+
+  if (url === undefined) throw 'Set DATABASE_URL.';
+  const database: string = url;
+  const pool = await connect(clone(database), 2);
+  const app = routes(await connect(database, 4));
+  const server = await app.listen('127.0.0.1:0');
+  const base = 'http://' + server.address();
+  const client = new Client();
+  const id = 'mutations-' + unwrap(toHex(unwrap(randomBytes(16))));
+  const target = base + '/tasks/' + id;
+  const value: WriteTask = {
+    title: "  Ship café's update  ", description: 'Review 日本語', status: 'todo', priority: 1, assignee: 'Ada', due_date: null, expectedVersion: 0
+  };
+
+  try {
+    const initial = await client.send(request('GET', base + '/snapshot', ''));
+    const before = JSON.parse<Snapshot>(await initial.text());
+    const created = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(created.status(), 201);
+    const first = JSON.parse<TaskRecord>(await created.text());
+    strictEqual(first.title, "Ship café's update");
+    strictEqual(first.version, 1);
+    strictEqual(first.due_date === null, true);
+    const repeated = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(repeated.status(), 409);
+    value.expectedVersion = 1;
+    value.status = 'in_progress';
+    value.due_date = '2026-11-20';
+    const updated = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(updated.status(), 200);
+    strictEqual(JSON.parse<TaskRecord>(await updated.text()).version, 2);
+    await pool.execute('UPDATE tasks SET title = $2 WHERE id = $1', [clone(id), 'External edit']);
+    value.expectedVersion = 2;
+    const stale = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(stale.status(), 409);
+    const conflict = JSON.parse<TaskConflict>(await stale.text());
+    strictEqual(conflict.code, 'conflict');
+
+    if (conflict.current === null) throw 'Conflict omitted the current task.';
+    strictEqual(conflict.current.version, 3);
+    strictEqual(conflict.current.title, 'External edit');
+    const staleDelete = await client.send(request('DELETE', target, '{"expectedVersion":2}'));
+    strictEqual(staleDelete.status(), 409);
+
+    let cursor = before.cursor;
+    const seen: string[] = [];
+    let more = true;
+
+    while (more) {
+      const path = base + '/changes?limit=1&after=' + cursor.toString();
+      const reply = await client.send(request('GET', path, ''));
+      strictEqual(reply.status(), 200);
+      const raw = await reply.text();
+      const duplicate = await client.send(request('GET', path, ''));
+      strictEqual(await duplicate.text(), raw);
+      const batch = JSON.parse<ChangeBatch>(raw);
+      strictEqual(batch.changes.length, 1);
+      strictEqual(batch.cursor > cursor, true);
+      strictEqual(batch.cursor, batch.changes[0].sequence);
+      const change = batch.changes[0];
+
+      if (change.id === id) {
+        if (change.task === null) throw 'Upsert omitted its task.';
+        seen.push(clone(change.task.title));
+        strictEqual(change.version, seen.length);
+      }
+
+      cursor = batch.cursor;
+      more = batch.hasMore;
+    }
+
+    strictEqual(seen.length, 3);
+    strictEqual(seen[0], "Ship café's update");
+    strictEqual(seen[2], 'External edit');
+    const removed = await client.send(request('DELETE', target, '{"expectedVersion":3}'));
+    strictEqual(removed.status(), 200);
+    const deletion = await client.send(request('GET', base + '/changes?after=' + cursor.toString(), ''));
+    const tail = JSON.parse<ChangeBatch>(await deletion.text());
+    strictEqual(tail.changes.length, 1);
+    strictEqual(tail.changes[0].operation === 'delete', true);
+    strictEqual(tail.changes[0].id, id);
+    strictEqual(tail.changes[0].version, 3);
+    strictEqual(tail.changes[0].task === null, true);
+    const empty = await client.send(request('GET', base + '/changes?after=' + tail.cursor.toString(), ''));
+    const unchanged = JSON.parse<ChangeBatch>(await empty.text());
+    strictEqual(unchanged.cursor, tail.cursor);
+    strictEqual(unchanged.changes.length, 0);
+    strictEqual(unchanged.hasMore, false);
+    const reset = await client.send(request('GET', base + '/changes?after=' + (tail.cursor + 1).toString(), ''));
+    strictEqual(reset.status(), 409);
+
+    value.expectedVersion = 0;
+    const recreated = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(recreated.status(), 201);
+    strictEqual(JSON.parse<TaskRecord>(await recreated.text()).version, 4);
+    const oldDelete = await client.send(request('DELETE', target, '{"expectedVersion":3}'));
+    strictEqual(oldDelete.status(), 409);
+    const currentDelete = await client.send(request('DELETE', target, '{"expectedVersion":4}'));
+    strictEqual(currentDelete.status(), 200);
+    const recreatedFeed = await client.send(request('GET', base + '/changes?after=' + tail.cursor.toString(), ''));
+    const recreation = JSON.parse<ChangeBatch>(await recreatedFeed.text());
+    strictEqual(recreation.changes.length, 2);
+    strictEqual(recreation.changes[0].version, 4);
+    strictEqual(recreation.changes[1].version, 4);
+
+    for (const query of ['after=-1', 'after=1junk', 'limit=0', 'limit=501']) {
+      const invalid = await client.send(request('GET', base + '/changes?' + query, ''));
+      strictEqual(invalid.status(), 400);
+    }
+
+    for (const body of ['{', '{"title":42}', JSON.stringify({
+      title: 'bad', description: '', status: 'unknown', priority: 1, assignee: '', due_date: null, expectedVersion: 0
+    })]) {
+      const invalid = await client.send(request('PUT', target, clone(body)));
+      strictEqual(invalid.status(), 400);
+    }
+
+    value.title = '   ';
+    const blank = await client.send(request('PUT', target, JSON.stringify(value)));
+    strictEqual(blank.status(), 400);
+  } finally {
+    await pool.execute('DELETE FROM tasks WHERE id = $1', [id]);
+    await server.shutdown();
+    await pool.close();
+  }
+});

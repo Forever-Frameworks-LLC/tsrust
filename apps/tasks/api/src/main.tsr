@@ -1,18 +1,6 @@
 import { get } from 'std:env';
-import { App, Request, Response, json } from 'std:http';
-import { Pool, connect } from 'std:sql';
-import { Snapshot } from '../../shared/tasks.tsr';
-
-async function snapshot(pool: ReadOnly<Pool>, input: Request): Task<Response> {
-  const rows = await pool.query("SELECT jsonb_build_object('cursor', (SELECT COALESCE(MAX(sequence), 0) FROM task_changes), 'tasks', COALESCE((SELECT jsonb_agg(to_jsonb(task) ORDER BY task.id) FROM tasks task), '[]'::jsonb))::text AS payload");
-  return json(JSON.parse<Snapshot>(unwrap(rows[0].text('payload'))));
-}
-
-function routes(pool: Owned<Pool>): App {
-  const app = new App();
-  app.get('/snapshot', (input: Request) => snapshot(pool, input));
-  return app;
-}
+import { connect } from 'std:sql';
+import { routes } from './application.tsr';
 
 async function main(): Task<void> {
   const url = unwrap(get('DATABASE_URL'));
@@ -22,6 +10,8 @@ async function main(): Task<void> {
   await pool.migrate('migrations');
   const app = routes(pool);
   const address = unwrap(get('WORKLIST_ADDRESS')) ?? '127.0.0.1:4317';
+
+  if (!address.startsWith('127.0.0.1:') && !address.startsWith('[::1]:')) throw 'Worklist development API must bind loopback.';
   const server = await app.listen(address);
   console.log('Worklist API listening at http://' + server.address());
   await server.wait();

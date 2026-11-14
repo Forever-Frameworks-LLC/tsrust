@@ -1,0 +1,73 @@
+import { get } from 'std:env';
+import { randomBytes } from 'std:crypto';
+import { toHex } from 'std:bytes';
+import { Client } from 'std:http';
+import { connect } from 'std:sql';
+import { test, strictEqual } from 'std:testing';
+import { openCache, readCache, replaceSnapshot } from '../src/cache.tsr';
+import { syncPage } from '../src/sync.tsr';
+import { routes } from '../../api/src/application.tsr';
+
+test('HTTP synchronization retains cached tasks offline and catches up after reconnect', async () => {
+  const configured = unwrap(get('DATABASE_URL'));
+
+  if (configured === undefined) throw 'Set DATABASE_URL.';
+  const database: string = configured;
+  const external = await connect(clone(database), 2);
+  const cache = await openCache('sqlite::memory:');
+  const client = new Client();
+  const app = routes(await connect(clone(database), 2));
+  const server = await app.listen('127.0.0.1:0');
+  const address = server.address();
+  const base = 'http://' + address;
+  const id = 'sync-' + unwrap(toHex(unwrap(randomBytes(16))));
+
+  try {
+    let insertedCursor: int = 0;
+
+    try {
+      const initial = await syncPage(cache, client, base);
+      strictEqual(initial.hasMore, false);
+      await external.execute("INSERT INTO tasks(id, title) VALUES ($1, 'External insert')", [clone(id)]);
+      const inserted = await syncPage(cache, client, base);
+      strictEqual(inserted.snapshot.tasks.some((task) => task.id === id && task.title === 'External insert'), true);
+      insertedCursor = inserted.snapshot.cursor;
+    } finally {
+      await server.shutdown();
+    }
+
+    let offline = false;
+
+    try {
+      await syncPage(cache, client, base);
+    } catch (_) {
+      offline = true;
+    }
+
+    strictEqual(offline, true);
+    const retained = await readCache(cache);
+    strictEqual(retained.snapshot.cursor, insertedCursor);
+    strictEqual(retained.snapshot.tasks.some((task) => task.id === id), true);
+    await external.execute('DELETE FROM tasks WHERE id = $1', [clone(id)]);
+    const restarted = routes(await connect(database, 2));
+    const replacement = await restarted.listen(address);
+
+    try {
+      const caughtUp = await syncPage(cache, client, base);
+      strictEqual(caughtUp.snapshot.cursor > insertedCursor, true);
+      strictEqual(caughtUp.snapshot.tasks.some((task) => task.id === id), false);
+      const stale = clone(retained.snapshot);
+      stale.cursor = 9007199254740991;
+      await replaceSnapshot(cache, stale);
+      const reset = await syncPage(cache, client, base);
+      strictEqual(reset.snapshot.cursor, caughtUp.snapshot.cursor);
+      strictEqual(reset.snapshot.tasks.some((task) => task.id === id), false);
+    } finally {
+      await replacement.shutdown();
+    }
+  } finally {
+    await external.execute('DELETE FROM tasks WHERE id = $1', [id]);
+    await cache.close();
+    await external.close();
+  }
+});

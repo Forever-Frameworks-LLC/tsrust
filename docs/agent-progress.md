@@ -4,6 +4,83 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Worklist versioned API, offline CDC cache and exceptional loans — 2026-11-14
+
+Implemented API routes in apps/tasks/api/src/application.tsr using the existing
+Router-owned SQL environment. PUT /tasks/:id creates with expectedVersion 0 or
+updates the matching observed version. DELETE requires the observed version.
+Stale writes return HTTP 409 with current data. Inputs use checked typed JSON,
+field/version validation, real calendar-date parsing and the existing HTTP body
+limit. The development server only permits loopback binding. GET /changes pages
+committed changes by sequence, acknowledges only delivered rows, preserves empty
+cursors and requests a snapshot reset for cursors beyond the current history.
+
+Migration 002 preserves per-id versions after deletion/recreation, preventing an
+old editor version from matching a replacement task. It indexes identity/version
+lookups in the retained CDC log. Tests now use random ids to preserve fresh-record
+assertions across repeated runs. The statement-level advisory-lock protocol and
+one-statement snapshot remain intact.
+
+Desktop src/cache.tsr stores task payloads and its cursor atomically in SQLite.
+It supports consistent reads, snapshot replacement, ordered CDC pages, duplicate
+replay, tombstones and rejection of malformed/outdated pages. src/sync.tsr loads
+an initial snapshot, applies one CDC page per call and resets from a new snapshot
+when required. Network failures preserve committed local state. README documents
+running the API and one shared std:testing runner across API/desktop suites.
+Desktop UI and its worker integration remain unimplemented.
+
+Application validation exposed a compiler false capture-conflict: awaiting a SQL
+call with an inline cloned parameter inside try left a temporary future loan live
+in finally/catch, preventing pool.close(). Exit-state unwind now removes newly
+introduced lowered-future temporaries while preserving entry loans, real outer
+owners and pending payload loans. Added two internal regression cases and a
+public SQL/compiler witness, including rejection of closing a pool with a genuinely
+pending operation. The original minimal failure now checks cleanly. No ownership
+checks were removed. The initial aggregate-task warning was valid because a later
+sender creation could throw; creating the sender before the tasks removes that
+abandonment path without suppression.
+
+Compiler library passed 1555 with 8 preexisting ignored cases (153.88 s execution).
+SQL integration passed 6 with 2 existing ignored cases (72.78 s host execution,
+including native setup). Async I/O passed 16 initially; its sole export failure
+was a missing portable source-pack prerequisite. Prepared the current pack offline
+in target/portable-source-packs and replayed exactly that case successfully
+(361.34 s including target-lock/build setup). Task integration passed 29 initially;
+one case hit its 60-second build deadline during shared-target activity. Its quiet
+exact replay passed in 1.52 s. Preserve those passes; do not restart entire suites.
+LSP library passed 36/36 (2.10 s). Compiler/LSP all-target offline checking passed
+(1m30s setup), with the existing test dead-code/unused-import and atomic deprecation
+warnings. No warnings target the exceptional-loan repair.
+
+The first six-case formatted Worklist run passed in 443.86 ms test execution with
+38.58 s build/setup. Adding HTTP offline/reconnect/reset recovery produced a
+seven-case pass in 477.59 ms. Final formatted-source acceptance using the rebuilt
+release passed all eight cases in 516.84 ms execution, with 32.30 s build/setup.
+This includes the migration's recreation-version conflict witness. The real
+crash-replay case (19.44 ms) reuses the compiled runner in a filtered child process,
+holds uncommitted row/cursor changes, and has its parent terminate it before
+reopening/replaying. Both cached rows and cursor retained their prior committed
+values, and replay applied once. No separate per-case native program was built.
+
+Release compiler/server build passed in 3m44s setup. Stopped only the verified
+snapshot-only API child 20887 after checking its cwd and launcher. One new release
+API dev supervisor remains running in exec session 48973, cwd apps/tasks/api,
+log /tmp/tsrust-worklist-api-dev.log. Its current application child is 33880 at
+127.0.0.1:4317. The live snapshot and CDC routes both returned HTTP 200. The test
+fixtures left no task rows; CDC history is retained. Its initial dev build reported
+7.658 seconds with a cold runtime-cache preparation. This is a startup observation,
+not matched Rust timing. Studio remains stopped. Existing Zed's in-memory server
+has not been forcibly restarted; newly launched servers use the rebuilt pair.
+
+Next: implement the two-view desktop UI and worker wiring over these accepted
+API/cache contracts, then sorting/search/filtering, cards/table, sticky columns,
+virtualization and pagination, real resize/interaction checks and simultaneous
+API/desktop dev acceptance. Continue measured compiler/LSP profiling. Full goal,
+<10% overhead, remaining platform/editor acceptance and final push/merge are
+incomplete. Preserve protected Studio and selection-recovery edits outside these
+checkpoints. Offline export prerequisites are now prepared under the shared
+root target; run future relocated exports after ordinary compiler/editor builds.
+
 ## Lazy runtime extraction and matched Rust controls — 2026-11-14
 
 Completed the pending runtime-extraction optimization and matched native-build

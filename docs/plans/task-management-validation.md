@@ -51,3 +51,19 @@ The established dev-loop harness benchmarks/dev/baseline.py is being sampled
 with its original three-sample, 4/128-leaf module protocol. Docker Desktop is
 available. The UI design uses a compact work-management layout and shared text
 sizing. Existing Studio edits and acceptance evidence remain preserved.
+
+## Current accepted section — 2026-11-14
+
+The versioned HTTP API, ordered CDC, SQLite cache and HTTP synchronization client
+pass eight local std:testing cases together. Acceptance includes external writes,
+commit-order locking, rollback gaps, stale edits, id recreation, duplicate pages,
+reopen, disconnect/reconnect, cursor reset and abrupt child-process termination
+with an uncommitted cache transaction. The discovered exceptional-borrow compiler
+issue is repaired with internal and public SQL regression witnesses. Exact counts
+and preserved reruns are in agent-progress.md. One API dev session remains running.
+
+Desktop rendering and worker integration remain next. The main/detail views,
+table/cards, sorting, filters, search, sticky columns, virtualization, pagination,
+actual UI interaction/resize validation and simultaneous desktop/API dev sessions
+are not yet implemented or accepted. The <10 percent matched Rust overhead target
+and final local/platform/merge acceptance remain open.
