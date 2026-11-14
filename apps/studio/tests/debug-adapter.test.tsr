@@ -9,6 +9,7 @@ import { strictEqual, test } from 'std:testing';
 import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
 import {
   BreakpointBinding,
+  debugProcessId,
   updateBreakpointBindings,
   DebugCommand,
   DebugOutput,
@@ -264,6 +265,40 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       const longTarget = folder + '/debug-running';
       const longBuild = unwrap(await run(clone(compiler), ['build', 'tests/fixtures/debug-running.tsr', '-o', clone(longTarget)], {}));
       strictEqual(longBuild.status.success, true);
+      const existing = unwrap(spawn(clone(longTarget), [], {
+        cwd: clone(folder), stdout: 'pipe'
+      }));
+
+      try {
+        const pid = existing.id();
+
+        if (pid === undefined) throw 'Missing fixture PID.';
+        await commands.send({
+          action: 'attach', processId: pid
+        });
+
+        while (true) {
+          const update = await output.receive().timeout(15000);
+
+          if (update.finished) throw 'Attach failed: ' + update.text;
+
+          if (update.stopped === true) break;
+        }
+
+        await commands.send({
+          action: 'stop'
+        });
+        const detached = await consoleResult(output);
+        strictEqual(detached.includes('Debugger detached.'), true);
+        strictEqual(unwrap(existing.tryWait()) === undefined, true);
+      } finally {
+        try {
+          unwrap(await existing.kill());
+        } catch (_) {}
+
+        unwrap(await existing.wait());
+      }
+
       await commands.send({
         action: 'launch', program: clone(longTarget), sourceBreakpoints: [{
           path: clone(source), line: 11
@@ -782,4 +817,10 @@ test('breakpoint changes reconcile original lines across multiple generated bind
   strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
     id: 4, verified: true
   }, 'changed')), '[0]');
+});
+
+test('debugger accepts positive decimal process IDs within the native PID range', () => {
+  strictEqual(debugProcessId(' 123 '), 123);
+
+  for (const value of ['', '0', '-1', '1.5', '1e3', '0x10', '2147483648']) strictEqual(debugProcessId(value), 0);
 });

@@ -1,4 +1,8 @@
 {
+  "Attach to process": "Attach to process",
+  "Process ID": "Process ID",
+  "Enter a valid process ID.": "Enter a valid process ID.",
+  "Detach debugger": "Detach debugger",
   "Breakpoint not verified": "Breakpoint not verified",
   "Source map unavailable": "Source map unavailable",
   "No executable statement": "No executable statement",
@@ -119,6 +123,8 @@
   "Language-service diagnostics are not connected yet.": "Language-service diagnostics are not connected yet.",
   "Stop on entry": "Stop on entry",
   "Continue": "Continue",
+  "Breakpoints": "Breakpoints",
+  "Watch": "Watch",
   "Function breakpoint": "Function breakpoint",
   "Pause debugging": "Pause debugging",
   "Stop debugging": "Stop debugging",

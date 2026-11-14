@@ -1,4 +1,8 @@
 {
+  "Attach to process": "Anexar ao processo",
+  "Process ID": "ID do processo",
+  "Enter a valid process ID.": "Insira um ID de processo válido.",
+  "Detach debugger": "Desanexar depurador",
   "Breakpoint not verified": "Ponto de interrupção não verificado",
   "Source map unavailable": "Mapa de código-fonte indisponível",
   "No executable statement": "Nenhuma instrução executável",
@@ -119,6 +123,8 @@
   "Language-service diagnostics are not connected yet.": "Os diagnósticos do serviço de linguagem ainda não estão conectados.",
   "Stop on entry": "Parar na entrada",
   "Continue": "Continuar",
+  "Breakpoints": "Pontos de interrupção",
+  "Watch": "Expressões monitoradas",
   "Function breakpoint": "Ponto de interrupção de função",
   "Pause debugging": "Pausar depuração",
   "Stop debugging": "Encerrar depuração",

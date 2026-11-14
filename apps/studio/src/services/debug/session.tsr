@@ -1,4 +1,5 @@
 import { toUtf8 } from 'std:bytes';
+import { toInt } from 'std:numeric';
 import { platform } from 'std:os';
 import { get } from 'std:env';
 import { canonicalize, stat } from 'std:fs';
@@ -20,6 +21,7 @@ export interface DebugCommand {
   generation?: int;
   frame?: string;
   program?: string;
+  processId?: int;
   stopOnEntry?: boolean;
   functionBreakpoint?: string;
   sourceBreakpoints?: SourceBreakpoint[];
@@ -157,6 +159,21 @@ async function inspectFrame(writer: Mutable<Writer>, seq: int, frameId: int, wat
   return seq + 2;
 }
 
+export function debugProcessId(value: ReadOnly<string>): int {
+  const text = value.trim();
+
+  if (text === '' || !Array.from(text).every((c) => c >= '0' && c <= '9')) return 0;
+
+  match (toInt(Number(text))) {
+    Ok(pid) => {
+      return pid > 0 && pid <= 2147483647 ? pid : 0;
+    },
+    Err(_) => {
+      return 0;
+    }
+  }
+}
+
 async function launchDebugTarget(
   adapter: string,
   root: string,
@@ -165,10 +182,11 @@ async function launchDebugTarget(
   requests: ReadOnly<Channel<DebugCommand>>,
   output: ReadOnly<Sender<DebugOutput>>
 ): Task<void> {
+  const attaching = command.action === 'attach';
   const selected = command.program ?? '';
   let program = clone(selected);
 
-  match (canonicalize(selected)) {
+  if (selected !== '') match (canonicalize(selected)) {
     Ok(path) => {
       program = clone(path);
     },
@@ -288,7 +306,7 @@ async function launchDebugTarget(
             disconnectRequest = seq;
             await writeFrame(writer, JSON.stringify({
               seq, type: 'request', command: 'disconnect', arguments: {
-                terminateDebuggee: true
+                terminateDebuggee: !attaching
               }
             }));
           } else if (['next', 'stepOver', 'stepIn', 'stepOut'].includes(control.action)) {
@@ -423,7 +441,7 @@ async function launchDebugTarget(
         if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
 
         if (reply.event === 'initialized') {
-          if (requested.length > 0 || breakpoint !== '') {
+          if (program !== '' && (requested.length > 0 || breakpoint !== '')) {
             match (stat(program + '.tsrust-debug')) {
               Ok(folder) => {
                 if (folder.isDirectory) {
@@ -508,7 +526,13 @@ async function launchDebugTarget(
 
         if (reply.command === 'initialize') {
           nativeFunctions = reply.body?.supportsFunctionBreakpoints === true;
-          await writeFrame(writer, JSON.stringify({
+
+          if (attaching) await writeFrame(writer, JSON.stringify({
+            seq: 2, type: 'request', command: 'attach', arguments: {
+              pid: command.processId, stopOnEntry: true
+            }
+          }));
+          else await writeFrame(writer, JSON.stringify({
             seq: 2, type: 'request', command: 'launch', arguments: {
               program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
             }
@@ -716,7 +740,7 @@ async function launchDebugTarget(
           });
         } else if (reply.command === 'disconnect' && reply.request_seq === disconnectRequest) {
           await output.send({
-            text: '\nDebug session stopped.\n', finished: false
+            text: attaching ? '\nDebugger detached.\n' : '\nDebug session stopped.\n', finished: false
           });
           return;
         } else if (reply.event === 'terminated' && disconnectRequest === 0) return;
@@ -743,12 +767,14 @@ export async function debugWorker(root: string, requests: Channel<DebugCommand>,
   while (true) {
     const command = await requests.receive();
 
-    if (command.action !== 'launch') continue;
+    if (command.action !== 'launch' && command.action !== 'attach') continue;
     generation += 1;
     let error = '';
 
     try {
-      if (!command.program) throw 'Select an executable to debug.';
+      if (command.action === 'attach' && (command.processId === undefined || command.processId <= 0 || command.processId > 2147483647)) throw 'Enter a valid process ID.';
+
+      if (command.action === 'launch' && !command.program) throw 'Select an executable to debug.';
       const adapter = await debugAdapterCommand(clone(configuredAdapter));
       await launchDebugTarget(
         adapter,
