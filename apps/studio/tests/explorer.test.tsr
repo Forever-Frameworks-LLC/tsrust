@@ -196,6 +196,12 @@ test('filename search shares explicit read presentation and open actions without
     }];
     strictEqual(matchingFilePaths('/parent/work', entries, 'PARENT').length, 0);
     strictEqual(matchingFilePaths('/parent/work', entries, 'SRC/PANEL').length, 1);
+    const base = 'work' + separator() + 'project';
+    const subpath = 'nested' + separator() + 'panel.tsr';
+    strictEqual(fileSearchLabel(base, base + separator() + subpath), subpath);
+    strictEqual(fileSearchLabel(base + separator(), base + separator() + subpath), subpath);
+    strictEqual(fileSearchLabel(base, base + '-other' + separator() + subpath), base + '-other' + separator() + subpath);
+    strictEqual(fileSearchLabel('', subpath), subpath);
     strictEqual(fileSearchLabel(separator(), separator() + 'first.tsr'), 'first.tsr');
     deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
       root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'

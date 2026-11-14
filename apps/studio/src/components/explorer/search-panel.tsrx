@@ -17,7 +17,7 @@ import {
   translateWith
 } from 'std:ui';
 
-import { SearchActionContext, openSearchResult } from '../../lib/explorer/search-actions.tsr';
+import { SearchActionContext, fileSearchLabel, openSearchResult } from '../../lib/explorer/search-actions.tsr';
 import { SearchHit, searchSnapshot, searchPreview, searchPage, searchPageCount } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { StudioConfig } from '../../lib/settings/settings.tsr';
@@ -39,7 +39,7 @@ function ResultRow(
   const rowKey = clone(key);
   const rowClass = computed<string>(() => 'flex-col items-stretch justify-center gap-1 w-full min-w-0 shrink-0 px-2 py-2 rounded-none hover:bg-accent min-h-[' + (font.get() * 3 + 16).toString() + 'px] text-[' + font.get().toString() + 'px]' + (selected.get() === rowKey ? ' bg-accent text-accent-foreground' : ''));
   const parts = searchPreview(hit);
-  const location = hit.path.slice(root.length + 1) + ':' + hit.line.toString();
+  const location = fileSearchLabel(root, hit.path) + ':' + hit.line.toString();
   const label = clone(location) + ' ' + parts.map((part) => clone(part.text)).join('');
   const target = clone(hit);
   const context: SearchActionContext = {
@@ -65,7 +65,7 @@ function ResultRow(
         }}
       >
         <Text className="w-full truncate text-muted-foreground">
-          {hit.path.slice(root.length + 1)}
+          {fileSearchLabel(root, hit.path)}
         </Text>
         <Text className="w-full truncate font-mono">
           <Text className="text-muted-foreground">

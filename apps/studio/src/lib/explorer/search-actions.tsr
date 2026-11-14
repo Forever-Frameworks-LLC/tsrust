@@ -31,7 +31,13 @@ export interface FileSearchState {
 }
 
 export function fileSearchLabel(root: ReadOnly<string>, path: ReadOnly<string>): string {
-  return path.slice(root.endsWith(separator()) ? root.length : root.length + 1);
+  if (root === '') return clone(path);
+  const prefix = root.endsWith(separator()) || root.endsWith('/') ? clone(root) : root + separator();
+
+  if (path.startsWith(prefix)) return path.slice(prefix.length);
+
+  if (separator() !== '/' && path.startsWith(root + '/')) return path.slice(root.length + 1);
+  return clone(path);
 }
 
 function matchesFile(root: ReadOnly<string>, file: ReadOnly<Entry>, normalized: ReadOnly<string>): boolean {

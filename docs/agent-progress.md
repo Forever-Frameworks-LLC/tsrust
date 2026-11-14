@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Call stack, breakpoint rows and content search use the same workspace-relative path label as file search. The label checks the root boundary before trimming it, keeping external source paths intact and the first filename character when searching from a filesystem root. Explorer regressions exercise a nested file, a trailing separator, a sibling with the same prefix, an empty root and a filesystem root on macOS. Native Windows rendering is unverified.
+
 Verified adapter discovery through the rebuilt Studio window on macOS. A disposable Studio launched with LLDB_DAP unset and PATH restricted to /usr/bin:/bin:/usr/sbin:/sbin, with no lldb-dap executable on that PATH. Run and Debug launched the compiled fixture, hit the named twice breakpoint, displayed n = 6, updated the watch when switching between caller and callee, stepped out to main, and continued to exit zero. The owner workspace was not used for the replay.
 
 With LLDB_DAP unset, macOS Studio now resolves lldb-dap through /usr/bin/xcrun and falls back to the executable on PATH when discovery fails. Explicit adapter commands and LLDB_DAP take precedence. On this Mac, the shell's PATH selected Homebrew LLVM while xcrun selected Xcode. Debugger suite passed 9/9 with the override unset, including comparing the selected executable to xcrun, stopping at mapped breakpoints, stepping and resuming the real target. Linux and Windows still use PATH and need native acceptance.
