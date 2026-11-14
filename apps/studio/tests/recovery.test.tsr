@@ -13,6 +13,7 @@ import {
 } from 'std:fs';
 import { test, strictEqual } from 'std:testing';
 
+import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
 import { edit, dirty } from '../src/lib/workspace/documents.tsr';
 import { persistRecovery, restoreRecovery } from '../src/lib/workspace/recovery.tsr';
 import { saveDocument } from '../src/lib/workspace/storage.tsr';
@@ -226,5 +227,40 @@ test('recovery opens journaled text drafts after disk files become binary, overs
     strictEqual(unwrap(readTextFile(paths[2])).length, 4194305);
   } finally {
     unwrap(removeDirAll(root));
+  }
+});
+
+
+test('renaming an unsaved text file to SVG preserves the draft and unrelated tabs across restart', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-svg-draft-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(temp));
+    const root = clone(workspace.root);
+    const journal = root + '/journal.json';
+    const recovery = unwrap(restoreRecovery(workspace, clone(journal)));
+    unwrap(writeTextFile(root + '/notes.txt', 'original notes'));
+    unwrap(openFile(workspace, root + '/notes.txt'));
+    edit(workspace.files[0].document, 'unsaved notes');
+    unwrap(writeTextFile(root + '/drawing.txt', '<svg/>'));
+    unwrap(openFile(workspace, root + '/drawing.txt'));
+    edit(workspace.files[1].document, '<svg><circle r="4"/></svg>');
+    unwrap(changeExplorerEntry(workspace, 'Rename', root + '/drawing.txt', 'drawing.svg'));
+    unwrap(persistRecovery(workspace, recovery));
+    const restored = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(restored, journal));
+    strictEqual(restored.files.length, 2);
+    strictEqual(restored.files[0].document.text, 'unsaved notes');
+    strictEqual(restored.files[1].kind, 'text');
+    strictEqual(restored.active, root + '/drawing.svg');
+    strictEqual(restored.files[1].document.text, '<svg><circle r="4"/></svg>');
+    strictEqual(unwrap(readTextFile(restored.active)), '<svg/>');
+    unwrap(saveDocument(restored.files[1].document));
+    strictEqual(unwrap(readTextFile(restored.active)), restored.files[1].document.text);
+    const clean = unwrap(openWorkspace(root));
+    unwrap(openFile(clean, restored.active));
+    strictEqual(clean.files[0].kind, 'image');
+  } finally {
+    unwrap(removeDirAll(temp));
   }
 });

@@ -133,7 +133,7 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
       openRecoveredDraft(next, draft);
       const index = next.files.findIndex((file) => file.document.path === draft.path);
 
-      if (index < 0 || next.files[index].kind === 'image') return Err('Invalid recovery document.');
+      if (index < 0) return Err('Invalid recovery document.');
 
       // A journaled text buffer can outlive the disk version that determined its viewer.
       if (next.files[index].kind !== 'text') {

@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+A real explorer rename from drawing.txt to drawing.svg with unsaved text previously made restart reject the whole journal. Recovery now restores journaled text regardless of the viewer selected by the new extension, preserving the original save baseline. Formatted recovery and explorer suites passed 6/6 (64.42 ms), including an unrelated dirty tab and clean SVG reopening in the image viewer. A native macOS Studio restored the exact SVG draft into an editable field and saved it through the explorer, retaining the other draft in recovery.
+
 Explorer filesystem suite passed 2/2 on macOS with a real directory symlink. Deletion through an external parent link was rejected. Renaming and moving the link, then deleting its containing project folder, preserved the external file contents. This exercises the filesystem service. Pruned nine superseded Studio program/runtime cache entries under the namespace locks and recovered 5.43 GiB while the dev session stayed running.
 
 Native macOS folder-drop replay: dragging a nested folder onto empty explorer space with a same-named root folder exposed the collision in the accessibility tree and preserved both directories. After clearing that conflict in the fixture, dragging the same folder to root moved its open dirty child. Targeted Save wrote the draft at its moved path. The recovery journal recorded the moved active tab and breakpoint and retained an unrelated unsaved draft. Explorer errors now use the same accessible status role as the dialog.
