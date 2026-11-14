@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Verified the inline-completion switch on the AI Settings page with the installed Qwen2.5-Coder-1.5B Q4 and the real Studio model host in a disposable macOS profile. Turning it on persisted the preference and the host emitted ready before any completion request. One post-ready RSS observation was 1,185,328 KiB. Restarting Studio with that profile warmed the model before Settings was opened again. Turning the switch off persisted false and the idle host process exited. This run checked the preference and model lifetime; it did not request generated text.
+
 The native Text renderer exposed no accessibility label for extension descriptions marked as notes. The selected detail now presents its description as status text. In separate native English and Brazilian Portuguese profiles, keyboard selection of all four catalog rows exposed the complete matching description after each selection. Each check also verified that the other three descriptions were absent from the window's accessibility tree. No model download or inference was involved.
 
 Verified Cmd+S window routing in the rebuilt macOS Studio with two dirty workspace files. In Edit settings JSON, submitted a malformed draft consisting of an opening brace. The settings file stayed byte-for-byte unchanged and the editor retained the invalid text. Corrected the JSON and changed fontSize, then Cmd+S persisted the new size while both workspace files still matched their original bytes. After closing Settings, Cmd+S in the workbench wrote both expected drafts. This replay used a disposable profile and did not identify the owner's earlier visible error.
