@@ -871,6 +871,7 @@ export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel
                     next.history.chats[chat].messages[message].text = translate('Review the proposed changes.');
                   },
                   Err(error) => {
+                    next.history.chats[chat].messages[message].text = translate(error);
                     next.notice = error;
                   }
                 }

@@ -1001,6 +1001,9 @@ test('edit requests include only versioned diagnostics for the current target dr
     const host = context(state, settings, requests);
     host.workspace = signal(model);
     host.problems = signal<Problem[]>([issue, stale, other, unverified]);
+    host.store = signal<ChatStore>({
+      path: folder + '/history.json', baseline: '', ready: true
+    });
     send(host, 'Can you not insert that console log?');
     const request = unwrap(requests.tryReceive());
     const messages = request.messages ?? [];
@@ -1011,7 +1014,8 @@ test('edit requests include only versioned diagnostics for the current target dr
     }));
     pollModel(host, updates);
     strictEqual(state.get().review === undefined, true);
-    strictEqual(state.get().history.chats[0].messages[1].text, 'No edit was proposed.');
+    const saved = unwrap(parseHistory(unwrap(readTextFile(folder + '/history.json')), model.root));
+    strictEqual(saved.chats[0].messages[1].text, 'The model did not return a valid edit proposal.');
     const text = messages[0].content;
     strictEqual(text.includes('main.tsr:1:27 [error unknown-name] Unknown name shipping.'), true);
     strictEqual(text.includes('different revision') || text.includes('another file') || text.includes('unversioned report'), false);
