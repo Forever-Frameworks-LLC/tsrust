@@ -11,7 +11,7 @@ import { platform } from 'std:os';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
-import { edit } from '../src/lib/workspace/documents.tsr';
+import { apply, edit, propose } from '../src/lib/workspace/documents.tsr';
 import { openWorkspace, openFile, selectFile } from '../src/lib/workspace/workspace.tsr';
 
 test('explorer create, rename and move retain open drafts; delete requires clean descendants', () => {
@@ -178,6 +178,38 @@ test('a missing destination with an open draft keeps its identity during explore
     strictEqual(ws.active, path);
     strictEqual(ws.files[0].document.text, 'keep draft');
     strictEqual(unwrap(readTextFile(root + '/a.tsr', 32)), 'moving');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('an edit proposal cannot cross a folder rename or apply to a replacement at the old path', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-proposal-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    const folder = root + '/src';
+    const path = folder + '/rate.tsr';
+    unwrap(mkdirAll(folder));
+    unwrap(writeTextFile(path, 'base'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[0].document, 'draft');
+    const proposal = propose(ws.files[0].document, 'changed');
+    unwrap(changeExplorerEntry(ws, 'Rename', folder, 'renamed'));
+    strictEqual(apply(ws.files[0].document, proposal), false);
+    strictEqual(ws.files[0].document.text, 'draft');
+
+    unwrap(mkdirAll(folder));
+    unwrap(writeTextFile(path, 'base'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[1].document, 'draft');
+    strictEqual(ws.files[1].document.revision, proposal.revision);
+    strictEqual(apply(ws.files[1].document, proposal), false);
+    strictEqual(ws.files[1].document.text, 'draft');
+    strictEqual(unwrap(readTextFile(root + '/renamed/rate.tsr', 32)), 'base');
+    strictEqual(unwrap(readTextFile(path, 32)), 'base');
   } finally {
     unwrap(removeDirAll(temp));
   }
