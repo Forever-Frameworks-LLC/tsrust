@@ -552,6 +552,7 @@ export function DebugSidebar(
               output.set((pid > 0 ? translate('Process ID') + ' ' + pid.toString() : path) + '\n');
               running.set(true);
               panel.set('debug');
+              if (pid > 0) controlInput('debug-console-output', 'focus');
             },
             Err(error) => { output.set(clone(error.code)); return; }
           }
@@ -589,7 +590,7 @@ export function DebugConsole(output: Signal<string>, font: Signal<int>): Node {
   const style = computed<string>(() => 'grow min-h-0 font-mono text-[' + font.get().toString() + 'px]');
   return (
     <View className="flex-col size-full min-h-0">
-      <CodeEditor value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />
+      <CodeEditor id="debug-console-output" value={output.get()} readOnly={true} appearance={false} bordered={false} className={style.get()} accessibilityLabel={message('Debug Console')} />
     </View>
   );
 }
