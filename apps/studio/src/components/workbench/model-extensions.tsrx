@@ -109,6 +109,7 @@ export function ModelExtensions(
 ): Node {
   const pending = signal('');
   const error = signal('');
+  const errorOwner = signal('');
   const rows: Node[] = [];
 
   for (const model of modelExtensions()) {
@@ -123,6 +124,7 @@ export function ModelExtensions(
           paths.handle(),
           pending.handle(),
           error.handle(),
+          errorOwner.handle(),
           downloads.share(),
           font.handle(),
           settings.handle(),
@@ -143,10 +145,11 @@ export function ModelExtensions(
           ai.handle(),
           commands.share(),
           error.handle(),
+          errorOwner.handle(),
           font.handle()
         )}
       </View>
-      <View hidden={error.get() === ''}>
+      <View hidden={error.get() === '' || selected.get() !== errorOwner.get()}>
         <Text role="status" className={'text-destructive text-[' + font.get().toString() + 'px]'}>
           {localizeError(error.get())}
         </Text>
@@ -157,12 +160,14 @@ export function ModelExtensions(
         onTick={(_frame) => {
           match (replies.tryReceive()) {
             Ok(result) => {
+              errorOwner.set(pending.get());
               pending.set('');
               error.set(result);
               paths.set(availableModelPaths(settings.get()));
             },
             Err(reason) => {
               if (reason.code !== 'empty') {
+                errorOwner.set(pending.get());
                 pending.set('');
                 error.set(reason.code);
               }
@@ -180,6 +185,7 @@ function LocalModelDetail(
   ai: Signal<AiState>,
   commands: Sender<ModelRequest>,
   error: Signal<string>,
+  errorOwner: Signal<string>,
   font: Signal<int>
 ): Node {
   const current = computed<boolean>(() => settings.get().aiModelPath === path.get());
@@ -191,6 +197,7 @@ function LocalModelDetail(
       <Button
         disabled={current.get() || !['ready', 'stopped'].includes(ai.get().phase)}
         onPress={() => {
+          errorOwner.set(path.get());
           activateModel(path.get(), settings, ai, commands, error);
         }}
       >
@@ -280,6 +287,7 @@ function ModelRow(
   paths: Signal<string[]>,
   pending: Signal<string>,
   error: Signal<string>,
+  errorOwner: Signal<string>,
   downloads: Sender<string>,
   font: Signal<int>,
   settings: Signal<StudioConfig>,
@@ -307,6 +315,8 @@ function ModelRow(
         size="small"
         disabled={pending.get() !== '' || (activePath.get() !== '' && (settings.get().aiModelPath === activePath.get() || !['ready', 'stopped'].includes(ai.get().phase)))}
         onPress={() => {
+          errorOwner.set(clone(name));
+
           if (activePath.get() !== '') {
             activateModel(activePath.get(), settings, ai, commands, error);
             return;

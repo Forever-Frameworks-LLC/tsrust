@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Model action errors in Extensions are displayed only for the originating selection. The download ticker uses the pending model name when a reply arrives. In an isolated native macOS replay, started a Q5 download, switched to the installed Q4 detail while the local downloader was sleeping, then waited for Q4's Use model button to re-enable after failure. Q4 showed no error. Selecting Q5 revealed its error. The existing Q4 pair was intact and the temporary download directory was removed.
+
 Extensions now reports a localized failure when the downloader exits unsuccessfully with empty or unreadable stderr. The detail view exposes download errors as accessible status text. In a native macOS Studio with a disposable catalog and local curl fixture, three consecutive attempts on 7B Q5 exercised silent nonzero exit, corrupt artifact and explicit network error. Each displayed the expected message and allowed another download. The final catalog contained only the original Q4 pair with both file contents intact. This replay made no network requests.
 
 Extensions displays each catalog model's quantization in its sidebar label and detail title. Search uses that label and catalog installation identifiers remain stable. In an isolated macOS Studio, lowercase q4 returned exactly the 1.5B, 3B and 7B Q4_K_M rows. Q5 returned the single 7B Q5_K_M row. With placeholder files present only for 7B Q4 in the temporary catalog, keyboard selection exposed Use model for Q4 and Download for Q5. Neither action was executed.
