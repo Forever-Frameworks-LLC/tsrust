@@ -1,4 +1,4 @@
-import { fromUtf8, toHex } from 'std:bytes';
+import { at, fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
 import { homeDir } from 'std:env';
 import {
@@ -21,7 +21,13 @@ interface Draft {
   durabilityPending: boolean;
 }
 
+interface SavedCaret {
+  path: string;
+  offset: int;
+}
+
 interface Journal {
+  carets?: SavedCaret[];
   schemaVersion: int;
   root: string;
   drafts: Draft[];
@@ -148,6 +154,26 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
       next.files[index].document.durabilityPending = draft.durabilityPending;
     }
 
+    for (const caret of journal.carets ?? []) {
+      const index = next.files.findIndex((entry) => entry.document.path === caret.path && entry.kind === 'text');
+
+      if (index < 0 || caret.offset <= 0) continue;
+      let offset = caret.offset;
+      {
+        const text = next.files[index].document.text;
+
+        if (offset > text.length) offset = text.length;
+
+        if (offset < text.length) {
+          const bytes = unwrap(fromUtf8(text));
+
+          while (offset > 0 && unwrap(at(bytes, offset)) >= 128 && unwrap(at(bytes, offset)) < 192) offset -= 1;
+        }
+      }
+
+      next.files[index].caret = offset;
+    }
+
     const active = journal.active;
 
     if (active !== undefined) selectFile(next, active);
@@ -187,8 +213,13 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
 export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutable<Recovery>): Result<void, string> {
   if (!recovery.ready) return Err('Draft recovery is unavailable. Save your work before restarting.');
   const drafts: Draft[] = [];
+  const carets: SavedCaret[] = [];
 
   for (const file of workspace.files) {
+    if (file.kind === 'text' && (file.caret ?? 0) > 0) carets.push({
+      path: clone(file.document.path), offset: file.caret ?? 0
+    });
+
     if (file.kind === 'text' && dirty(file.document)) drafts.push({
       path: clone(file.document.path), text: clone(file.document.text), savedText: clone(file.document.savedText), durabilityPending: file.document.durabilityPending
     });
@@ -197,6 +228,8 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
   const journal: Journal = {
     schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel, sourceBreakpoints: clone(workspace.sourceBreakpoints)
   };
+
+  if (carets.length > 0) journal.carets = carets;
   const text = JSON.stringify(journal);
 
   if (text === recovery.baseline) return Ok();

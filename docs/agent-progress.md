@@ -1078,6 +1078,10 @@ its disk contents, and preserving a filename containing both a tab and a
 newline in the picker data. Panel source and 540 translation keys checked.
 Native picker interaction and hunk staging remain open.
 
+## Editor caret recovery
+
+Studio persists the active UTF-8 byte offset for each open text buffer. Verified on macOS with two disposable launches of the rebuilt native Studio. Typed X after the s in “second”, moved right without editing, then terminated the fixture. Its journal contained byte offset 14. Reopened, focused the recovered editor and typed Y: the draft contained “sXeYcond” and the file on disk retained its original bytes. The recovery suite passed 4/4 (60 ms execution), including recovery after an external edit moved the old byte offset inside a multibyte character. Selection ranges and viewport scroll restoration remain open. Caret movement currently publishes a workspace journal write; sustained navigation with large unsaved drafts is unmeasured.
+
 ## Workspace merge conflicts
 
 Verified direct macOS accessibility activation of the named staged row and its nested Unstage file button. The row advertised AXPick and AXPress. AXPress opened the staged diff with the external resolution line and preserved the staged blob. In a second disposable repository, AXPress on its nested Unstage file button returned the UI to the working diff, removed the staged entry and restored the index blob to HEAD. Both runs preserved working bytes, merge parents and the unsaved resolution draft. The staged-row gestures used accessibility actions without pointer coordinates. Spoken VoiceOver output remains unverified.

@@ -52,6 +52,7 @@ export function FilePanel(
   const clickPath = clone(path);
   const markerLines = computed<string>(() => breakpoints.get().filter((point) => point.path === markerPath).map((point) => point.line.toString()).join(','));
   const editPath = clone(path);
+  const caretPath = clone(path);
   const languagePath = clone(path);
   const referencePath = clone(path);
   const languageRequests = messages.share();
@@ -139,6 +140,16 @@ export function FilePanel(
             id={clone(file.document.path)}
             language={extname(file.document.path).slice(1)}
             value={text.get()}
+            initialCaret={file.caret ?? 0}
+            onCaretChange={(offset) => {
+              const next = workspace.get();
+              const index = next.files.findIndex((entry) => entry.document.path === caretPath);
+
+              if (index >= 0 && (next.files[index].caret ?? 0) !== offset) {
+                next.files[index].caret = offset;
+                publishWorkspace(next, workspace, recovery);
+              }
+            }}
             breakpointLines={markerLines.get()}
             onBreakpointClick={(line) => {
               if (!debugging.get()) toggleLineBreakpoint(workspace, recovery, breakpoints, clickPath, line);

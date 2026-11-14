@@ -2096,9 +2096,22 @@ impl Root {
                         let mut state = configured!(EditorState::new(window, cx).language(super::kit::source_language(&language).to_owned()),&props);
                         editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
+                        if let Some(offset) = props.get("initialCaret").and_then(|value|value.parse::<usize>().ok()) {
+                            state.set_selected_range(offset..offset,cx);
+                        }
                         if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
                     });
+                    if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("caretChange")) {
+                        let mut previous=state.read(cx).cursor();
+                        cx.observe(&state,move |root,state,cx| {
+                            let offset=state.read(cx).cursor();
+                            if offset!=previous {
+                                previous=offset;
+                                root.emit(id,"caretChange",offset.to_string(),cx);
+                            }
+                        }).detach();
+                    }
                     let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
                     let has_references = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageReferences"));
                     let inline=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="inlineCompletion"));
