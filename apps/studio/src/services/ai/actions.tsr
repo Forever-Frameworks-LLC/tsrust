@@ -523,9 +523,15 @@ export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<str
           next.editTarget = {
             files: [propose(file.document, '')]
           };
-          const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
-          const delegation = prompt.toLowerCase().includes('delegate to the imported') ? ' Delegate the entire operation to the requested function. Return its result directly.' : '';
-          editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + task + delegation + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+
+          if (attachments.length === 0 && file.document.text !== '' && excerpt.split('Referenced workspace file: ').slice(1).some((section) => task.includes(section.split('\n')[0]))) {
+            editPrompt = 'Reference code (read only):\n' + excerpt.trim() + '\nTask: ' + task + '\nEditable file: ' + file.name + '\n' + file.document.text.trimEnd() + '\nReturn JSON. Both fields are strings: {"before":"exact statement from editable file","after":"replacement statement"}. Use the smallest unique passage. For multiple replacements return an array of these objects.';
+          } else {
+            const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
+            const delegation = prompt.toLowerCase().includes('delegate to the imported') ? ' Delegate the entire operation to the requested function. Return its result directly.' : '';
+            editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + task + delegation + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+          }
+
         }
       }
 
