@@ -4,6 +4,7 @@ import {
   View,
   Button,
   CodeEditor,
+  Ticker,
   Text,
   translateWith,
   Markdown,
@@ -53,6 +54,7 @@ export function FilePanel(
   const markerLines = computed<string>(() => breakpoints.get().filter((point) => point.path === markerPath).map((point) => point.line.toString()).join(','));
   const editPath = clone(path);
   const caretPath = clone(path);
+  const pendingCaret = signal<int>(-1);
   const languagePath = clone(path);
   const referencePath = clone(path);
   const languageRequests = messages.share();
@@ -136,12 +138,14 @@ export function FilePanel(
           />
         </View>
         <View hidden={preview.get()} className="flex-col grow min-h-0">
-          <CodeEditor
-            id={clone(file.document.path)}
-            language={extname(file.document.path).slice(1)}
-            value={text.get()}
-            initialCaret={file.caret ?? 0}
-            onCaretChange={(offset) => {
+          <Ticker
+            interval={250}
+            running={pendingCaret.get() >= 0}
+            onTick={(_frame) => {
+              const offset = pendingCaret.get();
+
+              if (offset < 0) return;
+              pendingCaret.set(-1);
               const next = workspace.get();
               const index = next.files.findIndex((entry) => entry.document.path === caretPath);
 
@@ -149,6 +153,15 @@ export function FilePanel(
                 next.files[index].caret = offset;
                 publishWorkspace(next, workspace, recovery);
               }
+            }}
+          />
+          <CodeEditor
+            id={clone(file.document.path)}
+            language={extname(file.document.path).slice(1)}
+            value={text.get()}
+            initialCaret={file.caret ?? 0}
+            onCaretChange={(offset) => {
+              pendingCaret.set(offset);
             }}
             breakpointLines={markerLines.get()}
             onBreakpointClick={(line) => {
