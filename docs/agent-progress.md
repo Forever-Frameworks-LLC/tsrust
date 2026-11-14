@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Call stack now exposes all adapter frames. Selecting an unmapped native frame inspects its own scopes and watch value without opening an unrelated source location. The real LLDB suite passed 9/9 (8.92 s execution), including reading $pc on a native frame then inspecting the mapped caller. An isolated macOS Studio replay selected native frame #2 FnOnce::call_once after stopping in twice(6), confirmed the watch changed, selected main and twice again, restored n = 6, stepped out and continued to exit zero.
+
 Call stack, breakpoint rows and content search use the same workspace-relative path label as file search. The label checks the root boundary before trimming it, keeping external source paths intact and the first filename character when searching from a filesystem root. Explorer regressions exercise a nested file, a trailing separator, a sibling with the same prefix, an empty root and a filesystem root on macOS. Native Windows rendering is unverified.
 
 Verified adapter discovery through the rebuilt Studio window on macOS. A disposable Studio launched with LLDB_DAP unset and PATH restricted to /usr/bin:/bin:/usr/sbin:/sbin, with no lldb-dap executable on that PATH. Run and Debug launched the compiled fixture, hit the named twice breakpoint, displayed n = 6, updated the watch when switching between caller and callee, stepped out to main, and continued to exit zero. The owner workspace was not used for the replay.

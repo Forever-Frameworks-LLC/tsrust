@@ -29,7 +29,8 @@ export interface DebugCommand {
 export interface SourceFrame {
   id: int;
   depth: int;
-  location: OriginalPosition;
+  name: string;
+  location?: OriginalPosition;
 }
 
 export interface DebugOutput {
@@ -498,14 +499,15 @@ async function launchDebugTarget(
 
                 const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
 
-                text += '#' + i.toString() + ' ' + (original?.functionName ?? frame.name);
+                const name = original?.functionName ?? frame.name;
+                sourceFrames.push({
+                  id: frame.id, depth: i, name: clone(name), location: clone(original)
+                });
+                text += '#' + i.toString() + ' ' + name;
 
                 if (original !== undefined) {
                   text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();
 
-                  sourceFrames.push({
-                    id: frame.id, depth: i, location: clone(original)
-                  });
 
                   if (i === 0) location = clone(original);
                 } else if (source !== '') {

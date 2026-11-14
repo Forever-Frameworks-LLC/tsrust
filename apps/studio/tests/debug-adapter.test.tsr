@@ -476,10 +476,10 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           if (action === 'stepOut') {
             strictEqual(update.watchValue, '6');
             const frames = clone(update.frames) ?? [];
-            strictEqual(frames[0].location.functionName, 'twice');
-            strictEqual(frames[1].location.functionName, 'main');
+            strictEqual(frames[0].location?.functionName, 'twice');
+            strictEqual(frames[1].location?.functionName, 'main');
             strictEqual(update.text.includes('#0 twice  '), true);
-            strictEqual(frames[1].location.line, 13);
+            strictEqual(frames[1].location?.line, 13);
             await commands.send({
               action: 'selectFrame', stopId: update.stopId, frameId: frames[1].id
             });
@@ -487,6 +487,27 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
             strictEqual(caller.selectedFrame, frames[1].id);
             strictEqual(caller.location?.line, 13);
             strictEqual(caller.watchValue === '6', false);
+
+            const native = frames.find((entry) => entry.location === undefined);
+
+            if (native === undefined || native.name === '') throw 'Missing native stack frame.';
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: native.id
+            });
+            const inspected = await output.receive().timeout(10000);
+            strictEqual(inspected.selectedFrame, native.id);
+            strictEqual(inspected.location === undefined, true);
+            await commands.send({
+              action: 'setWatch', stopId: inspected.stopId, watch: '$pc'
+            });
+            const register = await output.receive().timeout(10000);
+            strictEqual(register.selectedFrame, native.id);
+            strictEqual((register.watchValue ?? '').includes('0x'), true);
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: frames[1].id
+            });
+            const returned = await output.receive().timeout(10000);
+            strictEqual(returned.location?.line, 13);
 
             for (const expression of ['$pc', '', 'n']) {
               await commands.send({

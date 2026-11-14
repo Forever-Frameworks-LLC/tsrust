@@ -175,9 +175,8 @@ function StackFrameRow(
   font: Signal<int>
 ): Node {
   const frameId = frame.id;
-  const name = frame.location.functionName ?? '';
-  const path = frame.location.path;
-  const label = '#' + frame.depth.toString() + ' ' + (name === '' ? '' : name + '  ') + fileSearchLabel(root, path) + ':' + frame.location.line.toString();
+  const location = frame.location;
+  const label = '#' + frame.depth.toString() + ' ' + frame.name + (location === undefined ? '' : '  ' + fileSearchLabel(root, location.path) + ':' + location.line.toString());
   return (
     <Button
       className={'w-full min-w-0 justify-start px-2 py-[6px] rounded-none border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]' + (selected.get() === frameId ? ' bg-accent text-accent-foreground' : '')}
