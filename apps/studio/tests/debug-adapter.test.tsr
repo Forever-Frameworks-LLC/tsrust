@@ -577,6 +577,29 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       strictEqual((await consoleResult(output)).includes('Exit code 0'), true);
 
+      await commands.send({
+        action: 'launch', program: clone(program), functionBreakpoint: 'twice'
+      });
+
+      while (true) {
+        const paused = await output.receive().timeout(10000);
+
+        if (paused.finished) throw 'Target exited before watch inspection.';
+
+        if (paused.stopped !== true) continue;
+        await commands.send({
+          action: 'setWatch', stopId: paused.stopId, watch: 'n'
+        });
+        await commands.send({
+          action: 'stop'
+        });
+        break;
+      }
+
+      const stoppedDuringWatch = await consoleResult(output);
+      strictEqual(stoppedDuringWatch.includes('Debug session stopped.'), true);
+      strictEqual(stoppedDuringWatch.includes('Exit code 0'), false);
+
       if (platform() === 'darwin') {
         unwrap(removeDirAll(program + '.dSYM'));
         await commands.send({
