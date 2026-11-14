@@ -102,6 +102,15 @@ function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: 
   );
 }
 
+export function chooseDebugTarget(chosen: Signal<string>): void {
+  const target = chosen.handle();
+  pickFilePaths((paths) => {
+    if (paths.length > 0) target.set(clone(paths[0]));
+  }, {
+    multiple: false
+  });
+}
+
 export function DebugSidebar(
   requests: ReadOnly<Channel<DebugCommand>>,
   replies: Channel<DebugOutput>,
@@ -111,7 +120,8 @@ export function DebugSidebar(
   navigation: SearchActionContext,
   lines: Signal<SourceBreakpoint[]>,
   running: Signal<boolean>,
-  stopped: Signal<boolean>
+  stopped: Signal<boolean>,
+  chosen: Signal<string>
 ): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
@@ -122,7 +132,6 @@ export function DebugSidebar(
   const watch = signal('');
   const watchValue = signal('');
   const locals = signal<string[]>([]);
-  const chosen = signal('');
   const listRunning = running.handle();
   const listFont = font.handle();
   const listLines = lines.handle();
@@ -131,17 +140,14 @@ export function DebugSidebar(
       <View className="flex-col w-full min-w-0 min-h-0 overflow-y-auto">
         <Button
           className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
+          tooltipCommand="debug-continue"
+          tooltip={message('Launch executable…')}
           icon="play"
           variant="ghost"
           size="small"
           disabled={running.get()}
           onPress={() => {
-            const target = chosen.handle();
-            pickFilePaths((paths) => {
-              if (paths.length > 0) target.set(clone(paths[0]));
-            }, {
-              multiple: false
-            });
+            chooseDebugTarget(chosen);
           }}
         >
           <Text className={'text-[' + font.get().toString() + 'px]'}>

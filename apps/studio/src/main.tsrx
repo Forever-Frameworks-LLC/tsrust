@@ -1,4 +1,4 @@
-import { DebugConsole, DebugSidebar, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
+import { DebugConsole, DebugSidebar, chooseDebugTarget, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
 import { DebugCommand, DebugOutput, SourceBreakpoint } from './services/debug/session.tsr';
 import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
 import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
@@ -203,8 +203,11 @@ function App(
   const debugOutput = signal('');
   const sourceBreakpoints = signal<SourceBreakpoint[]>([]);
   const debuggerRunning = signal(false);
+  const debugTarget = signal('');
   const debuggerPaused = signal(false);
   const debugControls = debugRequests.sender();
+  const continueControl = debugRequests.sender();
+  const stopControl = debugRequests.sender();
   const debugSidebar = DebugSidebar(
     debugRequests,
     debugResults,
@@ -216,7 +219,8 @@ function App(
     },
     sourceBreakpoints.handle(),
     debuggerRunning.handle(),
-    debuggerPaused.handle()
+    debuggerPaused.handle(),
+    debugTarget.handle()
   );
   const panelView = Panels(
     panel,
@@ -493,6 +497,25 @@ function App(
         onTick={(_frame) => {
           syncInlinePreference(aiContext);
           pollModel(aiContext, modelUpdates);
+        }}
+      />
+      <Shortcut
+        command="debug-continue"
+        keys="f5"
+        onTrigger={() => {
+          if (debuggerRunning.get()) sendDebugControl(continueControl, debuggerPaused, debugOutput, 'continue');
+          else {
+            mode.set('debug');
+            sidebar.set(true);
+            chooseDebugTarget(debugTarget);
+          }
+        }}
+      />
+      <Shortcut
+        command="debug-stop"
+        keys="shift-f5"
+        onTrigger={() => {
+          sendDebugControl(stopControl, debuggerPaused, debugOutput, 'stop');
         }}
       />
       <Shortcut

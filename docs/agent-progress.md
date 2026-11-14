@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+F5 opens the executable picker and Run and Debug when idle, and continues a paused target. Shift+F5 stops a paused session. Two isolated native Studio replays launched through F5, hit a mapped breakpoint and focused the source editor. The continue replay reached exit code zero; the stop replay reported session stopped. The worker still reads controls at stops; interrupting a freely running target remains open.
+
 A watch consisting of an exact mapped source parameter name now evaluates its generated LLDB slot in the stopped frame. An isolated native Studio replay entered n before launch, stopped at the return in twice(6), and observed Watch value 6 and local n = 6. Existing native register/error watches and debugger regressions passed 8/8 (5.85 s execution). Compound expressions still use the adapter expression language directly.
 
 Debug position metadata now includes ordered parameter names from the checked function. Studio resolves exact LLDB value-slot names against the paused mapped frame, falling back to adapter names for older binaries or other slots. The focused compiler single/linked-source regression verified the parameter list on the imported helper’s return (0.57 s). A freshly compiled native fixture called twice(6); the isolated rebuilt Studio stopped at its return and showed “n = 6” in Local variables. This covers parameter display, not expression rewriting or general local declaration names.
