@@ -18,3 +18,7 @@ only so this managed dependency can run its existing tests independently.
 Use the compiler-owned patch payload and unchanged Cargo registry sources.
 Remove this patch when an admitted upstream release includes equivalent release
 handling and the one-move/native editor gestures pass against that release.
+
+The existing A11yDisabled element adapter and extension trait are public so the
+component façade can mark List rows disabled without adding a wrapper node or
+duplicating the accessibility implementation.

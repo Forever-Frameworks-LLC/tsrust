@@ -1148,6 +1148,9 @@ mod tests {
                 state.update(cx, |state, cx| state.set_open(true, cx));
                 let list = state.read(cx).state.list.clone();
                 list.update(cx, |list, cx| {
+                    let row=list.delegate_mut().render_item(IndexPath::new(0),window,cx).unwrap();
+                    assert_eq!(list.delegate().row_label(&row).as_deref(),Some("Main"));
+                    assert_eq!(list.delegate().row_disabled(&row),unavailable);
                     list.delegate_mut().confirm(false, window, cx)
                 });
                 state

@@ -6452,7 +6452,7 @@
         {
           "name": "key",
           "type": "string",
-          "doc": "Column identity events report. A number picks that cell of each row; defaults to the column's position."
+          "doc": "Column identity events report. An in-range numeric key picks that cell of each row; other keys use the original declared column position. Reordering keeps the same cell data. Defaults to the original column position."
         },
         {
           "name": "width",

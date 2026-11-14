@@ -285,7 +285,7 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
-  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Applies to unclassed buttons. */
+  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Typography and shrink utilities retain this presentation. Surface/layout utilities author a custom button. */
   variant?: 'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text';
   /** xsmall, small, medium (default) or large. */
   size?: 'xsmall' | 'small' | 'medium' | 'large';

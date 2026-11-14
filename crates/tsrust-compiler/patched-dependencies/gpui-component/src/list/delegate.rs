@@ -15,6 +15,11 @@ pub trait ListDelegate: Sized + 'static {
         None
     }
 
+    /// Whether this rendered row must reject pointer and accessibility activation.
+    fn row_disabled(&self, _item: &Self::Item) -> bool {
+        false
+    }
+
     /// When Query Input change, this method will be called.
     /// You can perform search here.
     fn perform_search(

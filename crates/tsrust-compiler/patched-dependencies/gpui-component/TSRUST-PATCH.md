@@ -44,3 +44,19 @@ The cycle is ascending, descending, then original order, matching the public SDK
 contract. A focused native TableState regression verifies the cycle without column
 selection and preserves one active sort column. Remove when upstream
 provides equivalent header activation and cycle behavior.
+
+Button typography now inherits from its semantic root, so explicit font sizes and
+interaction refinements reach labels without losing native variants, selection,
+loading or focus behavior. Caller interaction styles merge after native colors
+without registering duplicate GPUI hover/active styles. The renderer keeps native
+presentation for typography/shrink utilities and retains the unstyled path for
+authored surface/layout classes. A native font probe covers selected/unselected
+buttons through hover transitions. Remove when upstream preserves equivalent
+typography and interaction refinements.
+
+Searchable dropdown rows now expose their item titles through the shared List
+delegate, including custom-rendered rows. Selectable rows offer the same confirm
+path to assistive technology as to pointer input. Disabled rows expose disabled
+semantics and offer no press action; delegate confirmation keeps its existing
+enabled-item guard. This repairs Select, ComboBox and MultiComboBox together.
+Remove when upstream provides equivalent named, actionable and disabled rows.

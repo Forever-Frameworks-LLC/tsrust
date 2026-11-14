@@ -23,7 +23,8 @@ pub struct SearchableListItemElement {
     selected: bool,
     /// Whether the trailing check icon is shown.
     checked: bool,
-    disabled: bool,
+    pub(super) disabled: bool,
+    pub(super) accessibility_label: Option<gpui::SharedString>,
     children: Vec<AnyElement>,
     /// The icon drawn at the trailing edge when `checked` is `true`.
     check_icon: Option<Icon>,
@@ -38,9 +39,16 @@ impl SearchableListItemElement {
             selected: false,
             checked: false,
             disabled: false,
+            accessibility_label: None,
             children: Vec::new(),
             check_icon: Some(Icon::new(IconName::Check)),
         }
+    }
+
+    /// Names the accessible dropdown row independently of rich child content.
+    pub fn accessibility_label(mut self, label: impl Into<gpui::SharedString>) -> Self {
+        self.accessibility_label=Some(label.into());
+        self
     }
 
     /// Set whether the trailing check icon is visible.

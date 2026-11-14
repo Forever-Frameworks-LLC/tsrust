@@ -213,6 +213,9 @@ pub struct Button {
     hover_group_held: bool,
     size: Size,
     content_style: StyleRefinement,
+    hover_style: StyleRefinement,
+    active_style: StyleRefinement,
+    focus_style: StyleRefinement,
     icon_size: Option<Size>,
     compact: bool,
     tooltip: Option<(
@@ -266,6 +269,9 @@ impl Button {
             border_edges: Edges::all(true),
             size: Size::Medium,
             content_style: StyleRefinement::default(),
+            hover_style: StyleRefinement::default(),
+            active_style: StyleRefinement::default(),
+            focus_style: StyleRefinement::default(),
             icon_size: None,
             tooltip: None,
             tooltip_placement: None,
@@ -304,9 +310,17 @@ impl Button {
 
     /// Presentation supplied by a styled compound control. Standalone buttons
     /// retain their normal size-derived content style.
-    pub(crate) fn content_style(mut self, style: StyleRefinement, icon_size: Size) -> Self {
+    pub fn content_style(mut self, style: StyleRefinement, icon_size: Size) -> Self {
         self.content_style = style;
         self.icon_size = Some(icon_size);
+        self
+    }
+
+    /// Caller refinements applied after the native interaction presentation.
+    pub fn interaction_styles(mut self, hover: StyleRefinement, active: StyleRefinement, focus: StyleRefinement) -> Self {
+        self.hover_style=hover;
+        self.active_style=active;
+        self.focus_style=focus;
         self
     }
 
@@ -735,31 +749,36 @@ impl RenderOnce for Button {
                     // A loading button keeps its normal colors, but must not react
                     // to the pointer, it is not waiting for another click.
                     .when(interactive, |this| {
-                        this.active(|this| {
-                            let active_style = style.active(self.outline, cx);
-                            this.bg(active_style.bg)
-                                .border_color(active_style.border)
-                                .text_color(active_style.fg)
-                        })
-                        .when_some(hover_group, |this, group| {
+                        this.when_some(hover_group, |this, group| {
                             let idle_bg = style.hovered(self.outline, cx).bg.opacity(0.5);
                             this.when(hover_group_held, |this| this.bg(idle_bg))
                                 .group_hover(group, |this| this.bg(idle_bg))
                         })
                     })
             })
+            .when(interactive, |this| this.active(|this| {
+                let this=if selected {this}else{
+                    let active_style=style.active(self.outline,cx);
+                    this.bg(active_style.bg).border_color(active_style.border).text_color(active_style.fg)
+                };
+                this.refine_style(&instance_style).refine_style(&self.active_style)
+            }))
             .hover(|this| {
                 // Always register the hover style: GPUI only refreshes the cached
                 // hover state while one is present. If a selected button skipped it,
                 // the stale state would keep hover colors after unselecting.
-                if !interactive || selected {
+                if !interactive {
                     return this;
                 }
-                let hover_style = style.hovered(self.outline, cx);
-                this.bg(hover_style.bg)
+                let this=if selected {this}else{
+                    let hover_style = style.hovered(self.outline, cx);
+                    this.bg(hover_style.bg)
                     .border_color(hover_style.border)
                     .text_color(hover_style.fg)
+                };
+                this.refine_style(&instance_style).refine_style(&self.hover_style)
             })
+            .button_text_size(self.size)
             .line_height(relative(1.25))
             .refine_style(&instance_style);
 
@@ -779,7 +798,6 @@ impl RenderOnce for Button {
             .whitespace_nowrap()
             .items_center()
             .justify_center()
-            .button_text_size(self.size)
             .map(|this| match self.size {
                 Size::XSmall => this.gap_1(),
                 Size::Small => this.gap_1(),
@@ -920,6 +938,7 @@ impl RenderOnce for Button {
         .when(is_focused && self.focus_ring_enabled, |this| {
             focus_style(this, focus_line, window, cx)
         })
+        .when(is_focused && !disabled, |this| this.refine_style(&self.focus_style))
     }
 }
 
@@ -1432,6 +1451,37 @@ mod tests {
             Some("Save"),
             "and must not change what is drawn"
         );
+    }
+
+    #[gpui::test]
+    fn explicit_button_typography_inherits_through_selected_and_hover_states(cx: &mut gpui::TestAppContext) {
+        use std::cell::Cell;
+        use gpui::{Context, Render, canvas, point};
+        struct Harness { font: Rc<Cell<f32>>, selected: bool }
+        impl Render for Harness {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                let font=self.font.clone();
+                let mut hover=StyleRefinement::default();
+                hover.text.font_size=Some(gpui::px(24.).into());
+                Button::new("font-probe").primary().small().selected(self.selected)
+                    .size(gpui::px(100.)).text_size(gpui::px(20.))
+                    .interaction_styles(hover,StyleRefinement::default(),StyleRefinement::default())
+                    .child(canvas(move|_,window,_|font.set(window.text_style().font_size.to_pixels(window.rem_size()).into()),|_,_,_,_|{}).size(gpui::px(10.)))
+            }
+        }
+        cx.update(crate::init);
+        for selected in [false,true] {
+            let font=Rc::new(Cell::new(0.));
+            let (_,cx)=cx.add_window_view({let font=font.clone();move|_,_|Harness{font,selected}});
+            cx.update(|window,cx|window.draw(cx).clear(cx));
+            assert_eq!(font.get(),20.);
+            cx.simulate_mouse_move(point(gpui::px(10.),gpui::px(10.)),None,Default::default());
+            cx.update(|window,cx|window.draw(cx).clear(cx));
+            assert_eq!(font.get(),24.);
+            cx.simulate_mouse_move(point(gpui::px(300.),gpui::px(300.)),None,Default::default());
+            cx.update(|window,cx|window.draw(cx).clear(cx));
+            assert_eq!(font.get(),20.);
+        }
     }
 
     #[gpui::test]

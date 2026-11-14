@@ -8449,6 +8449,12 @@ export function InputGroup(props: InputGroupProps): Node {
     }
   }
 
+  const prop_focusRing = props.focusRing;
+
+  if (prop_focusRing !== undefined) {
+    node = kitFlag(node, 'focusRing', prop_focusRing);
+  }
+
   return node;
 }
 
@@ -8472,12 +8478,6 @@ export function InputGroupAddon(props: InputGroupAddonProps): Node {
     } else {
       node = unwrapNode(nativeKitBind(node, 'align', nativeBindText(prop_align.evaluate)));
     }
-  }
-
-  const prop_focusRing = props.focusRing;
-
-  if (prop_focusRing !== undefined) {
-    node = kitFlag(node, 'focusRing', prop_focusRing);
   }
 
   return node;
@@ -9783,7 +9783,7 @@ export function DataTable(props: DataTableProps): Node {
 export interface DataTableColumnProps {
   /** Header text; usually given as the text children. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Column identity events report. A number picks that cell of each row; defaults to the column's position. */
+  /** Column identity events report. An in-range numeric key picks that cell of each row; other keys use the original declared column position. Reordering keeps the same cell data. Defaults to the original column position. */
   key?: ReactiveValue<string> | TextBinding;
   /** Width in pixels. */
   width?: ReactiveValue<number>;

@@ -10,6 +10,7 @@ extern crate gpui_fast as gpui;
 extern crate gpui_fast_platform as gpui_platform;
 
 mod a11y_disabled;
+pub use a11y_disabled::{A11yDisabled, A11yDisabledExt};
 mod accordion;
 pub mod actions;
 mod alert_dialog;

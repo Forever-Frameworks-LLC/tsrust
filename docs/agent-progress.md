@@ -4,6 +4,68 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Shared framework audit accepted section — 2026-11-14
+
+Checkpoint d518e47fd preserves the Worklist/table section. The following shared
+repairs are validated and ready for the next local checkpoint; required goal scope
+remains open. Preserve capabilities and repair their shared implementation rather
+than reducing features to bypass edge cases.
+
+Named DataTable keys now resolve through original source_columns after column
+reordering. Typography/shrink-only Button classes retain native Kit variants,
+selection, loading/disabled semantics and custom content; surface/layout classes
+retain their authored presentation. Text inherits from the semantic root, explicit
+interaction refinements merge after native styles, icons scale and hit targets fit
+the text. Classed Links retain their inline behavior. Documentation is updated.
+SearchableList forwards row labels and disabled state. List accessibility activation
+uses the same confirmation path as pointer selection, and disabled rows expose no
+press action. Existing enabled-item validation remains. The existing base disabled
+adapter is exported without introducing layout/focus nodes. Worklist view toggles
+also expose truthful accessibility values.
+
+Focused validation: style routing 1/1 (0.00 s execution, 4.21 s setup); managed Button
+19/19 (0.05 s execution, 37.63 s setup), including real inherited-font hover probes;
+managed List/Select/searchable-list 20/20 (0.05 s execution, 29.24 s setup), including
+readable labels, disabled/readonly actions and retained negative confirmation checks.
+Initial test compilation failures were repaired before these executed passes.
+LSP library 36/36 (1.97 s execution, 16.66 s setup). New release compiler checks both
+Worklist main and the whole Studio directory cleanly. Whole-project formatting is
+idempotent. Tests ran with protected owner selection hunks present; those hunks and
+all unrelated Studio edits remain outside our checkpoint.
+
+The retained ui-table-state native fixture passed named-key move/resize/refresh,
+exact large-integer sorting, stable ties, original row selection and genuine unsort.
+Explicit 20px Buttons have 34px hit targets; the 20px Link remains inline. Both plain
+and InputGroup-addon Select options expose readable names and working press actions;
+the disabled option reports AXEnabled=0, no offered action and unchanged selection.
+macOS AXPerformAction can return success even for an unavailable action; disabled
+acceptance checks advertised actions and selection, not the return code. Final
+bundled fixture setup was 169.323 s; its temporary supervisors are stopped.
+Worklist native replay accepted card-sort option activation, ascending direction and
+cross-view state against independently sorted live API data, then restored Table /
+Updated descending. No task mutations occurred in this audit. All twelve source
+badge foreground/background pairs exceed 4.5:1 contrast (minimum 6.37:1); this is
+source-color evidence, not screenshot/pixel acceptance. Screen capture unavailable.
+
+Debug compiler refresh passed (2m26s setup); release compiler/LSP pair passed
+(3m55s setup). Both installed default binaries now match release hashes after atomic
+replacement. Ignored local VS Code overrides point to the release pair; VS Code is
+not running. Zed's active server remains on the prior inode. A focus clarification
+is pending before typing its restart command: accessibility exposes the menu but
+cannot verify command-palette focus. Do not risk typing into an owner source buffer.
+No live open-document refresh acceptance is claimed.
+
+Keep Worklist supervisor 53222 / exec 77609 / native child 54061 and API supervisor
+33729 / exec 48973 running. Desktop log: /tmp/tsrust-worklist-desktop-dev.log. Studio
+remains stopped. SDK refresh setup was 178.694 s (runtime 159.666 s); a subsequent
+app-only view-toggle change took 26.157 s, including a 4.547 s runtime cache miss.
+These are diagnostic observations, not matched benchmark results. The <10 percent
+Rust overhead target remains unmet; prior matched observations were 50.29/53.09
+percent. Next: checkpoint these repairs, test mixed integer/decimal sorting and
+full zoom, investigate the measured runtime invalidation and compiler phases, then
+complete stress, performance, milestone/platform acceptance and PR merge. Do not
+repeat unchanged accepted suites or remove a capability to make acceptance pass.
+
 ## Owner correction: preserve capabilities — 2026-11-14
 
 The owner rejected reducing sort behavior to two states to avoid a controlled-state
@@ -59,6 +121,18 @@ Current Worklist dev supervisor is 35538, exec session 80718, native child 37735
 API dev supervisor 33729 remains running. The Worklist SDK refresh rebuilt its
 runtime (163.624 s) and launched in 183.385 s total; these are development
 observations, not matched performance results. Studio remains stopped.
+
+Local source checkpoint d518e47fd retains the Worklist workspace and table repairs,
+excluding all protected Studio and editor-selection hunks. Card direction and
+cross-view synchronization subsequently passed native replay against API data.
+Outside pointer clicks dismissed the active selector popup and restored navigation;
+the popup therefore appears to open but lacks its options in the AX tree. Inspect
+the shared deferred-popup accessibility path rather than treating this as proof
+that selection itself fails. The attempted keyboard/AX selection did not change
+its value, so actual option selection and its accessibility remain unaccepted.
+Worklist was returned to Table / Updated descending; API and desktop dev remain
+running. Removed only the two closed unbundled fixture program/runtime cache
+entries; retained the bundled fixture cache for the named-column regression.
 
 ## Worklist focused acceptance complete; goal remains open — 2026-11-14
 

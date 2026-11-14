@@ -22,6 +22,7 @@ use gpui::{
     Length, MouseButton, ParentElement, Render, Styled, Task, Window, div, prelude::FluentBuilder,
 };
 use rust_i18n::t;
+use gpui_base::A11yDisabledExt as _;
 
 pub(crate) fn init(cx: &mut App) {
     let context: Option<&str> = Some("List");
@@ -500,6 +501,8 @@ where
         let total_items = self.rows_cache.items_count();
         let item = self.delegate.render_item(ix, window, cx);
         let label = item.as_ref().and_then(|item| self.delegate.row_label(item));
+        let disabled = item.as_ref().is_some_and(|item| self.delegate.row_disabled(item));
+        let activation=cx.entity().downgrade();
 
         div()
             .id(id)
@@ -515,8 +518,15 @@ where
                 item.selected(selected)
                     .secondary_selected(mouse_right_clicked)
             }))
-            .when(selectable, |this| {
-                this.on_click(cx.listener(move |this, e: &ClickEvent, window, cx| {
+            .when(selectable && !disabled, |this| {
+                this.on_a11y_action(gpui::AccessibleAction::Click,move |_,window,cx| {
+                    let _=activation.update(cx,|this,cx| {
+                        this.set_right_clicked_index(None,window,cx);
+                        this.selected_index=Some(ix);
+                        this.on_action_confirm(&Confirm{secondary:false},window,cx);
+                    });
+                })
+                .on_click(cx.listener(move |this, e: &ClickEvent, window, cx| {
                     this.set_right_clicked_index(None, window, cx);
                     this.selected_index = Some(ix);
                     this.on_action_confirm(
@@ -535,6 +545,7 @@ where
                     }),
                 )
             })
+            .a11y_disabled(disabled)
     }
 
     fn render_items(
@@ -960,6 +971,36 @@ mod measurement_tests {
                 div()
             },
         );
+    }
+
+    #[gpui::test]
+    fn row_accessibility_names_actions_and_disabled_state_match_activation(cx: &mut TestAppContext) {
+        struct AccessibleDelegate { disabled: bool }
+        impl ListDelegate for AccessibleDelegate {
+            type Item=ListItem;
+            fn items_count(&self,_:usize,_:&App)->usize {1}
+            fn row_label(&self,_:&ListItem)->Option<SharedString> {Some("Readable row".into())}
+            fn row_disabled(&self,_:&ListItem)->bool {self.disabled}
+            fn set_selected_index(&mut self,_:Option<IndexPath>,_:&mut Window,_:&mut Context<ListState<Self>>) {}
+            fn render_item(&mut self,_:IndexPath,_:&mut Window,_:&mut Context<ListState<Self>>)->Option<ListItem> {Some(ListItem::new(0))}
+        }
+        cx.update(crate::init);
+        let window=cx.add_empty_window();
+        window.draw(gpui::point(px(0.),px(0.)),size(px(300.),px(300.)),|window,cx| {
+            for (disabled,selectable) in [(false,true),(true,true),(false,false)] {
+                let state=cx.new(|cx|ListState::new(AccessibleDelegate{disabled},window,cx).selectable(selectable));
+                state.update(cx,|state,cx| {
+                    let row=state.render_list_item(IndexPath::new(0),window,cx).into_element();
+                    assert_eq!(row.a11y_role(),Some(Role::ListItem));
+                    let mut node=gpui::accesskit::Node::new(Role::ListItem);
+                    row.write_a11y_info(&mut node);
+                    assert_eq!(node.label(),Some("Readable row"));
+                    assert_eq!(node.is_disabled(),disabled);
+                    assert_eq!(node.supports_action(gpui::AccessibleAction::Click),selectable && !disabled);
+                });
+            }
+            div()
+        });
     }
 
     #[gpui::test]

@@ -1054,7 +1054,8 @@ impl Grid {
     /// The column index into each row for a display column.
     fn source(&self, column: usize) -> usize {
         let key = &self.columns[column].key;
-        key.parse::<usize>().ok().filter(|index| *index < self.rows.first().map_or(usize::MAX, Vec::len)).unwrap_or(column)
+        key.parse::<usize>().ok().filter(|index| *index < self.rows.first().map_or(usize::MAX, Vec::len))
+            .or_else(||self.source_columns.iter().position(|source|source==key)).unwrap_or(column)
     }
     fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(self.source(column))).cloned().unwrap_or_default()}
     fn emit(&self, event: &'static str, value: String, cx: &mut App) {

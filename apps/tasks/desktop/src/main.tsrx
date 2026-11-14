@@ -465,6 +465,7 @@ function App(commands: Sender<TaskCommand>, updates: Channel<TaskUpdate>, journa
               icon="table"
               size="small"
               selected={modeState.get() === 'table'}
+              toggled={modeState.get() === 'table'}
               tooltip="Table view"
               aria-label="Table view"
               onPress={() => {
@@ -477,6 +478,7 @@ function App(commands: Sender<TaskCommand>, updates: Channel<TaskUpdate>, journa
               icon="layout-grid"
               size="small"
               selected={modeState.get() === 'cards'}
+              toggled={modeState.get() === 'cards'}
               tooltip="Card view"
               aria-label="Card view"
               onPress={() => {

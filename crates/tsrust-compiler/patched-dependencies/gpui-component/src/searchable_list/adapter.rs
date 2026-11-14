@@ -65,6 +65,10 @@ impl<D: SearchableListDelegate + 'static> SearchableListAdapter<D> {
 impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter<D> {
     type Item = SearchableListItemElement;
 
+    fn row_label(&self,item:&Self::Item)->Option<gpui::SharedString> {item.accessibility_label.clone()}
+
+    fn row_disabled(&self,item:&Self::Item)->bool {item.disabled}
+
     fn sections_count(&self, cx: &App) -> usize {
         self.delegate.sections_count(cx)
     }
@@ -118,6 +122,7 @@ impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter
         if let Some(el) = self.delegate.render_item(ix, item, is_checked, window, cx) {
             return Some(
                 SearchableListItemElement::new(ix.row)
+                    .accessibility_label(item.title())
                     .disabled(disabled)
                     .with_size(size)
                     .child(el),
@@ -136,6 +141,7 @@ impl<D: SearchableListDelegate + 'static> ListDelegate for SearchableListAdapter
 
         Some(
             SearchableListItemElement::new(ix.row)
+                .accessibility_label(item.title())
                 .checked(is_checked)
                 .check_icon(check_icon)
                 .disabled(disabled)

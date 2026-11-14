@@ -1,8 +1,8 @@
 //! GPUI Kit renderer for the retained Node model. One root view owns the tree.
 //! Every event updates Node state, refreshes its live bindings and notifies the
-//! view; `render` turns the current tree into GPUI elements. Buttons without
-//! classes and text inputs use GPUI Kit components; classed buttons use Kit's
-//! unstyled native button behavior. Utilities resolve against the active theme.
+//! view; `render` turns the current tree into GPUI elements. Typography keeps Kit
+//! button presentation; authored surfaces/layouts use its unstyled native behavior.
+//! Utilities resolve against the active theme.
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonCustomVariant, ButtonRounded, ButtonVariants};
@@ -482,13 +482,14 @@ impl Root {
         }.to_string()
     }
 
-    /// A GPUI Kit Button for an unclassed core Button, with its Kit options.
+    /// A GPUI Kit Button with its presentation options and typography refinements.
     fn kit_button(&self, node: &Node, cx: &mut Context<Self>) -> Button {
         let id = node.identity.get();
                 // Kit button options (variant, size, icon, states) arrive as node options.
                 let option = |name: &str| node.option(name).unwrap_or_default();
                 let flag = |name: &str| option(name) == "true";
                 let label = node.content_text();
+                let has_label = !label.is_empty();
                 let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
                 if !label.is_empty() {
                     button=if node.visible_children().any(|child|!child.class_name.is_empty() || !child.children.is_empty()) {
@@ -536,6 +537,23 @@ impl Root {
                 if node.kit.as_deref().is_some_and(|kit| kit.handles("hover")) {
                     let root = cx.entity().downgrade();
                     button = button.on_hover(move |hovered, _, cx| {let hovered = *hovered; let _ = root.update(cx, |root, cx| root.emit(id, "hover", hovered.to_string(), cx));});
+                }
+                if !node.class_name.is_empty() {
+                    let rules=self.rules(node);
+                    let font=rules.iter().filter_map(|(_,rule)|if let Utility::FontSize(size)=rule {Some(*size)}else{None}).reduce(f32::max);
+                    let icon_size=font.map(|size|KitSize::Size(px(size))).unwrap_or_else(||match option("size") {"xsmall"=>KitSize::XSmall,"small"=>KitSize::Small,"large"=>KitSize::Large,_=>KitSize::Medium});
+                    button=button.content_style(StyleRefinement::default(),icon_size);
+                    if let Some(font)=font {
+                        button=button.min_h(px(font*1.5+4.));
+                        if !has_label {button=button.min_w(px(font*1.5+4.));}
+                    }
+                    let base_style=self.node_style(node);
+                    let interaction_style=|state| {
+                        let mut value=base_style.clone();
+                        for (current,rule) in rules {if *current==state {apply(&mut value,*rule);}}
+                        value
+                    };
+                    button=button.refine_style(&base_style).interaction_styles(interaction_style(State::Hover),interaction_style(State::Active),interaction_style(State::Focus));
                 }
                 button.on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);}))
     }
@@ -585,7 +603,7 @@ impl Root {
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() && !node.semantics.href.is_empty() => {
                 self.kit_button(node,cx).link().role(Role::Link).p_0().h_auto().into_any_element()
             }
-            Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
+            Kind::Button | Kind::DisabledButton if node.semantics.href.is_empty() && style::native_button_presentation(self.rules(node)) => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
                 let option=|name:&str|node.option(name).unwrap_or_default();
                 let mut button=gpui_kit::base::Button::new(ElementId::Integer(id)).cursor_pointer().disabled(node.is_disabled()).selected(option("selected")=="true");
