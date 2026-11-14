@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+A watch consisting of an exact mapped source parameter name now evaluates its generated LLDB slot in the stopped frame. An isolated native Studio replay entered n before launch, stopped at the return in twice(6), and observed Watch value 6 and local n = 6. Existing native register/error watches and debugger regressions passed 8/8 (5.85 s execution). Compound expressions still use the adapter expression language directly.
+
 Debug position metadata now includes ordered parameter names from the checked function. Studio resolves exact LLDB value-slot names against the paused mapped frame, falling back to adapter names for older binaries or other slots. The focused compiler single/linked-source regression verified the parameter list on the imported helper’s return (0.57 s). A freshly compiled native fixture called twice(6); the isolated rebuilt Studio stopped at its return and showed “n = 6” in Local variables. This covers parameter display, not expression rewriting or general local declaration names.
 
 Run and Debug reads the stopped top frame’s locals scope and displays its immediate values alongside the watch. Stack location, watch and locals are delivered together before the worker accepts the next control. Scope/variables request failures go to the console and leave stepping available. Native macOS Studio replay launched twice(6), stopped on the return line with a watch, and observed the local “value0 = 6” in the sidebar. LLDB exposes the generated parameter name rather than the Tsrust name n. Nested variable expansion and original-name mapping remain open. Debugger and localization suites passed 9/9 (5.60 s execution).

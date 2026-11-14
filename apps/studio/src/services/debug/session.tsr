@@ -277,10 +277,12 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
             }
 
             if (watch !== '' && frames.length > 0) {
+              const parameters = clone(location?.parameters) ?? [];
+              const slot = parameters.findIndex((name) => name === watch);
               watchRequest = seq;
               await writeFrame(writer, JSON.stringify({
                 seq, type: 'request', command: 'evaluate', arguments: {
-                  expression: clone(watch), context: 'watch', frameId: frames[0].id
+                  expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId: frames[0].id
                 }
               }));
               seq += 1;
