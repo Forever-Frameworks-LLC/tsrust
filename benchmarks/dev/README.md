@@ -54,3 +54,10 @@ The record uses the shared SQLite ingester's manifest/execution format and also
 contains prepared-source hashes, compiler identity, actual commands and phase
 observations. Three development-session samples are an initial diagnostic
 baseline. A stable overhead claim requires matched quiet-machine repetition.
+
+Both protocols use the runtime runner's existing quiet-machine guard before each
+timed process or edit. The guard runs outside the measured interval, keeps its
+established load threshold and timeout, and refuses to start timed work if the
+machine stays busy. Records include the observed load and threshold for each
+sample. This requires Node for the shared guard; sample counts, generated graphs,
+compiler flags and independent output assertions are unchanged.

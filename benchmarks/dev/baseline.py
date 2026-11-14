@@ -13,6 +13,16 @@ import threading
 import time
 
 
+def wait_for_quiet_machine():
+    module = (pathlib.Path(__file__).resolve().parents[1] / 'runtime/quiet-machine.mjs').as_uri()
+    script = (f'import {{waitForQuietMachine, DEFAULT_LIMIT}} from {json.dumps(module)};'
+              'const load = waitForQuietMachine({log: message => console.error(message)});'
+              'console.log(JSON.stringify({load, limit: DEFAULT_LIMIT}));')
+    result = subprocess.run(['node', '--input-type=module', '-e', script],
+                            capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
 def leaf(index, extra=0):
     return f"import {{shared}} from './shared.tsr'; export function part{index}():int{{return shared()+{index + extra};}}\n"
 
@@ -95,22 +105,27 @@ def sample(compiler, count, idle):
         project(root, count)
         sources = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.iterdir())}
         rows = {}
+        quiet = {'coldStart': wait_for_quiet_machine()}
         cold = Dev(compiler, root)
         try:
             rows['coldStartMs'] = cold.ready(expected(count, 1, 0), cold.started)
         finally:
             cold.close()
+        quiet['warmStart'] = wait_for_quiet_machine()
         warm = Dev(compiler, root)
         try:
             rows['warmStartMs'] = warm.ready(expected(count, 1, 0), warm.started)
+            quiet['leafEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'module0.tsr').write_text(leaf(0, 10))
             rows['leafEditMs'] = warm.ready(expected(count, 1, 10), start)
+            quiet['sharedEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'shared.tsr').write_text('export function shared():int{return 2;}\n')
             rows['sharedEditMs'] = warm.ready(expected(count, 2, 10), start)
             config = json.loads((root / 'tsrust.config.json').read_text())
             config['build']['output'] = 'target/changed'
+            quiet['configEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'tsrust.config.json').write_text(json.dumps(config))
             rows['configEditMs'] = warm.ready(expected(count, 2, 10), start)
@@ -124,7 +139,7 @@ def sample(compiler, count, idle):
             rows['cacheBytes'] = cache_bytes(root)
         finally:
             warm.close()
-        return {'modules': count + 2, 'sources': sources, 'observations': rows, 'coldLog': cold.lines, 'warmLog': warm.lines}
+        return {'modules': count + 2, 'sources': sources, 'quietMachine': quiet, 'observations': rows, 'coldLog': cold.lines, 'warmLog': warm.lines}
 
 
 def main():

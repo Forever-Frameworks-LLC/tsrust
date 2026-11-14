@@ -4,6 +4,37 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Quiet-gated compiler/dev profiling — 2026-11-14
+
+Previous goal turn made progress: accepted shared UI sections are checkpointed.
+Both existing dev benchmark protocols now call the runtime runner's existing
+quiet-machine guard before each timed process/edit, outside the measured interval.
+Records include every observed load/threshold. Original 3-sample counts, 6/130-module
+graphs, compiler arguments, shared runtime bytes and independent integer-output
+oracles are unchanged. Five Python harness tests and the shared Node quiet-machine
+negative test pass; busy-machine rejection starts no timed process or dev supervisor.
+
+Quiet-gated matched medians with the refreshed release compiler: 6 modules,
+136.81ms Tsrust /97.11ms Rust, 40.89 percent overhead; 130 modules,178.13/119.11ms,
+49.56 percent overhead. Median check/emit/backend verification phases were
+1.3/0.4/25.9ms and14.7/1.9/27.3ms. Loads were2.19–2.58 against established limit4.
+A separate three-sample, alternating, same-version probe measured27.495ms through
+rustup and20.111ms directly; direct invocation alone cannot meet the target and
+must not bypass custom wrappers. Six workload/engine histories were ingested with
+npm run store:ingest, verified at their timestamps (3 samples each), and SQLite
+integrity_check passed. Disposable raw reports were removed after verification.
+These are three-sample observations, not complete performance acceptance.
+
+Runtime-cache identity inspection found legitimate SDK/body changes among retained
+entries. The earlier app-only toggle miss is inconclusive; do not call it a proven
+cache invalidation defect. Next: overlap the existing cancellable backend probe
+with dev frontend work using the existing Process ownership/teardown, retain version
+validation/error precedence/custom wrappers, run affected cancellation/alias checks,
+and compare the unchanged dev-loop protocol. No compiler optimization is implemented
+yet in this section. Keep Worklist/API sessions and protected Studio/selection plus
+service-test import edits intact. Required <10 percent, full cache/edit matrix,
+LSP/stress/pixel/platform/milestone checks and PR merge remain open.
+
 ## Shared zoom repairs accepted section — 2026-11-14
 
 Numeric sorting is checkpoint f73795b21; accepted zoom repairs are f3c3dea2d.

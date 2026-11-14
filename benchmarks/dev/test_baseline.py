@@ -2,6 +2,7 @@ import importlib.util
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location('baseline', pathlib.Path(__file__).with_name('baseline.py'))
 baseline = importlib.util.module_from_spec(spec)
@@ -20,12 +21,27 @@ class BaselineTests(unittest.TestCase):
             self.assertEqual((root / 'main.tsr').read_text().count('import '), 4)
             self.assertEqual((root / 'main.tsr').read_text().count('total +='), 4)
 
+    def test_busy_machine_prevents_dev_start(self):
+        with mock.patch.object(baseline, 'wait_for_quiet_machine', side_effect=RuntimeError('busy')):
+            with mock.patch.object(baseline, 'Dev') as dev:
+                with self.assertRaisesRegex(RuntimeError, 'busy'):
+                    baseline.sample('unused-compiler', 4, 3)
+                dev.assert_not_called()
+
     def test_cpu_time_conversion(self):
         self.assertEqual(baseline.cpu_seconds('1:02.50'), 62.5)
         self.assertEqual(baseline.cpu_seconds('02:01:02'), 7262)
 
 
 class RustControlTests(unittest.TestCase):
+    def test_busy_machine_prevents_timed_process(self):
+        import rust_control
+        with mock.patch.object(rust_control.baseline, 'wait_for_quiet_machine', side_effect=RuntimeError('busy')):
+            with mock.patch.object(rust_control.subprocess, 'run') as process:
+                with self.assertRaisesRegex(RuntimeError, 'busy'):
+                    rust_control.run(['unused-compiler'], pathlib.Path.cwd(), {})
+                process.assert_not_called()
+
     def test_build_phase_parser_rejects_cache_reuse(self):
         import rust_control
         phases = rust_control.build_timings(

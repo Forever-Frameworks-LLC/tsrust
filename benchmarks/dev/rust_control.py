@@ -28,9 +28,10 @@ def build_timings(stderr):
 
 
 def run(command, root, env):
+    quiet = baseline.wait_for_quiet_machine()
     started = time.perf_counter()
     result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, check=True)
-    return (time.perf_counter() - started) * 1000, result
+    return (time.perf_counter() - started) * 1000, result, quiet
 
 
 def shape(compiler, rustup, count, samples):
@@ -82,6 +83,7 @@ def shape(compiler, rustup, count, samples):
                     'tsrust-build': [compiler, 'build', 'main.tsr', '-o', 'tsrust-program']}
         durations = {engine: [] for engine in commands}
         phases = []
+        quiet_samples = {engine: [] for engine in commands}
         expected = f'DEV_READY {baseline.expected(count, 1, 0)}\n'
         for repetition in range(samples):
             order = ['rustc', 'tsrust-build'] if repetition % 2 == 0 else ['tsrust-build', 'rustc']
@@ -93,7 +95,8 @@ def shape(compiler, rustup, count, samples):
                 env = dict(os.environ, TSRUST_BUILD_TIMINGS='1',
                            TSRUST_CACHE_DIR=str(root / 'capture-cache'))
                 env.setdefault('RUST_MIN_STACK', '1073741824')
-                elapsed, result = run(commands[engine], root, env)
+                elapsed, result, quiet = run(commands[engine], root, env)
+                quiet_samples[engine].append(quiet)
                 binary = root / ('rust-program' if engine == 'rustc' else 'tsrust-program')
                 output = subprocess.check_output([str(binary)], cwd=root, text=True)
                 if output != expected:
@@ -119,6 +122,7 @@ def shape(compiler, rustup, count, samples):
             'commands': commands,
             'durations': durations,
             'phases': phases,
+            'quietMachine': quiet_samples,
         }
 
 
