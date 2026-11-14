@@ -6032,7 +6032,7 @@ impl Analyzer {
             if !scalar {
                 return Err(Diagnostic::new(
                     "type",
-                    "Template interpolation requires string, int, number, or boolean.",
+                    "Template interpolation requires string, int, number, boolean, null, or undefined.",
                     part.span,
                 ));
             }

@@ -172,7 +172,7 @@ fn nullable_diagnostics_projections_hidden_consumers_moves_and_depth_are_precise
             "unsupported",
         ),
         (
-            "function main(){const x:string|null=\"x\";console.log(`${x}`);}",
+            "function main(){const x:string[]|null=[\"x\"];console.log(`${x}`);}",
             "type",
         ),
         (
@@ -184,7 +184,7 @@ fn nullable_diagnostics_projections_hidden_consumers_moves_and_depth_are_precise
             "transferred",
         ),
         (
-            "function read(x:string|null):string{return String(x);}function main(){const x=\"x\".repeat(1);read(x);console.log(x);}",
+            "function read(x:Owned<string|null>):string{return String(x);}function main(){const x=\"x\".repeat(1);read(x);console.log(x);}",
             "transferred",
         ),
         (
@@ -270,3 +270,13 @@ const ALLOCATION_OBSERVER: &str = r#"
         #[global_allocator]static ALLOCATOR:Allocations=Allocations;
 
 "#;
+
+#[test]
+fn nullable_readonly_contracts_run_in_one_public_testing_suite() {
+    let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/nullable-unions/contracts.test.tsr");
+    let output=support::run(support::cli().arg("test").arg(path).arg("--reporter=json"),180);
+    support::success(&output);
+    let summary=String::from_utf8(output.stdout).unwrap().lines().filter_map(|line|serde_json::from_str::<serde_json::Value>(line).ok()).find(|row|row["event"]=="summary").expect("public test summary");
+    assert_eq!(summary["passed"],2);
+    assert_eq!(summary["failed"],0);
+}

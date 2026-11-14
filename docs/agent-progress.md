@@ -4,6 +4,115 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Worklist focused acceptance complete; goal remains open — 2026-11-14
+
+All requested core flows now have native acceptance: one native TitleBar with
+aligned controls, flat full-width toolbar, colored readable badges, measured full
+width table, single-row/card sheet activation, new/edit sheet fields, real save and
+confirmed delete, full-header sorting, numbered pagination with scroll reset and
+responsive virtual cards. Live native checks observed title sorting ascending then
+descending, a sort-icon click cycling exactly once, table page 2 resetting its first
+row to y=273, and card page 3 resetting to y=243. At 860 px window width cards were
+two 412 px columns; at 1180 px they were three 377/377.5 px columns. Sheet Save aligns
+at the right edge after the shared footer-width repair. Final card styling adds an
+explicit zoom-aware text size and a two-line title clamp. App headers now use a
+straight ascending/descending cycle, rather than restoring the default query at the
+widget's third step; this avoids trapping the initially descending Updated column.
+The changed three-case model suite passed in 2.62 ms execution. Native pixels and
+broader stress/zoom/accessibility review still remain; do not claim full product
+or goal acceptance.
+
+Worklist's ten-file runner passed all 13 tests (739.76 ms execution; 13.85 s setup).
+The managed native table-header test passed (0.02 s; 42.94 s setup) when configured
+with the matching managed GPUI base patch. Its first standalone attempt used the
+registry base and failed to compile missing patched editor methods; no checks were
+removed. The public UI authoring regression passed (1.04 s). LSP library passed all
+36 cases (1.93 s). Compiler/LSP all-target checking passed (1m30s setup), with the
+same existing atomic deprecation and test unused/dead-code warnings.
+
+Readonly-nullable integration is complete: the previously timed-out exact literal
+case passed (9.24 s host execution including native setup); mutable captures passed
+1/1 (1.13 s), native string-literal unions 3/3 (2.71 s), and nullable unions preserved
+three native passes then repaired/replayed their diagnostics case (1.30 s).
+Union-array elements passed 7/7 (5.21 s). An old nullable-template rejection was
+stale since scalar-union templates were admitted in commit 3477d11d05; it now rejects
+an actual nullable array interpolation. The other changed rejection now explicitly
+uses Owned<string|null>, retaining genuine transfer rejection while inferred Read
+parameters borrow as intended. All 15 negative witnesses remain valid. A stable
+std:testing fixture has two positive cases (inferred readonly reuse and scalar
+nullable interpolation) run together through one public runner, registered in the
+host suite; its host check passed in 1.12 s including build/setup. Template diagnostic
+wording now includes null and undefined. Earlier compiler-library 1556 passes and
+18 data-union passes remain applicable; only diagnostic wording changed afterward.
+
+Current desktop dev supervisor 12973, exec session 7469; latest native child 17646
+at last observation. Log /tmp/tsrust-worklist-desktop-dev.log; rediscover before use.
+The last app rebuild passed in 25.515 s, a dev observation rather than a matched
+performance claim. API supervisor 33729 remains running; Studio remains stopped.
+Current debug compiler contains all SDK/native header repairs. Release artifacts
+still predate the final card/header/footer repairs and require one milestone rebuild.
+Validation ran with protected owner selection edits present; checkpoint staging must
+exclude their initialAnchor/selectionChange hunks and all unrelated Studio files.
+The API/cache originally had zero tasks at cursor 71; replaying the retained changes
+also left zero survivors. Explicit tools/seed-review.tsr populated 300 marked tasks
+with ON CONFLICT DO NOTHING; seeding is never automatic. API/cache both reached
+cursor 371. Live sheet acceptance created task 31784b456fa3816c8c96f1efa8a01658,
+observed version 1, reopened it from its card, and deleted that exact row through
+confirmation, restoring 300 rows. Source and README retain the safe setup command.
+The final native vendor rebuild observed 159.39 s runtime preparation plus link,
+178.39 s total dev startup; this is not a matched Rust performance measurement.
+The current native app has since rebuilt after app-only styling/model edits.
+
+Next UI review must include semantic button variants/selection under typography-only
+classes: the renderer currently sends every classed Button through its unstyled
+path. Check zoom and hit targets across all controls, not only ordinary text.
+Full zoom/stress/platform/performance acceptance and final push/merge remain open.
+No release/publication is authorized by these local passes.
+
+## Worklist desktop implementation in progress — 2026-11-14
+
+Uncommitted desktop sources now include main.tsrx, theme.json, model.tsr,
+drafts.tsr and service.tsr plus model/draft/channel-worker tests and a desktop
+project config. The two-view screen has a native virtualized DataTable with a
+fixed title column, a virtualized card list, global sorting/search/status filtering,
+pagination/all-rows mode, create/edit/delete controls, confirmation and conflict
+feedback, local draft recovery and a background HTTP/cache worker. Shared contracts
+now name TaskStatus explicitly. These are implemented, not yet native UI accepted.
+
+Owner objected to mechanically numbered eventState/submitSender declarations.
+Removed all of them. action/eventAction bind an owned set of weak Workspace handles
+at each control; command senders share through workspaceHandles. Root JSX reads
+direct state bindings, retaining reactivity. The revised complete screen passes
+release-compiler type checking. Do not reintroduce numbered callback variables.
+The native build is active in exec session 67645, log
+/tmp/tsrust-worklist-desktop-build.log, compiler PID 68728 and child Cargo 70683
+at the last observation. Rediscover processes before acting. Keep the running API
+dev supervisor 33729 and its current child 45647; Studio remains stopped.
+
+Application tests exposed a second compiler bug: a required ReadOnly<Record|null>
+parameter consumed an untagged owned record during contextual union injection.
+The argument adaptation condition now also borrows concrete members of required
+nullable unions. Added a focused internal regression covering record/string/array
+members, stored calls, retained mutation-overlap rejection and genuine Owned
+transfer. Its initial check passed. Later added formatting/idempotence assertions
+to that unit, requiring only its focused replay. The broad run passed compiler
+library 1556 with 8 preexisting ignores (139.90 s) and data_unions 18/18 (7.41 s).
+literal_union_arguments passed 5/6; its Decimal/locale native case timed out at
+180 s waiting during the concurrent native UI dependency build. Preserve those
+passes and replay only that case after the target is quiet. The run stopped there:
+mutable_union_captures, native_string_literal_unions, nullable_unions and
+union_array_elements remain unrun for this change. Broad run log:
+/tmp/tsrust-worklist-nullable-regressions.log. Avoid more concurrent Cargo consumers.
+
+The freshly built debug compiler checks all desktop tests cleanly, including
+Readonly nullable draft helpers. They have not executed yet. Complete the current
+native build, repair any emitted-Rust or renderer failure, validate these tests
+through one std:testing runner, and run the remaining affected checks. Rebuild the
+release pair with the union repair and validate actual native interactions before
+claiming UI acceptance. Existing SDK UI/selection changes and owner Studio drafts
+remain protected outside these changes. The earlier eight-case API/cache proof
+and performance records remain accepted. Full goal and <10% target remain open.
+
 ## Worklist versioned API, offline CDC cache and exceptional loans — 2026-11-14
 
 Implemented API routes in apps/tasks/api/src/application.tsr using the existing
