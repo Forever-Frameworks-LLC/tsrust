@@ -4,10 +4,74 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Function-body revision experiment rejected — 2026-11-14
+
+Accepted runtime-alias optimization is checkpoint `06b18babb`. The subsequent
+experiment narrowed only function-body consumption so it would not bump the
+conservative record-shape revision. A focused scheduling witness reproduced the
+unnecessary revision change (1 to 2). The candidate passed all 140 native-view
+cases in 76.53s execution after 3m31s setup, including existing in-place record,
+union and scoped-family invalidation witnesses. Scheduling cases passed 11/11 in
+0.32s. The release compiler/LSP pair built in 3m40s. Three pre-existing fs helper
+dead-code warnings appeared in the debug library test build; no new warning arose.
+
+However, quiet-gated Worklist frontend emission showed no improvement: 3-sample
+median 2368.414166ms before versus 2405.472875ms candidate (1.56 percent slower).
+This small grouped diagnostic run does not establish a stable regression either.
+The candidate is discarded; do not repeat that isolated body-take tweak as a new
+optimization. Its paired revision-only test was removed with the discarded code;
+all pre-existing checks and runtime capabilities remain unchanged.
+
+Protocol: existing Worklist entry, public CLI emit into one temporary Rust file,
+one untimed setup per engine, then 3 before samples followed by 3 candidate samples;
+shared rust_control.run quiet guard before each invocation, outside timing. Verify
+source/config snapshot and compiler hashes before each sample and source/config
+snapshot after each emission; require every emitted Rust SHA-256 to match.
+Observed loads 2.1548–2.2842, limit 4. Setup was 2427.82ms before /2843.07ms candidate.
+Source/config aggregate SHA-256 is `9483bf98be5c94c0ffa25be1c4a9f284851a8d02fc2712f62081de580d79cebb`;
+emitted Rust SHA-256 is `e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`.
+Baseline CLI SHA-256 remains `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`;
+rejected candidate was `12e745f861244bc6f6cd9985117f33afc7555908bca3e6f1c5876a6b4604c09e`.
+Two worklist-frontend-emit engine histories were ingested and independently verified
+at `2026-11-14T21:12:13.203068+00:00`, 3 samples each; SQLite integrity=ok.
+This is frontend emission, not native build overhead. No performance pass is claimed.
+The temporary output tree was removed automatically; raw report is disposable.
+
+The context benchmark now handles an initially absent native cache and ignores
+incomplete entries. Ten harness cases pass in 0.015s. This is the only retained
+source change after the experiment; owner drafts remain untouched. Accepted-source
+release restoration passed in 3m48s. CLI and LSP match installed tools byte for byte:
+CLI SHA-256 above, LSP `be5bd5775b7efa806e5148dc915392776851557d97238a1a6a136b2709c45689`.
+Worklist and Studio whole-project diagnostics both pass with exit 0. The Studio
+scan completed after the bounded diagnostic sample below; its timing is not a
+benchmark. Whole-project formatting passed: 0 source files, 0 documentation snippets
+and 0 fingerprints changed. Benchmark fix and negative evidence are accepted for
+local checkpoint. Next: investigate the sampled repeated contract propagation,
+then complete the appropriate coherent regression/performance section. Keep Worklist
+supervisor 87431 / child 87575 and API 33729 / native child 45647 running. Zed LSP
+75803 was not restarted. Worklist remains populated; no app/session restart needed.
+
+A bounded two-second,5ms sample of the Studio check captured 293 active worker
+samples; main thread joins the worker. The captured stack repeatedly enters
+analyze_recursive_with_proofs and region_caller_error_effects, then
+annotate_partial_with_callers / annotate_partial_with_contracts /
+propagate_partial_contracts. One sampled region branch includes 61 samples in
+region_caller_error_effects,53 under annotate_partial_with_callers. This is an
+instantaneous diagnostic window, not full-scan attribution. Footprint/peak was
+480.8M; a separate process observation was about 383MiB RSS. These are different
+metrics, not a leak proof. Raw sample /tmp/tsrust-studio-check-sample.txt is temporary
+until this next hypothesis is investigated. Prioritize this repeated global
+contract propagation path over the rejected body-take tweak; preserve caller-specific
+contracts, checked-body mutation semantics, exception and recursive-mode checks.
+Alternatively native idle wait could replace the unconditional 100ms dev-loop sleep
+without consuming pending events or weakening the 100ms external-dependency polling
+fallback; debounce/cancellation checks must remain. Neither follow-up is implemented.
+Matched Rust <10%, full milestone/platform acceptance and PR merge remain pending.
+
 ## Stable Cargo runtime alias accepted — 2026-11-14
 
-The runtime alias fix follows checkpoint `78ecc064c`; its source and measured
-acceptance are ready for the next local checkpoint. Installed CLI and release
+The runtime alias fix is checkpoint `06b18babb`, following `78ecc064c`. Its source
+and measured acceptance are preserved. Installed CLI and release
 candidate match SHA-256 `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`.
 Worklist release supervisor 87431 / native child 87575 is running with its normal
 persisted data and API at localhost:4317. Its fresh unused caller context required

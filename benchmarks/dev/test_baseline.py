@@ -66,6 +66,18 @@ class RustControlTests(unittest.TestCase):
             rust_control.build_timings('missing build timings')
 
 class WorklistContextTests(unittest.TestCase):
+    def test_context_comparison_accepts_an_initially_empty_cache(self):
+        import worklist_runtime_context as context
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            with mock.patch.object(context, 'CACHE', root):
+                self.assertEqual(context.keys('runtime/v2'), set())
+                entry = root / 'runtime/v2/accepted'
+                entry.mkdir(parents=True)
+                (entry / 'identity').write_bytes(b'identity')
+                (root / 'runtime/v2/incomplete').mkdir()
+                self.assertEqual(context.keys('runtime/v2'), {'accepted'})
+
     def test_context_phases_use_the_public_build_log_without_dev_only_metrics(self):
         import worklist_runtime_context as context
         stderr = '[build] runtime=miss\n[build] check=1ms emit=2ms backend=3ms cache=miss (0.1ms) native+link=4ms'

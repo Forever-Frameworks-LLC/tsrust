@@ -84,7 +84,8 @@ def context_build_timings(stderr):
 
 
 def keys(namespace):
-    return {path.name for path in (CACHE / namespace).iterdir() if (path / 'identity').is_file()}
+    root = CACHE / namespace
+    return {path.name for path in root.iterdir() if (path / 'identity').is_file()} if root.is_dir() else set()
 
 
 def compare(before, after, samples):
