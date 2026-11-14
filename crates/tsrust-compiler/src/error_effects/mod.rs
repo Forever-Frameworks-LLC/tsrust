@@ -624,8 +624,8 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
         if !changed {break;}
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
+    let mut effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
     loop {
-        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
         let mut changed=false;
         for (id,types) in &origins {
             let mut found=FailureSet::default();
@@ -641,6 +641,21 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
             changed|=callbacks.get_mut(id).expect("callback origin").join(found);
         }
         if !changed {return effects;}
+        // Callback contracts only grow, so retain the already established effects.
+        effects.callback_errors.clone_from(&callbacks);
+        propagate_partial_contracts(functions,closures,families,invocations,&storage_grounding(families,&Default::default(),stored_fields),stored_fields,&mut effects);
+        #[cfg(test)]
+        {
+            let cold=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
+            assert_eq!(effects.function_errors,cold.function_errors);
+            assert_eq!(effects.closure_errors,cold.closure_errors);
+            assert_eq!(effects.callback_errors,cold.callback_errors);
+            assert_eq!(effects.method_errors,cold.method_errors);
+            assert_eq!(effects.storage_errors,cold.storage_errors);
+            assert_eq!(effects.invocation_errors,cold.invocation_errors);
+            assert_eq!(effects.functions,cold.functions);
+            assert_eq!(effects.closures,cold.closures);
+        }
     }
 }
 #[inline(never)]
@@ -648,6 +663,16 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
     // A storage-only cycle is not a constructor witness. Ground sources through
     // actual closure families or separately resolved callback/absence contracts;
     // any unresolved source still contributes opaque below.
+    let grounded=storage_grounding(families,uninhabited,stored_fields);
+    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
+    for (id,function) in functions.iter().enumerate() {
+        if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
+    }
+    propagate_partial_contracts(functions,closures,families,invocations,&grounded,stored_fields,&mut effects);
+    effects
+}
+
+fn storage_grounding(families:&[(usize,Vec<usize>)],uninhabited:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)])->std::collections::HashSet<usize> {
     let mut grounded=families.iter().filter(|(id,origins)|!origins.is_empty()||uninhabited.contains(id)).map(|(id,_)|*id).collect::<std::collections::HashSet<_>>();
     loop {
         let mut changed=false;
@@ -657,10 +682,10 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
         }
         if !changed {break;}
     }
-    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
-    for (id,function) in functions.iter().enumerate() {
-        if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
-    }
+    grounded
+}
+
+fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
     // Payload types are checked identities. Every finite coordinate grows
     // monotonically; the final unchanged pass refreshes expression metadata.
     loop {
@@ -695,7 +720,7 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
-            let mut next=if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
+            let mut next=if origins.is_empty()&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
             for origin in origins {next |= effects.closure_errors.get(*origin).cloned().unwrap_or_else(FailureSet::unknown);}
             for &(_,source) in stored_fields.iter().filter(|(family,_)|family==id) {
                 next|=match source {
@@ -721,7 +746,6 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
         changed |= effects.refresh_invocation_errors(invocations);
         if !changed {break;}
     }
-    effects
 }
 fn function_effect(function:&mut CheckedFunction,effects:&ErrorEffects)->FailureSet {
     let mut failure=FailureSet::default();

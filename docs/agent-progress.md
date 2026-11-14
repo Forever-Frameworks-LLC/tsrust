@@ -4,6 +4,44 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Retained error-effect propagation — 2026-11-14
+
+Owner requested reducing repeated error-effect work without removing checks and
+reported three VS Code errors plus a red tests folder in Zed. Implemented warm
+propagation within annotate_partial_with_callers: increasing callback contracts
+reuse the established function, closure, method, storage and invocation effects
+instead of restarting each inner fixed point from empty effects. The same
+fixed-point convergence and final metadata refresh remain. Grounding is unchanged.
+Test builds compare every retained propagation result with a fresh computation
+across all eight effect/boolean collections.
+
+Focused error-effect tests passed 54/54 with differential assertions (0.79 s
+execution). Full compiler library run passed 1522 with 30 sandbox failures and
+8 preexisting ignored cases (157.00 s execution). Inspected every failure:
+listener binding or restricted temporary working-directory creation. Replayed only
+those 30 cases outside the sandbox; all passed (0.56 s). LSP library passed 36/36
+(2.11 s). VS Code extension-host integration against the optimized release passed,
+including ownership errors/repairs, formatting, navigation and restart. Builds
+and setup are separate from these test execution durations.
+
+Single foreground LSP observations on current Studio main.tsrx: before 97.03 s
+total / 93.007 s checker, after 88.98 s total / 84.589 s checker; both returned no
+diagnostics. These are single observations with other development processes
+running, not a repeated quiet-machine benchmark or a proven stable speedup.
+Repeated cross-region contract discovery remains a larger unresolved cost.
+
+The owner's exact VS Code errors were unknown CodeEditorProps.initialCaret,
+unknown WindowOptions.opensFolders and “Function async#entry must return closure.”
+Its process 87390 started before the 06:00 server rebuild. Replaced that stale
+process through a normal VS Code restart. Both editors were subsequently reopened
+on apps/studio with the validated optimized release, launching language servers
+51447 and 51700 at 06:41. Studio app/watcher remained stopped.
+The tests folder has tracked deletions of tests/go.mod and
+tests/editor-language-mat.go with byte-identical files under tests/languages/go.
+This explains a possible red Git decoration. Actual Zed folder pixels and
+post-restart unsaved-buffer diagnostics remain unverified. Owner file moves and
+pending selection-recovery work are preserved outside this checkpoint.
+
 ## External editor diagnostics investigation — 2026-11-14
 
 Owner authorized investigating latency and the errors visible in Zed. A fresh
