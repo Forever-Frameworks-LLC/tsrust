@@ -1048,6 +1048,8 @@ Native picker interaction and hunk staging remain open.
 
 ## Workspace merge conflicts
 
+Source Control now obtains conflict-marker-size for all unresolved paths in one NUL-delimited git check-attr call. Resolution and staging use the selected file's width. A native disposable merge with 12-character markers around a literal seven-character example failed to accept incoming on the prior build. After rebuilding, two macOS Studio replays accepted incoming and current respectively. Stage resolution preserved exact working-file and index bytes in both cases, including the complete literal conflict example in the current version. Each draft left disk unchanged before staging, and Git reported no remaining unmerged entries afterward. The focused Git suite passed 14/14 (1.747 seconds execution), including three-character markers and a workspace-relative attribute on a non-ASCII filename. Project formatting passed and the dev supervisor launched PID 90218.
+
 Source Control lists unresolved Git paths in the Conflicts tab. Its stage
 action refreshes that list after a saved file is resolved. In a real merge
 with conflicts both inside and outside a nested workspace, only the inside

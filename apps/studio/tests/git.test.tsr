@@ -28,6 +28,10 @@ test('merge choices preserve surrounding lines and resolve only the first block'
   strictEqual(hasConflictStart('<<<<<<<literal'), false);
   strictEqual(hasConflictStart('<<<<<<<< custom width'), true);
   strictEqual(unwrap(resolveFirstConflict('<<<<<<< HEAD\n<<<<<<<literal\n=======\nb\n>>>>>>> topic\n', 'current')), '<<<<<<<literal\n');
+  const wide = '<<<<<<<<<<<< HEAD\n' + block + '============\nincoming\n>>>>>>>>>>>> main\n';
+  strictEqual(unwrap(resolveFirstConflict(wide, 'current', 12)), block);
+  strictEqual(hasConflictStart(block, 12), false);
+  strictEqual(unwrap(resolveFirstConflict('<<< HEAD\na\n===\nb\n>>> main\n', 'incoming', 3)), 'b\n');
   const draft = 'prefix\r\n' + block + 'gap\r\n' + block;
 
   for (const choice of ['current', 'incoming', 'both']) {
@@ -336,6 +340,7 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
     const sub = root + '/project';
     unwrap(mkdirAll(sub));
     strictEqual(await repoGit(root, ['init', '-q', '-b', 'main']), true);
+    unwrap(writeTextFile(sub + '/.gitattributes', '*.txt conflict-marker-size=12\n'));
 
     for (const branch of ['base', 'topic', 'main']) {
       if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
@@ -362,6 +367,7 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
       const rows = status.changes ?? [];
       strictEqual(rows.length, 1);
       strictEqual(rows[0].path, 'ré view.txt');
+      strictEqual(rows[0].markerWidth, 12);
       strictEqual(rows[0].mode, 'conflicts');
       await sender.send({
         mode: 'conflicts', viewFile: clone(rows[0].path)

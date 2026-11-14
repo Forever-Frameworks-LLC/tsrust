@@ -1,15 +1,15 @@
-function openingMarker(line: ReadOnly<string>): int {
-  if (!line.startsWith('<<<<<<<')) return 0;
+function openingMarker(line: ReadOnly<string>, markerWidth: int): int {
+  if (!line.startsWith('<')) return 0;
   const marker = line.trimEnd().split(' ')[0];
-  return marker === '<'.repeat(marker.length) ? marker.length : 0;
+  return (markerWidth === 0 ? marker.length >= 7 : marker.length === markerWidth) && marker === '<'.repeat(marker.length) ? marker.length : 0;
 }
 
-export function hasConflictStart(text: ReadOnly<string>): boolean {
-  return text.split('\n').some((line) => openingMarker(line) > 0);
+export function hasConflictStart(text: ReadOnly<string>, markerWidth: int = 0): boolean {
+  return text.split('\n').some((line) => openingMarker(line, markerWidth) > 0);
 }
 
 // Resolve one complete Git marker block in the current draft, preserving line endings.
-export function resolveFirstConflict(text: ReadOnly<string>, side: ReadOnly<string>): Result<string, string> {
+export function resolveFirstConflict(text: ReadOnly<string>, side: ReadOnly<string>, markerWidth: int = 0): Result<string, string> {
   if (!['current', 'incoming', 'both'].includes(side)) return Err('Choose a conflict resolution.');
   const lines = text.split('\n');
   let start = -1;
@@ -20,7 +20,7 @@ export function resolveFirstConflict(text: ReadOnly<string>, side: ReadOnly<stri
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trimEnd();
 
-    const opening = openingMarker(line);
+    const opening = openingMarker(line, markerWidth);
 
     if (opening > 0) {
       if (start >= 0) return Err('Edit incomplete conflict markers manually.');

@@ -414,13 +414,14 @@ export function GitPanel(
 
 function resolveDraft(
   side: string,
+  markerWidth: int,
   text: string,
   path: string,
   workspace: Signal<Workspace>,
   recovery: Signal<Recovery>,
   errorText: Signal<string>
 ): void {
-  match (resolveFirstConflict(text, side)) {
+  match (resolveFirstConflict(text, side, markerWidth)) {
     Ok(text) => {
       updateDraft(workspace, recovery, path, text);
       errorText.set('');
@@ -496,7 +497,7 @@ export function GitEditor(
       <View className="w-full grow min-w-0 min-h-0 overflow-hidden">
         <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
       </View>
-      <View hidden={!editable.get() || !hasConflictStart(draft.get())} className="flex-row">
+      <View hidden={!editable.get() || !hasConflictStart(draft.get(), selected.get().markerWidth ?? 7)} className="flex-row">
         <Button
           variant="ghost"
           size="small"
@@ -504,6 +505,7 @@ export function GitEditor(
           onPress={() => {
             resolveDraft(
               'current',
+              selected.get().markerWidth ?? 7,
               draft.get(),
               path.get(),
               workspace.handle(),
@@ -521,6 +523,7 @@ export function GitEditor(
           onPress={() => {
             resolveDraft(
               'incoming',
+              selected.get().markerWidth ?? 7,
               draft.get(),
               path.get(),
               workspace.handle(),
@@ -538,6 +541,7 @@ export function GitEditor(
           onPress={() => {
             resolveDraft(
               'both',
+              selected.get().markerWidth ?? 7,
               draft.get(),
               path.get(),
               workspace.handle(),
@@ -574,7 +578,7 @@ export function GitEditor(
               const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
 
               if (index >= 0) {
-                if (hasConflictStart(next.files[index].document.text)) {
+                if (hasConflictStart(next.files[index].document.text, selected.get().markerWidth ?? 7)) {
                   errorText.set(translate('Resolve conflict markers before staging.'));
                   return;
                 }

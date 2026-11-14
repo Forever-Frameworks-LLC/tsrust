@@ -477,6 +477,7 @@ async function runGit(
 }
 
 export interface GitChange {
+  markerWidth?: int;
   path: string;
   mode: string;
   status: string;
@@ -519,6 +520,31 @@ async function repositoryChanges(root: string): Task<Result<GitChange[], string>
     },
     Err(error) => {
       return Err(error);
+    }
+  }
+
+  const conflicts = changes.filter((row) => row.mode === 'conflicts').map((row) => clone(row.path));
+
+  if (conflicts.length > 0) match (await gitOutput(root, ['check-attr', '-z', '--stdin', 'conflict-marker-size'], conflicts.join('\0') + '\0')) {
+    Err(reason) => {
+      return Err(reason);
+    },
+    Ok(text) => {
+      const fields = text.split('\0');
+      const widths = new Map<string, int>();
+
+      for (let i = 0; i + 2 < fields.length; i += 3) {
+        match (toInt(Number(fields[i + 2]))) {
+          Ok(width) => {
+            if (width > 0) widths.set(clone(fields[i]), width);
+          },
+          Err(_) => {}
+        }
+      }
+
+      for (let i = 0; i < changes.length; i += 1) {
+        if (changes[i].mode === 'conflicts') changes[i].markerWidth = widths.get(changes[i].path) ?? 7;
+      }
     }
   }
 
