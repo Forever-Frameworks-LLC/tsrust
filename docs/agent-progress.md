@@ -4,6 +4,70 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Recursive cycle cache experiment rejected; optimization deferred — 2026-11-14
+
+Owner direction after reviewing progress: retain the measured gains, do not spend
+much more effort risking regressions, and revisit optimization later unless a
+substantial improvement appears soon. The owner accepts the gains found so far
+for now. The current cycle-cache experiment has no such gain, so it is discarded.
+Do not start further speculative optimization or pursue the original <10 percent
+target as an immediate acceptance blocker; that target is deferred by the owner,
+not achieved or silently weakened. Retain its measurements for a later revisit.
+The full application/compiler acceptance goal remains incomplete; this is an
+optimization scheduling decision, not a performance pass or a request to stop the
+running Worklist/API sessions. Remaining validation may proceed without more tuning.
+
+The rejected candidate replaced four uncached recursive-cycle queries in
+analysis/native_view_storage_contracts.rs, analysis/record_branch_carriers.rs and
+analysis/continuations/records.rs with the existing native_recursive_shapes cache.
+An existing recursive_view_shapes case compared cycle membership with/without
+stored callback access. Native-view library tests passed 139/139 in 75.14s after
+3m30s setup; cycle-index cases passed 4/4 in 0.00s after 0.50s setup. Existing three
+fs helper warnings remained. Release pair built in 3m39s; LSP library passed 36/36
+in 2.40s after 2m26s setup. No backend checks or wrappers were removed. These
+passing checks did not justify retaining an unhelpful optimization; all four owned
+candidate files, including the additional test assertions, were restored from
+17bf57220. No protected owner changes were reverted.
+
+The maintained frontend-emission harness used the original three samples per
+engine/app, one untimed setup per engine/app, shared quiet-machine guard and
+byte-identical emitted Rust checks throughout. No builds/tests overlapped timing.
+
+| Frontend emission median, milliseconds | Accepted before | Rejected candidate |
+| --- | --- | --- |
+| Worklist | 2334.025792 | 2322.642000 |
+| Studio | 58162.551875 | 60021.993542 |
+
+Worklist changed by -0.49 percent; Studio by +3.20 percent. This grouped diagnostic
+comparison shows no useful gain; it does not establish a universal stable regression.
+Loads were 2.14697–3.29785, below the established limit4. Setup excluded:
+Worklist2302.56/2725.62ms,Studio57940.60/58009.04ms. Source/config aggregate SHA-256:
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Harness SHA-256 `c0e17c82be770b7380fb5aa68eb243ec53f32ef09e4ae977d3741e37aa5264d3`.
+Every emitted Rust hash matched: Worklist
+`e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`,Studio
+`fd9592913c7c63a1ee321f434f1755389154a49e7fa6be8031876cb687f7974e`.
+Baseline CLI `39221534341ccac3a786d6b26296dd368cce0953dda37b010c32b4d4f998738a`;
+rejected CLI `f86215dd4ff4f1f2b1c3d2f3bbfce0174119f67108f835f170afb47e9a767fc4`,
+rejected LSP `2a42c9bf47371a3873d01441165730b2f5c10d0d30a10720f63c9bc8fd4058b3`.
+Four histories were ingested and independently verified at
+`2026-11-14T23:22:46.457018+00:00`,3 samples each; SQLite integrity=ok. Prior histories
+remain intact. Closed raw reports are removed after checkpoint.
+
+Accepted-source release restoration passed in 3m45s. Release and installed CLI
+both match the accepted baseline hash above; release and installed LSP both match
+`7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+Whole-project formatting passed:0 source files,0 documentation snippets and0
+fingerprints changed. No new compiler/LSP source is retained. The local checkpoint
+contains only this progress record and four measurement histories. Keep
+Worklist87431/87575,API33729/45647 and Zed
+LSP75803 alive; Studio stays stopped. Owner Studio/SDK drafts and service-test
+import ordering remain unstaged. No remote actions. The <10 percent matched Rust
+target remains unmet; retain last accepted38.32/49.12 percent observations.
+Remaining product stress/zoom/visual, LSP latency/memory, full local milestones and
+supported-platform CI/PR acceptance remain open. Do not silently drop those checks
+or call the whole goal complete because optimization is being deferred.
+
 ## Native dev idle wait accepted — 2026-11-14
 
 New CLI-only source replaces the unconditional idle sleep with bounded native
