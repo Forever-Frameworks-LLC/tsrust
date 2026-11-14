@@ -22,6 +22,8 @@
   "Line": "Line",
   "Include change": "Include change",
   "Exclude change": "Exclude change",
+  "Open local model…": "Open local model…",
+  "Choose a GGUF model file.": "Choose a GGUF model file.",
   "Model download failed.": "Model download failed.",
   "Model download checksum mismatch.": "Model download checksum mismatch.",
   "Model files are unavailable.": "Model files are unavailable.",

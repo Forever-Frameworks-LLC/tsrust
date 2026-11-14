@@ -10,6 +10,9 @@ import {
   Ticker,
   Input,
   InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  pickFilePaths,
   computed,
   translate,
   signal
@@ -88,10 +91,28 @@ export function ExtensionBrowser(selected: Signal<string>, font: Signal<int>, pa
             query.set(clone(event.target.value));
           }}
         />
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            icon="folder-open"
+            tooltip={message('Open local model…')}
+            accessibilityLabel={message('Open local model…')}
+            onClick={() => {
+              pickFilePaths((files) => {
+                if (files.length === 0) return;
+                const path = clone(files[0]);
+                const catalog = modelExtensions().find((model) => join(modelFolder(model), model.filename) === path);
+
+                if (catalog === undefined && !paths.get().includes(path)) paths.set([...paths.get(), clone(path)]);
+                query.set('');
+                selected.set(catalog === undefined ? path : clone(catalog.name));
+              });
+            }}
+          />
+        </InputGroupAddon>
       </InputGroup>
       <View className="grow min-h-0 overflow-y-auto flex-col">
         {...rows}
-        {...paths.get().filter((path: ReadOnly<string>) => !modelExtensions().some((model: ReadOnly<ModelExtension>) => model.filename === basename(path))).map((path: ReadOnly<string>) => ExtensionItem(clone(path), basename(path), selected.handle(), font.handle(), query.handle()))}
+        {...paths.get().filter((path: ReadOnly<string>) => !modelExtensions().some((model: ReadOnly<ModelExtension>) => join(modelFolder(model), model.filename) === path)).map((path: ReadOnly<string>) => ExtensionItem(clone(path), basename(path), selected.handle(), font.handle(), query.handle()))}
       </View>
     </View>
   );
@@ -212,6 +233,11 @@ function LocalModelDetail(
 function activateModel(path: ReadOnly<string>, settings: Signal<StudioConfig>, ai: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, error: Signal<string>): void {
   if (path === '' || path === settings.get().aiModelPath || !['ready', 'stopped'].includes(ai.get().phase)) return;
 
+  if (!path.toLowerCase().endsWith('.gguf')) {
+    error.set('Choose a GGUF model file.');
+    return;
+  }
+
   try {
     const file = unwrap(configPath());
     let config = defaultConfig();
@@ -270,18 +296,6 @@ function activateModel(path: ReadOnly<string>, settings: Signal<StudioConfig>, a
 
 }
 
-function installedPath(paths: ReadOnly<string[]>, active: ReadOnly<string>, catalog: ReadOnly<string>, filename: ReadOnly<string>): string {
-  if (basename(active) === filename && paths.includes(active)) return clone(active);
-
-  if (paths.includes(catalog)) return clone(catalog);
-
-  for (const path of paths) {
-    if (basename(path) === filename) return clone(path);
-  }
-
-  return '';
-}
-
 function ModelRow(
   model: ReadOnly<ModelExtension>,
   paths: Signal<string[]>,
@@ -296,8 +310,7 @@ function ModelRow(
 ): Node {
   const name = clone(model.name);
   const file = join(modelFolder(model), model.filename);
-  const filename = clone(model.filename);
-  const activePath = computed<string>(() => installedPath(paths.get(), settings.get().aiModelPath, file, filename));
+  const activePath = computed<string>(() => paths.get().includes(file) ? clone(file) : '');
   const statusName = clone(name);
   const status = computed<string>(() => pending.get() === statusName ? translate('Downloading') : activePath.get() === '' ? translate('Download') : activePath.get() === settings.get().aiModelPath ? translate('Active model') : translate('Use model'));
   const size = model.filename.split('-')[2].toUpperCase();
