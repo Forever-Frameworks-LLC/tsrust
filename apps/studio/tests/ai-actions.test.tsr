@@ -1269,6 +1269,11 @@ test('attached workspace edits review and apply as one draft transaction', () =>
     reviewChatEdit(staleState, changed, recovery, review, true);
     strictEqual(changed.get().files[0].document.text, 'first');
     strictEqual(changed.get().files[1].document.text, 'owner draft');
+    const rejected = staleState.get().review;
+
+    if (rejected === undefined) throw 'Missing stale review.';
+    reviewChatEdit(staleState, changed, recovery, rejected, false);
+    strictEqual(staleState.get().history.chats[0].messages[1].text, 'The file changed. Request a new edit proposal.');
     const dismissed = signal(state.get());
     reviewChatEdit(dismissed, workspace, recovery, review, false);
     strictEqual(dismissed.get().history.chats[0].messages[1].text, 'Dismissed the edit proposal.');

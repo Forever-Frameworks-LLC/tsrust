@@ -126,7 +126,11 @@ export function reviewChatEdit(
   }
 
   chat.review = undefined;
-  recordOutcome(chat, proposal, translate(accept ? 'Applied the selected changes to the draft.' : 'Dismissed the edit proposal.'));
+  const outcome = proposal.stale === true ? 'The file changed. Request a new edit proposal.' : accept ? 'Applied the selected changes to the draft.' : 'Dismissed the edit proposal.';
+  const text = translate(outcome);
+
+  if (proposal.stale === true && chat.notice === text) chat.notice = '';
+  recordOutcome(chat, proposal, text);
   unwrap(publishChat(state, chat, persistence));
 }
 
