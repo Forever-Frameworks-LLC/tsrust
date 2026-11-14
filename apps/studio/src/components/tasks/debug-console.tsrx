@@ -21,7 +21,7 @@ import { SearchActionContext, fileSearchLabel } from '../../lib/explorer/search-
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput, SourceFrame } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput, SourceFrame, UnmappedBreakpoint } from '../../services/debug/session.tsr';
 
 import { Workspace, SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -114,7 +114,7 @@ function openDebugLocation(navigation: ReadOnly<SearchActionContext>, path: Read
 
 function BreakpointRow(
   target: SourceBreakpoint,
-  unmapped: Signal<SourceBreakpoint[]>,
+  unmapped: Signal<UnmappedBreakpoint[]>,
   listed: Signal<SourceBreakpoint[]>,
   root: ReadOnly<string>,
   running: Signal<boolean>,
@@ -129,7 +129,10 @@ function BreakpointRow(
   const line = target.line;
   const markerPath = clone(file);
   const rowLabel = clone(label);
-  const description = computed<string>(() => unmapped.get().some((point) => point.path === markerPath && point.line === line) ? translate('No executable statement') + ' · ' + clone(rowLabel) : clone(rowLabel));
+  const description = computed<string>(() => {
+    const point = unmapped.get().find((item) => item.path === markerPath && item.line === line);
+    return point === undefined ? clone(rowLabel) : translate(clone(point.reason)) + ' · ' + clone(rowLabel);
+  });
   return (
     <View className="flex-row items-center w-full min-w-0 border-b border-border hover:bg-accent">
       <Button
@@ -274,7 +277,7 @@ export function DebugSidebar(
   const locals = signal<string[]>([]);
   const localsOpen = signal(true);
   const stackOpen = signal(true);
-  const unmapped = signal<SourceBreakpoint[]>([]);
+  const unmapped = signal<UnmappedBreakpoint[]>([]);
   const rowUnmapped = unmapped.handle();
   const listRunning = running.handle();
   const breakpointWorkspace = navigation.workspace.handle();

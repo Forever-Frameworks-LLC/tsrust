@@ -257,16 +257,28 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       const longBuild = unwrap(await run(clone(compiler), ['build', 'tests/fixtures/debug-running.tsr', '-o', clone(longTarget)], {}));
       strictEqual(longBuild.status.success, true);
       await commands.send({
-        action: 'launch', program: clone(longTarget)
+        action: 'launch', program: clone(longTarget), sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }]
       });
       let started = '';
+      let sourceMapWarning = false;
 
       while (!started.includes('Running target ready')) {
         const update = await output.receive().timeout(10000);
         strictEqual(update.finished, false);
+
+        if (update.unmappedBreakpoint !== undefined) {
+          strictEqual(update.unmappedBreakpoint.path, clone(source));
+          strictEqual(update.unmappedBreakpoint.line, 11);
+          strictEqual(update.unmappedBreakpoint.reason, 'Source map unavailable');
+          sourceMapWarning = true;
+        }
+
         started += update.text;
       }
 
+      strictEqual(sourceMapWarning, true);
       await commands.send({
         action: 'pause'
       });

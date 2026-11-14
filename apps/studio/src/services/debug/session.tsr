@@ -33,9 +33,14 @@ export interface SourceFrame {
   location?: OriginalPosition;
 }
 
+export interface UnmappedBreakpoint {
+  path: string;
+  line: int;
+  reason: string;
+}
+
 export interface DebugOutput {
-  // A source line with no generated statement in the selected executable.
-  unmappedBreakpoint?: SourceBreakpoint;
+  unmappedBreakpoint?: UnmappedBreakpoint;
   frames?: SourceFrame[];
   selectedFrame?: int;
   stopId?: int;
@@ -321,8 +326,7 @@ async function launchDebugTarget(
         if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
 
         if (reply.event === 'initialized') {
-          if (requested.length > 0) mappedUnit = executableDebugUnit(program);
-          else if (breakpoint !== '') {
+          if (requested.length > 0 || breakpoint !== '') {
             match (stat(program + '.tsrust-debug')) {
               Ok(folder) => {
                 if (folder.isDirectory) {
@@ -336,6 +340,16 @@ async function launchDebugTarget(
           }
 
           if (mappedUnit !== '') positions = debugLocations(program, mappedUnit);
+
+          if (positions.size === 0) {
+            for (const point of requested) {
+              await output.send({
+                unmappedBreakpoint: {
+                  path: clone(point.path), line: point.line, reason: 'Source map unavailable'
+                }, text: 'Source map unavailable: ' + point.path + ':' + point.line.toString() + '\n', finished: false
+              });
+            }
+          }
 
           if (breakpoint !== '') {
             const entries = new Map<string, int>();
@@ -388,7 +402,9 @@ async function launchDebugTarget(
               const mapped = owners.includes(i);
               const reason = mapped ? 'The debugger could not resolve ' : 'No executable statement at ';
               await output.send({
-                unmappedBreakpoint: mapped ? undefined : clone(requested[i]), text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
+                unmappedBreakpoint: mapped ? undefined : {
+                  path: clone(requested[i].path), line: requested[i].line, reason: 'No executable statement'
+                }, text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
               });
             }
           }
@@ -401,7 +417,7 @@ async function launchDebugTarget(
               program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
             }
           }));
-        } else if (reply.event === 'initialized' && requested.length > 0) {
+        } else if (reply.event === 'initialized' && requested.length > 0 && positions.size > 0) {
           const generated: string[] = [];
 
           for (let i = 0; i < requested.length; i += 1) {
