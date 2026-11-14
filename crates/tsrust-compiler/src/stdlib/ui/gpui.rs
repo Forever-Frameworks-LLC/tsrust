@@ -28,20 +28,33 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     let reported = failure.clone();
     let app = application().with_assets(assets::Assets);
     #[cfg(target_os="macos")]
+    let launching = std::rc::Rc::new(std::cell::Cell::new(true));
+    #[cfg(target_os="macos")]
     if options.opens_folders {
         let executable = std::env::current_exe().map_err(|error| error.to_string())?;
+        let launching = launching.clone();
         app.on_open_urls(move |urls| {
-            for raw in urls {
-                let Some(folder) = url::Url::parse(&raw).ok().filter(|url| url.scheme() == "file").and_then(|url| url.to_file_path().ok())
-                    .and_then(|path| path.canonicalize().ok()).filter(|path| path.is_dir()) else {continue;};
+            let mut folders = urls.iter().filter_map(|raw| url::Url::parse(raw).ok()
+                .filter(|url| url.scheme() == "file").and_then(|url| url.to_file_path().ok())
+                .and_then(|path| path.canonicalize().ok()).filter(|path| path.is_dir()));
+            // A document-only launch has no existing workspace to preserve.
+            let first = if launching.get() && std::env::args_os().len() == 1 {folders.next()} else {None};
+            for folder in folders {
                 match std::process::Command::new(&executable).arg(&folder).current_dir(&folder).spawn() {
                     Ok(mut child) => {std::thread::spawn(move || {let _ = child.wait();});}
                     Err(error) => eprintln!("Cannot open folder {}: {error}", folder.display()),
                 }
             }
+            if let Some(folder) = first {
+                use std::os::unix::process::CommandExt;
+                let error = std::process::Command::new(&executable).arg(&folder).current_dir(&folder).exec();
+                eprintln!("Cannot open folder {}: {error}", folder.display());
+            }
         });
     }
     app.run(move |cx| {
+        #[cfg(target_os="macos")]
+        launching.set(false);
         init(cx);
         cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-k cmd-i"} else {"ctrl-k ctrl-i"}, gpui_kit::base::input::ShowHover, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);

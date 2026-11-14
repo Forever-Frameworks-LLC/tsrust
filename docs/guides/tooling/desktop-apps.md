@@ -61,8 +61,10 @@ names its profile.
 For a macOS folder-based app, set `package.opensFolders` to `true` to
 advertise folder support in the development and release bundles. Pass
 `opensFolders: true` in the main window’s `run` options to handle folder-open
-events. Each requested local directory starts another instance of the executable
-with the canonical directory as its first argument and working directory.
+events. A cold launch with only folder documents uses the first canonical folder
+as its workspace. Additional folders open separately. An existing workspace or
+one supplied explicitly on the command line stays open. Each folder instance
+receives its directory as its first argument and working directory.
 Both settings default to false.
 
 | Option | Meaning |

@@ -1257,7 +1257,7 @@ export interface WindowOptions {
   minHeight?: number;
   /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. */
   titlebar?: 'native' | 'custom';
-  /** In run on macOS, open each requested local folder in a new application process with its canonical path as the first argument. Pair with package.opensFolders for Finder discovery. */
+  /** In run on macOS, open each requested local folder in its own workspace process with its canonical path as the first argument. Pair with package.opensFolders for Finder discovery. */
   opensFolders?: boolean;
   /** Font files (.ttf or .otf) loaded before the window opens, so their families can be used. */
   fonts?: string[];
