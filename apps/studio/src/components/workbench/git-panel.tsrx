@@ -477,6 +477,7 @@ export function GitEditor(
   errorText: Signal<string>,
   hunks: Signal<DiffHunk[]>
 ): Node {
+  const resolutionButton = computed<string>(() => 'rounded-md px-3 py-1 hover:bg-accent text-[' + font.get().toString() + 'px]');
   const pathSelection = selected.handle();
   const path = computed<string>(() => join(workspace.get().root, pathSelection.get().path));
   const draft = computed<string>(() => {
@@ -497,10 +498,9 @@ export function GitEditor(
       <View className="w-full grow min-w-0 min-h-0 overflow-hidden">
         <Diff originalText={ours.get()} modifiedText={theirs.get()} filePath={selected.get().path} mode="split" headerVisible={false} softWrap={true} hunkSeparator="simple" syntaxHighlight={true} fontSize={font.get()} className="size-full" />
       </View>
-      <View hidden={!editable.get() || !hasConflictStart(draft.get(), selected.get().markerWidth ?? 7)} className="flex-row">
+      <View hidden={!editable.get() || !hasConflictStart(draft.get(), selected.get().markerWidth ?? 7)} className="flex-row flex-wrap shrink-0">
         <Button
-          variant="ghost"
-          size="small"
+          className={resolutionButton.get()}
           tooltip={message('Accept current')}
           onPress={() => {
             resolveDraft(
@@ -517,8 +517,7 @@ export function GitEditor(
           {t('Accept current')}
         </Button>
         <Button
-          variant="ghost"
-          size="small"
+          className={resolutionButton.get()}
           tooltip={message('Accept incoming')}
           onPress={() => {
             resolveDraft(
@@ -535,8 +534,7 @@ export function GitEditor(
           {t('Accept incoming')}
         </Button>
         <Button
-          variant="ghost"
-          size="small"
+          className={resolutionButton.get()}
           tooltip={message('Accept both')}
           onPress={() => {
             resolveDraft(

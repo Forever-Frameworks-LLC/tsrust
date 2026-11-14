@@ -1048,6 +1048,8 @@ Native picker interaction and hunk staging remain open.
 
 ## Workspace merge conflicts
 
+Merge editor resolution actions now use the same font-sized button styling as the save-conflict dialog, and the row allows wrapping. Previously all three controls measured 24 points high at both font settings 14 and 20. In the rebuilt macOS Studio the controls measured 22 and 28 points high respectively. Accept incoming measured 133 and 171 points wide. At each size a center pointer hit the named Accept current button and resolved the draft. Stage resolution then wrote identical expected working and index bytes, preserving the embedded literal conflict example. Whole-project formatting passed and dev supervisor 2670 launched PID 92971. These runs used the normal window width.
+
 Source Control now obtains conflict-marker-size for all unresolved paths in one NUL-delimited git check-attr call. Resolution and staging use the selected file's width. A native disposable merge with 12-character markers around a literal seven-character example failed to accept incoming on the prior build. After rebuilding, two macOS Studio replays accepted incoming and current respectively. Stage resolution preserved exact working-file and index bytes in both cases, including the complete literal conflict example in the current version. Each draft left disk unchanged before staging, and Git reported no remaining unmerged entries afterward. The focused Git suite passed 14/14 (1.747 seconds execution), including three-character markers and a workspace-relative attribute on a non-ASCII filename. Project formatting passed and the dev supervisor launched PID 90218.
 
 Source Control lists unresolved Git paths in the Conflicts tab. Its stage
