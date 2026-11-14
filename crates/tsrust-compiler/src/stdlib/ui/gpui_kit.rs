@@ -758,7 +758,15 @@ impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
         let visible=group.panels().iter().enumerate().filter(|(_,panel)|panel.visible(cx)).collect::<Vec<_>>();
         let selected=visible.iter().position(|(_,panel)|Some(panel.panel_id(cx))==active).unwrap_or(0);
         let selection=active.map(|id|(id,selected));
-        if self.2.replace(selection)!=selection {self.1.scroll_to_item(selected);}
+        if self.2.replace(selection)!=selection {
+            if self.1.bounds().size.width == px(0.) {
+                // GPUI establishes the scroll axis during the first prepaint.
+                let handle=self.1.clone();
+                window.on_next_frame(move|window,_|{handle.scroll_to_item(selected);window.refresh();});
+            } else {
+                self.1.scroll_to_item(selected);
+            }
+        }
         let mut tabs=Vec::new();let mut choices=Vec::new();
         for (ix,panel) in visible {
             let id=panel.panel_id(cx);
