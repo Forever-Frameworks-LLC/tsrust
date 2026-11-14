@@ -498,17 +498,20 @@ where
         let id = SharedString::from(format!("list-item-{}", ix));
 
         let total_items = self.rows_cache.items_count();
+        let item = self.delegate.render_item(ix, window, cx);
+        let label = item.as_ref().and_then(|item| self.delegate.row_label(item));
 
         div()
             .id(id)
             .role(Role::ListItem)
+            .when_some(label, |row, label| row.aria_label(label))
             .aria_position_in_set(ix.row + 1)
             .aria_size_of_set(total_items)
             .aria_selected(selected)
             .w_full()
             .relative()
             .overflow_hidden()
-            .children(self.delegate.render_item(ix, window, cx).map(|item| {
+            .children(item.map(|item| {
                 item.selected(selected)
                     .secondary_selected(mouse_right_clicked)
             }))

@@ -95,6 +95,10 @@ impl ListItem {
         self
     }
 
+    pub fn label_for_accessibility(&self) -> Option<SharedString> {
+        self.accessibility_label.clone()
+    }
+
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self

@@ -10,6 +10,11 @@ use crate::{
 pub trait ListDelegate: Sized + 'static {
     type Item: Selectable + IntoElement;
 
+    /// Accessible name for the selectable row containing this item.
+    fn row_label(&self, _item: &Self::Item) -> Option<gpui::SharedString> {
+        None
+    }
+
     /// When Query Input change, this method will be called.
     /// You can perform search here.
     fn perform_search(

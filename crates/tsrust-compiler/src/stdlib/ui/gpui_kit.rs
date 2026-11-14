@@ -260,6 +260,7 @@ fn list_value(list: &TsrustList, index: IndexPath) -> String {
 
 impl ListDelegate for TsrustList {
     type Item = ListItem;
+    fn row_label(&self, item: &ListItem) -> Option<SharedString> {item.label_for_accessibility()}
     fn perform_search(&mut self, query: &str, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Task<()> {
         self.query = query.to_owned();
         cx.notify();
