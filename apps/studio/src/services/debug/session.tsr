@@ -1,3 +1,4 @@
+import { Reader } from 'std:io';
 import { basename } from 'std:path';
 import { canonicalize } from 'std:fs';
 import { get } from 'std:env';
@@ -24,6 +25,8 @@ export function toggleSourceBreakpoint(points: Mutable<SourceBreakpoint[]>, path
 
 export interface DebugCommand {
   action: string;
+  generation?: int;
+  frame?: string;
   program?: string;
   stopOnEntry?: boolean;
   functionBreakpoint?: string;
@@ -58,7 +61,26 @@ function startDebugAdapter(adapter: ReadOnly<string>): Child {
   }
 }
 
-async function launchDebugTarget(adapter: string, root: string, command: ReadOnly<DebugCommand>, requests: ReadOnly<Channel<DebugCommand>>, output: ReadOnly<Sender<DebugOutput>>): Task<void> {
+async function readAdapter(reader: Reader, events: Sender<DebugCommand>, generation: int): Task<void> {
+  try {
+    while (true) await events.send({
+      action: 'frame', generation, frame: await readFrame(reader)
+    });
+  } catch (error) {
+    await events.send({
+      action: 'adapterClosed', generation, frame: JSON.stringify(error)
+    });
+  }
+}
+
+async function launchDebugTarget(
+  adapter: string,
+  root: string,
+  generation: int,
+  command: ReadOnly<DebugCommand>,
+  requests: ReadOnly<Channel<DebugCommand>>,
+  output: ReadOnly<Sender<DebugOutput>>
+): Task<void> {
   const selected = command.program ?? '';
   let program = clone(selected);
 
@@ -101,253 +123,278 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
     let mappedUnit = '';
     let positions = new Map<int, OriginalPosition>();
 
-    while (true) {
-      const reply = decodeAdapterReply(await readFrame(reader));
+    const input = readAdapter(reader, requests.sender(), generation).start();
+    let paused = false;
 
-      if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
+    try {
+      while (true) {
+        const control = await requests.receive();
 
-      if (reply.command === 'setBreakpoints' && reply.request_seq === 3) {
-        const verified = new Set<int>();
-        const points = clone(reply.body?.breakpoints) ?? [];
+        if (control.generation !== undefined && control.generation !== generation) continue;
 
-        for (let i = 0; i < points.length && i < owners.length; i += 1) {
-          if (points[i].verified) verified.add(owners[i]);
-        }
+        if (control.action === 'adapterClosed') throw control.frame ?? 'Debug adapter closed.';
 
-        for (let i = 0; i < requested.length; i += 1) {
-          if (!verified.has(i)) throw 'The debugger could not resolve ' + requested[i].path + ':' + requested[i].line.toString();
-        }
-      }
+        if (control.action !== 'frame') {
+          if (disconnectRequest !== 0 || (!paused && control.action !== 'stop')) continue;
+          paused = false;
 
-      if (reply.command === 'initialize') {
-        if (breakpoint !== '' && reply.body?.supportsFunctionBreakpoints !== true) throw 'Adapter does not support function breakpoints.';
-        await writeFrame(writer, JSON.stringify({
-          seq: 2, type: 'request', command: 'launch', arguments: {
-            program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
-          }
-        }));
-      } else if (reply.event === 'initialized' && requested.length > 0) {
-        mappedUnit = executableDebugUnit(program);
-        positions = debugLocations(program, mappedUnit);
-        const generated: string[] = [];
-
-        for (let i = 0; i < requested.length; i += 1) {
-          const point = requested[i];
-          const before = generated.length;
-
-          for (const entry of positions.entries()) {
-            if (entry[1].path !== point.path || entry[1].line !== point.line) continue;
-            generated.push('{"line":' + entry[0].toString() + '}');
-            owners.push(i);
-          }
-
-          if (before === generated.length) throw 'No executable statement at ' + point.path + ':' + point.line.toString();
-        }
-
-        await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
-      } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '') {
-        await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
-      } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
-        if (reply.command === 'setFunctionBreakpoints') {
-          const points = clone(reply.body?.breakpoints) ?? [];
-          const verified = points.length === 1 && points[0].verified;
-          await output.send({
-            text: (verified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
-          });
-        }
-
-        await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
-      } else if (reply.event === 'stopped') {
-        pausedText = '';
-        pausedLocation = undefined;
-        locals = [];
-        watchValue = undefined;
-        thread = reply.body?.threadId ?? 0;
-
-        if (thread <= 0) throw 'Stopped thread unavailable.';
-        stopReason = clone(reply.body?.reason ?? 'unknown');
-        stackRequest = seq;
-        await writeFrame(writer, JSON.stringify({
-          seq, type: 'request', command: 'stackTrace', arguments: {
-            threadId: thread
-          }
-        }));
-        seq += 1;
-      } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest) || (reply.command === 'scopes' && reply.request_seq === scopesRequest) || (reply.command === 'variables' && reply.request_seq === variablesRequest)) {
-        let text = '';
-        let location: OriginalPosition | undefined = undefined;
-
-        if (reply.command === 'scopes') {
-          scopesRequest = 0;
-          const scopes = clone(reply.body?.scopes) ?? [];
-          const scope = scopes.find((entry) => entry.presentationHint === 'locals' || entry.name.toLowerCase() === 'locals');
-
-          if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
-
-          if (scope !== undefined && scope.variablesReference > 0) {
-            variablesRequest = seq;
+          if (control.action === 'stop') {
+            disconnectRequest = seq;
             await writeFrame(writer, JSON.stringify({
-              seq, type: 'request', command: 'variables', arguments: {
-                variablesReference: scope.variablesReference
+              seq, type: 'request', command: 'disconnect', arguments: {
+                terminateDebuggee: true
               }
             }));
-            seq += 1;
-          }
-        } else if (reply.command === 'variables') {
-          variablesRequest = 0;
-
-          if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
-          else {
-            const names = clone(pausedLocation?.parameters) ?? [];
-
-            for (const variable of clone(reply.body?.variables) ?? []) {
-              let name = clone(variable.name);
-
-              for (let slot = 0; slot < names.length; slot += 1) {
-                if (variable.name === 'value' + slot.toString()) {
-                  name = clone(names[slot]);
-                  break;
-                }
-              }
-
-              locals.push(name + ' = ' + variable.value);
-            }
-          }
-        } else if (reply.command === 'evaluate') {
-          watchRequest = 0;
-          watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');
-        } else {
-          stackRequest = 0;
-          text = '\nStopped: ' + stopReason + '\n';
-
-          if (reply.success === false) text += (reply.message ?? 'Call stack unavailable.') + '\n';
-          else {
-            const frames = clone(reply.body?.stackFrames) ?? [];
-
-            for (let i = 0; i < frames.length; i += 1) {
-              const frame = frames[i];
-              text += '#' + i.toString() + ' ' + frame.name;
-              const source = frame.source?.path ?? frame.source?.name ?? '';
-
-              if (source.endsWith('.rs') && source.includes('.tsrust-debug') && source !== mappedUnit) {
-                positions = debugLocations(program, source);
-                mappedUnit = clone(source);
-              }
-
-              const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
-
-              if (original !== undefined) {
-                text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();
-
-                if (i === 0) location = clone(original);
-              } else if (source !== '') {
-                text += '  ' + source;
-
-                if (frame.line > 0) text += ':' + frame.line.toString();
-
-                if (frame.line > 0 && frame.column > 0) text += ':' + frame.column.toString();
-              }
-
-              if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
-              text += '\n';
-            }
-
-            currentLine = location === undefined || frames.length === 0 ? '' : JSON.stringify([thread.toString(), frames.length.toString(), clone(frames[0].name), clone(location.path), location.line.toString()]);
-            currentAddress = frames.length === 0 ? '' : clone(frames[0].instructionPointerReference ?? '');
-
-            if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
+          } else if (control.action === 'next' || control.action === 'stepOver') {
+            if (control.action === 'stepOver') {
+              steppingLine = clone(currentLine);
+              stepAddresses = new Set<string>();
               stepAddresses.add(clone(currentAddress));
-              await writeFrame(writer, JSON.stringify({
-                seq, type: 'request', command: 'next', arguments: {
-                  threadId: thread, granularity: 'line'
-                }
-              }));
-              seq += 1;
-              continue;
             }
 
-            if (frames.length > 0) {
-              scopesRequest = seq;
-              await writeFrame(writer, JSON.stringify({
-                seq, type: 'request', command: 'scopes', arguments: {
-                  frameId: frames[0].id
-                }
-              }));
-              seq += 1;
-            }
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'next', arguments: {
+                threadId: thread, granularity: control.action === 'next' ? 'instruction' : 'line'
+              }
+            }));
+          } else if (control.action === 'continue') {
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'continue', arguments: {
+                threadId: thread
+              }
+            }));
+          } else throw 'Invalid debugger control.';
 
-            if (watch !== '' && frames.length > 0) {
-              const parameters = clone(location?.parameters) ?? [];
-              const slot = parameters.findIndex((name) => name === watch);
-              watchRequest = seq;
-              await writeFrame(writer, JSON.stringify({
-                seq, type: 'request', command: 'evaluate', arguments: {
-                  expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId: frames[0].id
-                }
-              }));
-              seq += 1;
-            }
-
-          }
-
-          steppingLine = '';
-          pausedLocation = clone(location);
-
-        }
-
-        pausedText += text;
-
-        if (watchRequest !== 0 || scopesRequest !== 0 || variablesRequest !== 0) {
+          seq += 1;
           continue;
         }
 
-        await output.send({
-          text: clone(pausedText), location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
-        });
-        const control = await requests.receive();
+        const reply = decodeAdapterReply(control.frame ?? '');
 
-        if (control.action === 'stop') {
-          disconnectRequest = seq;
-          await writeFrame(writer, JSON.stringify({
-            seq, type: 'request', command: 'disconnect', arguments: {
-              terminateDebuggee: true
-            }
-          }));
-        } else if (control.action === 'next' || control.action === 'stepOver') {
-          if (control.action === 'stepOver') {
-            steppingLine = clone(currentLine);
-            stepAddresses = new Set<string>();
-            stepAddresses.add(clone(currentAddress));
+        if (disconnectRequest !== 0 && reply.request_seq !== disconnectRequest) continue;
+
+        if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
+
+        if (reply.command === 'setBreakpoints' && reply.request_seq === 3) {
+          const verified = new Set<int>();
+          const points = clone(reply.body?.breakpoints) ?? [];
+
+          for (let i = 0; i < points.length && i < owners.length; i += 1) {
+            if (points[i].verified) verified.add(owners[i]);
           }
 
+          for (let i = 0; i < requested.length; i += 1) {
+            if (!verified.has(i)) throw 'The debugger could not resolve ' + requested[i].path + ':' + requested[i].line.toString();
+          }
+        }
+
+        if (reply.command === 'initialize') {
+          if (breakpoint !== '' && reply.body?.supportsFunctionBreakpoints !== true) throw 'Adapter does not support function breakpoints.';
           await writeFrame(writer, JSON.stringify({
-            seq, type: 'request', command: 'next', arguments: {
-              threadId: thread, granularity: control.action === 'next' ? 'instruction' : 'line'
+            seq: 2, type: 'request', command: 'launch', arguments: {
+              program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
             }
           }));
-        } else if (control.action === 'continue') {
+        } else if (reply.event === 'initialized' && requested.length > 0) {
+          mappedUnit = executableDebugUnit(program);
+          positions = debugLocations(program, mappedUnit);
+          const generated: string[] = [];
+
+          for (let i = 0; i < requested.length; i += 1) {
+            const point = requested[i];
+            const before = generated.length;
+
+            for (const entry of positions.entries()) {
+              if (entry[1].path !== point.path || entry[1].line !== point.line) continue;
+              generated.push('{"line":' + entry[0].toString() + '}');
+              owners.push(i);
+            }
+
+            if (before === generated.length) throw 'No executable statement at ' + point.path + ':' + point.line.toString();
+          }
+
+          await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
+        } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '') {
+          await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
+        } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
+          if (reply.command === 'setFunctionBreakpoints') {
+            const points = clone(reply.body?.breakpoints) ?? [];
+            const verified = points.length === 1 && points[0].verified;
+            await output.send({
+              text: (verified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
+            });
+          }
+
+          await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
+        } else if (reply.event === 'stopped') {
+          pausedText = '';
+          pausedLocation = undefined;
+          locals = [];
+          watchValue = undefined;
+          thread = reply.body?.threadId ?? 0;
+
+          if (thread <= 0) throw 'Stopped thread unavailable.';
+          stopReason = clone(reply.body?.reason ?? 'unknown');
+          stackRequest = seq;
           await writeFrame(writer, JSON.stringify({
-            seq, type: 'request', command: 'continue', arguments: {
+            seq, type: 'request', command: 'stackTrace', arguments: {
               threadId: thread
             }
           }));
-        } else throw 'Invalid debugger control.';
+          seq += 1;
+        } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest) || (reply.command === 'scopes' && reply.request_seq === scopesRequest) || (reply.command === 'variables' && reply.request_seq === variablesRequest)) {
+          let text = '';
+          let location: OriginalPosition | undefined = undefined;
 
-        seq += 1;
-      } else if (reply.event === 'output') {
-        await output.send({
-          text: clone(reply.body?.output ?? ''), finished: false
-        });
-      } else if (reply.event === 'exited') {
-        await output.send({
-          text: exitStatusText(reply.body?.exitCode), finished: false
-        });
-      } else if (reply.command === 'disconnect' && reply.request_seq === disconnectRequest) {
-        await output.send({
-          text: '\nDebug session stopped.\n', finished: false
-        });
-        return;
-      } else if (reply.event === 'terminated' && disconnectRequest === 0) return;
+          if (reply.command === 'scopes') {
+            scopesRequest = 0;
+            const scopes = clone(reply.body?.scopes) ?? [];
+            const scope = scopes.find((entry) => entry.presentationHint === 'locals' || entry.name.toLowerCase() === 'locals');
+
+            if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+
+            if (scope !== undefined && scope.variablesReference > 0) {
+              variablesRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'variables', arguments: {
+                  variablesReference: scope.variablesReference
+                }
+              }));
+              seq += 1;
+            }
+          } else if (reply.command === 'variables') {
+            variablesRequest = 0;
+
+            if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+            else {
+              const names = clone(pausedLocation?.parameters) ?? [];
+
+              for (const variable of clone(reply.body?.variables) ?? []) {
+                let name = clone(variable.name);
+
+                for (let slot = 0; slot < names.length; slot += 1) {
+                  if (variable.name === 'value' + slot.toString()) {
+                    name = clone(names[slot]);
+                    break;
+                  }
+                }
+
+                locals.push(name + ' = ' + variable.value);
+              }
+            }
+          } else if (reply.command === 'evaluate') {
+            watchRequest = 0;
+            watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');
+          } else {
+            stackRequest = 0;
+            text = '\nStopped: ' + stopReason + '\n';
+
+            if (reply.success === false) text += (reply.message ?? 'Call stack unavailable.') + '\n';
+            else {
+              const frames = clone(reply.body?.stackFrames) ?? [];
+
+              for (let i = 0; i < frames.length; i += 1) {
+                const frame = frames[i];
+                text += '#' + i.toString() + ' ' + frame.name;
+                const source = frame.source?.path ?? frame.source?.name ?? '';
+
+                if (source.endsWith('.rs') && source.includes('.tsrust-debug') && source !== mappedUnit) {
+                  positions = debugLocations(program, source);
+                  mappedUnit = clone(source);
+                }
+
+                const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
+
+                if (original !== undefined) {
+                  text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();
+
+                  if (i === 0) location = clone(original);
+                } else if (source !== '') {
+                  text += '  ' + source;
+
+                  if (frame.line > 0) text += ':' + frame.line.toString();
+
+                  if (frame.line > 0 && frame.column > 0) text += ':' + frame.column.toString();
+                }
+
+                if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
+                text += '\n';
+              }
+
+              currentLine = location === undefined || frames.length === 0 ? '' : JSON.stringify([thread.toString(), frames.length.toString(), clone(frames[0].name), clone(location.path), location.line.toString()]);
+              currentAddress = frames.length === 0 ? '' : clone(frames[0].instructionPointerReference ?? '');
+
+              if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
+                stepAddresses.add(clone(currentAddress));
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'next', arguments: {
+                    threadId: thread, granularity: 'line'
+                  }
+                }));
+                seq += 1;
+                continue;
+              }
+
+              if (frames.length > 0) {
+                scopesRequest = seq;
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'scopes', arguments: {
+                    frameId: frames[0].id
+                  }
+                }));
+                seq += 1;
+              }
+
+              if (watch !== '' && frames.length > 0) {
+                const parameters = clone(location?.parameters) ?? [];
+                const slot = parameters.findIndex((name) => name === watch);
+                watchRequest = seq;
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'evaluate', arguments: {
+                    expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId: frames[0].id
+                  }
+                }));
+                seq += 1;
+              }
+
+            }
+
+            steppingLine = '';
+            pausedLocation = clone(location);
+
+          }
+
+          pausedText += text;
+
+          if (watchRequest !== 0 || scopesRequest !== 0 || variablesRequest !== 0) {
+            continue;
+          }
+
+          await output.send({
+            text: clone(pausedText), location: clone(pausedLocation), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+          });
+          paused = true;
+        } else if (reply.event === 'output') {
+          await output.send({
+            text: clone(reply.body?.output ?? ''), finished: false
+          });
+        } else if (reply.event === 'exited') {
+          await output.send({
+            text: exitStatusText(reply.body?.exitCode), finished: false
+          });
+        } else if (reply.command === 'disconnect' && reply.request_seq === disconnectRequest) {
+          await output.send({
+            text: '\nDebug session stopped.\n', finished: false
+          });
+          return;
+        } else if (reply.event === 'terminated' && disconnectRequest === 0) return;
+      }
+    } finally {
+      input.cancel();
+
+      try {
+        await input;
+      } catch (_) {}
     }
   } finally {
     try {
@@ -359,14 +406,26 @@ async function launchDebugTarget(adapter: string, root: string, command: ReadOnl
 }
 
 export async function debugWorker(root: string, requests: Channel<DebugCommand>, output: Sender<DebugOutput>, configuredAdapter?: string): Task<void> {
+  let generation = 0;
+
   while (true) {
     const command = await requests.receive();
+
+    if (command.action !== 'launch') continue;
+    generation += 1;
     let error = '';
 
     try {
-      if (command.action !== 'launch' || !command.program) throw 'Select an executable to debug.';
+      if (!command.program) throw 'Select an executable to debug.';
       const adapter = clone(configuredAdapter) ?? unwrap(get('LLDB_DAP')) ?? 'lldb-dap';
-      await launchDebugTarget(adapter === '' ? 'lldb-dap' : clone(adapter), clone(root), command, requests, output);
+      await launchDebugTarget(
+        adapter === '' ? 'lldb-dap' : clone(adapter),
+        clone(root),
+        generation,
+        command,
+        requests,
+        output
+      );
     } catch (reason) {
       if (typeof reason === 'string') error = reason;
       else error = JSON.stringify(reason);

@@ -515,7 +515,7 @@ function App(
         command="debug-stop"
         keys="shift-f5"
         onTrigger={() => {
-          sendDebugControl(stopControl, debuggerPaused, debugOutput, 'stop');
+          if (debuggerRunning.get()) sendDebugControl(stopControl, debuggerPaused, debugOutput, 'stop');
         }}
       />
       <Shortcut

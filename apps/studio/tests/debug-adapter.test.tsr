@@ -252,6 +252,26 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       });
       const missing = await consoleResult(output);
       strictEqual(missing.includes(folder + '/missing'), true);
+      const longTarget = folder + '/debug-running';
+      const longBuild = unwrap(await run(clone(compiler), ['build', 'tests/fixtures/debug-running.tsr', '-o', clone(longTarget)], {}));
+      strictEqual(longBuild.status.success, true);
+      await commands.send({
+        action: 'launch', program: clone(longTarget)
+      });
+      let started = '';
+
+      while (!started.includes('Running target ready')) {
+        const update = await output.receive().timeout(10000);
+        strictEqual(update.finished, false);
+        started += update.text;
+      }
+
+      await commands.send({
+        action: 'stop'
+      });
+      const interrupted = await consoleResult(output);
+      strictEqual(interrupted.includes('Debug session stopped.'), true);
+      strictEqual(interrupted.includes('Running target completed'), false);
       const marker = folder + '/studio-debug-mode';
       unwrap(writeTextFileAtomic(marker, 'fail'));
       const control = unwrap(await run(clone(program), [], {

@@ -36,7 +36,7 @@ export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<S
 }
 
 export function sendDebugControl(sender: ReadOnly<Sender<DebugCommand>>, stopped: Signal<boolean>, output: Signal<string>, action: string): void {
-  if (!stopped.get()) return;
+  if (action !== 'stop' && !stopped.get()) return;
 
   match (sender.trySend({
     action
@@ -244,6 +244,8 @@ export function DebugSidebar(
             'Step instruction',
             font
           )}
+        </View>
+        <View hidden={!running.get()} className="flex-col items-start">
           {DebugControl(
             requests,
             stopped,

@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Stop debugging and Shift+F5 now terminate a running target as well as a paused one. The worker reads complete DAP frames independently and handles controls while the program runs. The real Xcode LLDB suite passed 8/8 (6.82 s execution), including stopping a target after its ready message during a 30-second delay and launching another session. In an isolated rebuilt Studio window, F5 launched the delayed fixture without breakpoints, its ready message appeared in the Debug Console, and Shift+F5 produced “Debug session stopped.” Verified on macOS arm64.
+
 F5 opens the executable picker and Run and Debug when idle, and continues a paused target. Shift+F5 stops a paused session. Two isolated native Studio replays launched through F5, hit a mapped breakpoint and focused the source editor. The continue replay reached exit code zero; the stop replay reported session stopped. The worker still reads controls at stops; interrupting a freely running target remains open.
 
 A watch consisting of an exact mapped source parameter name now evaluates its generated LLDB slot in the stopped frame. An isolated native Studio replay entered n before launch, stopped at the return in twice(6), and observed Watch value 6 and local n = 6. Existing native register/error watches and debugger regressions passed 8/8 (5.85 s execution). Compound expressions still use the adapter expression language directly.
