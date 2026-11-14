@@ -83,9 +83,9 @@ pub(crate) fn console_module(asynchronous_testing:bool)->String {
 /// This predicate preserves exact bundled module and Rust-binding detection without extraction.
 pub fn requires_dependencies(source:&str)->bool {
     if source.contains(crate::stdlib::logging::RUNTIME){return true;}
-    let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let tasks=[true,false].into_iter().any(|testing|source.contains(&futures_module(testing)) || [true,false].into_iter().any(|asynchronous|source.contains(&threads_module(asynchronous,testing))));
-    source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || source.contains(&crate::stdlib::io::runtime()) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || source.contains(&files_module()) || source.contains(&crate::stdlib::ui::runtime(true)) || source.contains(&crate::stdlib::ui::runtime(false))
+    let json=source.contains("mod tsrust_native_json {").then(||[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module))).flatten();
+    let tasks=(source.contains("mod tsrust_native_futures {") && [true,false].into_iter().any(|testing|source.contains(&futures_module(testing)))) || (source.contains("mod tsrust_native_threads {") && [true,false].into_iter().any(|testing|[true,false].into_iter().any(|asynchronous|source.contains(&threads_module(asynchronous,testing)))));
+    source.contains(crate::stdlib::process::RUNTIME) || source.contains(crate::stdlib::compression::RUNTIME) || source.contains(crate::stdlib::net::TRANSPORT_RUNTIME) || source.contains(crate::stdlib::net::DNS_RUNTIME) || (source.contains("mod tsrust_native_io {") && source.contains(&crate::stdlib::io::runtime())) || requires_hostname(source) || source.contains(crate::stdlib::locale::RUNTIME) || source.contains(crate::stdlib::regex::RUNTIME) || source.contains(crate::stdlib::url::RUNTIME) || requires_byte_codecs(source) || requires_byte_search(source) || (source.contains("mod tsrust_native_files {") && source.contains(&files_module())) || (source.contains("mod tsrust_native_ui {") && [true,false].into_iter().any(|native|source.contains(&crate::stdlib::ui::runtime(native))))
         || source.contains(crate::stdlib::signals::RUNTIME) || source.contains(crate::stdlib::crypto::RUNTIME) || source.contains(crate::stdlib::crypto::PASSWORD_RUNTIME) || source.contains(crate::stdlib::uuid::RUNTIME) || source.contains(crate::stdlib::date::RUNTIME) || source.contains(crate::stdlib::decimal::RUNTIME) || source.contains(crate::stdlib::sql::RUNTIME) || source.contains(crate::stdlib::sqlite::RUNTIME) || json.as_ref().is_some_and(|module|source.contains(module)) || tasks || source.contains(crate::stdlib::futures::CANCELLATION_RUNTIME) || source.contains("use rayon as tsr_rayon;") || source.contains(crate::project::rust::dependencies::MARKER)
 }
 
@@ -102,7 +102,7 @@ pub fn separate(source:&str)->Units {
     if source.contains("String::Borrowed(\"Terminal\")"){runtime.push_str(crate::stdlib::ui::TERMINAL_MARKER);}
     // GPUI Kit embeds only its default icons; a program naming any other catalog
     // icon registers the complete bundled set instead.
-    let all_icons=include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")")));
+    let all_icons=source.contains("mod tsrust_native_ui {") && include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")")));
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
         if let Ok(package)=serde_json::from_str::<crate::project::rust::dependencies::Package>(line.trim_start_matches(crate::project::rust::dependencies::MARKER)) {
@@ -116,54 +116,61 @@ pub fn separate(source:&str)->Units {
 
     if source.contains("use tracing as tsr_tracing;"){application=application.replace("use tracing as tsr_tracing;","use tsrust_runtime::tracing as tsr_tracing;");runtime.push_str("pub use tracing;\n");}
     if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
-    let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
+    let json=source.contains("mod tsrust_native_json {").then(||[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module))).flatten();
     let dependencies=requires_dependencies(source);
-    let mut extract=|name:&str,module:String| {
-        if application.contains(&module) {
-            application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));
-            runtime.push_str("pub ");runtime.push_str(&module);
-        }
-    };
+    // Candidate bodies can be large. Build them only while their module header remains.
+    macro_rules! extract {
+        ($name:literal, $module:expr $(,)?) => {
+            if application.contains(concat!("mod ", $name, " {")) {
+                let module = $module;
+                if application.contains(&module) {
+                    application = application.replace(&module, concat!("use tsrust_runtime::", $name, ";\n"));
+                    runtime.push_str("pub ");
+                    runtime.push_str(&module);
+                }
+            }
+        };
+    }
     for native in [true, false] {
-        extract("tsrust_native_ui", crate::stdlib::ui::runtime(native));
+        extract!("tsrust_native_ui", crate::stdlib::ui::runtime(native));
     }
-    extract("tsrust_native_date",crate::stdlib::date::RUNTIME.to_owned(),
+    extract!("tsrust_native_date",crate::stdlib::date::RUNTIME.to_owned(),
     );
-    extract("tsrust_native_signals",crate::stdlib::signals::RUNTIME.to_owned(),
+    extract!("tsrust_native_signals",crate::stdlib::signals::RUNTIME.to_owned(),
     );
-    extract("tsrust_native_crypto",crate::stdlib::crypto::RUNTIME.to_owned(),
+    extract!("tsrust_native_crypto",crate::stdlib::crypto::RUNTIME.to_owned(),
     );
-    extract("tsrust_native_crypto_password",crate::stdlib::crypto::PASSWORD_RUNTIME.to_owned());
-    extract("tsrust_native_uuid",crate::stdlib::uuid::RUNTIME.to_owned(),
+    extract!("tsrust_native_crypto_password",crate::stdlib::crypto::PASSWORD_RUNTIME.to_owned());
+    extract!("tsrust_native_uuid",crate::stdlib::uuid::RUNTIME.to_owned(),
     );
-    extract("tsrust_native_decimal",crate::stdlib::decimal::RUNTIME.to_owned(),
+    extract!("tsrust_native_decimal",crate::stdlib::decimal::RUNTIME.to_owned(),
     );
-    extract("tsrust_native_hostname",crate::stdlib::os::HOSTNAME_RUNTIME.to_owned());
-    extract("tsrust_native_locale",crate::stdlib::locale::RUNTIME.to_owned());
-    extract("tsrust_native_net",crate::stdlib::net::RUNTIME.to_owned());
-    extract("tsrust_native_dns",crate::stdlib::net::DNS_RUNTIME.to_owned());
-    extract("tsrust_native_net_transport",crate::stdlib::net::TRANSPORT_RUNTIME.to_owned());
-    extract("tsrust_native_net_io",crate::stdlib::net::IO_RUNTIME.to_owned());
-    extract("tsrust_native_regex",crate::stdlib::regex::RUNTIME.to_owned());
-    extract("tsrust_native_url",crate::stdlib::url::RUNTIME.to_owned());
-    extract("tsrust_native_process",crate::stdlib::process::RUNTIME.to_owned());
-    extract("tsrust_native_compression_streams",crate::stdlib::compression::STREAM_RUNTIME.to_owned());
-    extract("tsrust_native_compression",crate::stdlib::compression::RUNTIME.to_owned());
-    extract("tsrust_native_io",crate::stdlib::io::runtime());
-    extract("tsrust_native_http_io",crate::stdlib::io::HTTP_RUNTIME.to_owned());
-    extract("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());
-    extract("tsrust_native_sqlite",crate::stdlib::sqlite::RUNTIME.to_owned());
-    extract("tsrust_native_http",crate::stdlib::http::runtime());
+    extract!("tsrust_native_hostname",crate::stdlib::os::HOSTNAME_RUNTIME.to_owned());
+    extract!("tsrust_native_locale",crate::stdlib::locale::RUNTIME.to_owned());
+    extract!("tsrust_native_net",crate::stdlib::net::RUNTIME.to_owned());
+    extract!("tsrust_native_dns",crate::stdlib::net::DNS_RUNTIME.to_owned());
+    extract!("tsrust_native_net_transport",crate::stdlib::net::TRANSPORT_RUNTIME.to_owned());
+    extract!("tsrust_native_net_io",crate::stdlib::net::IO_RUNTIME.to_owned());
+    extract!("tsrust_native_regex",crate::stdlib::regex::RUNTIME.to_owned());
+    extract!("tsrust_native_url",crate::stdlib::url::RUNTIME.to_owned());
+    extract!("tsrust_native_process",crate::stdlib::process::RUNTIME.to_owned());
+    extract!("tsrust_native_compression_streams",crate::stdlib::compression::STREAM_RUNTIME.to_owned());
+    extract!("tsrust_native_compression",crate::stdlib::compression::RUNTIME.to_owned());
+    extract!("tsrust_native_io",crate::stdlib::io::runtime());
+    extract!("tsrust_native_http_io",crate::stdlib::io::HTTP_RUNTIME.to_owned());
+    extract!("tsrust_native_sql",crate::stdlib::sql::RUNTIME.to_owned());
+    extract!("tsrust_native_sqlite",crate::stdlib::sqlite::RUNTIME.to_owned());
+    extract!("tsrust_native_http",crate::stdlib::http::runtime());
     for testing in [true,false] {
-        extract("tsrust_native_futures",futures_module(testing));
-        for asynchronous in [true,false] {extract("tsrust_native_threads",threads_module(asynchronous,testing));}
+        extract!("tsrust_native_futures",futures_module(testing));
+        for asynchronous in [true,false] {extract!("tsrust_native_threads",threads_module(asynchronous,testing));}
     }
-    extract("tsrust_native_cancellation",crate::stdlib::futures::CANCELLATION_RUNTIME.to_owned());
+    extract!("tsrust_native_cancellation",crate::stdlib::futures::CANCELLATION_RUNTIME.to_owned());
     // Match complete variants; no feature is added merely because another is used.
-    for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
-    if let Some(module)=json {extract("tsrust_native_json",module);}
-    extract("tsrust_native_logging",crate::stdlib::logging::RUNTIME.to_owned());
-    extract("tsrust_native_discovery",discovery_module());extract("tsrust_native_files",files_module());extract("tsrust_native_tempfiles",tempfiles_module());extract("tsrust_native_atomic_files",atomic_files_module());extract("tsrust_native_path",path_module());
+    for views in [true,false] {for utf8 in [true,false] {for (codecs,base64) in [(false,false),(true,false),(true,true)] {for operations in [false,true] {for binary in [false,true] {for search in [false,true] {extract!("tsrust_native_bytes",bytes_module(views,utf8,codecs,base64,operations,binary,search));}}}}}}
+    if let Some(module)=json {extract!("tsrust_native_json",module);}
+    extract!("tsrust_native_logging",crate::stdlib::logging::RUNTIME.to_owned());
+    extract!("tsrust_native_discovery",discovery_module());extract!("tsrust_native_files",files_module());extract!("tsrust_native_tempfiles",tempfiles_module());extract!("tsrust_native_atomic_files",atomic_files_module());extract!("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.
         application=application.replace(crate::runtime::STRINGS,&format!("use tsrust_runtime::text::*;\n{}",crate::runtime::NUMBER_TIE));
@@ -194,6 +201,22 @@ pub fn separate(source:&str)->Units {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn module_header_guards_keep_incomplete_definitions_and_extract_both_ui_variants() {
+        let incomplete = "mod tsrust_native_ui { /* incomplete */";
+        assert!(!requires_dependencies(incomplete));
+        let units = separate(incomplete);
+        assert_eq!(units.application, incomplete);
+        assert!(units.runtime.is_none());
+        for native in [false, true] {
+            let source = crate::stdlib::ui::runtime(native);
+            assert!(requires_dependencies(&source));
+            let units = separate(&source);
+            assert_eq!(units.application, "use tsrust_runtime::tsrust_native_ui;\n");
+            assert!(units.runtime.unwrap().contains("pub mod tsrust_native_ui {"));
+        }
+    }
 
     #[test]
     fn dependency_predicate_agrees_with_extraction_for_plain_files_url_and_bindings() {

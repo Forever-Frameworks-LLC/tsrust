@@ -31,3 +31,26 @@ repeat distributions and more edit/lifecycle cases remain milestone acceptance w
 
 Run harness unit checks with `python3 benchmarks/dev/test_baseline.py`. CPU/RSS
 collection requires local process inspection permission on sandboxed hosts.
+
+## Matched application compilation
+
+Run `python3 benchmarks/dev/rust_control.py --compiler /absolute/path/to/tsrust`.
+This Unix-host protocol takes three alternating-order samples for each established
+graph size. Untimed setup captures the actual prepared Rust source, compiler
+arguments and shared runtime archive from a successful native build. The direct
+control uses those exact flags, the pinned Rust toolchain and identical runtime
+bytes. Both engines verify the independent integer-output oracle outside timing.
+
+Each timed Tsrust build must report an application native-cache miss and a warm
+support-library hit. The application cache is cleared between samples while its
+support cache is retained. This measures fresh application compilation with warm
+support, including Tsrust checking, emission, backend validation, support lookup,
+linking and cache publication. It does not measure cold dependency compilation,
+unchanged build reuse or edit-to-render watcher latency. The separate dev-loop
+protocol retains those workflow observations. Windows invocation capture is
+explicitly unsupported until a native process wrapper is implemented.
+
+The record uses the shared SQLite ingester's manifest/execution format and also
+contains prepared-source hashes, compiler identity, actual commands and phase
+observations. Three development-session samples are an initial diagnostic
+baseline. A stable overhead claim requires matched quiet-machine repetition.

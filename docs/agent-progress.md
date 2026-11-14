@@ -4,6 +4,62 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Lazy runtime extraction and matched Rust controls — 2026-11-14
+
+Completed the pending runtime-extraction optimization and matched native-build
+control. Runtime dependency detection and extraction now check exact module
+headers before constructing large bundled module variants. Exact whole-body
+matching remains mandatory, so incomplete definitions stay untouched. Both UI
+variants and existing bytes, JSON, threads, futures and dependency selection
+checks remain covered. No compiler checks or backend identity validation were
+removed. Public build/dev/export consumers share this runtime boundary.
+
+Compiler library acceptance passed 1553/1553 with 8 preexisting ignored tests in
+138.29 seconds execution. Public dev alias, cancellation and color integration
+suites passed 9/9 in 2.69, 8.73 and 1.21 seconds respectively. The Worklist SQL/HTTP
+suites passed 2/2 in 247.95 ms. Release compiler/server build passed in 3m51s;
+compilation/setup is separate from test execution. Harness checks passed 3/3.
+Compiler/LSP all-target offline checking also passed (1m38s setup), with existing
+test-harness dead-code/unused-import warnings and an atomic fetch_update
+deprecation. No warnings point into this runtime extraction change. Whole-project
+formatting made no changes. Existing owner Studio edits and pending selection
+recovery remain outside this checkpoint.
+
+Added benchmarks/dev/rust_control.py using the existing 6/130-module graphs.
+Untimed setup captures the actual prepared Rust source, pinned compiler invocation
+and support archive. Each timed Tsrust build must miss the application cache and
+hit its warm support cache. Its direct Rust control receives identical prepared
+source, compiler flags and support bytes. Alternating sample order and independent
+integer-output assertions remain explicit. Records include compiler/harness/source/
+support hashes and backend version. Windows capture requires a native wrapper and
+is deliberately rejected. This protocol measures fresh application compilation
+with warm support, not cold dependency builds or watcher edit latency.
+
+Three-sample initial matched medians before optimization were 244.92/119.44 ms
+(Tsrust/Rust) for 6 modules and 276.17/136.25 ms for 130 modules. The final control
+with complete identity metadata observed 150.58/100.20 ms and 191.42/125.03 ms:
+50.29% and 53.09% overhead. An earlier post-change serial observation was
+147.32/104.55 ms and 200.53/122.74 ms. These are development-session observations,
+not stable quiet-machine performance claims. All valid observations were ingested
+through the shared SQLite tool; raw reports are disposable. The <10% goal remains
+unmet. Backend validation and remaining frontend/cache costs still need profiling.
+
+The unchanged dev-loop protocol also completed its original three samples per
+graph, including idle observations. Warm startup medians were 113.89/141.51 ms,
+leaf edits 451.60/491.30 ms, shared edits 457.81/462.13 ms and config edits
+259.02/332.29 ms for 6/130 modules. Ten workloads were ingested separately from
+the matched Rust controls. Do not substitute these observations for matched
+native build overhead or claim universal edit-speed improvement.
+
+Rechecked the Zed grammar: all three reviewed corpus cases pass and all 132
+current Studio .tsr/.tsrx files parse without error/missing nodes. The dedicated
+match/ownership/typed-JSX grammar and local installed WASM remain accepted.
+Interactive highlighting/indentation pixels and remote grammar fetching remain
+unverified; the pinned grammar revision has not been pushed. Studio stays stopped.
+Full Worklist goal and final push/merge remain incomplete. Next independent
+section is resumable task mutations/CDC and the desktop/offline consumer, alongside
+further measured compiler/LSP profiling. Preserve previous acceptance evidence.
+
 ## Compiler/dev performance and Worklist goal — 2026-11-14
 
 Owner set a new active goal covering compiler/LSP/dev optimization, less than
