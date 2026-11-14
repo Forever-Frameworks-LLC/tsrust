@@ -1,13 +1,13 @@
+import { get } from 'std:env';
+import { canonicalize, stat } from 'std:fs';
+import { Channel, Sender } from 'std:futures';
 import { Reader, Writer } from 'std:io';
 import { basename } from 'std:path';
-import { canonicalize } from 'std:fs';
-import { get } from 'std:env';
-import { Channel, Sender } from 'std:futures';
 import { Child, spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
-import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
 import { decodeAdapterReply } from './protocol.tsr';
+import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
 
 export interface SourceBreakpoint {
   path: string;
@@ -158,6 +158,9 @@ async function launchDebugTarget(
     let mappedUnit = '';
     let positions = new Map<int, OriginalPosition>();
 
+    let mappedFunction = false;
+    let nativeFunctions = false;
+
     const input = readAdapter(reader, requests.sender(), generation).start();
     let paused = false;
 
@@ -277,6 +280,47 @@ async function launchDebugTarget(
 
         if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
 
+        if (reply.event === 'initialized') {
+          if (requested.length > 0) mappedUnit = executableDebugUnit(program);
+          else if (breakpoint !== '') {
+            match (stat(program + '.tsrust-debug')) {
+              Ok(folder) => {
+                if (folder.isDirectory) {
+                  try {
+                    mappedUnit = executableDebugUnit(program);
+                  } catch (_) {}
+                }
+              },
+              Err(_) => {}
+            }
+          }
+
+          if (mappedUnit !== '') positions = debugLocations(program, mappedUnit);
+
+          if (breakpoint !== '') {
+            const entries = new Map<string, int>();
+
+            for (const entry of positions.entries()) {
+              const position = entry[1];
+
+              if (position.functionName !== breakpoint) continue;
+              const first = entries.get(position.path);
+
+              if (first === undefined || position.line < first) entries.set(clone(position.path), position.line);
+            }
+
+            mappedFunction = entries.size > 0;
+
+            for (const entry of entries.entries()) {
+              if (!requested.some((point) => point.path === entry[0] && point.line === entry[1])) requested.push({
+                path: clone(entry[0]), line: entry[1]
+              });
+            }
+
+            if (!mappedFunction && !nativeFunctions) throw 'Adapter does not support function breakpoints.';
+          }
+        }
+
         if (reply.command === 'setBreakpoints' && reply.request_seq === 3) {
           const verified = new Set<int>();
           const points = clone(reply.body?.breakpoints) ?? [];
@@ -291,15 +335,13 @@ async function launchDebugTarget(
         }
 
         if (reply.command === 'initialize') {
-          if (breakpoint !== '' && reply.body?.supportsFunctionBreakpoints !== true) throw 'Adapter does not support function breakpoints.';
+          nativeFunctions = reply.body?.supportsFunctionBreakpoints === true;
           await writeFrame(writer, JSON.stringify({
             seq: 2, type: 'request', command: 'launch', arguments: {
               program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
             }
           }));
         } else if (reply.event === 'initialized' && requested.length > 0) {
-          mappedUnit = executableDebugUnit(program);
-          positions = debugLocations(program, mappedUnit);
           const generated: string[] = [];
 
           for (let i = 0; i < requested.length; i += 1) {
@@ -316,9 +358,13 @@ async function launchDebugTarget(
           }
 
           await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
-        } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '') {
+        } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '' && !mappedFunction) {
           await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
         } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
+          if (mappedFunction) await output.send({
+            text: 'Breakpoint verified: ' + breakpoint + '\n', finished: false
+          });
+
           if (reply.command === 'setFunctionBreakpoints') {
             const points = clone(reply.body?.breakpoints) ?? [];
             const verified = points.length === 1 && points[0].verified;

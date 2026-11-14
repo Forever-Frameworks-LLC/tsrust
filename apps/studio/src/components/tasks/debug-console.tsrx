@@ -3,6 +3,7 @@ import {
   Button,
   CodeEditor,
   Input,
+  InputGroup,
   Text,
   Node,
   Signal,
@@ -14,12 +15,12 @@ import {
   signal,
   t
 } from 'std:ui';
-import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput, SourceFrame, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
-import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
+import { openLanguageLocation } from '../../lib/language/navigation.tsr';
+import { message, accessibleName } from '../../lib/localization.tsr';
+import { DebugCommand, DebugOutput, SourceFrame, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
 
 export function toggleCursorBreakpoint(active: ReadOnly<string>, lines: Signal<SourceBreakpoint[]>, running: boolean): void {
   if (running || active === '') return;
@@ -56,25 +57,22 @@ function DebugControl(
   output: Signal<string>,
   action: string,
   label: string,
-  font: Signal<int>
+  icon: string
 ): Node {
   const sender = requests.sender();
   const command = 'debug-' + action;
   return (
     <Button
-      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
+      icon={icon}
+      aria-label={accessibleName(clone(label))}
       variant="ghost"
-      size="small"
+      size="xsmall"
       tooltip={message(clone(label))}
       tooltipCommand={command}
       onPress={() => {
         sendDebugControl(sender, stopped, output, clone(action));
       }}
-    >
-      <Text className={'text-[' + font.get().toString() + 'px]'}>
-        {t(label)}
-      </Text>
-    </Button>
+    />
   );
 }
 
@@ -82,7 +80,7 @@ function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: 
   const label = target.path.slice(root.length + 1) + ':' + target.line.toString();
   return (
     <Button
-      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
+      className={'w-full min-w-0 justify-start px-2 py-[6px] rounded-none border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]'}
       variant="ghost"
       size="small"
       disabled={running.get()}
@@ -118,7 +116,7 @@ function StackFrameRow(
   const label = '#' + frame.depth.toString() + ' ' + (name === '' ? '' : name + '  ') + (path.startsWith(root + '/') ? path.slice(root.length + 1) : clone(path)) + ':' + frame.location.line.toString();
   return (
     <Button
-      className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
+      className={'w-full min-w-0 justify-start px-2 py-[6px] rounded-none border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]' + (selected.get() === frameId ? ' bg-accent text-accent-foreground' : '')}
       variant="ghost"
       size="small"
       selected={selected.get() === frameId}
@@ -189,82 +187,147 @@ export function DebugSidebar(
   const listLines = lines.handle();
   return (
     <View className="flex-col size-full min-h-0">
-      <View className="flex-col w-full min-w-0 min-h-0 overflow-y-auto">
-        <Button
-          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
-          tooltipCommand="debug-continue"
-          tooltip={message('Launch executable…')}
-          icon="play"
-          variant="ghost"
-          size="small"
-          disabled={running.get()}
-          onPress={() => {
-            chooseDebugTarget(chosen);
-          }}
-        >
-          <Text className={'text-[' + font.get().toString() + 'px]'}>
-            {t('Launch executable…')}
-          </Text>
-        </Button>
-        <Button
-          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
-          selected={stopOnEntry.get()}
-          disabled={running.get()}
-          variant="ghost"
-          size="small"
-          onPress={() => {
-            stopOnEntry.set(!stopOnEntry.get());
-          }}
-        >
-          <Text className={'text-[' + font.get().toString() + 'px]'}>
-            {t('Stop on entry')}
-          </Text>
-        </Button>
-        <Button
-          variant="ghost"
-          size="small"
-          className={'w-full min-w-0 justify-start px-2 py-[6px] text-[' + font.get().toString() + 'px]'}
-          disabled={running.get() || workspace.get().active === ''}
-          tooltipCommand="toggle-source-breakpoint"
-          tooltip={message('Toggle source breakpoint at cursor')}
-          aria-label={accessibleName('Toggle source breakpoint at cursor')}
-          onPress={() => {
-            toggleCursorBreakpoint(selectedWorkspace.get().active, lines, running.get());
-          }}
-        >
-          <Text className={'text-[' + font.get().toString() + 'px]'}>
-            {t('Break at cursor')}
-          </Text>
-        </Button>
-        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(clone(point), root, listLines.handle(), listRunning.handle(), listFont.handle()))}
-        <View hidden={running.get()} className="w-full min-w-0">
-          <Input
-            className={'px-2 text-[' + font.get().toString() + 'px]'}
-            value={breakpoint.get()}
-            placeholder={message('Function breakpoint')}
-            aria-label={accessibleName('Function breakpoint')}
-            onChange={(event) => {
-              breakpoint.set(clone(event.target.value));
+      <View className="shrink-0 flex-row items-center w-full min-w-0 border-b border-border">
+        <View hidden={running.get()} className="grow flex-row items-center min-w-0">
+          <Button
+            className="grow min-w-0 justify-start rounded-none px-2"
+            aria-label={accessibleName('Launch executable…')}
+            tooltipCommand="debug-continue"
+            tooltip={message('Launch executable…')}
+            icon="play"
+            variant="ghost"
+            size="xsmall"
+            disabled={running.get()}
+            onPress={() => {
+              chooseDebugTarget(chosen);
+            }}
+          >
+            <Text className={'text-[' + font.get().toString() + 'px]'}>
+              {t('Launch executable…')}
+            </Text>
+          </Button>
+          <Button
+            icon="circle-pause"
+            tooltip={message('Stop on entry')}
+            aria-label={accessibleName('Stop on entry')}
+            selected={stopOnEntry.get()}
+            disabled={running.get()}
+            variant="ghost"
+            size="xsmall"
+            onPress={() => {
+              stopOnEntry.set(!stopOnEntry.get());
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="xsmall"
+            icon="circle-dot"
+            disabled={running.get() || workspace.get().active === ''}
+            tooltipCommand="toggle-source-breakpoint"
+            tooltip={message('Toggle source breakpoint at cursor')}
+            aria-label={accessibleName('Toggle source breakpoint at cursor')}
+            onPress={() => {
+              toggleCursorBreakpoint(selectedWorkspace.get().active, lines, running.get());
             }}
           />
         </View>
+        <View hidden={!stopped.get()} className="flex-row items-center min-w-0">
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'continue',
+            'Continue',
+            'play'
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stepOver',
+            'Step over',
+            'corner-down-right'
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stepIn',
+            'Step into',
+            'arrow-down'
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stepOut',
+            'Step out',
+            'arrow-up'
+          )}
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'next',
+            'Step instruction',
+            'step-forward'
+          )}
+        </View>
+        <View hidden={!running.get() || stopped.get()} className="flex-row items-center min-w-0">
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'pause',
+            'Pause debugging',
+            'pause'
+          )}
+        </View>
+        <View hidden={!running.get()} className="flex-row items-center min-w-0">
+          {DebugControl(
+            requests,
+            stopped,
+            output,
+            'stop',
+            'Stop debugging',
+            'square'
+          )}
+        </View>
+      </View>
+      <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
+        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(clone(point), root, listLines.handle(), listRunning.handle(), listFont.handle()))}
+        <View hidden={running.get()} className="w-full min-w-0">
+          <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
+            <Input
+              className={'px-2 text-[' + font.get().toString() + 'px]'}
+              value={breakpoint.get()}
+              placeholder={message('Function breakpoint')}
+              aria-label={accessibleName('Function breakpoint')}
+              onChange={(event) => {
+                breakpoint.set(clone(event.target.value));
+              }}
+            />
+          </InputGroup>
+        </View>
         <View hidden={running.get() && watch.get() === ''} className="flex-col w-full min-w-0">
-          <Input
-            className={'px-2 text-[' + font.get().toString() + 'px]'}
-            value={watch.get()}
-            disabled={running.get()}
-            placeholder={message('Watch expression')}
-            aria-label={accessibleName('Watch expression')}
-            onChange={(event) => {
-              watch.set(clone(event.target.value));
-            }}
-          />
+          <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
+            <Input
+              className={'px-2 text-[' + font.get().toString() + 'px]'}
+              value={watch.get()}
+              disabled={running.get()}
+              placeholder={message('Watch expression')}
+              aria-label={accessibleName('Watch expression')}
+              onChange={(event) => {
+                watch.set(clone(event.target.value));
+              }}
+            />
+          </InputGroup>
           <View hidden={!stopped.get() || watchValue.get() === ''}>
             <Input readOnly={true} value={watchValue.get()} aria-label={accessibleName('Watch value')} className={'font-mono text-[' + font.get().toString() + 'px]'} />
           </View>
         </View>
         <View hidden={!stopped.get() || frames.get().length === 0} className="w-full flex-col min-w-0">
-          <Text className={'px-2 font-semibold text-[' + font.get().toString() + 'px]'}>
+          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
             {t('Call stack')}
           </Text>
           {...frames.get().map((frame: ReadOnly<SourceFrame>) => StackFrameRow(
@@ -279,74 +342,12 @@ export function DebugSidebar(
           ))}
         </View>
         <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
-          <Text className={'px-2 font-semibold text-[' + font.get().toString() + 'px]'}>
+          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
             {t('Local variables')}
           </Text>
           {...locals.get().map((value: ReadOnly<string>) => (
             <Input readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'px-2 font-mono text-[' + font.get().toString() + 'px]'} />
           ))}
-        </View>
-        <View hidden={!stopped.get()} className="flex-col items-start">
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'continue',
-            'Continue',
-            font
-          )}
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'stepOver',
-            'Step over',
-            font
-          )}
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'stepIn',
-            'Step into',
-            font
-          )}
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'stepOut',
-            'Step out',
-            font
-          )}
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'next',
-            'Step instruction',
-            font
-          )}
-        </View>
-        <View hidden={!running.get() || stopped.get()} className="flex-col items-start">
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'pause',
-            'Pause debugging',
-            font
-          )}
-        </View>
-        <View hidden={!running.get()} className="flex-col items-start">
-          {DebugControl(
-            requests,
-            stopped,
-            output,
-            'stop',
-            'Stop debugging',
-            font
-          )}
         </View>
       </View>
       <Ticker interval={50} running={running.get() || chosen.get() !== ''} onTick={(_frame) => {

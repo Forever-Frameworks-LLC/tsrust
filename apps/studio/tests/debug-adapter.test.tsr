@@ -1,13 +1,12 @@
-import { Channel } from 'std:futures';
-import { DebugCommand, DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
 import { get } from 'std:env';
 import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
+import { Channel } from 'std:futures';
 import { run, spawn } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 
-import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
-
 import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
+import { DebugCommand, DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
+import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
 
 async function runDebugTarget(adapter: string, program: string): Task<void> {
   const child = unwrap(spawn(adapter, [], {
@@ -428,6 +427,32 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         }
       }
 
+      await commands.send({
+        action: 'launch', program: clone(program), functionBreakpoint: 'twice', watch: 'n', sourceBreakpoints: [{
+          path: clone(source), line: 13
+        }]
+      });
+      let namedStops: int[] = [];
+      let namedText = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        namedText += update.text;
+
+        if (update.finished) break;
+
+        if (update.stopped !== true) continue;
+        namedStops.push(update.location?.line ?? 0);
+
+        if (update.location?.functionName === 'twice') strictEqual(update.watchValue, '6');
+        await commands.send({
+          action: 'continue'
+        });
+      }
+
+      strictEqual(JSON.stringify(namedStops), '[13,19]');
+      strictEqual(namedText.includes('Breakpoint verified: twice'), true);
+      strictEqual(namedText.includes('Exit code 0'), true);
       strictEqual(continued && stepOutput.includes('Exit code 0'), true);
       await commands.send({
         action: 'launch', program: clone(program), watch: 'n', sourceBreakpoints: [{
