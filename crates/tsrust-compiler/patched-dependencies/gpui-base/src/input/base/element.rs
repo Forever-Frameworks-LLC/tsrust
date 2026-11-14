@@ -5111,6 +5111,41 @@ mod tests {
     }
 
     #[gpui::test]
+    fn breakpoint_clicks_address_source_lines_after_wrapping_and_folding(cx: &mut TestAppContext) {
+        let text = "    héllo world héllo world héllo world héllo world\ninner\nend\nafter";
+        let (editor, window) = decoration_editor(cx, text, true);
+        let mut cx = VisualTestContext::from_window(window.into(), cx);
+        let clicks = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let (wrapped, after_fold) = cx.update(|window, cx| {
+            editor.update(cx, |state, cx| {
+                state.set_line_number(true, window, cx);
+                state.set_breakpoint_lines(Some(Default::default()), cx);
+                let clicks = clicks.clone();
+                state.on_breakpoint_click(move |line, _| clicks.borrow_mut().push(line));
+                state.apply_highlighter_fold_candidates(vec![FoldRange::new(0, 3)], cx);
+                state.display_map.set_folded(0, true);
+            });
+            window.draw(cx).clear(cx);
+            let state = editor.read(cx);
+            let layout = state.last_layout.as_ref().unwrap();
+            assert_eq!(&layout.visible_buffer_lines[..2], &[0, 3]);
+            let rows = layout.lines[0].wrapped_lines.len();
+            assert!(rows >= 2);
+            let x = state.input_bounds.origin.x + BREAKPOINT_GUTTER_WIDTH.half();
+            let y = state.last_bounds.unwrap().origin.y + layout.visible_top;
+            (
+                point(x, y + layout.line_height * 1.5),
+                point(x, y + layout.line_height * (rows as f32 + 0.5)),
+            )
+        });
+        for pos in [wrapped, after_fold] {
+            cx.simulate_mouse_move(pos, None, gpui::Modifiers::default());
+            cx.simulate_click(pos, gpui::Modifiers::default());
+        }
+        assert_eq!(*clicks.borrow(), [1, 4]);
+    }
+
+    #[gpui::test]
     fn gutter_decorations_reserve_a_strip_and_mark_lines_and_boundaries(cx: &mut TestAppContext) {
         let text = "one\ntwo\nthree\nfour";
         let (editor, window) = decoration_editor(cx, text, false);
