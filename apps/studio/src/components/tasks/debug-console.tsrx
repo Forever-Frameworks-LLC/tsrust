@@ -259,6 +259,7 @@ export function DebugSidebar(
   const stopSender = requests.sender();
   const showAttach = signal(false);
   const pidDraft = signal('');
+  const invalidPid = signal(false);
   const pendingPid = signal(0);
   const attached = signal(false);
   const sender = requests.sender();
@@ -328,6 +329,7 @@ export function DebugSidebar(
             aria-label={accessibleName('Attach to process')}
             selected={showAttach.get()}
             onPress={() => {
+              invalidPid.set(false);
               showAttach.set(!showAttach.get());
 
               if (showAttach.get()) controlInput('debug-process-id', 'focus');
@@ -437,14 +439,32 @@ export function DebugSidebar(
         </View>
       </View>
       <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
-        <View hidden={running.get() || !showAttach.get()} className="w-full min-w-0">
-          <InputGroup size="small" className={inputGroupClass.get()}>
-            <Input height={font.get() + 12} id="debug-process-id" placeholder={message('Process ID')} aria-label={accessibleName('Process ID')} className={'px-2 text-[' + font.get().toString() + 'px]'} value={pidDraft.get()} onChange={(event) => {pidDraft.set(clone(event.target.value));}} onSubmit={(_secondary) => {
-              const pid = debugProcessId(pidDraft.get());
-              if (pid > 0) pendingPid.set(pid);
-              else {output.set(translate('Enter a valid process ID.') + '\n'); panel.set('debug');}
-            }} />
+        <View hidden={running.get() || !showAttach.get()} className="flex-col w-full min-w-0">
+          <InputGroup size="small" invalid={invalidPid.get()} className={inputGroupClass.get()}>
+            <Input
+              height={font.get() + 12}
+              id="debug-process-id"
+              placeholder={message('Process ID')}
+              aria-label={accessibleName('Process ID')}
+              className={'px-2 text-[' + font.get().toString() + 'px]'}
+              value={pidDraft.get()}
+              onChange={(event) => {
+                pidDraft.set(clone(event.target.value));
+                invalidPid.set(false);
+              }}
+              onSubmit={(_secondary) => {
+                const pid = debugProcessId(pidDraft.get());
+                invalidPid.set(pid === 0);
+
+                if (pid > 0) pendingPid.set(pid);
+              }}
+            />
           </InputGroup>
+          <View hidden={!invalidPid.get()} className="px-2">
+            <Text role="status" className="text-destructive">
+              {t('Enter a valid process ID.')}
+            </Text>
+          </View>
         </View>
         <View hidden={running.get() && listed.get().length === 0} className="flex-col w-full min-w-0">
           {InspectionHeading('Breakpoints', breakpointsOpen.handle(), font.handle())}

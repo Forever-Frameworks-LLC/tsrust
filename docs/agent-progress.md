@@ -46,6 +46,8 @@ At continuation, the existing LSP sampled 1,091,936 KiB RSS at 99.4% CPU, then r
 
 ## Native debugger transport
 
+Invalid process IDs now display a localized message beside the PID field. A native macOS replay submitted 0, confirmed the console stayed closed and focus remained in the PID field, replaced the value using the keyboard and saw the validation message clear. Enter attached and Shift+F5 detached. Submitting junk afterward left the full prior console transcript intact. The target survived detach and Studio exit.
+
 Reproduced the keyboard detach failure in an isolated native macOS window. After submitting a PID and reaching Step over, Shift+F5 left the target paused with Detach debugger still visible. Attach now moves focus from the disappearing PID field to the Debug Console. The same replay submitted the PID, waited for Step over, sent Shift+F5 without another click, observed the idle launch toolbar and “Debugger detached.”, and confirmed the target was still alive after Studio exit.
 
 The editable Watch expression, Function breakpoint and Process ID fields and their input groups now size from the same font preference as the inspection rows. Native macOS accessibility checks measured all three fields at 20 points tall with font 12 and 28 points with font 20. At each size the rebuilt Studio accepted a PID, paused the fixture and detached via the sidebar. The fixture remained alive after Studio exited. This measures field bounds only.
