@@ -284,6 +284,7 @@ export function DebugSidebar(
   const breakpointsOpen = signal(true);
   const watchOpen = signal(false);
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
+  const inputGroupClass = computed<string>(() => 'w-full shrink-0 min-w-0 rounded-none border border-transparent h-[' + (font.get() + 14).toString() + 'px]');
   const localsOpen = signal(true);
   const stackOpen = signal(true);
   const unresolved = signal<UnresolvedBreakpoint[]>([]);
@@ -437,8 +438,8 @@ export function DebugSidebar(
       </View>
       <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
         <View hidden={running.get() || !showAttach.get()} className="w-full min-w-0">
-          <InputGroup size="small" className="w-full h-8 rounded-none border border-transparent">
-            <Input id="debug-process-id" placeholder={message('Process ID')} aria-label={accessibleName('Process ID')} className={'px-2 text-[' + font.get().toString() + 'px]'} value={pidDraft.get()} onChange={(event) => {pidDraft.set(clone(event.target.value));}} onSubmit={(_secondary) => {
+          <InputGroup size="small" className={inputGroupClass.get()}>
+            <Input height={font.get() + 12} id="debug-process-id" placeholder={message('Process ID')} aria-label={accessibleName('Process ID')} className={'px-2 text-[' + font.get().toString() + 'px]'} value={pidDraft.get()} onChange={(event) => {pidDraft.set(clone(event.target.value));}} onSubmit={(_secondary) => {
               const pid = debugProcessId(pidDraft.get());
               if (pid > 0) pendingPid.set(pid);
               else {output.set(translate('Enter a valid process ID.') + '\n'); panel.set('debug');}
@@ -461,8 +462,9 @@ export function DebugSidebar(
               breakpointOutput.handle()
             ))}
             <View hidden={running.get()} className="w-full min-w-0">
-              <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
+              <InputGroup size="small" className={inputGroupClass.get()}>
                 <Input
+                  height={font.get() + 12}
                   className={'px-2 text-[' + font.get().toString() + 'px]'}
                   value={breakpoint.get()}
                   placeholder={message('Function breakpoint')}
@@ -478,8 +480,9 @@ export function DebugSidebar(
         <View hidden={running.get() && !stopped.get() && watch.get() === ''} className="flex-col w-full min-w-0">
           {InspectionHeading('Watch', watchOpen.handle(), font.handle())}
           <View hidden={!watchOpen.get()} className="flex-col w-full min-w-0">
-            <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
+            <InputGroup size="small" className={inputGroupClass.get()}>
               <Input
+                height={font.get() + 12}
                 className={'px-2 text-[' + font.get().toString() + 'px]'}
                 value={watch.get()}
                 disabled={running.get() && !stopped.get()}
