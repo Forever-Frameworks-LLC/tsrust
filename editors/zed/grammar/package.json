@@ -1,0 +1,14 @@
+{
+  "name": "tree-sitter-tsrust",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "test": "tree-sitter test",
+    "build:wasm": "node build-wasm.mjs"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "0.25.10",
+    "tree-sitter-typescript": "0.23.2"
+  }
+}
