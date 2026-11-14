@@ -5130,6 +5130,11 @@
           "doc": "Shows source line numbers. Defaults to true."
         },
         {
+          "name": "breakpointLines",
+          "type": "string",
+          "doc": "Comma-separated one-based source lines marked in the native editor gutter, for example '2,5'. An empty string shows an empty gutter. Omission hides it. Requires visible line numbers."
+        },
+        {
           "name": "folding",
           "type": "boolean",
           "doc": "Enables gutter folding. Defaults to true; disabling unfolds existing ranges."
@@ -5290,6 +5295,12 @@
           "value": "string",
           "param": "request",
           "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+        },
+        {
+          "prop": "onBreakpointClick",
+          "value": "int",
+          "param": "line",
+          "doc": "Receives the one-based source line when the user clicks the native breakpoint gutter. Update breakpointLines to change the markers. Wrapped rows refer to their original source line."
         },
         {
           "prop": "onInlineCompletion",

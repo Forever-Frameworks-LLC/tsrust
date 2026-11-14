@@ -29,6 +29,9 @@ import { AiState, requestInline, cancelInline } from '../../services/ai/actions.
 import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { ImagePreview } from './image-preview.tsrx';
 
+import { toggleLineBreakpoint } from '../tasks/debug-console.tsrx';
+import { SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
+
 export function FilePanel(
   file: ReadOnly<OpenFile>,
   workspace: Signal<Workspace>,
@@ -40,9 +43,14 @@ export function FilePanel(
   ai: Signal<AiState>,
   model: Sender<ModelRequest>,
   references: Signal<LanguageReferences>,
-  panel: Signal<string>
+  panel: Signal<string>,
+  breakpoints: Signal<SourceBreakpoint[]>,
+  debugging: Signal<boolean>
 ): Node {
   const path = clone(file.document.path);
+  const markerPath = clone(path);
+  const clickPath = clone(path);
+  const markerLines = computed<string>(() => breakpoints.get().filter((point) => point.path === markerPath).map((point) => point.line.toString()).join(','));
   const editPath = clone(path);
   const languagePath = clone(path);
   const referencePath = clone(path);
@@ -131,6 +139,10 @@ export function FilePanel(
             id={clone(file.document.path)}
             language={extname(file.document.path).slice(1)}
             value={text.get()}
+            breakpointLines={markerLines.get()}
+            onBreakpointClick={(line) => {
+              if (!debugging.get()) toggleLineBreakpoint(workspace, recovery, breakpoints, clickPath, line);
+            }}
             onInlineCompletion={(request) => {
               requestInline(ai, model, request);
             }}

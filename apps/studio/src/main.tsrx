@@ -317,7 +317,9 @@ function App(
     modelRequests.sender(),
     references,
     panel,
-    filenameSearch
+    filenameSearch,
+    sourceBreakpoints.handle(),
+    debuggerRunning.handle()
   );
   const panelPosition = computed<string>(() => settings.get().panelPosition);
   const panelVisible = computed<boolean>(() => panel.get() !== '');

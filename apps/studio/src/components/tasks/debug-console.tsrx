@@ -37,19 +37,22 @@ export function toggleCursorBreakpoint(workspace: Signal<Workspace>, recovery: S
     const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
 
     if (caret === undefined || field.value === undefined) return;
-    const next = workspace.get();
-    const points = clone(next.sourceBreakpoints) ?? [];
-    const line = field.value.slice(0, caret).split('\n').length;
-    const index = points.findIndex((item) => item.path === path && item.line === line);
-
-    if (index < 0) points.push({
-      path: clone(path), line
-    });
-    else points.splice(index, 1);
-    listed.set(clone(points));
-    next.sourceBreakpoints = points;
-    publishWorkspace(next, workspace, recovery);
+    toggleLineBreakpoint(workspace, recovery, listed, path, field.value.slice(0, caret).split('\n').length);
   });
+}
+
+export function toggleLineBreakpoint(workspace: Signal<Workspace>, recovery: Signal<Recovery>, listed: Signal<SourceBreakpoint[]>, path: ReadOnly<string>, line: int): void {
+  const next = workspace.get();
+  const points = clone(next.sourceBreakpoints) ?? [];
+  const index = points.findIndex((item) => item.path === path && item.line === line);
+
+  if (index < 0) points.push({
+    path: clone(path), line
+  });
+  else points.splice(index, 1);
+  listed.set(clone(points));
+  next.sourceBreakpoints = points;
+  publishWorkspace(next, workspace, recovery);
 }
 
 export function sendDebugControl(sender: ReadOnly<Sender<DebugCommand>>, stopped: Signal<boolean>, output: Signal<string>, action: string): void {

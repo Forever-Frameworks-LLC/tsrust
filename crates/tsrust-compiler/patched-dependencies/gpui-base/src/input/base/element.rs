@@ -687,6 +687,8 @@ fn empty_bottom_height(
     }
 }
 
+const BREAKPOINT_GUTTER_WIDTH: Pixels = px(14.);
+
 /// Layout information for fold icons.
 struct FoldIconLayout {
     /// Hitbox for the line number area (used for hover detection)
@@ -1430,6 +1432,10 @@ impl<M: InputModeKind> TextElement<M> {
         } else {
             px(0.)
         };
+
+        if state.mode.line_number() && state.extras.breakpoint_lines().is_some() {
+            line_number_width += BREAKPOINT_GUTTER_WIDTH;
+        }
 
         if state.mode.is_folding() {
             // Add extra space for fold icons
@@ -3804,6 +3810,8 @@ impl<M: InputModeKind> Element for TextElement<M> {
             );
             window.paint_quad(fill(gutter_bounds, gutter_bg));
 
+            let breakpoint_gutter = self.state.read(cx).extras.breakpoint_lines().is_some();
+            let mut breakpoint_rows = Vec::new();
             // Each item is the normal lines.
             for (lines, &buffer_line) in line_numbers
                 .iter()
@@ -3826,7 +3834,33 @@ impl<M: InputModeKind> Element for TextElement<M> {
                     }
                 }
 
-                let p = point(p.x + prepaint.line_number_offset, p.y);
+                let mut p = point(p.x + prepaint.line_number_offset, p.y);
+                if breakpoint_gutter {
+                    let line = buffer_line + 1;
+                    breakpoint_rows
+                        .push((Bounds::new(p, size(BREAKPOINT_GUTTER_WIDTH, height)), line));
+                    if self
+                        .state
+                        .read(cx)
+                        .extras
+                        .breakpoint_lines()
+                        .is_some_and(|lines| lines.contains(&line))
+                    {
+                        let diameter = line_height.min(px(9.));
+                        let origin = p + point(
+                            (BREAKPOINT_GUTTER_WIDTH - diameter).half(),
+                            (line_height - diameter).half(),
+                        );
+                        window.paint_quad(
+                            fill(
+                                Bounds::new(origin, size(diameter, diameter)),
+                                editor_style.diagnostics.error,
+                            )
+                            .corner_radii(diameter.half()),
+                        );
+                    }
+                    p.x += BREAKPOINT_GUTTER_WIDTH;
+                }
                 for line in lines {
                     _ = line.paint(p, line_height, TextAlign::Left, None, window, cx);
                     offset_y += line_height;
@@ -3836,6 +3870,23 @@ impl<M: InputModeKind> Element for TextElement<M> {
                 if !prepaint.ghost_lines.is_empty() && prepaint.current_row == Some(buffer_line) {
                     offset_y += prepaint.ghost_lines_height;
                 }
+            }
+            if breakpoint_gutter && let Some(click) = self.state.read(cx).extras.breakpoint_click()
+            {
+                let hitbox = prepaint.hitbox.clone();
+                window.on_mouse_event(move |event: &gpui::MouseDownEvent, phase, window, cx| {
+                    if phase.capture()
+                        && event.button == MouseButton::Left
+                        && hitbox.is_hovered(window)
+                        && let Some((_, line)) = breakpoint_rows
+                            .iter()
+                            .find(|(bounds, _)| bounds.contains(&event.position))
+                    {
+                        window.prevent_default();
+                        cx.stop_propagation();
+                        click(*line, cx);
+                    }
+                });
             }
         }
 

@@ -26,6 +26,8 @@ import { FilePanel } from '../editor/editor.tsrx';
 import { openPalette } from '../explorer/navigation.tsrx';
 import { closeTab } from './chrome.tsrx';
 
+import { SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
+
 export function EditorWorkspace(
   workspace: Signal<Workspace>,
   font: Signal<int>,
@@ -37,7 +39,9 @@ export function EditorWorkspace(
   model: Sender<ModelRequest>,
   references: Signal<LanguageReferences>,
   panel: Signal<string>,
-  fileSearch: Signal<FileSearchState>
+  fileSearch: Signal<FileSearchState>,
+  breakpoints: Signal<SourceBreakpoint[]>,
+  debugging: Signal<boolean>
 ): Node {
   const renderFile = (file: ReadOnly<OpenFile>): Node => FilePanel(
     file,
@@ -50,7 +54,9 @@ export function EditorWorkspace(
     ai,
     model.share(),
     references,
-    panel
+    panel,
+    breakpoints,
+    debugging
   );
   const closing = signal<CloseEditorsState>({
     open: false, plan: planCloseEditors(workspace.get())

@@ -495,6 +495,7 @@ fn editor_options(state:&mut EditorState, options:&std::collections::BTreeMap<St
     apply_input_options!(state,options,text("placeholder"),window,cx);
     state.set_disabled(flag("disabled",false),cx);
     state.set_readonly(flag("readOnly",false),cx);
+    state.set_breakpoint_lines(options.get("breakpointLines").map(|lines| lines.split(',').filter_map(|line| line.trim().parse::<usize>().ok()).filter(|line| *line > 0).collect()),cx);
     state.set_line_number(flag("lineNumbers",true),window,cx);
     state.set_folding(flag("folding",true),window,cx);
     state.set_auto_close(flag("autoClose",true),window,cx);
@@ -2090,6 +2091,10 @@ impl Root {
                     }
                     let root=cx.entity().downgrade();
                     state.update(cx, |state,_| {
+                        let breakpoint_root=root.clone();
+                        state.on_breakpoint_click(move |line,cx| {
+                            let _=breakpoint_root.update(cx,|root,cx|root.emit(id,"breakpointClick",line.to_string(),cx));
+                        });
                         let references_root=root.clone();
                         state.lsp_mut().show_references=Some(std::rc::Rc::new(move |locations,error,_,cx| {
                             let payload=serde_json::json!({"locations":locations,"error":error}).to_string();

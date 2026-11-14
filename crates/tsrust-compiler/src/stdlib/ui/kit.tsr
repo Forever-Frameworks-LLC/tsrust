@@ -7729,6 +7729,8 @@ export interface CodeEditorProps {
   autoFocus?: ReactiveValue<boolean>;
   /** Shows source line numbers. Defaults to true. */
   lineNumbers?: ReactiveValue<boolean>;
+  /** Comma-separated one-based source lines marked in the native editor gutter, for example '2,5'. An empty string shows an empty gutter. Omission hides it. Requires visible line numbers. */
+  breakpointLines?: ReactiveValue<string> | TextBinding;
   /** Enables gutter folding. Defaults to true; disabling unfolds existing ranges. */
   folding?: ReactiveValue<boolean>;
   /** Automatically closes matching brackets and quotes. Defaults to true. */
@@ -7783,6 +7785,8 @@ export interface CodeEditorProps {
   onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
   /** Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers. */
   onLanguageRequest?: Owned<Function<void, [request: ReadOnly<string>]>>;
+  /** Receives the one-based source line when the user clicks the native breakpoint gutter. Update breakpointLines to change the markers. Wrapped rows refer to their original source line. */
+  onBreakpointClick?: Owned<Function<void, [line: int]>>;
   /** Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions. */
   onInlineCompletion?: Owned<Function<void, [request: ReadOnly<string>]>>;
   /** Receives the window-scoped request id when a native language read is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored. */
@@ -7894,6 +7898,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (prop_lineNumbers !== undefined) {
     node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
+  }
+
+  const prop_breakpointLines = props.breakpointLines;
+
+  if (prop_breakpointLines !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'breakpointLines', prop_breakpointLines));
   }
 
   const prop_folding = props.folding;
@@ -8072,6 +8082,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (event_onLanguageRequest !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'languageRequest', event_onLanguageRequest));
+  }
+
+  const event_onBreakpointClick = props.onBreakpointClick;
+
+  if (event_onBreakpointClick !== undefined) {
+    node = unwrapNode(nativeKitOnInt(node, 'breakpointClick', event_onBreakpointClick));
   }
 
   const event_onInlineCompletion = props.onInlineCompletion;

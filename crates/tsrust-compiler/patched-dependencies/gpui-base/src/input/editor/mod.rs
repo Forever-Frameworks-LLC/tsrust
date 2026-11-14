@@ -220,6 +220,22 @@ impl InputModeKind for EditorMode {
 }
 
 impl EditorState {
+    /// One-based source lines. An empty set keeps the gutter clickable.
+    pub fn set_breakpoint_lines(
+        &mut self,
+        lines: Option<std::collections::BTreeSet<usize>>,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        if self.extras.breakpoint_lines != lines {
+            self.extras.breakpoint_lines = lines;
+            cx.notify();
+        }
+    }
+
+    pub fn on_breakpoint_click(&mut self, callback: impl Fn(usize, &mut App) + 'static) {
+        self.extras.breakpoint_click = Some(std::rc::Rc::new(callback));
+    }
+
     /// The LSP providers and their cached results.
     ///
     /// This exists on the editor alone: an ordinary input or textarea has no
@@ -261,6 +277,14 @@ impl RenderOnce for Editor {
 
 /// What a code editor exposes to the renderer. See [`crate::input::InputExtras`].
 impl crate::input::InputExtras for super::EditorExtras {
+    fn breakpoint_lines(&self) -> Option<&std::collections::BTreeSet<usize>> {
+        self.breakpoint_lines.as_ref()
+    }
+
+    fn breakpoint_click(&self) -> Option<std::rc::Rc<dyn Fn(usize, &mut App)>> {
+        self.breakpoint_click.clone()
+    }
+
     fn decoration_layers(&self) -> Vec<&[super::TextDecoration]> {
         self.decorations.iter().collect()
     }

@@ -78,6 +78,14 @@ impl MultiLineMode for EditorMode {}
 /// during an edit. Adding a field an editor renders belongs here and leaves
 /// the engine's callbacks alone.
 pub trait InputExtras: Default + 'static {
+    fn breakpoint_lines(&self) -> Option<&std::collections::BTreeSet<usize>> {
+        None
+    }
+
+    fn breakpoint_click(&self) -> Option<Rc<dyn Fn(usize, &mut gpui::App)>> {
+        None
+    }
+
     /// Decoration ranges to paint, innermost collection first.
     fn decoration_layers(&self) -> Vec<&[TextDecoration]> {
         Vec::new()
@@ -384,6 +392,8 @@ impl InputModeKind for TextareaMode {
 
 /// What a code editor adds on top of multi-line text: language features.
 pub struct EditorExtras {
+    pub(crate) breakpoint_lines: Option<std::collections::BTreeSet<usize>>,
+    pub(crate) breakpoint_click: Option<Rc<dyn Fn(usize, &mut gpui::App)>>,
     pub(crate) lsp: Lsp,
     pub(crate) decorations: DecorationCollections,
     pub(crate) range_decorations: DecorationCollections<RangeDecoration>,
@@ -400,6 +410,8 @@ pub struct EditorExtras {
 impl Default for EditorExtras {
     fn default() -> Self {
         Self {
+            breakpoint_lines: None,
+            breakpoint_click: None,
             lsp: Lsp::default(),
             decorations: DecorationCollections::default(),
             range_decorations: DecorationCollections::default(),
