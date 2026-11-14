@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "worklist-api",
+  "build": {
+    "entry": "src/main.tsr",
+    "output": "target/worklist-api"
+  }
+}

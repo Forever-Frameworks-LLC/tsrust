@@ -1,8 +1,65 @@
 # Tsrust continuation
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
+B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
+
+## Compiler/dev performance and Worklist goal — 2026-11-14
+
+Owner set a new active goal covering compiler/LSP/dev optimization, less than
+10 percent overhead relative to matched Rust compilation, a complete two-view
+task-management app, offline cached Postgres CDC, simultaneous projects, repair
+of discovered issues, and a locally validated push/PR guided to main. The concrete
+acceptance checklist is docs/plans/task-management-validation.md. This replaces
+autonomous Studio polishing. Existing Studio source/drafts and evidence remain
+preserved. The previous <10 percent target has not been demonstrated.
+
+Applied frontend-design skill and selected compact native work-management
+styling. Worklist roots are apps/tasks/api, apps/tasks/desktop and shared
+contracts in apps/tasks/shared. Docker Desktop was started and the dedicated
+tsrust-worklist Postgres 17 Compose service is healthy on 127.0.0.1:5443.
+Local credentials are in the development Compose file. API is running at
+127.0.0.1:4317 through the authorized native tsrust run session. Studio remains
+stopped; Zed and VS Code remain available.
+
+The established dev harness unit checks passed 2/2. Ran its original
+three-sample protocol for 6/130-module graphs and three-second idle observations.
+Stored all ten timing workloads through npm run store:ingest in
+benchmarks/measurements.sqlite. Medians in milliseconds for 6 / 130 modules:
+cold startup 594.50 / 627.00, warm startup 138.74 / 155.81, leaf edit
+487.95 / 521.42, shared edit 480.49 / 498.61, config edit 279.97 / 302.89.
+These are initial development observations, not a quiet-machine matched Rust
+overhead comparison. Logs showed approximately 47 ms backend setup, including
+cached rebuilds. An isolated nine-run rustup/rustc version probe observed a
+29.292 ms median. Backend polling and identity-probe reuse remain candidates;
+no checks have been removed. Baseline compiler/harness hashes follow.
+
+Compiler SHA-256 e5e01e8dfca8b153eac9e9da6d34f4bdd0d3ba7d1a3233d31ea6b1f33da72588.
+Harness SHA-256 f13c753baff1100d269f1c8b5514671e1d1a6cfedb8e07bfb54ad3350dffe27c.
+
+Added Postgres task/version/change-log migrations and a consistent one-statement
+snapshot API. The statement-level advisory transaction lock precedes mutations
+and sequence allocation, preventing lower committed changes from arriving after
+an acknowledged cursor. Insert/update triggers maintain task versions and CDC
+payloads; delete triggers preserve tombstones. API retains its SQL pool through
+the existing checked async HTTP binding and returns typed shared snapshots.
+
+Initial snapshot acceptance exposed HTTP 500 because ordinary SQL execution
+rejects SET TRANSACTION. The API now reads rows and high-water cursor in one
+Postgres MVCC statement. This is an application repair respecting the existing
+SQL boundary, not a compiler/runtime defect. The coherent std:testing SQL/HTTP
+suites passed 2/2 in 197.25 ms execution, with build/setup separate. They verify
+version increments, tombstones, atomic rollback, and external database inserts
+reaching the live snapshot with an acknowledged cursor. The formatted-source rerun
+also passed 2/2 in 192.26 ms. First network attempt was
+sandbox-blocked; the authorized rerun connected successfully.
+
+Pending full scope includes matched Rust controls, the <10 percent criterion,
+compiler/LSP improvements, API mutations/resumable CDC, concurrent snapshot and
+commit-order cases, the entire desktop UI/offline cache, broader package/editor
+acceptance, local milestone regressions, cross-platform CI and the final merged
+PR. Current API has a snapshot endpoint only. Docker and the experimental API are
+left running for continued implementation.
 
 ## Tsrust grammar in Zed and indexed method effects — 2026-11-14
 
