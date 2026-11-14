@@ -16,11 +16,29 @@ Alternatively configure an absolute server path in Zed settings:
 }
 ```
 
-This first integration uses Zed's built-in TSX grammar. Compiler diagnostics,
-completion, hover and navigation come from Tsrust. Tsrust-specific match syntax
-and ownership modifiers can produce Tree-sitter syntax errors, affecting
-highlighting, indentation and outline. A dedicated grammar remains necessary
-for complete syntax support.
+The bundled Tsrust grammar extends TSX with match expressions, block and value
+arms, variant bindings, literal/wildcard patterns and contextual match identifiers.
+Highlighting covers ownership annotations (ReadOnly, Mutable, Owned and Once),
+Tsrust built-in types and typed JSX. Indentation, bracket and outline queries use
+the same grammar. Semantic diagnostics remain compiler-owned.
+
+The grammar source is in grammar/ and pins the upstream TypeScript grammar.
+Generated parser C and scanner sources are checked in for reproducible builds.
+To regenerate and validate it, run npm ci, npm run generate and npm test from
+grammar/. If npm skips dependency install scripts, run
+node node_modules/tree-sitter-cli/install.js before generating. Native parser
+validation writes Tree-sitter's normal user cache.
+
+For a local WASM grammar build, set WASI_SDK_PATH to a WASI SDK installation and
+run npm run build:wasm from grammar/. This writes grammars/tsrust.wasm. The SDK
+compiler invocation matches Zed's grammar builder.
+
+The manifest pins the grammar's source commit. While that commit exists only
+locally, Zed's automatic remote grammar checkout cannot fetch it. For this local
+development setup, build both WASM files, then symlink this extension directory
+as tsrust beneath Zed's extensions/installed directory. Rebuild Zed's generated
+extension index when adding grammar metadata. Publishing requires making the
+pinned grammar revision available in the repository.
 
 Build the adapter with the pinned Rust toolchain and wasm32-wasip2 target:
 

@@ -686,6 +686,10 @@ fn storage_grounding(families:&[(usize,Vec<usize>)],uninhabited:&std::collection
 }
 
 fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+    let mut methods_by_origin=vec![Vec::new();closures.len()];
+    for &(origin,method) in effects.method_errors.keys() {
+        methods_by_origin[origin].push(method);
+    }
     // Payload types are checked identities. Every finite coordinate grows
     // monotonically; the final unchanged pass refreshes expression metadata.
     loop {
@@ -737,8 +741,16 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
         // Preserve that identity for effect lookup without merging other methods.
         for (id,closure) in closures.iter().enumerate() {
             if let Some(ClosureForward::Once(inner))=closure.forward {
-                let methods=effects.method_errors.iter().filter_map(|((origin,method),contract)|(*origin==inner).then_some((*method,contract.clone()))).collect::<Vec<_>>();
-                for (method,contract) in methods {
+                let methods=methods_by_origin.get(inner).cloned().unwrap_or_default();
+                #[cfg(test)]
+                {
+                    let indexed=methods.iter().copied().collect::<std::collections::BTreeSet<_>>();
+                    let scanned=effects.method_errors.keys().filter_map(|(origin,method)|(*origin==inner).then_some(*method)).collect();
+                    assert_eq!(indexed,scanned);
+                }
+                for method in methods {
+                    let contract=effects.method_errors[&(inner,method)].clone();
+                    if !methods_by_origin[id].contains(&method) {methods_by_origin[id].push(method);}
                     changed|=effects.method_errors.entry((id,method)).or_default().join(contract);
                 }
             }

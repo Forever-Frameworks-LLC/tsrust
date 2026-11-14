@@ -1,5 +1,5 @@
 name = "Tsrust"
-grammar = "tsx"
+grammar = "tsrust"
 path_suffixes = ["tsr", "tsrx"]
 
 line_comments = ["// "]

@@ -12,3 +12,8 @@ languages = ["Tsrust"]
 [lib]
 kind = "Rust"
 version = "0.7.0"
+
+[grammars.tsrust]
+repository = "https://github.com/Forever-Frameworks-LLC/tsrust"
+rev = "dcd12923d6f977cf7c70d60007e482a38562713d"
+path = "editors/zed/grammar"

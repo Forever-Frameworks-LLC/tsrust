@@ -4,6 +4,50 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Tsrust grammar in Zed and indexed method effects — 2026-11-14
+
+Owner requested completing Zed syntax for match/ownership and investigating further
+safe optimizations. Added a Tree-sitter grammar extending pinned
+tree-sitter-typescript 0.23.2 TSX with match expressions, block/value arms,
+variant bindings, wildcard and literal patterns, negative numeric literals and
+contextual match identifiers. Generated with tree-sitter-cli 0.25.10, including
+parser C, scanner and source licenses. Three reviewed corpus cases pass, covering
+nested matches, ordinary match variables/optional chaining, all four ownership
+wrappers and typed JSX. Parsed all 132 Studio .tsr/.tsrx application/test sources
+with zero error/missing nodes. The first draft rejected context.tsr's const match;
+the contextual primary-expression conflict fixes it.
+
+Compiled a 1.5 MiB WASM grammar with WASI SDK 34 using Zed's documented builder
+flags. Highlight, indentation and outline queries validated against main.tsrx.
+Separate query assertions verified builtin-type captures for ReadOnly, Mutable,
+Owned and Once and the match keyword inside typed JSX. Changed language grammar
+from tsx to tsrust and pinned grammar source checkpoint dcd12923d in the manifest.
+That revision remains local; an automatic remote grammar checkout needs it
+published first. The local dev extension uses the compiled grammar artifact.
+Refreshed Zed's generated extension index, which originally retained an empty
+grammar manifest. The rebuilt index records grammar tsrust and its exact source
+revision; subsequent Zed startup produced no grammar/query loading errors.
+The stalled CLI launch was recovered through macOS Launch Services. Pixel
+appearance and interactive indentation gestures remain unverified.
+
+A second effect optimization replaces each Once forwarder's full method-contract
+map scan with an index by origin. New forwarded method IDs are inserted into the
+index during propagation, preserving same-pass visibility. Test builds compare
+the indexed method IDs to the old full scan at every forwarding operation,
+alongside the prior warm/cold contract comparisons.
+
+Focused effects passed 54/54 (0.77 s). Full compiler library had 1522 passes,
+30 identical sandbox-permission failures and 8 preexisting ignored cases
+(156.24 s execution); replaying exactly the restricted cases outside the sandbox
+passed 30/30. The final release passed VS Code extension-host integration.
+A single current Studio main LSP observation returned no diagnostics after
+85.31 s, including 80.968 s compiler checking. Earlier warm-only observation was
+88.98/84.589 s, initial observation 97.03/93.007 s. These are development-session
+observations with other processes active, not a repeated quiet-machine benchmark.
+No major additional speedup is established. Full project checking remains costly.
+Whole-project formatting produced no changes. Pending Studio/owner edits remain
+outside these checkpoints. Studio app and watcher remain stopped.
+
 ## Retained error-effect propagation — 2026-11-14
 
 Owner requested reducing repeated error-effect work without removing checks and
