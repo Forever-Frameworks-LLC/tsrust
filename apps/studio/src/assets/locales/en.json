@@ -124,6 +124,8 @@
   "Step out": "Step out",
   "Step over": "Step over",
   "Step instruction": "Step instruction",
+  "Run last executable": "Run last executable",
+  "Choose another executable…": "Choose another executable…",
   "Launch executable…": "Launch executable…",
   "Repository status, diffs and staging are planned.": "Repository status, diffs and staging are planned.",
   "Extension management is planned.": "Extension management is planned.",

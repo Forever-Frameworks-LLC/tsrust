@@ -204,6 +204,7 @@ function App(
   const sourceBreakpoints = signal<SourceBreakpoint[]>(clone(workspace.get().sourceBreakpoints) ?? []);
   const debuggerRunning = signal(false);
   const debugTarget = signal('');
+  const lastDebugTarget = signal('');
   const debuggerPaused = signal(false);
   const stepIntoControl = debugRequests.sender();
   const stepOutControl = debugRequests.sender();
@@ -222,7 +223,8 @@ function App(
     sourceBreakpoints.handle(),
     debuggerRunning.handle(),
     debuggerPaused.handle(),
-    debugTarget.handle()
+    debugTarget.handle(),
+    lastDebugTarget.handle()
   );
   const panelView = Panels(
     panel,
@@ -511,7 +513,8 @@ function App(
           else {
             mode.set('debug');
             sidebar.set(true);
-            chooseDebugTarget(debugTarget);
+            if (lastDebugTarget.get() === '') chooseDebugTarget(debugTarget);
+            else debugTarget.set(lastDebugTarget.get());
           }
         }}
       />

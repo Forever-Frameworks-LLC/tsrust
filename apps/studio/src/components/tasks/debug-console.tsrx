@@ -224,7 +224,8 @@ export function DebugSidebar(
   listed: Signal<SourceBreakpoint[]>,
   running: Signal<boolean>,
   stopped: Signal<boolean>,
-  chosen: Signal<string>
+  chosen: Signal<string>,
+  lastTarget: Signal<string>
 ): Node {
   const sender = requests.sender();
   const stopOnEntry = signal(false);
@@ -261,21 +262,34 @@ export function DebugSidebar(
         <View hidden={running.get()} className="grow flex-row items-center min-w-0">
           <Button
             className="grow min-w-0 justify-start rounded-none px-2"
-            aria-label={accessibleName('Launch executable…')}
+            aria-label={translate(lastTarget.get() === '' ? 'Launch executable…' : 'Run last executable')}
             tooltipCommand="debug-continue"
-            tooltip={message('Launch executable…')}
+            tooltip={lastTarget.get() === '' ? translate('Launch executable…') : lastTarget.get()}
             icon="play"
             variant="ghost"
             size="xsmall"
             disabled={running.get()}
             onPress={() => {
-              chooseDebugTarget(chosen);
+              if (lastTarget.get() === '') chooseDebugTarget(chosen);
+              else chosen.set(lastTarget.get());
             }}
           >
             <Text className={'text-[' + font.get().toString() + 'px]'}>
-              {t('Launch executable…')}
+              {translate(lastTarget.get() === '' ? 'Launch executable…' : 'Run last executable')}
             </Text>
           </Button>
+          <View hidden={lastTarget.get() === ''}>
+            <Button
+              icon="folder-open"
+              size="xsmall"
+              variant="ghost"
+              tooltip={message('Choose another executable…')}
+              aria-label={accessibleName('Choose another executable…')}
+              onPress={() => {
+                chooseDebugTarget(chosen);
+              }}
+            />
+          </View>
           <Button
             icon="circle-pause"
             tooltip={message('Stop on entry')}
@@ -450,7 +464,12 @@ export function DebugSidebar(
           const path = chosen.get();
           chosen.set('');
           match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoints: clone(launchWorkspace.get().sourceBreakpoints), watch: watch.get()})) {
-            Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
+            Ok(_) => {
+              lastTarget.set(clone(path));
+              output.set(path + '\n');
+              running.set(true);
+              panel.set('debug');
+            },
             Err(error) => { output.set(clone(error.code)); return; }
           }
         }

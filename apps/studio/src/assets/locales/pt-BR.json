@@ -124,6 +124,8 @@
   "Step out": "Sair da função",
   "Step over": "Avançar uma linha",
   "Step instruction": "Avançar uma instrução",
+  "Run last executable": "Executar último executável",
+  "Choose another executable…": "Escolher outro executável…",
   "Launch executable…": "Iniciar executável…",
   "Repository status, diffs and staging are planned.": "O status do repositório, as diferenças e a preparação de alterações estão planejados.",
   "Extension management is planned.": "O gerenciamento de extensões está planejado.",

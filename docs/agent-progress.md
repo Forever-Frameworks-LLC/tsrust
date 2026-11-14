@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+After the first debug launch, F5 and the sidebar play action reuse that executable within the open Studio session. A compact folder button chooses a replacement. The isolated macOS replay launched twice, hit twice(6) both times, retained watch n = 6, and exited zero. It also activated the replacement picker by keyboard and cancelled before the second F5. Localization passed 1/1. The watcher recovered from disk exhaustion after pruning 2.31 GB of obsolete generated executables under its cache lock while retaining the newest fifteen entries.
+
 A stopped-frame response carries its evaluated watch expression. Studio displays its value only when it matches the current trimmed input. In an isolated macOS Studio, edited n to an unknown local without submitting, selected the caller, verified the pending input persisted and its result stayed blank, then submitted it and saw the matching evaluation error. Submitting n and selecting the callee restored 6; step out and continue reached exit zero. Real debugger suite passed 9/9 (8.66 s execution), including an unknown local followed by register evaluation on the same paused session.
 
 Call stack now exposes all adapter frames. Selecting an unmapped native frame inspects its own scopes and watch value without opening an unrelated source location. The real LLDB suite passed 9/9 (8.92 s execution), including reading $pc on a native frame then inspecting the mapped caller. An isolated macOS Studio replay selected native frame #2 FnOnce::call_once after stopping in twice(6), confirmed the watch changed, selected main and twice again, restored n = 6, stepped out and continued to exit zero.
