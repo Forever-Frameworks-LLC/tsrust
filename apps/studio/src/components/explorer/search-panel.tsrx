@@ -85,7 +85,7 @@ interface ContentSearchState {
   query: string;
   regex: boolean;
   sensitive: boolean;
-  hits: SearchHit[];
+  count: int;
   page: int;
   error: string;
   skipped: int;
@@ -97,12 +97,14 @@ interface ContentSearchState {
   cancelSent: boolean;
 }
 
-function submitContentSearch(search: Signal<ContentSearchState>, run: boolean = true): void {
+function submitContentSearch(search: Signal<ContentSearchState>, hits: Signal<SearchHit[]>, run: boolean = true): void {
   const next = search.get();
   next.generation += 1;
   next.pending = run && next.query !== '';
   next.searched = false;
-  next.hits = [];
+
+  if (next.count > 0) hits.set([]);
+  next.count = 0;
   next.page = 1;
   next.error = '';
   search.set(next);
@@ -112,6 +114,8 @@ function pollContentSearch(
   workspace: Signal<Workspace>,
   settings: Signal<StudioConfig>,
   search: Signal<ContentSearchState>,
+  hits: Signal<SearchHit[]>,
+  pageHits: Signal<SearchHit[]>,
   requests: ReadOnly<Sender<ContentSearchRequest>>,
   replies: Mutable<Channel<ContentSearchReply>>,
   cancellations: ReadOnly<Sender<int>>
@@ -134,7 +138,9 @@ function pollContentSearch(
         next.running = false;
 
         if (next.generation === reply.generation) {
-          next.hits = reply.result.hits;
+          next.count = reply.result.hits.length;
+          pageHits.set(searchPage(reply.result.hits, 1));
+          hits.set(reply.result.hits);
           next.skipped = reply.result.skipped;
           next.error = reply.error;
           next.searched = true;
@@ -183,12 +189,14 @@ export function ContentSearch(
   const fontClass = computed<string>(() => 'px-2 text-[' + font.get().toString() + 'px]');
   const panelClass = computed<string>(() => 'flex-col size-full min-h-0 text-[' + font.get().toString() + 'px]');
   const search = signal<ContentSearchState>({
-    query: '', regex: false, sensitive: false, hits: [], page: 1, error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
+    query: '', regex: false, sensitive: false, count: 0, page: 1, error: '', skipped: 0, searched: false, generation: 0, pending: false, running: false, active: 0, cancelSent: false
   });
+  const hits = signal<SearchHit[]>([]);
+  const pageHits = signal<SearchHit[]>([]);
   const runLabel = computed<string>(() => search.get().running || search.get().pending ? translate("Cancel search") : translate("Run content search"));
-  const pages = computed<int>(() => searchPageCount(search.get().hits.length));
+  const pages = computed<int>(() => searchPageCount(search.get().count));
   const summary = computed<string>(() => translateWith('matchingLines', {
-    count: search.get().hits.length
+    count: search.get().count
   }) + (search.get().skipped > 0 ? ' • ' + translateWith('skippedFiles', {
     count: search.get().skipped
   }) : ''));
@@ -202,6 +210,8 @@ export function ContentSearch(
             workspace,
             settings,
             search,
+            hits.handle(),
+            pageHits.handle(),
             sender,
             replies,
             cancellations
@@ -221,10 +231,10 @@ export function ContentSearch(
               selected.set('');
               next.query = clone(event.target.value);
               search.set(next);
-              submitContentSearch(search, false);
+              submitContentSearch(search, hits.handle(), false);
             }}
             onSubmit={(_secondary) => {
-              submitContentSearch(search);
+              submitContentSearch(search, hits.handle());
             }}
           />
           <InputGroupAddon align="inline-end">
@@ -237,7 +247,7 @@ export function ContentSearch(
                 const next = search.get();
                 next.sensitive = !next.sensitive;
                 search.set(next);
-                submitContentSearch(search);
+                submitContentSearch(search, hits.handle());
               }}
             />
             <InputGroupButton
@@ -249,7 +259,7 @@ export function ContentSearch(
                 const next = search.get();
                 next.regex = !next.regex;
                 search.set(next);
-                submitContentSearch(search);
+                submitContentSearch(search, hits.handle());
               }}
             />
             <InputGroupButton
@@ -257,7 +267,7 @@ export function ContentSearch(
               tooltip={runLabel.get()}
               accessibilityLabel={runLabel.get()}
               onClick={() => {
-                submitContentSearch(search, !(search.get().running || search.get().pending));
+                submitContentSearch(search, hits.handle(), !(search.get().running || search.get().pending));
               }}
             />
           </InputGroupAddon>
@@ -273,8 +283,8 @@ export function ContentSearch(
           {localizeError(search.get().error)}
         </Text>
       </View>
-      <View className="flex-col grow min-h-0 overflow-y-auto">
-        {...searchPage(search.get().hits, search.get().page).map((hit: ReadOnly<SearchHit>) => ResultRow(
+      <View hidden={search.get().count === 0} className="flex-col grow min-h-0 overflow-y-auto">
+        {...pageHits.get().map((hit: ReadOnly<SearchHit>) => ResultRow(
           hit,
           workspace.get().root,
           workspace,
@@ -292,7 +302,8 @@ export function ContentSearch(
           onChange={(page) => {
             const next = search.get();
 
-            if (page >= 1 && page <= searchPageCount(next.hits.length)) {
+            if (page >= 1 && page <= searchPageCount(next.count)) {
+              pageHits.set(searchPage(hits.get(), page));
               next.page = page;
               search.set(next);
             }
