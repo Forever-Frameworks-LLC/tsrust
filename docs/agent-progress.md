@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+Run and Debug can pause a running target before it reaches a breakpoint. Studio requests the adapter thread list, pauses the first reported thread, then inspects the thread reported by the stopped event. An isolated macOS Studio replay launched the delayed fixture without breakpoints, clicked Pause debugging, observed a stack frame in the console, clicked Continue and stopped the running program with Shift+F5. Real LLDB and localization suites passed 9/9 (7.49 s execution). Thread selection and native Windows/Linux acceptance remain open.
+
 Stop debugging and Shift+F5 now terminate a running target as well as a paused one. The worker reads complete DAP frames independently and handles controls while the program runs. The real Xcode LLDB suite passed 8/8 (6.82 s execution), including stopping a target after its ready message during a 30-second delay and launching another session. In an isolated rebuilt Studio window, F5 launched the delayed fixture without breakpoints, its ready message appeared in the Debug Console, and Shift+F5 produced “Debug session stopped.” Verified on macOS arm64.
 
 F5 opens the executable picker and Run and Debug when idle, and continues a paused target. Shift+F5 stops a paused session. Two isolated native Studio replays launched through F5, hit a mapped breakpoint and focused the source editor. The continue replay reached exit code zero; the stop replay reported session stopped. The worker still reads controls at stops; interrupting a freely running target remains open.

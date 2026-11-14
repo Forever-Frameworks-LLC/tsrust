@@ -267,6 +267,23 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
       }
 
       await commands.send({
+        action: 'pause'
+      });
+      let inspected = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        strictEqual(update.finished, false);
+        inspected += update.text;
+
+        if (update.stopped === true) break;
+      }
+
+      strictEqual(inspected.includes('#0 '), true);
+      await commands.send({
+        action: 'continue'
+      });
+      await commands.send({
         action: 'stop'
       });
       const interrupted = await consoleResult(output);

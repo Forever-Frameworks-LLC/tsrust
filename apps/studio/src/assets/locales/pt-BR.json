@@ -116,6 +116,7 @@
   "Stop on entry": "Parar na entrada",
   "Continue": "Continuar",
   "Function breakpoint": "Ponto de interrupção de função",
+  "Pause debugging": "Pausar depuração",
   "Stop debugging": "Encerrar depuração",
   "Step over": "Avançar uma linha",
   "Step instruction": "Avançar uma instrução",

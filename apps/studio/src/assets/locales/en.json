@@ -116,6 +116,7 @@
   "Stop on entry": "Stop on entry",
   "Continue": "Continue",
   "Function breakpoint": "Function breakpoint",
+  "Pause debugging": "Pause debugging",
   "Stop debugging": "Stop debugging",
   "Step over": "Step over",
   "Step instruction": "Step instruction",
