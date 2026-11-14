@@ -11,6 +11,7 @@ import {
   Diff,
   Node,
   Signal,
+  computed,
   t
 } from 'std:ui';
 
@@ -33,6 +34,8 @@ function ConflictDialog(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, 
   if (target === undefined) return (
     <View />
   );
+  const textSize = computed<string>(() => 'text-[' + font.get().toString() + 'px]');
+  const button = computed<string>(() => textSize.get() + ' rounded-md px-3 py-1 hover:bg-accent');
   const closing: SaveConflict = clone(target);
   const cancel = clone(target);
   const reload = clone(target);
@@ -54,36 +57,40 @@ function ConflictDialog(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {t('File changed on disk')}
+            <Text className={textSize.get() + ' font-semibold'}>
+              {t('File changed on disk')}
+            </Text>
           </DialogTitle>
           <DialogDescription>
-            {clone(path)}
+            <Text className={textSize.get() + ' text-muted-foreground'}>
+              {clone(path)}
+            </Text>
           </DialogDescription>
         </DialogHeader>
-        <Text>
+        <Text className={textSize.get()}>
           {t('Another process changed the saved file. Your unsaved draft is safe. Compare both versions, then choose which to keep.')}
         </Text>
         <View className="flex-row">
           <View className="w-1/2">
-            <Text>
+            <Text className={textSize.get()}>
               {t('File on disk')}
             </Text>
           </View>
           <View className="w-1/2">
-            <Text>
+            <Text className={textSize.get()}>
               {t('Your unsaved draft')}
             </Text>
           </View>
         </View>
-        <View className="flex-col h-[480px] min-h-0">
+        <View className="flex-col h-[320px] min-h-0">
           <Diff originalText={disk} modifiedText={draft} filePath={path} mode="split" fontSize={font.get()} softWrap={true} headerVisible={false} contextLines={3} changeBackground={true} inlineUnit="word" className="size-full" />
         </View>
-        <Text className="text-destructive">
+        <Text role="status" className={textSize.get() + ' text-destructive'}>
           {workspace.get().error}
         </Text>
         <DialogFooter>
           <Button
-            variant="ghost"
+            className={button.get()}
             onPress={() => {
               conflictAction(workspace, recovery, cancel, 'keep-editing');
             }}
@@ -91,7 +98,7 @@ function ConflictDialog(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, 
             {t('Keep editing')}
           </Button>
           <Button
-            variant="secondary"
+            className={button.get() + ' bg-secondary'}
             onPress={() => {
               conflictAction(workspace, recovery, reload, 'reload');
             }}
@@ -99,7 +106,7 @@ function ConflictDialog(file: ReadOnly<OpenFile>, workspace: Signal<Workspace>, 
             {t('Discard draft and reload')}
           </Button>
           <Button
-            variant="danger"
+            className={button.get() + ' bg-destructive text-destructive-foreground'}
             onPress={() => {
               conflictAction(workspace, recovery, overwrite, 'overwrite');
             }}
