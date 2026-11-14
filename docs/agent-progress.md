@@ -22,6 +22,8 @@ Focused AI and extension suites passed 45/45. Two debugger cases failed in a san
 
 ## Native debugger transport
 
+With LLDB_DAP unset, macOS Studio now resolves lldb-dap through /usr/bin/xcrun and falls back to the executable on PATH when discovery fails. Explicit adapter commands and LLDB_DAP take precedence. On this Mac, the shell's PATH selected Homebrew LLVM while xcrun selected Xcode. Debugger suite passed 9/9 with the override unset, including comparing the selected executable to xcrun, stopping at mapped breakpoints, stepping and resuming the real target. Linux and Windows still use PATH and need native acceptance.
+
 Reproduced a failed workspace recovery after an external rename left a directory at a clean tab’s former path. Recovery now drops that stale tab and its breakpoint, retains other tabs and drafts, and restores a dirty tab at a replaced path as a journal-backed text draft in its original tab position. A normal save of that draft failed safely and the replacement directory and its child bytes were preserved. Recovery and storage suites passed 8/8 (84.80 ms). The explorer currently has no filesystem rename command; external renames do not transfer breakpoints to a guessed destination.
 
 A GPUI regression now clicks the breakpoint gutter on a wrapped continuation of line 1 and on the next visible line after folding away lines 2 and 3. It checks the actual laid-out rows and asserts the native callbacks return source lines 1 and 4. Focused gpui-base test passed with test-support on macOS. This uses simulated mouse events in the native component.

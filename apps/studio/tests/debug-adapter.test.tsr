@@ -1,11 +1,13 @@
+import { toUtf8 } from 'std:bytes';
 import { get } from 'std:env';
+import { platform } from 'std:os';
 import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
 import { Channel } from 'std:futures';
 import { run, spawn } from 'std:process';
 import { strictEqual, test } from 'std:testing';
 
 import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
-import { DebugCommand, DebugOutput, debugWorker, exitStatusText } from '../src/services/debug/session.tsr';
+import { DebugCommand, DebugOutput, debugWorker, debugAdapterCommand, exitStatusText } from '../src/services/debug/session.tsr';
 import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
 
 async function runDebugTarget(adapter: string, program: string): Task<void> {
@@ -239,7 +241,7 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
     const compiler = unwrap(get('TSRUST')) ?? 'tsrust';
     const build = unwrap(await run(clone(compiler), ['build', clone(source), '-o', clone(program)], {}));
     strictEqual(build.status.success, true);
-    await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', clone(program)).timeout(30000);
+    await runDebugTarget(await debugAdapterCommand(), clone(program)).timeout(30000);
     const requests = new Channel<DebugCommand>(1);
     const output = new Channel<DebugOutput>(16);
     const commands = requests.sender();
@@ -542,6 +544,24 @@ test('debug adapter errors identify the command and adapter explanation', () => 
   strictEqual(reply.message, 'launch: Executable missing');
 });
 
+test('adapter selection honors explicit paths and discovers the active Apple toolchain', async () => {
+  strictEqual(await debugAdapterCommand('custom adapter'), 'custom adapter');
+  const override = unwrap(get('LLDB_DAP')) ?? '';
+  let expected = 'lldb-dap';
+
+  if (override !== '') expected = override;
+  else if (platform() === 'darwin') {
+    match (await run('/usr/bin/xcrun', ['--find', 'lldb-dap'])) {
+      Ok(result) => {
+        if (result.status.success) expected = unwrap(toUtf8(result.stdout)).trim();
+      },
+      Err(_) => {}
+    }
+  }
+
+  strictEqual(await debugAdapterCommand(), expected);
+});
+
 test('missing debug adapter reports the configured path and setup action', async () => {
   const folder = unwrap(createTempDir(undefined, 'studio-missing-adapter-'));
   const commands = new Channel<DebugCommand>(1);
@@ -576,7 +596,7 @@ test('real adapter rejects a missing executable before the session runs', async 
     let failure = '';
 
     try {
-      await runDebugTarget(unwrap(get('LLDB_DAP')) ?? 'lldb-dap', folder + '/missing').timeout(30000);
+      await runDebugTarget(await debugAdapterCommand(), folder + '/missing').timeout(30000);
     } catch (error) {
       failure = JSON.stringify(error);
     }

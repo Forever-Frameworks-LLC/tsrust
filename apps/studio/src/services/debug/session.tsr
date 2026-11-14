@@ -1,9 +1,11 @@
+import { toUtf8 } from 'std:bytes';
+import { platform } from 'std:os';
 import { get } from 'std:env';
 import { canonicalize, stat } from 'std:fs';
 import { Channel, Sender } from 'std:futures';
 import { Reader, Writer } from 'std:io';
 import { basename } from 'std:path';
-import { Child, spawn } from 'std:process';
+import { Child, run, spawn } from 'std:process';
 
 import { readFrame, writeFrame } from '../lsp/transport.tsr';
 import { decodeAdapterReply } from './protocol.tsr';
@@ -44,6 +46,28 @@ export interface DebugOutput {
 
 export function exitStatusText(code: int | undefined): string {
   return code === undefined ? '\nExit status unavailable.\n' : '\nExit code ' + code.toString() + '\n';
+}
+
+export async function debugAdapterCommand(configured?: string): Task<string> {
+  if (configured !== undefined && configured !== '') return clone(configured);
+  const override = unwrap(get('LLDB_DAP')) ?? '';
+
+  if (override !== '') return override;
+
+  if (platform() === 'darwin') {
+    match (await run('/usr/bin/xcrun', ['--find', 'lldb-dap'])) {
+      Ok(output) => {
+        if (output.status.success) {
+          const path = unwrap(toUtf8(output.stdout)).trim();
+
+          if (path.startsWith('/')) return path;
+        }
+      },
+      Err(_) => {}
+    }
+  }
+
+  return 'lldb-dap';
 }
 
 function startDebugAdapter(adapter: ReadOnly<string>): Child {
@@ -591,9 +615,9 @@ export async function debugWorker(root: string, requests: Channel<DebugCommand>,
 
     try {
       if (!command.program) throw 'Select an executable to debug.';
-      const adapter = clone(configuredAdapter) ?? unwrap(get('LLDB_DAP')) ?? 'lldb-dap';
+      const adapter = await debugAdapterCommand(clone(configuredAdapter));
       await launchDebugTarget(
-        adapter === '' ? 'lldb-dap' : clone(adapter),
+        adapter,
         clone(root),
         generation,
         command,
