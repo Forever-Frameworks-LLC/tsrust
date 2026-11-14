@@ -177,6 +177,8 @@ async function launchDebugTarget(
     let mappedUnit = '';
     let positions = new Map<int, OriginalPosition>();
 
+    const functionPoints = new Set<int>();
+    let functionVerified = false;
     let mappedFunction = false;
     let nativeFunctions = false;
 
@@ -348,9 +350,16 @@ async function launchDebugTarget(
             mappedFunction = entries.size > 0;
 
             for (const entry of entries.entries()) {
-              if (!requested.some((point) => point.path === entry[0] && point.line === entry[1])) requested.push({
-                path: clone(entry[0]), line: entry[1]
-              });
+              let index = requested.findIndex((point) => point.path === entry[0] && point.line === entry[1]);
+
+              if (index < 0) {
+                index = requested.length;
+                requested.push({
+                  path: clone(entry[0]), line: entry[1]
+                });
+              }
+
+              functionPoints.add(index);
             }
 
             if (!mappedFunction && !nativeFunctions) throw 'Adapter does not support function breakpoints.';
@@ -371,7 +380,14 @@ async function launchDebugTarget(
           }
 
           for (let i = 0; i < requested.length; i += 1) {
-            if (!verified.has(i)) throw 'The debugger could not resolve ' + requested[i].path + ':' + requested[i].line.toString();
+            if (verified.has(i)) {
+              if (functionPoints.has(i)) functionVerified = true;
+            } else {
+              const reason = owners.includes(i) ? 'The debugger could not resolve ' : 'No executable statement at ';
+              await output.send({
+                text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
+              });
+            }
           }
         }
 
@@ -387,7 +403,6 @@ async function launchDebugTarget(
 
           for (let i = 0; i < requested.length; i += 1) {
             const point = requested[i];
-            const before = generated.length;
 
             for (const entry of positions.entries()) {
               if (entry[1].path !== point.path || entry[1].line !== point.line) continue;
@@ -395,7 +410,6 @@ async function launchDebugTarget(
               owners.push(i);
             }
 
-            if (before === generated.length) throw 'No executable statement at ' + point.path + ':' + point.line.toString();
           }
 
           await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
@@ -403,7 +417,7 @@ async function launchDebugTarget(
           await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
         } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
           if (mappedFunction) await output.send({
-            text: 'Breakpoint verified: ' + breakpoint + '\n', finished: false
+            text: (functionVerified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
           });
 
           if (reply.command === 'setFunctionBreakpoints') {

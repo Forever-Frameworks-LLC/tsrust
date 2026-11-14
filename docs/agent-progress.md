@@ -20,6 +20,10 @@ Extensions now uses a searchable sidebar and a selected model detail in the main
 
 Focused AI and extension suites passed 45/45. Two debugger cases failed in a sandboxed run with default tool resolution; rerunning the seven debugger cases with explicit release compiler, Xcode LLDB and native launch permissions passed 7/7 (4.59 s execution). The dev supervisor picked up the chat change and started the rebuilt Studio.
 
+## Unresolved original-source breakpoints — 2026-11-13
+
+Launching a mapped Tsrust executable with a breakpoint on a blank line now reports its source path and line in the Debug Console and continues configuring the other breakpoints. A mapped function breakpoint reports verification only when the adapter verifies one of its generated locations. The real LLDB suite passed 9/9 in 8.48 seconds, including a blank line alone and a blank line alongside two executable lines. Both executable lines stopped and the target exited zero. In a disposable native macOS Studio, F9 on a blank line followed by F5 reported fixture.tsr line 3, hit the named twice breakpoint, showed watch n = 6 and resumed to exit zero. Breakpoint editing during a running session and visual distinction for unresolved markers remain open.
+
 ## Debugger inspection sections — 2026-11-13
 
 Local variables and Call stack now open independently using labeled disclosure buttons sized with the configured font. Both start expanded. In an isolated native macOS Studio at size 20, stopped at twice(6), collapsed each section with the mouse and reopened it with Space. Its rows disappeared and returned while the sibling stayed available and watch n remained 6. Selecting main and twice refreshed the watch, stepping out returned to main, and continue exited zero. The source rebuild took 141.62 seconds.

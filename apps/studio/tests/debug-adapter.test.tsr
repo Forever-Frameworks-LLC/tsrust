@@ -363,9 +363,20 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       const symbols = unwrap(await run(compiler, ['build', clone(source), '--debug', '-o', clone(program)], {}));
       strictEqual(symbols.status.success, true);
+      await commands.send({
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 10
+        }]
+      });
+      const unresolved = await consoleResult(output);
+      strictEqual(unresolved.includes('No executable statement at ' + source + ':10\n'), true);
+      strictEqual(unresolved.includes('Exit code 0'), true);
+
       const lines = new Set<int>();
       await commands.send({
         action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 10
+        }, {
           path: clone(source), line: 11
         }, {
           path: clone(source), line: 12
@@ -392,6 +403,8 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
           });
         }
       }
+
+      strictEqual(transcript.includes('No executable statement at ' + source + ':10\n'), true);
 
       if (lines.size !== 2) throw 'Missing mapped stop: ' + transcript;
       strictEqual(transcript.includes('Exit code 0'), true);
