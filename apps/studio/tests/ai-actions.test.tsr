@@ -1424,7 +1424,7 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
       const host = context(state, settings, requests);
       host.workspace = signal(clone(model));
       host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
-      send(host, 'Edit: Change x to match example.tsr');
+      send(host, 'Edit: Change x to the replacement from example.tsr');
       const args = JSON.stringify({
         request: clone(state.get().active)
       });
@@ -1433,6 +1433,7 @@ test('an accepted cancellation or shutdown withdraws the edit target before a la
       const generation = unwrap(requests.tryReceive());
       strictEqual(generation.messages?.[0].content.includes('const replacement = 2;') ?? false, true);
       strictEqual(generation.messages?.[0].content.includes('Editable file: main.tsr') ?? false, true);
+      strictEqual(generation.messages?.[0].content.includes('target initializer is 2.') ?? false, true);
       unwrap(invokeModelTool(host, action, args));
       strictEqual(state.get().editTarget === undefined, true);
       const reply = '{"before":"1","after":"2"}';
