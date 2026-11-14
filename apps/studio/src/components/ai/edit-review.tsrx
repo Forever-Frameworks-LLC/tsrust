@@ -15,6 +15,7 @@ import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr'
 import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { fileSearchLabel } from '../../lib/explorer/search-actions.tsr';
 import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
 import { ChatStore } from '../../services/ai/history.tsr';
 import { AiState, ChatPersistence, publishChat } from '../../services/ai/actions.tsr';
@@ -135,7 +136,7 @@ export function reviewChatEdit(
   unwrap(publishChat(state, chat, persistence));
 }
 
-function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, multipleFiles: boolean): Node[] {
+function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, multipleFiles: boolean, relativePath: ReadOnly<string>): Node[] {
   const controls: Node[] = [];
   const passages = clone(file.passages);
 
@@ -145,7 +146,8 @@ function PassageControls(file: ReadOnly<ProposedEdit>, state: Signal<AiState>, m
     const passage = passages[index];
     const lines = file.before.slice(0, passage.start).split('\n');
     const column = Array.from(lines[lines.length - 1]).length + 1;
-    const label = translate(passage.included ? 'Exclude change' : 'Include change') + ' · ' + translate('Line') + ' ' + lines.length.toString() + ':' + column.toString();
+    const location = (multipleFiles ? relativePath + ':' : translate('Line') + ' ') + lines.length.toString() + ':' + column.toString();
+    const label = translate(passage.included ? 'Exclude change' : 'Include change') + ' · ' + location;
     const path = clone(file.path);
     const captured = clone(file);
     const position = index;
@@ -235,12 +237,15 @@ function Review(
   const empty = target.files.every((file) => file.before === file.after);
   const rows: Node[] = [];
 
+  const root = clone(workspace.get().root);
+
   for (const file of target.files) {
-    const controls = PassageControls(file, state, multipleFiles);
+    const relativePath = fileSearchLabel(root, file.path);
+    const controls = PassageControls(file, state, multipleFiles, relativePath);
     rows.push(
       <View className="flex-col h-[460px] shrink-0">
         <Text>
-          {clone(file.path)}
+          {clone(relativePath)}
         </Text>
         <Diff originalText={clone(file.before)} modifiedText={clone(file.after)} filePath={clone(file.path)} mode="split" fontSize={font.get()} className="grow min-h-0" />
         {...controls}
