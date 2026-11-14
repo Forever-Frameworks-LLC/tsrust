@@ -4,6 +4,32 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The owner reactivated the full Studio goal after thread transfer. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## External editor diagnostics investigation — 2026-11-14
+
+Owner authorized investigating latency and the errors visible in Zed. A fresh
+public LSP session on the current disk main.tsrx returned no diagnostics in
+97.03 seconds: declarations 1.535 s, check 93.007 s, index 2.045 s, diagnostics
+0.259 s. A separate initialize-only workspace session completed 146 diagnostic
+publications, all empty, including test files, in 179.45 seconds (including the
+10-second quiet wait). These checks cover current disk inputs, not unsaved Zed
+buffers.
+
+A one-second native sample of the foreground analysis showed Tsrust compiler
+analysis, including async/task wrappers, region_caller_error_effects and
+annotate_partial_with_contracts. A second workspace-scan sample showed the same
+error-effect path. These checks run inside tsrust-lsp; their delay precedes Rust
+code generation/build. Repeated whole-program error-contract propagation is an
+optimization candidate, not a measured optimization or a proven single cause.
+
+Confirmed Zed's language server PID 86097 started at 05:58:46, before the
+configured binary was rebuilt at 06:00:07. Its persisted diagnostics could
+therefore disagree with the fresh clean scan. Keyboard Restart Language Server
+did not replace the process. Quit Zed normally and reopened apps/studio/main.tsrx.
+Verified new Zed PID 4812 launched current language server PID 5143 at 06:23:34.
+Stale analysis is the likely explanation for the reported Zed errors; their
+individual original messages were not captured. No compiler analysis semantics
+were changed. The full Studio goal remains paused.
+
 ## External editor direction — 2026-11-14
 
 Owner paused the full Studio goal and requested stopping its running application,
