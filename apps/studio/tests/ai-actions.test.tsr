@@ -181,6 +181,43 @@ test('typing code starts the configured host and retains the latest caret throug
   strictEqual(unwrap(commands.tryReceive()).id, 'inline:22');
 });
 
+test('typing after a failed inline startup waits for an explicit retry or different model', () => {
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(2);
+  const host = context(state, settings, commands);
+  requestInline(state, host.commands, '{"id":41,"prefix":"first","suffix":""}');
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: '', text: '', error: 'Invalid GGUF'
+  }));
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  requestInline(state, host.commands, '{"id":42,"prefix":"second","suffix":""}');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopped');
+  strictEqual(state.get().queuedInline === undefined, true);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      throw 'Unexpected automatic retry';
+    },
+    Err(reason) => {
+      strictEqual(reason.code, 'empty');
+    }
+  }
+
+  const changed = settings.get();
+  changed.aiModelPath = '/another/model.gguf';
+  settings.set(changed);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).modelPath ?? '', '/another/model.gguf');
+});
+
 test('a full command queue retains only the latest inline request at startup and after readiness', () => {
   const state = signal(initialAiState());
   const commands = new Channel<ModelRequest>(1);

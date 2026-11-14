@@ -6,6 +6,8 @@ v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
 ## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
 
+Editor requests now honor the selected model's prior startup attempt. With a corrupt GGUF in an isolated native macOS profile, the model host failed once and exited. Two edits in visible.tsr separated by pauses for inline completion produced zero additional launches. After replacing the fixture with the installed 1.5B Q4 weights and toggling inline completion off and on, exactly one new host launched and reached ready. The focused AI actions suite passed 42/42 in 286.49 ms, including retry after changing the selected path.
+
 With inline completions enabled at startup, a disposable native macOS Studio attempted to load an invalid GGUF file. The real host returned an error and exited. No second host launch occurred in the next three idle seconds. Replaced the fixture with a symlink to the installed 1.5B Q4 weights, then turned inline completions off and on from the AI Settings page. Exactly one new host launched, returned ready at the original selected path and received no completion request. The owner's profile and weights were untouched.
 
 Verified the inline-completion switch on the AI Settings page with the installed Qwen2.5-Coder-1.5B Q4 and the real Studio model host in a disposable macOS profile. Turning it on persisted the preference and the host emitted ready before any completion request. One post-ready RSS observation was 1,185,328 KiB. Restarting Studio with that profile warmed the model before Settings was opened again. Turning the switch off persisted false and the idle host process exited. This run checked the preference and model lifetime; it did not request generated text.
