@@ -185,6 +185,7 @@ function App(
     recovery,
     filenameSearch,
     font,
+    settings,
     languageState,
     languageMessages.sender()
   );

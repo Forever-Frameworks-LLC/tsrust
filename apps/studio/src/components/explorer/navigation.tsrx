@@ -1,5 +1,6 @@
 import { Sender } from 'std:futures';
 import {
+  Icon,
   View,
   Text,
   Dialog,
@@ -24,6 +25,8 @@ import {
   closeFileSearch,
   openFileSearchResult
 } from '../../lib/explorer/search-actions.tsr';
+import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
 import { message } from '../../lib/localization.tsr';
 import { PaletteCommand, paletteCommands } from '../../lib/workspace/commands.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
@@ -62,11 +65,25 @@ function closePalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, 
   }
 }
 
-function FileSearchItem(file: ReadOnly<Entry>, root: ReadOnly<string>): Node {
+function FileSearchItem(file: ReadOnly<Entry>, root: ReadOnly<string>, fileIcons: boolean): Node {
   const path = clone(file.path);
   const label = fileSearchLabel(root, file.path);
-  return (
+
+  if (!fileIcons) return (
     <CommandItem value={path} label={label} icon="file" />
+  );
+  const glyph = fileDecoration(file.name, file.directory);
+
+  if (glyph.svg === '' && glyph.icon === '') return (
+    <CommandItem value={path} label={label} icon="file" />
+  );
+  return (
+    <CommandItem value={path} label={clone(label)}>
+      <Icon name={glyph.icon} svg={glyph.svg} size="sm" className={glyph.color === '' ? '' : 'text-[' + glyph.color + ']'} />
+      <Text className="min-w-0 truncate">
+        {label}
+      </Text>
+    </CommandItem>
   );
 }
 
@@ -137,6 +154,7 @@ export function FileSearch(
   recovery: Signal<Recovery>,
   search: Signal<FileSearchState>,
   font: Signal<int>,
+  settings: Signal<StudioConfig>,
   language: Signal<LanguageState>,
   messages: Sender<LanguageMessage>
 ): Node {
@@ -204,7 +222,7 @@ export function FileSearch(
               closePalette(workspace, recovery, search);
             }}
           >
-            {...fileMatches(search.get()).map((file: ReadOnly<Entry>) => FileSearchItem(file, search.get().root))}
+            {...fileMatches(search.get()).map((file: ReadOnly<Entry>) => FileSearchItem(file, search.get().root, settings.get().fileIcons))}
             {...paletteCommands(workspace.get(), search.get().query).map((command: ReadOnly<PaletteCommand>) => CommandItemRow(command))}
             {...languageCommands(language.get(), search.get().query).map(renderLanguage)}
             <CommandEmpty>
