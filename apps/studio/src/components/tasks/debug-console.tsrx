@@ -214,6 +214,26 @@ export function chooseDebugTarget(chosen: Signal<string>): void {
   });
 }
 
+function InspectionHeading(label: string, open: Signal<boolean>, font: Signal<int>): Node {
+  return (
+    <Button
+      className={'w-full min-w-0 justify-start rounded-none px-2 text-muted-foreground min-h-[' + (font.get() + 12).toString() + 'px]'}
+      size="xsmall"
+      variant="ghost"
+      icon={open.get() ? 'chevron-down' : 'chevron-right'}
+      aria-label={accessibleName(clone(label))}
+      aria-expanded={open.get()}
+      onPress={() => {
+        open.set(!open.get());
+      }}
+    >
+      <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
+        {t(clone(label))}
+      </Text>
+    </Button>
+  );
+}
+
 export function DebugSidebar(
   requests: ReadOnly<Channel<DebugCommand>>,
   replies: Channel<DebugOutput>,
@@ -247,6 +267,8 @@ export function DebugSidebar(
   const rowSelection = selectedFrame.handle();
   const frameRequests = requests.sender();
   const locals = signal<string[]>([]);
+  const localsOpen = signal(true);
+  const stackOpen = signal(true);
   const listRunning = running.handle();
   const breakpointWorkspace = navigation.workspace.handle();
   const breakpointRecovery = navigation.recovery.handle();
@@ -436,27 +458,27 @@ export function DebugSidebar(
           </View>
         </View>
         <View hidden={!stopped.get() || locals.get().length === 0} className="w-full flex-col min-w-0">
-          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-            {t('Local variables')}
-          </Text>
-          {...locals.get().map((value: ReadOnly<string>) => (
-            <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
-          ))}
+          {InspectionHeading('Local variables', localsOpen.handle(), font.handle())}
+          <View hidden={!localsOpen.get()} className="w-full flex-col min-w-0">
+            {...locals.get().map((value: ReadOnly<string>) => (
+              <Input appearance={false} bordered={false} size="small" height={font.get() + 12} readOnly={true} value={clone(value)} aria-label={accessibleName('Local variable')} className={'w-full min-w-0 px-2 font-mono text-[' + font.get().toString() + 'px]'} />
+            ))}
+          </View>
         </View>
         <View hidden={!stopped.get() || frames.get().length === 0} className="w-full flex-col min-w-0">
-          <Text className={'px-2 py-1 text-muted-foreground text-[' + font.get().toString() + 'px]'}>
-            {t('Call stack')}
-          </Text>
-          {...frames.get().map((frame: ReadOnly<SourceFrame>) => StackFrameRow(
-            clone(frame),
-            frameRoot,
-            rowEpoch.get(),
-            rowSelection.handle(),
-            frameRequests.share(),
-            frameStopped.handle(),
-            frameOutput.handle(),
-            frameFont.handle()
-          ))}
+          {InspectionHeading('Call stack', stackOpen.handle(), font.handle())}
+          <View hidden={!stackOpen.get()} className="w-full flex-col min-w-0">
+            {...frames.get().map((frame: ReadOnly<SourceFrame>) => StackFrameRow(
+              clone(frame),
+              frameRoot,
+              rowEpoch.get(),
+              rowSelection.handle(),
+              frameRequests.share(),
+              frameStopped.handle(),
+              frameOutput.handle(),
+              frameFont.handle()
+            ))}
+          </View>
         </View>
       </View>
       <Ticker interval={50} running={running.get() || chosen.get() !== ''} onTick={(_frame) => {

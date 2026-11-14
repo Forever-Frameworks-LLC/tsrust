@@ -20,6 +20,10 @@ Extensions now uses a searchable sidebar and a selected model detail in the main
 
 Focused AI and extension suites passed 45/45. Two debugger cases failed in a sandboxed run with default tool resolution; rerunning the seven debugger cases with explicit release compiler, Xcode LLDB and native launch permissions passed 7/7 (4.59 s execution). The dev supervisor picked up the chat change and started the rebuilt Studio.
 
+## Debugger inspection sections — 2026-11-13
+
+Local variables and Call stack now open independently using labeled disclosure buttons sized with the configured font. Both start expanded. In an isolated native macOS Studio at size 20, stopped at twice(6), collapsed each section with the mouse and reopened it with Space. Its rows disappeared and returned while the sibling stayed available and watch n remained 6. Selecting main and twice refreshed the watch, stepping out returned to main, and continue exited zero. The source rebuild took 141.62 seconds.
+
 ## Debugger input sizing — 2026-11-13
 
 The shared native Input ignored explicit height for single-line fields, so Studio's watch/local height setting did not reach layout. Moved the explicit-height application outside the multiline-only branch. The focused native GPUI layout regression passed 1/1 (0.02 s execution; 4m33s build), checking 24 and 32 point field heights. The test temporarily selected local gpui-base/url patches; restored its lockfile afterward. Whole-project formatting changed no files or documentation snippets and refreshed no fingerprints. Release compiler and LSP rebuilt together in 3m39s. A public LSP hover on CodeEditor reported both breakpointLines and onBreakpointClick. Screen capture returned “could not create image from display”; exact visual consistency remains unverified.
