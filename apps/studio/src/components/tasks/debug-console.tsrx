@@ -17,7 +17,7 @@ import {
   translate
 } from 'std:ui';
 
-import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { SearchActionContext, fileSearchLabel } from '../../lib/explorer/search-actions.tsr';
 import { DiagnosticPosition, documentUri } from '../../lib/language/diagnostics.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
@@ -77,27 +77,67 @@ function DebugControl(
   );
 }
 
-function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: Signal<SourceBreakpoint[]>, running: Signal<boolean>, font: Signal<int>): Node {
-  const label = target.path.slice(root.length + 1) + ':' + target.line.toString();
-  return (
-    <Button
-      className={'w-full min-w-0 justify-start px-2 py-[6px] rounded-none border-b border-border hover:bg-accent text-[' + font.get().toString() + 'px]'}
-      variant="ghost"
-      size="small"
-      disabled={running.get()}
-      tooltip={message('Remove breakpoint')}
-      onPress={() => {
-        const points = lines.get();
-        const index = points.findIndex((item) => item.path === target.path && item.line === target.line);
+function openDebugLocation(navigation: ReadOnly<SearchActionContext>, path: ReadOnly<string>, line: int, column: int, output: Signal<string>): void {
+  const point: DiagnosticPosition = {
+    line: line - 1, character: column - 1
+  };
 
-        if (index >= 0) points.splice(index, 1);
-        lines.set(points);
-      }}
-    >
-      <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
-        {label}
-      </Text>
-    </Button>
+  match (openLanguageLocation(navigation, {
+    root: clone(navigation.allowedRoot ?? ''), uri: documentUri(path), selection: {
+      start: clone(point), end: point
+    }
+  })) {
+    Ok(_) => {},
+    Err(error) => {
+      output.set(output.get() + error + '\n');
+    }
+  }
+}
+
+function BreakpointRow(
+  target: SourceBreakpoint,
+  root: ReadOnly<string>,
+  lines: Signal<SourceBreakpoint[]>,
+  running: Signal<boolean>,
+  font: Signal<int>,
+  navigation: SearchActionContext,
+  output: Signal<string>
+): Node {
+  const label = fileSearchLabel(root, target.path) + ':' + target.line.toString();
+  const file = clone(target.path);
+  const line = target.line;
+  return (
+    <View className="flex-row items-center w-full min-w-0 border-b border-border hover:bg-accent">
+      <Button
+        className={'grow min-w-0 justify-start px-2 py-[6px] rounded-none text-[' + font.get().toString() + 'px]'}
+        variant="ghost"
+        size="small"
+        tooltip={clone(label)}
+        aria-label={clone(label)}
+        onPress={() => {
+          openDebugLocation(navigation, file, line, 1, output);
+        }}
+      >
+        <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
+          {label}
+        </Text>
+      </Button>
+      <Button
+        icon="x"
+        size="xsmall"
+        variant="ghost"
+        disabled={running.get()}
+        tooltip={message('Remove breakpoint')}
+        aria-label={translate('Remove breakpoint') + ' ' + fileSearchLabel(root, target.path) + ':' + target.line.toString()}
+        onPress={() => {
+          const points = lines.get();
+          const index = points.findIndex((item) => item.path === target.path && item.line === target.line);
+
+          if (index >= 0) points.splice(index, 1);
+          lines.set(points);
+        }}
+      />
+    </View>
   );
 }
 
@@ -185,6 +225,9 @@ export function DebugSidebar(
   const frameRequests = requests.sender();
   const locals = signal<string[]>([]);
   const listRunning = running.handle();
+  const breakpointWorkspace = navigation.workspace.handle();
+  const breakpointRecovery = navigation.recovery.handle();
+  const breakpointOutput = output.handle();
   const listFont = font.handle();
   const listLines = lines.handle();
   return (
@@ -297,7 +340,17 @@ export function DebugSidebar(
         </View>
       </View>
       <View className="flex-col grow w-full min-w-0 min-h-0 overflow-y-auto">
-        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(clone(point), root, listLines.handle(), listRunning.handle(), listFont.handle()))}
+        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(
+          clone(point),
+          root,
+          listLines.handle(),
+          listRunning.handle(),
+          listFont.handle(),
+          {
+            workspace: breakpointWorkspace.handle(), recovery: breakpointRecovery.handle(), allowedRoot: clone(root), allowNavigation: true, focusEditor: true
+          },
+          breakpointOutput.handle()
+        ))}
         <View hidden={running.get()} className="w-full min-w-0">
           <InputGroup size="small" className="w-full h-8 shrink-0 min-w-0 rounded-none border border-transparent">
             <Input
@@ -384,16 +437,7 @@ export function DebugSidebar(
               frames.set(clone(reply.frames) ?? []);
             }
             const location = reply.location;
-            if (location !== undefined) {
-              const point: DiagnosticPosition = {line: location.line - 1, character: location.column - 1};
-              match (openLanguageLocation(navigation, {
-                root: clone(navigation.allowedRoot ?? ''), uri: documentUri(location.path),
-                selection: {start: clone(point), end: point}
-              })) {
-                Ok(_) => {},
-                Err(error) => { output.set(output.get() + error + '\n'); }
-              }
-            }
+            if (location !== undefined) openDebugLocation(navigation, location.path, location.line, location.column, output);
             output.set(output.get() + reply.text); running.set(!reply.finished); if (reply.stopped === true) locals.set(clone(reply.locals) ?? []); if (reply.stopped === true) watchValue.set(clone(reply.watchValue ?? '')); if (reply.stopped === true || reply.finished) stopped.set(reply.stopped ?? false); },
           Err(error) => { if (error.code !== 'empty') { output.set(output.get() + error.code); running.set(false); } }
         }
