@@ -325,12 +325,15 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
 
       const symbols = unwrap(await run(compiler, ['build', clone(source), '--debug', '-o', clone(program)], {}));
       strictEqual(symbols.status.success, true);
-      const expected = source + ':11:3';
+      const lines = new Set<int>();
       await commands.send({
-        action: 'launch', program: clone(program), sourceBreakpoint: clone(source), breakpointLine: 11
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }, {
+          path: clone(source), line: 12
+        }]
       });
 
-      let stops = 0;
       let transcript = '';
 
       while (true) {
@@ -340,18 +343,19 @@ test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes
         if (reply.finished) break;
 
         if (reply.stopped === true) {
-          strictEqual(reply.text.includes(expected), true);
+          const line = reply.location?.line ?? 0;
+          strictEqual(line === 11 || line === 12, true);
+          lines.add(line);
+          strictEqual(reply.text.includes(source + ':' + line.toString() + ':3'), true);
           strictEqual(reply.location?.path, clone(source));
-          strictEqual(reply.location?.line, 11);
           strictEqual(reply.location?.column, 3);
-          stops += 1;
           await commands.send({
             action: 'continue'
           });
         }
       }
 
-      if (stops === 0) throw 'No mapped stop: ' + transcript;
+      if (lines.size !== 2) throw 'Missing mapped stop: ' + transcript;
       strictEqual(transcript.includes('Exit code 0'), true);
     } finally {
       worker.cancel();

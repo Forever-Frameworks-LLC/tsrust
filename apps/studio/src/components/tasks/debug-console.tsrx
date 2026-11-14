@@ -1,4 +1,3 @@
-import { basename } from 'std:path';
 import { Channel } from 'std:futures';
 import {
   Button,
@@ -16,7 +15,7 @@ import {
   t
 } from 'std:ui';
 import { message, accessibleName } from '../../lib/localization.tsr';
-import { DebugCommand, DebugOutput } from '../../services/debug/session.tsr';
+import { DebugCommand, DebugOutput, SourceBreakpoint, toggleSourceBreakpoint } from '../../services/debug/session.tsr';
 
 import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
 import { openLanguageLocation } from '../../lib/language/navigation.tsr';
@@ -55,6 +54,29 @@ function DebugControl(
   );
 }
 
+function BreakpointRow(target: SourceBreakpoint, root: ReadOnly<string>, lines: Signal<SourceBreakpoint[]>, running: Signal<boolean>, font: Signal<int>): Node {
+  const label = target.path.slice(root.length + 1) + ':' + target.line.toString();
+  return (
+    <Button
+      variant="ghost"
+      size="small"
+      disabled={running.get()}
+      tooltip={message('Remove breakpoint')}
+      onPress={() => {
+        const points = lines.get();
+        const index = points.findIndex((item) => item.path === target.path && item.line === target.line);
+
+        if (index >= 0) points.splice(index, 1);
+        lines.set(points);
+      }}
+    >
+      <Text className={'truncate text-[' + font.get().toString() + 'px]'}>
+        {label}
+      </Text>
+    </Button>
+  );
+}
+
 export function DebugSidebar(
   requests: ReadOnly<Channel<DebugCommand>>,
   replies: Channel<DebugOutput>,
@@ -67,14 +89,17 @@ export function DebugSidebar(
   const stopOnEntry = signal(false);
   const workspace = navigation.workspace.handle();
   const selectedWorkspace = workspace.handle();
-  const lineFile = signal('');
-  const lineNumber = signal(0);
+  const root = clone(workspace.get().root);
+  const lines = signal<SourceBreakpoint[]>([]);
   const breakpoint = signal('');
   const watch = signal('');
   const watchValue = signal('');
   const stopped = signal(false);
   const chosen = signal('');
   const running = signal(false);
+  const listRunning = running.handle();
+  const listFont = font.handle();
+  const listLines = lines.handle();
   return (
     <View className="flex-col size-full min-h-0">
       <View className="flex-col w-full min-w-0 items-start gap-1 px-2 py-1">
@@ -110,26 +135,23 @@ export function DebugSidebar(
           </Text>
         </Button>
         <Button variant="ghost" size="small"
-          disabled={running.get() || (workspace.get().active === '' && lineFile.get() === '')}
+          disabled={running.get() || workspace.get().active === ''}
           tooltip={message('Toggle source breakpoint at cursor')}
           aria-label={accessibleName('Toggle source breakpoint at cursor')}
           onPress={() => {
-            if (lineFile.get() !== '') {
-              lineFile.set('');
-              lineNumber.set(0);
-              return;
-            }
             const path = clone(selectedWorkspace.get().active);
             readInput(clone(path), (field) => {
               if (!field.found) return;
               const caret = field.selectionReversed === true ? field.selectionStart : field.selectionEnd;
               if (caret === undefined || field.value === undefined) return;
-              lineNumber.set(field.value.slice(0, caret).split('\n').length);
-              lineFile.set(clone(path));
+              const points = lines.get();
+              toggleSourceBreakpoint(points, clone(path), field.value.slice(0, caret).split('\n').length);
+              lines.set(points);
             });
           }}>
-          <Text className={'text-[' + font.get().toString() + 'px]'}>{lineFile.get() === '' ? t('Break at cursor') : basename(lineFile.get()) + ':' + lineNumber.get().toString()}</Text>
+          <Text className={'text-[' + font.get().toString() + 'px]'}>{t('Break at cursor')}</Text>
         </Button>
+        {...lines.get().map((point: ReadOnly<SourceBreakpoint>) => BreakpointRow(clone(point), root, listLines.handle(), listRunning.handle(), listFont.handle()))}
         <View hidden={running.get()} className="w-full min-w-0">
           <Input
             className={'px-2 text-[' + font.get().toString() + 'px]'}
@@ -187,7 +209,7 @@ export function DebugSidebar(
         if (chosen.get() !== '') {
           const path = chosen.get();
           chosen.set('');
-          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoint: lineFile.get() === '' ? undefined : lineFile.get(), breakpointLine: lineNumber.get(), watch: watch.get()})) {
+          match (sender.trySend({action: 'launch', program: clone(path), stopOnEntry: stopOnEntry.get(), functionBreakpoint: breakpoint.get(), sourceBreakpoints: lines.get(), watch: watch.get()})) {
             Ok(_) => { output.set(path + '\n'); running.set(true); panel.set('debug'); },
             Err(error) => { output.set(clone(error.code)); return; }
           }

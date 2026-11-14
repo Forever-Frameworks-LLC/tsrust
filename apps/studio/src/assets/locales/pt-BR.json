@@ -1,4 +1,5 @@
 {
+  "Remove breakpoint": "Remover ponto de interrupção",
   "Break at cursor": "Parar no cursor",
   "Toggle source breakpoint at cursor": "Alternar ponto de interrupção no cursor",
   "Watch value": "Valor observado",

@@ -9,4 +9,5 @@ function main(): void {
   }
 
   console.log('Studio debugger fixture');
+  console.log('');
 }
