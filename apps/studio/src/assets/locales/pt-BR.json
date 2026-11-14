@@ -37,6 +37,7 @@
   "Deleted in incoming version": "Excluído na versão recebida",
   "Stage hunk": "Preparar trecho",
   "Unstage hunk": "Retirar trecho da preparação",
+  "The conflict changed. Refresh Source Control.": "O conflito mudou. Atualize o Controle de Código-Fonte.",
   "The hunk changed. Refresh the diff.": "O trecho mudou. Atualize o diff.",
   "Choose a changed file": "Escolher um arquivo alterado",
   "Stage selected or active file from disk": "Preparar o arquivo selecionado ou ativo do disco",

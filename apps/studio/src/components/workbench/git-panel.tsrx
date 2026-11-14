@@ -388,6 +388,26 @@ export function GitPanel(
             if (reply.failed) { errorText.set(localizeError(reply.text)); return; }
             errorText.set('');
             if (req.action === 'commit-staged' && messageText.get() === req.message) messageText.set('');
+            if (req.action === 'check-resolution') {
+              const target = req.save;
+              if (target !== undefined) {
+                const next = workspace.get();
+                match (saveTarget(next, target)) {
+                  Err(reason) => { errorText.set(localizeError(reason)); publishWorkspace(next, workspace, recovery); return; },
+                  Ok(_) => {}
+                }
+                publishWorkspace(next, workspace, recovery);
+              }
+              pending.set({ mode: 'status', action: 'stage', path: req.path, conflictIndex: req.conflictIndex });
+              return;
+            }
+            if (reply.mode === 'conflicts') {
+              const current = selected.get();
+              if (current.mode === 'conflicts' && current.path === req.viewFile) {
+                current.conflictIndex = reply.conflictIndex;
+                selected.set(current);
+              }
+            }
             if (reply.mode === 'status') {
               const rows = reply.changes ?? [];
               changes.set(clone(rows)); loaded.set(true);
@@ -575,32 +595,24 @@ export function GitEditor(
               const next = workspace.get();
               const index = next.files.findIndex((entry: ReadOnly<OpenFile>) => entry.document.path === path.get() && entry.kind === 'text');
 
+              let target: FormattingTarget | undefined = undefined;
+
               if (index >= 0) {
                 if (hasConflictStart(next.files[index].document.text, selected.get().markerWidth ?? 7)) {
                   errorText.set(translate('Resolve conflict markers before staging.'));
                   return;
                 }
 
-                const target: FormattingTarget = {
+                target = {
                   path: clone(next.files[index].document.path), session: clone(next.files[index].document.session), revision: next.files[index].document.revision
                 };
 
-                match (saveTarget(next, target)) {
-                  Err(reason) => {
-                    errorText.set(reason);
-                    publishWorkspace(next, workspace, recovery);
-                    return;
-                  },
-                  Ok(_) => {}
-                }
-
-                publishWorkspace(next, workspace, recovery);
               }
-            }
 
-            pending.set({
-              mode: 'status', action: selected.get().mode === 'staged' ? 'unstage' : 'stage', path: selected.get().path
-            });
+              pending.set({
+                mode: 'check-resolution', action: 'check-resolution', path: selected.get().path, conflictIndex: selected.get().conflictIndex, save: target
+              });
+            }
           }}
         />
       </View>

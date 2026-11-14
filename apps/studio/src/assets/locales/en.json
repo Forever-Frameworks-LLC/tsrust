@@ -37,6 +37,7 @@
   "Deleted in incoming version": "Deleted in incoming version",
   "Stage hunk": "Stage hunk",
   "Unstage hunk": "Unstage hunk",
+  "The conflict changed. Refresh Source Control.": "The conflict changed. Refresh Source Control.",
   "The hunk changed. Refresh the diff.": "The hunk changed. Refresh the diff.",
   "Choose a changed file": "Choose a changed file",
   "Stage selected or active file from disk": "Stage selected or active file from disk",

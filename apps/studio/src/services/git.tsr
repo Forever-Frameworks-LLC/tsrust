@@ -1,3 +1,4 @@
+import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
 import { fromUtf8, length, toUtf8 } from 'std:bytes';
 import { Channel, Sender } from 'std:futures';
 import { isAbsolute, separator } from 'std:path';
@@ -130,6 +131,8 @@ async function conflictSections(root: string, file: string): Task<Result<Map<str
       return Err(reason);
     },
     Ok(entries) => {
+      if (entries !== '') sections.set('index', clone(entries));
+
       for (const entry of entries.split('\0')) {
         const tab = entry.indexOf('\t');
 
@@ -246,6 +249,8 @@ export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
 }
 
 export interface GitRequest {
+  conflictIndex?: string;
+  save?: FormattingTarget;
   mode: string;
   action?: string;
   path?: string;
@@ -374,10 +379,23 @@ export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRe
     }
   }
 
-  if (action !== 'stage' && action !== 'unstage') return Err('Unknown source control action.');
+  if (action !== 'stage' && action !== 'unstage' && action !== 'check-resolution') return Err('Unknown source control action.');
   const path = request.path ?? '';
 
   if (!workspaceFile(path)) return Err('Choose a file inside the workspace.');
+
+  if (action === 'check-resolution' || request.conflictIndex !== undefined) {
+    match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(path)])) {
+      Err(reason) => {
+        return Err(reason);
+      },
+      Ok(entries) => {
+        if (entries === '' || entries !== request.conflictIndex) return Err('The conflict changed. Refresh Source Control.');
+      }
+    }
+
+    if (action === 'check-resolution') return Ok('');
+  }
 
   match (lstat(root + separator() + path)) {
     Ok(info) => {
@@ -477,6 +495,7 @@ async function runGit(
 }
 
 export interface GitChange {
+  conflictIndex?: string;
   markerWidth?: int;
   path: string;
   mode: string;
@@ -552,6 +571,7 @@ async function repositoryChanges(root: string): Task<Result<GitChange[], string>
 }
 
 export interface GitReply {
+  conflictIndex?: string;
   mode: string;
   text: string;
   failed: boolean;
@@ -572,7 +592,7 @@ export async function gitWorker(root: string, requests: Channel<GitRequest>, rep
       match (await conflictSections(clone(root), clone(conflictFile)).start()) {
         Ok(sections) => {
           await replies.send({
-            mode, failed: false, text: formatConflict(sections, conflictFile), ours: clone(sections.get('2')), theirs: clone(sections.get('3'))
+            mode, conflictIndex: clone(sections.get('index')), failed: false, text: formatConflict(sections, conflictFile), ours: clone(sections.get('2')), theirs: clone(sections.get('3'))
           });
         },
         Err(error) => {

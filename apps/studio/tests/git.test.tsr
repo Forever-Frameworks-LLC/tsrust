@@ -358,6 +358,7 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
     const replies = new Channel<GitReply>(1);
     const sender = requests.sender();
     const worker = gitWorker(clone(sub), requests, replies.sender()).start();
+    let conflictIndex = '';
 
     try {
       await sender.send({
@@ -374,6 +375,11 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
       });
       const reply = await replies.receive().timeout(10000);
       strictEqual(reply.failed, false);
+      conflictIndex = reply.conflictIndex ?? '';
+      strictEqual(conflictIndex !== '', true);
+      strictEqual(unwrap(await gitRequest(sub, {
+        mode: 'check-resolution', action: 'check-resolution', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
+      })), '');
       strictEqual(reply.ours, 'main\n');
       strictEqual(reply.theirs, 'topic\n');
     } finally {
@@ -394,8 +400,20 @@ test('conflicts list only unresolved workspace paths until the saved resolution 
     strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
     unwrap(writeTextFile(sub + '/ré view.txt', 'resolved\n'));
     strictEqual(unwrap(await gitRequest(sub, {
-      mode: 'conflicts', action: 'stage', path: 'ré view.txt'
+      mode: 'conflicts', action: 'stage', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
     })), '');
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
+    })) {
+      Ok(_) => {
+        strictEqual(true, false);
+      },
+      Err(reason) => {
+        strictEqual(reason, 'The conflict changed. Refresh Source Control.');
+      }
+    }
+
     strictEqual(unwrap(await readGitView(root, 'conflicts')), 'outside.txt\n');
     unwrap(writeTextFile(root + '/outside.txt', 'outside resolution\n'));
     strictEqual(await repoGit(root, ['add', 'outside.txt']), true);
