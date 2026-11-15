@@ -4,30 +4,69 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
 
-## Committed candidate integration in progress — 2026-11-14
+## Committed candidate accepted locally; staging PR next — 2026-11-14
 
 Previous goal turn made progress: runtime/catalog acceptance and checkpoint
-f3a6c27ce. Current main/stag were fetched read-only; no PR is open. The old handoff's
-release status was stale: PR17 merged into main88db8210a on2026-11-11T02:59:05Z,
-and v0.2.0 published at02:59:55Z. No new release is authorized by this discovery.
+f3a6c27ce. Read-only GitHub reconciliation found no open PR, and the handoff's
+release status was stale. PR17 merged into main88db8210a on2026-11-11T02:59:05Z;
+v0.2.0 published at02:59:55Z. This does not authorize another publication.
 
-A managed clean checkout at f3a6c27ce preserves all owner SDK/Studio drafts in the
-original tree. Direct merging main previews611 false squash-history conflicts.
-Verified ac195a4762d46709b9bda65da316ee7ec5375775, origin/stag3c2f01d5e and
-origin/main88db8210a have identical tree0a69b5863adfbc4570defbd8f566563fc3f96ac4.
-The unsquashed source shares11f63fd48 with this branch and adds6 commits; its merge
-has only the handoff conflict. Resolve that conflict by preserving current evidence
-and recording this reconciliation. Integrating this verified source first preserves
-upstream Windows Cargo target-path handling, Linux ALSA/offline GPUI preparation,
-release provenance checks, VS Code0.2.2 and existing suite timing/cold-build handling.
-App CI exclusions remain intact; no Worklist service/job is added.
+Managed checkout: /Users/seancotter/.codex/worktrees/committed-source-check/tsrust,
+branch codex/compiler-lsp-worklist. The original checkout remains on codex/gpui-ui
+with all protected Studio/SDK drafts unchanged. No drafts were copied, committed,
+stashed or reverted. No app/model/PostgreSQL session was restarted.
 
-Next: validate the exact clean integrated source, including the Windows helper's
-unit coverage and tooling. After source acceptance, connect the identical-tree
-squashed main history without changing source. Do not mask actual upstream edits
-with an unconditional ours merge. Owner drafts remain protected and are not copied,
-stashed, committed or reverted. App sessions remain stopped; one shared Cargo
-target and incremental off/jobs1 remain required. No remote mutation occurred.
+Direct merging squashed main previewed611 artificial history conflicts. Verified
+ac195a4762d46709b9bda65da316ee7ec5375775, origin/stag3c2f01d5e and
+origin/main88db8210a share exact tree0a69b5863adfbc4570defbd8f566563fc3f96ac4.
+The original release source shares11f63fd48 with this branch and adds6 commits;
+merging that source has only the handoff conflict. Preserved current evidence and
+recorded the release reconciliation. Source integration70bdeb879 retains upstream
+Windows Cargo target-path spelling, Linux ALSA/offline GPUI preparation, release
+provenance checks, VS Code0.2.2, native-suite build/test timing and the existing
+1800s cold GPUI build allowance. No Worklist CI job/service was added. Full formatter
+made only token-preserving layout changes in2 committed Studio files; original
+owner versions in the other checkout were not touched.
+
+Exact clean70bdeb879 source validation, shared root target, jobs1/incremental off:
+- Core release-profile tests (tool92875): build/setup9m14s; compiler1558 passed,
+  8 existing ignored,78.97s; CLI62/62 including Windows drive/UNC path witness,
+  1.72s; LSP library36/36,1.07s; scheduler7/7,0.02s.1663 passed,0 failed.
+- Compiler/LSP all-target offline locked check (tool52392) passed1m52s, including
+  integration harnesses. Existing unused-code warnings remain explicit.
+- CI correctness lint, release/offline/locked lib+bins (tool64941), passed26.99s;
+  non-correctness suggestions remain, no warning suppression or cleanup was added.
+- Compiler UI authoring contracts against committed SDK (tool32601):13/13 passed
+  6.74s after26.35s build/setup. No desktop program was opened.
+- Packaging/release-policy tests26/26 passed4.299s; suite discovery/profiling/catalog
+  Python controls5/5 passed0.016s. Existing policy checks now cover GitHub's mutable
+  PR association recovery. No release action was executed.
+- VS Code0.2.2 typecheck/build,4 discovery and2 grammar cases passed; local VSIX
+  packaging passed (12files,123.74KB), without installation/publication.
+- Local version/clean-source preflight passed for the existing0.2.0 manifests. This
+  does not prove a new release is available: v0.2.0 already exists remotely.
+
+Then verified the original release source is an ancestor and its tree equals
+main's. History-only merge89ec655c0 connects the already included squashed promotion
+history; an assert proves the candidate tree stayed exactly
+3baebb27545e55656da5020f208893bba005ce34. No upstream content was discarded. A second
+whole-project formatter passed0 files/snippets/fingerprints. Prior unchanged host
+and runtime/catalog acceptance stays retained; it is not relabeled as a fresh
+committed-source full replay. These new core/UI checks specifically qualify the
+committed SDK without the protected additions used by the earlier run.
+
+Next remote boundary: one push of the accepted candidate and PR to stag, to merge
+finished compiler/LSP/GPUI changes, not a CI experiment. Existing3-host CI is the
+smallest remaining Windows/Linux/native packaging check unavailable on this Mac;
+no equivalent run exists for this new candidate. Main/stag point to the released
+v0.2.0 tree; no pending Dependabot/other PR exists at this reconciliation. Current
+CI/docs PR triggers target stag. Promotion from stag to main invokes the publisher
+and requires a new unused version plus explicit owner publication approval; do not
+open that promotion or publish a tag merely to test. General tuning/<10% target
+and closed-app visual stress/zoom review remain deferred/unverified as recorded.
+The overall goal is still incomplete. Preserve these accepted checks instead of
+repeating them after evidence-only changes. Temporary build reports and the local
+VSIX are disposable after recording results; keep one shared Cargo target.
 
 ## Runtime/catalog milestone accepted locally — 2026-11-14
 
