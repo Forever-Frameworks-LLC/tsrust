@@ -15,6 +15,24 @@ Windows132691338117 runtime jobs; do not call cancelled jobs passed. Three host
 jobs132691338109/132691338125/132691338197 remain live at the last verified snapshot.
 No workflow was manually cancelled, rerun or dispatched; no second push yet.
 
+Subsequent read-only original-run evidence:
+- Linux host132691338125 passed22 targets,181 cases,0 failed/ignored. Summed Rust
+  target test-wall reports1269.01s include native build/setup within tests, so
+  actual execution is conservatively below the owner's one-hour limit. Separate
+  top-level dev setup1m40s; compiler host test build2m04s; LSP host build1m59s.
+- Cancelled Windows runtime log records66 passed groups and1 failed group: the
+  same GPUI starter E0599 for set_traffic_light_position. No second cause found.
+  Passed profiles sum354.295s build and5.331s tests; the449.8s failed GPUI build
+  has no completed profile/test acceptance. Remaining scope was cancelled/unrun.
+- Cancelled macOS runtime log records87 passed groups and no recorded failures.
+  GPUI starter itself passed3 files (412.461s build,0.003s tests). Passed profiles
+  sum863.175s build and5.542s tests. The job's remaining scope was cancelled, so
+  this partial evidence is not a full macOS runtime pass.
+- Windows/macOS host jobs and owned CI watch16944 remain live. No extra workflow
+  was started. All observations refer to original remote aa628e637, not the local
+  repaired candidate. The same platform guard addresses both recorded native
+  compiler errors; no extra Windows workaround is necessary from these logs.
+
 Failure is Rust E0599 in patched GPUI Kit title_bar.rs: its prepaint callback calls
 Window::set_traffic_light_position unconditionally. The pinned gpui-pre0.3.11
 window.rs defines that method only under cfg(target_os="macos"). Audited all calls
