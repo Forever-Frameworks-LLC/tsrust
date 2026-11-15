@@ -4,6 +4,78 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Broad generated-cache cleanup completed — 2026-11-14
+
+Owner rejected the first19.5GiB-only cleanup as insufficient: more than200GB was
+available before Studio/UI work. Audited the whole checkout and Tsrust cache roots,
+then removed the accumulated generated build trees instead of only old object files.
+Observed filesystem free space rose from48GiB before the first pass to68GiB after
+it, then191GiB (~205GB decimal) after the broad pass: roughly143GiB reclaimed across
+both passes. Checkout disk usage dropped from~181GiB after the first pass to~13GiB.
+APFS shared/cloned extents mean directory sizes do not sum one-for-one to physical
+space reclaimed. No performance speedup is claimed from this cleanup.
+
+Broad removal covered shared target/debug, target/admission, target/tsrust-native,
+obsolete nested compiler/LSP targets, the UI-table-state fixture target, experimental
+AI target, docs target, Rust-example targets, GPUI starter target, Studio and model-
+host targets, and obsolete Worklist API/desktop target contents. Kept every lock
+inode and its directory skeleton, acquiring nonblocking exclusive locks before
+mutation. No source path reported by Git (tracked or untracked/unignored) was under
+any deletion target. No symlink target was followed during removal. Original first
+pass removed297 older executable variants (~6.97GiB logical) and17959 old Rustc
+intermediate objects (~12.51GiB logical), retaining newest executable variants.
+The broad pass then removed the remaining shared debug cache, not release tools.
+
+Kept complete release tools/dependencies (~6GiB), model weights, portable source
+packs, source, owner drafts and SQLite acceptance records. Kept exact byte-matched
+active application/runtime cache entries:
+- API application06bc1d5b7c887676; runtime97101fa2805ae6c3.
+- Worklist application625b14c04fe965f6; matching runtime bundles23a70d2fc80cac05 and
+  adb10649e35db2a6 (identical runtime payload, distinct validated input identities).
+Final Worklist target is~1.8GiB and API target~464MiB; stopped Studio/example targets
+contain only retained lock skeletons. Active executables and all three retained
+runtime bundles were SHA-256 compared against the live supervisors' exact temporary
+artifacts after cleanup. Release/installed CLI and LSP hashes still match the
+accepted e82c15ae /7064063d full hashes in the section below.
+
+An initial aggregate source/evidence check reported a changed file set because
+removing a generated ignore marker exposed the retained rust-owned-words cache lock
+as untracked. Restored a generated target/.gitignore marker, preserving the lock
+inode; Git status returned to the previous owner/own change set. Do not describe
+that initial aggregate assertion as passed. Independent application source/config
+aggregate still exactly matches the established
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Canonical measurements.sqlite integrity check passes; no history was changed.
+Whole formatter passed0 files/snippets/fingerprints. No owner source drafts were
+formatted or staged, and no app/API/editor restart was performed for cleanup.
+
+Owner-prioritized cleanup interrupted the new host milestone before test execution:
+tools/host-tests.py session63106/group2720 was stopped with SIGTERM (exit143).
+It had built debug consumers and prepared the current offline portable source pack,
+then was compiling host test binaries. No host test case pass is claimed. Preserve
+prior accepted library/CLI/LSP/app evidence. Do not rerun builds merely to refill the
+removed cache. Future compiler/dependency builds will be cold; active native runtime
+bundles and release consumers were retained to avoid discarding every useful input.
+
+Current live sessions remain Worklist supervisor99887/native99918 (tool14972),
+API33729/45647 and Zed75803. API responds to /snapshot; the later read contained299
+tasks at cursor446, so do not claim the earlier300-row count was reverified after
+cleanup. Cleanup performed no database requests other than GET and never touched
+the Docker volume or home-directory caches/drafts. Studio stays stopped.
+
+Pending own source outside this cleanup checkpoint: tools/run-suites.py now has an
+optional --roots selector while default discovery still includes all tracked suites;
+tools/tests/test_runtime_suites.py covers default application/experimental inclusion,
+catalog preservation, application roots, invalid/outside/empty roots.4 unit cases
+passed in0.003s. CI wiring is NOT implemented/accepted yet. The audit found generic
+CI runtime discovery now includes resource-dependent application/model suites with
+no provisioned DB/model/host prerequisites. Next finish explicit ordinary-runtime CI
+scope plus a required PostgreSQL-backed Worklist integration job, without removing
+or weakening application/model assertions.120 catalog groups/1078 tests were generated
+under target/catalog-suites; no runtime-suite execution yet. Retain this pending work
+unstaged until that coherent CI section is validated. Optimization remains deferred;
+full local/platform/product acceptance and PR merge remain incomplete. No remote action.
+
 ## Modal shortcuts fixed; focused Worklist/LSP validation — 2026-11-14
 
 Optimization remains deferred per owner. Validation found a correctness issue:
