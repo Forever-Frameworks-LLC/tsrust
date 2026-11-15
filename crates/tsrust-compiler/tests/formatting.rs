@@ -284,7 +284,7 @@ fn formatting_lays_out_switch_clauses_and_conditional_colons() {
 fn formatting_keeps_declarations_without_initializers() {
     let source = "function main(){let a:int;let b:string,c:int=2;if(c>1){a=1;b=\"x\";}else{a=2;b=\"y\";}console.log(a,b);}";
     let result = format(source).unwrap();
-    let expected = "function main() {\n  let a: int;\n  let b: string, c: int = 2;\n  if (c > 1) {\n    a = 1;\n    b = \"x\";\n  } else {\n    a = 2;\n    b = \"y\";\n  }\n\n  console.log(a, b);\n}\n";
+    let expected = "function main() {\n  let a: int;\n  let b: string, c: int = 2;\n\n  if (c > 1) {\n    a = 1;\n    b = \"x\";\n  } else {\n    a = 2;\n    b = \"y\";\n  }\n\n  console.log(a, b);\n}\n";
     assert_eq!(result, expected);
     assert_eq!(format(&result).unwrap(), result);
     assert_eq!(check(source).unwrap().contracts(), check(&result).unwrap().contracts());
@@ -505,7 +505,7 @@ fn empty_delimiters_stay_tight_without_losing_comments_or_behavior() {
     }
     for source in ["function main(){/* keep */}", "function main(){\n// keep\n}"] {
         let formatted = format(source).unwrap();
-        assert!(formatted.contains(if source.contains("/*") { "{/* keep */}" } else { "{\n// keep\n}" }), "{formatted}");
+        assert!(formatted.contains(if source.contains("/*") { "{/* keep */}" } else { "{\n  // keep\n}" }), "{formatted}");
         assert_eq!(format(&formatted).unwrap(), formatted);
         assert!(check(&formatted).is_ok());
     }

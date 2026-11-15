@@ -4,6 +4,57 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Existing native/process host milestone accepted locally — 2026-11-14
+
+Previous goal turn made progress with measured memory repair4fbefd10e. No further
+tuning was introduced. Continued the existing compiler/LSP host validation that
+the owner cleanup had interrupted, without starting Worklist, Studio, PostgreSQL,
+model hosts or hosted CI. Used the retained release target, incremental off/jobs1.
+The current portable source pack f934fd529d205d4e2fb3bf9031bebe001be602557a3fdab1c999fb5cacc5920d
+verified offline without regeneration. Built all20 existing compiler host-test
+targets together once in1m14s (tool85663); no fresh compiler debug consumer build.
+
+One no-fail-fast execution covered all20 compiler targets (tool70161), with a
+conservative3600s wall watchdog. It completed in947.503s inclusive of native build/
+setup within tests, so actual test execution was below one hour. Target reports
+sum942.69s inclusive.161 passed,2 failed,0 ignored. Failures were stale formatting
+expectations: default blank_lines_around_blocks=true inserts a blank line before
+if; reindent_gap indents a comment-only function body by the default2 spaces.
+Verified both policies in formatting/mod.rs, options.rs and trivia.rs. Changed
+only the two literal expected strings in tests/formatting.rs; kept all comment,
+idempotence, contract-equality and native-output assertions. No formatter behavior
+or product source changed.
+
+Affected formatting target replay passed36/36 in1.91s after3.62s setup (tool47962).
+The other19 passed targets remain accepted; do not rerun them for this test-only
+repair. All163 registered compiler host cases are accepted across those runs,
+not a fabricated single all-green invocation. Coverage includes CLI acceptance,
+API/Rust SDK/router boundaries, dependency bundles,10 offline relocated native
+package cases, package management, processes/signals, scoped test registration,
+project commands, Rust adapters/data/resources, service/shared sources, reporter,
+async HTTP setup/teardown and toolchain installation/rollback.
+
+Remaining LSP API-project integration passed1/1 in0.05s after2.36s setup (tool87877):
+unsaved operations/config regenerate dispatch and editor diagnostics without disk
+outputs. Reuse the unchanged18/18 stdio acceptance from the memory checkpoint.
+Original source/evidence fingerprints covered9227 Git-reported paths; all stayed
+unchanged during the20-target run. After the intentional test repair, exactly
+tests/formatting.rs differed. Owner source/SDK drafts and canonical benchmark data
+were preserved. App targets remain clear; ordinary shared compiler/native test
+dependencies were reused. No app CI job or new validation pipeline was added.
+
+This closes the pending local host milestone, not all remaining runtime/catalog,
+platform or merge acceptance. Source validation still includes protected SDK
+additions, so immutable committed-source qualification remains distinct. Existing
+memory fix and its stop-tuning decision remain accepted. Whole-project formatting
+passed0 files/snippets/fingerprints. Final guarded differences were exactly the
+intentional tests/formatting.rs repair and this progress record. Closed raw reports
+can be removed after checkpoint. Host tests populated shared root native/debug
+dependencies (~3.8GiB total) for remaining runtime validation; app targets remain
+clear and free space is approximately191GiB (~205GB decimal). Preserve all passed
+counts instead of repeating this host batch. Only tests/formatting.rs and this
+evidence belong to the checkpoint; no remote action occurred.
+
 ## Generic flow-state sharing reduces the reproduced startup peak — 2026-11-14
 
 Previous goal turn made progress: core regression acceptance and stale Settings
