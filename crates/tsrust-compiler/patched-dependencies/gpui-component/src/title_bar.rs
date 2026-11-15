@@ -345,8 +345,9 @@ impl RenderOnce for TitleBar {
                     cx.theme().background,
                 ))
                 .refine_style(&self.style)
-                .on_prepaint(|bounds,window,_| {
-                    window.set_traffic_light_position(gpui::point(px(9.),(bounds.size.height-px(16.))/2.));
+                .on_prepaint(|_bounds,_window,_| {
+                    #[cfg(target_os = "macos")]
+                    _window.set_traffic_light_position(gpui::point(px(9.),(_bounds.size.height-px(16.))/2.));
                 })
                 .when(is_linux, |this| {
                     this.on_double_click(|_, window, _| window.zoom_window())

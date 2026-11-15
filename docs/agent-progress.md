@@ -4,6 +4,44 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
 
+## PR19 Linux GPUI failure diagnosed; platform guard accepted locally — 2026-11-14
+
+Current original CI43673677678 is still running on remote aa628e637. Linux runtime
+job132691338131 completed failure:142/143 suite groups passed; only GPUI starter
+compilation failed. Reported traversal872.3s, successful build profiles423.511s,
+executed tests6.892s. The437.3s failing GPUI build has no completed build profile
+and no test acceptance. Existing fail-fast policy cancelled macOS132691338102 and
+Windows132691338117 runtime jobs; do not call cancelled jobs passed. Three host
+jobs132691338109/132691338125/132691338197 remain live at the last verified snapshot.
+No workflow was manually cancelled, rerun or dispatched; no second push yet.
+
+Failure is Rust E0599 in patched GPUI Kit title_bar.rs: its prepaint callback calls
+Window::set_traffic_light_position unconditionally. The pinned gpui-pre0.3.11
+window.rs defines that method only under cfg(target_os="macos"). Audited all calls
+across compiler UI runtime, patched GPUI Base and patched GPUI Component: this is
+the single caller of the single macOS-only Window method found there. Added the
+same compile-time platform guard to the call. macOS keeps the exact position and
+height calculation; non-macOS no longer attempts an unavailable API. No titlebar
+feature was removed and no UI/application was started. Rustfmt parse-only stdout
+validation passed without reformatting the upstream file.
+
+Focused embedded-patch tests pass3/3 in0.14s after4m24s setup, using the retained
+shared release target, incremental off/jobs1. The initial public alias filter
+selected0 cases and has no test acceptance; corrected actual module filter
+native::dependency_patches::tests ran all3 cases (0.45s warm setup, tool2d0d1e).
+Coverage preserves GPUI/URL relocation, exact payload and injection rejection,
+source identities and directory-symlink rejection. Full native Linux/Windows GPUI
+compilation remains for the next necessary CI run; this Mac has no Linux native
+toolchain. The existing GPUI starter remains the regression witness.
+
+PR19 also reports REVIEW_REQUIRED. Repository ruleset25884267 requires1 approving
+review on stag and allows only owner user80602015 to bypass through a PR. This is
+a real merge boundary, separate from the CI gate and later new-version publication
+approval. Do not bypass it merely to checkpoint. Local branch already holds accepted
+docs/format repair b624b681c and cleanup evidence4dda92935. Batch this platform fix
+with those repairs after original host results finish; preserve all passed evidence.
+Original owner tree/drafts, release consumers and stopped app state remain intact.
+
 ## PR19 active; diagnosed docs/format repair accepted locally — 2026-11-14
 
 Previous goal turn made progress:143 runtime/catalog groups accepted and f3a6c27ce.
