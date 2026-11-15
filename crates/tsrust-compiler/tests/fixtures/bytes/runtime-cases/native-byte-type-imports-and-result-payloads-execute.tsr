@@ -17,6 +17,7 @@ export function run() {
   }
 
   const input = [0, 255];
+
   match (fromArray(input)) {
     Ok(bytes) => {
       strictEqual(length(bytes), 2);

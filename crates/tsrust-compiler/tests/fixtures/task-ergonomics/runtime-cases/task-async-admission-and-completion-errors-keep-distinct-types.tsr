@@ -5,6 +5,7 @@ export async function run(): Task<void> {
     workers: 1, capacity: 1
   });
   console.log(await pool.taskAsync((): int => 7));
+
   try {
     await pool.taskAsync((): int => {
       throw 'cause';
@@ -14,6 +15,7 @@ export async function run(): Task<void> {
   }
 
   unwrap(pool.shutdown());
+
   try {
     await pool.taskAsync((): int => 8);
   } catch (error) {

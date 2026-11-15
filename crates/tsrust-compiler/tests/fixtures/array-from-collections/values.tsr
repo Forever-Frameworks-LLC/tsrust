@@ -86,9 +86,11 @@ function main() {
   }).join(""), "00");
   let seen = 0;
   let finished = 0;
+
   try {
     Array.from(map, (entry, index) => {
       seen += 1;
+
       if (index === 0) {
         throw "stopped";
       }

@@ -1,0 +1,271 @@
+//! PTY ownership and VT state for the native Terminal component.
+use alacritty_terminal::{
+    event::{Event, EventListener, WindowSize},
+    event_loop::{EventLoop, EventLoopSender, Msg},
+    grid::Dimensions,
+    sync::FairMutex,
+    term::{Config, Osc52, Term},
+    vte::ansi::Rgb,
+    tty,
+};
+use std::{borrow::Cow, io, path::Path, sync::{Arc, Mutex, OnceLock}, thread::JoinHandle};
+
+#[derive(Clone, Copy)]
+pub(super) struct Size(pub WindowSize);
+impl Dimensions for Size {
+    fn total_lines(&self) -> usize {self.screen_lines()}
+    fn screen_lines(&self) -> usize {usize::from(self.0.num_lines)}
+    fn columns(&self) -> usize {usize::from(self.0.num_cols)}
+}
+
+#[derive(Default, Clone)]
+pub(super) struct Status {
+    pub title: String,
+    pub exited: bool,
+    pub code: Option<i32>,
+}
+
+#[derive(Clone)]
+pub(super) struct Proxy {
+    wake: async_channel::Sender<()>,
+    status: Arc<Mutex<Status>>,
+    sender: Arc<OnceLock<EventLoopSender>>,
+    size: Arc<Mutex<Size>>,
+    colors: Arc<Mutex<[Rgb; 269]>>,
+}
+impl EventListener for Proxy {
+    fn send_event(&self, event: Event) {
+        match event {
+            Event::Title(title) => {
+                let mut status = self.status.lock().unwrap();
+                status.title = title.chars().take(4096).collect();
+            }
+            Event::ResetTitle => self.status.lock().unwrap().title.clear(),
+            Event::ChildExit(status) => {
+                let mut state = self.status.lock().unwrap();
+                state.exited = true;
+                state.code = status.code();
+            }
+            Event::Exit => self.status.lock().unwrap().exited = true,
+            Event::PtyWrite(text) => self.write(text.into_bytes()),
+            Event::TextAreaSizeRequest(format) => {
+                let size = self.size.lock().unwrap().0;
+                self.write(format(size).into_bytes());
+            }
+            // shortcut: OSC override queries use theme defaults; add ordered query delivery before dynamic palette configuration.
+            Event::ColorRequest(index, format) => {
+                let color = self.colors.lock().unwrap().get(index).copied();
+                if let Some(color) = color {self.write(format(color).into_bytes());}
+            }
+            // Terminal output cannot read/write the clipboard or launch a URL.
+            Event::ClipboardStore(..) | Event::ClipboardLoad(..) => return,
+            _ => {}
+        }
+        // Grid/status are authoritative; only one pending redraw notification is needed.
+        let _ = self.wake.try_send(());
+    }
+}
+impl Proxy {
+    fn write(&self, bytes: Vec<u8>) {
+        if let Some(sender) = self.sender.get() {let _ = sender.send(Msg::Input(Cow::Owned(bytes)));}
+    }
+}
+
+pub(super) struct Session {
+    pub terminal: Arc<FairMutex<Term<Proxy>>>,
+    pub wake: async_channel::Receiver<()>,
+    proxy: Proxy,
+    sender: EventLoopSender,
+    thread: Option<JoinHandle<()>>,
+    pub completed: async_channel::Receiver<()>,
+    #[cfg(unix)]
+    controller: std::fs::File,
+    #[cfg(unix)]
+    pid: nix::unistd::Pid,
+}
+
+impl Session {
+    pub fn start(directory: &Path, shell: Option<tty::Shell>, size: Size, history: usize) -> io::Result<Self> {
+        if size.columns() < 2 || size.screen_lines() == 0 {return Err(io::Error::other("Terminal dimensions must be at least 2 columns and 1 row"));}
+        if !directory.is_dir() {return Err(io::Error::other("Terminal working directory does not exist"));}
+        let (wake, receiver) = async_channel::bounded(1);
+        let proxy = Proxy {wake, status: Arc::default(), sender: Arc::default(), size: Arc::new(Mutex::new(size)), colors: Arc::new(Mutex::new(palette(0xd4d4d4, 0x1e1e1e)))};
+        let terminal = Arc::new(FairMutex::new(Term::new(Config {scrolling_history: history, osc52: Osc52::Disabled, ..Config::default()}, &size, proxy.clone())));
+        let mut options = tty::Options {shell, working_directory: Some(directory.to_owned()), drain_on_exit: true, ..tty::Options::default()};
+        options.env.insert("TERM".into(), "xterm-256color".into());
+        options.env.insert("COLORTERM".into(), "truecolor".into());
+        let pty = tty::new(&options, size.0, 0)?;
+        #[cfg(unix)] let controller = pty.file().try_clone()?;
+        #[cfg(unix)] let pid = nix::unistd::Pid::from_raw(pty.child().id() as i32);
+        let event_loop = EventLoop::new(terminal.clone(), proxy.clone(), pty, true, false)?;
+        let sender = event_loop.channel();
+        let _ = proxy.sender.set(sender.clone());
+        let worker = event_loop.spawn();
+        let (completion, completed) = async_channel::bounded(1);
+        // Consume the returned event loop so its PTY is dropped/reaped on natural exit.
+        let finished = proxy.clone();
+        let thread = std::thread::spawn(move || {
+            drop(worker.join());
+            finished.status.lock().unwrap().exited = true;
+            let _ = completion.try_send(());
+            let _ = finished.wake.try_send(());
+        });
+        Ok(Self {terminal, wake: receiver, proxy, sender, thread: Some(thread), completed, #[cfg(unix)] controller, #[cfg(unix)] pid})
+    }
+
+    pub fn status(&self) -> Status {self.proxy.status.lock().unwrap().clone()}
+
+    pub fn set_colors(&self, foreground: u32, background: u32) { *self.proxy.colors.lock().unwrap() = palette(foreground, background); }
+    pub fn colors(&self) -> [Rgb; 269] {*self.proxy.colors.lock().unwrap()}
+
+    /// Completed tasks keep a navigable grid even though the PTY no longer accepts keys.
+    pub fn scroll_key(&self, key: &str, shift: bool) -> bool {
+        use alacritty_terminal::{grid::Scroll, term::TermMode};
+        let direction = match key {
+            "pageup" => Scroll::PageUp,
+            "pagedown" => Scroll::PageDown,
+            "home" => Scroll::Top,
+            "end" => Scroll::Bottom,
+            _ => return false,
+        };
+        let exited = self.status().exited;
+        let mut term = self.terminal.lock();
+        if !exited && (!shift || term.mode().contains(TermMode::ALT_SCREEN)) {return false;}
+        term.scroll_display(direction);
+        true
+    }
+
+    pub fn output(&self) -> String {
+        use alacritty_terminal::index::{Column, Point};
+        let term = self.terminal.lock();
+        term.bounds_to_string(Point::new(term.topmost_line(), Column(0)), Point::new(term.bottommost_line(), term.last_column())).trim_end_matches('\n').to_owned()
+    }
+
+    pub fn write(&self, bytes: Vec<u8>) -> Result<(), String> {
+        if self.thread.is_none() || self.status().exited {return Err("Terminal session has exited".into());}
+        self.sender.send(Msg::Input(Cow::Owned(bytes))).map_err(|error| error.to_string())
+    }
+
+    pub fn resize(&self, size: Size) -> Result<(), String> {
+        if size.columns() < 2 || size.screen_lines() == 0 {return Err("Terminal dimensions must be at least 2 columns and 1 row".into());}
+        {
+            let mut previous = self.proxy.size.lock().unwrap();
+            if previous.0.num_cols == size.0.num_cols && previous.0.num_lines == size.0.num_lines && previous.0.cell_width == size.0.cell_width && previous.0.cell_height == size.0.cell_height {return Ok(());}
+            *previous = size;
+        }
+        // The parser can request dimensions while holding the terminal lock.
+        self.terminal.lock().resize(size);
+        if !self.status().exited {
+            self.sender.send(Msg::Resize(size.0)).or_else(|error| if self.status().exited {Ok(())} else {Err(error.to_string())})?;
+        }
+        Ok(())
+    }
+
+    /// Force-close owns the PTY's foreground job and shell, never an arbitrary PID.
+    /// Ordinary hide/show leaves the session mounted and does not call this.
+    pub fn close(&mut self) {
+        if self.thread.is_none() {return;}
+        #[cfg(unix)] if !self.status().exited {
+            use nix::{sys::signal::{killpg, Signal}, unistd::tcgetpgrp};
+            // Query the still-open controlling terminal, avoiding a cached foreground job PID.
+            if let Ok(group) = tcgetpgrp(&self.controller) && group.as_raw() > 0 {let _ = killpg(group, Signal::SIGKILL);}
+            if !self.status().exited {let _ = killpg(self.pid, Signal::SIGKILL);}
+        }
+        let _ = self.sender.send(Msg::Shutdown);
+        if let Some(thread) = self.thread.take() {
+            // UI teardown must not block on the kernel or child reaper.
+            std::thread::spawn(move || {let _ = thread.join();});
+        }
+    }
+}
+
+impl Drop for Session {fn drop(&mut self) {self.close();}}
+
+fn palette(foreground: u32, background: u32) -> [Rgb; 269] {
+    let rgb = |value: u32| Rgb {r: (value >> 16) as u8, g: (value >> 8) as u8, b: value as u8};
+    let mut colors = [rgb(foreground); 269];
+    for (index, value) in [0x000000, 0xcd3131, 0x0dbc79, 0xe5e510, 0x2472c8, 0xbc3fbc, 0x11a8cd, 0xe5e5e5, 0x666666, 0xf14c4c, 0x23d18b, 0xf5f543, 0x3b8eea, 0xd670d6, 0x29b8db, 0xffffff].into_iter().enumerate() {colors[index] = rgb(value);}
+    let component = |value: usize| if value == 0 {0} else {(55 + value * 40) as u8};
+    for index in 16..232 {let value = index - 16; colors[index] = Rgb {r: component(value / 36), g: component(value / 6 % 6), b: component(value % 6)};}
+    for index in 232..256 {let value = (8 + (index - 232) * 10) as u8; colors[index] = Rgb {r: value, g: value, b: value};}
+    colors[257] = rgb(background);
+    for index in 259..267 {let color = colors[index - 259]; colors[index] = Rgb {r: color.r / 2, g: color.g / 2, b: color.b / 2};}
+    colors[268] = Rgb {r: colors[256].r / 2, g: colors[256].g / 2, b: colors[256].b / 2};
+    colors
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+    fn size(columns: u16, lines: u16) -> Size {Size(WindowSize {num_cols: columns, num_lines: lines, cell_width: 8, cell_height: 16})}
+    fn wait(session: &Session, predicate: impl Fn(&Session) -> bool) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !predicate(session) {assert!(Instant::now() < deadline, "PTY did not reach the expected state"); std::thread::sleep(Duration::from_millis(5));}
+    }
+    fn visible(session: &Session) -> String {session.terminal.lock().grid().display_iter().map(|cell| cell.c).collect()}
+
+    #[test]
+    fn real_pty_parses_unicode_color_resize_input_exit_and_coalesces_wakes() {
+        let shell = tty::Shell::new("/bin/sh".into(), vec!["-c".into(), "test -t 0 && printf '\\033[31mPTY-é\\033[0m'; read answer; stty size; printf 'answer:%s' \"$answer\"; exit 7".into()]);
+        let session = Session::start(Path::new("/tmp"), Some(shell), size(80, 24), 100).unwrap();
+        wait(&session, |session| visible(session).contains("PTY-é"));
+        {
+            use alacritty_terminal::vte::ansi::{Color, NamedColor};
+            let term = session.terminal.lock();
+            assert!(term.grid().display_iter().any(|cell| cell.c == 'P' && cell.fg == Color::Named(NamedColor::Red)));
+        }
+        assert!(!session.scroll_key("pageup", false));
+        assert!(session.scroll_key("pageup", true));
+        session.resize(size(100, 30)).unwrap();
+        session.write(b"hello\n".to_vec()).unwrap();
+        wait(&session, |session| session.status().exited);
+        assert_eq!(session.status().code, Some(7));
+        assert!(visible(&session).contains("30 100"));
+        assert!(visible(&session).contains("answer:hello"));
+        assert!(session.wake.len() <= 1);
+        assert!(session.write(vec![b'x']).is_err());
+        session.resize(size(110, 40)).unwrap();
+        assert_eq!(session.terminal.lock().screen_lines(), 40);
+        assert!(visible(&session).contains("answer:hello"));
+        assert!(session.resize(size(0, 0)).is_err());
+    }
+
+    #[test]
+    fn finished_output_keeps_scrollback_after_resize_and_selection() {
+        use alacritty_terminal::{index::{Column, Point, Side}, selection::{Selection, SelectionType}};
+        let shell = tty::Shell::new("/bin/sh".into(), vec!["-c".into(), "printf 'first\nsecond\nthird\nfourth\n'".into()]);
+        let session = Session::start(Path::new("/tmp"), Some(shell), size(30, 2), 100).unwrap();
+        wait(&session, |session| session.status().exited);
+        session.resize(size(30, 3)).unwrap();
+        assert!(session.scroll_key("home", false));
+        assert!(session.terminal.lock().grid().display_offset() > 0);
+        assert!(session.scroll_key("pagedown", false));
+        assert_eq!(session.terminal.lock().grid().display_offset(), 0);
+        assert!(session.scroll_key("pageup", false));
+        assert!(session.terminal.lock().grid().display_offset() > 0);
+        assert!(session.scroll_key("end", false));
+        assert_eq!(session.terminal.lock().grid().display_offset(), 0);
+        assert!(session.scroll_key("home", false));
+        let mut term = session.terminal.lock();
+        let first = term.topmost_line();
+        let mut selection = Selection::new(SelectionType::Simple, Point::new(first, Column(0)), Side::Left);
+        selection.update(Point::new(first, Column(4)), Side::Right);
+        term.selection = Some(selection);
+        assert_eq!(term.selection_to_string().as_deref(), Some("first"));
+        drop(term);
+        assert_eq!(session.output(), "first\nsecond\nthird\nfourth");
+    }
+
+    #[test]
+    fn close_reaps_a_shell_which_ignores_hangup() {
+        let shell = tty::Shell::new("/bin/sh".into(), vec!["-c".into(), "trap '' HUP; printf ready; while :; do sleep 1; done".into()]);
+        let mut session = Session::start(Path::new("/tmp"), Some(shell), size(80, 24), 100).unwrap();
+        wait(&session, |session| visible(session).contains("ready"));
+        let pid = session.pid;
+        session.close();
+        wait(&session, |session| session.status().exited);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while nix::sys::signal::kill(pid, None).is_ok() {assert!(Instant::now() < deadline, "Terminal shell was not reaped"); std::thread::sleep(Duration::from_millis(5));}
+    }
+}

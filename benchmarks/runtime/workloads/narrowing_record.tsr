@@ -10,6 +10,7 @@ type NarrowingHolder = {
 function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const holder: NarrowingHolder = {
@@ -17,6 +18,7 @@ function workload(n: int, seed: int, input: string): string[] {
         tag: seed + i, text: input.repeat(1)
       }
     };
+
     if (holder.item === null) {
       output.push("null");
       output.push("");

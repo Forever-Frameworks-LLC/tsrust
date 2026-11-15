@@ -9,6 +9,7 @@ function main() {
   const text = 'xé🦀 é';
   strictEqual(expression.isMatch(text), true);
   const first = expression.find(text);
+
   if (first === undefined) {
     throw 'missing first match';
   }
@@ -20,6 +21,7 @@ function main() {
   strictEqual(all[1].start, 8);
   strictEqual(all[1].end, 10);
   const captured = expression.captures(text);
+
   if (captured === undefined) {
     throw 'missing captures';
   }
@@ -27,6 +29,7 @@ function main() {
   strictEqual(captured.match.start, 1);
   strictEqual(captured.groups.length, 2);
   const second = captured.groups[1];
+
   if (second === undefined) {
     throw 'missing crab capture';
   }
@@ -44,6 +47,7 @@ function main() {
   strictEqual(segments[1].start, 7);
   strictEqual(segments[1].end, 8);
   const stringMatch = text.match(expression);
+
   if (stringMatch === undefined) {
     throw 'missing String.match';
   }
@@ -53,6 +57,7 @@ function main() {
   strictEqual(text.search(expression), 1);
   strictEqual('missing'.search(expression), -1);
   strictEqual(escape('a+b'), 'a\\+b');
+
   match (compile('(?=x)')) {
     Ok(value) => {
       throw 'lookaround must reject';

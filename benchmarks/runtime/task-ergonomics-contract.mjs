@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import {codeTokens,containsCodeSnippet} from './source-contract-tokens.mjs';
-export const taskErgonomicsIDs=['task_all_ready','task_all_yield','async_channel_try','async_channel_await','cancellation_fanout','thread_pool_async'];
+export const taskErgonomicsIDs=['task_all_ready','task_all_yield','async_channel_try','async_channel_share_try','async_channel_await','cancellation_fanout','thread_pool_async'];
 export const taskErgonomicsSupport=Object.fromEntries(['async-driver.rs','async-driver.ts','task-ergonomics-contract.mjs'].map(name=>[name,fs.readFileSync(new URL(name,import.meta.url),'utf8')]));
 export function taskErgonomicsChecksum(id,n,seed){
  if(!taskErgonomicsIDs.includes(id))throw Error(`Unknown task workload ${id}`);
@@ -36,9 +36,11 @@ export function assertTaskErgonomicsSource(source,w,engine){
   const send=w.id.endsWith('_try')?(native?'unwrap(sender.trySend(seed+i+j))':'queue.trySend(seed+i+j)'):(native?'await sender.send(seed+i+j)':'await queue.send(seed+i+j)');
   if(!containsCodeSnippet(source,counter)||!containsCodeSnippet(source,send)||!containsCodeSnippet(source,'sum=(sum*131+'))throw Error('Ordered channel observation changed');
  }
+ if(w.id==='async_channel_share_try'&&(!containsCodeSnippet(source,'base.share()')||!containsCodeSnippet(source,native?'sender.close()':'queue.close()')))throw Error('Independent shared sender disappeared');
  if(w.id==='task_all_yield'&&!containsCodeSnippet(source,native?'await yield()':'setImmediate(resolve)'))throw Error('Yield disappeared');
 }
 export function assertTaskErgonomicsReference(source,w){
+ if(w.id==='async_channel_share_try'&&(!containsCodeSnippet(source,'let tx=base.clone()')||!containsCodeSnippet(source,'drop(tx)')))throw Error('Shared reference sender disappeared');
  if(w.id.startsWith('task_all_')){
   if(!containsCodeSnippet(source,'[values.0,values.1,values.2,values.3]')||!containsCodeSnippet(source,'sum=(sum*131+value)%1000000007'))throw Error('Ordered reference group observation changed');
  }

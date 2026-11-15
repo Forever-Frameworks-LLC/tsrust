@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "source": "../../../crates/tsrust-compiler/src/stdlib/ai/llama_admission.rs",
+  "dependencies": {
+    "llama-cpp-2": {
+      "version": "=0.1.161",
+      "features": [
+        "metal"
+      ],
+      "defaultFeatures": false
+    },
+    "tokenizers": {
+      "version": "=0.22.2",
+      "features": [
+        "onig"
+      ],
+      "defaultFeatures": false
+    }
+  }
+}

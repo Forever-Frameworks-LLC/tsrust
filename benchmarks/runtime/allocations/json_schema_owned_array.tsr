@@ -3,6 +3,7 @@ import { s } from "std:schema";
 function workload(n: int, seed: int, input: string): int[] {
   const schema = s.array(s.int());
   const result = schema.safeParse(JSON.parse(input));
+
   if (result.success) {
     return result.data;
   } else {

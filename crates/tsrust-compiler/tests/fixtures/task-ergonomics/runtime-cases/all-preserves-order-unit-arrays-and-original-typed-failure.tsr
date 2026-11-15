@@ -15,6 +15,7 @@ export async function run(): Task<void> {
   console.log(values[0], values[1]);
   const units: void[] = await all([unit(), unit().start()]);
   console.log(units.length, (await all([])).length);
+
   try {
     await all([value(3), fail()]);
   } catch (error) {

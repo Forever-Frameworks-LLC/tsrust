@@ -1,6 +1,7 @@
 //! Shared runtime build preparation; callers own subprocess supervision.
 use std::{fs,path::{Path,PathBuf},process::Command};
 use tsrust_compiler::{native_cache::NativeCache,native_runtime};
+use sha2::{Digest,Sha256};
 #[path="runtime_artifacts.rs"] mod artifacts;
 // MSVC link.exe rejects deep output paths; Rust's bundled LLVM linker supports them.
 pub(crate) const MSVC_LINKER_FLAG:&str="-Clinker-flavor=lld-link";
@@ -12,10 +13,18 @@ pub(crate) fn exported_linker_config()->String {
 const DEPENDENCY_RUNTIME_ABI:&[u8]=b"runtime-dependencies-abi-6-graph-library";
 /// Scope the application cache migration to programs that use a Cargo runtime.
 pub(crate) fn application_cache_identity(source:&str)->Option<&'static [u8]> {
- native_runtime::requires_dependencies(source).then_some(DEPENDENCY_RUNTIME_ABI)
+ if !native_runtime::requires_dependencies(source){return None;}
+ if !source.contains("mod tsrust_native_ui {"){return Some(DEPENDENCY_RUNTIME_ABI);}
+ static GPUI_IDENTITY:std::sync::OnceLock<Vec<u8>>=std::sync::OnceLock::new();
+ Some(GPUI_IDENTITY.get_or_init(||gpui_application_identity(crate::backend_sources::GPUI_LOCK.as_bytes(),&tsrust_compiler::native_dependency_patches::source_identity(crate::backend_sources::GPUI_MANIFEST).expect("bundled GPUI patch manifest"))).as_slice())
+}
+fn gpui_application_identity(lock:&[u8],patch:&str)->Vec<u8>{
+ let mut hash=Sha256::new();for part in [lock,patch.as_bytes()]{hash.update((part.len() as u64).to_le_bytes());hash.update(part);}
+ let digest=hash.finalize().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+ [DEPENDENCY_RUNTIME_ABI,b";gpui=",digest.as_bytes()].concat()
 }
 
-fn artifact_override(key:&str)->bool {
+pub(super) fn artifact_override(key:&str)->bool {
  key.starts_with("CARGO_PROFILE_") || (key.starts_with("CARGO_BUILD_") && key!="CARGO_BUILD_JOBS") || key.starts_with("CARGO_TARGET_") || matches!(key,"RUSTFLAGS"|"CARGO_ENCODED_RUSTFLAGS"|"RUSTC"|"RUSTC_WRAPPER"|"RUSTC_WORKSPACE_WRAPPER")
 }
 #[test]
@@ -63,26 +72,25 @@ impl Prepared {
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
   let dependency_identity=crate::backend_sources::dependency_identity();
-  let shared_inputs=Some(crate::backend_sources::identity(root)?);
+  let shared_inputs=Some(crate::backend_sources::identity(root,true)?);
   let gpui=runtime.contains("mod tsrust_native_ui {");
   if gpui && binding.is_some(){return Err("std:gpui programs cannot import Rust packages yet".into());}
   let mut cache_parts:Vec<&[u8]>=vec![DEPENDENCY_RUNTIME_ABI,dependency_identity.as_bytes(),backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},runtime.as_bytes()];
-  if gpui{cache_parts.push(crate::backend_sources::GPUI_LOCK.as_bytes());}
+  let gpui_patch=if gpui{tsrust_compiler::native_dependency_patches::source_identity(crate::backend_sources::GPUI_MANIFEST).map_err(|e|e.to_string())?}else{String::new()};
+  if gpui{cache_parts.push(crate::backend_sources::GPUI_LOCK.as_bytes());cache_parts.push(gpui_patch.as_bytes());}
   // Profile settings change compiled artifacts, so they key the cache too.
   cache_parts.push(profiles(gpui).as_bytes());
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
-  // Cargo primary aliases/fingerprints can otherwise collide across support workspaces.
-  // A stable external alias is supplied when linking the application.
-  let library_name=format!("tsrust_runtime_{}",cache.identity_key());
   let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
   let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
   if copied && bundle::unpack(&packed,&restored).is_ok() {
    return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
   }
   let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(gpui))).map_err(|e|e.to_string())?;
-  if gpui{identity.extend(crate::backend_sources::GPUI_LOCK.as_bytes());}
+  if gpui{identity.extend(crate::backend_sources::GPUI_LOCK.as_bytes());identity.extend(gpui_patch.as_bytes());}
   if let Some(binding)=binding{identity.extend(serde_json::to_vec(&(&binding.manifest,&binding.lock)).map_err(|e|e.to_string())?);}
+  let library_name=runtime_library_name(&crate::native_workspace::Workspace::location(root,&identity),runtime);
   let workspace=crate::native_workspace::Workspace::acquire(root,&identity,opportunistic)?;
   let build_root=workspace.as_ref().map(|workspace|workspace.root.as_path()).unwrap_or(temporary);
   let package=build_root.join("native-support");
@@ -96,7 +104,7 @@ impl Prepared {
    crate::backend_sources::validate(&package,input_manifest,input_lock).map_err(|e|format!("Validating native support workspace {}: {e}",package.display()))?;
   }
   let manifest=package.join("Cargo.toml");
-  let mut text=tsrust_compiler::native_url_patch::normalize_manifest(input_manifest).map_err(|e|e.to_string())?;
+  let mut text=tsrust_compiler::native_dependency_patches::normalize_manifest(input_manifest).map_err(|e|e.to_string())?;
   text.push_str(&format!("\n[lib]\nname = {library_name:?}\n"));
   text.push_str(profiles(gpui));
   crate::native_workspace::write_changed(&manifest,text)?;crate::native_workspace::write_changed(&package.join("src/lib.rs"),runtime)?;
@@ -120,6 +128,7 @@ impl Prepared {
   if tsrust_compiler::native_runtime::requires_byte_search(runtime){command.args(["--features","byte-search"]);}
   if tsrust_compiler::native_runtime::requires_hostname(runtime){command.args(["--features","hostname"]);}
   if runtime.contains("pub mod tsrust_native_files {"){command.args(["--features","files"]);}
+  if native_runtime::requires_discovery(runtime){command.args(["--features","file-discovery"]);}
   if tsrust_compiler::native_runtime::requires_temporary_files(runtime){command.args(["--features","temporary-files"]);}
   if runtime.contains("pub mod tsrust_native_process {"){command.args(["--features","process"]);}
   if runtime.contains("pub mod tsrust_native_io {"){command.args(["--features","io"]);}
@@ -133,11 +142,13 @@ impl Prepared {
   if runtime.contains("// tsrust-http-websocket-selected\n"){command.args(["--features","http-websocket"]);}
   if runtime.contains("// tsrust-http-middleware-selected\n"){command.args(["--features","http-middleware"]);}
   if gpui{
+   command.env("TSRUST_GPUI_PATCH_REVISION",&gpui_patch);
    // GPUI programs add opt-in Kit features only for the components they use.
    let mut features=vec![if runtime.contains("use gpui_kit::"){"gpui"}else{"ui"}];
    if runtime.contains("// tsrust-ui-highlight-selected\n"){features.push("gpui-highlight");}
    if runtime.contains("// tsrust-ui-speech-selected\n"){features.push("gpui-speech");}
    if runtime.contains("// tsrust-ui-http-selected\n"){features.push("gpui-http");}
+   if runtime.contains("// tsrust-ui-terminal-selected\n"){features.push("gpui-terminal");}
    command.args(["--features",&features.join(",")]);
   }
 
@@ -162,7 +173,7 @@ impl Prepared {
  }
  pub fn publish(&self) {
   if let Some((root,expected))=&self.source_snapshot
-   && !crate::backend_sources::unchanged(Some(expected.as_str()),root) {return;}
+   && !crate::backend_sources::unchanged(Some(expected.as_str()),root,true) {return;}
   if let (Some(cache),Some(library))=(&self.cache,&self.library){let artifact=if let (Some(dependencies),Some(packed))=(&self.dependencies,&self.packed) {
    if crate::native_dependency_bundle::pack(library,dependencies,packed).is_err(){return;}packed
   }else{library};let _=if self.opportunistic{cache.try_publish(artifact)}else{cache.publish(artifact)};}}
@@ -177,6 +188,14 @@ impl Prepared {
   command.arg("-L").arg(format!("dependency={}",dependencies.display()));
   if imports>0{command.arg("-L").arg(format!("native={}",dependencies.display()));}
  }if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}Ok(())}
+}
+
+// Keep Cargo graph/body aliases distinct without renaming them for environment-only misses.
+fn runtime_library_name(workspace:&Path,runtime:&str)->String {
+ use std::hash::{Hash,Hasher};
+ let mut hash=std::collections::hash_map::DefaultHasher::new();
+ (workspace,runtime).hash(&mut hash);
+ format!("tsrust_runtime_{:016x}",hash.finish())
 }
 
 /// Match the native UI support profile in application code as well. Large retained
@@ -223,6 +242,13 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
 
 #[cfg(test)] mod dependency_reuse_tests {
  use super::*;
+ #[test] fn gpui_application_identity_tracks_lock_and_patch_bytes(){
+  let first=gpui_application_identity(b"lock-a","patch-a");
+  assert_ne!(first,gpui_application_identity(b"lock-b","patch-a"));
+  assert_ne!(first,gpui_application_identity(b"lock-a","patch-b"));
+  assert!(first.starts_with(DEPENDENCY_RUNTIME_ABI));
+  assert_ne!(first,DEPENDENCY_RUNTIME_ABI);
+ }
  #[test] fn application_cache_migration_only_tags_dependency_runtimes(){
   use tsrust_compiler::project::{SourceId,SourceProvider,load_project,check_graph};
   struct Provider(String);
@@ -232,7 +258,12 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
   }
   for(source,dependencies)in[("function main(){console.log(1);}",false),("import {alloc,length} from 'std:bytes';function main(){console.log(length(unwrap(alloc(1))));}",false),("import {readFile} from 'std:fs';function main(){readFile('input');}",true)]{
    let checked=check_graph(load_project(&Provider(source.into()),"main.tsr").unwrap()).unwrap();
-   assert_eq!(application_cache_identity(&checked.emit_rust()),dependencies.then_some(DEPENDENCY_RUNTIME_ABI));
+   let rust=checked.emit_rust();
+   assert_eq!(application_cache_identity(&rust),dependencies.then_some(DEPENDENCY_RUNTIME_ABI));
+   if dependencies {
+    let ui=format!("{rust}\nmod tsrust_native_ui {{}}\n");
+    assert_eq!(application_cache_identity(&ui).unwrap(),gpui_application_identity(crate::backend_sources::GPUI_LOCK.as_bytes(),&tsrust_compiler::native_dependency_patches::source_identity(crate::backend_sources::GPUI_MANIFEST).unwrap()));
+   }
   }
  }
  #[test] fn distinct_runtime_workspaces_preserve_fresh_cargo_graphs_and_warm_cache_links(){
@@ -258,6 +289,22 @@ pub(crate) fn profiles(native_ui: bool) -> &'static str {
     if index>0 {prepared.publish();}
    }else{assert_eq!(prepared.state,"hit");assert!(prepared.command.is_none());assert!(prepared.cargo.is_none());}
    let binary=temporary.join(format!("program{}",std::env::consts::EXE_SUFFIX));let mut command=crate::backend_command();prepared.link(&mut command).unwrap();let output=command.arg("--edition=2024").arg(&prepared.application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));assert!(Command::new(binary).status().unwrap().success());
+  }
+ }
+ #[test] fn stable_library_alias_keeps_cargo_compile_time_environment_invalidation(){
+  let directory=crate::TempDirectory::new().unwrap();let application=directory.0.join("program.rs");
+  fs::write(&application,"fn main(){println!(\"{}\",tsrust_runtime::tsrust_native_files::witness());}").unwrap();
+  let runtime=r#"pub mod tsrust_native_files {pub fn witness()->i64{env!("TSRUST_TEST_CARGO_TRACKED").parse().unwrap()}}"#;
+  let cache=directory.0.join("cache");let binary=directory.0.join(format!("program{}",std::env::consts::EXE_SUFFIX));
+  for value in [41,42] {
+   let temporary=directory.0.join(format!("build-{value}"));fs::create_dir(&temporary).unwrap();
+   let mut prepared=Prepared::with_dependencies(application.clone(),runtime,"tracked-env-alias-test",&cache,&temporary,false,false).unwrap();
+   assert_eq!(prepared.state,"miss");let mut command=prepared.command.take().unwrap();command.env("TSRUST_TEST_CARGO_TRACKED",value.to_string());
+   prepared.acquire_target(true).unwrap();let output=command.output().unwrap();assert!(output.status.success(),"{}",prepared.compilation_error(&String::from_utf8_lossy(&output.stderr)));
+   prepared.finish().unwrap();let mut command=crate::backend_command();prepared.link(&mut command).unwrap();
+   let output=command.arg("--edition=2024").arg(&application).arg("-o").arg(&binary).output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+   let output=Command::new(&binary).output().unwrap();assert!(output.status.success());assert_eq!(String::from_utf8(output.stdout).unwrap(),format!("{value}\n"));
+   // Child-only test overrides must not be published under the parent environment key.
   }
  }
  #[test] fn changed_runtime_reuses_dependency_builds_and_links_current_values() {

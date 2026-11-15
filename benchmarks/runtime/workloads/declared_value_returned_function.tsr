@@ -5,6 +5,7 @@ type Probe = {
 function workload(n: int, seed: int): int {
   let trace = seed;
   let i = 0;
+
   while (i < n) {
     const probe: Probe = {
       state: (seed + i) % 1000003

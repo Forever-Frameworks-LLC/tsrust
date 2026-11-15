@@ -170,6 +170,9 @@ impl ExitState {
     /// The caller must identify payload loans before removing its local bindings.
     pub(super) fn unwind_capture_loans(&mut self,entry:&crate::capture_loan_identity::Boundary,payload_loans:&[(usize,Mode,Span)]) {
         entry.unwind(&mut self.capture_loans);
+        // Lowered future temporaries survive lexical blocks, but not an unwound construction.
+        let retained = self.capture_loans.iter().filter_map(|loan| self.capture_loan_ids.get(*loan)).collect();
+        self.capture_loan_owners.unwind_future_loans(&retained);
         self.capture_loan_owners.replace_payload(payload_loans.iter().map(|loan| self.capture_loan_ids.intern(*loan)));
         let _ = self.capture_loan_owners.leave_scope(self.owners.len());
         for loan in payload_loans {
@@ -204,6 +207,24 @@ impl ExitState {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn unwound_future_temporaries_keep_entry_and_payload_loans_only() {
+        let mut context = Context::new("main".into());
+        let entry = (0, Mode::Read, Span::new(1, 2));
+        let temporary = (1, Mode::Read, Span::new(3, 4));
+        let payload = (2, Mode::Read, Span::new(5, 6));
+        let ids = [entry, temporary, payload].map(|loan| context.capture_loan_ids.intern(loan));
+        for (index, id) in ids.into_iter().enumerate() {
+            context.capture_loan_owners.attach(crate::capture_loan_owners::Place { binding: usize::MAX, fields: vec![format!("future:{index}")] }, [id]);
+        }
+        context.capture_loans = vec![entry, temporary, payload];
+        let mut state = ExitState::capture(&context, 0);
+        state.unwind_capture_loans(&crate::capture_loan_identity::Boundary::capture(&[entry]), &[payload]);
+        state.restore(&mut context);
+        assert_eq!(context.capture_loans, vec![entry, payload]);
+        assert_eq!(context.capture_loan_owners.live(), std::collections::BTreeSet::from([ids[0], ids[2]]));
+    }
+
     #[test]
     fn unwound_tracked_payload_keeps_its_loan_after_local_owner_disposal() {
         let mut context = Context::new("main".into());

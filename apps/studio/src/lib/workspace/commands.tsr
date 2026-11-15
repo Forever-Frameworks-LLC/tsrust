@@ -1,0 +1,50 @@
+import { translate } from 'std:ui';
+
+import { dirty } from './documents.tsr';
+import { activeSourceDocument } from './formatting-actions.tsr';
+import { Workspace } from './workspace.tsr';
+
+export interface PaletteCommand {
+  id: string;
+  label: string;
+  disabled: boolean;
+}
+
+export function paletteCommands(workspace: ReadOnly<Workspace>, query: ReadOnly<string>): PaletteCommand[] {
+  const filter = (query.startsWith('>') ? query.slice(1) : query).trim().toLowerCase();
+  const rows: PaletteCommand[] = [{
+    id: 'save-document', label: translate('Save'), disabled: !workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text' && dirty(file.document))
+  }, {
+    id: 'save-all', label: translate('Save All'), disabled: !workspace.files.some((file) => dirty(file.document))
+  }, {
+    id: 'save-copy', label: translate('Save a Copy…'), disabled: !workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text')
+  }, {
+    id: 'close-tab', label: translate('Close Editor'), disabled: workspace.active === ''
+  }, {
+    id: 'format-document', label: translate('Format document'), disabled: !activeSourceDocument(workspace)
+  }, {
+    id: 'format-project', label: translate('Format project'), disabled: false
+  }, {
+    id: 'check-document', label: translate('Check document'), disabled: !activeSourceDocument(workspace)
+  }, {
+    id: 'check-project', label: translate('Check project'), disabled: false
+
+  }, {
+    id: 'refresh-explorer', label: translate('Refresh Explorer'), disabled: false
+  }, {
+    id: 'search-workspace', label: translate('Search file contents'), disabled: false
+  }, {
+    id: 'toggle-terminal', label: translate('Toggle terminal'), disabled: false
+  }, {
+    id: 'toggle-sidebar', label: translate('Toggle sidebar'), disabled: false
+  }, {
+    id: 'open-settings', label: translate('Settings'), disabled: false
+  }, {
+    id: 'zoom-in', label: translate('Zoom in'), disabled: false
+  }, {
+    id: 'zoom-out', label: translate('Zoom out'), disabled: false
+  }, {
+    id: 'zoom-reset', label: translate('Reset zoom'), disabled: false
+  }];
+  return rows.filter((row) => row.label.toLowerCase().includes(filter) || row.id.includes(filter));
+}

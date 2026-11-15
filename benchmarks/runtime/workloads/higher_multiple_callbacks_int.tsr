@@ -5,6 +5,7 @@ function workload(n: int, seed: int): int {
   };
   let trace = seed;
   let i = 0;
+
   while (i < n) {
     const a = consumer(plus, times, seed + i);
     const b = arrow(times, plus, seed + i);

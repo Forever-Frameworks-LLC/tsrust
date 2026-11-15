@@ -1,5 +1,14 @@
 import { Channel } from 'std:futures';
-import { describe, test, strictEqual, rejects, trackedResource, resourceId, releaseCount, closeResource } from 'std:testing';
+import {
+  describe,
+  test,
+  strictEqual,
+  rejects,
+  trackedResource,
+  resourceId,
+  releaseCount,
+  closeResource
+} from 'std:testing';
 import { createLogger, info, Logger } from 'std:log';
 
 type Write = (logger: ReadOnly<Logger>, make: Once<Function<Event>>) => void;
@@ -46,6 +55,7 @@ describe('structured logging', () => {
   });
   test('invalid sink options remain explicit Result errors', () => {
     let rejected = false;
+
     try {
       const invalid = unwrap(createLogger({
         sink: 'file'
@@ -65,6 +75,7 @@ describe('structured logging', () => {
       const logger = unwrap(createLogger({
         sink: 'stderr'
       }));
+
       try {
         logger.info((): Event => {
           throw {

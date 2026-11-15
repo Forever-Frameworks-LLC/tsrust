@@ -3,6 +3,7 @@ import { strictEqual } from 'std:testing';
 
 function sum(...values: int[]): int {
   let total = 0;
+
   for (const value of values) {
     total += value;
   }
@@ -16,6 +17,7 @@ function read(value: ReadOnly<string>): int {
 
 function take(...values: string[]): int {
   let total = 0;
+
   for (const value of values) {
     total += value.length;
   }
@@ -48,6 +50,7 @@ export function main() {
   strictEqual(sum(...numbers, change(numbers)), 7);
   strictEqual(numbers.size, 3);
   let caught = false;
+
   try {
     pair(...numbers);
   } catch (error) {

@@ -1,0 +1,39 @@
+import { stdin, readLineStdin } from 'std:io';
+import { Channel, spawn } from 'std:threads';
+
+import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
+import { modelHost } from './worker.tsr';
+
+function main(): void {
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(8);
+  const commands = requests.sender();
+  const replies = updates.sender();
+  const worker = unwrap(spawn((task) => modelHost(task, requests, replies)));
+  const output = unwrap(spawn((): void => {
+    while (true) {
+      const update: ModelUpdate = unwrap(updates.receive());
+      const frame = JSON.stringify(update);
+
+      console.log(frame);
+    }
+  }));
+  const input = stdin();
+
+  try {
+    while (true) {
+      const line = unwrap(readLineStdin(input));
+
+      if (line === undefined) break;
+      const request = JSON.parse<ModelRequest>(line, {
+        maxBytes: line.length, maxDepth: 16, maxEntries: line.length, maxNodes: line.length
+      });
+      unwrap(commands.send(request));
+    }
+  } finally {
+    worker.cancel();
+    output.cancel();
+    worker.join();
+    output.join();
+  }
+}

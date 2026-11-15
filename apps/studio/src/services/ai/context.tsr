@@ -1,0 +1,950 @@
+import {
+  fromUtf8,
+  toUtf8,
+  view
+} from 'std:bytes';
+
+import { canonicalize, stat, readTextFile } from 'std:fs';
+import { s } from 'std:schema';
+import { compile, escape, Regex } from 'std:regex';
+import {
+  basename,
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  separator
+} from 'std:path';
+
+import { functionExcerpt, recallTerms } from '../../lib/ai/prompts.tsr';
+import { ContextFragment } from '../../lib/ai/conversations.tsr';
+import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
+import { LanguageReadResult } from '../lsp/controller.tsr';
+import { DiagnosticRange, diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { chatIdentity } from '../../lib/ai/conversations.tsr';
+
+// Only trusted picker results may extend a read beyond the bound workspace.
+export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, kind: ReadOnly<string>, allowedPaths: ReadOnly<string[]>): Result<ContextFragment, string> {
+  try {
+    if (kind !== 'file' && kind !== 'skill') return Err('Unknown chat context type.');
+    const resolved = unwrap(canonicalize(isAbsolute(path) ? clone(path) : join(workspace.root, path)));
+    const root = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
+    if (!resolved.startsWith(root)) {
+      let approved = false;
+
+      for (const allowed of allowedPaths) {
+        match (canonicalize(allowed)) {
+          Ok(real) => {
+            if (real === resolved) approved = true;
+          },
+          Err(_) => {}
+        }
+      }
+
+      if (!approved) return Err('Choose outside-workspace attachments through the file picker.');
+    }
+
+    if (!unwrap(stat(resolved)).isFile) return Err('Choose a regular text file.');
+
+    if (kind === 'skill' && basename(resolved) !== 'SKILL.md') return Err('Choose a SKILL.md file for skill context.');
+    const opened = workspace.files.find((file) => file.document.path === resolved);
+    let text = '';
+
+    if (opened !== undefined) {
+      if (opened.kind !== 'text' && opened.kind !== 'image') return Err('Choose a UTF-8 text file for context.');
+
+      if (opened.kind === 'image') return Err('The selected model accepts text context. Image attachments need a vision model.');
+      text = clone(opened.document.text);
+    } else match (readTextFile(resolved)) {
+      Ok(source) => {
+        text = clone(source);
+      },
+      Err(_) => {
+        return Err('Choose a UTF-8 text file for context.');
+      }
+    }
+
+    if (text.includes('\0')) return Err('Choose a UTF-8 text file for context.');
+    return Ok({
+      id: chatIdentity(), kind: clone(kind), path: clone(resolved), label: kind === 'skill' ? basename(dirname(resolved)) : basename(resolved), text
+    });
+  } catch (_) {
+    return Err('Could not read the selected chat context file.');
+  }
+}
+
+function namedExcerpt(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>): Result<string, string> {
+  try {
+    if (!path.startsWith(prefix)) return Err('Unavailable file');
+    const opened = workspace.files.find((file) => file.document.path === path);
+    let excerpt = '';
+
+    if (opened !== undefined) {
+      if (opened.kind !== 'text') return Err('Expected text file');
+      excerpt = clone(opened.document.text);
+    } else {
+      const resolved = unwrap(canonicalize(path));
+
+      if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return Err('Unavailable file');
+      excerpt = unwrap(readTextFile(resolved));
+    }
+
+    if (excerpt.includes('\0')) return Err('Expected text file');
+    return Ok(excerpt);
+  } catch (_) {
+    return Err('Unavailable text excerpt');
+  }
+}
+
+function diskComparison(path: ReadOnly<string>, draft: ReadOnly<string>, prefix: ReadOnly<string>): string {
+  const label = 'Current disk comparison for ' + path.slice(prefix.length) + ': ';
+
+  try {
+    const resolved = unwrap(canonicalize(path));
+
+    if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) return label + 'unavailable.';
+    const disk = unwrap(readTextFile(resolved));
+
+    if (disk === draft) return label + 'the editor text matches the saved file.';
+    const saved = disk.split('\n');
+    const edited = draft.split('\n');
+    let start = 0;
+    let left = saved.length;
+    let right = edited.length;
+
+    while (start < left && start < right && saved[start] === edited[start]) start += 1;
+
+    while (left > start && right > start && saved[left - 1] === edited[right - 1]) {
+      left -= 1;
+      right -= 1;
+    }
+
+    if (left === start) return label + 'the editor text differs from the saved file. At this position these lines are only in the draft, not saved to disk:\n' + edited.slice(start, right).join('\n');
+
+    if (right === start) return label + 'the editor text differs from the saved file. At this position these lines remain on disk and are absent from the draft:\n' + saved.slice(start, left).join('\n');
+    return label + 'the editor text differs from the saved file.\nOn disk (changed region):\n' + saved.slice(start, left).join('\n') + '\nIn editor (changed region):\n' + edited.slice(start, right).join('\n');
+  } catch (_) {
+    return label + 'unavailable.';
+  }
+}
+
+function mentionsPath(prompt: ReadOnly<string>, path: ReadOnly<string>): boolean {
+  let offset = 0;
+
+  while (offset < prompt.length) {
+    const start = prompt.indexOf(path, offset);
+
+    if (start < 0) return false;
+    const end = start + path.length;
+    const before = start === 0 || [' ', '\n', '\t', '\r', '(', '[', '"', "'", '`'].some((mark) => prompt.slice(0, start).endsWith(mark));
+    const after = end === prompt.length || [' ', '\n', '\t', '\r', '(', ')', ']', '"', "'", '`', ':', ',', '!', '?'].some((mark) => prompt.startsWith(mark, end)) || (prompt.startsWith('.', end) && (end + 1 === prompt.length || prompt.startsWith(' ', end + 1)));
+
+    if (before && after) return true;
+    offset = end;
+  }
+
+  return false;
+}
+
+// Cache source reads for this request only. Recheck stale locations against the current text.
+function referenceLine(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, hit: ReadOnly<ReferenceLocation>, symbol: ReadOnly<string>, cache: Mutable<Map<string, string[]>>): string {
+  if (!cache.has(path)) {
+    const file = workspace.files.find((entry) => entry.document.path === path);
+    let source = '';
+
+    if (file !== undefined) {
+      if (file.kind === 'text') source = clone(file.document.text);
+    } else if (unwrap(stat(path)).isFile) {
+      match (readTextFile(path)) {
+        Ok(text) => {
+          source = text;
+        },
+        Err(_) => {}
+      }
+    }
+
+    cache.set(clone(path), source.includes('\0') ? [] : source.split('\n'));
+  }
+
+  const lines = cache.get(path);
+  const index = hit.range.start.line;
+
+  if (lines === undefined || index >= lines.length) return '';
+  const line = lines[index];
+
+  if (referenceSymbol(line, {
+    line: 0, character: hit.range.start.character
+  }, true) !== symbol) return '';
+  // Expand only a declaration whose name begins at the server's exact location.
+  const before = Array.from(line).slice(0, diagnosticColumn(line, hit.range.start.character) - 1).join('').trimStart();
+
+  if (unwrap(compile('^(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?function\\s+$')).isMatch(before)) {
+    const source = lines.slice(index).join('\n').trimStart();
+    const body = functionExcerpt(source, before.includes('default') ? 'default' : symbol, true, false, true).trimEnd();
+
+    if (body !== '') return body;
+  }
+
+  return line.trim();
+}
+
+function promptSymbols(prompt: ReadOnly<string>): Set<string> {
+  const symbols = new Set<string>();
+  const identifiers = unwrap(compile('[\\p{L}\\p{N}_$]+'));
+  const bytes = unwrap(fromUtf8(prompt));
+
+  for (const token of identifiers.findAll(prompt)) symbols.add(unwrap(toUtf8(unwrap(view(bytes, token.start, token.end)))));
+  return symbols;
+}
+
+// A references result is a snapshot of a language-server query, not a fresh search.
+export function referenceContext(workspace: ReadOnly<Workspace>, result: ReadOnly<LanguageReferences>, prompt: ReadOnly<string>): string {
+  const root = workspace.root;
+  const query = result.query;
+
+  if (result.root !== root || result.pending === true || (result.error ?? '') !== '' || query === undefined || query.kind === 'file' || query.symbol === '') return '';
+
+  if (query.session !== undefined || query.revision !== undefined) {
+    const path = clone(query.path);
+    const source = workspace.files.find((file) => file.document.path === path);
+
+    if (source === undefined || source.document.session !== query.session || source.document.revision !== query.revision) return '';
+  }
+
+  const symbol = clone(query.symbol);
+
+  if (!promptSymbols(prompt).has(symbol)) return '';
+  const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
+  const cache = new Map<string, string[]>();
+  const rows: string[] = [];
+
+
+  try {
+    if (!unwrap(canonicalize(query.path)).startsWith(prefix)) return '';
+  } catch (_) {
+    return '';
+  }
+
+  for (let index = 0; index < result.locations.length; index += 1) {
+    const hit = result.locations[index];
+
+
+
+    try {
+      const path = unwrap(canonicalize(diagnosticPath(hit.uri)));
+
+      if (!path.startsWith(prefix) || hit.range.start.line < 0 || hit.range.start.character < 0) continue;
+      const snippet = referenceLine(workspace, path, hit, symbol, cache);
+
+      if (snippet === '') continue;
+      const row = path.slice(prefix.length) + ':' + (hit.range.start.line + 1).toString() + ':' + (hit.range.start.character + 1).toString() + '  ' + snippet;
+
+      if (rows.includes(row)) continue;
+
+      rows.push(row);
+    } catch (_) {}
+  }
+
+  return rows.length === 0 ? '' : '\n\nLast Find References results for ' + query.symbol + ':\n' + rows.join('\n');
+}
+
+export function referenceLiteral(excerpt: ReadOnly<string>): string {
+  const source = excerpt.trim();
+  const declaration = "^Referenced workspace file: [^\\n]+\\n(?:export\\s+)?const\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*:\\s*(?:int|number|boolean|string))?\\s*=\\s*";
+  const literal = "(-?[0-9]+(?:\\.[0-9]+)?|true|false|\"(?:\\\\.|[^\"\\\\\\r\\n])*\"|'(?:\\\\.|[^'\\\\\\r\\n])*')\\s*;?$";
+  const match = unwrap(compile(declaration + literal)).captures(source);
+  const value = match?.groups[0];
+  return value === undefined ? '' : unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(source)), value.start, value.end))));
+}
+
+export interface EditorContextResult {
+  namedEditReference?: boolean;
+  saveStatus?: string;
+  functionLookup?: string;
+  excerpt: string;
+  candidates: string[];
+  unavailable: string[];
+}
+
+interface ImportBinding {
+  local: string;
+  exported: string;
+}
+
+// Apply the compiler's exact-first, longest-prefix path mapping rules.
+function mappedImport(mappings: ReadOnly<Map<string, string>>, specifier: ReadOnly<string>): string {
+  let exact = '';
+  let best = -1;
+  let selected = '';
+
+  for (const key of mappings.keys()) {
+    const target = clone(mappings.get(key)) ?? '';
+    const stars = key.split('*');
+    const parts = target.split('*');
+
+    if (key === '' || key.startsWith('.') || key.startsWith('/') || key.startsWith('std:') || stars.length > 2 || target === '' || isAbsolute(target) || parts.length !== stars.length) return '';
+
+    if (['\\', '\0', '\n', '\r'].some((invalid) => key.includes(invalid) || target.includes(invalid))) return '';
+
+    if (stars.length === 1) {
+      if (key === specifier) exact = clone(target);
+      continue;
+    }
+
+    const prefix = stars[0];
+    const suffix = stars[1];
+
+    if (!specifier.startsWith(prefix) || !specifier.endsWith(suffix) || specifier.length < prefix.length + suffix.length || prefix.length < best) continue;
+
+    if (prefix.length === best) selected = '';
+    else {
+      best = prefix.length;
+      selected = parts[0] + specifier.slice(prefix.length, specifier.length - suffix.length) + parts[1];
+    }
+  }
+
+  return exact === '' ? selected : exact;
+}
+
+function importBase(path: ReadOnly<string>, specifier: ReadOnly<string>, root: ReadOnly<string>): string {
+  if (specifier === '' || specifier.includes('\n') || specifier.includes('\r') || specifier.includes('\\') || specifier.includes('\0') || isAbsolute(specifier) || specifier.startsWith('std:')) return '';
+  let dir = dirname(path);
+
+  if (specifier.startsWith('./') || specifier.startsWith('../')) return join(dir, specifier);
+  const prefix = root.endsWith(separator()) ? clone(root) : root + separator();
+
+  while (dir === root || dir.startsWith(prefix)) {
+    const config = join(dir, 'tsrust.config.json');
+
+    match (stat(config)) {
+      Ok(info) => {
+        try {
+          if (!info.isFile || !unwrap(canonicalize(config)).startsWith(prefix)) return '';
+          const schema = s.object({
+            paths: s.record(s.string())
+          }).strip();
+          const parsed = schema.safeParseJson(unwrap(readTextFile(config)));
+
+          if (!parsed.success) return '';
+          const target = mappedImport(parsed.data.paths, specifier);
+
+          if (target === '') return '';
+          return join(dir, target);
+        } catch (_) {
+          return '';
+        }
+      },
+      Err(error) => {
+        if (error.code !== 'not-found') return '';
+      }
+    }
+
+    if (dir === root) break;
+    dir = dirname(dir);
+  }
+
+  return '';
+}
+
+// Match relative named import declarations before reading a file from the workspace tree.
+function promptImports(source: ReadOnly<string>, path: ReadOnly<string>, symbols: ReadOnly<Set<string>>, root: ReadOnly<string>, usedInFile: boolean = false): Map<string, ImportBinding[]> {
+  const paths = new Map<string, ImportBinding[]>();
+  const bytes = unwrap(fromUtf8(source));
+  const ignored = "//[^\\r\\n]*|/\\*.*?\\*/";
+  const gap = "(?:\\s|" + ignored + ")*";
+  const identifier = '[\\p{L}_$][\\p{L}\\p{N}_$]*';
+  const names = "\\{(?:" + ignored + "|[^/{};])*\\}";
+  const imports = unwrap(compile("(?s)" + ignored + "|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bimport\\b" + gap + "((" + identifier + ")?" + gap + "(?:," + gap + ")?(?:" + names + ")?)" + gap + "from\\b" + gap + "['\"]([^'\"\\r\\n]+)['\"]"));
+  const members = unwrap(compile("(?s)" + ignored + "|(" + identifier + ")(?:" + gap + "\\bas\\b" + gap + "(" + identifier + "))?"));
+
+  const used = usedInFile ? promptSymbols(imports.replaceAll(source, ' ')) : clone(symbols);
+
+  for (const found of imports.capturesAll(source)) {
+    const bindings = found.groups[0];
+    const defaultName = found.groups[1];
+    const specifier = found.groups[2];
+
+    if (bindings === undefined || specifier === undefined) continue;
+    const text = unwrap(toUtf8(unwrap(view(bytes, bindings.start, bindings.end))));
+    const localBytes = unwrap(fromUtf8(text));
+
+    for (const member of members.capturesAll(text)) {
+      const exported = member.groups[0];
+      const alias = member.groups[1];
+
+      if (exported === undefined) continue;
+      const declared = unwrap(toUtf8(unwrap(view(localBytes, exported.start, exported.end))));
+      const name = alias === undefined ? clone(declared) : unwrap(toUtf8(unwrap(view(localBytes, alias.start, alias.end))));
+
+      if (!used.has(name)) continue;
+      const relative = unwrap(toUtf8(unwrap(view(bytes, specifier.start, specifier.end))));
+      const base = importBase(path, relative, root);
+
+      if (base === '') continue;
+      const candidates = extname(base) === '' ? [base + '.tsr', base + '.tsrx', join(base, 'index.tsr'), join(base, 'index.tsrx')] : [clone(base)];
+
+      for (const candidate of candidates) {
+        match (stat(candidate)) {
+          Ok(info) => {
+            if (!info.isFile) continue;
+
+            match (canonicalize(candidate)) {
+              Ok(real) => {
+                const selected: ImportBinding[] = clone(paths.get(real)) ?? [];
+                selected.push({
+                  local: clone(name), exported: defaultName !== undefined && bindings.start + exported.start === defaultName.start ? 'default' : clone(declared)
+                });
+                paths.set(real, selected);
+              },
+              Err(_) => {}
+            }
+
+            break;
+          },
+          Err(error) => {
+            if (error.code !== 'not-found') break;
+          }
+        }
+      }
+
+    }
+  }
+
+  return paths;
+}
+
+// Capture the initializer through its terminating semicolon, including nested expressions.
+function exportedExcerpt(source: ReadOnly<string>, name: ReadOnly<string>): string {
+  const body = functionExcerpt(source, name);
+
+  if (body !== '' || name === 'default') return body;
+  return constantExcerpt(source, name, false);
+}
+
+function constantExcerpt(source: ReadOnly<string>, name: ReadOnly<string>, atStart: boolean): string {
+  const prefix = atStart ? '(?:export\\s+)?' : 'export\\s+';
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*?\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b" + prefix + "const\\s+" + escape(name) + "\\s*[:=]|[(){}\\[\\];]"));
+  let start = -1;
+  let depth = 0;
+
+  for (const token of tokens.findAll(source)) {
+    if (start < 0) {
+      if (atStart && token.start !== 0) return '';
+
+      if (source.startsWith('export', token.start) || (atStart && source.startsWith('const', token.start))) start = token.start;
+    } else if (source.startsWith(';', token.start) && depth === 0) {
+      return unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(source)), start, token.end))));
+    } else if (['(', '{', '['].some((mark) => source.startsWith(mark, token.start))) depth += 1;
+    else if ([')', '}', ']'].some((mark) => source.startsWith(mark, token.start))) depth -= 1;
+  }
+
+  return '';
+}
+
+// Record top-level value declarations once so helper initializers can be followed on demand.
+function valueOffsets(source: ReadOnly<string>): Map<string, int> {
+  const values = new Map<string, int>();
+  const bytes = unwrap(fromUtf8(source));
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b(?:export\\s+)?(?:const|let|class|enum)\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|[{}]"));
+  let depth = 0;
+
+  for (const token of tokens.capturesAll(source)) {
+    const name = token.groups[0];
+
+    if (name !== undefined && depth === 0) values.set(unwrap(toUtf8(unwrap(view(bytes, name.start, name.end)))), token.match.start);
+    else if (source.startsWith('{', token.match.start)) depth += 1;
+    else if (source.startsWith('}', token.match.start)) depth -= 1;
+  }
+
+  return values;
+}
+
+// Extend selected bodies with bare calls to functions declared in the same source.
+function includeLocalCalls(source: ReadOnly<string>, snippets: Mutable<string[]>, outline: ReadOnly<Map<string, DocumentSymbol>> = new Map<string, DocumentSymbol>(), lines: ReadOnly<string[]> = [], values: ReadOnly<Map<string, int>> = new Map<string, int>()): Set<string> {
+  const calls = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|(\\.\\s*)?([\\p{L}_$][\\p{L}\\p{N}_$]*)(\\s*\\()?"));
+  const visited = new Set<string>();
+  const external = new Set<string>();
+
+  for (let i = 0; i < snippets.length; i += 1) {
+    const snippet = clone(snippets[i]);
+    const bytes = unwrap(fromUtf8(snippet));
+
+    for (const token of calls.capturesAll(snippet)) {
+      const group = token.groups[1];
+
+      if (group === undefined || token.groups[0] !== undefined) continue;
+      const name = unwrap(toUtf8(unwrap(view(bytes, group.start, group.end))));
+
+      const symbol = outline.get(name);
+
+      const offset = values.get(name);
+
+      if (offset === undefined && symbol === undefined && token.groups[2] === undefined) {
+        external.add(clone(name));
+        continue;
+      }
+
+      if (visited.has(name)) continue;
+      visited.add(clone(name));
+      const definition = offset !== undefined ? constantExcerpt(source.slice(offset), name, true) : symbol === undefined ? functionExcerpt(source, name, true) : outlineBody(lines, symbol);
+
+      if (definition === '') external.add(clone(name));
+      else if (!snippets.includes(definition)) snippets.push(definition);
+    }
+  }
+
+  return external;
+}
+
+interface ImportedCall {
+  path: string;
+  binding: ImportBinding;
+}
+
+function queueImportedCalls(
+  source: ReadOnly<string>,
+  path: ReadOnly<string>,
+  root: ReadOnly<string>,
+  calls: ReadOnly<Set<string>>,
+  pending: Mutable<ImportedCall[]>,
+  usedInFile: boolean = false
+): void {
+  if (calls.size === 0 && !usedInFile) return;
+  const imports = promptImports(source, path, calls, root, usedInFile);
+
+  for (const target of imports.keys()) {
+    const bindings = imports.get(target);
+
+    if (bindings !== undefined) for (const binding of bindings) {
+      if (!pending.some((item) => item.path === target && item.binding.local === binding.local && item.binding.exported === binding.exported)) pending.push({
+        path: clone(target), binding: clone(binding)
+      });
+    }
+  }
+}
+
+function includeWorkspaceDependencies(source: ReadOnly<string>, path: ReadOnly<string>, root: ReadOnly<string>, snippets: Mutable<string[]>, pending: Mutable<ImportedCall[]>): void {
+  const values = valueOffsets(source);
+  const dependencies = includeLocalCalls(source, snippets, new Map<string, DocumentSymbol>(), [], values);
+  queueImportedCalls(source, path, root, dependencies, pending);
+
+  if (Array.from(dependencies).some((name) => values.has(name)) || (values.size > 0 && snippets.some((snippet) => snippet.includes('${')))) {
+    snippets.splice(0, snippets.length, clone(source));
+  }
+}
+
+export interface FileDeclarations {
+  path: string;
+  stamp: string;
+  names: string[];
+}
+
+function indexedDeclarations(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, prefix: ReadOnly<string>, pattern: ReadOnly<Regex>, index: Mutable<Map<string, FileDeclarations>>): string[] {
+  try {
+    const open = workspace.files.find((file) => file.document.path === path);
+    let stamp = '';
+
+    if (open !== undefined) {
+      if (open.kind !== 'text') return [];
+      stamp = open.document.session + '/' + open.document.revision.toString();
+    } else {
+      const real = unwrap(canonicalize(path));
+
+      if (!real.startsWith(prefix)) return [];
+      const info = unwrap(stat(real));
+
+      if (!info.isFile) return [];
+
+      if (info.modified !== undefined) stamp = real + '/' + JSON.stringify(info.modified) + '/' + info.size.toString();
+    }
+
+    {
+      const previous = index.get(path);
+
+      if (stamp !== '' && previous !== undefined && previous.stamp === stamp) return clone(previous.names);
+    }
+
+    const source = unwrap(namedExcerpt(workspace, path, prefix));
+    const bytes = unwrap(fromUtf8(source));
+    const names: string[] = [];
+
+    let depth = 0;
+
+    for (const token of pattern.capturesAll(source)) {
+      if (source.startsWith('{', token.match.start)) depth += 1;
+      else if (source.startsWith('}', token.match.start)) depth -= 1;
+      const capture = token.groups[0] ?? token.groups[1];
+
+      if (depth !== 0 && token.groups[0] === undefined) continue;
+
+      if (capture !== undefined) names.push(unwrap(toUtf8(unwrap(view(bytes, capture.start, capture.end)))));
+    }
+
+    index.set(clone(path), {
+      path: clone(path), stamp, names: clone(names)
+    });
+    return names;
+  } catch (_) {
+    index.delete(path);
+    return [];
+  }
+}
+
+interface DocumentSymbol {
+  name: string;
+  kind: int;
+  range: DiagnosticRange;
+  selectionRange: DiagnosticRange;
+}
+
+function outlineSymbols(result: ReadOnly<string>): Map<string, DocumentSymbol> {
+  const index = new Map<string, DocumentSymbol>();
+
+  try {
+    for (const symbol of JSON.parse<DocumentSymbol[]>(result)) {
+      if (symbol.kind === 12 || symbol.kind === 13) index.set(clone(symbol.name), clone(symbol));
+    }
+  } catch (_) {}
+
+  return index;
+}
+
+function outlineBody(lines: ReadOnly<string[]>, symbol: ReadOnly<DocumentSymbol>): string {
+  try {
+    const range = symbol.range;
+    const name = symbol.selectionRange.start;
+
+    if (range.start.line < 0 || range.end.line >= lines.length || range.end.line < range.start.line || name.line < range.start.line || name.line > range.end.line || referenceSymbol(lines[name.line], {
+      line: 0, character: name.character
+    }, true) !== symbol.name) return '';
+
+    if (symbol.kind === 13) {
+      const column = diagnosticColumn(lines[name.line], name.character) - 1;
+      const before = Array.from(lines[name.line]).slice(0, column).join('').trimStart();
+
+      if (!unwrap(compile('^(?:export\\s+)?const\\s+$')).isMatch(before)) return '';
+      const source = lines.slice(name.line).join('\n').trimStart();
+      return constantExcerpt(source, symbol.name, true);
+    }
+
+    const first = diagnosticColumn(lines[range.start.line], range.start.character) - 1;
+    const last = diagnosticColumn(lines[range.end.line], range.end.character) - 1;
+    const parts = lines.slice(range.start.line, range.end.line + 1);
+    parts[parts.length - 1] = Array.from(parts[parts.length - 1]).slice(0, last).join('');
+    parts[0] = Array.from(parts[0]).slice(first).join('');
+    return parts.join('\n');
+  } catch (_) {
+    return '';
+  }
+}
+
+export function editorContext(
+  workspace: ReadOnly<Workspace>,
+  tree: ReadOnly<DirectoryTree> | undefined,
+  attached: ReadOnly<ContextFragment[]>,
+  prompt: ReadOnly<string>,
+  editing: boolean,
+  hasReferences: boolean,
+  index: Mutable<Map<string, FileDeclarations>>,
+  previousQuestion: ReadOnly<string> = '',
+  outline?: LanguageReadResult,
+  recentWorkspaceQuestion: boolean = false,
+  hasPreviousAnswer: boolean = false,
+  editedPaths: ReadOnly<string[]> = []
+): EditorContextResult {
+  let namedEditReference = false;
+  const ambiguous: string[] = [];
+  const unavailable: string[] = [];
+  const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+  let result = '';
+  let functionLookup: string | undefined = undefined;
+  const active = workspace.files.find((file) => file.document.path === workspace.active);
+
+  const question = prompt.toLowerCase();
+  // A numeric expression or a numeric continuation already carries its operands in chat.
+  const arithmetic = unwrap(compile('^(?:(?:what is|what is the result of|calculate|compute)\\s+)?[-+( ]*[0-9][-+()0-9.* /%]*[?! .]*$')).isMatch(question.trim()) || ((recentWorkspaceQuestion || hasPreviousAnswer) && unwrap(compile('^(?:(?:ok|and|now|then|please)[ ,]+)*(?:double|triple|halve|add|subtract|multiply|divide)\\b(?:\\s+(?:the|that|it|result|answer|by|from|to|[+-]?[0-9]+(?:\\.[0-9]+)?))*[.!?]*$')).isMatch(question.trim()));
+  const answerReference = (recentWorkspaceQuestion || hasPreviousAnswer) && ['previous answer', 'last answer', 'result you just gave', 'answer you just gave'].some((phrase) => question.includes(phrase));
+  const keepWholeFile = editing || ['whole file', 'entire file', 'full file', 'full source', 'arquivo inteiro', 'arquivo completo'].some((phrase) => question.includes(phrase));
+
+  const useActive = active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) && !attached.some((fragment) => fragment.path === workspace.active);
+  const wantsActive = keepWholeFile || question.includes('active file') || question.includes('active draft');
+
+  if (!editing && active !== undefined && useActive && ((!hasReferences && ((!answerReference && !arithmetic) || wantsActive)) || mentionsPath(prompt, active.name) || mentionsPath(prompt, active.document.path.slice(prefix.length)))) {
+    result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + active.document.text;
+  }
+
+  if (tree !== undefined && tree.root === workspace.root) {
+    const listFiles = ['files', 'project structure', 'workspace structure', 'directory', 'arquivos', 'diretório'].some((word) => question.includes(word));
+    const paths: string[] = [];
+    const lookup = previousQuestion === '' ? clone(prompt) : prompt + '\n' + previousQuestion;
+    const symbols = promptSymbols(lookup);
+    const unresolved = hasReferences ? new Set<string>() : recallTerms(lookup);
+
+    const hasExplicitSymbols = unresolved.size > 0;
+    const visible = new Set<string>();
+    const mentionedNames = new Map<string, int>();
+    let qualified = new Set<string>();
+    const previousPaths = new Set<string>();
+    let qualifiedNames = new Set<string>();
+    const previousNames = new Set<string>();
+
+    for (const directory of tree.directories) {
+      for (const file of directory.children) {
+        if (file.directory || !file.path.startsWith(prefix)) continue;
+        visible.add(clone(file.path));
+
+        if (mentionsPath(prompt, file.name)) {
+          const count = mentionedNames.get(file.name) ?? 0;
+          mentionedNames.set(clone(file.name), count + 1);
+        }
+
+        const path = file.path.slice(prefix.length);
+
+        if ((path !== file.name && mentionsPath(prompt, path)) || mentionsPath(prompt, './' + path)) {
+          qualified.add(clone(file.path));
+          qualifiedNames.add(clone(file.name));
+        } else if (previousQuestion !== '' && ((path !== file.name && mentionsPath(previousQuestion, path)) || mentionsPath(previousQuestion, './' + path))) {
+          previousPaths.add(clone(file.path));
+          previousNames.add(clone(file.name));
+        }
+      }
+    }
+
+    const currentNames = qualified.size > 0 || mentionedNames.size > 0;
+
+    if (!currentNames) {
+      qualified = previousPaths;
+      qualifiedNames = previousNames;
+    }
+
+    if (qualified.size > 0 && unresolved.size > 0) {
+      const lookupParts: string[] = [];
+
+      for (const path of qualified) lookupParts.push('./' + path.slice(prefix.length));
+
+      for (const name of unresolved) lookupParts.push('`' + name + '`');
+      functionLookup = lookupParts.join('\n');
+    }
+
+    const shadowedActive = active !== undefined && qualifiedNames.has(active.name) && !qualified.has(active.document.path) && !mentionedNames.has(active.name);
+
+    if (shadowedActive) result = '';
+
+    if (!shadowedActive && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix)) {
+      const bodies: string[] = [];
+
+      const target = outline?.query.document;
+      const located = outline !== undefined && target !== undefined && outline.error === '' && target.path === active.document.path && target.session === active.document.session && target.revision === active.document.revision && unresolved.size > 0 ? outlineSymbols(outline.result) : new Map<string, DocumentSymbol>();
+      const lines = located.size === 0 ? [] : active.document.text.split('\n');
+      const values = unresolved.size === 0 ? new Map<string, int>() : valueOffsets(active.document.text);
+
+      for (const name of Array.from(unresolved)) {
+        const symbol = located.get(name);
+        const selected = symbol === undefined ? '' : outlineBody(lines, symbol);
+
+        const offset = values.get(name);
+        const body = selected !== '' ? selected : offset === undefined ? functionExcerpt(active.document.text, name, true, true) : constantExcerpt(active.document.text.slice(offset), name, true);
+
+        if (body !== '') {
+          bodies.push(body);
+          unresolved.delete(name);
+        }
+      }
+
+      if (bodies.length > 0) {
+        for (const name of includeLocalCalls(active.document.text, bodies, located, lines, values)) symbols.add(clone(name));
+
+        if (!keepWholeFile && (result !== '' || (answerReference && useActive && !hasReferences)) && !mentionsPath(prompt, active.name) && !mentionsPath(prompt, active.document.path.slice(prefix.length))) result = 'Active editor file: ' + active.document.path.slice(prefix.length) + '\n' + bodies.join('\n');
+
+      }
+    }
+
+    const imported = !shadowedActive && active !== undefined && active.kind === 'text' && active.document.path.startsWith(prefix) ? promptImports(active.document.text, active.document.path, symbols, workspace.root) : new Map<string, ImportBinding[]>();
+
+    for (const bindings of imported.values()) {
+      for (const binding of bindings) unresolved.delete(binding.local);
+    }
+
+
+    const declarations = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\bfunction\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|\\bconst\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)|[{}]"));
+    // In project questions, match spoken compound names such as "handling fee".
+    const normalized = lookup.toLowerCase();
+    const proseLookup = !editing && !hasReferences && !hasExplicitSymbols && !listFiles && mentionedNames.size === 0 && qualified.size === 0 && (recentWorkspaceQuestion || unwrap(compile('\\b(project|workspace|repository|codebase)\\b')).isMatch(normalized));
+    const words = unwrap(compile('[^\\p{L}\\p{N}]+'));
+    const phrase = proseLookup ? ' ' + words.replaceAll(normalized, ' ') + ' ' : '';
+    const camel = unwrap(compile('([\\p{Ll}\\p{N}])([\\p{Lu}])'));
+    const proseMatches: string[] = [];
+    const indexedPaths = new Set<string>();
+    const pending: ImportedCall[] = [];
+
+    for (const directory of tree.directories) {
+      for (const file of directory.children) {
+        if (file.directory || !file.path.startsWith(prefix)) continue;
+        const path = file.path.slice(prefix.length);
+
+        const nameCount = mentionedNames.get(file.name) ?? 0;
+        const otherCopy = qualifiedNames.has(file.name) && !qualified.has(file.path) && nameCount === 0;
+        const referenced = imported.has(file.path) || nameCount === 1 || qualified.has(file.path);
+
+        if (nameCount > 1) {
+
+          ambiguous.push('./' + path);
+        }
+
+        const names: string[] = [];
+
+        if (otherCopy && index.has(file.path)) indexedPaths.add(clone(file.path));
+
+        if (!otherCopy && ((unresolved.size > 0 && file.path !== workspace.active) || proseLookup) && (file.name.endsWith('.tsr') || file.name.endsWith('.tsrx'))) {
+          indexedPaths.add(clone(file.path));
+
+          for (const name of indexedDeclarations(workspace, file.path, prefix, declarations, index)) {
+            if (unresolved.has(name)) names.push(clone(name));
+            else if (proseLookup) {
+              const spoken = words.replaceAll(camel.replaceAll(name, '$1 $2').toLowerCase(), ' ').trim();
+
+              if (spoken.includes(' ') && phrase.includes(' ' + spoken + ' ')) {
+                names.push(clone(name));
+                proseMatches.push('./' + path + '\n`' + name + '`');
+              }
+            }
+          }
+        }
+
+        if ((file.path !== workspace.active || active?.kind !== 'text') && (referenced || names.length > 0) && !attached.some((fragment) => fragment.path === file.path)) {
+          match (namedExcerpt(workspace, file.path, prefix)) {
+            Ok(excerpt) => {
+              const bindings = imported.get(file.path);
+              let signature = '';
+              const snippets: string[] = [];
+              const explicitFile = nameCount > 0 || qualified.has(file.path);
+              let whole = explicitFile && (keepWholeFile || names.length === 0);
+
+              if (bindings !== undefined) for (const binding of bindings) {
+                const selected = whole ? '' : exportedExcerpt(excerpt, binding.exported);
+
+                if (selected === '') whole = true;
+                else if (!snippets.includes(selected)) snippets.push(clone(selected));
+
+                if (binding.exported !== 'default') {
+                  if (binding.local !== binding.exported) signature += 'Local name: ' + binding.local + ' refers to ' + binding.exported + '.\n';
+                } else {
+                  const snippet = selected === '' ? clone(excerpt) : clone(selected);
+                  const declaration = unwrap(compile('(?m)^\\s*export\\s+default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*(\\s*(?:<[^>]*>)?\\s*\\([^()]*\\)\\s*(?::[^{};]+)?)')).captures(snippet);
+
+                  let label = '';
+
+                  if (declaration !== undefined) {
+                    const parameters = declaration.groups[0];
+
+                    if (parameters !== undefined) label = 'Local signature: ' + binding.local + unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(snippet)), parameters.start, parameters.end)))).trim() + '\n';
+                  }
+
+                  signature += label === '' ? 'The local name ' + binding.local + ' refers to the default export below.\n' : label;
+                }
+              }
+
+              if (!whole) {
+                const values = names.length > 0 ? valueOffsets(excerpt) : new Map<string, int>();
+
+                for (const term of names) {
+                  const offset = values.get(term);
+                  const selected = offset === undefined ? functionExcerpt(excerpt, term, true, true) : constantExcerpt(excerpt.slice(offset), term, true);
+
+                  if (explicitFile && selected === '') whole = true;
+
+                  if (selected !== '' && !snippets.includes(selected)) snippets.push(selected);
+                }
+              }
+
+              if (referenced || snippets.length > 0) {
+                if (editing && explicitFile && whole) queueImportedCalls(
+                  excerpt,
+                  file.path,
+                  workspace.root,
+                  new Set<string>(),
+                  pending,
+                  true
+                );
+
+                if (!whole && snippets.length > 0) includeWorkspaceDependencies(excerpt, file.path, workspace.root, snippets, pending);
+
+                const snippet = whole || snippets.length === 0 ? clone(excerpt) : snippets.join('\n');
+
+                if (editing && currentNames && explicitFile) namedEditReference = true;
+                result += '\n\nReferenced workspace file: ' + path + '\n' + signature + snippet;
+              }
+            },
+            Err(_) => {
+              if (referenced) unavailable.push(clone(path));
+            }
+          }
+
+
+        }
+
+        if (editing || !listFiles) continue;
+
+        paths.push(path);
+      }
+    }
+
+
+    for (let i = 0; i < pending.length; i += 1) {
+      const call = clone(pending[i]);
+
+      if (!visible.has(call.path)) continue;
+
+      match (namedExcerpt(workspace, call.path, prefix)) {
+        Ok(source) => {
+          const definition = exportedExcerpt(source, call.binding.exported);
+
+          if (definition === '') continue;
+          const parts = [definition];
+          includeWorkspaceDependencies(source, call.path, workspace.root, parts, pending);
+          const alias = call.binding.local === call.binding.exported ? '' : 'Local name: ' + call.binding.local + ' refers to ' + call.binding.exported + '.\n';
+          result += '\n\nReferenced workspace file: ' + call.path.slice(prefix.length) + '\n' + alias + parts.join('\n');
+        },
+        Err(_) => {}
+      }
+    }
+
+    if (unresolved.size > 0 || proseLookup) for (const path of Array.from(index.keys())) {
+      if (!indexedPaths.has(path)) index.delete(path);
+    }
+
+
+    if (proseMatches.length === 1) functionLookup = clone(proseMatches[0]);
+
+    if (paths.length > 0) result += (result === '' ? '' : '\n\n') + 'Workspace files:\n' + paths.join('\n');
+  }
+
+  let saveStatus: string | undefined = undefined;
+
+  if (!editing && ['saved', 'unsaved', 'on disk', 'to disk'].some((term) => question.includes(term))) {
+    const opened = workspace.files.filter((file) => file.kind === 'text' && file.document.path.startsWith(prefix));
+    const qualified = opened.filter((file) => mentionsPath(prompt, file.document.path.slice(prefix.length)) && file.document.path.slice(prefix.length) !== file.name);
+    const named = qualified.length > 0 ? qualified : opened.filter((file) => mentionsPath(prompt, file.name));
+    const hasNamedFile = named.length > 0;
+    const refersToEdit = editedPaths.length > 0 && unwrap(compile('\\b(?:that|this|the|those|these|your) (?:edit|change)s?\\b')).isMatch(question);
+    const targets = hasNamedFile ? named : opened.filter((file) => refersToEdit ? editedPaths.includes(file.document.path) : file.document.path === workspace.active);
+
+    const comparisons = targets.map((file) => diskComparison(file.document.path, file.document.text, prefix)).join('\n\n');
+
+    if (comparisons !== '') {
+      result += '\n\n' + comparisons;
+
+      const namesUnknownFile = !hasNamedFile && unwrap(compile('[[:alnum:]_-]+\\.[[:alpha:]][[:alnum:]]*')).isMatch(question);
+      const statusQuestion = unwrap(compile('^(?:is|are|was|were|has|have)\\s+[^?!]+\\b(?:saved(?: to disk)?|unsaved|on disk)(?: or (?:only )?in (?:the )?(?:editor )?draft)?[?.]?$')).isMatch(question.trim());
+
+      if (!namesUnknownFile && statusQuestion && !question.includes(' and ')) saveStatus = comparisons;
+    }
+  }
+
+  return {
+    excerpt: result, candidates: ambiguous, unavailable, functionLookup, saveStatus, namedEditReference
+  };
+}

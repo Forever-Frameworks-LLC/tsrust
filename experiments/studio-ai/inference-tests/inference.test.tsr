@@ -1,0 +1,253 @@
+import { ModelRequest, ModelUpdate } from '../../../apps/studio/src/lib/ai/protocol.tsr';
+import { test, strictEqual } from 'std:testing';
+import { get } from 'std:env';
+import { spawn, Channel } from 'std:threads';
+import {
+  qwen_generate,
+  qwen_load,
+  qwen_generate_loaded,
+  qwen_stream_start,
+  qwen_stream_next,
+  qwen_stream_finish,
+  qwen_stream_cancel,
+  QwenStream,
+  StreamFinished
+} from '@engine';
+import { chatPrompt } from '../../../apps/studio/src/lib/ai/prompts.tsr';
+import { modelWorker } from '../../../apps/studio/model-host/src/worker.tsr';
+
+function resource(name: string): string {
+  const value = unwrap(get(name));
+
+  if (value === undefined) {
+    throw 'Missing verified local artifact path: ' + name;
+  }
+
+  return value;
+}
+
+test('invalid generation limits reject before reading local resources', () => {
+  for (const count of [-1, -2]) {
+    const worker = unwrap(spawn((task) => qwen_generate(task, '/missing/model', '/missing/tokenizer', 'test', count)));
+    let rejected = false;
+
+    match (unwrap(worker.join())) {
+      Ok(_) => {},
+      Err(error) => {
+        rejected = error === 'max_tokens must be nonnegative (zero uses model context)';
+      }
+    }
+
+    strictEqual(rejected, true);
+  }
+});
+
+test('official quantized model performs a real offline generation', () => {
+  const model = resource('STUDIO_PROOF_MODEL');
+  const tokenizer = resource('STUDIO_PROOF_TOKENIZER');
+  const prompt = chatPrompt('Reply with only the result of 2 + 3.');
+  const worker = unwrap(spawn((task) => qwen_generate(task, model, tokenizer, prompt, 32)));
+  const result = unwrap(unwrap(worker.join()));
+  strictEqual(result.text.trim(), '5');
+  strictEqual(result.input_tokens > 0, true);
+  strictEqual(result.output_tokens > 0, true);
+  strictEqual(result.output_tokens <= 32, true);
+  strictEqual(result.stop, 'eos');
+});
+
+test('resident model handles independent requests without loading twice', () => {
+  const modelPath = resource('STUDIO_PROOF_MODEL');
+  const tokenizerPath = resource('STUDIO_PROOF_TOKENIZER');
+  const worker = unwrap(spawn((task) => {
+    const model = unwrap(qwen_load(task, modelPath, tokenizerPath));
+    const first = unwrap(qwen_generate_loaded(task, model, chatPrompt('Reply with only the result of 2 + 3.'), 32));
+
+    match (qwen_generate_loaded(task, model, 'test', -1)) {
+      Ok(_) => {
+        throw 'invalid request succeeded';
+      },
+      Err(error) => {
+        strictEqual(error, 'max_tokens must be nonnegative (zero uses model context)');
+      }
+    }
+
+    const second = unwrap(qwen_generate_loaded(task, model, chatPrompt('Reply with only the result of 3 + 4.'), 32));
+    return {
+      first, second
+    };
+  }));
+  const result = unwrap(worker.join());
+  strictEqual(result.first.text.trim(), '5');
+  strictEqual(result.second.text.trim(), '7');
+  strictEqual(result.first.stop, 'eos');
+  strictEqual(result.second.stop, 'eos');
+  strictEqual(result.first.output_tokens <= 32, true);
+  strictEqual(result.second.output_tokens <= 32, true);
+});
+
+function drain(stream: QwenStream): StreamFinished {
+  let prefix = '';
+  let updates = 0;
+
+  while (true) {
+    const update = qwen_stream_next(stream);
+
+    if (update.changed) {
+      prefix = update.text;
+      updates += 1;
+    }
+
+    if (update.finished) break;
+  }
+
+  const result = unwrap(qwen_stream_finish(stream));
+
+  if (result.generation.kind === 'some') {
+    strictEqual(updates > 0, true);
+    strictEqual(prefix, result.generation.value.text);
+  }
+
+  return result;
+}
+
+test('streaming model returns prefixes, recovers cancellation and joins on drop', () => {
+  const modelPath = resource('STUDIO_PROOF_MODEL');
+  const tokenizerPath = resource('STUDIO_PROOF_TOKENIZER');
+  const worker = unwrap(spawn((task) => {
+    {
+      const model = unwrap(qwen_load(task, modelPath, tokenizerPath));
+      const first = drain(unwrap(qwen_stream_start(model, chatPrompt('Reply with only the result of 2 + 3.'), 32)));
+      strictEqual(first.error, '');
+      strictEqual(first.generation.kind, 'some');
+
+      if (first.generation.kind === 'some') strictEqual(first.generation.value.text.trim(), '5');
+
+      const stream = unwrap(qwen_stream_start(first.model, chatPrompt('Print the numbers 1 through 50 separated by spaces.'), 32));
+      let received = false;
+
+      while (!received) {
+        const update = qwen_stream_next(stream);
+        strictEqual(update.finished, false);
+        received = update.changed;
+      }
+
+      qwen_stream_cancel(stream);
+      const cancelled = unwrap(qwen_stream_finish(stream));
+      strictEqual(cancelled.error, 'cancelled');
+      strictEqual(cancelled.generation.kind, 'none');
+      const invalid = drain(unwrap(qwen_stream_start(cancelled.model, 'test', -1)));
+      strictEqual(invalid.error, 'max_tokens must be nonnegative (zero uses model context)');
+      const second = drain(unwrap(qwen_stream_start(invalid.model, chatPrompt('Reply with only the result of 3 + 4.'), 32)));
+      strictEqual(second.error, '');
+      strictEqual(second.generation.kind, 'some');
+
+      if (second.generation.kind === 'some') strictEqual(second.generation.value.text.trim(), '7');
+
+      // Scope exit must cancel/join and release the native backend without finish.
+      const abandoned = unwrap(qwen_stream_start(second.model, chatPrompt('Print the numbers 1 through 50.'), 32));
+      qwen_stream_next(abandoned);
+    }
+
+    // The SDK allows one backend: reloading proves the abandoned stream was joined and disposed.
+    const reloaded = unwrap(qwen_load(task, modelPath, tokenizerPath));
+    const result = unwrap(qwen_generate_loaded(task, reloaded, chatPrompt('Reply with only the result of 2 + 3.'), 32));
+    strictEqual(result.text.trim(), '5');
+  }));
+  unwrap(worker.join());
+});
+
+test('Tsrust model worker routes identities, rejects stale controls and shuts down', () => {
+  const modelPath = resource('STUDIO_PROOF_MODEL');
+  const tokenizerPath = resource('STUDIO_PROOF_TOKENIZER');
+  const requests = new Channel<ModelRequest>(4);
+  const results = new Channel<ModelUpdate>(4);
+  const controls = requests.sender();
+  const updates = results.sender();
+  const worker = unwrap(spawn((task) => modelWorker(task, modelPath, tokenizerPath, requests, updates)));
+  strictEqual(unwrap(results.receive()).kind, 'ready');
+  unwrap(controls.send({
+    kind: 'generate', id: 'first', prompt: 'Print the numbers 1 through 50 separated by spaces.', maxTokens: 32
+  }));
+  let sent = false;
+  let rejected = false;
+  let cancelled = false;
+
+  while (!cancelled) {
+    const update = unwrap(results.receive());
+
+    if (update.kind === 'prefix' && !sent) {
+      strictEqual(update.id, 'first');
+      unwrap(controls.send({
+        kind: 'cancel', id: 'stale', prompt: '', maxTokens: 0
+      }));
+      sent = true;
+    }
+
+    if (update.kind === 'rejected') {
+      strictEqual(update.id, 'stale');
+      rejected = true;
+      unwrap(controls.send({
+        kind: 'cancel', id: 'first', prompt: '', maxTokens: 0
+      }));
+    }
+
+    if (update.kind === 'cancelled') {
+      strictEqual(update.id, 'first');
+      cancelled = true;
+    }
+
+    strictEqual(update.kind === 'complete' || update.kind === 'error', false);
+  }
+
+  strictEqual(rejected, true);
+  unwrap(controls.send({
+    kind: 'generate', id: 'invalid', prompt: 'test', maxTokens: 0
+  }));
+  const invalid = unwrap(results.receive());
+  strictEqual(invalid.id, 'invalid');
+  strictEqual(invalid.kind, 'error');
+  unwrap(controls.send({
+    kind: 'generate', id: 'second', prompt: 'Reply with only the result of 3 + 4.', maxTokens: 32
+  }));
+  let done = false;
+  let prefix = '';
+
+  while (!done) {
+    const update = unwrap(results.receive());
+    strictEqual(update.id, 'second');
+
+    if (update.kind === 'prefix') {
+      prefix = update.text;
+    } else if (update.kind === 'complete') {
+      strictEqual(update.text.trim(), '7');
+      strictEqual(update.text, prefix);
+      done = true;
+    } else {
+      strictEqual(update.kind, 'prefix');
+    }
+  }
+
+  unwrap(controls.send({
+    kind: 'shutdown', id: '', prompt: '', maxTokens: 0
+  }));
+  unwrap(worker.join());
+
+  const idleRequests = new Channel<ModelRequest>(1);
+  const idleResults = new Channel<ModelUpdate>(1);
+  const idleControls = idleRequests.sender();
+  const idleUpdates = idleResults.sender();
+  const idleModel = resource('STUDIO_PROOF_MODEL');
+  const idleTokenizer = resource('STUDIO_PROOF_TOKENIZER');
+  const idle = unwrap(spawn((task) => modelWorker(task, idleModel, idleTokenizer, idleRequests, idleUpdates)));
+  strictEqual(unwrap(idleResults.receive()).kind, 'ready');
+  idle.cancel();
+
+  match (idle.join()) {
+    Ok(_) => {
+      throw 'idle cancellation unexpectedly succeeded';
+    },
+    Err(_) => {}
+  }
+
+  idleControls.close();
+});

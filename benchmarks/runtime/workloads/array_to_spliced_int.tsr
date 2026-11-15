@@ -1,9 +1,11 @@
 function workload(n: int, seed: int): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const values: int[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
     const mode = (i + seed) % 10;
+
     if (mode === 0) {
       const result = values.toSpliced();
       output.push(result);
@@ -48,6 +50,7 @@ function item(base: int): int {
 
 function start(i: int, seed: int): int {
   const c = (i * 3 + seed) % 8;
+
   if (c === 0) {
     return -9;
   }

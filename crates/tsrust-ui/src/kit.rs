@@ -5,6 +5,46 @@
 use super::{Child, Node, TextBinding};
 use std::collections::BTreeMap;
 
+enum TableSortKey<'a> { Integer(i128), Float(f64), Text(&'a str) }
+impl<'a> TableSortKey<'a> {
+    fn new(value:&'a str)->Self {
+        if let Ok(value)=value.trim().parse::<i128>() {Self::Integer(value)}
+        else if let Ok(value)=value.trim().parse::<f64>() {Self::Float(value)}
+        else {Self::Text(value)}
+    }
+    fn compare(&self,other:&Self)->std::cmp::Ordering {
+        use std::cmp::Ordering;
+        match (self,other) {
+            (Self::Integer(left),Self::Integer(right))=>left.cmp(right),
+            (Self::Float(left),Self::Float(right))=>left.total_cmp(right),
+            (Self::Integer(left),Self::Float(right))=>{
+                // Converting the integer first would lose bits above 2^53.
+                if !right.is_finite() {return (*left as f64).total_cmp(right);}
+                if *right< i128::MIN as f64 {return Ordering::Greater;}
+                if *right>= -(i128::MIN as f64) {return Ordering::Less;}
+                left.cmp(&(*right as i128)).then_with(||(*left as f64).total_cmp(right))
+            }
+            (Self::Float(_),Self::Integer(_))=>other.compare(self).reverse(),
+            (Self::Text(left),Self::Text(right))=>left.cmp(right),
+            (Self::Text(_),_)=>Ordering::Greater,
+            (_,Self::Text(_))=>Ordering::Less,
+        }
+    }
+}
+
+/// Stable display indices; the underlying rows and rich-cell identities never move.
+pub(crate) fn table_row_order<T: AsRef<str>>(rows:&[Vec<T>], sort:Option<(usize,bool)>)->Vec<usize> {
+    let mut order=(0..rows.len()).collect::<Vec<_>>();
+    if let Some((column,descending))=sort {
+        let keys=rows.iter().map(|row|TableSortKey::new(row.get(column).map_or("",|value|value.as_ref()))).collect::<Vec<_>>();
+        order.sort_by(|left,right| {
+            let compared=keys[*left].compare(&keys[*right]);
+            if descending {compared.reverse()}else{compared}
+        });
+    }
+    order
+}
+
 pub(crate) type Predicate = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(&str)->Result<bool,String>>>>;
 pub(crate) type NumberStep = std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(f64,bool)->Result<f64,String>>>>;
 pub(crate) fn predicate(handler:&Predicate,value:&str)->Result<bool,String> {
@@ -12,16 +52,76 @@ pub(crate) fn predicate(handler:&Predicate,value:&str)->Result<bool,String> {
 }
 pub(crate) type EventHandler = Box<dyn FnMut(&str) -> Result<(), String>>;
 
+// Validate persisted data before passing it to Kit's layout builders.
+pub(crate) fn dock_layout(text:&str)->Result<serde_json::Value,String> {
+    use serde_json::Value;
+    fn panel(node:&Value,depth:usize,values:&mut std::collections::BTreeSet<String>,leaf:bool)->Result<(),String> {
+        if depth>64{return Err("Dock layout exceeds 64 levels".into());}
+        let children=node["children"].as_array().ok_or("Dock layout requires panel children")?;
+        let info=node["info"].as_object().filter(|info|info.len()==1).ok_or("Invalid Dock panel info")?;
+        match node["panel_name"].as_str() {
+            Some("StackPanel") if !leaf=>{
+                let stack=info.get("stack").ok_or("Dock split requires stack info")?;
+                if !matches!(stack["axis"].as_u64(),Some(0|1)){return Err("Invalid Dock split axis".into());}
+                let sizes=stack["sizes"].as_array().filter(|sizes|sizes.len()==children.len()).ok_or("Dock split sizes must match children")?;
+                if sizes.iter().any(|size|!size.as_f64().is_some_and(|size|size.is_finite() && size>=0. && size<=f32::MAX as f64)){return Err("Dock split sizes require finite nonnegative native pixels".into());}
+                for child in children{panel(child,depth+1,values,false)?;}
+            },
+            Some("TabPanel") if !leaf=>{
+                if info.get("tabs").and_then(|tabs|tabs["active_index"].as_u64()).is_none(){return Err("Dock tabs require an active index".into());}
+                for child in children{panel(child,depth+1,values,true)?;}
+            },
+            Some("TsrustDockPanel") if leaf && children.is_empty()=>{
+                let value=info.get("panel").and_then(|info|info["value"].as_str()).filter(|value|!value.is_empty()).ok_or("Dock panels require stable values")?;
+                if !values.insert(value.to_owned()){return Err("Dock layout contains duplicate panel values".into());}
+            },
+            _=>return Err("Unsupported Dock layout panel".into()),
+        }
+        Ok(())
+    }
+    if text.len()>1024*1024{return Err("Dock layout exceeds 1 MiB".into());}
+    let value:Value=serde_json::from_str(text).map_err(|error|format!("Invalid Dock layout JSON: {error}"))?;
+    if value["version"].as_u64()!=Some(1){return Err("Unsupported Dock layout version".into());}
+    if ["left_dock","right_dock","bottom_dock"].iter().any(|key|value.get(key).is_some_and(|dock|!dock.is_null())){return Err("Dock layout supports the center area only".into());}
+    panel(&value["center"],0,&mut std::collections::BTreeSet::new(),false)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod dock_layout_tests {
+    use super::dock_layout;
+    use serde_json::{json,Value};
+    fn tab(value:&str)->Value{json!({"panel_name":"TsrustDockPanel","children":[],"info":{"panel":{"value":value}}})}
+    fn tabs(values:Vec<Value>)->Value{json!({"panel_name":"TabPanel","children":values,"info":{"tabs":{"active_index":1}}})}
+    #[test]
+    fn persisted_dock_layout_accepts_nested_unicode_and_rejects_unsafe_shapes() {
+        let state=json!({"version":1,"center":{"panel_name":"StackPanel","children":[tabs(vec![tab("src/日本語.tsr"),tab("b")]),tabs(vec![tab("c")])],"info":{"stack":{"sizes":[320,640],"axis":1}}}});
+        assert_eq!(dock_layout(&state.to_string()).unwrap(),state);
+        let mut cases=Vec::new();
+        let mut bad=state.clone();bad["version"]=json!(2);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["axis"]=json!(2);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["sizes"]=json!([-1,640]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["info"]["stack"]["sizes"]=json!([320]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][1]=tabs(vec![tab("b")]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]=tab("not-in-tabs");cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]["children"][0]=tabs(vec![]);cases.push(bad);
+        let mut bad=state.clone();bad["center"]["children"][0]["children"][0]["panel_name"]=json!("Unknown");cases.push(bad);
+        let mut bad=state.clone();bad["left_dock"]=json!({});cases.push(bad);
+        for bad in cases{assert!(dock_layout(&bad.to_string()).is_err(),"{bad}");}
+        assert!(dock_layout("{").is_err());assert!(dock_layout(&" ".repeat(1024*1024+1)).is_err());
+    }
+}
+
 #[cfg(any(test,feature="gpui"))]
 pub(crate) fn source_language(name:&str)->&str {
-    if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"typescript"}else if name.eq_ignore_ascii_case("tsrx"){"tsx"}else{name}
+    if name.eq_ignore_ascii_case("tsr") || name.eq_ignore_ascii_case("tsrust") {"tsrust"}else if name.eq_ignore_ascii_case("tsrx"){"tsrx"}else{name}
 }
-/// Highlight Tsrust fences with the corresponding Kit grammar, preserving code bytes.
+/// Preserve Tsrust identity for native scalar highlighting, without changing code bytes.
 #[cfg(any(test, feature = "gpui"))]
 pub(crate) fn highlighted_markdown(source: &str) -> String {
     let mut output=String::with_capacity(source.len());
     for line in source.split_inclusive('\n') {
-        let replacement=[("```tsrx","```tsx"),("```tsr","```typescript"),("~~~tsrx","~~~tsx"),("~~~tsr","~~~typescript")].into_iter().find_map(|(prefix,replacement)| {
+        let replacement=[("```tsrx","```tsrx"),("```tsrust","```tsrust"),("```tsr","```tsrust"),("~~~tsrx","~~~tsrx"),("~~~tsrust","~~~tsrust"),("~~~tsr","~~~tsrust")].into_iter().find_map(|(prefix,replacement)| {
             line.strip_prefix(prefix).filter(|tail|tail.is_empty() || tail.starts_with(char::is_whitespace)).map(|tail|(replacement,tail))
         });
         match replacement {Some((prefix,tail))=>{output.push_str(prefix);output.push_str(tail);},None=>output.push_str(line)}
@@ -33,13 +133,13 @@ pub(crate) fn highlighted_markdown(source: &str) -> String {
 mod markdown_tests {
     #[test]
     fn source_names_select_existing_grammars_without_renaming_other_languages() {
-        for name in ["tsr","TSR","tsrust"] {assert_eq!(super::source_language(name),"typescript");}
-        assert_eq!(super::source_language("tsrx"),"tsx");assert_eq!(super::source_language("rust"),"rust");
+        for name in ["tsr","TSR","tsrust"] {assert_eq!(super::source_language(name),"tsrust");}
+        assert_eq!(super::source_language("tsrx"),"tsrx");assert_eq!(super::source_language("rust"),"rust");
     }
     #[test]
     fn tsrust_fences_use_kit_grammars_without_changing_code_or_other_languages() {
         let source="```tsrx\r\n<Text>hello</Text>\r\n```\r\n```tsr\nconst x = 1;\n```\n```bash\ntsrust dev\n```\ninline ```tsr\n~~~tsrust\n";
-        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsrx\r\n","```tsx\r\n",1).replacen("```tsr\nconst","```typescript\nconst",1));
+        assert_eq!(super::highlighted_markdown(source),source.replacen("```tsr\nconst","```tsrust\nconst",1));
     }
 }
 
@@ -69,9 +169,23 @@ fn state_prop(component: &str) -> Option<(&'static str, &'static str)> {
 impl Kit {
     fn validate_prop(&self,name:&str,value:&str)->Result<(),String> {
         if matches!(self.name.as_str(),"DiffAnnotation"|"DiffDecoration"|"DiffGutterMarker") && matches!(name,"line"|"start"|"end") && !value.parse::<usize>().is_ok_and(|value|value>=1) {return Err(format!("{} {name} requires a one-based integer >= 1",self.name));}
+        if matches!(self.name.as_str(),"Diff"|"DropdownMenu"|"ContextMenu") && name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err(format!("{} fontSize requires an integer from 8 through 40",self.name));}
+        if self.name=="Diff" && matches!(name,"originalText"|"modifiedText") && value.len()>16*1024*1024 {return Err("Diff text snapshots exceed 16 MiB".into());}
+        if self.name=="Diff" && name=="filePath" && (value.contains('\0') || value.len()>8192) {return Err("Invalid Diff filePath".into());}
+        if self.name=="Image" && name=="scrollTo" {
+            let parsed=if value.len()<=4096 {serde_json::from_str::<serde_json::Value>(value).ok()} else {None};
+            if !parsed.is_some_and(|value|value.as_object().is_some_and(|object|object.len()==3) && ["x","y"].iter().all(|name|value[name].as_f64().is_some_and(|n|n.is_finite() && n>=0. && n<=f32::MAX as f64)) && value["request"].as_u64().is_some()) {return Err("Image scrollTo requires JSON with nonnegative finite x/y pixels and an integer request identifier".into());}
+        }
+        if self.name=="Image" && name=="zoom" && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (value==0. || (1. ..=3200.).contains(&value))) {return Err("Image zoom requires Fit (0) or a percentage from 1 through 3200".into());}
         if self.name=="Settings" {
             if matches!(name,"defaultPage"|"defaultGroup") && value.parse::<usize>().is_err() {return Err(format!("Settings {name} requires a nonnegative integer"));}
             if matches!(name,"sidebarWidth"|"sidebarMinWidth"|"sidebarMaxWidth") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && value>=0. && value<=f32::MAX as f64) {return Err(format!("Settings {name} requires finite nonnegative native pixels"));}
+        }
+        if self.name=="Terminal" {
+            if name=="id" && value.trim().is_empty() {return Err("Terminal id must not be empty".into());}
+            if name=="fontSize" && !value.parse::<u32>().is_ok_and(|size|(8..=40).contains(&size)) {return Err("Terminal fontSize requires an integer from 8 through 40".into());}
+            if name=="program" && (value.trim().is_empty() || value.contains('\0')) {return Err("Terminal program must be nonempty and contain no NUL".into());}
+            if name=="args" && !serde_json::from_str::<Vec<String>>(value).is_ok_and(|args|args.iter().all(|arg|!arg.contains('\0'))) {return Err("Terminal args require a JSON array of strings without NUL".into());}
         }
         if self.name=="SpeechButton" && name=="stopTimeout" && value.parse::<u64>().is_err() {return Err("SpeechButton stopTimeout requires nonnegative integer milliseconds".into());}
         if self.name=="NumberInput" && matches!(name,"value"|"defaultValue"|"step"|"min"|"max") && !value.parse::<f64>().is_ok_and(|value|value.is_finite() && (name!="step" || value>=0.)) {return Err(format!("NumberInput {name} requires a finite {}number",if name=="step"{"nonnegative "}else{""}));}
@@ -123,6 +237,7 @@ fn text_children_prop(component: &str) -> Option<&'static str> {
 impl Kit {
     /// Whether the component keeps this prop itself (uncontrolled state or text children).
     pub(crate) fn is_local(&self, prop: &str) -> bool {self.local.iter().any(|name| *name == prop)}
+    pub(crate) fn is_bound(&self, prop: &str) -> bool {self.bindings.iter().any(|(name,_)|name==prop)}
 }
 
 impl Node {
@@ -183,6 +298,7 @@ impl Node {
         let kit=self.kit_mut()?;
         kit.validate_prop(name,value)?;
         kit.props.insert(name.to_owned(), value.to_owned());
+        self.sync_input_placeholder();
         Ok(self)
     }
     /// A live prop: its value is read now and after every handler.
@@ -192,7 +308,14 @@ impl Node {
         kit.validate_prop(name,&value)?;
         kit.props.insert(name.to_owned(), value);
         kit.bindings.push((name.to_owned(), binding));
+        self.sync_input_placeholder();
         Ok(self)
+    }
+    fn sync_input_placeholder(&mut self) -> usize {
+        match (self.editable.as_mut(),self.kit.as_deref().and_then(|kit|kit.prop("placeholder"))) {
+            (Some(field),Some(value)) if field.placeholder!=value => {field.placeholder=value.to_owned();1},
+            _=>0,
+        }
     }
     /// A text, number or live value (signal, reactive prop or translation); None leaves the prop unset.
     pub fn with_kit_value(self, name: &str, value: Option<Box<dyn FnMut() -> Result<String, String>>>) -> Result<Self, String> {
@@ -224,14 +347,15 @@ impl Node {
             kit.validate_prop(name,&value)?;
             if kit.props.get(name) != Some(&value) {kit.props.insert(name.clone(), value); changed += 1;}
         }
-        Ok(changed)
+        Ok(changed+self.sync_input_placeholder())
     }
     /// Deliver a component event to the visible node with this identity.
         pub(crate) fn kit_event(&mut self, target: u64, event: &str, value: &str) -> Result<bool, String> {
         let _navigation=self.navigation.enter();
         self.ensure_identities();
         fn visit(node: &mut Node, target: u64, event: &str, value: &str) -> Result<bool, String> {
-            if node.collapsed {return Ok(false);}
+            // A mounted terminal can finish while another tab owns the viewport.
+            if node.collapsed && event != "exit" {return Ok(false);}
             if node.identity.get() == target {
                 let Some(kit) = node.kit.as_deref_mut() else {return Ok(false)};
                 let mut handled = false;
@@ -256,6 +380,101 @@ impl Node {
 #[cfg(test)]
 mod tests {
     use super::super::{Child, Node, Signal};
+    #[test]
+    fn table_sorting_keeps_exact_integers_stable_ties_and_original_row_identity() {
+        let rows=vec![vec!["9007199254740993"],vec!["9007199254740992"],vec!["2"],vec!["02"]];
+        let original=rows.clone();
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),vec![2,3,1,0]);
+        assert_eq!(super::table_row_order(&rows,Some((0,true))),vec![0,1,2,3]);
+        assert_eq!(super::table_row_order(&rows,None),vec![0,1,2,3]);
+        assert_eq!(rows,original);
+        let words=vec![vec!["b"],vec!["a"],vec!["b"]];
+        assert_eq!(super::table_row_order(&words,Some((0,false))),vec![1,0,2]);
+        assert_eq!(super::table_row_order(&words,Some((0,true))),vec![0,2,1]);
+        assert_eq!(super::table_row_order(&words,Some((1,false))),vec![0,1,2]);
+    }
+
+    #[test]
+    fn table_sorting_mixed_numbers_and_text_has_consistent_stable_order() {
+        let rows=vec![vec!["9007199254740993"],vec!["9007199254740992.0"],vec!["9007199254740992"],vec!["2"],vec!["10"],vec!["1x"]];
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),vec![3,4,1,2,0,5]);
+        assert_eq!(super::table_row_order(&rows,Some((0,true))),vec![5,0,1,2,4,3]);
+    }
+
+    #[test]
+    fn table_numeric_sort_covers_boundaries_signed_zero_and_total_order() {
+        let values=["-NaN","-inf","-1e40","-170141183460469231731687303715884105728","-1.5","-1","-0.0","0","00","0.0","0.5","2","9007199254740992.0","9007199254740992","9007199254740993","170141183460469231731687303715884105727","170141183460469231731687303715884105728.0","1e40","inf","NaN","","1x","a"];
+        let rows=values.iter().map(|value|vec![*value]).collect::<Vec<_>>();
+        assert_eq!(super::table_row_order(&rows,Some((0,false))),(0..values.len()).collect::<Vec<_>>());
+        let keys=values.iter().map(|value|super::TableSortKey::new(value)).collect::<Vec<_>>();
+        for (i,left) in keys.iter().enumerate() {
+            for (j,middle) in keys.iter().enumerate() {
+                assert_eq!(left.compare(middle),middle.compare(left).reverse(),"{i}, {j}");
+                for (k,right) in keys.iter().enumerate() {
+                    if left.compare(middle).is_le() && middle.compare(right).is_le() {
+                        assert!(left.compare(right).is_le(),"{i}, {j}, {k}");
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn hidden_terminal_receives_exit_but_not_navigation() {
+        let terminal = Node::kit("Terminal", vec![], String::new()).unwrap()
+            .with_kit_event("exit", |_| Ok(())).unwrap()
+            .with_kit_event("openLink", |_| Ok(())).unwrap();
+        let mut panel = Node::view(vec![Child::Node(terminal)], String::new()).unwrap()
+            .with_hidden(|| Ok(true)).unwrap();
+        panel.ensure_identities();
+        let id = panel.children[0].identity.get();
+        assert!(!panel.kit_event(id, "openLink", "example").unwrap());
+        assert!(panel.kit_event(id, "exit", "").unwrap());
+    }
+
+    #[test]
+    fn timer_refresh_distinguishes_idle_bindings_shared_writes_and_commands() {
+        use super::super::{commands, state, Node, Signal, Child, TextBinding, TextPart};
+        use std::{cell::Cell,rc::Rc};
+        let local=Rc::new(Cell::new(0));let read=local.clone();let update=local.clone();
+        let shared=Signal::new(0);let write=shared.handle();
+        let timer=Node::kit("Ticker",vec![],String::new()).unwrap()
+            .with_kit_event("tick",move|frame|match frame {
+                "2"=>{update.set(1);Ok(())},
+                "3"=>commands::command("set-title","timer"),
+                "4"=>write.set(1),
+                _=>Ok(()),
+            }).unwrap();
+        let text=Node::text(vec![TextPart::Signal(TextBinding::computed(move||Ok(read.get().to_string())))],String::new()).unwrap();
+        let mut root=Node::view(vec![Child::Node(timer),Child::Node(text)],String::new()).unwrap().own_state(shared).unwrap();
+        root.refresh().unwrap();let id=root.children[0].identity.get();
+        let owner=commands::Owner::new();let _scope=owner.enter();
+        let revision=state::revision();
+        assert!(root.kit_event(id,"tick","1").unwrap());
+        assert_eq!(root.refresh().unwrap(),0);assert_eq!(revision,state::revision());assert!(!commands::has_pending(&owner));
+        assert!(root.kit_event(id,"tick","2").unwrap());
+        assert!(root.refresh().unwrap()>0);assert_eq!(revision,state::revision());
+        assert_eq!(root.children[1].text,"1","ordinary mutable bindings still refresh");
+        assert!(root.kit_event(id,"tick","3").unwrap());
+        assert_eq!(root.refresh().unwrap(),0);assert!(commands::has_pending(&owner));assert_eq!(commands::take(&owner).len(),1);
+        assert!(root.kit_event(id,"tick","4").unwrap());
+        assert_ne!(revision,state::revision(),"writes can invalidate another window without changing this tree");
+    }
+    #[test]
+    fn live_placeholders_keep_field_identity_and_contents_and_render_in_html() {
+        let hint=Signal::new(String::from("English <hint>"));let read=hint.handle();
+        let mut field=Node::input_control(None,Some("seed".into()),"{}",String::new(),None).unwrap()
+            .with_kit_binding("placeholder",read.text_binding(|value|value.clone())).unwrap();
+        assert_eq!(field.editable.as_ref().unwrap().placeholder,"English <hint>");
+        assert!(super::super::document(&field,"Field").contains("placeholder=\"English &lt;hint&gt;\""));
+        field.refresh().unwrap();let identity=field.identity.get();
+        assert!(field.input(identity,"typed λ").unwrap());
+        hint.set("Português & dica".into()).unwrap();field.refresh().unwrap();
+        assert_eq!(field.identity.get(),identity);
+        assert_eq!(field.editable.as_ref().unwrap().value,"typed λ");
+        assert_eq!(field.editable.as_ref().unwrap().placeholder,"Português & dica");
+        assert!(super::super::document(&field,"Field").contains("placeholder=\"Português &amp; dica\""));
+    }
     #[test]
     fn kit_props_refresh_from_bindings_and_events_reach_their_node() {
         let checked = Signal::new(false);
@@ -439,4 +658,88 @@ mod settings_value_tests {
   let node=node.with_kit_prop("sidebarMaxWidth","100").unwrap();
   assert!(node.kit.as_deref().unwrap().settings_sidebar().is_err());
  }
+}
+
+#[cfg(test)]
+mod terminal_tests {
+    use super::Node;
+    #[test]
+    fn terminal_validates_font_and_identity_without_spawning_a_shell_in_html() {
+        for size in ["0", "7", "41", "-1", "14.5", "NaN"] {assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("fontSize", size).is_err());}
+        for size in ["8", "14", "40"] {assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("fontSize", size).is_ok());}
+        assert!(Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", " ").is_err());
+        let node=Node::kit("Terminal", vec![], String::new()).unwrap().with_kit_prop("id", "shell").unwrap();
+        assert!(crate::web::document(&node,"Terminal").contains("Native terminal is unavailable in HTML output."));
+    }
+}
+
+
+pub(crate) fn image_view_size(natural:(f32,f32),viewport:(f32,f32),zoom:f32)->(f32,f32,f32) {
+    let scale=if zoom==0. {(viewport.0/natural.0).min(viewport.1/natural.1).min(1.)} else {zoom/100.};
+    (natural.0*scale,natural.1*scale,scale*100.)
+}
+
+#[cfg(test)]
+mod image_view_tests {
+    #[test]
+    fn image_view_fits_both_axes_and_keeps_actual_zoom_independent_of_pane_size() {
+        use super::image_view_size;
+        assert_eq!(image_view_size((1600.,800.),(400.,300.),0.),(400.,200.,25.));
+        assert_eq!(image_view_size((800.,1600.),(400.,300.),0.),(150.,300.,18.75));
+        assert_eq!(image_view_size((100.,50.),(400.,300.),0.),(100.,50.,100.));
+        assert_eq!(image_view_size((1600.,800.),(400.,300.),200.),(3200.,1600.,200.));
+        for zoom in ["NaN","inf","-1","0.5","3201"] {assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("zoom",zoom).is_err());}
+        for scroll in [r#"{"x":-1,"y":0,"request":1}"#,r#"{"x":0,"y":0}"#,r#"{"x":0,"y":0,"request":1,"extra":true}"#] {assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",scroll).is_err());}
+        assert!(super::Node::kit("Image",vec![],String::new()).unwrap().with_kit_prop("scrollTo",r#"{"x":120,"y":80,"request":1}"#).is_ok());
+
+    }
+}
+
+#[cfg(any(test, feature = "gpui"))]
+pub(crate) fn language_markdown(method: &str, result: &mut serde_json::Value) {
+    fn markup(value: &mut serde_json::Value) {
+        if let Some(text)=value.as_str() { *value=highlighted_markdown(text).into(); }
+        else if let Some(parts)=value.as_array_mut() { for part in parts { markup(part); } }
+        else if value.get("kind").and_then(serde_json::Value::as_str)==Some("markdown") {
+            if let Some(text)=value.get_mut("value") { markup(text); }
+        } else if let Some(language)=value.get_mut("language") {
+            if let Some(name)=language.as_str() { *language=source_language(name).to_owned().into(); }
+        }
+    }
+    if method=="textDocument/hover" {
+        if let Some(contents)=result.get_mut("contents") { markup(contents); }
+    } else if method=="textDocument/signatureHelp" {
+        if let Some(signatures)=result.get_mut("signatures").and_then(serde_json::Value::as_array_mut) {
+            for signature in signatures {
+                if let Some(doc)=signature.get_mut("documentation") { markup(doc); }
+                if let Some(parameters)=signature.get_mut("parameters").and_then(serde_json::Value::as_array_mut) {
+                    for parameter in parameters { if let Some(doc)=parameter.get_mut("documentation") { markup(doc); } }
+                }
+            }
+        }
+    } else if method=="textDocument/completion" {
+        let items=if result.is_array() { result.as_array_mut() } else { result.get_mut("items").and_then(serde_json::Value::as_array_mut) };
+        if let Some(items)=items { for item in items { if let Some(doc)=item.get_mut("documentation") { markup(doc); } } }
+    }
+}
+
+#[cfg(test)]
+mod language_markdown_tests {
+    #[test]
+    fn hover_and_completion_fences_use_editor_grammars_without_touching_payloads() {
+        let mut hover=serde_json::json!({"contents":{"kind":"markdown","value":"```tsrust\nconst value = 1;\n```"}});
+        super::language_markdown("textDocument/hover",&mut hover);
+        assert_eq!(hover["contents"]["value"],"```tsrust\nconst value = 1;\n```");
+        let mut completion=serde_json::json!({"items":[{"documentation":"```tsrx\n<Text />\n```","data":{"value":"```tsrust\nopaque\n```"}}]});
+        let data=completion["items"][0]["data"].clone();
+        super::language_markdown("textDocument/completion",&mut completion);
+        assert_eq!(completion["items"][0]["documentation"],"```tsrx\n<Text />\n```");
+        assert_eq!(completion["items"][0]["data"],data);
+        let mut signatures=serde_json::json!({"signatures":[{"label":"call(🦀: int)","parameters":[{"label":[5,7],"documentation":{"kind":"markdown","value":"```tsrx\n<Text />\n```"}}],"documentation":{"kind":"markdown","value":"```tsrust\ncall(1);\n```"}}]});
+        let label=signatures["signatures"][0]["parameters"][0]["label"].clone();
+        super::language_markdown("textDocument/signatureHelp",&mut signatures);
+        assert_eq!(signatures["signatures"][0]["documentation"]["value"],"```tsrust\ncall(1);\n```");
+        assert_eq!(signatures["signatures"][0]["parameters"][0]["documentation"]["value"],"```tsrx\n<Text />\n```");
+        assert_eq!(signatures["signatures"][0]["parameters"][0]["label"],label);
+    }
 }

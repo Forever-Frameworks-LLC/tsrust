@@ -24,9 +24,19 @@ mod cursor_repair;
 #[path = "position_completion.rs"]
 mod position_completion;
 use crate::LineIndex;
-use lsp_types::{Position, Range};
+use lsp_types::{Position, Range, Location, Uri};
 use serde_json::{Value, json};
 use tsrust_compiler::Span;
+
+#[cfg(test)]
+std::thread_local! {
+    pub(crate) static MEMBER_REPAIR_ATTEMPTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    pub(crate) static PROJECT_SOURCE_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn imported_location(uri: &str, range: Range) -> Location {
+    Location::new(uri.parse().expect("validated file or compiler-owned import URI"), range)
+}
 
 #[derive(Clone, Debug)]
 struct Token {
@@ -62,6 +72,7 @@ struct CheckedGenericCall {
     parameters: Vec<tsrust_compiler::GenericParameterInfo>,
     result: Option<String>,
 }
+#[derive(Clone)]
 pub struct SourceIndex {
     enum_scalar_types: std::collections::BTreeMap<String,String>,
     /// `type Name = Type;` declarations: name to fully expanded type text.
@@ -69,10 +80,10 @@ pub struct SourceIndex {
     generic_aliases:Option<tsrust_compiler::TypeAliasCatalog>,
     public_record_aliases:std::collections::BTreeMap<String,(String,usize)>,
     generic_display_names: std::collections::BTreeMap<String, String>,
-    nominal_definitions: std::collections::BTreeMap<String, Value>,
+    nominal_definitions: std::collections::BTreeMap<String, Location>,
     checked_nominal_spellings: std::collections::BTreeMap<(tsrust_compiler::project::SourceId,usize,usize),String>,
     generic_parameters: std::collections::BTreeMap<String, Vec<String>>,
-    foreign_definitions: std::collections::BTreeMap<usize, Value>,
+    foreign_definitions: std::collections::BTreeMap<usize, Location>,
     native_parameter_docs: std::collections::BTreeMap<usize, Vec<String>>,
     native_origins: std::collections::BTreeMap<usize, usize>,
     native_type_aliases: std::collections::BTreeMap<String, tsrust_compiler::native_signatures::NativeTypeId>,
@@ -90,7 +101,7 @@ pub struct SourceIndex {
     end_scope: usize,
     pub(crate) checked_control_labels: Vec<(Span,Span)>,
     /// Import name regions with the completion items of the imported module.
-    import_exports: Vec<(Span, Vec<Value>)>,
+    import_exports: Vec<(Span, std::sync::Arc<Vec<Value>>)>,
     checked_views: Vec<(Span, String)>,
     checked_array_capabilities: Vec<(Span, tsrust_compiler::ArrayCapabilities)>,
     json_string_receivers: Vec<Span>,
@@ -130,7 +141,11 @@ impl SourceIndex {
         { let mut index = Self::with_entry_help(source, true); index.recover_native_imports(); index.finish_imports(); index }
     }
     pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {Self::build(source,entry_help,true)}
-    pub(crate) fn for_project(source:&str,entry_help:bool)->Self {Self::build(source,entry_help,false)}
+    pub(crate) fn for_project(source:&str,entry_help:bool)->Self {
+        #[cfg(test)]
+        PROJECT_SOURCE_BUILDS.with(|count| count.set(count.get() + 1));
+        Self::build(source,entry_help,false)
+    }
     fn build(source:&str,entry_help:bool,local_check:bool)->Self {
         let mut index = Self {
             enum_scalar_types: Default::default(),
@@ -1940,7 +1955,17 @@ impl SourceIndex {
         Some(format!("{schema}<{output}>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some(payload)=self.ui_state_element(&receiver) && let Some(binding)=tsrust_compiler::native_bindings::ui_method(tsrust_compiler::native_signatures::NativeTypeId::UiSignal,method) {
+            return if binding.name=="get"{payload.into()}else if binding.name=="handle"{receiver}else{"void".into()};
+        }
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::process_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if matches!(method,"wait"|"kill"){format!("Task<{result}>")}else{result};}
+        if receiver.starts_with("Task<") || receiver.starts_with("Job<") {
+            if let Some(entry) = self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
+                && let Some((_, result)) = entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): "))
+            {
+                return result.to_owned();
+            }
+        }
         if receiver=="string"&&method=="localeCompare"{return "int".into();}
 
         if let Some(binding)=self.native_type_aliases.get(&receiver).and_then(|id|tsrust_compiler::native_bindings::network_method(*id,method)){let result=binding.result.signature().render(|id|Some(self.native_type_aliases.iter().find(|(_,known)|**known==id).map(|(name,_)|name.clone()).unwrap_or_else(||tsrust_compiler::native_types::declaration(id).name.into()).into())).map(|text|text.into_owned()).unwrap_or_default();return if tsrust_compiler::native_bindings::network_asynchronous(method){format!("Task<{result}>")}else{result};}
@@ -2032,6 +2057,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.ui_state_element(receiver).is_some() && tsrust_compiler::native_bindings::ui_method(tsrust_compiler::native_signatures::NativeTypeId::UiSignal,method).is_some(){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::process_method(*id,method).is_some()){return true;}
         if self.native_type_aliases.get(receiver).is_some_and(|id|tsrust_compiler::native_bindings::network_method(*id,method).is_some()){return true;}
 
@@ -2950,7 +2976,7 @@ impl SourceIndex {
         }
         self.foreign_definitions.insert(
             id,
-            json!({"uri":uri,"range":dependency.range(declaration.span)}),
+            imported_location(uri,dependency.range(declaration.span)),
         );
         let native_identity=dependency.native_type_aliases.get(exported).copied().or_else(||{
             // Bundled source records keep their authored fields/navigation, while
@@ -3000,7 +3026,7 @@ impl SourceIndex {
                         .symbols
                         .iter()
                         .find(|symbol| matches!(symbol.kind, 10 | 23) && symbol.name == record)
-                        .map(|symbol| json!({"uri":uri,"range":dependency.range(symbol.span)}))
+                        .map(|symbol| imported_location(uri,dependency.range(symbol.span)))
                 });
             if let Some(origin) = origin {
                 self.nominal_definitions.insert(owner.clone(), origin);
@@ -3019,7 +3045,7 @@ impl SourceIndex {
                 if let Some(existing)=self.symbols.iter().position(|symbol|symbol.owner.as_deref()==Some(owner.as_str())&&symbol.name==field.name){
                     if !self.declared_record_fields.contains(&(owner.clone(),field.name.clone())){
                         if self.symbols[existing].docs.is_empty(){self.symbols[existing].docs=Self::imported_field_docs(dependency,&record,field,uri);}
-                        self.foreign_definitions.entry(existing).or_insert_with(||dependency.foreign_definitions.get(&field_id).cloned().unwrap_or_else(||json!({"uri":uri,"range":dependency.range(field.span)})));
+                        self.foreign_definitions.entry(existing).or_insert_with(||dependency.foreign_definitions.get(&field_id).cloned().unwrap_or_else(||imported_location(uri,dependency.range(field.span))));
                     }
                     continue;
                 }
@@ -3126,22 +3152,20 @@ impl SourceIndex {
                         .foreign_definitions
                         .get(&field_id)
                         .cloned()
-                        .unwrap_or_else(|| json!({"uri":uri,"range":dependency.range(field.span)})),
+                        .unwrap_or_else(|| imported_location(uri,dependency.range(field.span))),
                 );
                 self.symbols.push(imported);
             }
         }
     }
     /// Offer the exports of a dependency between the braces of its import.
-    pub(crate) fn import_export_names<'a>(
-        &mut self,
-        names: Span,
-        dependency: &SourceIndex,
+    pub(crate) fn export_completions<'a>(
+        &self,
         exports: impl Iterator<Item = (&'a str, &'a str)>,
-    ) {
-        let items = exports
+    ) -> Vec<Value> {
+        exports
             .filter_map(|(exported,local)| {
-                let symbol = dependency.symbols.iter().find(|s| {
+                let symbol = self.symbols.iter().find(|s| {
                     s.name == local && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23 | 26)
                 })?;
                 let kind = match symbol.kind {
@@ -3152,21 +3176,27 @@ impl SourceIndex {
                 };
                 Some(json!({"label":exported,"kind":kind,"detail":symbol.signature.replacen(local,exported,1),"documentation":{"kind":"markdown","value":crate::documentation::render(&symbol.docs)}}))
             })
-            .collect();
-        self.import_exports.push((names, items));
+            .collect()
+    }
+    pub(crate) fn import_export_names(&mut self,names:Span,items:std::sync::Arc<Vec<Value>>) {
+        self.import_exports.push((names,items));
     }
     /// Offer the documented members of a native module between the braces of its import.
     pub(crate) fn import_native_names(&mut self, names: Span, module: &str) {
-        let items = builtins_for(module)
-            .into_iter()
-            .filter(|entry| entry["name"].is_string())
-            .map(|entry| {
-                let kind = if entry["name"].as_str().is_some_and(|name| tsrust_compiler::native_types::lookup(module, name).is_some()) { 22 } else { 3 };
+        // Module contracts are immutable; every project/source shares their completion JSON.
+        static CATALOGS: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeMap<String,std::sync::Arc<Vec<Value>>>>> = std::sync::OnceLock::new();
+        let mut catalogs=CATALOGS.get_or_init(Default::default).lock().expect("native import catalogs");
+        let items=catalogs.entry(module.to_owned()).or_insert_with(|| std::sync::Arc::new(
+            builtins_for(module).into_iter().filter(|entry| entry["name"].is_string()).map(|entry| {
+                let kind=if entry["name"].as_str().is_some_and(|name|tsrust_compiler::native_types::lookup(module,name).is_some()){22}else{3};
                 json!({"label":entry["name"],"kind":kind,"detail":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]}})
-            })
-            .collect();
-        self.import_exports.push((names, items));
+            }).collect()
+        )).clone();
+        // Unknown module strings must not grow a process-lifetime cache.
+        if items.is_empty() { catalogs.remove(module); }
+        self.import_exports.push((names,items));
     }
+
     fn inherit_interface_fields(&mut self) {
         let bases=self.interface_bases.clone();
         for _ in 0..=bases.len() {
@@ -3208,30 +3238,37 @@ impl SourceIndex {
         self.recover_result_payloads();
     }
     /// Resolved token locations and their declaration identity, for project references.
-    pub(crate) fn reference_locations(&self, uri: &str) -> Vec<(Value, Value, bool)> {
+    pub(crate) fn reference_locations<'a>(&'a self, uri: &'a Uri) -> impl Iterator<Item=(Location,Location,bool)> + 'a {
         self.tokens
             .iter()
             .enumerate()
             .filter(|(_, token)| !token.literal && name(&token.text))
-            .filter_map(|(id, token)| {
+            .filter_map(move |(id, token)| {
                 if let Some((span,definition))=self.checked_control_labels.iter().find(|(span,_)|*span==token.span){
-                    return Some((json!({"uri":uri,"range":self.range(*definition)}),json!({"uri":uri,"range":self.range(*span)}),*span==*definition));
+                    return Some((Location::new(uri.clone(),self.range(*definition)),Location::new(uri.clone(),self.range(*span)),*span==*definition));
                 }
                 let symbol = self.resolve_token(id)?;
                 let declaration = &self.symbols[symbol];
                 let foreign = self.foreign_definitions.get(&symbol);
                 let definition = foreign
                     .cloned()
-                    .unwrap_or_else(|| json!({"uri":uri,"range":self.range(declaration.span)}));
+                    .unwrap_or_else(|| Location::new(uri.clone(),self.range(declaration.span)));
                 Some((
                     definition,
-                    json!({"uri":uri,"range":self.range(token.span)}),
+                    Location::new(uri.clone(),self.range(token.span)),
                     foreign.is_none() && token.span == declaration.span,
                 ))
             })
-            .collect()
     }
     pub fn request(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
+        self.request_with_repair(method, params, uri, true)
+    }
+
+    pub(crate) fn request_declarations(&self, method: &str, params: &Value, uri: &str) -> Result<Value, String> {
+        self.request_with_repair(method, params, uri, false)
+    }
+
+    fn request_with_repair(&self, method: &str, params: &Value, uri: &str, repair: bool) -> Result<Value, String> {
         if method == "textDocument/documentSymbol" {
             return Ok(self.document_outline());
         }
@@ -3267,7 +3304,7 @@ impl SourceIndex {
             .ok_or("Position is outside the document or splits a surrogate pair")?;
         if matches!(method,"textDocument/hover"|"textDocument/definition") && let Some((field,ty,symbol,span))=self.record_literal_field(offset) {
             if method=="textDocument/definition" {
-                if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
+                if let Some(symbol)=symbol{return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));}
             }else{
                 let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
                 return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n{field}: {}\n```\n\n{docs}",self.display_type(&ty))},"range":self.range(span)}));
@@ -3287,7 +3324,7 @@ impl SourceIndex {
                 let owners=self.record_alternatives(&receiver,false);
                 let symbol=self.symbols.iter().position(|symbol|symbol.name==field && symbol.owner.as_ref().is_some_and(|owner|owners.contains(owner)));
                 if method=="textDocument/definition" && let Some(symbol)=symbol {
-                    return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+                    return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
                 }
                 if method=="textDocument/hover" {
                     let docs=symbol.map(|symbol|crate::documentation::render(&self.symbols[symbol].docs)).unwrap_or_default();
@@ -3305,7 +3342,7 @@ impl SourceIndex {
         }
         if method == "textDocument/completion" {
             // Recover the checked receiver before considering tolerant members.
-            if !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
+            if repair && !self.checked && let Some(repaired) = self.repaired_member_completion(offset) {
                 return Ok(repaired);
             }
             return Ok(self.completion(offset));
@@ -3318,7 +3355,7 @@ impl SourceIndex {
         };
         if let Some((span,field))=self.jsx_attribute_at(offset) {
             if method=="textDocument/definition" && let Some(symbol)=self.jsx_prop_symbol(span.end,&field) {
-                return Ok(self.foreign_definitions.get(&symbol).cloned().unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
+                return Ok(self.foreign_definitions.get(&symbol).map(|location|json!(location)).unwrap_or_else(||json!({"uri":uri,"range":self.range(self.symbols[symbol].span)})));
             }
             if method=="textDocument/hover" && let Some((_,fields,_))=self.jsx_props(span.end)
                 && let Some((_,ty))=fields.iter().find(|(name,_)|name==&field) {
@@ -3369,7 +3406,7 @@ impl SourceIndex {
             "textDocument/definition" => Ok(self
                 .foreign_definitions
                 .get(&symbol)
-                .cloned()
+                .map(|location|json!(location))
                 .unwrap_or_else(|| json!({"uri":uri,"range":self.range(s.span)}))),
             "textDocument/references" | "textDocument/documentHighlight" => {
                 let include = params
@@ -3552,10 +3589,7 @@ impl SourceIndex {
         let ty = ty.as_str();
         let view=["ReadOnly<","Mutable<","Owned<"].into_iter().find_map(|wrapper|ty.strip_prefix(wrapper).and_then(|inner|inner.strip_suffix('>'))).unwrap_or(ty);
         let base=view.split_once('<').map_or(view,|(base,_)|base).trim();
-        let identity=self.native_type_aliases.get(base).copied().or_else(||{
-            let(module,name)=base.strip_prefix("__tsrust_module_native#")?.rsplit_once('#')?;
-            tsrust_compiler::native_types::lookup(module,name).map(|declaration|declaration.id)
-        });
+        let identity=self.native_identity(base);
         // Iterator's source record stores its private pull closure; only its
         // native operations are visible outside the trusted implementation.
         if identity==Some(tsrust_compiler::native_signatures::NativeTypeId::OwnedIterator){return items;}
@@ -4823,5 +4857,24 @@ mod async_declaration_scope_tests {
         let hidden=index.symbols.iter().find(|symbol|symbol.name=="hidden").expect("named async expression");
         assert_ne!(hidden.scope,0);
         assert!(index.symbols.iter().any(|symbol|symbol.name=="ordinary" && symbol.scope==0));
+    }
+}
+
+#[cfg(test)]
+mod native_import_catalog_tests {
+    use super::*;
+    #[test]
+    fn native_import_catalogs_share_storage_but_responses_are_independent() {
+        let source="import { } from 'std:ui';function main(){}";
+        let indices=(0..20).map(|_|SourceIndex::new(source)).collect::<Vec<_>>();
+        let shared=&indices[0].import_exports[0].1;
+        assert!(shared.len()>100);
+        assert!(indices.iter().all(|index|std::sync::Arc::ptr_eq(shared,&index.import_exports[0].1)));
+        let params=json!({"position":{"line":0,"character":9}});
+        let original=indices[0].request("textDocument/completion",&params,"file:///main.tsr").unwrap();
+        let mut response=original.clone();
+        response[0]["documentation"]=json!("local response only");
+        assert_eq!(indices[1].request("textDocument/completion",&params,"file:///main.tsr").unwrap(),original);
+        assert_ne!(response,original);
     }
 }

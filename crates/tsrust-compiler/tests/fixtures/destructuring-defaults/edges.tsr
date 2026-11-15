@@ -36,6 +36,7 @@ function main() {
     return 12;
   };
   let index = 0;
+
   for (const [loopValue = factory()] of packs) {
     strictEqual(loopValue, index === 0 ? 12 : 5);
     index = index + 1;

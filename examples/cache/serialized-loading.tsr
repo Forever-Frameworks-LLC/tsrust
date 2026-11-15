@@ -15,6 +15,7 @@ type Reply = {
 
 async function load(key: string): Task<Result<string, string>> {
   await delay(1);
+
   if (key === 'failure') {
     return Err('loader failed');
   }
@@ -48,13 +49,16 @@ async function serve(requests: Channel<Request>, replies: Sender<Reply>[]): Task
   const cache = new LruCache<string, string>(2);
   let loads = 0;
   const finished = new Set<int>();
+
   if (replies.length === 0) {
     requests.close();
   }
 
   let receiving = true;
+
   while (receiving) {
     const request = await receiveRequest(requests);
+
     if (request === undefined) {
       receiving = false;
       break;
@@ -70,6 +74,7 @@ async function serve(requests: Channel<Request>, replies: Sender<Reply>[]): Task
 
     if (request.done) {
       finished.add(request.client);
+
       if (finished.size === replies.length) {
         requests.close();
       }
@@ -81,6 +86,7 @@ async function serve(requests: Channel<Request>, replies: Sender<Reply>[]): Task
     let found = false;
     {
       const cached = cache.get(request.key);
+
       if (cached !== undefined) {
         value = clone(cached);
         found = true;
@@ -89,6 +95,7 @@ async function serve(requests: Channel<Request>, replies: Sender<Reply>[]): Task
 
     if (!found) {
       loads++;
+
       match (await load(clone(request.key))) {
         Ok(loaded) => {
           value = loaded;
@@ -167,11 +174,13 @@ async function blockedLoader(ready: Sender<int>): Task<void> {
 async function checkCancellation(): Task<void> {
   const ready = new Channel<int>(1);
   const job = blockedLoader(ready.sender()).start();
+
   try {
     strictEqual(await ready.receive(), 1);
   } finally {
     job.cancel();
     const outcomes = await allSettled([job]);
+
     match (clone(outcomes[0])) {
       Ok(_) => {
         throw 'cancelled loader completed';
@@ -202,6 +211,7 @@ async function main(): Task<void> {
     client: 0, key: 'late', done: false
   };
   let closed = false;
+
   try {
     await afterClose.send(late);
   } catch (error) {

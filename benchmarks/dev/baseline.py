@@ -1,5 +1,6 @@
 """Reproducible dev-loop latency samples; writes one JSON record to stdout."""
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -11,6 +12,16 @@ import subprocess
 import tempfile
 import threading
 import time
+
+
+def wait_for_quiet_machine():
+    module = (pathlib.Path(__file__).resolve().parents[1] / 'runtime/quiet-machine.mjs').as_uri()
+    script = (f'import {{waitForQuietMachine, DEFAULT_LIMIT}} from {json.dumps(module)};'
+              'const load = waitForQuietMachine({log: message => console.error(message)});'
+              'console.log(JSON.stringify({load, limit: DEFAULT_LIMIT}));')
+    result = subprocess.run(['node', '--input-type=module', '-e', script],
+                            capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
 
 
 def leaf(index, extra=0):
@@ -95,22 +106,27 @@ def sample(compiler, count, idle):
         project(root, count)
         sources = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.iterdir())}
         rows = {}
+        quiet = {'coldStart': wait_for_quiet_machine()}
         cold = Dev(compiler, root)
         try:
             rows['coldStartMs'] = cold.ready(expected(count, 1, 0), cold.started)
         finally:
             cold.close()
+        quiet['warmStart'] = wait_for_quiet_machine()
         warm = Dev(compiler, root)
         try:
             rows['warmStartMs'] = warm.ready(expected(count, 1, 0), warm.started)
+            quiet['leafEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'module0.tsr').write_text(leaf(0, 10))
             rows['leafEditMs'] = warm.ready(expected(count, 1, 10), start)
+            quiet['sharedEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'shared.tsr').write_text('export function shared():int{return 2;}\n')
             rows['sharedEditMs'] = warm.ready(expected(count, 2, 10), start)
             config = json.loads((root / 'tsrust.config.json').read_text())
             config['build']['output'] = 'target/changed'
+            quiet['configEdit'] = wait_for_quiet_machine()
             start = time.monotonic()
             (root / 'tsrust.config.json').write_text(json.dumps(config))
             rows['configEditMs'] = warm.ready(expected(count, 2, 10), start)
@@ -124,7 +140,16 @@ def sample(compiler, count, idle):
             rows['cacheBytes'] = cache_bytes(root)
         finally:
             warm.close()
-        return {'modules': count + 2, 'sources': sources, 'observations': rows, 'coldLog': cold.lines, 'warmLog': warm.lines}
+        return {'modules': count + 2, 'sources': sources, 'quietMachine': quiet, 'observations': rows, 'coldLog': cold.lines, 'warmLog': warm.lines}
+
+
+def measurement_records(rows):
+    metrics = ['coldStartMs', 'warmStartMs', 'leafEditMs', 'sharedEditMs', 'configEditMs']
+    execution = [{'workload': f"dev-loop-{row['modules']}-modules-{metric}",
+                  'engine': 'tsrust-dev', 'durations': [row['observations'][metric]]}
+                 for row in rows for metric in metrics]
+    workloads = dict.fromkeys(row['workload'] for row in execution)
+    return {'workloads': [{'id': name, 'iterations': 1} for name in workloads]}, execution
 
 
 def main():
@@ -137,13 +162,14 @@ def main():
     if args.samples < 1 or any(n < 1 for n in args.modules) or args.idle_seconds <= 0:
         parser.error('positive sample, module and idle values required')
     compiler = str(pathlib.Path(args.compiler).resolve(strict=True))
-    result = {'protocol': 'dev-loop-v1', 'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'compilerSha256': hashlib.sha256(pathlib.Path(compiler).read_bytes()).hexdigest(), 'harnessSha256': hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'host': platform.platform(), 'samplesPerShape': args.samples, 'idleSecondsPerSample': args.idle_seconds, 'rows': []}
+    result = {'protocol': 'dev-loop-v1', 'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(), 'compilerSha256': hashlib.sha256(pathlib.Path(compiler).read_bytes()).hexdigest(), 'harnessSha256': hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'host': platform.platform(), 'samplesPerShape': args.samples, 'idleSecondsPerSample': args.idle_seconds, 'rows': []}
     try:
         for count in args.modules:
             for repetition in range(args.samples):
                 result['rows'].append({'repetition': repetition, **sample(compiler, count, args.idle_seconds)})
     finally:
         # Preserve completed samples even when a later sample fails.
+        result['manifest'], result['execution'] = measurement_records(result['rows'])
         print(json.dumps(result, indent=2))
 
 

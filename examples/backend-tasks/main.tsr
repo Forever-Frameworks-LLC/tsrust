@@ -17,6 +17,7 @@ type Ready = {
 
 function required(name: string): string {
   const value = unwrap(get(name));
+
   if (value === undefined || value === '') {
     throw 'Missing required task service setting: ' + name;
   }
@@ -26,11 +27,13 @@ function required(name: string): string {
 
 function browserOrigin(): string {
   const origin = required('TASK_ORIGIN');
+
   if (!origin.startsWith('https://') && !origin.startsWith('http://')) {
     throw 'TASK_ORIGIN must be an HTTP or HTTPS origin';
   }
 
   const authority = origin.slice(origin.startsWith('https://') ? 8 : 7);
+
   if (authority === '' || authority.includes('/') || authority.includes('\\') || authority.includes('@') || authority.includes('?') || authority.includes('#') || authority.includes(' ') || authority.includes('\t') || authority.includes('\r') || authority.includes('\n')) {
     throw 'TASK_ORIGIN must contain only scheme and authority, without a trailing slash';
   }
@@ -41,6 +44,7 @@ function browserOrigin(): string {
 function tlsOptions(): TlsOptions | undefined {
   const cert = unwrap(get('TASK_TLS_CERT'));
   const key = unwrap(get('TASK_TLS_KEY'));
+
   if (cert === undefined && key === undefined) {
     return undefined;
   }
@@ -64,6 +68,7 @@ async function start(app: Owned<Router<Application>>, address: string, tls: TlsO
 
 async function main(): Task<void> {
   const token = required('TASK_TOKEN');
+
   if (!isToken(token)) {
     throw 'TASK_TOKEN must contain 64 lowercase hexadecimal characters';
   }
@@ -72,6 +77,7 @@ async function main(): Task<void> {
   const address = required('TASK_ADDRESS');
   const tls = tlsOptions();
   const protocol: 'http' | 'https' = tls === undefined ? 'http' : 'https';
+
   if (tls === undefined && !address.startsWith('127.0.0.1:') && !address.startsWith('[::1]:')) {
     throw 'Cleartext task service must bind loopback; configure TLS for another address';
   }
@@ -88,6 +94,7 @@ async function main(): Task<void> {
     kind: 'ready', address: server.address(), protocol
   };
   console.log(JSON.stringify(ready));
+
   try {
     await receive(signals);
   } finally {

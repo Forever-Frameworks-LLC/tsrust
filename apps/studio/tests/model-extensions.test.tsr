@@ -1,0 +1,140 @@
+import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { get } from 'std:env';
+import { signal } from 'std:ui';
+import { toggleExtensions } from '../src/components/workbench/model-extensions.tsrx';
+import { Channel } from 'std:futures';
+import { sha256 } from 'std:crypto';
+import { fromUtf8, toHex } from 'std:bytes';
+import { strictEqual, test } from 'std:testing';
+import {
+  modelFolder,
+  modelTokenizer,
+  availableModelPaths,
+  artifactChecksum,
+  modelDownloads,
+  installedModel,
+  modelExtensions
+} from '../src/services/ai/model-extensions.tsr';
+
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
+
+test('model selector excludes a missing model or tokenizer and keeps a working custom pair', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-selector-'));
+
+  try {
+    const config = defaultConfig();
+    config.aiModelPath = folder + '/weights.gguf';
+    config.aiTokenizerPath = folder + '/custom-tokenizer.json';
+    config.priorLocalModel = folder + '/missing.gguf';
+    config.priorLocalTokenizer = folder + '/previous-tokenizer.json';
+    strictEqual(modelTokenizer(config, folder + '/missing.gguf'), folder + '/previous-tokenizer.json');
+    strictEqual(modelTokenizer(config, folder + '/catalog.gguf'), folder + '/tokenizer.json');
+    unwrap(writeTextFile(config.aiModelPath, 'weights'));
+    strictEqual(availableModelPaths(config).includes(config.aiModelPath), false);
+    unwrap(writeTextFile(config.aiTokenizerPath, 'tokenizer'));
+    const available = availableModelPaths(config);
+    strictEqual(available.includes(config.aiModelPath), true);
+    strictEqual(available.includes(folder + '/missing.gguf'), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('reopening Extensions discovers model files added after startup', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-selector-refresh-'));
+
+  try {
+    const config = defaultConfig();
+    config.aiModelPath = folder + '/custom.gguf';
+    config.aiTokenizerPath = folder + '/tokenizer.json';
+    const settings = signal(config);
+    const mode = signal('files');
+    const sidebar = signal(true);
+    const paths = signal<string[]>([]);
+    toggleExtensions(sidebar, mode, settings, paths);
+    strictEqual(paths.get().includes(folder + '/custom.gguf'), false);
+    toggleExtensions(sidebar, mode, settings, paths);
+    strictEqual(sidebar.get(), false);
+    unwrap(writeTextFile(folder + '/custom.gguf', 'weights'));
+    unwrap(writeTextFile(folder + '/tokenizer.json', 'tokenizer'));
+    toggleExtensions(sidebar, mode, settings, paths);
+    strictEqual(mode.get(), 'extensions');
+    strictEqual(sidebar.get(), true);
+    strictEqual(paths.get().includes(folder + '/custom.gguf'), true);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('refresh keeps an unactivated local pair until its files disappear', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-local-refresh-'));
+  const path = folder + '/local.gguf';
+  const config = defaultConfig();
+
+  try {
+    unwrap(writeTextFile(path, 'weights'));
+    unwrap(writeTextFile(folder + '/tokenizer.json', 'tokenizer'));
+    const available = availableModelPaths(config, [clone(path), clone(path)]);
+    const expected = clone(path);
+    strictEqual(available.filter((entry) => entry === expected).length, 1);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+
+  strictEqual(availableModelPaths(config, [clone(path)]).includes(path), false);
+});
+
+test('7B quantizations install independently with the same tokenizer', () => {
+  const models = modelExtensions();
+  const q4 = models.filter((entry) => entry.name === 'Qwen2.5-Coder-7B-Instruct');
+  const q5 = models.filter((entry) => entry.name === 'Qwen2.5-Coder-7B-Instruct Q5_K_M');
+
+  strictEqual(q4.length, 1);
+  strictEqual(q5.length, 1);
+  strictEqual(modelFolder(q4[0]) !== modelFolder(q5[0]), true);
+  strictEqual(q5[0].repository ?? '', q4[0].name);
+  strictEqual(q5[0].tokenizerRevision, q4[0].tokenizerRevision);
+  strictEqual(q5[0].checksum !== q4[0].checksum, true);
+});
+
+test('model artifact verification streams through more than one block', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-model-checksum-'));
+
+  try {
+    const text = 'a'.repeat(1024 * 1024) + 'b';
+    const path = folder + '/weights';
+    unwrap(writeTextFile(path, text));
+    strictEqual(artifactChecksum(path), unwrap(toHex(sha256(unwrap(fromUtf8(text))))));
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('model extension worker rejects unlisted requests and installs a selected pinned model', async () => {
+  const requests = new Channel<string>(1);
+  const sender = requests.sender();
+  const replies = new Channel<string>(1);
+  const worker = modelDownloads(requests, replies.sender()).start();
+
+  try {
+    await sender.send('../unlisted');
+    strictEqual(await replies.receive(), 'Unknown model.');
+
+    for (const size of ['3B', '7B', '7B_Q5']) {
+      if (unwrap(get('TSRUST_TEST_INSTALL_CODER_' + size)) !== '1') continue;
+      const name = size === '7B_Q5' ? 'Qwen2.5-Coder-7B-Instruct Q5_K_M' : 'Qwen2.5-Coder-' + size + '-Instruct';
+      const model = modelExtensions().find((entry) => entry.name === name);
+
+      if (model === undefined) throw 'Missing model extension.';
+      await sender.send(clone(model.name));
+      strictEqual(await replies.receive(), '');
+      strictEqual(installedModel(model), true);
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});

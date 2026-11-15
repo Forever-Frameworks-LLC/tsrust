@@ -6,6 +6,7 @@ function grow(values: Mutable<int[]>): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i + seed) % 97;
     const values = [base, base + 1];

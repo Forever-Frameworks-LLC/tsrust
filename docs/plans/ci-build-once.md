@@ -22,7 +22,7 @@ the compiler from source, so the tests never exercised the binary that ships.
 | Build | `tsrust` + `tsrust-lsp` release build per OS, packaged with `tools/package-toolchain.mjs`, smoke-tested, uploaded as an artifact | CI `build` matrix (4 OS), fail fast |
 | Compiler library | `cargo test --lib` (unit, rejection and diagnostic-code checks, in process) | one Linux job, in parallel with the build |
 | Runtime suites | `tsrust test` on `tests/suites/<family>/` with the built artifact; one native program per family | CI `suites` matrix, after `build`, per OS |
-| Host tests | 21 named Rust targets (`tools/host-tests.py`) for CLI, signals, processes, offline export, packages, Rust adapters and LSP stdio | CI `host` matrix, after `build` |
+| Host tests | 22 named Rust targets (`tools/host-tests.py`) for CLI, signals, processes, offline export, packages, Rust adapters and LSP stdio | CI `host` matrix, after `build` |
 | Docs, editor depth, frozen UI | catalog example execution, completion/agreement matrices, docs and UI programs | path-filtered jobs, or local only |
 
 Diagnostics in CI assert codes and spans, not message prose. Editor typing-speed
@@ -47,6 +47,9 @@ and presentation matrices are development tools.
    generated groups, one `tsrust test` build each, fresh working directory,
    closed stdin, 600s per suite. The intentional failure fixture is excluded
    (its host test asserts the report).
+   Owner clarification, 2026-11-14: application/component-validation and
+   experimental suites under apps/ and experiments/ remain local acceptance.
+   They do not expand CI. No Worklist job or database service is authorized.
 6. [x] `tools/host-tests.py`: 19 compiler and 2 LSP targets for real
    process/language boundaries (CLI, projects, packages, toolchain install,
    signals, child processes, relocated export, Rust adapters, test reporter,
@@ -74,7 +77,7 @@ belong in compiler library tests.
 ## Acceptance
 
 - One compiler build per OS per CI run; tests use that build.
-- Every verified catalog example and every tracked `.test.tsr` suite runs in CI;
+- Every verified catalog example and tracked library/example `.test.tsr` suite runs in CI;
   the generator reports converted and host-only counts. Legacy targets are
   retained locally, not deleted.
 - CI wall time per OS is reported from the first run, not estimated.

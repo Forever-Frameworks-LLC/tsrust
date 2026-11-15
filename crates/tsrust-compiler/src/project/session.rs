@@ -1,6 +1,22 @@
 //! Retained pre-link syntax. Linked IDs, source offsets and ownership checks stay fresh.
 use std::collections::BTreeMap;
+use std::{cell::RefCell,sync::{Arc,atomic::{AtomicBool,Ordering}}};
 use crate::{Diagnostic,syntax::Program,project::{SourceId,SourceProvider,ProjectGraph,ProjectAnalysis,ProjectDiagnostic,HeaderCache,load_project_cached}};
+
+thread_local! {static CANCEL:RefCell<Option<Arc<AtomicBool>>>=const {RefCell::new(None)};}
+
+/// Limit cancellation to the current thread and restore the enclosing check on exit.
+pub fn with_cancellation<T>(flag:Arc<AtomicBool>,check:impl FnOnce()->T)->T {
+    struct Restore(Option<Arc<AtomicBool>>);
+    impl Drop for Restore {fn drop(&mut self){CANCEL.set(self.0.take());}}
+    let _restore=Restore(CANCEL.replace(Some(flag)));
+    check()
+}
+pub(crate) fn check_cancelled()->Result<(),Diagnostic> {
+    if CANCEL.with_borrow(|flag|flag.as_ref().is_some_and(|flag|flag.load(Ordering::Relaxed))) {
+        Err(Diagnostic::new("check-cancelled","Source check superseded.",crate::Span::default()))
+    }else{Ok(())}
+}
 
 #[derive(Clone,Copy,Debug,Default)]
 pub struct SessionStats {pub parsed:usize,pub reused:usize,pub retained:usize,pub headers_parsed:usize,pub headers_reused:usize,pub headers_retained:usize}

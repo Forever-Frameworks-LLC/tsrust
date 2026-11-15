@@ -1,0 +1,105 @@
+import { test, strictEqual } from 'std:testing';
+
+import { TaskRecord } from '../../shared/tasks.tsr';
+import { initialQuery, taskPage, taskDraft, headerSort } from '../src/model.tsr';
+
+test('task views sort the entire filtered dataset before pagination and preserve source data', () => {
+  const tasks: TaskRecord[] = [];
+
+  for (let index = 0; index < 1001; index++) tasks.push({
+    id: index.toString(), title: 'Task ' + index.toString(), description: index === 0 ? 'Café launch' : '', status: index % 2 === 0 ? 'todo' : 'done', priority: index % 4, assignee: index % 3 === 0 ? 'Ada' : 'Grace', due_date: index === 0 ? null : '2026-11-20', version: 1, updated_at: '2026-11-14T12:00:00Z'
+  });
+  const query = initialQuery();
+  query.sort = 'priority';
+  query.descending = false;
+  query.pageSize = 25;
+  query.page = 3;
+  const third = taskPage(tasks, query);
+  strictEqual(third.total, 1001);
+  strictEqual(third.pages, 41);
+  strictEqual(third.page, 3);
+  strictEqual(third.items.length, 25);
+  strictEqual(third.items[0].priority, 0);
+  strictEqual(tasks[1].priority, 1);
+  query.search = 'CAFÉ';
+  query.page = 99;
+  const searched = taskPage(tasks, query);
+  strictEqual(searched.total, 1);
+  strictEqual(searched.page, 1);
+  strictEqual(searched.items[0].id, '0');
+  query.search = '';
+  query.status = 'done';
+  query.assignee = 'Ada';
+  query.pageSize = 0;
+  const filtered = taskPage(tasks, query);
+  strictEqual(filtered.pages, 1);
+  strictEqual(filtered.items.length, filtered.total);
+  strictEqual(filtered.items.every((task) => task.status === 'done' && task.assignee === 'Ada'), true);
+  query.status = 'missing';
+  const empty = taskPage(tasks, query);
+  strictEqual(empty.page, 1);
+  strictEqual(empty.pages, 1);
+  strictEqual(empty.items.length, 0);
+  const draft = taskDraft(tasks[0]);
+  draft.title = 'Independent draft';
+  strictEqual(tasks[0].title, 'Task 0');
+});
+
+function draftTitle(value: ReadOnly<TaskRecord | null>): string {
+  return value === null ? 'No draft' : clone(value.title);
+}
+
+test('readonly nullable helpers leave an untagged task available to the editor', () => {
+  const task: TaskRecord = {
+    id: 'draft', title: 'Before', description: '', status: 'todo', priority: 2, assignee: '', due_date: null, version: 1, updated_at: '2026-11-14T12:00:00Z'
+  };
+  const inspect = draftTitle;
+  strictEqual(draftTitle(task), 'Before');
+  strictEqual(inspect(task), 'Before');
+  task.title = 'After';
+  strictEqual(draftTitle(task), 'After');
+  strictEqual(draftTitle(null), 'No draft');
+});
+
+test('every header keeps ascending descending and original order without dropping filters', () => {
+  const query = initialQuery();
+  const columns = ['title', 'status', 'priority', 'assignee', 'due', 'updated'];
+  query.search = 'review';
+  query.status = 'done';
+
+  for (let index = 0; index < columns.length; index++) {
+    query.page = 4;
+    headerSort(query, index.toString(), 'ascending');
+    strictEqual(query.sort, columns[index]);
+    strictEqual(query.descending, false);
+    strictEqual(query.page, 1);
+    headerSort(query, index.toString(), 'descending');
+    strictEqual(query.sort, columns[index]);
+    strictEqual(query.descending, true);
+    headerSort(query, index.toString(), '');
+    strictEqual(query.sort, 'original');
+    strictEqual(query.descending, false);
+    strictEqual(query.search, 'review');
+    strictEqual(query.status, 'done');
+  }
+});
+
+test('clearing a sort restores source order before pagination and keeps the source intact', () => {
+  const tasks: TaskRecord[] = [];
+
+  for (const id of ['third', 'first', 'second']) tasks.push({
+    id: clone(id), title: clone(id), description: '', status: 'todo', priority: 2, assignee: '', due_date: null, version: 1, updated_at: '2026-11-14T12:00:00Z'
+  });
+  const query = initialQuery();
+  query.pageSize = 2;
+  headerSort(query, '0', 'ascending');
+  strictEqual(taskPage(tasks, query).items[0].id, 'first');
+  headerSort(query, '0', 'descending');
+  strictEqual(taskPage(tasks, query).items[0].id, 'third');
+  headerSort(query, '0', '');
+  strictEqual(taskPage(tasks, query).items[0].id, 'third');
+  strictEqual(taskPage(tasks, query).items[1].id, 'first');
+  query.page = 2;
+  strictEqual(taskPage(tasks, query).items[0].id, 'second');
+  strictEqual(tasks[0].id, 'third');
+});

@@ -17,6 +17,7 @@ function main() {
   match (open("input.bin")) {
     Ok(file) => {
       strictEqual(length(take(file, 0)), 0);
+
       match (read(file, -1)) {
         Ok(_) => {
           throw "invalid length succeeded";
@@ -28,6 +29,7 @@ function main() {
 
       const first = take(file, 2);
       strictEqual(length(first), 2);
+
       match (at(first, 1)) {
         Ok(value) => {
           strictEqual(value, 65);
@@ -39,6 +41,7 @@ function main() {
 
       strictEqual(length(take(file, 8)), 2);
       strictEqual(length(take(file, 1)), 0);
+
       match (close(file)) {
         Ok(_) => {},
         Err(error) => {

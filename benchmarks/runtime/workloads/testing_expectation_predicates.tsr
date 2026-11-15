@@ -7,10 +7,12 @@ type Measured = {
 function workload(n: int, seed: int): int {
   let checksum = 0;
   let i = 0;
+
   while (i < n) {
     const kind = (i * 13 + seed) % 6;
     const actual: number | null | undefined = kind === 0 ? null : kind === 1 ? undefined : kind === 2 ? 0.0 : kind === 3 ? Number.NaN : kind === 4 ? -0.0 : 7.0;
     const assertion = expect(actual);
+
     if (kind === 0) {
       assertion.toBeNull();
     } else if (kind === 1) {

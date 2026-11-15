@@ -30,6 +30,35 @@ fn interrupt_cancels_backend_version_probe_and_its_descendants() {
 }
 
 #[test]
+fn invalid_edit_reports_frontend_error_and_reaps_pending_probe_descendants() {
+ let dir=support::TempDirectory::new();
+ support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));
+ let root=dir.0.join("app");let bin=dir.0.join("bin");fs::create_dir(&bin).unwrap();
+ let wrapper=bin.join("rustup");
+ fs::write(&wrapper,r#"#!/bin/sh
+sleep 30 &
+child=$!
+echo "$$ $child" >> "$PROBE_MARKER"
+trap 'kill $child 2>/dev/null; wait $child; exit 0' TERM
+wait $child
+"#).unwrap();
+ fs::set_permissions(&wrapper,fs::Permissions::from_mode(0o755)).unwrap();
+ let marker=dir.0.join("probe");let log=dir.0.join("output");let file=fs::File::create(&log).unwrap();
+ let mut paths=vec![bin];paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose"]).env("PATH",std::env::join_paths(paths).unwrap()).env("PROBE_MARKER",&marker)
+  .stdout(file.try_clone().unwrap()).stderr(file).process_group(0);
+ let mut dev=Group(command.spawn().unwrap());wait_text(&marker," ");
+ fs::write(root.join("src/main.tsr"),"function main() { const value: int = 'invalid'; }\n").unwrap();
+ let output=wait_text(&log,"Build failed");
+ assert!(output.contains("error[type]"),"{output}");
+ assert!(!output.contains("Started program"),"{output}");
+ for pid in fs::read_to_string(&marker).unwrap().split_whitespace().map(|s|s.parse::<i32>().unwrap()) {
+  assert_ne!(unsafe{kill(pid,0)},0,"pending backend descendant {pid} survived frontend rejection");
+ }
+ unsafe{kill(dev.0.id()as i32,2);}wait_text(&log,"[dev] Stopped.");assert!(dev.0.wait().unwrap().success());
+}
+
+#[test]
 fn interrupt_during_cache_contention_reaps_dev() {
  let dir=support::TempDirectory::new();
  support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));
@@ -90,6 +119,14 @@ exec "$REAL_RUSTUP" "$@"
  fs::write(&hold,"").unwrap();write("stale-candidate");let pids=wait_text(&marker," ");
  assert_eq!(fs::read_to_string(&kind).unwrap().contains("--crate-type=rlib"),runtime);
  assert_eq!(unsafe{kill(old,0)},0,"last good program stopped during build");
+ // Unimported test creation, edits and deletion must leave the exact compiler alive.
+ let unrelated=root.join("tests/independent.test.tsr");
+ let compiler:i32=pids.split_whitespace().next().unwrap().parse().unwrap();
+ for source in [Some("first"),Some("second"),None] {
+  if let Some(source)=source {fs::write(&unrelated,source).unwrap();}else{fs::remove_file(&unrelated).unwrap();}
+  std::thread::sleep(Duration::from_millis(350));
+  assert_eq!(unsafe{kill(compiler,0)},0,"unrelated source superseded the active compilation");
+ }
  fs::remove_file(&hold).unwrap();write("newest-version");let text=wait_text(&log,"newest-version");
  assert!(text.contains("runtime=miss") && text.contains("runtime=hit"),"{text}");
  assert!(!text.contains("stale-candidate"),"stale executable ran: {text}");

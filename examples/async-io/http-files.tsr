@@ -1,4 +1,11 @@
-import { App, Client, Request, Response, request, stream } from "std:http";
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  request,
+  stream
+} from "std:http";
 import { open, create, writeFile, readFile, removeFile } from "std:fs";
 import { reader, writer, body, copy, close } from "std:io";
 import { fromUtf8, toUtf8 } from "std:bytes";
@@ -11,6 +18,7 @@ async function main(): Task<void> {
   const app = new App();
   app.get("/file", download);
   const server = await app.listen("127.0.0.1:0");
+
   try {
     const client = new Client();
     const response = await client.send(request("GET", "http://" + server.address() + "/file", ""));

@@ -8,13 +8,16 @@ async function batch(db: ReadOnly<Pool>): Task<int> {
   const cursor = await openCursor(db);
   let sum = 0;
   let count = 0;
+
   while (true) {
     const row = await cursor.next();
+
     if (row === undefined) {
       break;
     }
 
     const value = unwrap(row.int('value'));
+
     if (value !== count * 2) {
       throw 'Unexpected row';
     }
@@ -24,6 +27,7 @@ async function batch(db: ReadOnly<Pool>): Task<int> {
   }
 
   cursor.close();
+
   if (count !== 128) {
     throw 'Unexpected row count';
   }
@@ -36,6 +40,7 @@ async function main(): Task<void> {
   await db.execute('CREATE TABLE tsrust_cursor_bench(id BIGINT PRIMARY KEY, value BIGINT NOT NULL)');
   {
     const tx = await db.begin();
+
     for (let index = 0; index < 128; index++) {
       await tx.execute('INSERT INTO tsrust_cursor_bench VALUES (?, ?)', [index, index * 2]);
     }

@@ -50,6 +50,31 @@ fn hidden_subtrees_preserve_state_but_reject_input_and_release_once_with_the_tre
 }
 
 #[test]
+fn native_state_membership_retains_hidden_panels_and_releases_removed_nodes() {
+    struct Probe(Rc<Cell<usize>>);impl Drop for Probe{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+    let hidden=Signal::new(false);let hide=hidden.handle();
+    let present=Signal::new(true);let show=present.handle();
+    let panel=Node::view(vec![Child::Node(text("editor"))],String::new()).unwrap().with_hidden(move||hide.get()).unwrap();
+    let removed=Node::branch(move||show.get(),||Ok(Some(text("temporary"))),||Ok(None)).unwrap();
+    let mut root=Node::view(vec![Child::Node(panel),Child::Node(removed)],String::new()).unwrap();
+    root.refresh().unwrap();
+    let editor=root.children[0].children[0].identity.get();
+    let temporary=root.children[1].visible_root().unwrap().identity.get();
+    let drops=Rc::new(Cell::new(0));
+    let mut states=std::collections::BTreeMap::from([(editor,Probe(drops.clone())),(temporary,Probe(drops.clone()))]);
+    hidden.set(true).unwrap();present.set(false).unwrap();root.refresh().unwrap();
+    assert!(root.children[0].visible_root().is_none());
+    let mounted=root.mounted_nodes();assert!(mounted.contains(&editor));assert!(!mounted.contains(&temporary));assert!(!mounted.contains(&0));
+    states.retain(|id,_|mounted.contains(id));assert_eq!(states.len(),1);assert_eq!(drops.get(),1);
+    hidden.set(false).unwrap();root.refresh().unwrap();
+    assert_eq!(root.children[0].children[0].identity.get(),editor);
+    assert!(root.mounted_nodes().contains(&editor));
+    root.children.clear();root.refresh().unwrap();
+    let mounted=root.mounted_nodes();states.retain(|id,_|mounted.contains(id));
+    assert!(states.is_empty());assert_eq!(drops.get(),2);
+}
+
+#[test]
 fn header_drag_regions_exclude_disabled_controls_labels_and_retained_hidden_nodes() {
     let disabled=Node::button_children(vec![Child::Node(text("disabled"))],String::new(),true,None).unwrap();
     let input=Node::input_control(None,None,"{}",String::new(),None).unwrap();

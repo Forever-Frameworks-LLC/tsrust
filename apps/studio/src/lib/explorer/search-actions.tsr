@@ -1,0 +1,244 @@
+import { fromUtf8, view, toUtf8 } from 'std:bytes';
+import { separator } from 'std:path';
+import { Signal, controlInput } from 'std:ui';
+
+import { LanguageReferences } from '../language/references.tsr';
+import { publishWorkspace } from '../workspace/document-actions.tsr';
+import { Recovery } from '../workspace/recovery.tsr';
+import { Workspace, Entry, projectFiles, openFile } from '../workspace/workspace.tsr';
+import { SearchHit, SearchResults, searchContents } from './search.tsr';
+
+// Created by the host, never decoded from a tool's arguments.
+export interface SearchActionContext {
+  workspace: Signal<Workspace>;
+  references?: Signal<LanguageReferences>;
+  panel?: Signal<string>;
+  recovery: Signal<Recovery>;
+  allowNavigation: boolean;
+  allowModal?: boolean;
+  allowRead?: boolean;
+  allowedRoot?: string;
+  explorerRevision?: Signal<int>;
+  focusEditor: boolean;
+  fileSearch?: Signal<FileSearchState>;
+}
+
+export interface FileSearchState {
+  root: string;
+  query: string;
+  files: Entry[];
+  open?: boolean;
+}
+
+export function fileSearchLabel(root: ReadOnly<string>, path: ReadOnly<string>): string {
+  if (root === '') return clone(path);
+  const prefix = root.endsWith(separator()) || root.endsWith('/') ? clone(root) : root + separator();
+
+  if (path.startsWith(prefix)) return path.slice(prefix.length);
+
+  if (separator() !== '/' && path.startsWith(root + '/')) return path.slice(root.length + 1);
+  return clone(path);
+}
+
+function matchesFile(root: ReadOnly<string>, file: ReadOnly<Entry>, normalized: ReadOnly<string>): boolean {
+  return fileSearchLabel(root, file.path).toLowerCase().includes(normalized);
+}
+
+export function matchingFilePaths(root: ReadOnly<string>, files: ReadOnly<Entry[]>, query: ReadOnly<string>): Entry[] {
+  const normalized = query.toLowerCase();
+  return files.filter((file) => matchesFile(root, file, normalized));
+}
+
+export function fileMatches(search: ReadOnly<FileSearchState>): Entry[] {
+  if (search.open !== true || search.query.startsWith('>')) return [];
+  return matchingFilePaths(search.root, search.files, search.query);
+}
+
+export function findFiles(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query: ReadOnly<string>): Result<Entry[], string> {
+  if (context.allowRead !== true || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('Workspace search is not permitted for this task.');
+
+  if (query.length > 4096) return Err('File search query is too long.');
+
+  // shortcut: scans run on invocation; use the explorer worker before opening large workspaces.
+  match (projectFiles(clone(root))) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(files) => {
+      if (query === '') return Ok(files);
+      return Ok(matchingFilePaths(root, files, query));
+    }
+  }
+}
+
+export function showFileSearch(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, query?: string): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+
+  if (context.allowModal !== true) return Err('Opening the command dialog requires a host modal-presentation grant.');
+  const search = context.fileSearch;
+
+  if (search === undefined) return Err('File search is unavailable in this host.');
+  const previous = search.get().query;
+  const requested = query ?? (previous.startsWith('>') ? '' : clone(previous));
+
+  if (requested.length > 4096) return Err('File search query is too long.');
+
+  if (context.allowRead !== true) return Err('Workspace search is not permitted for this task.');
+  const commandSelectionEnd = requested.startsWith('>') ? requested.length : -1;
+
+  const next: FileSearchState = {
+    root: clone(root), query: requested, files: [], open: true
+  };
+
+  if (commandSelectionEnd < 0) {
+    match (findFiles(context, root, '')) {
+      Ok(files) => {
+        next.files = files;
+      },
+      Err(error) => {
+        return Err(error);
+      }
+    }
+  }
+
+  search.set(next);
+
+  if (context.focusEditor) {
+    controlInput('file-search', 'focus');
+
+    if (commandSelectionEnd >= 0) {
+      controlInput('file-search', 'setSelection', {
+        start: 1, end: commandSelectionEnd
+      });
+    } else {
+      controlInput('file-search', 'selectAll');
+    }
+  }
+
+  return Ok();
+}
+
+export function updateFileQuery(next: FileSearchState, query: string): Result<void, string> {
+  if (next.open !== true) return Ok();
+  const wasCommand = next.query.startsWith('>');
+  next.query = query;
+
+  if (next.query.startsWith('>')) next.files = [];
+  else if (wasCommand) {
+    match (projectFiles(clone(next.root))) {
+      Ok(files) => {
+        next.files = files;
+      },
+      Err(error) => {
+        return Err(error);
+      }
+    }
+  }
+
+  return Ok();
+}
+
+export function closeFileSearch(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+  const search = context.fileSearch;
+
+  if (search === undefined || search.get().root !== root) return Err('File search is unavailable in this host.');
+  const next = search.get();
+  next.open = false;
+  next.files = [];
+  search.set(next);
+  return Ok();
+}
+
+export function openFileSearchResult(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>, path: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== root || context.workspace.get().root !== root) return Err('File search navigation is not permitted for this task.');
+  const search = context.fileSearch;
+
+  if (search === undefined) return Err('This file search result is no longer available.');
+  const snapshot = search.get();
+  const normalized = snapshot.query.toLowerCase();
+
+  if (snapshot.open !== true || snapshot.root !== root || normalized.startsWith('>') || !snapshot.files.some((file) => file.path === path && matchesFile(root, file, normalized))) return Err('This file search result is no longer available.');
+  const next = context.workspace.get();
+
+  match (openFile(next, path)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(_) => {}
+  }
+
+  publishWorkspace(next, context.workspace, context.recovery);
+  unwrap(closeFileSearch(context, root));
+
+  if (context.focusEditor) controlInput(clone(path), 'focus');
+  return Ok();
+}
+
+export function runContentSearch(context: ReadOnly<SearchActionContext>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {
+  const workspace = context.workspace.get();
+
+  if (context.allowRead !== true || context.allowedRoot !== workspace.root) return Err('Workspace search is not permitted for this task.');
+  return searchContents(workspace, query, regex, caseSensitive, includeIgnored);
+}
+
+function validateSearchHit(workspace: ReadOnly<Workspace>, hit: ReadOnly<SearchHit>): Result<void, string> {
+  const file = workspace.files.find((entry) => entry.document.path === hit.path);
+
+  if (file === undefined || file.kind !== 'text' || hit.matches.length === 0) return Err('This search result is no longer current. Run the search again.');
+
+  try {
+    if (hit.line < 1 || hit.offset < 0 || hit.offset > file.document.text.length) return Err('Invalid search result range.');
+    let start = 0;
+
+    for (let line = 1; line < hit.line; line += 1) {
+      const newline = file.document.text.indexOf('\n', start);
+
+      if (newline < 0 || newline >= hit.offset) return Err('This search result is no longer current. Run the search again.');
+      start = newline + 1;
+    }
+
+    const newline = file.document.text.indexOf('\n', start);
+    const end = newline < 0 ? file.document.text.length : newline;
+
+    if (start !== hit.offset || end - start !== hit.preview.length || !file.document.text.startsWith(hit.preview, start)) return Err('This search result is no longer current. Run the search again.');
+    const first = hit.matches[0];
+
+    if (first.start < 0 || first.end < first.start || first.end > hit.preview.length) return Err('Invalid search result range.');
+    const bytes = unwrap(fromUtf8(hit.preview));
+    unwrap(toUtf8(unwrap(view(bytes, first.start, first.end))));
+    return Ok();
+  } catch (_) {
+    return Err('This search result is no longer current. Run the search again.');
+  }
+}
+
+export function openSearchResult(context: ReadOnly<SearchActionContext>, hit: ReadOnly<SearchHit>): Result<void, string> {
+  if (!context.allowNavigation) return Err('Search result navigation is not permitted for this task.');
+  const next = context.workspace.get();
+
+  match (openFile(next, hit.path)) {
+    Ok(_) => {},
+    Err(error) => {
+      return Err(clone(error));
+    }
+  }
+
+  match (validateSearchHit(next, hit)) {
+    Ok(_) => {},
+    Err(error) => {
+      return Err(clone(error));
+    }
+  }
+
+  publishWorkspace(next, context.workspace, context.recovery);
+
+  if (context.focusEditor) {
+    controlInput(clone(hit.path), 'setSelection', {
+      start: hit.offset + hit.matches[0].start, end: hit.offset + hit.matches[0].end
+    });
+    controlInput(clone(hit.path), 'focus');
+  }
+
+  return Ok();
+}

@@ -4,6 +4,7 @@ function main() {
   let calls = 0;
   function first<T>(fallback: T, offset: int = 0, ...values: T[]): T {
     calls += 1;
+
     if (values.length === 0) {
       return fallback;
     }

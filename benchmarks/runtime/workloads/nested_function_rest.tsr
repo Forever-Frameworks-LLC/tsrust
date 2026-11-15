@@ -1,10 +1,12 @@
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = i % 5 + seed % 5 + 1;
     function sum(...values: int[]): int {
       let total = base;
+
       for (const value of values) {
         total += value;
       }

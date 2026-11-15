@@ -22,6 +22,7 @@ function main() {
   const box = boxes[0];
   console.log(name, tags.length, box.name, box.tags.join(","));
   let total = 0;
+
   for (let i = 0; i < words.length; i += 1) {
     const word = words[i];
     total += word.length;
@@ -30,6 +31,7 @@ function main() {
   console.log(total);
   const mixed: (int | string)[] = [1, "two"];
   const second = mixed[1];
+
   if (typeof second === "string") {
     console.log(second.toUpperCase());
   }

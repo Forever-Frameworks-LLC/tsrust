@@ -15,6 +15,7 @@ function main() {
   const inbox = new Channel<string>(8);
   const messages = inbox.sender();
   const worker = unwrap(spawn((): void => listen(inbox)));
+
   try {
     unwrap(messages.send('hello'));
     unwrap(messages.send('goodbye'));

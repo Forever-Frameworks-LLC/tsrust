@@ -14,6 +14,7 @@ export async function run(): Task<void> {
   const server = unwrap(await bindUdp(bind));
   const endpoint = unwrap(server.localAddress());
   const worker = serve(server).start();
+
   try {
     const client = unwrap(await bindUdp(bind));
     console.log(unwrap(await client.sendTo(unwrap(fromUtf8('hello')), endpoint)));
@@ -23,6 +24,7 @@ export async function run(): Task<void> {
     client.close();
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}

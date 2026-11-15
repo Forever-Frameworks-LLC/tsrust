@@ -10,6 +10,7 @@ type Item = {
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     match (open(input)) {
       Ok(file) => {
@@ -19,6 +20,7 @@ function workload(n: int, seed: int, input: string): int {
               match (borrowJsonl(buffer)) {
                 Ok(reader) => {
                   let done = false;
+
                   while (!done) {
                     match (readJsonl<Item>(reader)) {
                       Ok(item) => {

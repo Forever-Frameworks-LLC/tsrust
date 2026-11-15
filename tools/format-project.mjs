@@ -6,7 +6,8 @@ import {capturePinnedSources, refreshProjectFingerprints} from '../benchmarks/ru
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const compiler = process.env.TSRUST || path.join(root, 'target/editor/debug/tsrust');
 const priorSources = capturePinnedSources();
-const result = spawnSync(compiler, ['format', root, '--color=never'], {cwd: root, stdio: 'inherit'});
+// Repository checkpoints preserve import evaluation order and benchmark token identities.
+const result = spawnSync(compiler, ['format', root, '--options', '{"organizeImports":false}', '--color=never'], {cwd: root, stdio: 'inherit'});
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 // Code fences in editor documentation are formatted with the same compiler.

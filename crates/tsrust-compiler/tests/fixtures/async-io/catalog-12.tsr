@@ -1,4 +1,12 @@
-import { reader, writer, write, writeAll, flush, copy, close } from 'std:io';
+import {
+  reader,
+  writer,
+  write,
+  writeAll,
+  flush,
+  copy,
+  close
+} from 'std:io';
 import { createTempDir, create, readFile, removeDirAll } from 'std:fs';
 import { fromUtf8, toUtf8 } from 'std:bytes';
 

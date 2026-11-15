@@ -14,12 +14,14 @@ async function batch(): Task<int> {
   let sum = 0;
   const timestamp = unwrap(parseISO('1969-12-31T23:59:59.999999999Z'));
   const expected = sha256(unwrap(fromUtf8('a'.repeat(64))));
+
   for (let index = 0; index < 128; index++) {
     if (unwrap(toUnixMilliseconds(startOfSecond(timestamp))) !== -1000) {
       throw 'Clock rounding mismatch';
     }
 
     const digest = sha256(unwrap(fromUtf8('a'.repeat(64))));
+
     if (!timingSafeEqual(digest, expected)) {
       throw 'Token mismatch';
     }
@@ -27,6 +29,7 @@ async function batch(): Task<int> {
     const input = request('POST', 'http://localhost/notes', 'a=one+two&a=%C3%A9');
     input.setHeader('content-type', 'application/x-www-form-urlencoded');
     const fields = await input.form();
+
     if (fields.length !== 2 || fields[0].value !== 'one two' || fields[1].value !== 'é') {
       throw 'Form mismatch';
     }
@@ -35,6 +38,7 @@ async function batch(): Task<int> {
       operation: 'notes.write', status: 200, bytes: 9
     };
     const log = JSON.stringify(event);
+
     if (log !== '{"operation":"notes.write","status":200,"bytes":9}') {
       throw 'Log mismatch';
     }

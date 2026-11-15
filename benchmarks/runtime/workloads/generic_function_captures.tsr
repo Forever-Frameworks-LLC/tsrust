@@ -10,6 +10,7 @@ function counter(start: int) {
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i += 1) {
     const base = i % 5 + seed % 5 + 1;
     const first = counter(base);

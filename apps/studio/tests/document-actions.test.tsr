@@ -1,0 +1,153 @@
+import {
+  canonicalize,
+  createTempDir,
+  removeFile,
+  writeTextFile,
+  readTextFile,
+  removeDirAll
+} from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { saveDraftCopy } from '../src/lib/workspace/document-actions.tsr';
+import { FormattingTarget } from '../src/lib/workspace/formatting-actions.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
+import { Problem, collectProblems, formatProblems, operationProblem } from '../src/lib/workspace/problems.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { DocumentActionContext, invokeDocumentTool } from '../src/services/document-actions.tsr';
+import { ProblemActionContext, invokeProblemTool } from '../src/services/problem-actions.tsr';
+
+function failed(value: Result<string, string>): boolean {
+  match (value) {
+    Ok(_) => {
+      return false;
+    },
+    Err(_) => {
+      return true;
+    }
+  }
+}
+
+test('document actions expose unsaved files and conflicts without trusting model overwrite grants', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-document-tools-'));
+
+  try {
+    const path = unwrap(canonicalize(root)) + '/source.tsr';
+    unwrap(writeTextFile(path, 'base'));
+    const initial = unwrap(openWorkspace(clone(root)));
+    unwrap(openFile(initial, path));
+    edit(initial.files[0].document, 'draft');
+    unwrap(writeTextFile(path, 'external'));
+
+    match (saveDocument(initial.files[0].document)) {
+      Ok(_) => {
+        throw 'unexpected save';
+      },
+      Err(_) => {}
+    }
+
+    const target = clone(initial.files[0].document.saveConflict);
+
+    if (target === undefined) throw 'missing conflict';
+    const workspace = signal(initial);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const context: DocumentActionContext = {
+      workspace, recovery, allowDiscard: false, allowOverwrite: false
+    };
+    strictEqual(unwrap(invokeDocumentTool(context, 'list_unsaved_files', '{}')).includes('source.tsr'), true);
+    strictEqual(unwrap(invokeDocumentTool(context, 'inspect_save_conflict', JSON.stringify({
+      path: clone(path)
+    }))).includes('external'), true);
+    const forged = JSON.stringify({
+      target: clone(target), action: 'overwrite', allowOverwrite: true
+    });
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    const problems = signal<Problem[]>([]);
+    const terminalError = signal('');
+    const problemWorkspace = signal(context.workspace.get());
+    const problemContext: ProblemActionContext = {
+      workspace: problemWorkspace, problems, terminalError, allowClipboard: false
+    };
+    strictEqual(failed(invokeProblemTool(problemContext, 'copy_all_problems')), true);
+    const listed = collectProblems(context.workspace.get(), problemContext.problems.get(), problemContext.terminalError.get());
+    strictEqual(listed.length >= 1, true);
+    strictEqual(formatProblems([operationProblem('save', clone(path), 'message')]), path + ' [save/save] message');
+    const dismiss = JSON.stringify({
+      target: clone(target), action: 'keep-editing'
+    });
+    unwrap(invokeDocumentTool(context, 'resolve_save_conflict', dismiss));
+    context.allowOverwrite = true;
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    const changed = context.workspace.get();
+    edit(changed.files[0].document, 'newer draft');
+    context.workspace.set(changed);
+    context.allowOverwrite = true;
+    strictEqual(failed(invokeDocumentTool(context, 'resolve_save_conflict', forged)), true);
+    strictEqual(unwrap(readTextFile(path)), 'external');
+    strictEqual(context.workspace.get().files[0].document.text, 'newer draft');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('saving a copy preserves the deleted original and rejects stale drafts and open destinations', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-save-copy-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const source = workspace.root + '/draft.tsr';
+    const other = workspace.root + '/other.tsr';
+    const copy = workspace.root + '/copy.tsr';
+    unwrap(writeTextFile(source, 'saved'));
+    unwrap(writeTextFile(other, 'keep'));
+    unwrap(openFile(workspace, source));
+    unwrap(openFile(workspace, other));
+    edit(workspace.files[0].document, '日本語 🦀\r\n');
+    unwrap(removeFile(source));
+    const target: FormattingTarget = {
+      path: clone(source), session: clone(workspace.files[0].document.session), revision: workspace.files[0].document.revision
+    };
+    unwrap(saveDraftCopy(workspace, target, copy));
+    strictEqual(unwrap(readTextFile(copy)), '日本語 🦀\r\n');
+    strictEqual(workspace.files[0].document.savedText, 'saved');
+    strictEqual(workspace.active, other);
+
+    for (const path of [clone(source), clone(other)]) {
+      match (saveDraftCopy(workspace, target, path)) {
+        Ok(_) => {
+          throw 'Selected an open destination';
+        },
+        Err(_) => {}
+      }
+    }
+
+    edit(workspace.files[0].document, 'changed');
+
+    match (saveDraftCopy(workspace, target, copy)) {
+      Ok(_) => {
+        throw 'Stale draft copied';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(other)), 'keep');
+    strictEqual(unwrap(readTextFile(copy)), '日本語 🦀\r\n');
+
+    match (readTextFile(source)) {
+      Ok(_) => {
+        throw 'Deleted original was recreated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

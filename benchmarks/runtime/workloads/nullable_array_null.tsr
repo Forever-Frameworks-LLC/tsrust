@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const initial: int[] | null = mode === 0 ? null : [seed, i];

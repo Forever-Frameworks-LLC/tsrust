@@ -1,0 +1,28 @@
+import { walkDir } from 'std:fs';
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const rows: int[][] = [];
+
+  for (let i = 0; i < n; i += 1) {
+    const entries = unwrap(walkDir(input, true));
+    let files = 0;
+    let directories = 0;
+    let observed = (i + seed) % 17;
+
+    for (const entry of entries) {
+      if (entry.isFile) files += 1;
+
+      if (entry.isDirectory) directories += 1;
+
+      if (entry.name === 'é-🦀.txt') observed += 7;
+
+      if (entry.name === '.hidden') observed += 1;
+    }
+
+    rows.push([entries.length, files, directories, observed]);
+  }
+
+  return rows;
+}
+
+function main() {}

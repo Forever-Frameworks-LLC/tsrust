@@ -6,6 +6,7 @@ export async function main(): Task<void> {
     key: 'bad key', cert: 'bad cert'
   };
   let failed = false;
+
   try {
     const app = new App();
     await app.listen('127.0.0.1:0', tls);
@@ -16,6 +17,7 @@ export async function main(): Task<void> {
 
   strictEqual(failed, true);
   failed = false;
+
   try {
     new Client({
       ca: ''

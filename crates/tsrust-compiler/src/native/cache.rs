@@ -6,10 +6,27 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 static PUBLICATION_SEQUENCE: AtomicU64 = AtomicU64::new(0);
-fn checksum(bytes: &[u8]) -> [u8; 8] {
+fn checksum(path: &Path) -> std::io::Result<[u8; 8]> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(path)?;
+    let length = usize::try_from(file.metadata()?.len()).map_err(|_| std::io::Error::other("native cache artifact exceeds addressable storage"))?;
     let mut hash = DefaultHasher::new();
-    bytes.hash(&mut hash);
-    hash.finish().to_le_bytes()
+    // Preserve the existing byte-slice Hash length prefix and checksum format.
+    length.hash(&mut hash);
+    let mut buffer = [0; 65536];
+    let mut read = 0usize;
+    loop {
+        let count = match file.read(&mut buffer) {
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        if count == 0 { break; }
+        read = read.checked_add(count).ok_or_else(|| std::io::Error::other("native cache artifact grew beyond addressable storage"))?;
+        if read > length { return Err(std::io::Error::other("native cache artifact changed while checksumming")); }
+        hash.write(&buffer[..count]);
+    }
+    if read != length { return Err(std::io::Error::other("native cache artifact changed while checksumming")); }
+    Ok(hash.finish().to_le_bytes())
 }
 pub struct NativeCache {
     directory: PathBuf,
@@ -17,7 +34,7 @@ pub struct NativeCache {
 }
 impl NativeCache {
     pub fn new(root: &Path, fields: &[&[u8]]) -> Self {
-        let mut identity = Vec::new();
+        let mut identity = Vec::with_capacity(fields.iter().map(|field| 8 + field.len()).sum());
         for field in fields {
             identity.extend_from_slice(&(field.len() as u64).to_le_bytes());
             identity.extend_from_slice(field);
@@ -34,13 +51,28 @@ impl NativeCache {
     #[doc(hidden)]
     pub fn identity_key(&self)->&str {self.directory.file_name().unwrap().to_str().unwrap()}
 
+    /// Compare complete build inputs, rather than the possibly colliding directory hash.
+    pub fn same_inputs(&self,other:&Self)->bool {self.identity==other.identity}
+
+    fn identity_matches(&self) -> std::io::Result<bool> {
+        use std::io::Read;
+        let mut file = std::fs::File::open(self.directory.join("identity"))?;
+        if file.metadata()?.len() != self.identity.len() as u64 { return Ok(false); }
+        let mut buffer = [0; 65536];
+        for expected in self.identity.chunks(buffer.len()) {
+            let chunk = &mut buffer[..expected.len()];
+            file.read_exact(chunk)?;
+            if chunk != expected { return Ok(false); }
+        }
+        Ok(file.read(&mut buffer[..1])? == 0)
+    }
     pub fn lookup(&self) -> Option<PathBuf> {
         let executable = self
             .directory
             .join(format!("program{}", std::env::consts::EXE_SUFFIX));
-        (std::fs::read(self.directory.join("identity")).ok()? == self.identity
+        (self.identity_matches().ok()?
             && std::fs::read(self.directory.join("checksum")).ok()?
-                == checksum(&std::fs::read(&executable).ok()?))
+                == checksum(&executable).ok()?)
         .then_some(executable)
     }
     /// Copy under the namespace lock so eviction cannot race a reader.
@@ -120,7 +152,7 @@ impl NativeCache {
         std::fs::write(staging.join("identity"), &self.identity)?;
         std::fs::write(
             staging.join("checksum"),
-            checksum(&std::fs::read(&staged_executable)?),
+            checksum(&staged_executable)?,
         )?;
         std::fs::write(staging.join("used"),[])?;
         match std::fs::rename(&staging, &self.directory) {

@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): number[] {
   const output: number[] = [];
   let i = 0;
+
   while (i < n) {
     const values: number[] = [Number(seed + i) + 0.25, -0.0, 2.25];
     values.push(Number(i) + 0.5);

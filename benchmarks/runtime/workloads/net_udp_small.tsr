@@ -1,4 +1,11 @@
-import { parseAddress, listenTcp, connectTcp, bindUdp, TcpListener, UdpSocket } from 'std:net';
+import {
+  parseAddress,
+  listenTcp,
+  connectTcp,
+  bindUdp,
+  TcpListener,
+  UdpSocket
+} from 'std:net';
 import { readExact, writeAll, close } from 'std:io';
 import { alloc, set, at, length } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {
@@ -7,9 +14,11 @@ async function workload(n: int, seed: int): Task<int> {
   const endpoint = unwrap(listener.localAddress());
   const worker = serve(listener, n).start();
   let sum: int = 0;
+
   try {
     const client = unwrap(await bindUdp(bind));
     const payload = unwrap(alloc(64));
+
     for (let j: int = 0; j < 64; j++) {
       unwrap(set(payload, j, (seed + j) % 251));
     }
@@ -21,6 +30,7 @@ async function workload(n: int, seed: int): Task<int> {
       }
 
       const packet = unwrap(await client.receiveFrom(64));
+
       if (length(packet.data) !== 64) {
         throw 'wrong datagram size';
       }
@@ -33,6 +43,7 @@ async function workload(n: int, seed: int): Task<int> {
     client.close();
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}
@@ -47,6 +58,7 @@ async function workload(n: int, seed: int): Task<int> {
 async function serve(socket: Owned<UdpSocket>, n: int): Task<void> {
   for (let i: int = 0; i < n; i++) {
     const packet = unwrap(await socket.receiveFrom(64));
+
     if (length(packet.data) !== 64) {
       throw 'wrong server datagram size';
     }

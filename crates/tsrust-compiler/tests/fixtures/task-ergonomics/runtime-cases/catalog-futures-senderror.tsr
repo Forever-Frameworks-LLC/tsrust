@@ -7,6 +7,7 @@ export async function run(): Task<void> {
   console.log(unwrap(queue.tryReceive()));
   sender.close();
   sender.close();
+
   try {
     await sender.send(9);
   } catch (error) {

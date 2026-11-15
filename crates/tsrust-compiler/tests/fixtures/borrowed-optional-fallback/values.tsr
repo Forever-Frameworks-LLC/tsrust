@@ -10,6 +10,7 @@ function main() {
   }, {
     label: "é😀"
   }];
+
   for (const item of rows) {
     const label = item?.label ?? "none";
     console.log(label);

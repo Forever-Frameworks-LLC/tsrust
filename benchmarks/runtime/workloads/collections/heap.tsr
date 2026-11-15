@@ -1,5 +1,6 @@
 function sumItems(...items: int[]): int {
   let total = 0;
+
   for (const item of items) {
     total += item;
   }
@@ -9,13 +10,16 @@ function sumItems(...items: int[]): int {
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i++) {
     const values = new Heap<int>();
+
     for (let j = 0; j < 9; j++) {
       values.push((i + seed + j) % 256);
     }
 
     let traversed = 0;
+
     for (const value of values) {
       traversed += value;
     }
@@ -25,6 +29,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const top = values.peek()!;
     const copied = clone(values);
     let sum = 0;
+
     while (copied.size > 0) {
       sum += copied.pop()!;
     }

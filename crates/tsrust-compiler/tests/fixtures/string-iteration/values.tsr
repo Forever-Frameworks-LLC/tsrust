@@ -11,6 +11,7 @@ function source(counter: Mutable<Counter>): string {
 
 function count(text: string): int {
   let total = 0;
+
   for (const character of text) {
     total += 1;
   }
@@ -30,6 +31,7 @@ function main() {
   let trace = "";
   let size = 0;
   const output: string[] = [];
+
   for (const character of text) {
     trace = trace + character + "|";
     size += bytes(character);
@@ -45,6 +47,7 @@ function main() {
     value: 0
   };
   let visits = 0;
+
   for (const character of source(counter)) {
     visits += 1;
   }
@@ -52,6 +55,7 @@ function main() {
   strictEqual(counter.value, 1);
   strictEqual(visits, 2);
   let nested = "";
+
   for (const outer of "é🙂") {
     for (const inner of "ab") {
       nested = nested + outer + inner;
@@ -61,6 +65,7 @@ function main() {
   strictEqual(nested, "éaéb🙂a🙂b");
   let finalized = 0;
   let stopped = "";
+
   for (const character of "abc") {
     try {
       if (character === "a") {
@@ -68,6 +73,7 @@ function main() {
       }
 
       stopped = stopped + character;
+
       if (character === "b") {
         break;
       }
@@ -79,6 +85,7 @@ function main() {
   strictEqual(stopped, "b");
   strictEqual(finalized, 2);
   let caught = 0;
+
   try {
     for (const character of "é") {
       throw character + "!";

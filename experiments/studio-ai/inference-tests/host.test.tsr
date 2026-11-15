@@ -1,0 +1,23 @@
+import { ModelRequest, ModelUpdate } from '../../../apps/studio/src/lib/ai/protocol.tsr';
+import { test, strictEqual } from 'std:testing';
+import { Channel, spawn } from 'std:threads';
+import { modelHost } from '../../../apps/studio/model-host/src/worker.tsr';
+
+test('dormant model host reports failed startup and remains restartable', () => {
+  const requests = new Channel<ModelRequest>(2);
+  const results = new Channel<ModelUpdate>(2);
+  const commands = requests.sender();
+  const replies = results.sender();
+  const worker = unwrap(spawn((task) => modelHost(task, requests, replies)));
+
+  for (const id of ['first', 'retry']) {
+    unwrap(commands.send({
+      kind: 'start', id: clone(id), prompt: '', maxTokens: 32, modelPath: '/missing/model', tokenizerPath: '/missing/tokenizer'
+    }));
+    strictEqual(unwrap(results.receive()).kind, 'error');
+    strictEqual(unwrap(results.receive()).kind, 'stopped');
+  }
+
+  worker.cancel();
+  worker.join();
+});

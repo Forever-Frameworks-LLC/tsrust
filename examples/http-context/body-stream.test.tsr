@@ -12,6 +12,7 @@ test('request streaming preserves context metadata and response helpers', async 
     return c.text(value, 202);
   });
   const server = await app.listen('127.0.0.1:0');
+
   try {
     const client = new Client();
     const input = request('POST', 'http://' + server.address() + '/echo', 'héllo');
@@ -31,8 +32,10 @@ test('route registration preserves backend ranges and rejects invalid syntax', a
   const path = '/' + 'x'.repeat(4096);
   strictEqual(path.length, 4097);
   app.get(path, c => c.text('long route'));
+
   for (const invalid of ['relative', '//bad', '/bad?query', '/bad#fragment', '/bad%2f', '/bad\\name']) {
     let failed = false;
+
     try {
       app.get(invalid, c => c.text('invalid'));
     } catch (error) {
@@ -44,6 +47,7 @@ test('route registration preserves backend ranges and rejects invalid syntax', a
   }
 
   const server = await app.listen('127.0.0.1:0');
+
   try {
     const client = new Client({
       noProxy: true, timeoutMs: 5000
@@ -60,6 +64,7 @@ test('cookie maxAge preserves integer wire values without a hidden lifetime ceil
   const app = new Router();
   app.get('/above', c => {
     let failed = false;
+
     try {
       setCookie(c, 'negative', 'x', {
         maxAge: -1
@@ -77,6 +82,7 @@ test('cookie maxAge preserves integer wire values without a hidden lifetime ceil
   });
   app.get('/maximum', c => {
     let failed = false;
+
     try {
       setCookie(c, 'negative', 'x', {
         maxAge: -9223372036854775808
@@ -93,6 +99,7 @@ test('cookie maxAge preserves integer wire values without a hidden lifetime ceil
     return c.text('maximum');
   });
   const server = await app.listen('127.0.0.1:0');
+
   try {
     const client = new Client({
       noProxy: true, timeoutMs: 5000

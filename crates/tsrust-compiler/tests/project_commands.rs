@@ -92,6 +92,14 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     assert!(!lines.iter().any(|line|line.contains("Started program")));
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
     wait(&rx,&mut lines,"first-version");wait(&rx,&mut lines,"Started program");let old=pid(&lines);
+    assert!(lines.iter().filter(|line|line.contains("[dev] Checking ")).count()>=2,"both initial and saved inputs should report checking: {lines:?}");
+    assert!(lines.iter().any(|line|line.contains("Compiling and linking the application")), "{lines:?}");
+    fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('unrelated edit',()=>{strictEqual(2,2);});")).unwrap();
+    wait(&rx,&mut lines,"Application unchanged; kept running.");
+    assert!(lines.iter().any(|line|line.contains("Reused checked application.")),"unimported test edits should skip frontend checking: {lines:?}");
+    assert_eq!(pid(&lines),old,"test-only edits must retain the live program");
+    assert_eq!(unsafe {kill(old,0)},0,"unchanged program was stopped");
+    assert_eq!(lines.iter().filter(|line|line.contains("Started program")).count(),1);
     let config=fs::read(root.join("tsrust.config.json")).unwrap();
     fs::write(root.join("tsrust.config.json"),"{invalid-json").unwrap();
     wait(&rx,&mut lines,"tsrust.config.json:");
@@ -100,15 +108,34 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return 42;}").unwrap();
     wait(&rx,&mut lines,"Build failed; previous application remains running.");
     assert_eq!(unsafe {kill(old,0)},0,"last good program must still be alive");
+    let mut restored=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
+    wait(&rx,&mut restored,"Application unchanged; kept running.");
+    assert!(restored.iter().any(|line|line.contains("Reused checked application.")),"undo should reuse the last good check: {restored:?}");
+    assert_eq!(unsafe {kill(old,0)},0);
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"second-version\";}").unwrap();
     wait(&rx,&mut lines,"second-version");
     // stderr/stdout reader threads may deliver the start line in either order.
     while lines.iter().filter(|line|line.contains("Started program")).count()<2 {lines.push(rx.recv_timeout(Duration::from_secs(5)).unwrap());}
     assert!(lines.iter().any(|line|line.contains("syntax reused=1") && line.contains("headers reused=2")),"{lines:?}");
     let new=pid(&lines);assert_ne!(old,new);assert_ne!(unsafe {kill(old,0)},0,"old program must be reaped");
+    let mut undo=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();
+    wait(&rx,&mut undo,"first-version");wait(&rx,&mut undo,"Started program");
+    assert!(undo.iter().any(|line|line.contains("Reused checked application.")),"valid edit undo: {undo:?}");
+    let mut redo=Vec::new();
+    fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"second-version\";}").unwrap();
+    wait(&rx,&mut redo,"second-version");wait(&rx,&mut redo,"Started program");
+    assert!(redo.iter().any(|line|line.contains("Reused checked application.")),"redo: {redo:?}");
+    let new=pid(&redo);
+    unsafe {kill(new,15);}
+    wait(&rx,&mut lines,"Program exited with");
+    fs::write(root.join("tests/greeting.test.tsr"),support::format_round_trip("import {test,strictEqual} from 'std:testing';test('another unrelated edit',()=>{strictEqual(3,3);});")).unwrap();
+    while lines.iter().filter(|line|line.contains("Started program")).count()<3 {lines.push(rx.recv_timeout(Duration::from_secs(30)).unwrap());}
+    let restarted=pid(&lines);assert_ne!(new,restarted);assert_eq!(unsafe {kill(restarted,0)},0,"an exited app must start again even with unchanged inputs");
     unsafe {kill(dev.0.id() as i32,2);}
     wait(&rx,&mut lines,"[dev] Stopped.");
-    assert!(dev.0.wait().unwrap().success());assert_ne!(unsafe {kill(new,0)},0,"interrupted dev must reap its program");
+    assert!(dev.0.wait().unwrap().success());assert_ne!(unsafe {kill(restarted,0)},0,"interrupted dev must reap its program");
 }
 
 #[cfg(unix)]

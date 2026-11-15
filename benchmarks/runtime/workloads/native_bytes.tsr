@@ -5,11 +5,13 @@ function workload(n: int, seed: int, input: string): int[][] {
   const construct = fromArray;
   const observe = length;
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
     const values = [0, byte, 255];
     let first = -1;
     let second = -1;
+
     match (construct(values)) {
       Ok(bytes) => {
         first = observe(bytes);
@@ -22,6 +24,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     }
 
     let empty = -1;
+
     match (fromArray([])) {
       Ok(bytes) => {
         empty = length(bytes);
@@ -34,6 +37,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     let offset = -1;
     let codeLength = -1;
     const invalid = i % 2 === 0 ? -1 : 256;
+
     match (fromArray([byte, invalid, 0])) {
       Ok(bytes) => {
         offset = -2;

@@ -2,6 +2,7 @@ import { alloc, length, at, concat } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[] {
   let size = 32;
+
   if (input === "4k") {
     size = 4096;
   }
@@ -14,6 +15,7 @@ function workload(n: int, seed: int, input: string): int[] {
   const other = unwrap(alloc(size, 98));
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     const result = unwrap(concat(bytes, other));
     output.push(length(result));

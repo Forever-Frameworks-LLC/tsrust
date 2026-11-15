@@ -15,8 +15,8 @@ function length(text: ReadOnly<string>): int {
 }
 
 function main() {
-    // The value of an assignment is the assigned target, read in place.
-    let text = "a";
+  // The value of an assignment is the assigned target, read in place.
+  let text = "a";
   strictEqual((text = "xyz").length, 3);
   strictEqual(text, "xyz");
   strictEqual(length(text = "four"), 4);
@@ -34,8 +34,8 @@ function main() {
   }).x, 5);
   strictEqual(point.label, "q");
 
-    // Fields with a fixed path.
-    const holder: Holder = {
+  // Fields with a fixed path.
+  const holder: Holder = {
     name: "n", point: {
       x: 0, label: "o"
     }
@@ -44,9 +44,10 @@ function main() {
   strictEqual((holder.point.label = "deep").toUpperCase(), "DEEP");
   strictEqual(holder.point.label, "deep");
 
-    // In a condition, and a field of a field.
-    let current = "";
+  // In a condition, and a field of a field.
+  let current = "";
   let count = 0;
+
   while ((current = count < 2 ? "go" : "") !== "") {
     count += 1;
   }

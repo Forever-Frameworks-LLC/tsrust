@@ -1,6 +1,7 @@
 function integers(base: int, count: int): int[] {
   const values: int[] = [];
   let at = 0;
+
   while (at < count) {
     values.push(base + at);
     at = at + 1;
@@ -20,6 +21,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     state = state + 1;
     const result: int[] = [state];
     let at = 0;
+
     while (at < values.length) {
       result.push(values[at]);
       at = at + 1;
@@ -28,6 +30,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     return result;
   };
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;

@@ -1,5 +1,6 @@
 //! Single-file editor diagnostics. The compiler owns all language semantics.
 pub mod counters;
+pub mod file_references;
 mod documentation;
 pub mod workspace_scan;
 pub mod intelligence;
@@ -18,6 +19,7 @@ use std::time::{Duration, Instant};
 use tsrust_compiler::Span;
 
 /// Indexes the exact immutable compiler input; LSP positions are UTF-16.
+#[derive(Clone)]
 pub struct LineIndex {
     starts: Vec<usize>,
 }

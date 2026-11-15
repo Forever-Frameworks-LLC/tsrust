@@ -59,8 +59,8 @@ impl Analyzer {
             frame.adaptation = Adaptation::MutableUnion;
         } else if contract.mode == Mode::Read
             && let Type::Union(id) = contract.ty && !id.copy
-            && (contract.omission.is_omittable() || (self.unions.payload(contract.ty).is_none()
-                && self.expression_type_hint(context, argument).is_some_and(|ty| self.unions.members(id).contains(&ty))))
+            && (contract.omission.is_omittable()
+                || self.expression_type_hint(context, argument).is_some_and(|ty| self.unions.members(id).contains(&ty)))
             && self.nullable_scoped_record_declaration(contract.ty).is_none()
             && !matches!(argument.kind, ExprKind::Conditional { .. }) {
             let hint = self.expression_type_hint(context, argument);
@@ -151,5 +151,25 @@ impl Analyzer {
             self.reserve_native_argument_loans(context, arg, active)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn readonly_nullable_parameters_borrow_untagged_owned_members() {
+        let source = "interface Item{title:string;}function item(value:ReadOnly<Item|null>):int{return value===null?0:value.title.length;}function text(value:ReadOnly<string|undefined>):int{return value===undefined?0:value.length;}function array(value:ReadOnly<int[]|null>):int{return value===null?0:value.length;}function main(){const draft:Item={title:'kept'};const inspect=item;console.log(item(draft),inspect(draft),draft.title,item(null));let name='kept';console.log(text(name));name='changed';const values=[1];console.log(array(values));values.push(2);console.log(name,values.length);}";
+        let source = crate::format(source).unwrap();
+        assert_eq!(crate::format(&source).unwrap(), source);
+        let checked = crate::check(&source).unwrap_or_else(|error| panic!("{error:?}"));
+        checked.emit_rust();
+        let overlap = "interface Item{title:string;}function observe(value:ReadOnly<Item|null>,other:Mutable<Item>):void{if(value!==null)console.log(value.title);other.title='changed';}function main(){const draft:Item={title:'kept'};observe(draft,draft);}";
+        let overlap = crate::format(overlap).unwrap();
+        assert_eq!(crate::format(&overlap).unwrap(), overlap);
+        assert_eq!(crate::check(&overlap).err().expect("shared and mutable arguments must still conflict").code, "conflicting-access");
+        let moved = "interface Item{title:string;}function take(value:Owned<Item|null>):Item|null{return value;}function main(){const draft:Item={title:'kept'};take(draft);console.log(draft.title);}";
+        let moved = crate::format(moved).unwrap();
+        assert_eq!(crate::format(&moved).unwrap(), moved);
+        assert_eq!(crate::check(&moved).err().expect("owned nullable inputs must still transfer").code, "transferred");
     }
 }

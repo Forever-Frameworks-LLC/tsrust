@@ -15,9 +15,11 @@ function tier(code: int): string {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     let steps = 0, text = "";
+
     for (let k = 0; k < 6; k++) {
       switch ((base + k) % 3) {
         case 0:
@@ -33,6 +35,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     }
 
     const word = base % 2 === 0 ? input.repeat(1) : String(base);
+
     switch (word) {
       default:
         text = "number";
@@ -47,6 +50,7 @@ function workload(n: int, seed: int, input: string): string[][] {
 
     const mixed: int | string = base % 3 === 0 ? "three" : base;
     let seen = "";
+
     switch (mixed) {
       case "three":
         seen = mixed.toUpperCase();

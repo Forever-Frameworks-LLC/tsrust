@@ -16,6 +16,7 @@ export function main() {
     read: () => other.length
   });
   let sum = 0;
+
   for (const item of values) {
     sum += item.read();
   }

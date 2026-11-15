@@ -1,4 +1,15 @@
-import { View, Text, Node, signal, run, Plot, PlotLine, PlotArea, PlotBars, SpeechButton } from 'std:ui';
+import {
+  View,
+  Text,
+  Node,
+  signal,
+  run,
+  Plot,
+  PlotLine,
+  PlotArea,
+  PlotBars,
+  SpeechButton
+} from 'std:ui';
 
 function App(): Node {
   const heard = signal('');
@@ -12,7 +23,20 @@ function App(): Node {
         <PlotLine values={[3, 5, 6, 7, 8]} curve="linear" dots={true} color="destructive" />
       </Plot>
       <View className="flex-row gap-3 items-center">
-        <SpeechButton waveform={true} onPartial={(text) => { heard.set(clone(text)); status.set('listening'); }} onFinal={(text) => { heard.set(clone(text)); status.set('done'); }} onError={(message) => { status.set(clone(message)); }} />
+        <SpeechButton
+          waveform={true}
+          onPartial={(text) => {
+            heard.set(clone(text));
+            status.set('listening');
+          }}
+          onFinal={(text) => {
+            heard.set(clone(text));
+            status.set('done');
+          }}
+          onError={(message) => {
+            status.set(clone(message));
+          }}
+        />
         <Text>{status}: {heard}</Text>
       </View>
     </View>

@@ -1,8 +1,8 @@
 //! GPUI Kit renderer for the retained Node model. One root view owns the tree.
 //! Every event updates Node state, refreshes its live bindings and notifies the
-//! view; `render` turns the current tree into GPUI elements. Buttons without
-//! classes and text inputs use GPUI Kit components; classed buttons use Kit's
-//! unstyled native button behavior. Utilities resolve against the active theme.
+//! view; `render` turns the current tree into GPUI elements. Typography keeps Kit
+//! button presentation; authored surfaces/layouts use its unstyled native behavior.
+//! Utilities resolve against the active theme.
 use super::{Kind, Node, kit::Kit, style::{self, Length, State, Utility}, theme::{ResolvedColor, Theme}, window::Options};
 use gpui_kit::component::Disableable;
 use gpui_kit::component::button::{Button, ButtonCustomVariant, ButtonRounded, ButtonVariants};
@@ -26,8 +26,53 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
     node.ensure_identities();
     let failure = std::rc::Rc::new(std::cell::RefCell::new(None::<String>));
     let reported = failure.clone();
-    application().with_assets(assets::Assets).run(move |cx| {
+    let app = application().with_assets(assets::Assets);
+    #[cfg(target_os="macos")]
+    let launching = std::rc::Rc::new(std::cell::Cell::new(true));
+    #[cfg(target_os="macos")]
+    if options.opens_folders {
+        let executable = std::env::current_exe().map_err(|error| error.to_string())?;
+        let launching = launching.clone();
+        app.on_open_urls(move |urls| {
+            let mut folders = urls.iter().filter_map(|raw| url::Url::parse(raw).ok()
+                .filter(|url| url.scheme() == "file").and_then(|url| url.to_file_path().ok())
+                .and_then(|path| path.canonicalize().ok()).filter(|path| path.is_dir()));
+            // A document-only launch has no existing workspace to preserve.
+            let first = if launching.get() && std::env::args_os().len() == 1 {folders.next()} else {None};
+            for folder in folders {
+                match std::process::Command::new(&executable).arg(&folder).current_dir(&folder).spawn() {
+                    Ok(mut child) => {std::thread::spawn(move || {let _ = child.wait();});}
+                    Err(error) => eprintln!("Cannot open folder {}: {error}", folder.display()),
+                }
+            }
+            if let Some(folder) = first {
+                use std::os::unix::process::CommandExt;
+                let error = std::process::Command::new(&executable).arg(&folder).current_dir(&folder).exec();
+                eprintln!("Cannot open folder {}: {error}", folder.display());
+            }
+        });
+    }
+    app.run(move |cx| {
+        #[cfg(target_os="macos")]
+        launching.set(false);
         init(cx);
+        // Sheets and dialogs focus outside the content root; normal handlers win before this fallback.
+        cx.on_action(|command: &TsrustCommand, cx| {
+            let Some(window) = cx.active_window() else {return};
+            let name = command.name.clone();
+            cx.defer(move |cx| {
+                let _ = window.update(cx, |_, window, cx| {
+                    let Some(base) = window.root::<gpui_kit::base::Root>().flatten() else {return};
+                    let Ok(root) = base.read(cx).view().clone().downcast::<Root>() else {return};
+                    root.update(cx, |root, cx| root.run_command(&name, cx));
+                });
+            });
+        });
+        cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-k cmd-i"} else {"ctrl-k ctrl-i"}, gpui_kit::base::input::ShowHover, Some("Input && mode == editor"))]);
+        cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);
+        cx.bind_keys([KeyBinding::new("shift-f12", gpui_kit::base::input::FindReferences, Some("Input && mode == editor"))]);
+        cx.bind_keys([KeyBinding::new("f12", gpui_kit::base::input::GoToDefinition, Some("Input && mode == editor"))]);
+        cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-shift-space"} else {"ctrl-shift-space"}, gpui_kit::base::input::ShowSignatureHelp, Some("Input && mode == editor"))]);
         #[cfg(feature = "gpui-http")]
         cx.set_http_client(std::sync::Arc::new(RemoteImages::new()));
         gpui_kit::component::set_locale(&super::i18n::locale());
@@ -81,6 +126,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
     let window = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         window_min_size: Some(size(px(options.min_width as f32), px(options.min_height as f32))),
+        app_owns_titlebar_drag: matches!(options.titlebar, super::window::Titlebar::Custom),
         // A custom titlebar draws the app's own TitleBar over a transparent native one.
         titlebar: Some(match options.titlebar {
             super::window::Titlebar::Custom => TitlebarOptions {title: Some(title.into()), ..gpui_kit::component::TitleBar::title_bar_options()},
@@ -88,7 +134,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -156,6 +202,8 @@ macro_rules! input_options {($input:expr, $node:expr, $line:tt, $this:expr, $cx:
     let flag = |name: &str| option(name) == "true";
     let read_only = node.editable.as_ref().is_some_and(|field| field.read_only);
     let mut input = $input.disabled(node.is_disabled()).readonly(read_only);
+    // Native controls reset their text size; apply the field's explicit typography inside the frame.
+    input.style().text = $this.node_style(node).text;
     if option("appearance") == "false" {input = input.appearance(false);}
     if option("bordered") == "false" {input = input.bordered(false);}
     input = match option("size") {"xsmall" => input.with_size(KitSize::XSmall), "small" => input.with_size(KitSize::Small), "large" => input.with_size(KitSize::Large), _ => input};
@@ -261,6 +309,7 @@ struct Root {
     input_options: HashMap<u64, std::collections::BTreeMap<String, String>>,
     /// Kit component state entities (select, sliders, pickers), by node.
     states: HashMap<u64, KitState>,
+    language_requests: std::rc::Rc<std::cell::RefCell<super::editor_language::Requests>>,
     /// The node whose dialog or sheet is open, if any.
     dialog: Option<u64>,
     sheet: Option<u64>,
@@ -280,25 +329,32 @@ impl Root {
     fn reply(&mut self,reply:commands::Reply,value:&str,cx:&mut Context<Self>) {
         let _scope=self.scope();
         let result=reply(value);self.settle(result.map(|_|true),cx);
+        // A reply can queue another command during render; wake it after this frame.
+        let root=cx.entity().downgrade();
+        cx.defer(move|cx|{let _=root.update(cx,|_,cx|cx.notify());});
     }
     /// A failed handler or binding ends the application with its message, as an
     /// uncaught exception ends a backend program.
     fn settle(&mut self, result: Result<bool, String>, cx: &mut Context<Self>) {
+        self.settle_event(result,cx,true);
+    }
+    fn settle_event(&mut self, result: Result<bool, String>, cx: &mut Context<Self>, force: bool) {
         match result.and_then(|_| self.node.refresh()) {
-            Ok(_) => {
+            Ok(changed) => {
                 let revision=super::state::revision();
                 if self.revision != revision {
                     // shortcut: redraw live windows on shared writes; track subscribers if window counts make this costly.
                     cx.refresh_windows();
                 }
+                let redraw=force || changed>0 || self.revision!=revision || commands::has_pending(&self.command_owner) || super::i18n::has_changed();
                 self.revision=revision;
-                cx.notify();
+                if redraw {cx.notify();}
             }
             Err(error) => fail(&self.failure, error),
         }
     }
 
-    /// Keep one Kit input state per visible editable node and push controlled
+    /// Retain Kit input state while mounted, and push controlled
     /// values into it when the Node value no longer matches the edited text.
     /// Input options (masking, masks, rows, search...) apply at creation and whenever they change.
     fn sync_inputs(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -312,8 +368,9 @@ impl Root {
         }
         let mut fields = Vec::new();
         collect(&self.node, &mut fields);
-        self.inputs.retain(|id, _| fields.iter().any(|field| field.0 == *id));
-        self.input_options.retain(|id, _| fields.iter().any(|field| field.0 == *id));
+        let mounted=self.node.mounted_nodes();
+        self.inputs.retain(|id, _| mounted.contains(id));
+        self.input_options.retain(|id, _| mounted.contains(id));
         for (id, value, placeholder, multiline, options) in fields {
             if !self.inputs.contains_key(&id) {
                 // Edits update the Node and refresh the tree like any handler; focus, blur and Enter are events.
@@ -385,7 +442,7 @@ impl Root {
     fn input_by_id(&self, target: &str) -> Option<u64> {
         fn find_id(node: &Node, target: &str) -> Option<u64> {
             let node = node.visible_root()?;
-            if node.editable.is_some() && node.semantics.id == target || node.kit.as_deref().is_some_and(|kit|kit.name=="CodeEditor" && kit.prop("id")==Some(target)) {return Some(node.identity.get());}
+            if node.editable.is_some() && node.semantics.id == target || node.kit.as_deref().is_some_and(|kit|(kit.name=="CodeEditor" && kit.prop("id")==Some(target) || kit.name=="Command" && kit.prop("inputId")==Some(target))) {return Some(node.identity.get());}
             node.children.iter().find_map(|child| find_id(child, target))
         }
         find_id(&self.node, target)
@@ -401,7 +458,10 @@ impl Root {
         match self.inputs.get(&id) {
             Some((Field::Line(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
             Some((Field::Text(state), _)) => state.update(cx, |state, cx| control_input!(state, action.clone(), value.clone(), text("label"), start, end, window, cx)),
-            None => if let Some(KitState::Editor(state,_))=self.states.get(&id) {
+            None => if let Some(KitState::Command(state))=self.states.get(&id) {
+                let input=state.read(cx).input();
+                input.update(cx, |state,cx|control_input!(state,action,value,text("label"),start,end,window,cx));
+            } else if let Some(KitState::Editor(state,_))=self.states.get(&id) {
                 let failure=self.failure.clone();
                 state.update(cx, |state,cx|control_input!(state,action,value,text("label"),start,end,window,cx,fail(&failure,"CodeEditor does not support inline tokens; use Input or Textarea".into())));
             }
@@ -420,6 +480,10 @@ impl Root {
             Some((Field::Line(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
             Some((Field::Text(state), _)) => {let state = state.read(cx); snapshot(state.value().to_string(), state.unmask_value().to_string(), state.selected_text().to_string(), state.selected_range(), state.is_selection_reversed(), state.scroll_offset(), state.visible_row_range(), state.focus_handle(cx).contains_focused(window, cx))}
             None => match target.and_then(|id|self.states.get(&id)) {
+                Some(KitState::Command(state)) => {
+                    let input=state.read(cx).input();let state=input.read(cx);
+                    snapshot(state.value().to_string(),state.unmask_value().to_string(),state.selected_text().to_string(),state.selected_range(),state.is_selection_reversed(),state.scroll_offset(),state.visible_row_range(),state.focus_handle(cx).contains_focused(window,cx))
+                }
                 Some(KitState::Editor(state,_)) => {
                     let state=state.read(cx);
                     let mut result=snapshot(state.value().to_string(),state.unmask_value().to_string(),state.selected_text().to_string(),state.selected_range(),state.is_selection_reversed(),state.scroll_offset(),state.visible_row_range(),state.focus_handle(cx).contains_focused(window,cx));
@@ -430,13 +494,14 @@ impl Root {
         }.to_string()
     }
 
-    /// A GPUI Kit Button for an unclassed core Button, with its Kit options.
+    /// A GPUI Kit Button with its presentation options and typography refinements.
     fn kit_button(&self, node: &Node, cx: &mut Context<Self>) -> Button {
         let id = node.identity.get();
                 // Kit button options (variant, size, icon, states) arrive as node options.
                 let option = |name: &str| node.option(name).unwrap_or_default();
                 let flag = |name: &str| option(name) == "true";
                 let label = node.content_text();
+                let has_label = !label.is_empty();
                 let mut button = Button::new(ElementId::Integer(id)).disabled(node.is_disabled());
                 if !label.is_empty() {
                     button=if node.visible_children().any(|child|!child.class_name.is_empty() || !child.children.is_empty()) {
@@ -484,6 +549,23 @@ impl Root {
                 if node.kit.as_deref().is_some_and(|kit| kit.handles("hover")) {
                     let root = cx.entity().downgrade();
                     button = button.on_hover(move |hovered, _, cx| {let hovered = *hovered; let _ = root.update(cx, |root, cx| root.emit(id, "hover", hovered.to_string(), cx));});
+                }
+                if !node.class_name.is_empty() {
+                    let rules=self.rules(node);
+                    let font=rules.iter().filter_map(|(_,rule)|if let Utility::FontSize(size)=rule {Some(*size)}else{None}).reduce(f32::max);
+                    let icon_size=font.map(|size|KitSize::Size(px(size))).unwrap_or_else(||match option("size") {"xsmall"=>KitSize::XSmall,"small"=>KitSize::Small,"large"=>KitSize::Large,_=>KitSize::Medium});
+                    button=button.content_style(StyleRefinement::default(),icon_size);
+                    if let Some(font)=font {
+                        button=button.min_h(px(font*1.5+4.));
+                        if !has_label {button=button.min_w(px(font*1.5+4.));}
+                    }
+                    let base_style=self.node_style(node);
+                    let interaction_style=|state| {
+                        let mut value=base_style.clone();
+                        for (current,rule) in rules {if *current==state {apply(&mut value,*rule);}}
+                        value
+                    };
+                    button=button.refine_style(&base_style).interaction_styles(interaction_style(State::Hover),interaction_style(State::Active),interaction_style(State::Focus));
                 }
                 button.on_click(cx.listener(move |this, _, _, cx| {this.activate(id, cx);}))
     }
@@ -533,7 +615,7 @@ impl Root {
             Kind::Button | Kind::DisabledButton if node.class_name.is_empty() && !node.semantics.href.is_empty() => {
                 self.kit_button(node,cx).link().role(Role::Link).p_0().h_auto().into_any_element()
             }
-            Kind::Button | Kind::DisabledButton if node.class_name.is_empty() => self.kit_button(node, cx).into_any_element(),
+            Kind::Button | Kind::DisabledButton if node.semantics.href.is_empty() && style::native_button_presentation(self.rules(node)) => self.kit_button(node, cx).into_any_element(),
             Kind::Button | Kind::DisabledButton => {
                 let option=|name:&str|node.option(name).unwrap_or_default();
                 let mut button=gpui_kit::base::Button::new(ElementId::Integer(id)).cursor_pointer().disabled(node.is_disabled()).selected(option("selected")=="true");
@@ -564,7 +646,19 @@ impl Root {
                 }
             }
             // Native runs preserve inline styling while sharing one paragraph layout.
-            Kind::Text => styled_rules(div(), self.rules(node), false, node.identity.get()).child(self.inline_text(node)).into_any_element(),
+            Kind::Text => {
+                let mut text = styled_rules(div(), self.rules(node), false, id);
+                let role = match node.semantics.role.as_str() {
+                    "alert" => Some(Role::Alert),
+                    "status" => Some(Role::Status),
+                    _ => None,
+                };
+                if let Some(role) = role.filter(|_| !node.semantics.hidden) {
+                    let label = if node.semantics.label.is_empty() {node.content_text()} else {node.semantics.label.clone()};
+                    text = text.role(role).aria_label(label);
+                }
+                text.child(self.inline_text(node)).into_any_element()
+            }
             _ if children.is_empty() => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.

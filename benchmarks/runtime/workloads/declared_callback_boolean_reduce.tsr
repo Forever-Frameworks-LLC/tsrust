@@ -2,9 +2,11 @@ function workload(n: int, seed: int): boolean {
   const base: boolean[] = [true, false, seed % 2 === 0, false, true];
   let total = false;
   let i = 0;
+
   while (i < n) {
     const mode = (seed + i) % 4;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

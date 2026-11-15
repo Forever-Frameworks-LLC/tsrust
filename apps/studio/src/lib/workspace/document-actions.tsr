@@ -1,0 +1,68 @@
+import { canonicalize, writeTextFileAtomic } from 'std:fs';
+import { basename, dirname, join } from 'std:path';
+import { Signal } from 'std:ui';
+
+import { edit } from './documents.tsr';
+import { FormattingTarget } from './formatting-actions.tsr';
+import { Recovery, persistRecovery } from './recovery.tsr';
+import { saveDocument, saveError } from './storage.tsr';
+import { Workspace } from './workspace.tsr';
+
+// All document navigation and edits persist the same workspace snapshot.
+export function publishWorkspace(next: Workspace, workspace: Signal<Workspace>, recovery: Signal<Recovery>): void {
+  const journal = recovery.get();
+
+  match (persistRecovery(next, journal)) {
+    Ok(_) => {},
+    Err(error) => {
+      next.error += ' Draft recovery: ' + error;
+    }
+  }
+
+  recovery.set(journal);
+  workspace.set(next);
+}
+
+export function updateDraft(workspace: Signal<Workspace>, recovery: Signal<Recovery>, path: ReadOnly<string>, text: ReadOnly<string>): void {
+  const next = workspace.get();
+  const index = next.files.findIndex((file) => file.document.path === path);
+
+  if (index < 0 || next.files[index].kind !== 'text') return;
+  edit(next.files[index].document, clone(text));
+  next.error = '';
+  publishWorkspace(next, workspace, recovery);
+}
+
+// The native save dialog supplies the destination. Copying never retargets or marks a draft saved.
+export function saveDraftCopy(workspace: ReadOnly<Workspace>, target: ReadOnly<FormattingTarget>, destination: ReadOnly<string>): Result<void, string> {
+  const file = workspace.files.find((entry) => entry.document.path === target.path);
+
+  if (file === undefined || file.kind !== 'text' || file.document.session !== target.session || file.document.revision !== target.revision) return Err('The document changed while choosing a destination. Save a copy again.');
+
+  try {
+    const path = join(unwrap(canonicalize(dirname(destination))), basename(destination));
+
+    if (workspace.files.some((entry) => entry.document.path === path)) return Err('Choose a destination other than an open file.');
+    unwrap(writeTextFileAtomic(path, file.document.text));
+    return Ok();
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function saveTarget(next: Mutable<Workspace>, target: ReadOnly<FormattingTarget>): Result<void, string> {
+  const index = next.files.findIndex((file) => file.document.path === target.path);
+
+  if (index < 0 || next.files[index].kind !== 'text') return Err('The save target is not an open text file.');
+
+  if (next.files[index].document.session !== target.session || next.files[index].document.revision !== target.revision) return Err('The document changed after Save was requested. Save again to include its latest edits.');
+
+  match (saveDocument(next.files[index].document)) {
+    Ok(_) => {
+      return Ok();
+    },
+    Err(error) => {
+      return Err(saveError(next.files[index].document, error));
+    }
+  }
+}

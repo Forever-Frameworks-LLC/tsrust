@@ -60,7 +60,7 @@ impl Index {
             }
             if !partial.is_empty(){index.1.insert(function as *const CheckedFunction as usize,partial);}
             if slots.is_empty() && (!has_exception_region || deferred.is_empty()){continue;}
-            let expressions=crate::error_effects::checked_expressions(function);
+            let expressions=crate::error_effects::checked_expressions(function).collect::<Vec<_>>();
             slots.retain(|root|expressions.iter().any(|value|value.span.start>=boundaries[root]
                 && (value.binding==Some(*root) || matches!(value.kind,ExprKind::Closure{..})
                     && value.closure_origin().or_else(||match value.ty {Some(crate::syntax::Type::Closure(id))=>Some(id),_=>None}).is_some_and(|id|program.closures[id].captures.iter().any(|capture|capture.outer==*root)))));

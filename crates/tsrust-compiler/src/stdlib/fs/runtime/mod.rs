@@ -3,6 +3,7 @@ mod resource;
 pub(crate) mod fs;
 pub(crate) mod buffered_fs;
 pub(crate) mod tempfiles;
+pub(crate) mod atomic;
 
 // Lifecycle tests inspect release without exposing backend fields outside this module.
 #[cfg(unix)]
@@ -10,3 +11,5 @@ pub(crate) fn raw_fd(file: &fs::FileHandle) -> std::os::fd::RawFd {
     use std::os::fd::AsRawFd;
     file.get().0.as_raw_fd()
 }
+
+pub(crate) mod discovery;

@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    UiState,
     Process,
     Network,
     Compression,
@@ -74,6 +75,7 @@ enum Kind {
 }
 
 const KINDS: &[Kind] = &[
+    Kind::UiState,
     Kind::Process,
     Kind::Network,
     Kind::Compression,
@@ -167,6 +169,9 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+ Row {kind:Kind::UiState,name:"UI data signal methods",before:"import {Signal as State} from 'std:ui';function inspect(value:State<string[]>){".into(),typed:"value.",after:"get();}function main(){}",includes:&["get","set","handle"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::UiState,name:"UI data signal handle chaining",before:"import {Signal} from 'std:ui';function inspect(value:Signal<string[]>){".into(),typed:"value.handle().",after:"get();}function main(){}",includes:&["get","set","handle"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
+ Row {kind:Kind::UiState,name:"UI data signal snapshot fields",before:"import {Signal} from 'std:ui';interface Buffer{path:string;text:string;revision:int;}function inspect(value:Signal<Buffer[]>){".into(),typed:"value.get()[0].",after:"text;}function main(){}",includes:&["path","text","revision"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::Process,name:"Process public imports",before:"import { ".into(),typed:"",after:" } from 'std:process';function main(){}",includes:&["Child", "CommandOptions", "ExitStatus", "Output", "ProcessError", "spawn", "run"],excludes:&["__run","__lookup","__gzip","__accept"],silent:None,needs_check:false},
  Row {kind:Kind::Process,name:"Process Child alias members",before:"import {Child as Subject} from 'std:process';function inspect(value:Subject){".into(),typed:"value.",after:"id;}function main(){}",includes:&["id", "takeStdin", "takeStdout", "takeStderr", "wait", "tryWait", "kill"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::Process,name:"Process CommandOptions alias members",before:"import {CommandOptions as Subject} from 'std:process';function inspect(value:ReadOnly<Subject>){".into(),typed:"value.",after:"cwd;}function main(){}",includes:&["cwd", "env", "clearEnv", "stdin", "stdout", "stderr", "input", "deadlineMs", "maxOutputBytes"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
@@ -215,7 +220,8 @@ fn rows() -> Vec<Row> {
  Row {kind:Kind::Filesystem,name:"filesystem cursor alias string members",before:"import {SeekOrigin} from 'std:fs';function inspect(origin:SeekOrigin){".into(),typed:"origin.",after:"length;}function main(){}",includes:&["length","startsWith","includes","toUpperCase"],excludes:&["start","current","end","unixSeconds","function","main"],silent:None,needs_check:false},
 
  Row {kind:Kind::Filesystem,name:"filesystem import path prefix",before:"import {openFile} from '".into(),typed:"std:f",after:"';function main(){}",includes:&["std:fs"],excludes:&["std:sql"],silent:None,needs_check:false},
- Row {kind:Kind::Filesystem,name:"filesystem public imports",before:"import { ".into(),typed:"",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin","seek","position","File","FsError","OpenOptions","FileTime","Metadata","DirEntry","openFile","stat","lstat","fileStat","readDir","mkdir","mkdirAll","rename","copyFile","removeFile","removeDir","removeDirAll","canonicalize","readLink","hardLink","appendFile","readTextFile","writeTextFile","truncate","syncAll","syncData","createTempDir"],excludes:&["__open","fs_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem public imports",before:"import { ".into(),typed:"",after:" } from 'std:fs';function main(){}",includes:&["SeekOrigin","seek","position","File","FsError","OpenOptions","FileTime","Metadata","DirEntry","openFile","stat","lstat","fileStat","readDir","mkdir","mkdirAll","rename","copyFile","removeFile","removeDir","removeDirAll","canonicalize","readLink","hardLink","appendFile","readTextFile","writeTextFile","writeTextFileAtomic","truncate","syncAll","syncData","createTempDir"],excludes:&["__open","fs_intrinsic"],silent:None,needs_check:false},
+ Row {kind:Kind::Filesystem,name:"filesystem atomic write partial import",before:"import { ".into(),typed:"writeTextFileA",after:" } from 'std:fs';function main(){}",includes:&["writeTextFileAtomic"],excludes:&["writeTextFile","writeFile","createTempDir"],silent:None,needs_check:false},
  Row {kind:Kind::Filesystem,name:"filesystem partial imports",before:"import { ".into(),typed:"read",after:" } from 'std:fs';function main(){}",includes:&["read","readFile","readDir","readTextFile","readLink"],excludes:&["writeFile","openFile"],silent:None,needs_check:false},
  Row {kind:Kind::Filesystem,name:"filesystem open option fields",before:"import {OpenOptions} from 'std:fs';function inspect(value:ReadOnly<OpenOptions>){".into(),typed:"value.",after:"read;}function main(){}",includes:&["read","write","append","create","createNew","truncate"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
  Row {kind:Kind::Filesystem,name:"filesystem exact timestamp fields",before:"import {FileTime} from 'std:fs';function inspect(value:ReadOnly<FileTime>){".into(),typed:"value.",after:"unixSeconds;}function main(){}",includes:&["unixSeconds","nanoseconds"],excludes:NOT_MEMBERS,silent:None,needs_check:false},
@@ -614,7 +620,7 @@ fn completion_answers_at_typing_speed() {
             let labels = if mode == Mode::Settled { settled.clone() } else { observe(&row, mode) };
             let mut problems = failures(&row, mode, &labels);
             // The answer must not depend on how fast the text arrived.
-            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression|Kind::Crypto|Kind::Logging|Kind::Http) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
+            if (matches!(mode, Mode::Immediate | Mode::Paced) || (matches!(row.kind,Kind::UiState|Kind::Url|Kind::Regex|Kind::Locale|Kind::Io|Kind::Filesystem|Kind::PathEnvOs|Kind::Process|Kind::Network|Kind::Compression|Kind::Crypto|Kind::Logging|Kind::Http) || row.name.starts_with("void result array")) && mode==Mode::ErrorElsewhere) && labels != settled {
                 problems.push("differs from the settled answer".into());
             }
             let count = labels.as_ref().map_or(0, BTreeSet::len);

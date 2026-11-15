@@ -1,0 +1,172 @@
+import { Sender } from 'std:futures';
+import { separator } from 'std:path';
+import { useId } from 'std:ui';
+import { Signal } from 'std:ui';
+
+import { SearchActionContext } from '../../lib/explorer/search-actions.tsr';
+import { FileReferences } from '../../lib/language/references.tsr';
+import { LanguageReferences, ReferenceLocation } from '../../lib/language/references.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageState, queueLanguageRead, cancelLanguageRead } from './controller.tsr';
+import { LanguageMessage } from './session.tsr';
+
+export function presentLanguageReferences(context: ReadOnly<SearchActionContext>, result: ReadOnly<LanguageReferences>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== context.workspace.get().root || result.root !== context.workspace.get().root) return Err('Language results are not permitted for this workspace.');
+
+  if (result.locations.length > 0 && result.query === undefined) return Err('A reference query source is required.');
+  {
+    const query = result.query;
+    const prefix = result.root.endsWith(separator()) ? clone(result.root) : result.root + separator();
+
+    if (query !== undefined && (!query.path.startsWith(prefix) || query.path.length > 8192 || query.position.line < 0 || query.position.character < 0)) return Err('Invalid reference query source.');
+  }
+
+  if (result.query?.kind !== undefined && result.query?.kind !== 'file' && result.query?.kind !== 'symbol') return Err('Invalid reference query kind.');
+  const references = context.references;
+  const panel = context.panel;
+
+  if (references === undefined || panel === undefined) return Err('Language results are unavailable in this host.');
+  references.set(result);
+  panel.set('references');
+  return Ok();
+}
+
+export function clearLanguageReferences(context: ReadOnly<SearchActionContext>, root: ReadOnly<string>): Result<void, string> {
+  if (!context.allowNavigation || context.allowedRoot !== context.workspace.get().root || root !== context.workspace.get().root) return Err('Clearing reference results is not permitted for this workspace.');
+  const references = context.references;
+
+  if (references === undefined) return Err('Reference results are unavailable in this host.');
+  references.set({
+    root: clone(root), locations: []
+  });
+  return Ok();
+}
+
+interface NativeReferences {
+  locations: ReferenceLocation[];
+  error?: string | null;
+}
+
+export function showNativeLanguageReferences(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  references: Signal<LanguageReferences>,
+  panel: Signal<string>,
+  payload: ReadOnly<string>,
+  source: ReadOnly<string> | undefined = undefined
+): void {
+  const root = clone(workspace.get().root);
+  const previous = references.get();
+
+  if (source !== undefined && (previous.root !== root || previous.query?.path !== source)) return;
+  const query = clone(previous.query);
+  const context: SearchActionContext = {
+    workspace, recovery, references, panel, allowedRoot: clone(root), allowNavigation: true, focusEditor: false
+  };
+
+  try {
+    const result = JSON.parse<NativeReferences>(payload, {
+      maxBytes: 16 * 1024 * 1024, maxDepth: 8, maxEntries: 100000, maxNodes: 100000
+    });
+    unwrap(presentLanguageReferences(context, {
+      root, query, locations: clone(result.locations), error: result.error === null ? undefined : clone(result.error)
+    }));
+  } catch (_) {
+    const next = context.workspace.get();
+    next.error = 'The language server returned invalid reference locations.';
+    context.workspace.set(next);
+  }
+}
+
+export function requestFileReferences(context: ReadOnly<SearchActionContext>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, path: ReadOnly<string>): Result<void, string> {
+  if (context.allowRead !== true || !context.allowNavigation || context.allowedRoot !== context.workspace.get().root) return Err('File reference search is not permitted.');
+  const references = context.references;
+  const panel = context.panel;
+
+  if (references === undefined || panel === undefined) return Err('Reference results are unavailable in this host.');
+  const current = context.workspace.get();
+  const file = current.files.find((entry) => entry.document.path === path);
+
+  if (file === undefined) return Err('Open a file before finding its imports.');
+  const next = state.get();
+  // Retire the previous UI query before replacing it; agent reads stay independent.
+  for (const query of clone(next.queries)) {
+    if (query.id.startsWith('ui:file-references:')) unwrap(cancelLanguageRead(next, messages, query.id));
+  }
+
+  const id = 'ui:file-references:' + useId();
+  unwrap(queueLanguageRead(
+    current,
+    next,
+    messages,
+    clone(id),
+    {
+      path: clone(path), session: clone(file.document.session), revision: file.document.revision, method: 'tsrust/fileReferences', position: {
+        line: 0, character: 0
+      }
+    },
+    undefined
+  ));
+  unwrap(presentLanguageReferences(context, {
+    root: clone(current.root), query: {
+      kind: 'file', id, path: clone(path), symbol: '', position: {
+        line: 0, character: 0
+      }
+    }, pending: true, locations: []
+  }));
+  state.set(next);
+  return Ok();
+}
+
+export function pollFileReferences(workspace: Signal<Workspace>, references: Signal<LanguageReferences>, state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>): void {
+  const current = references.get();
+  const id = clone(current.query?.id);
+  const next = state.get();
+  let changed = false;
+
+  for (const query of clone(next.queries)) {
+    if (query.id.startsWith('ui:file-references:') && (query.id !== id || current.root !== workspace.get().root)) {
+      match (cancelLanguageRead(next, messages, query.id)) {
+        Ok(_) => {
+          changed = true;
+        },
+        Err(_) => {}
+      }
+    }
+  }
+
+  if (current.pending === true && current.query?.kind === 'file') {
+    const result = next.readResults.find((entry) => entry.query.id === id);
+
+    if (result !== undefined || !next.queries.some((query) => query.id === id)) {
+      current.pending = false;
+
+      if (result === undefined) current.error = 'File reference search was cancelled or its document changed. Run it again.';
+      else if (result.error !== '') current.error = clone(result.error);
+      else {
+        try {
+          const answer = JSON.parse<FileReferences>(result.result, {
+            maxBytes: 16 * 1024 * 1024, maxDepth: 12, maxEntries: 100000, maxNodes: 500000
+          });
+          current.locations = clone(answer.locations);
+          current.issues = clone(answer.issues);
+          current.scanned = answer.scanned;
+        } catch (_) {
+          current.error = 'The language server returned invalid reference locations.';
+        }
+      }
+
+      if (current.root === workspace.get().root) references.set(current);
+    }
+  }
+
+  const retained = next.readResults.filter((result) => !result.query.id.startsWith('ui:file-references:'));
+
+  if (retained.length !== next.readResults.length) {
+    next.readResults = retained;
+    changed = true;
+  }
+
+  if (changed) state.set(next);
+}

@@ -1,5 +1,19 @@
-import { create, open, bufferReader, bufferWriter, write as syncWrite, read as syncRead } from 'std:fs';
-import { reader, writer, readAll, writeAll, flush, close } from 'std:io';
+import {
+  create,
+  open,
+  bufferReader,
+  bufferWriter,
+  write as syncWrite,
+  read as syncRead
+} from 'std:fs';
+import {
+  reader,
+  writer,
+  readAll,
+  writeAll,
+  flush,
+  close
+} from 'std:io';
 import { fromUtf8, toUtf8 } from 'std:bytes';
 
 export async function main(): Task<void> {

@@ -1,4 +1,11 @@
-import { Bytes, alloc, resize, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  alloc,
+  resize,
+  at,
+  set,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function value(bytes: ReadOnly<Bytes>, index: int): int {
@@ -18,6 +25,7 @@ function main() {
       strictEqual(length(bytes), 3);
       strictEqual(value(bytes, 0), 0);
       strictEqual(value(bytes, 2), 0);
+
       match (set(bytes, 0, 7)) {
         Ok(_) => {},
         Err(error) => {
@@ -37,6 +45,7 @@ function main() {
       strictEqual(value(bytes, 2), 0);
       strictEqual(value(bytes, 3), 255);
       strictEqual(value(bytes, 4), 255);
+
       for (const invalid of [-1, 256]) {
         match (resize(bytes, 0, invalid)) {
           Ok(_) => {
@@ -65,6 +74,7 @@ function main() {
 
       strictEqual(length(bytes), 5);
       const change = resize;
+
       match (change(bytes, 1)) {
         Ok(_) => {},
         Err(error) => {
@@ -74,6 +84,7 @@ function main() {
 
       strictEqual(length(bytes), 1);
       strictEqual(value(bytes, 0), 7);
+
       match (change(bytes, 3)) {
         Ok(_) => {},
         Err(error) => {
@@ -83,6 +94,7 @@ function main() {
 
       strictEqual(value(bytes, 1), 0);
       strictEqual(value(bytes, 2), 0);
+
       match (resize(bytes, 0)) {
         Ok(_) => {},
         Err(error) => {
@@ -98,6 +110,7 @@ function main() {
   }
 
   const create = alloc;
+
   match (create(2, 255)) {
     Ok(bytes) => {
       strictEqual(value(bytes, 0), 255);

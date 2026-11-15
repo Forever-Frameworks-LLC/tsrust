@@ -2,9 +2,11 @@ function workload(n: int, seed: int, input: string): string[][] {
   const base: string[] = [clone(input), "é", "😀", "a\u0000b", "e\u0301"];
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

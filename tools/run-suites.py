@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Run every `tsrust test` suite with one compiler build.
+"""Run library and example `tsrust test` suites with one compiler build.
 
 Each directory's `.test.tsr` files compile together into one native program.
 Suites come from the repository (fixtures and examples) and from the generated
 catalog suites. A failing suite fails the run; all suites still run so one CI
 pass reports every failure.
+Application and experimental suites retain their explicit local acceptance commands.
 
 usage: run-suites.py TSRUST [GENERATED_CATALOG_DIRECTORY]
 """
@@ -20,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 # Fixtures that intentionally fail; their Rust host tests assert the failure report.
 EXPECTED_FAILURES = {"crates/tsrust-compiler/tests/fixtures/testing-async/failures.test.tsr"}
+# Owner: component-validation apps and resource-dependent experiments stay out of CI.
+LOCAL_ONLY_ROOTS = ("apps/", "experiments/")
 
 
 
@@ -45,7 +48,7 @@ def suites(catalog):
     groups = defaultdict(list)
     tracked = subprocess.run(["git", "ls-files", "*.test.tsr"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout.split()
     for file in tracked:
-        if file not in EXPECTED_FAILURES:
+        if file not in EXPECTED_FAILURES and not file.startswith(LOCAL_ONLY_ROOTS):
             groups[str(Path(file).parent)].append(file)
     if catalog:
         for directory in sorted(Path(catalog).iterdir()):

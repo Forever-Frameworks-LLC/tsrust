@@ -4,13 +4,16 @@ import { alloc, set, at, length } from 'std:bytes';
 import { reader } from 'std:io';
 async function workload(n: int, seed: int): Task<int> {
   const executable = unwrap(get('TSRUST_PROCESS_HELPER'));
+
   if (executable === undefined) {
     throw 'missing helper';
   }
 
   let sum: int = 0;
+
   for (let i: int = 0; i < n; i++) {
     const output = unwrap(await run(executable, ['flood', '16384', String(seed)]));
+
     if (!output.status.success) {
       throw 'child failed';
     }

@@ -8,10 +8,13 @@ function workload(n: int, seed: int, input: string): int {
   });
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const result = schema.safeParseJson(input);
+
     if (result.success) {
       const value = result.data;
+
       if (value.groups.length !== 4) {
         throw 'Wrong groups';
       }

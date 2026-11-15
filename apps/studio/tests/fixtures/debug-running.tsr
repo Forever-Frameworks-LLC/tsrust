@@ -1,0 +1,7 @@
+import { delay } from 'std:futures';
+
+async function main(): Task<void> {
+  console.log('Running target ready');
+  await delay(30000);
+  console.log('Running target completed');
+}

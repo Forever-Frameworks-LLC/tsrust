@@ -13,6 +13,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     factories: 0, innerFactories: 0, arguments: 0, outerCalls: 0, innerCalls: 0, fallbacks: 0
   };
   let i = 0;
+
   while (i < n) {
     const tag = (i + seed) % 3;
     const value = (i * 13 + seed + input.length) % 97;
@@ -24,11 +25,13 @@ function workload(n: int, seed: int, input: string): int[][] {
     const beforeFallbacks = trace.fallbacks;
     const observed: int[] = [];
     const nil = empty(tag, trace);
+
     if (nil !== null && nil !== undefined) {
       observed.push(nil(makeInner(trace, seed % 11), argument(trace, value), trace));
     }
 
     const skipped = forwardEmpty(tag, trace)?.(makeInner(trace, seed % 11), argument(trace, value), trace);
+
     if (skipped !== undefined) {
       observed.push(skipped);
     }
@@ -62,6 +65,7 @@ function makeInner(trace: Trace, offset: int): (input: int, trace: Mutable<Trace
 
 function empty(tag: int, trace: Trace): (Function<int, [inner: ReadOnly<Function<int, [input: int, trace: Mutable<Trace>]>>, input: int, trace: Mutable<Trace>]>) | null | undefined {
   trace.factories = trace.factories + 1;
+
   if (tag === 1) {
     return null;
   }

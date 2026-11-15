@@ -1,6 +1,7 @@
 function integers(base: int, count: int): int[] {
   const values: int[] = [];
   let at = 0;
+
   while (at < count) {
     values.push(base + at);
     at = at + 1;
@@ -32,6 +33,7 @@ function makeAction(text: string): Once<Function<string[], [trace: Mutable<Trace
     trace.calls = trace.calls + 1;
     const result: string[] = [consume(text)];
     let at = 0;
+
     while (at < values.length) {
       result.push(String(values[at]));
       at = at + 1;
@@ -50,6 +52,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     calls: 0, defaults: 0
   };
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;
@@ -57,11 +60,13 @@ function workload(n: int, seed: int, input: string): string[][] {
     const argumentBefore = argumentsTrace.calls;
     const callBefore = calls.calls;
     let action: (Once<Function<string[], [trace: Mutable<Trace>, ...values: int[]]>>) | undefined = undefined;
+
     if ((i + seed) % 4 !== 0) {
       action = makeAction(input.repeat(mode + 1));
     }
 
     let result: string[] = ["missing"];
+
     if (action !== undefined) {
       result = action(calls, ...argumentsValues(argumentsTrace, base, count));
     }

@@ -1,9 +1,20 @@
 import { Decimal, formatFixed } from 'std:decimal';
-import { Date, Time, Instant, formatDate, formatTime, getYear, localDate, localTime, fixedOffset } from 'std:date';
+import {
+  Date,
+  Time,
+  Instant,
+  formatDate,
+  formatTime,
+  getYear,
+  localDate,
+  localTime,
+  fixedOffset
+} from 'std:date';
 // Exact NUMERIC/DECIMAL(38,18); no server rounding is permitted.
 export function decimal38(value: ReadOnly<Decimal>): string {
   const text = unwrap(formatFixed(value, 18));
   const digits = text.split('.')[0].length - (text.startsWith('-') ? 1 : 0);
+
   if (digits > 20) {
     throw 'SQL decimal integer range';
   }
@@ -22,6 +33,7 @@ export function dateText(value: ReadOnly<Date>): string {
 export function timeText(value: ReadOnly<Time>): string {
   const text = formatTime(value);
   const parts = text.split('.');
+
   if (parts.length > 1 && parts[1].length > 6) {
     throw 'SQL sub-microsecond precision';
   }

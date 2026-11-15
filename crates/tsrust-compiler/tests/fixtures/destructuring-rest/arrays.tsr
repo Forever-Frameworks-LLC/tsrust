@@ -27,6 +27,7 @@ function main() {
   strictEqual(tail(words).join(","), "two,three,four");
   const rows = [[1, 2, 3], [4, 5]];
   const results: int[] = [];
+
   for (const [first, ...rest] of rows) {
     results.push(first + rest.length);
   }

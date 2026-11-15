@@ -10,6 +10,7 @@ function width(point: Point): int {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const k = i + seed;
     const flat: Point = {

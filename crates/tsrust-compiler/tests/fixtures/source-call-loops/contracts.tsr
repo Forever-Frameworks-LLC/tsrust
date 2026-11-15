@@ -20,6 +20,7 @@ function forward<T>(flag: boolean, value: T): T {
   }
 
   while (false);
+
   for (const item of [1, 2]) {
     action = action;
   }

@@ -1,0 +1,868 @@
+//! Syntax highlighting from syntect and bat's syntax collection.
+//!
+//! The lighter of the two highlighters: about two hundred languages for a few
+//! megabytes, where the full tree-sitter set costs tens. It is regex-based and
+//! line-oriented, so there is no syntax tree behind it — folding is by braces
+//! and editing decisions use TextMate scopes. An application that
+//! needs a structural editor enables `tree-sitter` instead.
+//!
+//! Syntect names what it matched with TextMate scopes (`keyword.control.rust`,
+//! `string.quoted.double`). Those are mapped onto the highlight names the
+//! theme already defines (`keyword`, `string`), so colors keep following the
+//! application's theme rather than a syntect theme.
+
+use std::{
+    cell::RefCell, collections::HashMap, ops::Range, rc::Rc, sync::LazyLock, time::Duration,
+};
+
+use gpui::{HighlightStyle, SharedString, Task};
+use gpui_base::input::{
+    EditorState, FoldRange, HighlightStyleResolver, InputEdit, InputHighlighter,
+    InputHighlighterFactory, RopeExt, SyntaxContext, SyntaxContextProvider,
+};
+use ropey::Rope;
+use syntect::{
+    parsing::{ParseState, Scope, ScopeStack, SyntaxReference, SyntaxSet},
+    util::LinesWithEndings,
+};
+
+/// Deserializing the syntax set takes tens of milliseconds, so it happens once,
+/// on the first highlight, and is shared by every highlighter after that.
+static SYNTAXES: LazyLock<SyntaxSet> = LazyLock::new(two_face::syntax::extra_newlines);
+static JSON_SCOPE: LazyLock<Scope> = LazyLock::new(|| Scope::new("source.json").unwrap());
+static JSON_KEY_SCOPE: LazyLock<Scope> =
+    LazyLock::new(|| Scope::new("meta.mapping.key.json").unwrap());
+
+/// Small initial documents get colors immediately. Edits keep shifted highlights
+/// until the existing background parser catches up, regardless of document size.
+const SYNC_PARSE_MAX_BYTES: usize = 64 * 1024;
+const PARSE_DEBOUNCE: Duration = Duration::from_millis(150);
+
+/// Highlight names, ordered and non-overlapping.
+type Highlights = Vec<(Range<usize>, &'static str)>;
+
+pub(crate) fn input_highlighter_factory() -> InputHighlighterFactory {
+    Rc::new(|language| {
+        find_syntax(language)
+            .map(|syntax| Box::new(SyntectInputHighlighter::new(language, syntax)) as _)
+    })
+}
+
+pub(crate) fn syntect_context(language: &str) -> Option<Rc<dyn SyntaxContextProvider>> {
+    Some(Rc::new(InsertionContext {
+        syntax: find_syntax(language)?,
+        prefix: RefCell::new(None),
+    }))
+}
+
+struct InsertionContext {
+    syntax: &'static SyntaxReference,
+    // Typing on the same line reuses the parser state from its beginning.
+    prefix: RefCell<Option<(Rope, usize, ParseState, ScopeStack)>>,
+}
+
+impl SyntaxContextProvider for InsertionContext {
+    fn context_at(&self, text: &Rope, offset: usize) -> SyntaxContext {
+        let point = text.offset_to_point(offset);
+        let start = text.line_start_offset(point.row);
+        let mut cache = self.prefix.borrow_mut();
+        let (from, mut parser, mut scopes) = match cache.as_ref() {
+            Some((old, end, parser, scopes)) if *end <= start && old.slice(..*end) == text.slice(..*end) => {
+                (*end, parser.clone(), scopes.clone())
+            }
+            _ => (0, ParseState::new(self.syntax), ScopeStack::new()),
+        };
+        if from != start {
+            let prefix = text.slice(from..start).to_string();
+            for line in LinesWithEndings::from(&prefix) {
+                let Ok(ops) = parser.parse_line(line, &SYNTAXES) else { return SyntaxContext::Code };
+                for (_, op) in ops { let _ = scopes.apply(&op); }
+            }
+        }
+        *cache = Some((text.clone(), start, parser.clone(), scopes.clone()));
+        // Ask which scope an inserted identifier would occupy. A caret after
+        // a block closer is code, while one at the end of a line comment is not.
+        let mut line = text.slice_line(point.row).to_string();
+        line.insert(point.column, 'x');
+        let Ok(ops) = parser.parse_line(&line, &SYNTAXES) else { return SyntaxContext::Code };
+        for (at, op) in ops {
+            if at > point.column { break; }
+            let _ = scopes.apply(&op);
+        }
+        for scope in scopes.scopes.iter().rev() {
+            let name = scope.build_string();
+            if name.starts_with("comment.") { return SyntaxContext::Comment; }
+            if name.starts_with("string.") { return SyntaxContext::String; }
+            if name.starts_with("source.") { break; }
+        }
+        SyntaxContext::Code
+    }
+}
+
+/// Styles for one code block of a text view, or nothing for a language
+/// syntect does not know.
+pub(crate) fn highlight_code(
+    language: &str,
+    code: &str,
+    resolver: &dyn HighlightStyleResolver,
+) -> Vec<(Range<usize>, HighlightStyle)> {
+    let Some(syntax) = find_syntax(language) else {
+        return Vec::new();
+    };
+    resolve_styles(&parse_language(syntax, code, is_tsrust(language)), &(0..code.len()), resolver)
+}
+
+/// Highlight names for `text`, for presentations that resolve styles later.
+pub(crate) fn capture_names(language: &str, text: &str) -> Vec<(Range<usize>, SharedString)> {
+    let Some(syntax) = find_syntax(language) else {
+        return Vec::new();
+    };
+    parse_language(syntax, text, is_tsrust(language))
+        .into_iter()
+        .map(|(range, name)| (range, SharedString::new_static(name)))
+        .collect()
+}
+
+/// The syntax for a code fence or editor language name.
+///
+/// Syntect matches a token against extensions and syntax names. Most of the
+/// names the rest of the library uses are already one of those; the few that
+/// are not are spelled here the way syntect knows them.
+fn find_syntax(language: &str) -> Option<&'static SyntaxReference> {
+    let syntaxes = &*SYNTAXES;
+    let canonical = super::language_name(language);
+    let alias = match canonical.as_ref() {
+        "text" => return None,
+        "csharp" => "cs",
+        "make" => "Makefile",
+        "markdown_inline" => "md",
+        "embedded_template" | "ejs" => "erb",
+        other => other,
+    };
+    [language, canonical.as_ref(), alias]
+        .into_iter()
+        .find_map(|token| syntaxes.find_syntax_by_token(token))
+        .filter(|syntax| syntax.name != "Plain Text")
+}
+
+/// Runs syntect over `text` and keeps the spans that map to a highlight name.
+fn is_tsrust(language: &str) -> bool {
+    matches!(language.to_ascii_lowercase().as_str(), "tsr" | "tsrust" | "tsrx")
+}
+
+fn append_highlight(highlights: &mut Highlights, range: Range<usize>, name: &'static str) {
+    if range.is_empty() { return; }
+    match highlights.last_mut() {
+        Some((last, last_name)) if last.end == range.start && *last_name == name => last.end = range.end,
+        _ => highlights.push((range, name)),
+    }
+}
+
+#[cfg(test)]
+fn parse(syntax: &SyntaxReference, text: &str) -> Highlights {
+    parse_language(syntax, text, false)
+}
+
+fn parse_language(syntax: &SyntaxReference, text: &str, tsrust: bool) -> Highlights {
+    let syntaxes = &*SYNTAXES;
+    let mut parser = ParseState::new(syntax);
+    let mut scopes = ScopeStack::new();
+    let mut names = HashMap::<Scope, Option<&'static str>>::new();
+    let mut highlights = Highlights::new();
+    let mut offset = 0;
+
+    let mut push = |range: Range<usize>, scopes: &ScopeStack, highlights: &mut Highlights| {
+        if range.is_empty() {
+            return;
+        }
+        // The innermost scope that names something wins, so the quotes of a
+        // string — `punctuation.definition.string` inside `string` — color as
+        // the string rather than as punctuation.
+        let mut name = scopes
+            .scopes
+            .iter()
+            .rev()
+            .find_map(|scope| *names.entry(*scope).or_insert_with(|| semantic_name(*scope)));
+        // A JSON key is still a quoted string; its enclosing key scope supplies the role.
+        if name == Some("string")
+            && scopes
+                .scopes
+                .iter()
+                .any(|scope| JSON_KEY_SCOPE.is_prefix_of(*scope))
+        {
+            name = Some("property.json_key");
+        }
+        if name == Some("constant")
+            && matches!(&text[range.clone()], "true" | "false")
+            && scopes
+                .scopes
+                .iter()
+                .any(|scope| JSON_SCOPE.is_prefix_of(*scope))
+        {
+            name = Some("boolean");
+        }
+        if tsrust && matches!(name, Some("variable" | "type" | "keyword" | "operator")) {
+            // Match the native primitive rule from the Tsrust editor grammar, not TypeScript's types.
+            static PRIMITIVES: LazyLock<regex::Regex> = LazyLock::new(|| regex::Regex::new(r"\b(?:int|number|string|boolean|void)\b").unwrap());
+            let mut cursor = range.start;
+            for primitive in PRIMITIVES.find_iter(&text[range.clone()]) {
+                let start = range.start + primitive.start();
+                let end = range.start + primitive.end();
+                let identifier = |c: char| c.is_alphanumeric() || matches!(c, '_' | '$');
+                if text[..start].chars().next_back().is_some_and(|c| identifier(c) || c == '.')
+                    || text[end..].chars().next().is_some_and(identifier)
+                    || text[end..].trim_start().starts_with('(') { continue; }
+                if let Some(name) = name { append_highlight(highlights, cursor..start, name); }
+                append_highlight(highlights, start..end, "type");
+                cursor = end;
+            }
+            if let Some(name) = name { append_highlight(highlights, cursor..range.end, name); }
+        } else if let Some(name) = name {
+            append_highlight(highlights, range, name);
+        }
+    };
+
+    for line in LinesWithEndings::from(text) {
+        // A line syntect cannot parse keeps the scopes it started with; the
+        // next line starts over from them rather than losing the document.
+        if let Ok(operations) = parser.parse_line(line, syntaxes) {
+            let mut cursor = 0;
+            for (index, operation) in operations {
+                push(offset + cursor..offset + index, &scopes, &mut highlights);
+                let _ = scopes.apply(&operation);
+                cursor = index;
+            }
+            push(
+                offset + cursor..offset + line.len(),
+                &scopes,
+                &mut highlights,
+            );
+        }
+        offset += line.len();
+    }
+    highlights
+}
+
+/// The theme's highlight name for a TextMate scope, or `None` to let an
+/// enclosing scope decide.
+fn semantic_name(scope: Scope) -> Option<&'static str> {
+    let scope = scope.build_string();
+    let is = |prefix: &str| {
+        scope == prefix
+            || scope
+                .strip_prefix(prefix)
+                .is_some_and(|rest| rest.starts_with('.'))
+    };
+
+    let name = if is("punctuation.definition.string")
+        || is("punctuation.definition.comment")
+        || is("invalid")
+        || is("meta")
+        || is("source")
+        || is("text")
+    {
+        // Delimiters belong to what they delimit; the rest are containers
+        // with no color of their own.
+        return None;
+    } else if is("comment.block.documentation") || is("comment.line.documentation") {
+        "comment.doc"
+    } else if is("comment") {
+        "comment"
+    } else if is("constant.character.escape") {
+        "string.escape"
+    } else if is("string.regexp") {
+        "string.regex"
+    } else if is("support.type.property-name.json") {
+        "property.json_key"
+    } else if is("string") {
+        "string"
+    } else if is("constant.numeric") {
+        "number"
+    } else if is("constant.language.boolean") {
+        "boolean"
+    } else if is("constant") || is("support.constant") || is("entity.name.constant") {
+        "constant"
+    } else if is("keyword.operator") {
+        "operator"
+    } else if is("meta.preprocessor") {
+        "preproc"
+    } else if is("keyword.control.import")
+        || is("keyword.control.export")
+        || is("keyword.control.from")
+    {
+        "keyword.import"
+    } else if is("keyword") || is("storage.modifier") {
+        "keyword"
+    } else if is("storage.type") {
+        // `fn`, `class` and `let` are declarations, `int` and `bool` are types.
+        if [
+            "class",
+            "enum",
+            "function",
+            "impl",
+            "interface",
+            "module",
+            "namespace",
+            "struct",
+            "trait",
+            "type",
+            "let",
+            "var",
+            "const",
+        ]
+        .iter()
+        .any(|word| scope.contains(word))
+        {
+            "keyword"
+        } else {
+            "type"
+        }
+    } else if is("entity.name.function")
+        || is("support.function")
+        || is("variable.function")
+        || is("meta.function-call")
+    {
+        "function"
+    } else if is("entity.name.type")
+        || is("entity.name.class")
+        || is("entity.name.struct")
+        || is("entity.name.enum")
+        || is("entity.name.trait")
+        || is("entity.name.interface")
+        || is("entity.other.inherited-class")
+        || is("support.type")
+        || is("support.class")
+    {
+        "type"
+    } else if is("entity.name.tag") {
+        "tag"
+    } else if is("entity.other.attribute-name") {
+        "attribute"
+    } else if is("entity.name.label") {
+        "label"
+    } else if is("entity.name.section") || is("markup.heading") {
+        "title"
+    } else if is("variable.parameter") {
+        "variable.parameter"
+    } else if is("variable.language") {
+        "variable.special"
+    } else if is("variable.other.member")
+        || is("variable.other.property")
+        || is("support.variable.property")
+        || is("meta.mapping.key")
+    {
+        "property"
+    } else if is("variable") {
+        "variable"
+    } else if is("markup.bold") {
+        "emphasis.strong"
+    } else if is("markup.italic") {
+        "emphasis"
+    } else if is("markup.underline.link") {
+        "link_uri"
+    } else if is("markup.raw") {
+        "text.literal"
+    } else if is("markup.list") {
+        "punctuation.list_marker"
+    } else if is("punctuation.section") || is("punctuation.definition.block") {
+        "punctuation.bracket"
+    } else if is("punctuation.separator") || is("punctuation.terminator") {
+        "punctuation.delimiter"
+    } else if is("punctuation") {
+        "punctuation"
+    } else {
+        return None;
+    };
+    Some(name)
+}
+
+/// Turns the highlights overlapping `range` into gap-free style runs.
+///
+/// `highlights` is ordered and non-overlapping, so the first candidate is found
+/// by binary search instead of scanning the whole document on every frame.
+fn resolve_styles(
+    highlights: &[(Range<usize>, &'static str)],
+    range: &Range<usize>,
+    resolver: &dyn HighlightStyleResolver,
+) -> Vec<(Range<usize>, HighlightStyle)> {
+    let first = highlights.partition_point(|(highlight, _)| highlight.end <= range.start);
+    let mut runs = Vec::new();
+    let mut cursor = range.start;
+
+    for (highlight, name) in &highlights[first..] {
+        if highlight.start >= range.end {
+            break;
+        }
+        let start = highlight.start.max(range.start);
+        let end = highlight.end.min(range.end);
+        if start >= end || end <= cursor {
+            continue;
+        }
+        if cursor < start {
+            runs.push((cursor..start, HighlightStyle::default()));
+        }
+        runs.push((start..end, resolver.style(name).unwrap_or_default()));
+        cursor = end;
+    }
+
+    if cursor < range.end {
+        runs.push((cursor..range.end, HighlightStyle::default()));
+    }
+    runs
+}
+
+/// Moves the highlights after an edit by its length and drops the ones it
+/// touched, so the text that did not change keeps its colors while a
+/// background parse catches up.
+fn shift(highlights: &mut Highlights, edit: &InputEdit) {
+    let delta = edit.new_end_byte as isize - edit.old_end_byte as isize;
+    highlights.retain_mut(|(range, _)| {
+        if range.end <= edit.start_byte {
+            true
+        } else if range.start >= edit.old_end_byte {
+            range.start = range.start.saturating_add_signed(delta);
+            range.end = range.end.saturating_add_signed(delta);
+            true
+        } else {
+            false
+        }
+    });
+}
+
+struct SyntectInputHighlighter {
+    language: SharedString,
+    syntax: &'static SyntaxReference,
+    highlights: Rc<RefCell<Highlights>>,
+    folds: Rc<RefCell<Vec<FoldRange>>>,
+    parse_task: Option<Task<()>>,
+    initialized: bool,
+    tsrust: bool,
+}
+
+impl SyntectInputHighlighter {
+    fn new(language: &str, syntax: &'static SyntaxReference) -> Self {
+        Self {
+            language: language.to_owned().into(),
+            syntax,
+            highlights: Rc::default(),
+            folds: Rc::default(),
+            parse_task: None,
+            initialized: false,
+            tsrust: is_tsrust(language),
+        }
+    }
+}
+
+impl InputHighlighter for SyntectInputHighlighter {
+    fn language(&self) -> SharedString {
+        self.language.clone()
+    }
+
+    fn update(
+        &mut self,
+        edit: Option<InputEdit>,
+        text: &Rope,
+        folding: bool,
+        window: &mut gpui::Window,
+        cx: &mut gpui::Context<EditorState>,
+    ) {
+        let initial = !self.initialized;
+        // Empty setup must not consume the first real document's initial colors.
+        self.initialized |= text.len() != 0;
+        if let Some(edit) = edit {
+            shift(&mut self.highlights.borrow_mut(), &edit);
+        }
+
+        if initial && text.len() <= SYNC_PARSE_MAX_BYTES {
+            self.parse_task = None;
+            let text = text.to_string();
+            *self.highlights.borrow_mut() = parse_language(self.syntax, &text, self.tsrust);
+            *self.folds.borrow_mut() = if folding {
+                brace_fold_ranges(&text)
+            } else {
+                Vec::new()
+            };
+            return;
+        }
+
+        let syntax = self.syntax;
+        let tsrust = self.tsrust;
+        let highlights = self.highlights.clone();
+        let folds = self.folds.clone();
+        let text = text.clone();
+        // Replacing the task drops the previous one, which cancels a parse
+        // still waiting out its debounce.
+        self.parse_task = Some(cx.spawn_in(window, async move |entity, cx| {
+            cx.background_executor().timer(PARSE_DEBOUNCE).await;
+            let (parsed, folded) = cx
+                .background_executor()
+                .spawn(async move {
+                    let text = text.to_string();
+                    let folded = if folding {
+                        brace_fold_ranges(&text)
+                    } else {
+                        Vec::new()
+                    };
+                    (parse_language(syntax, &text, tsrust), folded)
+                })
+                .await;
+            *highlights.borrow_mut() = parsed;
+            *folds.borrow_mut() = folded.clone();
+            let _ = entity.update(cx, |state, cx| {
+                state.apply_highlighter_fold_candidates(folded, cx);
+            });
+        }));
+    }
+
+    fn styles(
+        &self,
+        range: &Range<usize>,
+        resolver: &dyn HighlightStyleResolver,
+    ) -> Vec<(Range<usize>, HighlightStyle)> {
+        resolve_styles(&self.highlights.borrow(), range, resolver)
+    }
+
+    fn fold_ranges(&self, _: &Rope) -> Vec<FoldRange> {
+        self.folds.borrow().clone()
+    }
+}
+
+/// Fold candidates from matching braces outside strings and line comments.
+///
+/// Without a syntax tree this is the structure most languages share; a
+/// language that nests by indentation alone gets no candidates.
+fn brace_fold_ranges(text: &str) -> Vec<FoldRange> {
+    let mut starts = Vec::new();
+    let mut ranges = Vec::new();
+
+    for (line_number, line) in text.lines().enumerate() {
+        let mut chars = line.chars().peekable();
+        let mut quote = None;
+        let mut escaped = false;
+        while let Some(character) = chars.next() {
+            match quote {
+                Some(open) => {
+                    if escaped {
+                        escaped = false;
+                    } else if character == '\\' {
+                        escaped = true;
+                    } else if character == open {
+                        quote = None;
+                    }
+                }
+                None => match character {
+                    '/' if chars.peek() == Some(&'/') => break,
+                    '#' => break,
+                    '"' | '\'' | '`' => quote = Some(character),
+                    '{' => starts.push(line_number),
+                    '}' => {
+                        if let Some(start) = starts.pop()
+                            && line_number.saturating_sub(start) >= 2
+                        {
+                            ranges.push(FoldRange::new(start, line_number));
+                        }
+                    }
+                    _ => {}
+                },
+            }
+        }
+    }
+    ranges.sort_by_key(|range| range.start_line);
+    ranges.dedup_by_key(|range| range.start_line);
+    ranges
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scalar_hover_signatures_have_syntax_captures() {
+        for language in ["tsr", "tsrust", "tsrx"] {
+            for text in ["const count: int", "/*🦀*/ revision: int", "title: string", "enabled: boolean", "size: number", "result: void"] {
+                let names = capture_names(language, text);
+                let start = text.rfind(' ').unwrap() + 1;
+                assert!(names.iter().any(|(range, name)| range.start <= start && range.end == text.len() && name == "type"), "{language} {text}: {names:?}");
+                assert!(names.iter().all(|(range, _)| text.is_char_boundary(range.start) && text.is_char_boundary(range.end)));
+            }
+            let text = "const text = \"int number string boolean void\"; // int\nobject.int; int(1); const print = 1;";
+            assert!(!capture_names(language, text).iter().any(|(_, name)| name == "type"), "strings/comments/properties/calls must keep their original roles");
+        }
+        let jsx = "<View int={8} string=\"int\">int string boolean void</View>";
+        let names = capture_names("tsrx", jsx);
+        for start in [jsx.find(" int=").unwrap() + 1, jsx.find(" string=").unwrap() + 1, jsx.find('>').unwrap() + 1] {
+            assert!(!names.iter().any(|(range, name)| range.contains(&start) && name == "type"), "JSX attributes/text must keep their roles: {names:?}");
+        }
+        assert!(!capture_names("typescript", "revision: int").iter().any(|(_, name)| name == "type"), "ordinary TypeScript does not acquire Tsrust keywords");
+    }
+
+    #[gpui::test]
+    fn edits_defer_small_document_parses_and_discard_superseded_text(
+        cx: &mut gpui::TestAppContext,
+    ) {
+        use gpui::AppContext as _;
+        use gpui_base::input::Point;
+        cx.update(crate::init);
+        let window = cx.add_empty_window();
+        let syntax = find_syntax("typescript").unwrap();
+        let mut highlighter = SyntectInputHighlighter::new("typescript", syntax);
+        let original = "const before = 1;\nfunction one() {\n}";
+        let obsolete = "const stale = false;\nfunction old() {\n}";
+        let latest = "const emoji = \"🦀\";\nfunction current() {\n}";
+        let editor = window.update(|window, cx| {
+            let editor = cx.new(|cx| EditorState::new(window, cx));
+            editor.update(cx, |_, cx| {
+                highlighter.update(None, &Rope::new(), true, window, cx)
+            });
+            editor.update(cx, |_, cx| {
+                highlighter.update(None, &Rope::from_str(original), true, window, cx)
+            });
+            editor
+        });
+        assert!(highlighter.parse_task.is_none());
+        assert_eq!(*highlighter.highlights.borrow(), parse(syntax, original));
+        let replace = |old: &str, new: &str| InputEdit {
+            start_byte: 0,
+            old_end_byte: old.len(),
+            new_end_byte: new.len(),
+            start_position: Point::new(0, 0),
+            old_end_position: Point::new(2, 1),
+            new_end_position: Point::new(2, 1),
+        };
+        window.update(|window, cx| {
+            editor.update(cx, |_, cx| {
+                highlighter.update(
+                    Some(replace(original, obsolete)),
+                    &Rope::from_str(obsolete),
+                    true,
+                    window,
+                    cx,
+                );
+            })
+        });
+        assert!(highlighter.parse_task.is_some());
+        assert!(
+            highlighter.highlights.borrow().is_empty(),
+            "edits must not synchronously reparse even a small file"
+        );
+        window.run_until_parked();
+        window.executor().advance_clock(Duration::from_millis(75));
+        window.update(|window, cx| {
+            editor.update(cx, |_, cx| {
+                highlighter.update(
+                    Some(replace(obsolete, latest)),
+                    &Rope::from_str(latest),
+                    true,
+                    window,
+                    cx,
+                );
+            })
+        });
+        window.run_until_parked();
+        window.executor().advance_clock(PARSE_DEBOUNCE);
+        window.run_until_parked();
+        assert_eq!(*highlighter.highlights.borrow(), parse(syntax, latest));
+        assert_eq!(*highlighter.folds.borrow(), brace_fold_ranges(latest));
+        assert!(
+            highlighter
+                .highlights
+                .borrow()
+                .iter()
+                .all(|(range, _)| latest.is_char_boundary(range.start)
+                    && latest.is_char_boundary(range.end))
+        );
+    }
+
+    fn names(language: &str, code: &str) -> Vec<(&'static str, String)> {
+        let syntax = find_syntax(language).expect("a known language");
+        parse(syntax, code)
+            .into_iter()
+            .map(|(range, name)| (name, code[range].to_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn common_fence_names_find_a_syntax() {
+        for language in [
+            "rust",
+            "rs",
+            "toml",
+            "typescript",
+            "ts",
+            "mts",
+            "cts",
+            "mjs",
+            "cjs",
+            "tsx",
+            "javascript",
+            "js",
+            "python",
+            "py",
+            "bash",
+            "sh",
+            "yaml",
+            "yml",
+            "json",
+            "jsonc",
+            "markdown",
+            "md",
+            "go",
+            "c",
+            "cpp",
+            "csharp",
+            "java",
+            "kotlin",
+            "swift",
+            "ruby",
+            "html",
+            "css",
+            "sql",
+            "diff",
+            "make",
+            "dockerfile",
+            "zig",
+            "lua",
+            "php",
+        ] {
+            assert!(
+                find_syntax(language).is_some(),
+                "`{language}` has no syntax"
+            );
+        }
+        assert!(
+            find_syntax("text").is_none(),
+            "plain text is not highlighted"
+        );
+        assert!(find_syntax("no-such-language").is_none());
+    }
+
+    #[test]
+    fn insertion_context_distinguishes_comments_strings_and_code() {
+        let provider = syntect_context("tsr").unwrap();
+        let text = Rope::from("let url = \"https://local\"; // note\n/* two\nlines */ code");
+        let end = Rope::from("function pick(first: string, second: string): string { return; }\n// pick returns the second string. describes\n");
+        assert_eq!(provider.context_at(&end, end.len()-1), SyntaxContext::Comment);
+        for (before, expected) in [("//local", SyntaxContext::String), ("// note", SyntaxContext::Comment), ("lines", SyntaxContext::Comment), ("lines */", SyntaxContext::Code)] {
+            let offset = text.to_string().find(before).unwrap() + before.len();
+            assert_eq!(provider.context_at(&text, offset), expected);
+        }
+    }
+
+    #[test]
+    fn scopes_map_onto_the_themes_highlight_names() {
+        let toml = names(
+            "toml",
+            "[package]\nname = \"demo\" # the name\nversion = 1\n",
+        );
+        assert!(
+            toml.contains(&("string", "\"demo\"".to_owned())),
+            "{toml:?}"
+        );
+        assert!(
+            toml.iter()
+                .any(|(name, text)| *name == "comment" && text.contains("the name"))
+        );
+        assert!(toml.contains(&("number", "1".to_owned())), "{toml:?}");
+
+        let rust = names("rust", "fn main() { let x = 42; }\n");
+        assert!(rust.contains(&("keyword", "fn".to_owned())), "{rust:?}");
+        assert!(rust.contains(&("function", "main".to_owned())), "{rust:?}");
+        assert!(rust.contains(&("number", "42".to_owned())), "{rust:?}");
+    }
+
+    #[test]
+    fn imports_parameters_and_json_keys_keep_their_roles() {
+        for language in ["typescript", "tsx"] {
+            let code = "import { Signal } from 'std:ui';\nfunction zoom(level: number) { return level + 1; }\n";
+            let captures = names(language, code);
+            assert!(
+                captures
+                    .iter()
+                    .any(|(name, text)| *name == "keyword.import" && text.contains("import")),
+                "{language}: {captures:?}"
+            );
+            assert!(
+                !captures
+                    .iter()
+                    .any(|(name, text)| *name == "keyword.import" && text.contains("Signal")),
+                "{language}: {captures:?}"
+            );
+            assert!(
+                captures
+                    .iter()
+                    .any(|(name, text)| *name == "variable.parameter" && text.contains("level")),
+                "{language}: {captures:?}"
+            );
+        }
+        let code = r#"{"name": "name", "nested": {"name": "name"}, "escaped\u006bey": "value\n", "count": 2, "enabled": true, "disabled": false, "nothing": null}"#;
+        let captures = names("json", code);
+        assert_eq!(
+            captures
+                .iter()
+                .filter(|(name, text)| *name == "property.json_key" && text.contains("name"))
+                .count(),
+            2,
+            "{captures:?}"
+        );
+        assert_eq!(
+            captures
+                .iter()
+                .filter(|(name, text)| *name == "string" && text.contains("name"))
+                .count(),
+            2,
+            "{captures:?}"
+        );
+        for (role, text) in [
+            ("string.escape", r"\u006b"),
+            ("string.escape", r"\n"),
+            ("number", "2"),
+            ("boolean", "true"),
+            ("boolean", "false"),
+            ("constant", "null"),
+        ] {
+            assert!(
+                captures
+                    .iter()
+                    .any(|(name, fragment)| *name == role && fragment.contains(text)),
+                "missing {role} {text}: {captures:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn style_runs_cover_the_range_without_gaps() {
+        struct Named;
+        impl HighlightStyleResolver for Named {
+            fn style(&self, _: &str) -> Option<HighlightStyle> {
+                Some(HighlightStyle::default())
+            }
+        }
+        let runs = resolve_styles(&[(2..4, "keyword"), (6..8, "string")], &(0..10), &Named);
+        let ranges: Vec<_> = runs.into_iter().map(|(range, _)| range).collect();
+        assert_eq!(ranges, vec![0..2, 2..4, 4..6, 6..8, 8..10]);
+    }
+
+    #[test]
+    fn an_edit_shifts_later_highlights_and_drops_touched_ones() {
+        let mut highlights: Highlights =
+            vec![(0..2, "keyword"), (4..6, "string"), (8..10, "number")];
+        shift(
+            &mut highlights,
+            &InputEdit {
+                start_byte: 5,
+                old_end_byte: 5,
+                new_end_byte: 8,
+                start_position: gpui_base::input::Point::new(0, 0),
+                old_end_position: gpui_base::input::Point::new(0, 0),
+                new_end_position: gpui_base::input::Point::new(0, 0),
+            },
+        );
+        assert_eq!(highlights, vec![(0..2, "keyword"), (11..13, "number")]);
+    }
+
+    #[test]
+    fn braces_outside_strings_and_comments_fold() {
+        let folds = brace_fold_ranges("fn a() {\n  let s = \"{\";\n  // }\n}\n");
+        assert_eq!(folds, vec![FoldRange::new(0, 3)]);
+    }
+}

@@ -2,6 +2,7 @@ import { spawn, join } from 'std:threads';
 
 function sumTo(limit: int): int {
   let total = 0;
+
   for (let value = 1; value <= limit; value += 1) {
     total += value;
   }

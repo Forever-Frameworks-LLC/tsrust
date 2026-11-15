@@ -1,8 +1,10 @@
 function workload(n: int, seed: int): int[] {
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     const values: int[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
+
     if ((i + seed) % 8 === 7) {
       values.copyWithin(target(i, seed), start(i, seed));
     } else {
@@ -21,6 +23,7 @@ function workload(n: int, seed: int): int[] {
 
 function start(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 0;
   }
@@ -54,6 +57,7 @@ function start(i: int, seed: int): int {
 
 function ending(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 5;
   }
@@ -87,6 +91,7 @@ function ending(i: int, seed: int): int {
 
 function target(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 1;
   }

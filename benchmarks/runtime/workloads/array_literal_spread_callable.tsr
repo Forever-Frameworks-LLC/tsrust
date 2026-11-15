@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i + seed) % 97;
     const actions: Function<int>[] = [(): int => {

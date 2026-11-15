@@ -1,0 +1,129 @@
+import { fromUtf8, toUtf8 } from 'std:bytes';
+import { tempDir } from 'std:env';
+import { createTempDir, removeDirAll, writeTextFileAtomic, readTextFile } from 'std:fs';
+import { Channel, Sender, delay } from 'std:futures';
+import { basename, join } from 'std:path';
+import { run } from 'std:process';
+import { monotonicNow } from 'std:time';
+
+import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
+
+// Buffer bytes travel over stdin; formatting never needs a temporary source file.
+export async function formatBuffer(program: ReadOnly<string>, request: ReadOnly<FormattingRequest>): Task<Result<string, string>> {
+  try {
+    match (await run(program, ['format', '--stdin-filepath', clone(request.document.path), '--options', JSON.stringify(request.options), '--color=never'], {
+      cwd: clone(request.root), input: unwrap(fromUtf8(request.document.before)), deadlineMs: 30000, maxOutputBytes: 20 * 1024 * 1024
+    })) {
+      Err(error) => {
+        return Err(clone(error.message));
+      },
+      Ok(output) => {
+        if (!output.status.success) {
+          match (toUtf8(output.stderr)) {
+            Ok(text) => {
+              return Err(text === '' ? 'The formatter failed without an error message.' : clone(text));
+            },
+            Err(_) => {
+              return Err('The formatter output is not valid UTF-8.');
+            }
+          }
+        }
+
+        match (toUtf8(output.stdout)) {
+          Ok(text) => {
+            return Ok(clone(text));
+          },
+          Err(_) => {
+            return Err('The formatter output is not valid UTF-8.');
+          }
+        }
+      }
+    }
+  } catch (_) {
+    return Err('Could not encode formatter input.');
+  }
+}
+
+interface TerminalCompletion {
+  success: boolean;
+}
+
+// Manual formatting runs the actual CLI on a private buffer snapshot, never the user's disk file.
+async function formatInTerminal(program: ReadOnly<string>, request: FormattingRequest, results: ReadOnly<Sender<FormattingResult>>): Task<FormattingResult> {
+  const folder = unwrap(createTempDir(unwrap(tempDir()), 'tsrust-studio-format-'));
+
+  try {
+    const path = join(folder, basename(request.document.path));
+    const completion = join(folder, 'completed.json');
+    unwrap(writeTextFileAtomic(path, request.document.before));
+    await results.send({
+      request: clone(request), text: '', error: '', task: {
+        program: clone(program), args: ['format', clone(path), '--write', '--options', JSON.stringify(request.options), '--color=always', '--progress'], completion: clone(completion)
+      }
+    });
+    const deadline = monotonicNow() + 30000;
+
+    while (monotonicNow() < deadline) {
+      match (readTextFile(completion, 1024)) {
+        Ok(text) => {
+          const status = JSON.parse<TerminalCompletion>(text);
+
+          if (!status.success) return {
+            request, text: '', error: 'Formatting failed. See the Format document terminal.'
+          };
+          return {
+            request, text: unwrap(readTextFile(path, 20 * 1024 * 1024)), error: ''
+          };
+        },
+        Err(error) => {
+          if (error.code !== 'not-found') throw error.message;
+        }
+      }
+
+      await delay(50);
+    }
+
+    return {
+      request, text: '', error: 'Formatting timed out. See the Format document terminal.'
+    };
+  } finally {
+    removeDirAll(folder);
+  }
+}
+
+export async function formattingWorker(program: string, requests: Channel<FormattingRequest>, results: Sender<FormattingResult>): Task<void> {
+  while (true) {
+    try {
+      const request = await requests.receive();
+
+      if (request.mode === 'format') {
+        try {
+          await results.send(await formatInTerminal(program, clone(request), results));
+        } catch (_) {
+          await results.send({
+            request, text: '', error: 'Could not complete formatting. See the Format document terminal and retry.'
+          });
+        }
+
+        continue;
+      }
+
+      const result: FormattingResult = {
+        request: clone(request), text: '', error: ''
+      };
+
+      match (await formatBuffer(program, request)) {
+        Ok(text) => {
+          result.text = clone(text);
+        },
+        Err(error) => {
+          result.error = clone(error);
+        }
+      }
+
+      await results.send(result);
+    } catch (_) {
+      return;
+    }
+  }
+}

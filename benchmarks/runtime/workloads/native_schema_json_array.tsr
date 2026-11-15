@@ -4,9 +4,11 @@ function workload(n: int, seed: int, input: string): int {
   const schema = s.array(s.int().min(2));
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     {
       const outcome0 = schema.safeParse(JSON.parse(input));
+
       if (outcome0.success) {
         const value = outcome0.data;
         checksum += value.length;
@@ -18,16 +20,19 @@ function workload(n: int, seed: int, input: string): int {
 
     {
       const outcome1 = schema.safeParse(JSON.parse('[1,0]'));
+
       if (outcome1.success) {
         const value = outcome1.data;
         throw 'Expected rejection';
       } else {
         const error = outcome1.error;
+
         if (error.truncated || error.issues.length !== 2) {
           throw 'Invalid count';
         }
 
         let index = 0;
+
         for (const issue of error.issues) {
           if (issue.code !== 'too-small' || issue.expected !== 'integer' || issue.observed !== 'number' || issue.path.length !== 1 || issue.pathTruncated) {
             throw 'Invalid issue';

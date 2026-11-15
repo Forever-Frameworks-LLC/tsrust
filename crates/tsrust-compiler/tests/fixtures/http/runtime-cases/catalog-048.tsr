@@ -8,6 +8,7 @@ export async function main(): Task<void> {
   const server = await app.listen('127.0.0.1:0');
   const running = keep(server).start();
   running.cancel();
+
   try {
     await running;
   } catch (error) {

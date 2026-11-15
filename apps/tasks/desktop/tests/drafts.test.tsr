@@ -1,0 +1,51 @@
+import { createTempDir, removeDirAll, readTextFile, writeTextFile } from 'std:fs';
+import { join } from 'std:path';
+import { test, strictEqual } from 'std:testing';
+
+import { LocalDraft, recoverDraft, persistDraft } from '../src/drafts.tsr';
+import { emptyDraft } from '../src/model.tsr';
+
+test('local drafts recover exact edits and preserve malformed or concurrently changed files', () => {
+  const folder = unwrap(createTempDir(undefined, 'worklist-draft-'));
+  const path = join(folder, 'draft.json');
+
+  try {
+    const initial = recoverDraft(clone(path));
+    const draft: LocalDraft = {
+      id: 'one', value: emptyDraft()
+    };
+    draft.value.title = 'Café 日本語';
+    unwrap(persistDraft(initial.journal, draft));
+    const recovered = recoverDraft(clone(path));
+
+    if (recovered.draft === null) throw 'Draft was not recovered.';
+    strictEqual(recovered.draft.value.title, 'Café 日本語');
+    unwrap(writeTextFile(path, 'external draft'));
+    let conflicted = false;
+
+    match (persistDraft(initial.journal, null)) {
+      Ok(_) => {},
+      Err(_) => {
+        conflicted = true;
+      }
+    }
+
+    strictEqual(conflicted, true);
+    strictEqual(unwrap(readTextFile(path)), 'external draft');
+    const invalid = recoverDraft(clone(path));
+    strictEqual(invalid.journal.ready, false);
+    let preserved = false;
+
+    match (persistDraft(invalid.journal, draft)) {
+      Ok(_) => {},
+      Err(_) => {
+        preserved = true;
+      }
+    }
+
+    strictEqual(preserved, true);
+    strictEqual(unwrap(readTextFile(path)), 'external draft');
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});

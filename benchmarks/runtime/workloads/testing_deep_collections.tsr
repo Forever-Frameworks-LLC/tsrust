@@ -7,6 +7,7 @@ function workload(n: int, seed: int): int {
   const setA = new Set<int>();
   const setB = new Set<int>();
   let j = 0;
+
   while (j < 8) {
     first.set(j, [j * j, j + 1]);
     second.set(7 - j, [(7 - j) * (7 - j), 8 - j]);
@@ -18,6 +19,7 @@ function workload(n: int, seed: int): int {
 
   let checksum = 0;
   let i = 0;
+
   while (i < n) {
     const at = (i * 13 + seed) % 8;
     deepStrictEqual(first, second);

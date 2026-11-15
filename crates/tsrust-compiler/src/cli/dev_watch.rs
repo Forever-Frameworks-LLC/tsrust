@@ -9,7 +9,17 @@ impl PartialEq for Contents {
 }
 impl Eq for Contents {}
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>}
+pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>,pub application_paths:Option<Arc<std::collections::BTreeSet<PathBuf>>>}
+impl Inputs {
+ pub fn only_unused_sources_changed(&self,old:&Self)->bool {
+  let Some(paths)=&self.application_paths else{return false;};
+  if self.application_paths!=old.application_paths || self.resolutions!=old.resolutions
+   || self.failures!=old.failures {return false;}
+  let unused=|path:&Path| !paths.contains(path) && matches!(path.extension().and_then(|ext|ext.to_str()),Some("tsr"|"tsrx"));
+  self.files.iter().all(|(path,bytes)|old.files.get(path)==Some(bytes)||unused(path))
+   && old.files.keys().all(|path|self.files.contains_key(path)||unused(path))
+ }
+}
 impl std::ops::Deref for Inputs {type Target=BTreeMap<PathBuf,Contents>;fn deref(&self)->&Self::Target{&self.files}}
 pub(crate) type Fingerprint=Result<Inputs,String>;
 #[cfg(unix)] use std::os::unix::fs::MetadataExt;
@@ -35,11 +45,23 @@ pub(crate) struct Watcher {
     dependencies:BTreeMap<PathBuf,Option<Stamp>>,
     events:Option<crate::dev_events::Events>,
     previous:Option<Fingerprint>,
+    wait_backoff:bool,
     #[cfg(test)] scans:usize,
     #[cfg(test)] reads:usize,
 }
 impl Watcher {
+    pub(crate) fn wait(&mut self,timeout:std::time::Duration) {
+        let started=std::time::Instant::now();
+        if !std::mem::take(&mut self.wait_backoff) && let Some(events)=&mut self.events {
+            match events.wait(timeout) {
+                Ok(())=>return,
+                Err(error)=>{crate::dev_cli::report(crate::dev_cli::Status::Warning,format_args!("Native watch wait failed ({error}); using polling."));self.events=None;},
+            }
+        }
+        std::thread::sleep(timeout.saturating_sub(started.elapsed()));
+    }
     pub(crate) fn snapshot(&mut self,root:&Path)->Fingerprint {
+        self.wait_backoff=false;
         if !self.initialized {
             self.initialized=true;
             if std::env::var("TSRUST_DEV_WATCH").as_deref()==Ok("poll") {
@@ -67,7 +89,14 @@ impl Watcher {
             }
         }
         let result=self.read_snapshot(root);
+        // Empty reconciliations retain the old polling interval under notification storms.
+        self.wait_backoff=self.events.is_some() && self.previous.as_ref()==Some(&result);
         self.previous=Some(result.clone());result
+    }
+    // Only application-affecting edits should supersede an in-flight build.
+    pub(crate) fn still_current(&mut self,root:&Path,expected:&Fingerprint)->bool {
+        let current=self.snapshot(root);
+        current==*expected || matches!((&current,expected),(Ok(new),Ok(old)) if new.only_unused_sources_changed(old))
     }
     fn read_snapshot(&mut self,root:&Path)->Fingerprint {
         #[cfg(test)] {self.scans+=1;}
@@ -104,6 +133,55 @@ impl Watcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn formatted(source:&str)->String {
+        let output=tsrust_compiler::format(source).unwrap();assert_eq!(tsrust_compiler::format(&output).unwrap(),output);output
+    }
+
+    #[test]
+    fn native_wait_wakes_for_edits_without_consuming_reconciliation_events() {
+        use std::time::{Duration,Instant};
+        let directory=crate::TempDirectory::new().unwrap();let source=directory.0.join("main.tsr");
+        fs::write(&source,"before").unwrap();
+        let mut events=crate::dev_events::Events::new(&directory.0).unwrap();assert!(!events.changed().unwrap());
+        let writer=std::thread::spawn(move||{std::thread::sleep(Duration::from_millis(20));fs::write(source,"after").unwrap();});
+        let started=Instant::now();events.wait(Duration::from_secs(2)).unwrap();
+        assert!(started.elapsed()<Duration::from_millis(1500),"native notification must wake before the idle deadline");
+        writer.join().unwrap();assert!(events.changed().unwrap(),"wait must leave reconciliation events queued");
+        events.wait(Duration::ZERO).unwrap();
+    }
+    #[test]
+    fn unchanged_notifications_back_off_without_losing_a_queued_real_edit() {
+        use std::time::{Duration,Instant};
+        let directory=crate::TempDirectory::new().unwrap();let root=&directory.0;
+        fs::write(root.join("tsrust.config.json"),"{}").unwrap();let source=root.join("main.tsr");
+        fs::write(&source,formatted("function main(){}")).unwrap();let mut watcher=Watcher::default();let before=watcher.snapshot(root).unwrap();
+        fs::write(&source,formatted("function main(){}")).unwrap();watcher.events.as_mut().unwrap().wait(Duration::from_secs(2)).unwrap();
+        assert_eq!(watcher.snapshot(root).unwrap(),before);
+        fs::write(&source,formatted("function main(){console.log(1);}")).unwrap();
+        let duration=Duration::from_millis(20);let started=Instant::now();watcher.wait(duration);
+        assert!(started.elapsed()>=duration,"unchanged notifications must not cause a busy reconciliation loop");
+        assert_ne!(watcher.snapshot(root).unwrap(),before,"backoff must retain later real edits");
+    }
+    #[test]
+    fn polling_wait_preserves_the_idle_interval() {
+        use std::time::{Duration,Instant};
+        let mut watcher=Watcher{initialized:true,..Watcher::default()};let duration=Duration::from_millis(20);
+        let started=Instant::now();watcher.wait(duration);assert!(started.elapsed()>=duration);
+    }
+    #[test]
+    fn native_wait_timeout_still_checks_external_dependencies() {
+        let directory=crate::TempDirectory::new().unwrap();let root=directory.0.join("app");fs::create_dir(&root).unwrap();let root=root.canonicalize().unwrap();
+        fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"watch","build":{"entry":"main.tsr","output":"target/watch"}}"#).unwrap();
+        fs::write(root.join("main.tsr"),formatted("import {value} from '../shared.tsr';function main(){console.log(value());}")).unwrap();
+        let external=directory.0.join("shared.tsr");fs::write(&external,formatted("export function value():int{return 1;}")).unwrap();
+        let mut watcher=Watcher::default();let before=watcher.snapshot(&root).unwrap();
+        assert!(watcher.dependencies.contains_key(&external.canonicalize().unwrap()),"dependencies {:?}, inputs {before:?}",watcher.dependencies.keys().collect::<Vec<_>>());
+        fs::write(&external,formatted("export function value():int{return 2;}")).unwrap();
+        assert!(!watcher.events.as_mut().unwrap().changed().unwrap(),"external edit should rely on dependency polling");
+        watcher.wait(std::time::Duration::from_millis(10));
+        assert_ne!(watcher.snapshot(&root).unwrap(),before);assert!(watcher.events.is_some());
+    }
+
     #[test]
     fn unchanged_polls_reuse_bytes_and_same_size_edits_are_detected() {
         let directory=crate::TempDirectory::new().unwrap();let canonical=directory.0.canonicalize().unwrap();let root=&canonical;

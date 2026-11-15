@@ -3,6 +3,7 @@ import { strictEqual } from 'std:testing';
 
 function collect(...entries: [string, string][]): string {
   let text = '';
+
   for (const entry of entries) {
     text += entry[0] + entry[1];
   }

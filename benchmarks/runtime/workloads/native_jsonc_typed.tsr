@@ -9,6 +9,7 @@ type Item = {
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     match (parseJsonc<Item>(input)) {
       Ok(item) => {

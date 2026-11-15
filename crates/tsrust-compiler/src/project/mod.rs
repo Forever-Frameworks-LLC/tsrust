@@ -652,6 +652,13 @@ pub fn check_with_diagnostics(
     Err(errors)
 }
 
+/// Read complete import declarations without requiring a valid body or resolving exports.
+/// Import paths and byte spans are exact compiler tokens; callers resolve against current inputs.
+pub fn module_imports(source: SourceFile) -> Result<Vec<ModuleImport>, ProjectDiagnostic> {
+    // shortcut: unfinished imports are omitted by header parsing; report them when tolerant header diagnostics are available.
+    parse_module(source, false).map(|module| module.imports)
+}
+
 /// Validate module headers and dependencies for tolerant editor assistance.
 /// Bodies need not parse. This is not evidence that a project compiles; use load_project/check_graph for compilation.
 pub fn load_project_headers(

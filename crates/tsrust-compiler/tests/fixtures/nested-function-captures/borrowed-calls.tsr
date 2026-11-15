@@ -107,6 +107,7 @@ function main() {
   let state = 0;
   function risky(limit: int): int {
     state += 1;
+
     if (limit > 1) {
       throw "big";
     }
@@ -115,6 +116,7 @@ function main() {
   }
 
   let caught = "";
+
   try {
     risky(1);
     risky(5);
@@ -127,6 +129,7 @@ function main() {
 
   const rows: int[][] = [[1], [2, 3]];
   let cells = 0;
+
   for (const row of rows) {
     function size(): int {
       return row.length;

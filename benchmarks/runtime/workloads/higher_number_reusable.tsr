@@ -2,6 +2,7 @@ function workload(n: int, seed: int): number {
   const consumer = apply;
   let total: number = 0.0;
   let i = 0;
+
   while (i < n) {
     const value = Number((seed + i) % 17) / 4.0;
     total = total + consumer(identity, value);

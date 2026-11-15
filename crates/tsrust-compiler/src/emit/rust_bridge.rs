@@ -14,7 +14,7 @@ impl Emitter<'_> {
                 let _=writeln!(output,"{}{}",crate::project::rust::dependencies::MARKER,serde_json::to_string(package).unwrap());
                 for name in &package.crates{let _=writeln!(output,"use {name};");}
             }
-            output.push_str(&rust.source.text);output.push_str("\n}\n");
+            output.push_str(&rust.runtime_source());output.push_str("\n}\n");
         }
     }
     pub(super) fn rust_function_body(&self,index:usize,shapes:&[Option<crate::fixed_storage::Shape>])->Option<String>{
@@ -79,6 +79,7 @@ impl Emitter<'_> {
             RustType::Array(inner)=>{let Type::Array(element)=checked else{unreachable!("checked owned array")};let converted=self.rust_input(inner,element.ty(),"native_item",module,rust);format!("({value}).tsr_owned_items().map(|native_item|{converted}).collect::<Vec<_>>()")},
             RustType::Option(inner,_)=>self.rust_option_input(inner,checked,value,module,rust),
             RustType::Named(name)=>match &rust.types[name] {
+                Data::Resource=>value.into(),
                 Data::Struct(fields)=> {
                     let Type::Record(record)=checked else{unreachable!()};
                     let fields=fields.iter().map(|(name,ty)| {
@@ -140,6 +141,7 @@ impl Emitter<'_> {
             self.schema_output_record(record,&fields)
         };
         match &rust.types[name] {
+            Data::Resource=>value.into(),
             Data::Struct(fields)=>{let Type::Record(record)=checked else{unreachable!()};format!("{{let native={value};{}}}",record_output(record,fields,false,false))},
             Data::Enum(variants)=> {
                 let members=if let Type::Union(union)=checked{self.program.unions[union.index()].members.clone()}else{vec![checked]};

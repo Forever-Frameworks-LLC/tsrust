@@ -6,6 +6,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import { sourceIdentityMatches } from '../../benchmarks/runtime/format-source-identity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -106,7 +107,7 @@ for(const workload of httpManifest.workloads){
   const engines={};
   for(const [engine,history,file] of [['native',nativeRuns,'requests.tsr'],['node-tsc',nodeRuns,'requests.ts'],['rust-hand',rustRuns,'requests.rs']]){
     const pin=pins[engine],source=fs.readFileSync(path.join(root,'benchmarks/http',file));
-    if(!pin||createHash('sha256').update(source).digest('hex')!==pin.sourceSha256)throw Error(`Stale HTTP source: ${workload.id}/${engine}`);
+    if(!pin||!sourceIdentityMatches(pin.sourceSha256,createHash('sha256').update(source).digest('hex')))throw Error(`Stale HTTP source: ${workload.id}/${engine}`);
     const measured=history.get(workload.id)?.get(pin.at);
     if(!measured||measured.samples!==httpManifest.protocol.processes*httpManifest.protocol.samples)throw Error(`Missing HTTP measurement: ${workload.id}/${engine}`);
     engines[engine]={...measured,at:pin.at};
@@ -134,7 +135,7 @@ if(config.cpuBaselines){
   const engines={};
   for(const [engine,history,file] of [['native',nativeRuns,'cpu.tsr'],['node-tsc',nodeRuns,'cpu.ts'],['rust-hand',rustRuns,'cpu.rs']]){
    const pin=config.cpuBaselines[workload.id]?.[engine];
-   if(!pin||createHash('sha256').update(fs.readFileSync(path.join(root,'benchmarks/http',file))).digest('hex')!==pin.sourceSha256)throw Error('Stale CPU source: '+engine);
+   if(!pin||!sourceIdentityMatches(pin.sourceSha256,createHash('sha256').update(fs.readFileSync(path.join(root,'benchmarks/http',file))).digest('hex')))throw Error('Stale CPU source: '+engine);
    const measured=history.get(workload.id)?.get(pin.at);
    if(!measured||measured.samples!==93||measured.requestSamples!==11904||measured.resourceRequests!==11904||!Number.isFinite(measured.requestP99Ms)||!Number.isFinite(measured.cpuMsPerRequest)||!(measured.peakRssBytes>0))throw Error('Missing CPU latency/resources: '+engine);
    engines[engine]=measured;
@@ -176,7 +177,7 @@ const highlightWorkload=workloads.get(highlight.workload);
 if(highlightWorkload.iterations!==highlightPin.iterations||manifest.seed!==highlightPin.seed)throw Error('CPU highlight measured inputs changed');
 const highlightSource=fs.readFileSync(path.join(root,'benchmarks/runtime',highlightWorkload.source??('workloads/'+highlight.workload+'.tsr')),'utf8');
 const highlightCounterpart=fs.readFileSync(path.join(root,'benchmarks/runtime',highlightWorkload.counterpart??('workloads/'+highlight.workload+'.ts')),'utf8');
-if(createHash('sha256').update(highlightSource).digest('hex')!==highlightPin.sourceSha256||createHash('sha256').update(highlightCounterpart).digest('hex')!==highlightPin.counterpartSha256)throw Error('Stale CPU highlight source');
+if(!sourceIdentityMatches(highlightPin.sourceSha256,createHash('sha256').update(highlightSource).digest('hex'))||!sourceIdentityMatches(highlightPin.counterpartSha256,createHash('sha256').update(highlightCounterpart).digest('hex')))throw Error('Stale CPU highlight source');
 const highlightFunction=highlightSource.slice(0,highlightSource.indexOf('\nfunction main()')).trim();
 if(!highlightFunction.startsWith('function workload('))throw Error('CPU highlight function boundary changed');
 const highlightBatch=highlightWorkload.iterations.toLocaleString('en-US');

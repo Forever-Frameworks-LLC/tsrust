@@ -1,4 +1,12 @@
-import { Bytes, fromArray, append, copy, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  fromArray,
+  append,
+  copy,
+  at,
+  set,
+  length
+} from "std:bytes";
 
 function read(bytes: ReadOnly<Bytes>, index: int): int {
   match (at(bytes, index)) {
@@ -27,12 +35,15 @@ function workload(n: int, seed: int, input: string): int[][] {
   const add = append;
   const duplicate = copy;
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
+
     match (fromArray([byte, 65])) {
       Ok(bytes) => {
         const initial = length(bytes);
         let success = -1;
+
         match (add(bytes, [255, 7])) {
           Ok(_) => {
             success = 1;
@@ -44,6 +55,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         let invalid = -1;
         let offset = -1;
+
         match (append(bytes, [8, 256])) {
           Ok(_) => {
             invalid = -2;
@@ -55,6 +67,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         }
 
         const preserved = read(bytes, 3);
+
         match (duplicate(bytes, 0, 2)) {
           Ok(part) => {
             const ownerWrite = write(bytes, 0, (byte + 1) % 256);
@@ -62,6 +75,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             const partWrite = write(part, 1, 9);
             const ownerRetained = read(bytes, 1);
             let empty = -1;
+
             match (copy(bytes, 4, 4)) {
               Ok(value) => {
                 empty = length(value);
@@ -72,6 +86,7 @@ function workload(n: int, seed: int, input: string): int[][] {
             }
 
             let rangeOffset = -1;
+
             match (copy(bytes, 0, 5)) {
               Ok(_) => {
                 rangeOffset = -2;

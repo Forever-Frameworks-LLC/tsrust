@@ -2,6 +2,7 @@ function workload(n: int, seed: int): int {
   const action = counter(seed);
   let sum = 0;
   let i = 0;
+
   while (i < n) {
     sum = sum + action();
     i = i + 1;

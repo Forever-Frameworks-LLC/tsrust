@@ -10,6 +10,7 @@ function workload(n: int, seed: int): int[] {
     predicates: 0, left: 0, right: 0
   };
   let i = 0;
+
   while (i < n) {
     const left: int = (i * 13 + seed) % 64;
     const right: int = (i * 7 + seed) % 64 + 64;

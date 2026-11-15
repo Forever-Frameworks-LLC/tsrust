@@ -1,0 +1,153 @@
+{
+  "repository": "https://github.com/gpui-ce/gpui-component",
+  "revision": "d248729826757c96133ab723da3fee1cd2ed0ad6",
+  "files": [
+    {
+      "file": "adventure.json",
+      "sha256": "7e281e7032f4660b14289af1e29af8ec7dedad4aca506fdcc67cfaa2180cd748",
+      "name": "Adventure",
+      "author": "iTerm2-Color-Schemes",
+      "url": "https://github.com/mbadolato/iTerm2-Color-Schemes"
+    },
+    {
+      "file": "alduin.json",
+      "sha256": "5c30fdc57f54aaac128932682856704cf7643c5d0986b24ad3cf3072e60984ae",
+      "name": "Alduin",
+      "author": "AlessandroYorba",
+      "url": "https://github.com/AlessandroYorba/Alduin"
+    },
+    {
+      "file": "asciinema.json",
+      "sha256": "0813fe261b4717bccf4f6ae023ffa51b67a7bdb1720ae72fc1fe8c3f70a6cefe",
+      "name": "Asciinema",
+      "author": "asciinema.org",
+      "url": "https://asciinema.org"
+    },
+    {
+      "file": "aurora.json",
+      "sha256": "40176b7179352ade81371d7ebb27b1ad0144a0c506fd5637b5d8c3f58aee8b1f",
+      "name": "Aurora",
+      "author": "Longbridge",
+      "url": "https://github.com/longbridge/gpui-kit"
+    },
+    {
+      "file": "ayu.json",
+      "sha256": "422137ac96704d6333f8e3a4f7b1b94f8fa7cb7e3bfda5ab75b712bb662cb92d",
+      "name": "Ayu",
+      "author": "Zed Industries",
+      "url": "https://github.com/zed-industries/zed/blob/e62dd2a0e584154886ff86cc1e9e3e060558b977/assets/themes/ayu"
+    },
+    {
+      "file": "catppuccin.json",
+      "sha256": "355c194813973489b012411e920ec84dbb4cd2acd035b3e498d56d3e6d8ba5b7",
+      "name": "Catppuccin",
+      "author": "Catppuccino",
+      "url": "https://github.com/catppuccin/catppuccin"
+    },
+    {
+      "file": "everforest.json",
+      "sha256": "a8bb74e138a5e64275da63fbbb30fb640b2f991d1cd3adebf6e40a2a28d3682b",
+      "name": "Everforest",
+      "author": "sainnhe",
+      "url": "https://github.com/sainnhe/everforest"
+    },
+    {
+      "file": "fahrenheit.json",
+      "sha256": "fafbaffbc7f951e85c1a321b7ac855c4f5466516206f54fb0c86d7e30f2b53d9",
+      "name": "Fahrenheit",
+      "author": "iTerm2-Color-Schemes",
+      "url": "https://github.com/mbadolato/iTerm2-Color-Schemes"
+    },
+    {
+      "file": "flexoki.json",
+      "sha256": "6978c6e47f0303e1c80355791f1486db02a62588e18d5b474dc2c4e8dd03cf20",
+      "name": "Flexoki",
+      "author": "kepano",
+      "url": "https://github.com/kepano/flexoki"
+    },
+    {
+      "file": "gruvbox.json",
+      "sha256": "11e86e4c874e978c1a32738bab3b3d7d0cf9016442dd45b855c56c55ae3d231f",
+      "name": "Gruvbox",
+      "author": "Pavel Pertsev",
+      "url": "https://github.com/morhetz/gruvbox"
+    },
+    {
+      "file": "harper.json",
+      "sha256": "3ae700486ad5813993851a93108d5dc117f7e6d35f6adbc01708904bc408988c",
+      "name": "Harper",
+      "author": "iTerm2-Color-Schemes",
+      "url": "https://github.com/mbadolato/iTerm2-Color-Schemes"
+    },
+    {
+      "file": "hybrid.json",
+      "sha256": "9a54ab60a85c221449f4a704eafa448f80359a88266a1f3874bcd7e1c85076c6",
+      "name": "Hybrid",
+      "author": "Andrew Wong",
+      "url": "https://github.com/w0ng/vim-hybrid"
+    },
+    {
+      "file": "jellybeans.json",
+      "sha256": "b53b29819e616822021d64c46536e79515e4ed231981fb72da0e9cc736cd3477",
+      "name": "Jellybeans",
+      "author": "nanotech",
+      "url": "https://github.com/nanotech/jellybeans.vim"
+    },
+    {
+      "file": "kibble.json",
+      "sha256": "c8cc430841b2d7c3ca30c7e3d018c2ef4ee1a2b473fcc92ba0a1a9df4304ce13",
+      "name": "Kibble",
+      "author": "iTerm2-Color-Schemes",
+      "url": "https://github.com/mbadolato/iTerm2-Color-Schemes"
+    },
+    {
+      "file": "macos-classic.json",
+      "sha256": "d004038f480a44a68c82d82e08143bb0d919a1c9280524b68f8a9a9264c460dc",
+      "name": "macOS Classic",
+      "author": "huacnlee",
+      "url": "https://github.com/huacnlee/zed-theme-macos-classic"
+    },
+    {
+      "file": "mellifluous.json",
+      "sha256": "da0c76de9ff4917cced5554a5ce5113092c4f85421afee7538ee493e74f7ac20",
+      "name": "Mellifluous",
+      "author": "Ramojus Lapinskas",
+      "url": "https://github.com/ramojus/mellifluous.nvim"
+    },
+    {
+      "file": "molokai.json",
+      "sha256": "d6b91527a86414db1e593c23d6e7190109ad0b3f831eb69a4efea2eb82045545",
+      "name": "Molokai",
+      "author": "Tomas Restrepo",
+      "url": "https://github.com/tomasr/molokai"
+    },
+    {
+      "file": "solarized.json",
+      "sha256": "6879526e3a946ce20eafe66ea37a7aa2174363279b8a4defb1f9e9ccc989e66a",
+      "name": "Solarized",
+      "author": "Ethan Schoonover",
+      "url": "https://ethanschoonover.com/solarized"
+    },
+    {
+      "file": "spaceduck.json",
+      "sha256": "bf4fac49e5e96170cce3e3a41aa6eeff2020cf04f71c1de2d4821fb0259e0415",
+      "name": "Spaceduck",
+      "author": "Guillermo Rodriguez",
+      "url": "https://github.com/pineapplegiant/spaceduck"
+    },
+    {
+      "file": "tokyonight.json",
+      "sha256": "a47976fec3336080be95c0f54a3a89ba8b38dd81f9494d7b383161e4fbffcca7",
+      "name": "Tokyo",
+      "author": "Folke Lemaitre",
+      "url": "https://github.com/folke/tokyonight.nvim"
+    },
+    {
+      "file": "twilight.json",
+      "sha256": "6fcb489c7fd584647532b9b7f192efab4100ab7b082e11c4735a18f2b096d77f",
+      "name": "Twilight",
+      "author": "MacroMates",
+      "url": "https://macromates.com"
+    }
+  ]
+}

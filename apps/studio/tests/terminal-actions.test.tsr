@@ -1,0 +1,119 @@
+import { Channel } from 'std:futures';
+import { test, strictEqual } from 'std:testing';
+
+import {
+  TerminalAuthority,
+  TerminalArguments,
+  terminalCommands,
+  terminalTools,
+  terminalToolSchema,
+  validateTerminalCommand,
+  invokeTerminalTool
+} from '../src/services/terminal-actions.tsr';
+
+interface TerminalToolSchema {
+  type: string;
+  required: string[];
+}
+
+test('terminal commands enforce host scope, grants, generation and argument bounds', () => {
+  const denied: TerminalAuthority = {
+    sessionId: 'human-shell', allowRead: true, allowInput: false, allowNavigation: false, allowClipboard: false, allowTerminate: false
+  };
+  const args: TerminalArguments = {
+    id: 'human-shell', generation: 7, text: 'echo unsafe\r'
+  };
+  strictEqual(unwrap(validateTerminalCommand(denied, 'read', args)) === undefined, true);
+
+  for (const name of ['write', 'paste', 'interrupt', 'copy', 'copy-output', 'scroll', 'focus', 'close', 'restart', 'select']) {
+    match (validateTerminalCommand(denied, name, args)) {
+      Ok(_) => {
+        throw 'denied command accepted';
+      },
+      Err(_) => {}
+    }
+  }
+
+  const granted: TerminalAuthority = {
+    sessionId: 'isolated-shell', allowRead: true, allowInput: true, allowNavigation: true, allowClipboard: true, allowTerminate: true
+  };
+  const valid: TerminalArguments = {
+    id: 'isolated-shell', generation: 7, text: 'printf ok\r', lines: -12
+  };
+  const write = unwrap(validateTerminalCommand(granted, 'write', valid));
+
+  if (write === undefined) throw 'write request missing';
+  strictEqual(write.text ?? '', 'printf ok\r');
+  strictEqual(write.expectedGeneration ?? 0, 7);
+  const invalidCases: TerminalArguments[] = [{
+    id: 'other', generation: 7
+  }, {
+    id: 'isolated-shell', generation: 0
+  }, {
+    id: 'isolated-shell'
+  }];
+
+  for (const invalid of invalidCases) {
+    match (validateTerminalCommand(granted, 'interrupt', invalid)) {
+      Ok(_) => {
+        throw 'invalid target accepted';
+      },
+      Err(_) => {}
+    }
+  }
+
+  match (validateTerminalCommand(granted, 'scroll', {
+    id: 'isolated-shell', generation: 7, lines: 2147483648
+  })) {
+    Ok(_) => {
+      throw 'overflow accepted';
+    },
+    Err(_) => {}
+  }
+
+  match (validateTerminalCommand(granted, 'write', {
+    id: 'isolated-shell', generation: 7
+  })) {
+    Ok(_) => {
+      throw 'missing text accepted';
+    },
+    Err(_) => {}
+  }
+
+  strictEqual(terminalCommands().length, 11);
+  strictEqual(terminalTools().some((tool) => tool.name === 'terminal_write'), true);
+
+  for (const command of terminalCommands()) {
+    const schema = JSON.parse<TerminalToolSchema>(terminalToolSchema(command));
+    strictEqual(schema.type, 'object');
+    strictEqual(schema.required.includes('id'), true);
+    strictEqual(schema.required.includes('generation'), command.name !== 'read');
+    strictEqual(schema.required.includes('text'), command.text);
+  }
+});
+
+test('registered terminal adapter rejects forged grants and malformed requests before UI dispatch', () => {
+  const denied: TerminalAuthority = {
+    sessionId: 'human-shell', allowRead: true, allowInput: false, allowNavigation: false, allowClipboard: false, allowTerminate: false
+  };
+  const replies = new Channel<boolean>(4);
+  const cases = [{
+    name: 'terminal_write', payload: '{"id":"human-shell","generation":7,"text":"touch live-files\\r","allowInput":true}'
+  }, {
+    name: 'terminal_close', payload: '{"id":"human-shell","generation":7,"allowTerminate":true}'
+  }, {
+    name: 'terminal_read', payload: '{'}, {
+    name: 'terminal_execute-unregistered', payload: '{"id":"human-shell"}'
+  }];
+
+  for (const attempt of cases) {
+    const reply = replies.sender();
+    invokeTerminalTool(denied, clone(attempt.name), clone(attempt.payload), (result) => {
+      unwrap(reply.trySend(!result.ok));
+    });
+  }
+
+  for (const attempt of cases) {
+    strictEqual(unwrap(replies.tryReceive()), true);
+  }
+});

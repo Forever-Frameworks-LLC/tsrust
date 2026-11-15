@@ -169,6 +169,15 @@ impl Owners {
         previous.difference(&self.live()).copied().collect()
     }
 
+    pub(crate) fn unwind_future_loans(&mut self, retained: &BTreeSet<usize>) {
+        self.entries.retain(|place, loans| {
+            if place.binding == usize::MAX && place.fields.first().is_some_and(|field| field.starts_with("future:")) {
+                loans.retain(|loan| retained.contains(loan));
+            }
+            !loans.is_empty()
+        });
+    }
+
     pub(crate) fn leave_scope(&mut self, first_binding: usize) -> BTreeSet<usize> {
         self.map_payloads.leave_scope(first_binding);
         self.array_shapes.leave_scope(first_binding);
@@ -355,6 +364,15 @@ mod tests {
         left.join(&right);
         assert!(left.leave_scope(1).is_empty());
         assert_eq!(left.live(), BTreeSet::from([10]));
+    }
+
+    #[test]
+    fn unwinding_future_temporaries_preserves_real_outer_owners() {
+        let mut owners = Owners::default();
+        owners.attach(place(0, &[]), [9]);
+        owners.attach(place(usize::MAX, &["future:42"]), [10, 11]);
+        owners.unwind_future_loans(&BTreeSet::from([10]));
+        assert_eq!(owners.live(), BTreeSet::from([9, 10]));
     }
 
     #[test]

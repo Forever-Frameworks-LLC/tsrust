@@ -1,0 +1,53 @@
+import { Channel, Sender, all } from 'std:futures';
+
+import { ModelRequest, ModelUpdate } from '../lib/ai/protocol.tsr';
+import { LanguageServer, studioServers } from '../lib/language/servers.tsr';
+import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
+import { DebugCommand, DebugOutput, debugWorker } from './debug/session.tsr';
+import { modelDownloads } from './ai/model-extensions.tsr';
+import { modelService } from './ai/session.tsr';
+import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from './content-search.tsr';
+import { formattingWorker } from './formatting.tsr';
+import { languageServices } from './lsp/registry.tsr';
+import { LanguageMessage, LanguageUpdate } from './lsp/session.tsr';
+import { GitRequest, GitReply, gitWorker } from './git.tsr';
+import { CheckResult, projectCheckWorker } from './project-check.tsr';
+
+// One owner cancels and settles every service when the application closes.
+export async function studioWorkers(
+  root: string,
+  program: string,
+  requests: Channel<string>,
+  replies: Sender<CheckResult>,
+  formattingRequests: Channel<FormattingRequest>,
+  formattingReplies: Sender<FormattingResult>,
+  languageMessages: Channel<LanguageMessage>,
+  languageReplies: Sender<LanguageUpdate>,
+  modelProgram: string,
+  modelRequests: Channel<ModelRequest>,
+  modelUpdates: Sender<ModelUpdate>,
+  searchRequests: Channel<ContentSearchRequest>,
+  searchReplies: Sender<ContentSearchReply>,
+  cancellations: Channel<int>,
+  gitRequests: Channel<GitRequest>,
+  gitReplies: Sender<GitReply>,
+  downloads: Channel<string>,
+  downloadReplies: Sender<string>,
+  debugRequests: Channel<DebugCommand>,
+  debugReplies: Sender<DebugOutput>,
+  servers: LanguageServer[] = []
+): Task<void> {
+  const debugRoot = clone(root);
+  const gitRoot = clone(root);
+  const languageRoot = clone(root);
+  const checkProgram = clone(program);
+  const language = languageServices(languageRoot, studioServers(program, servers), languageMessages, languageReplies).start();
+  const git = gitWorker(gitRoot, gitRequests, gitReplies).start();
+  const debuggerJob = debugWorker(debugRoot, debugRequests, debugReplies).start();
+  const checker = projectCheckWorker(root, checkProgram, requests, replies).start();
+  const formatter = formattingWorker(program, formattingRequests, formattingReplies).start();
+  const model = modelService(modelProgram, modelRequests, modelUpdates).start();
+  const search = contentSearchWorker(searchRequests, searchReplies, cancellations).start();
+  const installer = modelDownloads(downloads, downloadReplies).start();
+  await all([language, checker, formatter, model, search, git, installer, debuggerJob]);
+}

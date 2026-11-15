@@ -1,5 +1,19 @@
 import { describe, test, strictEqual, rejects } from 'std:testing';
-import { Router, WebSocket, WebSocketRead, WebSocketWrite, SseEvent, Request, sse, sse as makeEvents, sseWithProducer, sseWithProducer as makeProducedEvents, requestStream, connectWebSocket, connectWebSocket as connectFactory } from 'std:http';
+import {
+  Router,
+  WebSocket,
+  WebSocketRead,
+  WebSocketWrite,
+  SseEvent,
+  Request,
+  sse,
+  sse as makeEvents,
+  sseWithProducer,
+  sseWithProducer as makeProducedEvents,
+  requestStream,
+  connectWebSocket,
+  connectWebSocket as connectFactory
+} from 'std:http';
 import { Channel, Sender, delay, all } from 'std:futures';
 import { fromArray, toHex, toUtf8 } from 'std:bytes';
 import { readFile } from 'std:fs';
@@ -51,6 +65,7 @@ async function failed(sender: Sender<SseEvent>, guard: Owned<Request>): Task<voi
 
 async function echo(socket: Owned<WebSocket>): Task<void> {
   const message = await socket.receive();
+
   if (message !== undefined) {
     await socket.send(message);
   }
@@ -60,12 +75,14 @@ async function echo(socket: Owned<WebSocket>): Task<void> {
 
 async function receiveSplitText(read: Owned<WebSocketRead>): Task<void> {
   const text = await read.receive();
+
   if (text === undefined || text.kind !== 'text') {
     throw 'missing text';
   }
 
   strictEqual(text.data, 'é🦀');
   const closing = await read.receive();
+
   if (closing !== undefined) {
     strictEqual(closing.kind, 'close');
   }
@@ -170,6 +187,7 @@ describe('WebSocket owned transport', () => {
     app.webSocket('/echo', echo);
     const server = await app.listen('127.0.0.1:0');
     const url = 'ws://' + server.address() + '/echo';
+
     try {
       const connect = connectFactory;
       const { read, write } = (await connect(url)).split();
@@ -181,6 +199,7 @@ describe('WebSocket owned transport', () => {
         kind: 'binary', data: unwrap(fromArray([0, 255, 1, 128]))
       });
       const binary = await socket.receive();
+
       if (binary === undefined || binary.kind !== 'binary') {
         throw 'missing binary';
       }
@@ -206,6 +225,7 @@ async function tlsRejected(certificate: string, customTrust: boolean): Task<void
     cert: pem(certificate), key: pem('server.key')
   });
   const url = 'wss://' + server.address() + '/echo';
+
   try {
     if (customTrust) {
       await rejects(async () => {
@@ -231,6 +251,7 @@ describe('explicit realtime policies', () => {
     const hold = idle.sender();
     const body = sse(idle).body();
     let timedOut = false;
+
     try {
       await body.next().timeout(5);
     } catch (error) {
@@ -247,6 +268,7 @@ describe('explicit realtime policies', () => {
       keepAliveMs: 1, keepAliveText: 'alive'
     }).body();
     const comment = await comments.next();
+
     if (comment === undefined) {
       throw 'missing keepalive';
     }
@@ -270,6 +292,7 @@ describe('explicit realtime policies', () => {
     app.webSocket('/echo', echo);
     const server = await app.listen('127.0.0.1:0');
     const url = 'ws://' + server.address() + '/echo';
+
     try {
       const unauthorizedUrl = clone(url);
       await rejects(async () => {
@@ -296,6 +319,7 @@ describe('explicit realtime policies', () => {
         kind: 'text', data: 'authorized'
       });
       const message = await socket.receive();
+
       if (message === undefined || message.kind !== 'text') {
         throw 'missing authorized message';
       }
@@ -310,6 +334,7 @@ describe('explicit realtime policies', () => {
     const app = new Router();
     app.webSocket('/echo', echo);
     const server = await app.listen('127.0.0.1:0');
+
     try {
       const url = 'ws://' + server.address() + '/echo';
       const limitedMessage = await connectWebSocket(url, {
@@ -342,9 +367,11 @@ describe('explicit realtime policies', () => {
     const app = new Router();
     app.webSocket('/echo', echo);
     const server = await app.listen('127.0.0.1:0');
+
     try {
       const socket = await connectWebSocket('ws://' + server.address() + '/echo');
       let invalidCloseRejected = false;
+
       try {
         await socket.send({
           kind: 'close', code: 1005
@@ -358,6 +385,7 @@ describe('explicit realtime policies', () => {
         kind: 'text', data: 'still open'
       });
       const message = await socket.receive();
+
       if (message === undefined || message.kind !== 'text') {
         throw 'invalid close changed connection';
       }
@@ -377,6 +405,7 @@ describe('explicit realtime policies', () => {
     const server = await app.listen('127.0.0.1:0');
     const socket = await connectWebSocket('ws://' + server.address() + '/echo');
     await server.shutdown();
+
     try {
       strictEqual((await socket.receive().timeout(200)) === undefined, true);
     } catch (error) {
@@ -387,9 +416,11 @@ describe('explicit realtime policies', () => {
     const app = new Router();
     app.webSocket('/echo', echo);
     const server = await app.listen('127.0.0.1:0');
+
     try {
       for (const size of [1, 64, 65536, 1048576]) {
         const values: int[] = [];
+
         for (let index = 0; index < size; index += 1) {
           values.push((index * 31 + 7) % 251);
         }
@@ -399,6 +430,7 @@ describe('explicit realtime policies', () => {
           kind: 'binary', data: unwrap(fromArray(values))
         });
         const message = await socket.receive();
+
         if (message === undefined || message.kind !== 'binary') {
           throw 'missing binary';
         }
@@ -419,6 +451,7 @@ describe('WebSocket TLS verification', () => {
     const server = await app.listen('127.0.0.1:0', {
       cert: pem('server.pem'), key: pem('server.key')
     });
+
     try {
       const socket = await connectWebSocket('wss://' + server.address() + '/echo', {
         ca: pem('ca.pem')
@@ -427,6 +460,7 @@ describe('WebSocket TLS verification', () => {
         kind: 'text', data: 'verified'
       });
       const message = await socket.receive();
+
       if (message === undefined || message.kind !== 'text') {
         throw 'missing verified text';
       }

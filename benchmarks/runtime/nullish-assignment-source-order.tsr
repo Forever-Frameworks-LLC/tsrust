@@ -1,5 +1,6 @@
 function left(trace: int[], tag: int): int | null | undefined {
   trace.push(1);
+
   if (tag === 0) {
     return null;
   }

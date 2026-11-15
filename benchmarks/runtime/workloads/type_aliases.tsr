@@ -25,6 +25,7 @@ function kind(id: Id): string {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: Rows = [];
   let i: Count = 0;
+
   while (i < n) {
     const k: Count = i + seed;
     const ids: Ids = [k, String(input)];

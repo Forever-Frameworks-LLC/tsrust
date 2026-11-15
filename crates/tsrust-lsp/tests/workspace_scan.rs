@@ -16,6 +16,7 @@ impl Drop for Directory {fn drop(&mut self){std::fs::remove_dir_all(&self.0).unw
 #[test]
 fn scan_excludes_generated_files_deduplicates_roots_and_includes_unsaved_new_files() {
     let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join(".gitignore"),"*.tsr\n").unwrap();
     std::fs::write(dir.0.join("bad.tsr"),"function bad(){const value:int=\"bad\";}").unwrap();
     for excluded in ["target","node_modules",".git"] {
         std::fs::create_dir(dir.0.join(excluded)).unwrap();
@@ -68,6 +69,33 @@ fn removing_last_root_clears_previous_publications() {
     let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=check(&job);
     let cleared=scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap();
     assert_eq!(cleared.len(),1);assert!(cleared[0].diagnostics.is_empty());assert!(!scanner.enabled());
+}
+
+#[test]
+fn foreground_results_skip_duplicate_scans_and_keep_warnings_and_invalidation() {
+    use tsrust_lsp::workspace_scan::Cache;
+    let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join("tsrust.config.json"),r#"{"build":{"entry":"main.tsr"}}"#).unwrap();
+    std::fs::write(dir.0.join("main.tsr"),"import {value} from './library.tsr';function main(){const amount:int=value();console.log(amount);}").unwrap();
+    std::fs::write(dir.0.join("library.tsr"),"export function value():int{return 7;}async function one():Task<int>{return 1;}function probe(){one();}").unwrap();
+    let mut projects=ProjectSession::default();let mut scanner=Scanner::default();
+    scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    let entry=SourceId(dir.0.join("main.tsr").to_str().unwrap().into());
+    let input=projects.workspace.snapshot();let result=input.check_with_diagnostics(&entry);assert!(result.is_ok());
+    let mut cache=Cache::default();cache.remember(&entry,&input,&result);
+    let reused=cache.check(&job).unwrap();assert_eq!(cache.checked_entries(),0);
+    assert_eq!(reused,check(&job).unwrap());
+    assert!(reused.values().flatten().any(|item|item.severity==Some(lsp_types::DiagnosticSeverity::WARNING)));
+    projects.open(&Snapshot{uri:dir.uri("library.tsr"),version:1,generation:1,text:"export function value():string{return 'changed';}".into()});
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    let changed=cache.check(&job).unwrap();assert!(cache.checked_entries()>0);
+    assert_eq!(changed,check(&job).unwrap());
+    assert!(changed.values().flatten().any(|item|item.severity==Some(lsp_types::DiagnosticSeverity::ERROR)));
+    let input=projects.workspace.snapshot();let result=input.check_with_diagnostics(&entry);assert!(result.is_err());
+    cache.remember(&entry,&input,&result);
+    assert_eq!(cache.check(&job).unwrap(),changed);assert_eq!(cache.checked_entries(),0);
 }
 
 #[test]
@@ -133,8 +161,9 @@ fn interrupted_scan_resumes_completed_entries_and_keeps_stale_input_guards() {
     let dir=Directory::new();let projects=ProjectSession::default();let mut scanner=Scanner::default();let mut cache=Cache::default();let now=Instant::now();
     for name in ["a","b","c"] {std::fs::write(dir.0.join(format!("{name}.tsr")),format!("function {name}(){{const value:int=\"bad\";}}")).unwrap();}
     scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
-    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let mut visits=0;
-    assert!(cache.check_cancellable(&job,||{visits+=1;visits>1}).unwrap().is_none());assert_eq!(cache.checked_entries(),1);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    assert!(cache.check_cancellable(&job,||true).unwrap().is_none());assert_eq!(cache.checked_entries(),0,"discovery itself is cancellable");
+    assert!(cache.check_cancellable(&job,||!job.input.sources().is_empty()).unwrap().is_none());assert_eq!(cache.checked_entries(),1);
     scanner.dirty(now,Duration::ZERO);let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);assert_eq!(cache.checked_entries(),2);
     assert_eq!(result.as_ref().unwrap().values().map(Vec::len).sum::<usize>(),3);
     std::fs::write(dir.0.join("a.tsr"),"function a(){}").unwrap();assert!(scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap().is_empty());

@@ -11,6 +11,7 @@ async function produce(sender: Sender<Bytes>): Task<void> {
 async function main(): Task<void> {
   const chunks = new Channel<Bytes>(1);
   const producer = produce(chunks.sender()).start();
+
   try {
     const response = streamChannel(chunks);
     strictEqual(await response.text(), 'hello world');

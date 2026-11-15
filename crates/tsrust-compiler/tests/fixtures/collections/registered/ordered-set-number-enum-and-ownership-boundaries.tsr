@@ -10,6 +10,7 @@ enum Label {
 
 function take(...words: string[]): int {
   let size = 0;
+
   for (const word of words) {
     size += word.length;
   }
@@ -40,6 +41,7 @@ export function main() {
   codes.add(Code.Low);
   strictEqual(codes.has(Code.Low), true);
   strictEqual(codes.delete(Code.High), true);
+
   for (const code of codes) {
     strictEqual(code, Code.Low);
   }

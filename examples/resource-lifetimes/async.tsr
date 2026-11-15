@@ -1,4 +1,11 @@
-import { trackedResource, resourceId, closeResource, releaseCount, liveCount, TrackedResource } from "std:testing";
+import {
+  trackedResource,
+  resourceId,
+  closeResource,
+  releaseCount,
+  liveCount,
+  TrackedResource
+} from "std:testing";
 import { strictEqual } from "std:testing";
 import { yield } from "std:futures";
 async function inspect(resource: Owned<TrackedResource>): Task<int> {

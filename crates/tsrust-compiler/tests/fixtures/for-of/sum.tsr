@@ -1,5 +1,6 @@
 function sum(values: int[]): int {
   let total = 0;
+
   for (const value of values) {
     if (value === 2) {
       continue;
@@ -19,6 +20,7 @@ function main() {
   const values = [1, 2, 3, 4, 5];
   console.log(sum(values));
   console.log(values.length);
+
   for (const flag of [true, false]) {
     console.log(flag);
   }

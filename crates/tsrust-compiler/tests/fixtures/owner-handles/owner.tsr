@@ -135,6 +135,7 @@ export function mount(owner: Mutable<Owner>, parent: ReadOnly<Handle>, key: stri
 
 export function read(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int | undefined {
   const at = index(owner, handle);
+
   if (at < 0) {
     return undefined;
   }
@@ -144,6 +145,7 @@ export function read(owner: ReadOnly<Owner>, handle: ReadOnly<Handle>): int | un
 
 export function add(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): boolean {
   const at = index(owner, handle);
+
   if (at < 0) {
     return false;
   }
@@ -190,6 +192,7 @@ function retire(owner: Mutable<Owner>, id: int): void {
 function cleanup(owner: Mutable<Owner>): void {
   while (owner.retired.length > 0) {
     const id = owner.retired.remove(0);
+
     for (let i = owner.handlers.length - 1; i >= 0; i = i - 1) {
       if (owner.handlers[i].id === id) {
         owner.handlers.remove(i);
@@ -214,6 +217,7 @@ export function remove(owner: Mutable<Owner>, handle: ReadOnly<Handle>): boolean
   }
 
   retire(owner, handle.instance);
+
   if (handle.instance === 0) {
     owner.live = false;
   }
@@ -231,17 +235,20 @@ export function drain(owner: Mutable<Owner>): string {
   }
 
   let result = '';
+
   while (owner.queue.length > 0) {
     const event = owner.queue.remove(0);
     const handle: Handle = {
       runtime: event.runtime, owner: event.owner, instance: event.instance
     };
+
     if (!valid(owner, handle)) {
       result = result + 'stale;';
       continue;
     }
 
     let at = -1;
+
     for (let i = 0; i < owner.handlers.length; i = i + 1) {
       if (owner.handlers[i].id === handle.instance) {
         at = i;
@@ -254,11 +261,13 @@ export function drain(owner: Mutable<Owner>): string {
 
     const callback = owner.handlers[at].run.remove(0);
     owner.delivering = true;
+
     try {
       callback(owner, handle, event.delta);
     } finally {
       // Mounting can shift indices; retired entries remain until this safe point.
       let restored = -1;
+
       for (let i = 0; i < owner.handlers.length; i = i + 1) {
         if (owner.handlers[i].id === handle.instance) {
           restored = i;
@@ -282,11 +291,13 @@ export function values(owner: ReadOnly<Owner>, parent: ReadOnly<Handle>): string
   }
 
   let result = '';
+
   for (let i = 0; i < owner.order.length; i = i + 1) {
     const handle: Handle = {
       runtime: owner.runtime, owner: owner.id, instance: owner.order[i]
     };
     const at = index(owner, handle);
+
     if (at >= 0 && owner.nodes[at].parent === parent.instance) {
       result = result + owner.nodes[at].key + ':' + owner.nodes[at].value + ';';
     }
@@ -302,6 +313,7 @@ export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: R
 
   const ids: int[] = [];
   let count = 0;
+
   for (let i = 0; i < owner.nodes.length; i = i + 1) {
     if (owner.nodes[i].live && owner.nodes[i].parent === parent.instance) {
       count = count + 1;
@@ -314,6 +326,7 @@ export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: R
 
   for (let k = 0; k < keys.length; k = k + 1) {
     let found = -1;
+
     for (let i = 0; i < owner.nodes.length; i = i + 1) {
       if (owner.nodes[i].live && owner.nodes[i].parent === parent.instance && owner.nodes[i].key === keys[k]) {
         found = owner.nodes[i].id;
@@ -328,11 +341,13 @@ export function reorder(owner: Mutable<Owner>, parent: ReadOnly<Handle>, keys: R
   }
 
   let position = 0;
+
   for (let i = 0; i < owner.order.length; i = i + 1) {
     const handle: Handle = {
       runtime: owner.runtime, owner: owner.id, instance: owner.order[i]
     };
     const at = index(owner, handle);
+
     if (at >= 0 && owner.nodes[at].parent === parent.instance) {
       owner.order[i] = ids[position];
       position = position + 1;

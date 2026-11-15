@@ -1,0 +1,90 @@
+import { randomUuid, formatUuid } from 'std:uuid';
+
+export interface SaveConflict {
+  path: string;
+  session: string;
+  revision: int;
+  diskText: string;
+}
+
+export interface Document {
+  path: string;
+  session: string;
+  revision: int;
+  text: string;
+  savedText: string;
+  durabilityPending: boolean;
+  saveConflict?: SaveConflict;
+}
+
+export interface EditPassage {
+  start: int;
+  end: int;
+  after: string;
+  included: boolean;
+}
+
+export interface ProposedEdit {
+  unopened?: boolean;
+  path: string;
+  session: string;
+  revision: int;
+  before: string;
+  after: string;
+  passages?: EditPassage[];
+}
+
+export function createDocument(path: string, text: string): Result<Document, string> {
+  match (randomUuid()) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(id) => {
+      return Ok({
+        path, session: formatUuid(id), revision: 0, text: clone(text), savedText: text, durabilityPending: false
+      });
+    }
+  }
+}
+
+export function dirty(document: ReadOnly<Document>): boolean {
+  return document.text !== document.savedText || document.durabilityPending;
+}
+
+// A completed write records its bytes without replacing newer in-memory edits.
+export function markSaved(document: Mutable<Document>, text: string, durable: boolean): void {
+  document.savedText = text;
+  document.durabilityPending = !durable;
+}
+
+// External reloads never discard local edits, even if disk changed independently.
+export function reload(document: Mutable<Document>, text: string): boolean {
+  if (dirty(document)) return false;
+  edit(document, clone(text));
+  markSaved(document, text, true);
+  return true;
+}
+
+export function edit(document: Mutable<Document>, text: string): void {
+  if (document.text !== text) {
+    document.text = text;
+    document.revision += 1;
+    document.saveConflict = undefined;
+  }
+}
+
+export function propose(document: ReadOnly<Document>, after: string): ProposedEdit {
+  return {
+    path: clone(document.path), session: clone(document.session), revision: document.revision, before: clone(document.text), after
+  };
+}
+
+// Full-buffer proposals deliberately conflict after any intervening edit.
+export function apply(document: Mutable<Document>, proposal: ReadOnly<ProposedEdit>): boolean {
+  if (document.path !== proposal.path || document.session !== proposal.session || document.revision !== proposal.revision || document.text !== proposal.before) {
+    return false;
+  }
+
+  edit(document, clone(proposal.after));
+  return true;
+}

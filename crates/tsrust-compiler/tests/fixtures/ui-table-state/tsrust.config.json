@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "name": "ui-table-state",
+  "build": { "entry": "main.tsrx", "output": "target/table-state" },
+  "package": { "name": "Table State Acceptance", "id": "dev.tsrust.acceptance.table-state" }
+}

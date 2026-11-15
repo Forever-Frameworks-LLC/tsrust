@@ -3,6 +3,7 @@ import { connect } from 'std:sql';
 async function main(): Task<void> {
   const db = await connect('sqlite::memory:', 1);
   await db.execute('CREATE TABLE transfers(amount BIGINT)');
+
   try {
     const transaction = await db.begin();
     await transaction.execute('INSERT INTO transfers(amount) VALUES (?)', [25]);

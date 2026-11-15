@@ -26,6 +26,7 @@ function window(owner: ReadOnly<Bytes>): ByteView {
 
 function total(...entries: [int, ByteView][]): int {
   let sum = 0;
+
   for (const entry of entries) {
     sum += entry[0] + length(entry[1]);
   }

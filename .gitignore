@@ -1,4 +1,5 @@
 /target/
+/experiments/studio-ai/target/
 /benchmarks/runtime/node_modules/
 /benchmarks/runtime/admission/realtime/node_modules/
 

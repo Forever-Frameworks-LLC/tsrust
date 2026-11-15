@@ -8,10 +8,12 @@ function workload(n: int, seed: int): int[][] {
   let trace = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const base = seed + i;
     const mode = (i + seed) % 11;
     let values: Entry[] = [];
+
     if (mode !== 0) {
       values = [{
         key: base, active: true
@@ -35,6 +37,7 @@ function workload(n: int, seed: int): int[][] {
     let left = -1;
     let right = -1;
     let all = false;
+
     if (mode === 2) {
       left = 0;
     }
@@ -78,6 +81,7 @@ function workload(n: int, seed: int): int[][] {
       visits = visits + 1;
       return (value.active && value.key >= base) && (all || index === left || index === right);
     });
+
     if (answer) {
       output.push([1, trace, visits]);
     } else {

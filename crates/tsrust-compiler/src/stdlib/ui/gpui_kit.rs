@@ -19,7 +19,7 @@ use gpui_kit::component::hover_card::HoverCard;
 use gpui_kit::component::input::NumberInput;
 use gpui_kit::component::kbd::Kbd;
 use gpui_kit::component::label::{HighlightsMatch, Label};
-use gpui_kit::component::menu::{AppMenuBar, ContextMenuExt, DropdownMenu as _, PopupMenuItem};
+use gpui_kit::component::menu::{AppMenuBar, ContextMenuExt, DropdownMenu as _, PopupMenu, PopupMenuItem};
 use gpui_kit::component::input::{OtpEvent, OtpInput, OtpState};
 use gpui_kit::component::pagination::Pagination;
 use gpui_kit::component::popover::Popover;
@@ -43,7 +43,8 @@ use gpui_kit::component::diff::{Diff, DiffFile, DiffMode, DiffState, DiffHoverHi
 use gpui_kit::component::input::{InputGroup, InputGroupAddon, InputGroupAddonAlignment, InputGroupButton, InputGroupText};
 use gpui_kit::component::marker::{Marker, MarkerAlignment, MarkerContent, MarkerIcon, MarkerLoadingStyle, MarkerVariant};
 use gpui_kit::component::message_scroller::{MessageScroller, MessageScrollerState};
-use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, panel_handle};
+use gpui_kit::base::dock::DockAreaRenderer as _;
+use gpui_kit::component::dock::{BasePanel, DockArea, DockLayout, DockSkin, Panel as DockPanelView, PanelEvent, PanelId, DockPlacement, PanelStyle, TabGroup, InsertTarget, DockEvent, panel_handle};
 use gpui_kit::component::questionnaire::{Questionnaire, QuestionnaireActions, QuestionnaireChoice, QuestionnaireChoiceDefinition, QuestionnaireChoices, QuestionnaireDescription, QuestionnaireError, QuestionnaireEvent, QuestionnaireItem, QuestionnaireItemDefinition, QuestionnaireInput, QuestionnaireInputDefinition, QuestionnaireShortcutMode, QuestionnaireItemStatus, QuestionnaireNext, QuestionnairePrevious, QuestionnaireProgress, QuestionnaireSkip, QuestionnaireState, QuestionnaireSubmit, QuestionnaireTitle};
 use gpui_kit::component::setting::{RenderOptions, SettingField, SettingGroup, SettingItem, SettingPage, Settings, SelectIndex};
 use gpui_kit::component::tag::Tag;
@@ -66,12 +67,13 @@ use gpui_kit::component::combobox::{Combobox, ComboboxEvent, ComboboxState};
 use gpui_kit::component::command::{Command as CommandPalette, CommandGroup, CommandItem, CommandState};
 use gpui_kit::component::form::{field, h_form, v_form};
 use gpui_kit::component::input::{Editor, EditorState};
+use gpui_kit::component::FocusableExt;
 use gpui_kit::component::list::{List, ListDelegate, ListEvent, ListItem, ListState};
 use gpui_kit::component::message::{Message, MessageAlignment, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader};
 use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::searchable_list::SearchableVec;
 use gpui_kit::component::status_bar::StatusBar;
-use gpui_kit::component::text::TextView;
+use gpui_kit::component::text::{TextView, TextViewStyle};
 use gpui_kit::component::time_field::{HourCycle, TimeField, TimeFieldEvent, TimeFieldState, TimePrecision};
 use gpui_kit::component::toolbar::{Toolbar, ToolbarGroup};
 use gpui_kit::component::tree::{TreeEvent, TreeItem, TreeState, tree};
@@ -81,6 +83,102 @@ use gpui_kit::component::Theme as KitTheme;
 use gpui_kit::component::ActiveTheme as _;
 use gpui_kit::component::{Icon, Placement, Selectable, Sizable, Size as KitSize, StyledExt, WindowExt};
 use super::commands::{self, Command};
+use gpui_kit::base::input::{HoverProvider, CompletionProvider, SignatureHelpProvider, DefinitionProvider, ReferencesProvider, Rope, lsp_types as LanguageTypes, anyhow::Result as LanguageResult};
+
+struct EditorLanguageProvider { root: WeakEntity<Root>, target: u64, inline: bool, language: bool }
+impl EditorLanguageProvider {
+    fn request(&self, method: &str, text: &Rope, params: serde_json::Value, cx: &mut App) -> Task<serde_json::Value> {
+        let inline = method == "textDocument/inlineCompletion";
+        let (root,target,method,text)=(self.root.clone(),self.target,method.to_owned(),text.to_string());
+        // A programmatic edit may still borrow Root. Enter it on the next task poll.
+        cx.spawn(async move |cx| {
+            let result = root.update(cx, |root, cx| {
+                let (id, mut reply) = super::editor_language::Requests::begin(&root.language_requests,target,&method,text.clone());
+                let owner = root.command_owner.context();
+                reply.on_cancel = Some(Box::new(move || {let _scope=owner();let _=commands::command("editor-language-wake","{}");}));
+                if inline {
+                    let offset=params.as_u64()? as usize;
+                    let (prefix,suffix)=text.split_at_checked(offset)?;
+                    root.emit(target,"inlineCompletion",serde_json::json!({"id":id,"prefix":prefix,"suffix":suffix}).to_string(),cx);
+                } else {
+                    root.emit(target,"languageRequest",serde_json::json!({"id":id,"method":method,"params":params,"text":text}).to_string(),cx);
+                }
+                Some(reply)
+            });
+            let Ok(Some(reply))=result else{return serde_json::Value::Null};
+            if inline {return reply.await;}
+            let mut reply=Box::pin(reply);
+            let timeout=super::editor_language::timeout_result(&method);
+            let mut timer=Box::pin(cx.background_executor().timer(std::time::Duration::from_secs(5)));
+            std::future::poll_fn(move |cx| {
+                if let std::task::Poll::Ready(value)=std::future::Future::poll(reply.as_mut(),cx) {return std::task::Poll::Ready(value);}
+                if std::future::Future::poll(timer.as_mut(),cx).is_ready() {return std::task::Poll::Ready(timeout.clone());}
+                std::task::Poll::Pending
+            }).await
+        })
+    }
+}
+impl HoverProvider for EditorLanguageProvider {
+    fn hover(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::Hover>>> {
+        let task=self.request("textDocument/hover",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/hover",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl ReferencesProvider for EditorLanguageProvider {
+    fn references(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Vec<LanguageTypes::Location>>> {
+        let task=self.request("textDocument/references",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {
+            let value=task.await;
+            if let Some(error)=value.get("error").and_then(serde_json::Value::as_str) {return Err(gpui_kit::base::input::anyhow::anyhow!(error.to_owned()));}
+            Ok(if value.is_null(){vec![]}else{serde_json::from_value(value)?})
+        })
+    }
+}
+impl DefinitionProvider for EditorLanguageProvider {
+    fn definitions(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Vec<LanguageTypes::LocationLink>>> {
+        let task=self.request("textDocument/definition",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {Ok(serde_json::from_value(super::editor_language::definition_links(task.await))?)})
+    }
+}
+impl SignatureHelpProvider for EditorLanguageProvider {
+    fn signature_help(&self, text: &Rope, offset: usize, _: &mut Window, cx: &mut App) -> Task<LanguageResult<Option<LanguageTypes::SignatureHelp>>> {
+        let task=self.request("textDocument/signatureHelp",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null)}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/signatureHelp",&mut value);Ok(serde_json::from_value(value)?)})
+    }
+}
+impl CompletionProvider for EditorLanguageProvider {
+    fn completions(&self, text: &Rope, offset: usize, context: LanguageTypes::CompletionContext, _: &mut Window, cx: &mut App) -> Task<LanguageResult<LanguageTypes::CompletionResponse>> {
+        if !self.language {return Task::ready(Ok(LanguageTypes::CompletionResponse::Array(vec![])));}
+        let task=self.request("textDocument/completion",text,serde_json::json!({"position":super::editor_language::position(&text.to_string(),offset).unwrap_or(serde_json::Value::Null),"context":context}),cx);
+        cx.spawn(async move |_| {let mut value=task.await;super::kit::language_markdown("textDocument/completion",&mut value); Ok(if value.is_null(){LanguageTypes::CompletionResponse::Array(vec![])}else{serde_json::from_value(value)?})})
+    }
+    fn inline_completion(&self, text: &Rope, offset: usize, _: LanguageTypes::InlineCompletionContext, _: &mut Window, cx: &mut App) -> Task<LanguageResult<LanguageTypes::InlineCompletionResponse>> {
+        if !self.inline {return Task::ready(Ok(LanguageTypes::InlineCompletionResponse::Array(vec![])));}
+        let task=self.request("textDocument/inlineCompletion",text,serde_json::json!(offset),cx);
+        cx.spawn(async move |_| {
+            let result=task.await;
+            let items=result.as_str().filter(|text|!text.is_empty()).map(|text| LanguageTypes::InlineCompletionItem {
+                insert_text:text.to_owned(),filter_text:None,range:None,command:None,insert_text_format:None,
+            }).into_iter().collect();
+            Ok(LanguageTypes::InlineCompletionResponse::Array(items))
+        })
+    }
+    fn is_completion_trigger(&self, _: usize, text: &str, _: &mut App) -> bool {
+        text.chars().count()==1 && text.chars().all(|ch|ch.is_alphanumeric() || matches!(ch,'_'|'.'|':'))
+    }
+}
+
+
+/// Exact displayed row content: streaming changes must invalidate virtual-list height measurements.
+fn scroller_rows(node:&Node)->Vec<String> {
+    fn snapshot(node:&Node,out:&mut String){
+        use std::fmt::Write;
+        let _=write!(out,"{:?}|{:?}|{:?}|{:?}",node.identity.get(),node.kind,node.class_name,node.text);
+        if let Some(kit)=&node.kit {let _=write!(out,"{:?}|{:?}",kit.name,kit.props);}
+        for child in node.visible_children(){snapshot(child,out);}
+    }
+    node.visible_children().map(|row|{let mut content=String::new();snapshot(row,&mut content);content}).collect()
+}
 
 /// One List row: a ListItem (or ListSeparator) node with its searchable text.
 #[derive(Clone)]
@@ -91,6 +189,8 @@ struct ListRow {id: u64, text: String, separator: bool, disabled: bool}
 struct TsrustList {
     root: WeakEntity<Root>,
     list: u64,
+    scroll_reset_key: String,
+    columns: usize, min_item_width: f32,
     sections: Vec<(String, Vec<ListRow>)>,
     query: String,
     empty: Option<u64>,
@@ -163,14 +263,36 @@ fn list_value(list: &TsrustList, index: IndexPath) -> String {
 
 impl ListDelegate for TsrustList {
     type Item = ListItem;
+    fn row_label(&self, item: &ListItem) -> Option<SharedString> {item.label_for_accessibility()}
     fn perform_search(&mut self, query: &str, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Task<()> {
         self.query = query.to_owned();
         cx.notify();
         Task::ready(())
     }
     fn sections_count(&self, _: &App) -> usize {self.sections.len().max(1)}
-    fn items_count(&self, section: usize, _: &App) -> usize {self.visible(section).len()}
+    fn items_count(&self, section: usize, _: &App) -> usize {self.visible(section).len().div_ceil(self.columns)}
     fn render_item(&mut self, index: IndexPath, _: &mut Window, cx: &mut Context<ListState<Self>>) -> Option<ListItem> {
+        if self.min_item_width > 0. {
+            let rows = self.visible(index.section).into_iter().skip(index.row*self.columns).take(self.columns).cloned().collect::<Vec<_>>();
+            let values=rows.iter().map(|row|(row.id,self.values.get(&row.id).cloned().unwrap_or_default())).collect::<HashMap<_,_>>();
+            let (list, columns)=(self.list,self.columns);
+            return self.root.update(cx, |root,cx| {
+                let mut content=div().flex().gap(px(12.)).w_full();
+                for row in &rows {
+                    let value=values.get(&row.id).cloned().unwrap_or_default();
+                    if let Some(node)=find(&root.node,row.id) {
+                        let owner=cx.entity().downgrade();
+                        let button=gpui_kit::base::Button::new(ElementId::Name(format!("card-{}",row.id).into()))
+                            .flex().w_full().min_w_0().disabled(row.disabled).accessibility_label(node.kit.as_deref().map(|kit|kit.text("accessibilityLabel")).filter(|label|!label.is_empty()).unwrap_or_else(||row.text.clone()))
+                            .refine_style(&root.node_style(node)).children(root.content(node,cx))
+                            .on_click(move|_,_,cx|{let _=owner.update(cx,|root,cx|root.emit(list,"confirm",value.clone(),cx));});
+                        content=content.child(div().flex_1().min_w_0().child(button));
+                    }
+                }
+                for _ in rows.len()..columns {content=content.child(div().flex_1());}
+                Some(ListItem::new(ElementId::Name(format!("grid-row-{}-{}",list,index.row).into())).p_0().child(content))
+            }).ok().flatten();
+        }
         let row = self.row(index)?;
         self.root.update(cx, |root, cx| root.list_item(row.id, cx)).ok().flatten()
     }
@@ -214,13 +336,16 @@ enum KitState {
     Command(Entity<CommandState>),
     AppMenuBar(Entity<AppMenuBar>, Vec<ApplicationMenu>),
     Carousel(Entity<CarouselState>),
+    #[cfg(feature="gpui-terminal")]
+    Terminal(Entity<terminal_view::TerminalView>),
+    Image(Entity<ImageViewport>),
     Editor(Entity<EditorState>, std::collections::BTreeMap<String,String>),
-    Tree(Entity<TreeState>, String),
+    Tree(Entity<TreeState>, String, std::rc::Rc<std::cell::RefCell<Option<SharedString>>>),
     List(Entity<ListState<TsrustList>>),
     Diff(Entity<DiffState>, String),
     Table(Entity<TableState<Grid>>, String),
-    Scroller(Entity<MessageScrollerState>, usize),
-    Dock(Entity<DockArea>),
+    Scroller(Entity<MessageScrollerState>, Vec<String>),
+    Dock(DockState),
     Questionnaire(Entity<QuestionnaireState>),
     Speech(Entity<SpeechState>),
     /// A running Ticker's timer task (dropping it stops the ticks) and the props it was started with.
@@ -395,6 +520,7 @@ fn editor_options(state:&mut EditorState, options:&std::collections::BTreeMap<St
     apply_input_options!(state,options,text("placeholder"),window,cx);
     state.set_disabled(flag("disabled",false),cx);
     state.set_readonly(flag("readOnly",false),cx);
+    state.set_breakpoint_lines(options.get("breakpointLines").map(|lines| lines.split(',').filter_map(|line| line.trim().parse::<usize>().ok()).filter(|line| *line > 0).collect()),cx);
     state.set_line_number(flag("lineNumbers",true),window,cx);
     state.set_folding(flag("folding",true),window,cx);
     state.set_auto_close(flag("autoClose",true),window,cx);
@@ -455,14 +581,15 @@ fn menu_entries(node: &Node) -> Vec<MenuEntry> {
 
 /// Menu-wide options from DropdownMenu or ContextMenu props.
 #[derive(Clone, Copy)]
-struct MenuOptions {min: Option<f32>, max: Option<f32>, height: Option<f32>, scrollable: bool, right: bool, link_icon: bool}
+struct MenuOptions {min: Option<f32>, max: Option<f32>, height: Option<f32>, scrollable: bool, right: bool, link_icon: bool, font_size: Option<f32>}
 
 impl MenuOptions {
     fn new(kit: &Kit) -> Self {
-        Self {min: kit.number("minWidth").map(|value| value as f32), max: kit.number("maxWidth").map(|value| value as f32), height: kit.number("maxHeight").map(|value| value as f32),
+        Self {font_size: kit.number("fontSize").map(|value|value as f32), min: kit.number("minWidth").map(|value| value as f32), max: kit.number("maxWidth").map(|value| value as f32), height: kit.number("maxHeight").map(|value| value as f32),
             scrollable: kit.flag("scrollable"), right: kit.prop("checkSide") == Some("right"), link_icon: kit.prop("externalLinkIcon") != Some("false")}
     }
     fn apply(self, mut menu: gpui_kit::component::menu::PopupMenu) -> gpui_kit::component::menu::PopupMenu {
+        if let Some(size) = self.font_size {menu = menu.font_size(px(size));}
         if let Some(width) = self.min {menu = menu.min_w(px(width));}
         if let Some(width) = self.max {menu = menu.max_w(px(width));}
         if let Some(height) = self.height {menu = menu.max_h(px(height));}
@@ -521,7 +648,7 @@ fn build_menu(mut menu: gpui_kit::component::menu::PopupMenu, entries: &[MenuEnt
 }
 
 /// Kit components whose className refines the component itself instead of a wrapper.
-pub(crate) const STYLED_KIT: &[&str] = &["CodeEditor", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
+pub(crate) const STYLED_KIT: &[&str] = &["TitleBar", "Pagination", "Markdown", "InputGroup", "Terminal", "CodeEditor", "Command", "Tag", "Label", "Kbd", "Separator", "Skeleton", "Progress", "ProgressCircle", "Avatar", "AvatarGroup", "Alert", "ShimmerText", "Empty", "GroupBox", "Table", "List", "Tree", "Carousel", "Message", "MessageGroup", "Bubble", "BubbleGroup", "Marker", "Attachment", "AttachmentGroup"];
 
 /// The size prop shared by sizable Kit components.
 /// A checkable control's state: `checked` when the caller controls it, else `defaultChecked`.
@@ -619,23 +746,211 @@ fn plot_color(name: &str, index: usize, cx: &App) -> Hsla {
     theme_color(name, cx).unwrap_or(charts[index % charts.len()])
 }
 
+// Keep Kit chrome and docking, but render live Tsrust children without a second view cache.
+struct TsrustDockSkin(std::rc::Rc<DockSkin>,std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>);
+impl gpui_kit::base::dock::DockAreaRenderer for TsrustDockSkin {
+    fn frame(&self, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.frame(window,cx)}
+    fn split_frame(&self, node: gpui_kit::base::dock::NodeId, axis: Axis, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.split_frame(node,axis,window,cx)}
+    fn center_frame(&self, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.center_frame(window,cx)}
+    fn render_split_handle(&self, handle: &gpui_kit::base::ResizeHandleContext, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_split_handle(handle,window,cx)}
+    fn render_dock(&self, dock: &gpui_kit::base::dock::DockContext, content: AnyElement, window: &mut Window, cx: &mut App) -> AnyElement {self.0.render_dock(dock,content,window,cx)}
+    fn build_placeholder(&self, state: &gpui_kit::base::dock::PanelState, window: &mut Window, cx: &mut App) -> Option<std::sync::Arc<dyn gpui_kit::base::dock::PanelView>> {self.0.build_placeholder(state,window,cx)}
+    fn tab_group_renderer(&self) -> std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer> {std::rc::Rc::new(TsrustDockTabs(self.0.tab_group_renderer(),ScrollHandle::new(),std::cell::Cell::new(None),self.1.clone()))}
+}
+struct TsrustDockTabs(std::rc::Rc<dyn gpui_kit::base::dock::TabGroupRenderer>, ScrollHandle, std::cell::Cell<Option<(PanelId,usize)>>, std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>);
+#[derive(Clone)]
+struct TreeRowDrag { tree: u64, source: String }
+struct TreeDragIcon {icon: Icon, offset: Point<Pixels>}
+impl Render for TreeDragIcon {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().absolute().left(self.offset.x + px(12.)).top(self.offset.y + px(12.)).child(self.icon.clone())
+    }
+}
+struct DockDragCaption(SharedString);
+impl Render for DockDragCaption {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div().px_3().py_2().bg(cx.theme().tokens.tab_bar).text_color(cx.theme().foreground).child(self.0.clone())
+    }
+}
+impl gpui_kit::base::dock::TabGroupRenderer for TsrustDockTabs {
+    fn frame(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.frame(group,window,cx)}
+    fn content_frame(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Stateful<Div> {self.0.content_frame(group,window,cx)}
+    fn render_tab_bar(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> AnyElement {
+        use gpui_kit::base::dock::{DragPanel,AnyDrag};
+        use gpui_kit::component::dock::{PanelHandle,ToggleZoom,ClosePanel};
+        use gpui_kit::prelude::FluentBuilder;
+        let active=group.active_panel().map(|panel|panel.panel_id(cx));
+        let visible=group.panels().iter().enumerate().filter(|(_,panel)|panel.visible(cx)).collect::<Vec<_>>();
+        let selected=visible.iter().position(|(_,panel)|Some(panel.panel_id(cx))==active).unwrap_or(0);
+        let selection=active.map(|id|(id,selected));
+        if self.2.replace(selection)!=selection {
+            if self.1.bounds().size.width == px(0.) {
+                // GPUI establishes the scroll axis during the first prepaint.
+                let handle=self.1.clone();
+                window.on_next_frame(move|window,_|{handle.scroll_to_item(selected);window.refresh();});
+            } else {
+                self.1.scroll_to_item(selected);
+            }
+        }
+        let mut tabs=Vec::new();let mut choices=Vec::new();
+        for (ix,panel) in visible {
+            let id=panel.panel_id(cx);
+            let title=PanelHandle::of(panel).and_then(|handle|handle.panel().tab_name(cx)).unwrap_or_else(||panel.panel_name(cx).into());
+            choices.push((ix,title.clone(),Some(id)==active));
+            let select=group.clone();
+            let mut tab=Tab::new().label(title.clone()).aria_label(title.clone()).selected(!group.is_collapsed() && Some(id)==active)
+                .on_click(move|_,window,cx|select.select_tab(ix,window,cx));
+            if let Some(size)=self.3.get() {tab=tab.text_size(size);}
+            if !group.is_collapsed() {
+                if group.is_panel_closable(id,cx) {
+                    let close=group.clone();let label=super::i18n::translate("Close {name}",&serde_json::json!({"name":title.to_string()}).to_string());
+                    tab=tab.suffix(Button::new(("close-tab",ix)).icon(gpui_kit::assets::IconName::X).xsmall().ghost()
+                        .accessibility_label(label.clone()).tooltip(label).tab_stop(false)
+                        .on_click(move|_,window,cx|{cx.stop_propagation();close.close(id,window,cx);}));
+                }
+                if let Some(drag)=group.drag_panel(ix,cx) {
+                    tab=tab.on_drag(drag,move|drag,offset,_,cx| {
+                        cx.stop_propagation();drag.set_drag_offset(offset);drag.set_preview_size(size(px(240.),px(32.)));
+                        cx.new(|_|DockDragCaption(title.clone()))
+                    });
+                }
+                if group.is_droppable() {
+                    let drop=group.clone();let item_drop=group.clone();
+                    tab=tab.drag_over::<DragPanel>(|tab,_,_,cx|tab.border_l_2().border_color(cx.theme().drag_border))
+                        .on_drop(move|drag:&DragPanel,window,cx|drop.drop_panel(drag.clone(),Some(ix),true,window,cx))
+                        .on_drop(move|drag:&AnyDrag,window,cx|item_drop.drop_item(drag.clone(),None,window,cx));
+                }
+            }
+            tabs.push(tab);
+        }
+        let handle=group.active_panel().and_then(PanelHandle::of);
+        let buttons=if group.is_collapsed(){None}else{handle.and_then(|handle|handle.panel().toolbar_buttons(window,cx))};
+        let panel=handle.map(PanelHandle::panel);
+        let control=panel.as_ref().and_then(|panel|panel.zoom_control(cx));
+        let zoomed=group.is_zoomed();let closable=group.is_closable();
+        let select_group=group.clone();
+        let overflow=Button::new("open-tabs").icon(gpui_kit::assets::IconName::ChevronDown).xsmall().ghost()
+            .accessibility_label(super::i18n::translate("Open tabs","{}")).tooltip(super::i18n::translate("Open tabs","{}")).dropdown_menu(move|mut menu,_,_| {
+                for (ix,title,selected) in &choices {
+                    let group=select_group.clone();let ix=*ix;
+                    menu=menu.item(PopupMenuItem::new(title.clone()).checked(*selected).on_click(move|_,window,cx|group.select_tab(ix,window,cx)));
+                }
+                menu.scrollable(true)
+            }).anchor(Anchor::TopRight);
+        let mut toolbar=div().flex().items_center().gap_1().child(overflow).children(buttons.unwrap_or_default().into_iter().map(|button|button.xsmall().ghost().tab_stop(false)));
+        if zoomed || control.is_some_and(|control|control.toolbar_visible()) {
+            let zoom=group.clone();let label=super::i18n::translate(if zoomed{"Restore pane"}else{"Maximize pane"},"{}");
+            toolbar=toolbar.child(Button::new("zoom-pane").icon(gpui_kit::assets::IconName::Maximize).xsmall().ghost().accessibility_label(label.clone()).tooltip(label)
+                .on_click(move|_,window,cx|zoom.toggle_zoom(window,cx)));
+        }
+        toolbar=toolbar.child(Button::new("pane-menu").icon(gpui_kit::assets::IconName::Ellipsis).xsmall().ghost().accessibility_label(super::i18n::translate("Pane actions","{}")).tooltip(super::i18n::translate("Pane actions","{}"))
+            .dropdown_menu(move|menu,window,cx| {
+                menu.when_some(panel.clone(),|menu,panel|panel.dropdown_menu(menu,window,cx)).separator()
+                    .menu_with_disabled(super::i18n::translate(if zoomed{"Restore pane"}else{"Maximize pane"},"{}"),Box::new(ToggleZoom),!control.is_some_and(|control|control.menu_visible()))
+                    .when(closable,|menu|menu.separator().menu(super::i18n::translate("Close","{}"),Box::new(ClosePanel)))
+            }).anchor(Anchor::TopRight));
+        let drop=group.clone();let item_drop=group.clone();
+        TabBar::new("tab-bar").track_scroll(&self.1).selected_index(selected).max_width(px(220.)).children(tabs)
+            .last_empty_space(div().id("tab-bar-empty-space").h_full().flex_grow_1()
+                .on_drop(move|drag:&DragPanel,window,cx|drop.drop_panel(drag.clone(),None,true,window,cx))
+                .on_drop(move|drag:&AnyDrag,window,cx|item_drop.drop_item(drag.clone(),None,window,cx)))
+            .suffix(toolbar).into_any_element()
+    }
+    fn render_active_panel(&self, panel: AnyView, group: &gpui_kit::base::dock::TabGroupContext, _: &mut Window, _: &mut App) -> AnyElement {
+        if group.is_collapsed() {return div().into_any_element();}
+        div().id("tab-content").relative().flex_1().min_h(px(0.)).overflow_hidden()
+            .child(div().absolute().size_full().child(panel)).into_any_element()
+    }
+    fn render_drop_indicator(&self, indicator: gpui_kit::base::dock::DropIndicator, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_drop_indicator(indicator,window,cx)}
+    fn render_empty(&self, group: &gpui_kit::base::dock::TabGroupContext, window: &mut Window, cx: &mut App) -> Option<AnyElement> {self.0.render_empty(group,window,cx)}
+}
+
 /// One DockPanel: its content is the node's children, drawn through the root.
-struct DockContent {root: WeakEntity<Root>, node: u64, title: SharedString, focus: FocusHandle}
+struct DockContent {root: WeakEntity<Root>, dock: u64, node: u64, value: String, title: SharedString, closable: bool, padded: bool, split_controls: bool, can_split: bool, last_close: bool, area: WeakEntity<DockArea>, group: Option<WeakEntity<TabGroup>>, focus: FocusHandle}
+struct DockState {area: Entity<DockArea>, panels: std::collections::BTreeMap<u64,Entity<DockContent>>, selected: String, repaint_pending: bool, last_layout: String, tab_font: std::rc::Rc<std::cell::Cell<Option<AbsoluteLength>>>}
+
+fn restored_dock_layout(state:&gpui_kit::base::dock::PanelState,panels:&std::collections::BTreeMap<u64,Entity<DockContent>>,used:&mut std::collections::BTreeSet<u64>,cx:&App)->Option<DockLayout> {
+    use gpui_kit::base::dock::PanelInfo;
+    match &state.info {
+        PanelInfo::Stack{sizes,axis}=>{
+            let mut layout=if *axis==1{DockLayout::v_split()}else{DockLayout::h_split()};let mut found=false;
+            for (child,size) in state.children.iter().zip(sizes) {
+                if let Some(child)=restored_dock_layout(child,panels,used,cx){layout=layout.child(child,if *size>px(0.){Some(*size)}else{None});found=true;}
+            }
+            found.then_some(layout)
+        },
+        PanelInfo::Tabs{active_index}=>{
+            let mut layout=DockLayout::tabs();let mut count=0;let mut active=0;
+            for (index,child) in state.children.iter().enumerate() {
+                let PanelInfo::Panel(info)=&child.info else{continue;};
+                if let Some((node,panel))=panels.iter().find(|(_,panel)|Some(panel.read(cx).value.as_str())==info["value"].as_str()) {
+                    used.insert(*node);layout=layout.panel_view(panel_handle(panel.clone()),cx);
+                    if index==*active_index{active=count;}count+=1;
+                }
+            }
+            (count>0).then(||layout.active_index(active))
+        },
+        PanelInfo::Panel(_)=>None,
+    }
+}
 impl EventEmitter<PanelEvent> for DockContent {}
 impl Focusable for DockContent {
     fn focus_handle(&self, _: &App) -> FocusHandle {self.focus.clone()}
 }
 impl BasePanel for DockContent {
     fn panel_name(&self) -> &'static str {"TsrustDockPanel"}
+    fn dump(&self,_:&App)->gpui_kit::base::dock::PanelState {
+        gpui_kit::base::dock::PanelState{panel_name:self.panel_name().into(),children:Vec::new(),info:gpui_kit::base::dock::PanelInfo::panel(serde_json::json!({"value":self.value}))}
+    }
+    fn closable(&self, _: &App) -> bool {self.closable}
+    fn on_added_to(&mut self,group:WeakEntity<TabGroup>,_:&mut Window,_:&mut Context<Self>){self.group=Some(group);}
+    fn set_active(&mut self, active: bool, _: &mut Window, cx: &mut Context<Self>) {
+        if !active{return;}
+        let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
+        cx.defer(move|cx|{let _=root.update(cx,|root,cx|root.emit(dock,"change",value,cx));});
+    }
+    fn on_removed(&mut self, _: &mut Window, cx: &mut Context<Self>) {
+        let root=self.root.clone();let dock=self.dock;let node=self.node;let value=self.value.clone();
+        cx.defer(move|cx|{let _=root.update(cx,|root,cx|{
+            // Programmatic removals have already retired the panel from this map.
+            if matches!(root.states.get(&dock),Some(KitState::Dock(state)) if state.panels.contains_key(&node)) {root.emit(dock,"close",value,cx);}
+        });});
+    }
 }
 impl DockPanelView for DockContent {
+    fn tab_name(&self, _: &App) -> Option<SharedString> {Some(self.title.clone())}
     fn title(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {self.title.clone()}
+    fn inner_padding(&self, _: &App) -> bool {false}
+    fn dropdown_menu(&mut self, mut menu:PopupMenu,_:&mut Window,cx:&mut Context<Self>)->PopupMenu {
+        if self.split_controls {
+            for (placement,label) in [(Placement::Right,"Split right"),(Placement::Bottom,"Split down")] {
+                let area=self.area.clone();let group=self.group.clone();let panel=PanelId::from(cx.entity_id());
+                menu=menu.item(PopupMenuItem::new(super::i18n::translate(label,"{}")).disabled(!self.can_split).on_click(move|_,window,cx|{
+                    if let Some(group)=group.as_ref().and_then(WeakEntity::upgrade) {let node=group.read(cx).node();let _=area.update(cx,|area,cx|area.move_panel(panel,InsertTarget::Split{node,placement,size:None},window,cx));}
+                }));
+            }
+        }
+        if self.root.upgrade().is_some_and(|root|find(&root.read(cx).node,self.dock).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("closeAll"))) {
+            let root=self.root.clone();let dock=self.dock;
+            menu=menu.separator().item(PopupMenuItem::new(super::i18n::translate("Close All","{}")).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"closeAll",String::new(),cx));}));
+        }
+        menu
+    }
+    fn toolbar_buttons(&mut self,_:&mut Window,cx:&mut Context<Self>)->Option<Vec<Button>> {
+        let mut buttons=Vec::new();
+        if self.last_close {
+            let root=self.root.clone();let dock=self.dock;let value=self.value.clone();
+            buttons.push(Button::new("close-document").icon(gpui_kit::assets::IconName::X).accessibility_label(super::i18n::translate("Close document","{}")).tooltip(super::i18n::translate("Close document","{}")).disabled(!self.closable).on_click(move|_,_,cx|{let _=root.update(cx,|root,cx|root.emit(dock,"close",value.clone(),cx));}));
+        }
+        if buttons.is_empty(){None}else{Some(buttons)}
+    }
 }
 impl Render for DockContent {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let node = self.node;
         let content = self.root.update(cx, |root, cx| root.content_of(node, cx)).unwrap_or_default();
-        div().size_full().p_2().children(content)
+        let view=div().size_full();
+        (if self.padded{view.p_2()}else{view}).children(content)
     }
 }
 
@@ -643,7 +958,7 @@ impl Render for DockContent {
 /// What rebuilds a DataTable's delegate: its rows, columns, parts and load state.
 fn grid_shape(node: &Node) -> String {
     let kit = node.kit.as_deref().expect("DataTable");
-    let mut out = ["rows", "columns", "sortable", "loading", "hasMore", "loadMoreThreshold"].map(|key| kit.text(key)).join("\u{1}");
+    let mut out = ["rows", "columns", "sortable", "loading", "hasMore", "loadMoreThreshold", "manualSorting", "scrollResetKey"].map(|key| kit.text(key)).join("\u{1}");
     for (child, part) in node.visible_children().filter_map(|child| child.kit.as_deref().map(|kit| (child, kit))) {
         out.push('\u{2}'); out.push_str(&part.name);
         for (key, value) in &part.props {out.push_str(key); out.push('='); out.push_str(value); out.push(';');}
@@ -655,7 +970,7 @@ fn grid_shape(node: &Node) -> String {
 /// One DataTable column from a DataTableColumn child.
 #[derive(Clone, PartialEq)]
 struct GridColumn {
-    key: SharedString, label: SharedString, width: Option<f32>, min: Option<f32>, max: Option<f32>, sortable: bool, sort: String,
+    key: SharedString, label: SharedString, width: Option<f32>, min: Option<f32>, max: Option<f32>, sortable: bool, sort: String, controlled_sort: bool, declared_width: Option<f32>, preferred_width: Option<f32>, fill: bool,
     align: String, fixed: bool, resizable: bool, movable: bool, selectable: bool, padding: Option<f32>,
 }
 
@@ -663,6 +978,7 @@ struct GridColumn {
 /// order), a sort order over the rows, and the table's empty, loading, load-more and menu parts.
 struct Grid {
     columns: Vec<GridColumn>, rows: Vec<Vec<SharedString>>, order: Vec<usize>,
+    source_columns: Vec<SharedString>, viewport_width: f32, cells: HashMap<(usize, String), u64>, manual_sorting: bool, scroll_reset_key: String,
     root: WeakEntity<Root>, table: u64, empty: Option<u64>, menu: Vec<MenuEntry>, loading: bool, has_more: bool, threshold: usize,
 }
 
@@ -674,7 +990,7 @@ impl Grid {
             GridColumn {
                 key: column.prop("key").map_or_else(|| index.to_string(), str::to_owned).into(), label: label.into(),
                 width: column.number("width").map(|value| value as f32), min: column.number("minWidth").map(|value| value as f32), max: column.number("maxWidth").map(|value| value as f32),
-                sortable: column.flag("sortable"), sort: column.text("defaultSort"), align: column.text("align"), fixed: column.text("fixed") == "left",
+                sortable: column.flag("sortable"), sort: column.prop("sort").map(str::to_owned).unwrap_or_else(||column.text("defaultSort")), controlled_sort: column.prop("sort").is_some(), declared_width: column.number("width").map(|width|width as f32), preferred_width: column.number("width").map(|width|width as f32), fill: column.flag("fill"), align: column.text("align"), fixed: column.text("fixed") == "left",
                 resizable: column.prop("resizable") != Some("false"), movable: column.prop("movable") != Some("false"), selectable: column.prop("selectable") != Some("false"),
                 padding: column.number("padding").map(|value| value as f32),
             }
@@ -682,27 +998,74 @@ impl Grid {
         // Without DataTableColumn children, the `columns` prop names the columns.
         if columns.is_empty() {
             columns = kit.text("columns").split('\n').filter(|name| !name.is_empty()).enumerate().map(|(index, name)| GridColumn {
-                key: index.to_string().into(), label: name.to_owned().into(), width: None, min: None, max: None, sortable: kit.flag("sortable"), sort: String::new(),
+                key: index.to_string().into(), label: name.to_owned().into(), width: None, min: None, max: None, sortable: kit.flag("sortable"), sort: String::new(), controlled_sort: false, declared_width: None, preferred_width: None, fill: false,
                 align: String::new(), fixed: false, resizable: true, movable: true, selectable: true, padding: None,
             }).collect();
         }
         let rows = serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&kit.text("rows")).unwrap_or_default().into_iter()
             .map(|row| row.into_iter().map(|cell| SharedString::from(match cell {serde_json::Value::String(text) => text, serde_json::Value::Null => String::new(), other => other.to_string()})).collect()).collect::<Vec<Vec<_>>>();
-        Self {
+        let source_columns=columns.iter().map(|column|column.key.clone()).collect();
+        let mut grid=Self {
+            source_columns, viewport_width: 0., cells: items(node, "DataTableCell").filter_map(|(child, cell)| cell.index("row").map(|row| ((row, cell.text("column")), child.identity.get()))).collect(),
+            manual_sorting: kit.flag("manualSorting"), scroll_reset_key: kit.text("scrollResetKey"),
             order: (0..rows.len()).collect(), columns, rows, root, table: node.identity.get(),
             empty: first_item(node, "DataTableEmpty").map(|empty| empty.identity.get()), menu: first_item(node, "DataTableMenu").map(menu_entries).unwrap_or_default(),
             loading: kit.flag("loading"), has_more: kit.flag("hasMore"), threshold: kit.index("loadMoreThreshold").unwrap_or(20),
+        };
+        grid.apply_sort();
+        grid
+    }
+    fn apply_sort(&mut self) {
+        let active=self.columns.iter().position(|column|column.controlled_sort && matches!(column.sort.as_str(),"ascending"|"descending"))
+            .or_else(||self.columns.iter().position(|column|matches!(column.sort.as_str(),"ascending"|"descending")));
+        for (index,column) in self.columns.iter_mut().enumerate() {if Some(index)!=active && !column.sort.is_empty() {column.sort="none".into();}}
+        let sort=if self.manual_sorting {None}else{active.map(|column|(self.source(column),self.columns[column].sort=="descending"))};
+        self.order=super::kit::table_row_order(&self.rows,sort);
+    }
+    fn inherit_state(&mut self, previous:&Self) {
+        for column in &mut self.columns {
+            if let Some(old)=previous.columns.iter().find(|old|old.key==column.key) {
+                if !column.controlled_sort {column.sort=old.sort.clone();}
+                if column.declared_width==old.declared_width && column.min==old.min && column.max==old.max {
+                    column.preferred_width=old.preferred_width;column.width=old.width;
+                }
+            }
+        }
+        if self.source_columns==previous.source_columns {
+            self.columns.sort_by_key(|column|previous.columns.iter().position(|old|old.key==column.key).unwrap_or(usize::MAX));
+        }
+        self.apply_sort();
+        self.fill_width(previous.viewport_width);
+    }
+    fn capture_widths(&mut self, widths:&[Pixels]) {
+        for (column,width) in self.columns.iter_mut().zip(widths) {
+            let width=f32::from(*width);
+            if (column.width.unwrap_or(120.)-width).abs()>0.25 {column.width=Some(width);column.preferred_width=Some(width);}
+        }
+    }
+    fn fill_width(&mut self, width:f32) {
+        self.viewport_width=width;
+        if let Some(index)=self.columns.iter().position(|column|column.fill) {
+            let other=self.columns.iter().enumerate().filter(|(i,_)|*i!=index).map(|(_,column)|column.width.unwrap_or(120.)).sum::<f32>();
+            let column=&mut self.columns[index];
+            column.width=Some((width-other).max(column.preferred_width.unwrap_or(120.)).max(column.min.unwrap_or(20.)).min(column.max.unwrap_or(f32::INFINITY)));
         }
     }
     /// The column index into each row for a display column.
     fn source(&self, column: usize) -> usize {
         let key = &self.columns[column].key;
-        key.parse::<usize>().ok().filter(|index| *index < self.rows.first().map_or(usize::MAX, Vec::len)).unwrap_or(column)
+        key.parse::<usize>().ok().filter(|index| *index < self.rows.first().map_or(usize::MAX, Vec::len))
+            .or_else(||self.source_columns.iter().position(|source|source==key)).unwrap_or(column)
     }
     fn cell(&self, row: usize, column: usize) -> SharedString {self.order.get(row).and_then(|row| self.rows[*row].get(self.source(column))).cloned().unwrap_or_default()}
     fn emit(&self, event: &'static str, value: String, cx: &mut App) {
         let (root, table) = (self.root.clone(), self.table);
-        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| root.emit(table, event, value, cx));});
+        let controlled_sort = event == "sort" && self.columns.iter().any(|column|column.controlled_sort);
+        cx.defer(move |cx| {let _ = root.update(cx, |root, cx| {
+            root.emit(table, event, value, cx);
+            // A controlled handler may retain the same value; restore its indicators after the native transition too.
+            if controlled_sort && let Some(KitState::Table(_, shape)) = root.states.get_mut(&table) {shape.clear();cx.notify();}
+        });});
     }
 }
 
@@ -723,24 +1086,22 @@ impl TableDelegate for Grid {
         entry
     }
     fn perform_sort(&mut self, column: usize, sort: ColumnSort, _: &mut Window, cx: &mut Context<TableState<Self>>) {
-        self.order = (0..self.rows.len()).collect();
-        let direction = match sort {ColumnSort::Ascending => "ascending", ColumnSort::Descending => "descending", _ => ""};
-        self.emit("sort", format!("{}\n{direction}", self.columns[column].key), cx);
-        if direction.is_empty() {return;}
-        let (rows, source) = (&self.rows, self.source(column));
-        // Numbers compare numerically; anything else compares as text.
-        self.order.sort_by(|left, right| {
-            let (left, right) = (rows[*left].get(source).map(|cell| cell.as_ref()).unwrap_or(""), rows[*right].get(source).map(|cell| cell.as_ref()).unwrap_or(""));
-            match (left.trim().parse::<f64>(), right.trim().parse::<f64>()) {(Ok(left), Ok(right)) => left.total_cmp(&right), _ => left.cmp(right)}
-        });
-        if matches!(sort, ColumnSort::Descending) {self.order.reverse();}
+        let direction = match sort {ColumnSort::Ascending => "ascending", ColumnSort::Descending => "descending", _ => "none"};
+        for (index,spec) in self.columns.iter_mut().enumerate() {spec.sort=if index==column {direction.into()}else{"none".into()};}
+        self.apply_sort();
+        self.emit("sort", format!("{}\n{}", self.columns[column].key, if direction=="none" {""}else{direction}), cx);
     }
+
     fn context_menu(&mut self, row: usize, menu: gpui_kit::component::menu::PopupMenu, _: &mut Window, cx: &mut Context<TableState<Self>>) -> gpui_kit::component::menu::PopupMenu {
         if self.menu.is_empty() {return menu;}
         if let Some(index) = self.order.get(row) {self.emit("contextMenu", index.to_string(), cx);}
         flat_menu(menu, &self.menu, &self.root)
     }
-    fn render_td(&mut self, row: usize, column: usize, _: &mut Window, _: &mut Context<TableState<Self>>) -> impl IntoElement {self.cell(row, column)}
+    fn render_td(&mut self, row: usize, column: usize, _: &mut Window, cx: &mut Context<TableState<Self>>) -> impl IntoElement {
+        let part = self.order.get(row).and_then(|row| self.cells.get(&(*row, self.columns[column].key.to_string())));
+        if let Some(part) = part && let Ok(content) = self.root.update(cx, |root, cx| root.content_of(*part, cx)) {return div().children(content).into_any_element();}
+        div().child(self.cell(row, column)).into_any_element()
+    }
     fn cell_label(&self, row: usize, column: usize, _: &App) -> Option<SharedString> {Some(self.cell(row, column))}
     fn move_column(&mut self, from: usize, to: usize, _: &mut Window, cx: &mut Context<TableState<Self>>) {
         let column = self.columns.remove(from);
@@ -785,7 +1146,7 @@ fn items<'a>(node: &'a Node, name: &'a str) -> impl Iterator<Item = (&'a Node, &
 }
 
 /// Select element options from its props; a SelectEmpty child replaces the empty list.
-macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, $cx:expr) => {{
+macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, $style:expr, $cx:expr) => {{
     let kit: &Kit = $kit;
     let mut select = $select.placeholder(kit.text("placeholder")).disabled(kit.flag("disabled")).cleanable(kit.flag("cleanable"));
     if let Some(label) = kit.prop("accessibilityLabel") {select = select.accessibility_label(label.to_owned());}
@@ -797,6 +1158,7 @@ macro_rules! select_options {($root:expr, $select:expr, $kit:expr, $empty:expr, 
     if let Some(width) = kit.number("menuWidth") {select = select.menu_width(px(width as f32));}
     if let Some(height) = kit.number("menuMaxHeight") {select = select.menu_max_h(px(height as f32));}
     if let Some(size) = kit_size(kit) {select = select.with_size(size);}
+    select.style().text = $style.text.clone();
     // Kit renders the empty state from &App, so a SelectEmpty child contributes its text.
     if let Some(empty) = $empty {
         let message = SharedString::from(find(&$root.node, empty).map(|node| node.content_text()).unwrap_or_default());
@@ -934,6 +1296,25 @@ fn parse_diff(source:&str)->Result<Vec<DiffFile>,DiffParseError> {
         match language {Some(language)=>file.with_language(language),None=>file}
     }).collect())
 }
+fn diff_source_key(props: &std::collections::BTreeMap<String,String>) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    for name in ["patch", "originalText", "modifiedText", "filePath"] {props.get(name).hash(&mut hash);}
+    hash.finish().to_string()
+}
+fn install_diff_source(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) -> Result<(),String> {
+    match (props.get("originalText"), props.get("modifiedText")) {
+        (None,None) => {state.cancel_comparison(); state.set_files(parse_diff(props.get("patch").map_or("",String::as_str)).map_err(|error|error.to_string())?,cx);},
+        (Some(original),Some(modified)) => {
+            if props.contains_key("patch") {return Err("Diff accepts a patch or complete text snapshots, not both".into());}
+            let path=props.get("filePath").cloned().unwrap_or_else(||"comparison.txt".into());
+            let language=std::path::Path::new(&path).extension().and_then(|extension|extension.to_str()).map(super::kit::source_language).map(str::to_owned);
+            state.compare_texts(path,original.clone(),modified.clone(),language,cx);
+        },
+        _ => return Err("Diff requires both originalText and modifiedText".into()),
+    }
+    Ok(())
+}
 /// State setters preserve selection/scroll and skip unchanged values in Kit.
 fn configure_diff(state: &mut DiffState, props: &std::collections::BTreeMap<String,String>, cx: &mut Context<DiffState>) {
     let text=|key:&str|props.get(key).map(String::as_str);
@@ -1036,7 +1417,50 @@ impl Root {
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
         let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
-        self.settle(result, cx);
+        // Polling timers still refresh bindings and run commands, but idle ticks need no frame.
+        self.settle_event(result, cx, event != "tick");
+    }
+
+    fn sync_dock(&mut self,id:u64,window:&mut Window,cx:&mut Context<Self>) {
+        let Some(node)=find(&self.node,id) else{return;};
+        let selected=node.kit.as_deref().map(|kit|kit.text("value")).unwrap_or_default();
+        let controlled=node.kit.as_deref().is_some_and(|kit|kit.handles("close"));
+        let panels=items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>();
+        let tab_font=self.node_style(node).text.font_size;
+        let Some(KitState::Dock(state))=self.states.get_mut(&id) else{return;};
+        if state.tab_font.replace(tab_font)!=tab_font {
+            for panel in state.panels.values() {if let Some(group)=panel.read(cx).group.as_ref().and_then(WeakEntity::upgrade) {group.update(cx,|_,cx|cx.notify());}}
+            state.area.update(cx,|_,cx|cx.notify());
+        }
+        let area=state.area.clone();let root=cx.entity();let mut values=std::collections::BTreeSet::new();
+        let last_close=controlled && panels.len()==1;
+        let wanted=panels.iter().map(|panel|panel.0).collect::<std::collections::BTreeSet<_>>();
+        let removed=state.panels.keys().filter(|node|!wanted.contains(node)).copied().collect::<Vec<_>>();
+        for node in removed {if let Some(panel)=state.panels.remove(&node){area.update(cx,|area,cx|area.remove_panel(panel,window,cx));}}
+        for (node,value,title,closable,padded,split_controls) in panels {
+            let value=if value.is_empty(){node.to_string()}else{value};
+            let activate = selected.is_empty() || value == selected;
+            if !values.insert(value.clone()){fail(&self.failure,"Dock panels require distinct values".into());}
+            if let Some(panel)=state.panels.get(&node) {
+                panel.update(cx,|panel,cx|{
+                    let can_split=panel.group.as_ref().and_then(WeakEntity::upgrade).is_some_and(|group|group.read(cx).panels().len()>1);
+                    let title:SharedString=title.into();
+                    if panel.value!=value || panel.title!=title || panel.closable!=closable || panel.padded!=padded || panel.split_controls!=split_controls || panel.last_close!=last_close || panel.can_split!=can_split {
+                        panel.value=value;panel.title=title;panel.closable=closable;panel.padded=padded;panel.split_controls=split_controls;panel.last_close=last_close;panel.can_split=can_split;cx.notify();
+                    }
+                });
+                if controlled && area.read(cx).panel(PanelId::from(panel.entity_id())).is_none(){area.update(cx,|area,cx|area.add_panel_view_with_activation(panel_handle(panel.clone()),DockPlacement::Center,None,activate,window,cx));}
+            }else{
+                let weak=root.downgrade();
+                let panel=cx.new(|cx|{cx.observe(&root,|_,_,cx|cx.notify()).detach();DockContent{root:weak,dock:id,node,value,title:title.into(),closable,padded,split_controls,can_split:false,last_close,area:area.downgrade(),group:None,focus:cx.focus_handle()}});
+                area.update(cx,|area,cx|area.add_panel_view_with_activation(panel_handle(panel.clone()),DockPlacement::Center,None,activate,window,cx));
+                state.panels.insert(node,panel);
+            }
+        }
+        if state.selected!=selected {
+            if let Some(panel)=state.panels.values().find(|panel|panel.read(cx).value==selected){area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));}
+            state.selected=selected;
+        }
     }
 
     /// The style refinement for a utility class string.
@@ -1099,7 +1523,7 @@ impl Root {
     fn input_group_button(&self, node: &Node, cx: &mut Context<Self>) -> AnyElement {
         let id = node.identity.get();
         let kit = node.kit.as_deref().expect("InputGroupButton");
-        let mut button = menu_button(InputGroupButton::new(ElementId::Integer(id)), kit, cx);
+        let mut button = menu_button(InputGroupButton::new(ElementId::Integer(id)), kit, cx).refine_style(&self.node_style(node));
         if !kit.text("label").is_empty() {button = button.label(kit.text("label"));}
         if let Some(icon) = icon_name(&kit.text("icon")) {button = button.icon(icon);}
         if let Some(label) = kit.prop("accessibilityLabel") {button = button.accessibility_label(label.to_owned());}
@@ -1142,7 +1566,7 @@ impl Root {
         let kit = node.kit.as_deref()?;
         let mut item = ListItem::new(ElementId::Name(format!("list-item-{row}").into()));
         if kit.name == "ListSeparator" {return Some(item.separator());}
-        item = item.disabled(kit.flag("disabled")).confirmed(kit.flag("confirmed"));
+        item = item.disabled(kit.flag("disabled")).confirmed(kit.flag("confirmed")).refine_style(&self.node_style(node));
         if let Some(label) = kit.prop("accessibilityLabel") {item = item.accessibility_label(label.to_owned());}
         // Kit draws the confirmed mark only when a check icon is set; default to a check.
         item = item.check_icon(icon_name(&kit.text("checkIcon")).unwrap_or(IconName::Check));
@@ -1153,11 +1577,14 @@ impl Root {
             if child.kit.as_deref().is_some_and(|kit| kit.name == "ListItemSuffix") {suffix = Some(child.identity.get()); continue;}
             content.push(self.element(child, &theme, mode(cx), cx));
         }
-        item = item.child(div().flex().items_center().gap_2().min_w_0().children(content));
+        item = item.child(div().flex().w_full().items_center().gap_2().min_w_0().children(content));
         let root = cx.entity().downgrade();
         if let Some(part) = suffix {
             let root = root.clone();
-            item = item.suffix(move |_, cx| div().flex().items_center().gap_1().children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
+            item = item.suffix(move |_, cx| div().id(ElementId::Name(format!("list-suffix-{row}").into())).flex().items_center().gap_1()
+                .on_mouse_down(MouseButton::Left,|_,_,cx|cx.stop_propagation())
+                .on_click(|_,_,cx|cx.stop_propagation())
+                .children(root.update(cx, |root, cx| root.content_of(part, cx)).unwrap_or_default()));
         }
         let emit = move |event: &'static str| {
             let root = root.clone();
@@ -1273,7 +1700,7 @@ impl Root {
     fn sync_kit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         fn collect(node: &Node, out: &mut Vec<(u64, String, std::collections::BTreeMap<String, String>)>) {
             let Some(node) = node.visible_root() else {return};
-            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Tree" | "List" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
+            if let Some(kit) = &node.kit && matches!(kit.name.as_str(), "AppMenuBar" | "AlertDialog" | "Select" | "NumberInput" | "OtpInput" | "DatePicker" | "ColorPicker" | "Slider" | "Dialog" | "Sheet" | "Calendar" | "TimeField" | "Combobox" | "Command" | "Carousel" | "CodeEditor" | "Terminal" | "Tree" | "List" | "Image" | "Diff" | "DataTable" | "MessageScroller" | "Dock" | "Questionnaire" | "SpeechButton" | "Ticker") {
                 out.push((node.identity.get(), kit.name.clone(), kit.props.clone()));
             }
             for child in &node.children {collect(child, out);}
@@ -1291,7 +1718,9 @@ impl Root {
         let mut keys = Vec::new();
         shortcuts(&self.node, &mut keys);
         for (keys, command) in keys {bind_shortcut(&keys, &command, cx);}
-        self.states.retain(|id, _| found.iter().any(|(other, _, _)| other == id));
+        let mounted=self.node.mounted_nodes();
+        // Hidden menu owners must reinstall their application-wide side effect when shown again.
+        self.states.retain(|id, state| mounted.contains(id) && (!matches!(state,KitState::AppMenuBar(..)) || found.iter().any(|(visible,_,_)|visible==id)));
         let mut dialog = None;
         let mut sheet = None;
         for (id, name, props) in found {
@@ -1304,6 +1733,9 @@ impl Root {
             }
             if let Some(state) = self.states.get(&id) {
                 match state {
+                    KitState::Image(state) => {
+                        state.update(cx, |state,cx| {if state.props!=props {state.props=props.clone();cx.notify();}});
+                    }
                     KitState::AppMenuBar(bar, current) => {
                         let Some(node)=find(&self.node,id) else {continue};
                         let menus=application_menus(node);
@@ -1382,7 +1814,12 @@ impl Root {
                         let (searchable, selectable) = (text("searchable") == "true", text("selectable") != "false");
                         state.update(cx, |state, cx| {
                             let list = state.delegate_mut();
+                            list.min_item_width = number("minItemWidth").unwrap_or(0.) as f32;
+                            if list.min_item_width <= 0. {list.columns=1;}
+                            let reset = list.scroll_reset_key != text("scrollResetKey");
+                            list.scroll_reset_key = text("scrollResetKey").to_owned();
                             (list.sections, list.values, list.empty, list.loading, list.has_more, list.threshold) = (sections, values, empty, loading, has_more, threshold);
+                            if reset {state.scroll_to_item(IndexPath::new(0).section(0), gpui::ScrollStrategy::Top, window, cx);}
                             state.set_searchable(searchable, cx);
                             state.set_selectable(selectable, cx);
                             cx.notify();
@@ -1439,6 +1876,8 @@ impl Root {
                             state.update(cx, |state, cx| state.set_value(color, window, cx));
                         }
                     }
+                    #[cfg(feature="gpui-terminal")]
+                    KitState::Terminal(state) => {state.update(cx, |state, cx| state.configure(number("fontSize").unwrap_or(14.), cx));}
                     KitState::Editor(state, current) => {
                         if let Some(value)=props.get("value") && state.read(cx).value().as_ref()!=value {state.update(cx,|state,cx|state.set_value(value.clone(),window,cx));}
                         if *current != props {
@@ -1446,26 +1885,38 @@ impl Root {
                             if let Some(KitState::Editor(_,current))=self.states.get_mut(&id) {*current=props.clone();}
                         }
                     }
-                    KitState::Tree(state, shape) => {
+                    KitState::Tree(state, shape, _) => {
                         // Rebuild the items when the TreeItem children change.
                         let current = tree_shape(&self.node, id);
                         if *shape != current {
-                            let items = find(&self.node, id).map(tree_items).unwrap_or_default();
-                            state.update(cx, |state, cx| state.set_items(items, cx));
-                            if let Some(KitState::Tree(_, shape)) = self.states.get_mut(&id) {*shape = current;}
+                            let (expanded,selected) = {
+                                let current=state.read(cx);
+                                let mut expanded=HashMap::new();
+                                let mut roots=Vec::new();
+                                let mut index=0;
+                                while let Some(entry)=current.entry(index) {if entry.is_root(){roots.push(entry.item());}index+=1;}
+                                while let Some(item)=roots.pop(){expanded.insert(item.id.clone(),item.is_expanded());roots.extend(item.children.iter());}
+                                (expanded,current.selected_item().map(|item|item.id.clone()))
+                            };
+                            let items = find(&self.node, id).map(|node|tree_items(node,&expanded)).unwrap_or_default();
+                            state.update(cx, |state, cx| {
+                                state.set_items(items, cx);
+                                state.set_selected_index(selected.as_ref().and_then(|id|state.index_of(id)),cx);
+                            });
+                            if let Some(KitState::Tree(_, shape, _)) = self.states.get_mut(&id) {*shape = current;}
                         }
-                        if let Some(KitState::Tree(state, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
+                        if let Some(KitState::Tree(state, _, _)) = self.states.get(&id) && let Some(selected) = props.get("selected") {
                             let selected: SharedString = selected.clone().into();
                             if state.read(cx).selected_item().map(|item| &item.id) != Some(&selected) {
                                 state.update(cx, |state, cx| tree_select(state, &selected, cx));
                             }
                         }
                     }
-                    KitState::Diff(state, patch) => {
-                        if *patch != text("patch") {
-                            let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
-                            state.update(cx, |state, cx| state.set_files(files, cx));
-                            if let Some(KitState::Diff(_, patch)) = self.states.get_mut(&id) {*patch = text("patch");}
+                    KitState::Diff(state, key) => {
+                        let current = diff_source_key(&props);
+                        if *key != current {
+                            state.update(cx, |state,cx|install_diff_source(state,&props,cx)).unwrap_or_else(|error|fail(&self.failure,format!("Diff: {error}")));
+                            if let Some(KitState::Diff(_, key)) = self.states.get_mut(&id) {*key=current;}
                         }
                         if let Some(KitState::Diff(state, _)) = self.states.get(&id) {state.update(cx, |state,cx|configure_diff(state,&props,cx));}
                     }
@@ -1474,8 +1925,9 @@ impl Root {
                         let current = grid_shape(node);
                         if *shape != current {
                             // Rows and columns changed: keep the sort direction by re-sorting the new rows.
-                            let grid = Grid::new(node, cx.entity().downgrade());
-                            state.update(cx, |state, cx| {*state.delegate_mut() = grid; state.refresh(cx); state.refresh_header_layout(cx);});
+                            let mut grid = Grid::new(node, cx.entity().downgrade());
+                            grid.inherit_state(state.read(cx).delegate());
+                            state.update(cx, |state, cx| {let reset = state.delegate().scroll_reset_key != grid.scroll_reset_key; *state.delegate_mut() = grid; state.refresh(cx); state.refresh_header_layout(cx); if reset {state.scroll_to_row(0, cx);}});
                             if let Some(KitState::Table(_, shape)) = self.states.get_mut(&id) {*shape = current;}
                         }
                         if let Some(KitState::Table(state, _)) = self.states.get(&id) && let Some(selected) = number("selectedRow").map(|row| row as usize) {
@@ -1483,12 +1935,18 @@ impl Root {
                             if let Some(display) = display && state.read(cx).selected_row() != Some(display) {state.update(cx, |state, cx| {state.set_selected_row(display, cx); state.scroll_to_row(display, cx);});}
                         }
                     }
-                    KitState::Scroller(state, count) => {
-                        let current = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
-                        if *count != current {
-                            let previous = *count;
-                            state.update(cx, |state, cx| if current > previous {state.append(current - previous, cx);} else {state.reset(current, cx);});
-                            if let Some(KitState::Scroller(_, count)) = self.states.get_mut(&id) {*count = current;}
+                    KitState::Scroller(state, previous) => {
+                        let rows = find(&self.node,id).map(scroller_rows).unwrap_or_default();
+                        if *previous != rows {
+                            let old_count=previous.len();let count=rows.len();
+                            let changed=previous.iter().zip(&rows).enumerate().filter_map(|(index,(old,new))|(old!=new).then_some(index)).collect::<Vec<_>>();
+                            state.update(cx,|state,cx| {
+                                if count<old_count {state.reset(count,cx);} else {
+                                    if count>old_count {state.append(count-old_count,cx);}
+                                    for index in changed {state.remeasure_items(index..index+1,cx);}
+                                }
+                            });
+                            if let Some(KitState::Scroller(_,previous))=self.states.get_mut(&id){*previous=rows;}
                         }
                     }
                     KitState::Ticker(_, shape) => {
@@ -1510,7 +1968,8 @@ impl Root {
                             }
                         }
                     }
-                    KitState::Dock(_) | KitState::Speech(_) => {}
+                    KitState::Dock(_) => {self.sync_dock(id,window,cx);}
+                    KitState::Speech(_) => {}
                 }
                 continue;
             }
@@ -1678,6 +2137,7 @@ impl Root {
                 }
                 "Command" => {
                     let state = cx.new(|cx| CommandState::new(window, cx));
+                    if let Some(query)=props.get("query") {let query=query.clone();state.update(cx,|state,cx|state.set_query(query,window,cx));}
                     if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
                     KitState::Command(state)
                 }
@@ -1698,14 +2158,61 @@ impl Root {
                     if let Err(error)=install_application_menus(&menus,cx) {fail(&self.failure,error);}
                     KitState::AppMenuBar(AppMenuBar::new(cx),menus)
                 }
+                #[cfg(feature="gpui-terminal")]
+                "Terminal" => {
+                    let args = if text("args").is_empty() {Vec::new()} else {serde_json::from_str::<Vec<String>>(&text("args")).unwrap_or_else(|error| fail(&self.failure, format!("Invalid Terminal args: {error}")))};
+                    if !args.is_empty() && text("program").is_empty() {fail(&self.failure,"Terminal args require an explicit program".into());}
+                    let state = cx.new(|cx| terminal_view::TerminalView::new(if text("directory").is_empty() {std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned()} else {text("directory")}, text("program"), args, number("fontSize").unwrap_or(14.), window, cx));
+                    cx.subscribe_in(&state, window, move |this, _, event: &terminal_view::TerminalEvent, _, cx| match event {terminal_view::TerminalEvent::Exit => this.emit(id, "exit", String::new(), cx), terminal_view::TerminalEvent::OpenLink(link) => this.emit(id, "openLink", link.clone(), cx)}).detach();
+                    KitState::Terminal(state)
+                },
+                "Image" => {let root=cx.entity().downgrade();KitState::Image(cx.new(|_| ImageViewport {root,id,props:props.clone(),viewport:Size::default(),last_zoom:None,scroll:ScrollHandle::new(),last_scroll:String::new(),asset:image_asset::ImageAsset::default()}))},
                 "CodeEditor" => {
                     let (language,value)=(text("language"),props.get("value").or(props.get("defaultValue")).cloned().unwrap_or_default());
                     let state = cx.new(|cx| {
                         let mut state = configured!(EditorState::new(window, cx).language(super::kit::source_language(&language).to_owned()),&props);
                         editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
+                        if let Some(offset) = props.get("initialCaret").and_then(|value|value.parse::<usize>().ok()) {
+                            state.set_selected_range(offset..offset,cx);
+                        }
                         if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
+                    });
+                    if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("caretChange")) {
+                        let mut previous=state.read(cx).cursor();
+                        cx.observe(&state,move |root,state,cx| {
+                            let offset=state.read(cx).cursor();
+                            if offset!=previous {
+                                previous=offset;
+                                root.emit(id,"caretChange",offset.to_string(),cx);
+                            }
+                        }).detach();
+                    }
+                    let has_language = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageRequest"));
+                    let has_references = find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="languageReferences"));
+                    let inline=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.events.iter().any(|(event,_)|event=="inlineCompletion"));
+                    if has_language || inline {
+                        let provider=std::rc::Rc::new(EditorLanguageProvider {root:cx.entity().downgrade(),target:id,inline,language:has_language});
+                        state.update(cx, |state,_| {state.lsp_mut().completion_provider=Some(provider.clone());if has_language {state.lsp_mut().hover_provider=Some(provider.clone());state.lsp_mut().signature_help_provider=Some(provider.clone());state.lsp_mut().definition_provider=Some(provider.clone());}if has_references {state.lsp_mut().references_provider=Some(provider);}});
+                    }
+                    let root=cx.entity().downgrade();
+                    state.update(cx, |state,_| {
+                        let breakpoint_root=root.clone();
+                        state.on_breakpoint_click(move |line,cx| {
+                            let _=breakpoint_root.update(cx,|root,cx|root.emit(id,"breakpointClick",line.to_string(),cx));
+                        });
+                        let references_root=root.clone();
+                        state.lsp_mut().show_references=Some(std::rc::Rc::new(move |locations,error,_,cx| {
+                            let payload=serde_json::json!({"locations":locations,"error":error}).to_string();
+                            let _=references_root.update(cx,|root,cx|root.emit(id,"languageReferences",payload,cx));
+                        }));
+                        // Always consume navigation: the Tsrust host validates URIs instead of opening URLs or moving in the wrong buffer.
+                        state.lsp_mut().show_document=Some(std::rc::Rc::new(move |params,_,cx| {
+                            let payload=serde_json::to_string(params).unwrap_or_default();
+                            let _=root.update(cx,|root,cx| root.emit(id,"languageNavigate",payload,cx));
+                            true
+                        }));
                     });
                     cx.subscribe_in(&state, window, move |this, state, event: &InputEvent, _, cx| {
                         match event {
@@ -1718,9 +2225,8 @@ impl Root {
                     KitState::Editor(state,props.clone())
                 }
                 "Diff" => {
-                    let files = parse_diff(&text("patch")).unwrap_or_else(|error|fail(&self.failure,format!("Diff patch: {error}")));
-                    let state = cx.new(|cx| {let mut state = DiffState::new(files, cx); configure_diff(&mut state,&props,cx); state});
-                    KitState::Diff(state, text("patch"))
+                    let state = cx.new(|cx| {let mut state = DiffState::new(Vec::new(), cx); configure_diff(&mut state,&props,cx); install_diff_source(&mut state,&props,cx).unwrap_or_else(|error|fail(&self.failure,format!("Diff: {error}"))); state});
+                    KitState::Diff(state, diff_source_key(&props))
                 }
                 "DataTable" => {
                     let Some(node) = find(&self.node, id) else {continue};
@@ -1731,11 +2237,12 @@ impl Root {
                         .select_on_modifier_click(flag("selectOnModifierClick", false)).col_selectable(flag("columnSelectable", false))
                         .cell_selectable(flag("cellSelectable", false)).row_header(flag("rowHeader", true)));
                     // Rows report their index in `rows`, whatever the sort; columns report their key.
-                    cx.subscribe_in(&state, window, move |this, state, event: &TableEvent, _, cx| {
+                    cx.subscribe_in(&state, window, move |this, state, table_event: &TableEvent, _, cx| {
+                        let (event,value) = {
                         let grid = state.read(cx).delegate();
                         let row = |display: usize| grid.order.get(display).map_or(String::new(), usize::to_string);
                         let key = |column: usize| grid.columns.get(column).map_or(String::new(), |column| column.key.to_string());
-                        let (event, value) = match event {
+                        let (event, value) = match table_event {
                             TableEvent::SelectRow(display) => ("select", row(*display)),
                             TableEvent::DoubleClickedRow(display) => ("activate", row(*display)),
                             TableEvent::SelectColumn(column) => ("selectColumn", key(*column)),
@@ -1746,27 +2253,77 @@ impl Root {
                             TableEvent::ClearSelection => ("clearSelection", String::new()),
                             _ => return,
                         };
+                        (event,value)
+                        };
+                        if let TableEvent::ColumnWidthsChanged(widths)=table_event {state.update(cx,|state,_|state.delegate_mut().capture_widths(widths));}
                         this.emit(id, event, value, cx);
                     }).detach();
                     KitState::Table(state, grid_shape(node))
                 }
                 "Dock" => {
-                    // The layout is built once; afterwards the user owns the arrangement.
                     let vertical = text("vertical") == "true";
-                    let panels = find(&self.node, id).map(|node| items(node, "DockPanel").map(|(child, item)| (child.identity.get(), item.text("title"), item.number("size"))).collect::<Vec<_>>()).unwrap_or_default();
-                    let (area, _) = DockSkin::dock_area(format!("dock-{id}"), None, window, cx);
+                    let tabbed = text("tabbed") == "true";
+                    let panels = find(&self.node,id).map(|node|items(node,"DockPanel").map(|(child,item)|(child.identity.get(),item.text("value"),item.text("title"),item.number("size"),item.prop("closable")!=Some("false"),item.prop("padded")!=Some("false"),item.flag("splitControls"))).collect::<Vec<_>>()).unwrap_or_default();
+                    let mut skin=None;
+                    let tab_font=std::rc::Rc::new(std::cell::Cell::new(find(&self.node,id).and_then(|node|self.node_style(node).text.font_size)));
+                    let area=cx.new(|cx| {
+                        let native=DockSkin::new(cx);skin=Some(native.clone());
+                        DockArea::new(format!("dock-{id}"),None,window,cx).with_renderer(std::rc::Rc::new(TsrustDockSkin(native,tab_font.clone())))
+                    });
+                    let skin=skin.expect("Dock skin constructed with area");
+                    skin.set_close_button_visible(true,cx);skin.set_panel_style(PanelStyle::TabBar,cx);
+                    cx.observe(&area,|_,_,cx|cx.notify()).detach();
+                    cx.subscribe_in(&area,window,move|root,_,event:&DockEvent,window,cx|{
+                        if !matches!(event,DockEvent::LayoutChanged){return;}
+                        let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};
+                        if state.repaint_pending{return;}state.repaint_pending=true;
+                        let weak=cx.entity().downgrade();
+                        // Cached editors must repaint after the new pane bounds have been laid out.
+                        window.on_next_frame(move|_,cx|{let _=weak.update(cx,|root,cx|{
+                            let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};state.repaint_pending=false;
+                            let panels=state.panels.values().cloned().collect::<Vec<_>>();
+                            for panel in panels{panel.update(cx,|_,cx|cx.notify());}
+                            let editors=root.states.values().filter_map(|state|if let KitState::Editor(editor,_)=state{Some(editor.clone())}else{None}).collect::<Vec<_>>();
+                            for editor in editors{editor.update(cx,|_,cx|cx.notify());}
+                            let Some(KitState::Dock(state))=root.states.get_mut(&id) else{return;};
+                            let layout=serde_json::to_string(&state.area.read(cx).dump(cx)).expect("finite native Dock layout");
+                            if state.last_layout!=layout {state.last_layout=layout.clone();root.emit(id,"layoutChange",layout,cx);}
+                            cx.notify();
+                        });});
+                    }).detach();
                     let root = cx.entity();
                     let mut layout = if vertical {DockLayout::v_split()} else {DockLayout::h_split()};
-                    for (node, title, size) in panels {
+                    let last_close=find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("close")) && panels.len()==1;
+                    let mut group=DockLayout::tabs();let mut held=std::collections::BTreeMap::new();let mut values=std::collections::BTreeSet::new();
+                    for (node, value, title, size, closable, padded, split_controls) in panels {
+                        let value=if value.is_empty(){node.to_string()}else{value};
+                        if !values.insert(value.clone()){fail(&self.failure,"Dock panels require distinct values".into());}
                         let weak = root.downgrade();
                         let panel = cx.new(|cx| {
                             cx.observe(&root, |_, _, cx| cx.notify()).detach();
-                            DockContent {root: weak, node, title: title.into(), focus: cx.focus_handle()}
+                            DockContent {root:weak,dock:id,node,value,title:title.into(),closable,padded,split_controls,can_split:false,last_close,area:area.downgrade(),group:None,focus:cx.focus_handle()}
                         });
-                        layout = layout.child(DockLayout::tabs().panel_view(panel_handle(panel), cx), size.map(|size| px(size as f32)));
+                        if tabbed{group=group.panel_view(panel_handle(panel.clone()),cx);}else{layout=layout.child(DockLayout::tabs().panel_view(panel_handle(panel.clone()),cx),size.map(|size|px(size as f32)));}
+                        held.insert(node,panel);
                     }
-                    area.update(cx, |area, cx| area.set_center(layout, window, cx));
-                    KitState::Dock(area)
+                    let mut layout=if tabbed{group}else{layout};
+                    let initial=text("initialLayout");let mut used=None;
+                    if !initial.is_empty() {
+                        let restored=super::kit::dock_layout(&initial).and_then(|value|serde_json::from_value::<gpui_kit::base::dock::DockAreaState>(value).map_err(|error|error.to_string()));
+                        match restored {
+                            Ok(saved)=>{
+                                let mut found=std::collections::BTreeSet::new();
+                                if let Some(saved)=restored_dock_layout(&saved.center,&held,&mut found,cx){layout=saved;used=Some(found);}
+                            },
+                            Err(error)=>{let root=root.downgrade();cx.defer(move|cx|{let _=root.update(cx,|root,cx|root.emit(id,"layoutError",error,cx));});},
+                        }
+                    }
+                    area.update(cx, |area, cx| {area.set_version(Some(1),cx);area.set_center(layout, window, cx);});
+                    if let Some(used)=used {for (node,panel) in &held {if !used.contains(node){area.update(cx,|area,cx|area.add_panel_view(panel_handle(panel.clone()),DockPlacement::Center,None,window,cx));}}}
+                    if let Some(selected)=props.get("value") && let Some(panel)=held.values().find(|panel|panel.read(cx).value==*selected) {
+                        area.update(cx,|area,cx|area.select_panel(PanelId::from(panel.entity_id()),window,cx));
+                    }
+                    KitState::Dock(DockState{area,panels:held,selected:text("value"),repaint_pending:false,last_layout:String::new(),tab_font})
                 }
                 "Ticker" => {
                     let task = ticker(id, &props, cx);
@@ -1846,11 +2403,11 @@ impl Root {
                     KitState::Questionnaire(state)
                 }
                 "MessageScroller" => {
-                    let count = find(&self.node, id).map(|node| node.visible_children().count()).unwrap_or(0);
-                    KitState::Scroller(cx.new(|cx| MessageScrollerState::new(count, cx)), count)
+                    let rows=find(&self.node,id).map(scroller_rows).unwrap_or_default();
+                    KitState::Scroller(cx.new(|cx| MessageScrollerState::new(rows.len(),cx)),rows)
                 }
                 "Tree" => {
-                    let items = find(&self.node, id).map(tree_items).unwrap_or_default();
+                    let items = find(&self.node, id).map(|node|tree_items(node,&HashMap::new())).unwrap_or_default();
                     let state = cx.new(|cx| TreeState::new(cx).items(items));
                     if let Some(selected) = props.get("selected").or(props.get("defaultSelected")).cloned() {
                         state.update(cx, |state, cx| tree_select(state, &selected.into(), cx));
@@ -1860,12 +2417,12 @@ impl Root {
                         TreeEvent::Collapsed(item) => this.emit(id, "collapse", item.to_string(), cx),
                     }).detach();
                     if text("autoFocus") == "true" {state.update(cx, |state, cx| state.focus(window, cx));}
-                    KitState::Tree(state, tree_shape(&self.node, id))
+                    KitState::Tree(state, tree_shape(&self.node, id), Default::default())
                 }
                 "List" => {
                     let Some(node) = find(&self.node, id) else {continue};
                     let delegate = TsrustList {
-                        root: cx.entity().downgrade(), list: id, sections: list_sections(node), query: String::new(),
+                        root: cx.entity().downgrade(), list: id, columns: 1, min_item_width: number("minItemWidth").unwrap_or(0.) as f32, scroll_reset_key: text("scrollResetKey").to_owned(), sections: list_sections(node), query: String::new(),
                         empty: first_item(node, "ListEmpty").map(|empty| empty.identity.get()), loading: text("loading") == "true",
                         has_more: text("hasMore") == "true", threshold: number("loadMoreThreshold").map_or(20, |rows| rows as usize), selected: None, values: list_values(node),
                     };
@@ -1907,6 +2464,11 @@ impl Root {
             self.states.insert(id, state);
         }
         let root = cx.entity().downgrade();
+        // Kit stacks dialogs. A changed declarative id replaces the previous modal.
+        if self.dialog.is_some() && self.dialog != dialog {
+            window.close_dialog(cx);
+            self.dialog = None;
+        }
         match (dialog, self.dialog) {
             (Some(id), current) if current != Some(id) && find(&self.node, id).and_then(|node| node.kit.as_deref()).is_some_and(|kit| kit.name == "AlertDialog") => {
                 self.dialog = Some(id);
@@ -1969,6 +2531,14 @@ impl Root {
                         if handles_ok {let confirm = root.clone(); dialog = dialog.on_ok(move |_, _, cx| {let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx)); true});}
                         if handles_cancel {let cancel = root.clone(); dialog = dialog.on_cancel(move |_, _, cx| {let _ = cancel.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx)); true});}
                     }
+                    if ok.is_empty() && cancel.is_empty() && handles_ok {
+                        // A custom footer owns validation and closes its controlled dialog on success.
+                        let confirm = root.clone();
+                        dialog = dialog.on_ok(move |_, _, cx| {
+                            let _ = confirm.update(cx, |root, cx| root.emit(id, "ok", String::new(), cx));
+                            false
+                        });
+                    }
                     let parts = root.clone();
                     let (ok, cancel) = (ok.clone(), cancel.clone());
                     let cancelled = root.clone();
@@ -2002,7 +2572,6 @@ impl Root {
                     })
                 });
             }
-            (None, Some(_)) => {self.dialog = None; window.close_dialog(cx);}
             _ => {}
         }
         match (sheet, self.sheet) {
@@ -2024,7 +2593,7 @@ impl Root {
                         let description = description.map(|description| div().text_sm().font_weight(FontWeight::NORMAL).text_color(muted).children(description));
                         sheet = sheet.title(div().flex().flex_col().gap_1().children(title).children(description));
                     }
-                    if let Some(footer) = footer {sheet = sheet.footer(div().flex().justify_end().gap_2().children(footer));}
+                    if let Some(footer) = footer {sheet = sheet.footer(div().flex().w_full().justify_end().gap_2().children(footer));}
                     sheet.child(div().flex().flex_col().gap_3().children(body))
                 });
             }
@@ -2058,8 +2627,13 @@ impl Root {
     }
 
     /// Run queued application commands; replies refresh the tree like handlers.
+    fn flush_language_cancellations(&mut self, cx: &mut Context<Self>) {
+        let cancellations=self.language_requests.borrow_mut().cancellations(|id|self.states.contains_key(&id));
+        for (target,id) in cancellations {self.emit(target,"languageCancel",id.to_string(),cx);}
+    }
     fn run_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let _scope=self.scope();
+        self.flush_language_cancellations(cx);
         commands::set_dark(matches!(window.appearance(), WindowAppearance::Dark | WindowAppearance::VibrantDark));
         // GPUI Kit's own strings (calendar months, placeholders) follow the app locale.
         if super::i18n::take_changed() {gpui_kit::component::set_locale(&super::i18n::locale());}
@@ -2095,7 +2669,9 @@ impl Root {
                         "close" => window.remove_window(),
                         "quit" => cx.quit(),
                         "open-url" => cx.open_url(&text("url")),
+                        "reveal-path" => cx.reveal_path(std::path::Path::new(&text("path"))),
                         "input" => self.control_input(&value, window, cx),
+                        "editor-language-wake" => {},
                         "relaunch" => match super::update::relaunch() {Ok(()) => cx.quit(), Err(error) => window.push_notification(Notification::error(error), cx)},
                         _ => cx.write_to_clipboard(ClipboardItem::new_string(text("text"))),
                     }
@@ -2108,6 +2684,31 @@ impl Root {
                         let reply = std::rc::Rc::new(std::cell::RefCell::new(Some(reply)));
                         let note = notification(&value, Some((cx.entity().downgrade(), reply)));
                         window.push_notification(note, cx);
+                        continue;
+                    }
+                    if name == "terminal" || name == "read-terminal" {
+                        #[cfg(feature="gpui-terminal")]
+                        let response = {
+                        let target = value["id"].as_str().unwrap_or_default();
+                        let mut states = self.node.mounted_nodes().into_iter().filter_map(|id| find(&self.node, id).and_then(|node| node.kit.as_deref()).filter(|kit| kit.name == "Terminal" && kit.prop("id") == Some(target)).and_then(|_| match self.states.get(&id) {Some(KitState::Terminal(state)) => Some(state.clone()), _ => None})).collect::<Vec<_>>();
+                        if states.len()>1 {if name=="read-terminal" {serde_json::json!({"found": false, "error": "Terminal id is ambiguous"})} else {serde_json::json!({"ok": false, "error": "Terminal id is ambiguous"})}} else {match states.pop() {
+                            Some(state) if name == "read-terminal" => state.read(cx).snapshot(window),
+                            Some(state) => match state.update(cx, |state, cx| state.command(&value, window, cx)) {Ok(()) => serde_json::json!({"ok": true}), Err(error) => serde_json::json!({"ok": false, "error": error})},
+                            None => if name == "read-terminal" {serde_json::json!({"found": false})} else {serde_json::json!({"ok": false, "error": "Terminal session is not mounted"})},
+                        }}
+                        };
+                        #[cfg(not(feature="gpui-terminal"))]
+                        let response = if name == "read-terminal" {serde_json::json!({"found": false, "error": "Native terminal support is not selected"})} else {serde_json::json!({"ok": false, "error": "Native terminal support is not selected"})};
+                        self.reply(reply, &response.to_string(), cx);
+                        continue;
+                    }
+                    if name == "editor-language-reply" {
+                        let token=value.get("request").and_then(|value|value.as_u64()).unwrap_or(0);
+                        let target=self.language_requests.borrow().target(token);
+                        let text=target.and_then(|id|self.states.get(&id)).and_then(|state|if let KitState::Editor(state,_)=state{Some(state.read(cx).value().to_string())}else{None});
+                        let result=value.get("result").and_then(|value|value.as_str()).filter(|text|text.len()<=16*1024*1024).and_then(|text|serde_json::from_str(text).ok()).unwrap_or(serde_json::Value::Null);
+                        let accepted=self.language_requests.borrow_mut().resolve(token,text.as_deref(),result);
+                        self.reply(reply, &serde_json::json!({"accepted":accepted}).to_string(), cx);
                         continue;
                     }
                     if name == "read-input" {
@@ -2132,7 +2733,15 @@ impl Root {
                     let receiver = if name == "pick-files" {
                         let directories = flag("directories");
                         let prompt = cx.prompt_for_paths(PathPromptOptions {files: !directories, directories, multiple: flag("multiple"), prompt: None});
-                        Box::pin(async move {prompt.await.ok().and_then(Result::ok).flatten().unwrap_or_default().iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\n")}) as std::pin::Pin<Box<dyn std::future::Future<Output = String>>>
+                        let path_array = flag("pathArray");
+                        Box::pin(async move {
+                            let selected = prompt.await.ok().and_then(Result::ok).flatten().unwrap_or_default();
+                            if path_array {
+                                commands::picked_paths_json(&selected)
+                            } else {
+                                selected.iter().map(|path| path.display().to_string()).collect::<Vec<_>>().join("\n")
+                            }
+                        }) as std::pin::Pin<Box<dyn std::future::Future<Output = String>>>
                     } else {
                         let directory = std::env::current_dir().unwrap_or_default();
                         let suggested = value.get("name").and_then(|name| name.as_str()).unwrap_or_default().to_owned();
@@ -2456,7 +3065,7 @@ impl Root {
             "Pagination" => {
                 // page is controlled; without it the pagination keeps its own page (from defaultPage).
                 let page = kit.index("page").or(kit.index("defaultPage")).unwrap_or(1);
-                let mut pages = Pagination::new(element_id).current_page(page).total_pages(kit.index("total").unwrap_or(1)).disabled(kit.flag("disabled"));
+                let mut pages = Pagination::new(element_id).refine_style(&style).current_page(page).total_pages(kit.index("total").unwrap_or(1)).disabled(kit.flag("disabled"));
                 if kit.flag("compact") {pages = pages.compact();}
                 if let Some(visible) = kit.index("visiblePages") {pages = pages.visible_pages(visible);}
                 if let Some(size) = kit_size(kit) {pages = pages.with_size(size);}
@@ -2490,6 +3099,7 @@ impl Root {
                 if let Some(space) = first_item(node, "TabsEmptySpace") {bar = bar.last_empty_space(div().flex().items_center().size_full().children(self.content(space, cx)));}
                 for (child, item, _) in &tabs {
                     let mut tab = Tab::new().disabled(item.flag("disabled"));
+                    tab.style().text.font_size = self.node_style(child).text.font_size.or(self.node_style(node).text.font_size);
                     if !item.text("label").is_empty() {tab = tab.label(item.text("label"));}
                     if let Some(label) = item.prop("accessibilityLabel") {tab = tab.aria_label(label.to_owned());}
                     if let Some(icon) = icon_name(&item.text("icon")) {tab = tab.icon(icon);}
@@ -2548,8 +3158,8 @@ impl Root {
             "Select" => {
                 let empty = items(node, "SelectEmpty").next().map(|(empty, _)| empty.identity.get());
                 match self.states.get(&id) {
-                    Some(KitState::Select(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
-                    Some(KitState::SelectGroups(state, _)) => select_options!(self, Select::new(state), kit, empty, cx).into_any_element(),
+                    Some(KitState::Select(state, _)) => select_options!(self, Select::new(state), kit, empty, style, cx).into_any_element(),
+                    Some(KitState::SelectGroups(state, _)) => select_options!(self, Select::new(state), kit, empty, style, cx).into_any_element(),
                     _ => div().into_any_element(),
                 }
             }
@@ -2725,9 +3335,13 @@ impl Root {
                 button.on_click(cx.listener(move |this, _, _, cx| this.emit(id, "click", String::new(), cx))).into_any_element()
             }
             "Resizable" => {
-                let mut group = if kit.flag("vertical") {v_resizable(element_id)} else {h_resizable(element_id)};
+                // Divider sizes are indexed by displayed slot; do not apply another ordering's sizes.
+                let layout_id=ElementId::Name(format!("resize-{id}-{}-{}",kit.flag("vertical"),kit.flag("reverse")).into());
+                let mut group = if kit.flag("vertical") {v_resizable(layout_id)} else {h_resizable(layout_id)};
                 if let Some(size) = kit.number("size") {group = group.size(px(size as f32));}
-                for (child, panel) in items(node, "ResizablePanel") {
+                let mut panels=items(node,"ResizablePanel").collect::<Vec<_>>();
+                if kit.flag("reverse"){panels.reverse();}
+                for (child, panel) in panels {
                     let mut entry = resizable_panel().child(div().size_full().children(self.content(child, cx))).visible(panel.prop("visible") != Some("false"));
                     if let Some(size) = panel.number("size") {entry = entry.size(px(size as f32));}
                     if panel.number("minSize").is_some() || panel.number("maxSize").is_some() {entry = entry.size_range(px(panel.number("minSize").unwrap_or(0.) as f32)..px(panel.number("maxSize").unwrap_or(100_000.) as f32));}
@@ -2782,9 +3396,18 @@ impl Root {
                 }
                 table.into_any_element()
             }
-            "Markdown" => TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content"))).into_any_element(),
+            "Markdown" => {
+                let mut code = StyleRefinement::default();
+                code.text.font_size = style.text.font_size.clone();
+                code.text.line_height = style.text.line_height.clone();
+                TextView::markdown(element_id, super::kit::highlighted_markdown(&kit.text("content")))
+                    .style(TextViewStyle::default().code_block(code)).refine_style(&style).into_any_element()
+            },
             "Html" => TextView::html(element_id, text("content")).into_any_element(),
             "Image" => {
+                if kit.prop("zoom").is_some() {
+                    return match self.states.get(&id) {Some(KitState::Image(state))=>state.clone().into_any_element(),_=>div().into_any_element()};
+                }
                 let fit = match kit.prop("fit") {Some("cover") => ObjectFit::Cover, Some("fill") => ObjectFit::Fill, Some("none") => ObjectFit::None, _ => ObjectFit::Contain};
                 let alt = text("alt");
                 let fallback = alt.clone();
@@ -2795,8 +3418,10 @@ impl Root {
                     .with_loading(move || div().child(alt.clone()).into_any_element())
                     .with_fallback(move || div().child(fallback.clone()).into_any_element()).into_any_element()
             }
+            // Commands and timers stay mounted without contributing flex gaps or intrinsic size.
+            "Shortcut" | "Ticker" => div().absolute().size_0().into_any_element(),
             "TitleBar" => {
-                let mut bar = TitleBar::new().children(self.content(node, cx));
+                let mut bar = TitleBar::new().refine_style(&style).children(self.content(node, cx));
                 if kit.handles("closeWindow") {bar = bar.on_close_window(cx.listener(move |this, _, _, cx| this.emit(id, "closeWindow", String::new(), cx)));}
                 bar.into_any_element()
             }
@@ -2953,35 +3578,96 @@ impl Root {
                     if let Some(bounce) = kit.prop("scrollBounce") {list = list.scroll_bounce(bounce == "true");}
                     if let Some(placeholder) = kit.prop("placeholder") {list = list.search_placeholder(placeholder.to_owned());}
                     if let Some(size) = kit_size(kit) {list = list.with_size(size);}
+                    let minimum=kit.number("minItemWidth").unwrap_or(0.) as f32;
+                    if minimum>0. {
+                        let state=state.downgrade();
+                        return div().relative().size_full().child(list).child(canvas(move|bounds,_,cx|{let _=state.update(cx,|state,cx|{
+                            let count=((f32::from(bounds.size.width)+12.)/(minimum+12.)).floor().max(1.) as usize;
+                            if state.delegate().columns!=count {state.delegate_mut().columns=count;cx.notify();}
+                        });},|_,_,_,_|{}).absolute().size_full()).into_any_element();
+                    }
                     list.into_any_element()
                 }
                 _ => div().into_any_element(),
             },
             "Tree" => match self.states.get(&id) {
-                Some(KitState::Tree(state, _)) => {
+                Some(KitState::Tree(state, _, source)) => {
                     let mut icons = HashMap::new();
                     tree_icons(node, &mut icons);
                     let row = root.clone();
-                    let mut view = tree(state, move |index, entry, selected, _, _| {
+                    let text_size=style.text.font_size.clone();
+                    let source = source.clone();
+                    let menu_size = text_size;
+                    let movable=kit.events.iter().any(|(event,_)|event=="itemDrop");
+                    let mut view = tree(state, move |index, entry, selected, _, cx| {
                         let item = entry.item();
                         let item_id = item.id.to_string();
-                        let icon = icons.get(&item_id).and_then(|icon| icon_name(icon)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
+                        let decoration = icons.get(&item_id);
+                        let named = decoration.and_then(|icon: &TreeIcon| icon_name(&icon.name)).unwrap_or(if entry.is_folder() {if entry.is_expanded() {IconName::FolderOpen} else {IconName::Folder}} else {IconName::File});
+                        let mut icon = match decoration.filter(|icon| !icon.svg.is_empty()) {Some(icon) => Icon::empty().data(icon.svg.as_bytes()), None => Icon::new(named)};
+                        if let Some(color) = decoration.and_then(|icon| theme_color(&icon.color, cx)) {icon = icon.text_color(color);}
                         let root = row.clone();
+                        let icon = icon.size_4();
+                        let preview = icon.clone();
                         let mut line = ListItem::new(index).selected(selected).disabled(entry.is_disabled()).pl(px(12. * entry.depth() as f32 + 8.))
-                            .child(div().flex().items_center().gap_2().child(Icon::new(icon).size_4()).child(item.label.clone()));
-                        line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));})
+                            .min_w_0().overflow_hidden()
+                            .child(div().flex().items_center().gap_2().w_full().min_w_0().child(icon)
+                                .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(item.label.clone())));
+                        if let Some(size)=text_size.clone(){line=line.text_size(size);}
+                        let target=item_id.clone();
+                        let receiver=root.clone();
+                        let drag=TreeRowDrag {tree:id,source:item_id.clone()};
+                        let source=source.clone();
+                        if !cx.has_active_drag() {source.borrow_mut().take();}
+                        if source.borrow().as_ref()==Some(&item.id) {line=line.bg(cx.theme().list_active);}
+                        let grabbed=item.id.clone();
+                        let line=line.on_click(move |_, _, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "select", item_id.clone(), cx));});
+                        if !movable {return line;}
+                        line
+                            .on_drag(drag,move |_,offset,_,cx| {
+                                *source.borrow_mut()=Some(grabbed.clone());
+                                cx.new(|_|TreeDragIcon {icon:preview.clone(),offset})
+                            })
+                            .drag_over::<TreeRowDrag>(|row,_,_,cx|row.border_b_2().border_color(cx.theme().drag_border))
+                            .on_drop(move |drag:&TreeRowDrag,_,cx| {
+                                cx.stop_propagation();
+                                if drag.tree==id && drag.source!=target {
+                                    let payload=serde_json::json!([drag.source,target]).to_string();
+                                    let _=receiver.update(cx,|root,cx|root.emit(id,"itemDrop",payload,cx));
+                                }
+                            })
                     }).refine_style(&style);
                     if let Some(bounce) = kit.prop("scrollBounce") {view = view.scroll_bounce(bounce == "true");}
                     if let Some(menu) = first_item(node, "TreeMenu") {
                         let (entries, root) = (menu_entries(menu), root.clone());
-                        view = view.context_menu(move |_, entry, menu, _, cx| {
+                        view = view.context_menu(move |_, entry, mut menu, window, cx| {
+                            if let Some(size)=menu_size {menu=menu.font_size(size.to_pixels(window.rem_size()));}
                             let item = entry.item().id.to_string();
                             let target = root.clone();
                             cx.defer(move |cx| {let _ = target.update(cx, |root, cx| root.emit(id, "contextMenu", item, cx));});
                             flat_menu(menu, &entries, &root)
                         });
                     }
-                    view.into_any_element()
+                    let background = first_item(node, "TreeBackgroundMenu");
+                    let destination = kit.prop("backgroundDropTarget").map(str::to_owned);
+                    if background.is_none() && destination.is_none() {return view.into_any_element();}
+                    let mut surface = div().id(element_id).size_full().child(view);
+                    if let Some(target) = destination {
+                        let receiver = root.clone();
+                        surface = surface.on_drop(move |drag: &TreeRowDrag, _, cx| {
+                            if drag.tree == id && drag.source != target {
+                                let payload = serde_json::json!([drag.source, target]).to_string();
+                                let _ = receiver.update(cx, |root, cx| root.emit(id, "itemDrop", payload, cx));
+                            }
+                        });
+                    }
+                    if let Some(menu) = background {
+                        let (entries, receiver) = (menu_entries(menu), root.clone());
+                        surface.context_menu(move |mut menu, window, _| {
+                            if let Some(size)=menu_size {menu=menu.font_size(size.to_pixels(window.rem_size()));}
+                            flat_menu(menu, &entries, &receiver)
+                        }).into_any_element()
+                    } else {surface.into_any_element()}
                 }
                 _ => div().into_any_element(),
             },
@@ -3015,7 +3701,7 @@ impl Root {
                 Some(KitState::Command(state)) => {
                     // Ungrouped CommandItems are section 0 (when present); each CommandGroup is the next section.
                     let mut palette = CommandPalette::new(state).searchable(kit.prop("searchable") != Some("false")).filterable(kit.prop("filterable") != Some("false"))
-                        .bordered(kit.prop("bordered") != Some("false"));
+                        .bordered(kit.prop("bordered") != Some("false")).refine_style(&style);
                     if !kit.text("placeholder").is_empty() {palette = palette.placeholder(text("placeholder"));}
                     if let Some(height) = kit.number("maxHeight") {palette = palette.max_h(px(height as f32));}
                     if let Some(bounce) = kit.prop("scrollBounce") {palette = palette.scroll_bounce(bounce == "true");}
@@ -3057,7 +3743,11 @@ impl Root {
                     palette = palette.on_select(move |index: IndexPath, _, cx| {if let Some(item) = select_target(index) {let _ = select_root.update(cx, |root, cx| root.emit(item, "highlight", String::new(), cx));}});
                     if kit.handles("query") {let root = root.clone(); palette = palette.on_query(move |query, _, cx| {let query = query.to_owned(); let _ = root.update(cx, |root, cx| root.emit(id, "query", query, cx));});}
                     if kit.handles("cancel") {let root = root.clone(); palette = palette.on_cancel(move |_, cx| {let _ = root.update(cx, |root, cx| root.emit(id, "cancel", String::new(), cx));});}
-                    palette.into_any_element()
+                    // Modal focus is outside the workbench root; own named actions here too.
+                    let action_root=root.clone();
+                    div().w_full().min_h_0().on_action(move |command:&TsrustCommand,_,cx| {
+                        let _=action_root.update(cx,|root,cx|root.run_command(&command.name,cx));
+                    }).child(palette).into_any_element()
                 }
                 _ => div().into_any_element(),
             },
@@ -3102,6 +3792,8 @@ impl Root {
                 }
                 _ => div().into_any_element(),
             },
+            #[cfg(feature="gpui-terminal")]
+            "Terminal" => match self.states.get(&id) {Some(KitState::Terminal(state)) => div().id(ElementId::Integer(id)).size_full().refine_style(&self.node_style(node)).accessibility_id(kit.text("id")).role(Role::Group).aria_label(if kit.text("accessibilityLabel").is_empty() {"Terminal".to_owned()} else {kit.text("accessibilityLabel")}).child(state.clone()).into_any_element(), _ => div().into_any_element()},
             "CodeEditor" => match self.states.get(&id) {
                 Some(KitState::Editor(state,_)) => {
                     let mut editor=Editor::new(state).h_full().readonly(kit.flag("readOnly")).disabled(kit.flag("disabled")).refine_style(&self.node_style(node));
@@ -3178,7 +3870,7 @@ impl Root {
             }
             "InputGroup" => {
                 // shadcn composition: one Input or Textarea child and InputGroupAddon children.
-                let mut group = InputGroup::new(element_id).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid"));
+                let mut group = InputGroup::new(element_id).focus_ring(kit.prop("focusRing") != Some("false")).disabled(kit.flag("disabled")).readonly(kit.flag("readOnly")).invalid(kit.flag("invalid")).refine_style(&self.node_style(node));
                 if let Some(size) = kit_size(kit) {group = group.with_size(size);}
                 if let Some(label) = kit.prop("accessibilityLabel") {group = group.aria_label(label.to_owned());}
                 for child in node.visible_children() {
@@ -3192,7 +3884,7 @@ impl Root {
                     }
                     let Some(part) = child.kit.as_deref().filter(|part| part.name == "InputGroupAddon") else {continue};
                     let align = match part.prop("align") {Some("inline-end") => InputGroupAddonAlignment::InlineEnd, Some("block-start") => InputGroupAddonAlignment::BlockStart, Some("block-end") => InputGroupAddonAlignment::BlockEnd, _ => InputGroupAddonAlignment::InlineStart};
-                    let mut addon = InputGroupAddon::new(ElementId::Integer(child.identity.get())).align(align);
+                    let mut addon = InputGroupAddon::new(ElementId::Integer(child.identity.get())).align(align).refine_style(&self.node_style(child));
                     for item in child.visible_children() {
                         addon = match item.kit.as_deref().map(|kit| kit.name.as_str()) {
                             Some("InputGroupText") => addon.child(InputGroupText::new().children(self.content(item, cx))),
@@ -3215,6 +3907,7 @@ impl Root {
                         .hover_highlight(match kit.prop("hoverHighlight") {Some("line")=>DiffHoverHighlight::Line,Some("line-number")=>DiffHoverHighlight::LineNumber,Some("both")=>DiffHoverHighlight::Both,_=>DiffHoverHighlight::None})
                         .hunk_separator(match kit.prop("hunkSeparator") {Some("line-info")=>DiffHunkSeparator::LineInfo,Some("simple")=>DiffHunkSeparator::Simple,_=>DiffHunkSeparator::Metadata})
                         .change_indicator(match kit.prop("changeIndicator") {Some("bars")=>DiffChangeIndicator::Bars,Some("none")=>DiffChangeIndicator::None,_=>DiffChangeIndicator::Signs});
+                    if let Some(size)=kit.number("fontSize") {diff=diff.font_size(px(size as f32));}
                     if kit.handles("lineClick") {let root=cx.entity().downgrade();diff=diff.on_line_click(move |position,_,_,cx| {let value=diff_position(position);let _=root.update(cx,|root,cx|root.emit(id,"lineClick",value,cx));});}
                     if kit.handles("lineHover") {let root=cx.entity().downgrade();diff=diff.on_line_hover(move |position,_,cx| {let value=position.map_or_else(||"null".into(),diff_position);let _=root.update(cx,|root,cx|root.emit(id,"lineHover",value,cx));});}
                     if kit.handles("addAnnotation") {let root=cx.entity().downgrade();diff=diff.on_add_annotation(move |range,_,cx| {let value=diff_range(range);let _=root.update(cx,|root,cx|root.emit(id,"addAnnotation",value,cx));});}
@@ -3286,6 +3979,17 @@ impl Root {
                     if let Some(bounce) = kit.prop("scrollBounce") {table = table.scroll_bounce(bounce == "true");}
                     if let Some(height) = kit.number("headerRowHeight") {table = table.header_row_height(px(height as f32));}
                     if let Some(size) = kit_size(kit) {table = table.with_size(size);}
+                    if let Some(AbsoluteLength::Pixels(font))=style.text.font_size {
+                        let height=kit_size(kit).unwrap_or(KitSize::Medium).table_row_height().max(font*1.5+px(8.));
+                        table=table.with_size(KitSize::Size(height));
+                    }
+                    if state.read(cx).delegate().columns.iter().any(|column|column.fill) {
+                        let state=state.downgrade();
+                        return div().relative().size_full().child(table).child(canvas(move|bounds,_,cx|{let _=state.update(cx,|state,cx|{
+                            let width=f32::from(bounds.size.width);
+                            if (state.delegate().viewport_width-width).abs()>0.5 {state.delegate_mut().fill_width(width);state.refresh(cx);cx.notify();}
+                        });},|_,_,_,_|{}).absolute().size_full()).into_any_element();
+                    }
                     table.into_any_element()
                 }
                 _ => div().into_any_element(),
@@ -3391,7 +4095,7 @@ impl Root {
                 _ => div().into_any_element(),
             },
             "Dock" => match self.states.get(&id) {
-                Some(KitState::Dock(area)) => div().size_full().child(area.clone()).into_any_element(),
+                Some(KitState::Dock(state)) => div().size_full().child(state.area.clone()).into_any_element(),
                 _ => div().into_any_element(),
             },
             "MessageScroller" => match self.states.get(&id) {
@@ -3418,7 +4122,6 @@ impl Root {
                 Some(KitState::AppMenuBar(bar,_)) if !cfg!(target_os="macos") => div().child(bar.clone()).into_any_element(),
                 _ => div().into_any_element(),
             },
-            "Shortcut" | "Ticker" => div().into_any_element(),
             // Item and slot components render through their container.
             // A trigger nested inside other content toggles its nearest Collapsible.
             "CollapsibleTrigger" => match ancestor_named(&self.node, id, "Collapsible") {
@@ -3431,12 +4134,13 @@ impl Root {
 }
 
 /// TreeItem children as GPUI Kit tree items, recursively.
-fn tree_items(node: &Node) -> Vec<TreeItem> {
+fn tree_items(node: &Node, expanded: &HashMap<SharedString,bool>) -> Vec<TreeItem> {
     items(node, "TreeItem").map(|(child, item)| {
         // A TreeItem's id defaults to its label; expanded/defaultExpanded opens a folder.
         let label = item.text("label");
         let id = item.prop("id").map_or_else(|| label.clone(), str::to_owned);
-        TreeItem::new(id, label).expanded(item.prop("expanded").map_or(item.flag("defaultExpanded"), |open| open == "true")).disabled(item.flag("disabled")).children(tree_items(child))
+        let open=item.prop("expanded").map_or_else(||expanded.get(id.as_str()).copied().unwrap_or(item.flag("defaultExpanded")), |open| open=="true");
+        TreeItem::new(id, label).expanded(open).disabled(item.flag("disabled")).children(tree_items(child,expanded))
     }).collect()
 }
 
@@ -3446,11 +4150,13 @@ fn tree_select(state: &mut TreeState, id: &SharedString, cx: &mut Context<TreeSt
     if let Some(index) = state.index_of(id) {state.set_selected_index(Some(index), cx);}
 }
 
-/// Icons per tree item id (TreeItem `icon`), else folder/file by shape.
-fn tree_icons(node: &Node, out: &mut HashMap<String, String>) {
+/// Paint-only decoration; changing an icon must not rebuild the navigation state.
+struct TreeIcon {name: String, svg: String, color: String}
+fn tree_icons(node: &Node, out: &mut HashMap<String, TreeIcon>) {
     for (child, item) in items(node, "TreeItem") {
         let label = item.text("label");
-        if let Some(icon) = item.prop("icon") {out.insert(item.prop("id").map_or(label, str::to_owned), icon.to_owned());}
+        let icon = TreeIcon {name: item.text("icon"), svg: item.text("iconSvg"), color: item.text("iconColor")};
+        if !icon.name.is_empty() || !icon.svg.is_empty() || !icon.color.is_empty() {out.insert(item.prop("id").map_or(label, str::to_owned), icon);}
         tree_icons(child, out);
     }
 }
@@ -3459,11 +4165,72 @@ fn tree_icons(node: &Node, out: &mut HashMap<String, String>) {
 fn tree_shape(root: &Node, id: u64) -> String {
     fn walk(node: &Node, out: &mut String) {
         for (child, item) in items(node, "TreeItem") {
-            for key in ["id", "label", "icon", "expanded", "disabled"] {out.push_str(&item.text(key)); out.push('\u{1}');}
+            for key in ["id", "label", "expanded", "disabled"] {out.push_str(&item.text(key)); out.push('\u{1}');}
             out.push('['); walk(child, out); out.push(']');
         }
     }
     let mut out = String::new();
     if let Some(node) = find(root, id) {walk(node, &mut out);}
     out
+}
+
+
+/// A zoom-enabled image keeps its canvas size separate from its scroll viewport.
+struct ImageViewport {
+    root:WeakEntity<Root>,
+    id:u64,
+    props:std::collections::BTreeMap<String,String>,
+    viewport:Size<Pixels>,
+    last_zoom:Option<f32>,
+    scroll:ScrollHandle,
+    last_scroll:String,
+    asset:image_asset::ImageAsset,
+}
+impl Render for ImageViewport {
+    fn render(&mut self,window:&mut Window,cx:&mut Context<Self>)->impl IntoElement {
+        let path=self.props.get("src").cloned().unwrap_or_default();
+        let source:ImageSource=if std::path::Path::new(&path).is_file(){std::path::PathBuf::from(&path).into()}else{SharedString::from(path.clone()).into()};
+        let ImageSource::Resource(resource)=source else {unreachable!("image path is a resource")};
+        let zoom=self.props.get("zoom").and_then(|value|value.parse::<f32>().ok()).unwrap_or(0.);
+        let mut ready=false;
+        let body=match self.asset.resolve(&path,|| {
+            #[cfg(target_os="macos")]
+            if let gpui_kit::gpui::Resource::Path(file)=&resource {
+                if file.extension().is_some_and(|ext|ext.eq_ignore_ascii_case("avif")) {
+                    return window.use_asset::<image_asset::AvifLoader>(file,cx);
+                }
+            }
+            window.use_asset::<ImgResourceLoader>(&resource,cx)
+        }) {
+            Some(Ok(image)) if self.viewport.width>px(0.) && self.viewport.height>px(0.) => {
+                ready=true;
+                let natural=image.size(0);
+                let (width,height,effective)=super::kit::image_view_size((natural.width.0 as f32,natural.height.0 as f32),(self.viewport.width.into(),self.viewport.height.into()),zoom);
+                if self.last_zoom!=Some(effective) {
+                    self.last_zoom=Some(effective);
+                    let (root,id)=(self.root.clone(),self.id);
+                    cx.defer(move|cx| {let _=root.update(cx,|root,cx|root.emit(id,"zoomChange",effective.to_string(),cx));});
+                }
+                div().w(px(width.max(self.viewport.width.into()))).h(px(height.max(self.viewport.height.into()))).flex_shrink_0().flex().items_center().justify_center()
+                    .child(img(ImageSource::Render(image)).id("image").w(px(width)).h(px(height)).flex_shrink_0().object_fit(ObjectFit::Contain)).into_any_element()
+            },
+            Some(Err(_))=>match self.props.get("alt").filter(|text|!text.is_empty()) {
+                Some(alt)=>div().id("image-error").role(Role::Label).aria_label(alt.clone()).child(alt.clone()).into_any_element(),
+                None=>div().into_any_element(),
+            },
+            _=>div().into_any_element(),
+        };
+        let scroll=self.props.get("scrollTo").cloned().unwrap_or_default();
+        if ready && self.last_scroll!=scroll {
+            self.last_scroll=scroll.clone();
+            if let Ok(value)=serde_json::from_str::<serde_json::Value>(&scroll) {
+                self.scroll.set_offset(point(px(-value["x"].as_f64().unwrap_or(0.) as f32),px(-value["y"].as_f64().unwrap_or(0.) as f32)));
+            }
+        }
+        let state=cx.entity().downgrade();
+        div().relative().size_full().min_w_0().min_h_0().overflow_hidden()
+            .child(canvas(move|bounds,_,cx| {let _=state.update(cx,|state,cx|{if state.viewport!=bounds.size {state.viewport=bounds.size;cx.notify();}});},|_,_,_,_|{}).absolute().size_full())
+            .child(div().id("image-scroll").relative().size_full().overflow_scroll().track_scroll(&self.scroll).child(body))
+            .scrollbar(&self.scroll,gpui_kit::component::scroll::ScrollbarAxis::Both)
+    }
 }

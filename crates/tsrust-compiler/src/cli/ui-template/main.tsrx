@@ -1,12 +1,95 @@
 import {
-  View, Text, Button, Input, Node, signal, run, setTheme, notify, writeClipboard, t, tWith, translateWith, setTranslations, setLocale,
-  appInfo, checkForUpdates, installUpdate, relaunch,
-  Sidebar, SidebarGroup, SidebarItem, Toolbar, ScrollArea, StatusBar, StatusBarLeft, StatusBarRight, Switch, Select,
-  Markdown, Badge, Tag, Avatar, Kbd, Alert, Progress, ProgressCircle, Separator, DescriptionList, DescriptionItem,
-  Checkbox, RadioGroup, Radio, Rating, Slider, NumberInput, OtpInput, DatePicker, ColorPicker, Stepper, StepperItem, Tabs, Tab,
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, List, ListItem, Tree, TreeItem, Calendar, Chart, Icon, InputGroupAddon, DataTableColumn, AccordionTrigger, AccordionContent,
-  InputGroup, DataTable, Settings, SettingsPage, SettingsGroup, SettingItem, Diff, Marker, Attachment, AttachmentGroup,
-  Dialog, Sheet, Popover, PopoverTrigger, PopoverContent, Tooltip, DropdownMenu, MenuItem, ContextMenu, Accordion, AccordionItem
+  View,
+  Text,
+  Button,
+  Input,
+  Node,
+  signal,
+  run,
+  setTheme,
+  notify,
+  writeClipboard,
+  t,
+  tWith,
+  translateWith,
+  setTranslations,
+  setLocale,
+  appInfo,
+  checkForUpdates,
+  installUpdate,
+  relaunch,
+  Sidebar,
+  SidebarGroup,
+  SidebarItem,
+  Toolbar,
+  ScrollArea,
+  StatusBar,
+  StatusBarLeft,
+  StatusBarRight,
+  Switch,
+  Select,
+  Markdown,
+  Badge,
+  Tag,
+  Avatar,
+  Kbd,
+  Alert,
+  Progress,
+  ProgressCircle,
+  Separator,
+  DescriptionList,
+  DescriptionItem,
+  Checkbox,
+  RadioGroup,
+  Radio,
+  Rating,
+  Slider,
+  NumberInput,
+  OtpInput,
+  DatePicker,
+  ColorPicker,
+  Stepper,
+  StepperItem,
+  Tabs,
+  Tab,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  List,
+  ListItem,
+  Tree,
+  TreeItem,
+  Calendar,
+  Chart,
+  Icon,
+  InputGroupAddon,
+  DataTableColumn,
+  AccordionTrigger,
+  AccordionContent,
+  InputGroup,
+  DataTable,
+  Settings,
+  SettingsPage,
+  SettingsGroup,
+  SettingItem,
+  Diff,
+  Marker,
+  Attachment,
+  AttachmentGroup,
+  Dialog,
+  Sheet,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Tooltip,
+  DropdownMenu,
+  MenuItem,
+  ContextMenu,
+  Accordion,
+  AccordionItem
 } from 'std:ui';
 import en from './locales/en.json';
 import fr from './locales/fr.json';
@@ -14,11 +97,17 @@ import fr from './locales/fr.json';
 function Overview(): Node {
   return (
     <View className="flex-col gap-4">
-      <Text className="text-2xl font-semibold">{t('overview.title')}</Text>
-      <Text>{t('overview.body')}</Text>
+      <Text className="text-2xl font-semibold">
+        {t('overview.title')}
+      </Text>
+      <Text>
+        {t('overview.body')}
+      </Text>
       <View className="flex-row gap-3 items-center">
         <Avatar name="Ada Lovelace" />
-        <Badge count={3}><Text>Inbox</Text></Badge>
+        <Badge count={3}>
+          <Text>Inbox</Text>
+        </Badge>
         <Tag variant="success">Native</Tag>
         <Kbd>secondary-k</Kbd>
         <ProgressCircle value={72} />
@@ -45,25 +134,81 @@ function Controls(): Node {
   const tab = signal('general');
   return (
     <View className="flex-col gap-4">
-      <Tabs value={tab.get()} onChange={(value) => { tab.set(clone(value)); }}><Tab value="general">General</Tab><Tab value="advanced">Advanced</Tab></Tabs>
+      <Tabs
+        value={tab.get()}
+        onChange={(value) => {
+          tab.set(clone(value));
+        }}
+      >
+        <Tab value="general">General</Tab>
+        <Tab value="advanced">Advanced</Tab>
+      </Tabs>
       <View className="flex-row gap-4 items-center">
         <Checkbox checked={accepted.get()} onChange={(checked) => { accepted.set(checked); }}>Accept terms</Checkbox>
-        <RadioGroup selected={size.get()} onChange={(index) => { size.set(index); }}><Radio>Small</Radio><Radio>Large</Radio></RadioGroup>
+        <RadioGroup
+          selected={size.get()}
+          onChange={(index) => {
+            size.set(index);
+          }}
+        >
+          <Radio>Small</Radio>
+          <Radio>Large</Radio>
+        </RadioGroup>
       </View>
-      <Rating value={stars.get()} onChange={(value) => { stars.set(value); }} />
-      <Slider value={volume.get()} onChange={(value) => { volume.set(value); }} className="w-72" />
+      <Rating
+        value={stars.get()}
+        onChange={(value) => {
+          stars.set(value);
+        }}
+      />
+      <Slider
+        value={volume.get()}
+        onChange={(value) => {
+          volume.set(value);
+        }}
+        className="w-72"
+      />
       <Progress value={volume.get()} className="w-72" />
       <View className="flex-row gap-4 items-center">
-        <Select items={['Red', 'Green', 'Blue']} value={color.get()} onChange={(value) => { color.set(clone(value)); }} className="w-48" />
-        <NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }} className="w-40" />
-        <DatePicker value={due.get()} onChange={(date) => { due.set(clone(date)); }} className="w-48" />
+        <Select
+          items={['Red', 'Green', 'Blue']}
+          value={color.get()}
+          onChange={(value) => {
+            color.set(clone(value));
+          }}
+          className="w-48"
+        />
+        <NumberInput
+          value={quantity.get()}
+          onChange={(value) => {
+            quantity.set(value);
+          }}
+          className="w-40"
+        />
+        <DatePicker
+          value={due.get()}
+          onChange={(date) => {
+            due.set(clone(date));
+          }}
+          className="w-48"
+        />
       </View>
       <View className="flex-row gap-4 items-center">
-        <ColorPicker value={accent.get()} label="Accent" onChange={(chosen) => { accent.set(clone(chosen)); }} />
+        <ColorPicker
+          value={accent.get()}
+          label="Accent"
+          onChange={(chosen) => {
+            accent.set(clone(chosen));
+          }}
+        />
         <OtpInput length={6} />
         <Input placeholder="Search" />
       </View>
-      <Stepper defaultSelected={1}><StepperItem>Account</StepperItem><StepperItem>Billing</StepperItem><StepperItem>Confirm</StepperItem></Stepper>
+      <Stepper defaultSelected={1}>
+        <StepperItem>Account</StepperItem>
+        <StepperItem>Billing</StepperItem>
+        <StepperItem>Confirm</StepperItem>
+      </Stepper>
       <Text>Color {color} · due {due} · accent {accent} · {stars} stars</Text>
     </View>
   );
@@ -76,19 +221,54 @@ function Data(): Node {
   return (
     <View className="flex-col gap-4">
       <Table>
-        <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
         <TableBody>
-          <TableRow><TableCell>Ada</TableCell><TableCell>Engineer</TableCell><TableCell>Active</TableCell></TableRow>
-          <TableRow><TableCell>Grace</TableCell><TableCell>Admiral</TableCell><TableCell>Away</TableCell></TableRow>
+          <TableRow>
+            <TableCell>Ada</TableCell>
+            <TableCell>Engineer</TableCell>
+            <TableCell>Active</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>Grace</TableCell>
+            <TableCell>Admiral</TableCell>
+            <TableCell>Away</TableCell>
+          </TableRow>
         </TableBody>
       </Table>
       <View className="flex-row gap-4">
-        <List onConfirm={(value) => { picked.set(clone(value)); }} className="w-48 h-48"><ListItem>Inbox</ListItem><ListItem>Drafts</ListItem><ListItem>Sent</ListItem><ListItem>Archive</ListItem><ListItem>Spam</ListItem></List>
-        <Tree onSelect={(id) => { file.set(clone(id)); }} className="w-56 h-48">
+        <List
+          onConfirm={(value) => {
+            picked.set(clone(value));
+          }}
+          className="w-48 h-48"
+        >
+          <ListItem>Inbox</ListItem>
+          <ListItem>Drafts</ListItem>
+          <ListItem>Sent</ListItem>
+          <ListItem>Archive</ListItem>
+          <ListItem>Spam</ListItem>
+        </List>
+        <Tree
+          onSelect={(id) => {
+            file.set(clone(id));
+          }}
+          className="w-56 h-48"
+        >
           <TreeItem id="src" defaultExpanded={true}>src<TreeItem id="src/main.tsrx">main.tsrx</TreeItem><TreeItem id="src/api.tsr">api.tsr</TreeItem></TreeItem>
           <TreeItem id="locales">locales</TreeItem>
         </Tree>
-        <Calendar value={day.get()} onChange={(date) => { day.set(clone(date)); }} />
+        <Calendar
+          value={day.get()}
+          onChange={(date) => {
+            day.set(clone(date));
+          }}
+        />
       </View>
       <Text>Selected file {file} · day {day}</Text>
       <Chart kind="line" labels={['Jan', 'Feb', 'Mar', 'Apr', 'May']} values={[3, 7, 4, 9, 12]} className="w-96 h-48" />
@@ -106,8 +286,29 @@ function Workspace(): Node {
   const autosave = signal(true);
   return (
     <View className="flex-col gap-4">
-      <InputGroup><InputGroupAddon><Icon name="search" /></InputGroupAddon><Input placeholder="Filter people" value={query.get()} onChange={(event) => { query.set(event.target.value); }} /></InputGroup>
-      <DataTable rows={JSON.stringify(PEOPLE)} onSelect={(index) => { row.set(index); }} className="h-48"><DataTableColumn>Name</DataTableColumn><DataTableColumn sortable={true}>Role</DataTableColumn><DataTableColumn sortable={true}>Joined</DataTableColumn></DataTable>
+      <InputGroup>
+        <InputGroupAddon>
+          <Icon name="search" />
+        </InputGroupAddon>
+        <Input
+          placeholder="Filter people"
+          value={query.get()}
+          onChange={(event) => {
+            query.set(event.target.value);
+          }}
+        />
+      </InputGroup>
+      <DataTable
+        rows={JSON.stringify(PEOPLE)}
+        onSelect={(index) => {
+          row.set(index);
+        }}
+        className="h-48"
+      >
+        <DataTableColumn>Name</DataTableColumn>
+        <DataTableColumn sortable={true}>Role</DataTableColumn>
+        <DataTableColumn sortable={true}>Joined</DataTableColumn>
+      </DataTable>
       <Text>Query "{query}" · selected row {row}</Text>
       <Marker variant="separator" icon="calendar" text="Today" />
       <AttachmentGroup>
@@ -117,7 +318,14 @@ function Workspace(): Node {
       <Settings className="h-56">
         <SettingsPage title="Editor">
           <SettingsGroup title="Files">
-            <SettingItem title="Autosave" description="Save after every change."><Switch checked={autosave.get()} onChange={(on) => { autosave.set(on); }} /></SettingItem>
+            <SettingItem title="Autosave" description="Save after every change.">
+              <Switch
+                checked={autosave.get()}
+                onChange={(on) => {
+                  autosave.set(on);
+                }}
+              />
+            </SettingItem>
           </SettingsGroup>
         </SettingsPage>
       </Settings>
@@ -136,15 +344,61 @@ function Overlays(): Node {
         <Button onPress={() => { dialog.set(true); }}>Open dialog</Button>
         <Button onPress={() => { sheet.set(true); }}>Open sheet</Button>
         <Button onPress={() => { notify('Saved', { title: 'Done', variant: 'success' }); }}>Notify</Button>
-        <Tooltip text="Copies a link"><Button onPress={() => { writeClipboard('https://github.com/Forever-Frameworks-LLC/tsrust'); notify('Link copied', { variant: 'success' }); }}>Share</Button></Tooltip>
-        <Popover><PopoverTrigger><Button>Filters</Button></PopoverTrigger><PopoverContent><Text>Filter options</Text></PopoverContent></Popover>
-        <DropdownMenu label="Actions"><MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem><MenuItem onSelect={() => { last.set('archive'); }}>Archive</MenuItem></DropdownMenu>
+        <Tooltip text="Copies a link">
+          <Button onPress={() => { writeClipboard('https://github.com/Forever-Frameworks-LLC/tsrust'); notify('Link copied', { variant: 'success' }); }}>Share</Button>
+        </Tooltip>
+        <Popover>
+          <PopoverTrigger>
+            <Button>Filters</Button>
+          </PopoverTrigger>
+          <PopoverContent>
+            <Text>Filter options</Text>
+          </PopoverContent>
+        </Popover>
+        <DropdownMenu label="Actions">
+          <MenuItem onSelect={() => { last.set('duplicate'); }}>Duplicate</MenuItem>
+          <MenuItem onSelect={() => { last.set('archive'); }}>Archive</MenuItem>
+        </DropdownMenu>
       </View>
-      <ContextMenu><Text>Right-click here</Text><MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem></ContextMenu>
+      <ContextMenu>
+        <Text>Right-click here</Text>
+        <MenuItem onSelect={() => { last.set('copy'); }}>Copy</MenuItem>
+      </ContextMenu>
       <Text>Last action {last}</Text>
-      <Accordion defaultValue="shipping"><AccordionItem value="shipping"><AccordionTrigger>Shipping</AccordionTrigger><AccordionContent><Text>Two to three days.</Text></AccordionContent></AccordionItem><AccordionItem value="returns"><AccordionTrigger>Returns</AccordionTrigger><AccordionContent><Text>Thirty days.</Text></AccordionContent></AccordionItem></Accordion>
-      <Dialog open={dialog.get()} title="Rename" okText="Save" cancelText="Cancel" onClose={() => { dialog.set(false); }}><Input placeholder="Name" /></Dialog>
-      <Sheet open={sheet.get()} title="Details" onClose={() => { sheet.set(false); }}><Text>Sheet content</Text></Sheet>
+      <Accordion defaultValue="shipping">
+        <AccordionItem value="shipping">
+          <AccordionTrigger>Shipping</AccordionTrigger>
+          <AccordionContent>
+            <Text>Two to three days.</Text>
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="returns">
+          <AccordionTrigger>Returns</AccordionTrigger>
+          <AccordionContent>
+            <Text>Thirty days.</Text>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      <Dialog
+        open={dialog.get()}
+        title="Rename"
+        okText="Save"
+        cancelText="Cancel"
+        onClose={() => {
+          dialog.set(false);
+        }}
+      >
+        <Input placeholder="Name" />
+      </Dialog>
+      <Sheet
+        open={sheet.get()}
+        title="Details"
+        onClose={() => {
+          sheet.set(false);
+        }}
+      >
+        <Text>Sheet content</Text>
+      </Sheet>
     </View>
   );
 }
@@ -153,10 +407,26 @@ function Languages(): Node {
   const files = signal(1);
   return (
     <View className="flex-col gap-4 items-start">
-      <Text className="text-xl font-semibold">{t('languages.title')}</Text>
-      <Text>{tWith('languages.greeting', { name: 'Ada' })}</Text>
-      <Text>{translateWith('languages.files', { count: files.get() })}</Text>
-      <Button onPress={() => { files.set(files.get() + 1); }}>{t('languages.add')}</Button>
+      <Text className="text-xl font-semibold">
+        {t('languages.title')}
+      </Text>
+      <Text>
+        {tWith('languages.greeting', {
+          name: 'Ada'
+        })}
+      </Text>
+      <Text>
+        {translateWith('languages.files', {
+          count: files.get()
+        })}
+      </Text>
+      <Button
+        onPress={() => {
+          files.set(files.get() + 1);
+        }}
+      >
+        {t('languages.add')}
+      </Button>
       <DatePicker value="2026-11-09" className="w-48" />
     </View>
   );
@@ -177,27 +447,45 @@ function About(): Node {
         <DescriptionItem label="Updates from" value={clone(info.repo)} />
       </DescriptionList>
       <Separator />
-      <Text>{status.get() === '' ? translateWith('about.idle', {}) : status.get()}</Text>
+      <Text>
+        {status.get() === '' ? translateWith('about.idle', {}) : status.get()}
+      </Text>
       <View className="flex-row gap-3">
-        <Button onPress={() => {
-          status.set('Checking…');
-          checkForUpdates((update) => {
-            available.set(update.available);
-            status.set(update.error !== '' ? `Could not check: ${update.error}` : update.available ? `Version ${update.latest} is available.` : `You have the latest version (${update.current}).`);
-          });
-        }}>{t('about.check')}</Button>
-        <Button disabled={!available.get()} onPress={() => {
-          status.set('Downloading and verifying…');
-          installUpdate((error) => {
-            if (error === '') {
-              installed.set(true);
-              status.set('Installed. Restart to use the new version.');
-            } else {
-              status.set(`Install failed: ${error}`);
-            }
-          });
-        }}>{t('about.install')}</Button>
-        <Button disabled={!installed.get()} onPress={() => { relaunch(); }}>{t('about.relaunch')}</Button>
+        <Button
+          onPress={() => {
+            status.set('Checking…');
+            checkForUpdates((update) => {
+              available.set(update.available);
+              status.set(update.error !== '' ? `Could not check: ${update.error}` : update.available ? `Version ${update.latest} is available.` : `You have the latest version (${update.current}).`);
+            });
+          }}
+        >
+          {t('about.check')}
+        </Button>
+        <Button
+          disabled={!available.get()}
+          onPress={() => {
+            status.set('Downloading and verifying…');
+            installUpdate((error) => {
+              if (error === '') {
+                installed.set(true);
+                status.set('Installed. Restart to use the new version.');
+              } else {
+                status.set(`Install failed: ${error}`);
+              }
+            });
+          }}
+        >
+          {t('about.install')}
+        </Button>
+        <Button
+          disabled={!installed.get()}
+          onPress={() => {
+            relaunch();
+          }}
+        >
+          {t('about.relaunch')}
+        </Button>
       </View>
     </View>
   );
@@ -211,34 +499,107 @@ function App(): Node {
     <View className="flex-row size-full">
       <Sidebar>
         <SidebarGroup label={t('nav.group')}>
-          <SidebarItem label={t('nav.overview')} active={page.get() === 'overview'} onClick={() => { page.set('overview'); }} />
-          <SidebarItem label={t('nav.controls')} active={page.get() === 'controls'} onClick={() => { page.set('controls'); }} />
-          <SidebarItem label={t('nav.data')} active={page.get() === 'data'} onClick={() => { page.set('data'); }} />
-          <SidebarItem label={t('nav.workspace')} active={page.get() === 'workspace'} onClick={() => { page.set('workspace'); }} />
-          <SidebarItem label={t('nav.overlays')} active={page.get() === 'overlays'} onClick={() => { page.set('overlays'); }} />
-          <SidebarItem label={t('nav.languages')} active={page.get() === 'languages'} onClick={() => { page.set('languages'); }} />
-          <SidebarItem label={t('nav.about')} active={page.get() === 'about'} onClick={() => { page.set('about'); }} />
+          <SidebarItem
+            label={t('nav.overview')}
+            active={page.get() === 'overview'}
+            onClick={() => {
+              page.set('overview');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.controls')}
+            active={page.get() === 'controls'}
+            onClick={() => {
+              page.set('controls');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.data')}
+            active={page.get() === 'data'}
+            onClick={() => {
+              page.set('data');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.workspace')}
+            active={page.get() === 'workspace'}
+            onClick={() => {
+              page.set('workspace');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.overlays')}
+            active={page.get() === 'overlays'}
+            onClick={() => {
+              page.set('overlays');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.languages')}
+            active={page.get() === 'languages'}
+            onClick={() => {
+              page.set('languages');
+            }}
+          />
+          <SidebarItem
+            label={t('nav.about')}
+            active={page.get() === 'about'}
+            onClick={() => {
+              page.set('about');
+            }}
+          />
         </SidebarGroup>
       </Sidebar>
       <View className="flex-col grow min-w-0">
         <Toolbar>
           <Text className="font-semibold">Tsrust Starter</Text>
           <View className="grow" />
-          <Select items={['en', 'fr']} value={language.get()} onChange={(value) => { language.set(clone(value)); setLocale(value); }} className="w-24" />
+          <Select
+            items={['en', 'fr']}
+            value={language.get()}
+            onChange={(value) => {
+              language.set(clone(value));
+              setLocale(value);
+            }}
+            className="w-24"
+          />
           <Switch checked={dark.get()} onChange={(on) => { dark.set(on); setTheme(on ? 'dark' : 'light'); }}>Dark</Switch>
         </Toolbar>
         <ScrollArea className="grow">
           <View className="flex-col p-6">
-            <View hidden={page.get() !== 'overview'}><Overview /></View>
-            <View hidden={page.get() !== 'controls'}><Controls /></View>
-            <View hidden={page.get() !== 'data'}><Data /></View>
-            <View hidden={page.get() !== 'workspace'}><Workspace /></View>
-            <View hidden={page.get() !== 'overlays'}><Overlays /></View>
-            <View hidden={page.get() !== 'languages'}><Languages /></View>
-            <View hidden={page.get() !== 'about'}><About /></View>
+            <View hidden={page.get() !== 'overview'}>
+              <Overview />
+            </View>
+            <View hidden={page.get() !== 'controls'}>
+              <Controls />
+            </View>
+            <View hidden={page.get() !== 'data'}>
+              <Data />
+            </View>
+            <View hidden={page.get() !== 'workspace'}>
+              <Workspace />
+            </View>
+            <View hidden={page.get() !== 'overlays'}>
+              <Overlays />
+            </View>
+            <View hidden={page.get() !== 'languages'}>
+              <Languages />
+            </View>
+            <View hidden={page.get() !== 'about'}>
+              <About />
+            </View>
           </View>
         </ScrollArea>
-        <StatusBar><StatusBarLeft><Text>Ready</Text></StatusBarLeft><StatusBarRight><Text>{language}</Text></StatusBarRight></StatusBar>
+        <StatusBar>
+          <StatusBarLeft>
+            <Text>Ready</Text>
+          </StatusBarLeft>
+          <StatusBarRight>
+            <Text>
+              {language}
+            </Text>
+          </StatusBarRight>
+        </StatusBar>
       </View>
     </View>
   );

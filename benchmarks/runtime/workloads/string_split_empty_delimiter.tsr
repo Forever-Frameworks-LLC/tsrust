@@ -12,6 +12,7 @@ function workload(n: int, seed: int, input: string): string[][] {
   };
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const row = pool[mark(probe, (i + seed) % 2, 1)].split(separators[mark(probe, (i + seed) % 1, 2)], mark(probe, limits[(i + seed) % 8], 3));
     output.push(row);
@@ -32,6 +33,7 @@ function markers(probe: Probe): string[] {
   const row: string[] = ["trace"];
   let value = probe.trace;
   let factor = 32768;
+
   while (factor >= 1) {
     if (value >= factor) {
       row.push("1");
@@ -46,6 +48,7 @@ function markers(probe: Probe): string[] {
   row.push("calls");
   value = probe.calls;
   factor = 32768;
+
   while (factor >= 1) {
     if (value >= factor) {
       row.push("1");

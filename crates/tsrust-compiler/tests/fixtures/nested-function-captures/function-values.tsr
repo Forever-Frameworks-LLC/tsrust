@@ -41,6 +41,7 @@ function main() {
 
   function each(names: string[]): void {
     const write = label;
+
     for (const name of names) {
       write(name, names.length);
     }
@@ -55,8 +56,8 @@ function main() {
     return value > base[0];
   }
 
-    // A callback parameter owns its callable, so the captured array moves into it.
-    const offsets = [100];
+  // A callback parameter owns its callable, so the captured array moves into it.
+  const offsets = [100];
   function offset(value: int): int {
     return value + offsets[0];
   }

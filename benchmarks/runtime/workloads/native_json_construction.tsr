@@ -3,10 +3,12 @@ import { nullValue, fromBoolean, fromInt, fromNumber, fromString } from 'std:jso
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     checksum += JSON.stringify(nullValue()).length;
     checksum += JSON.stringify(fromBoolean(true)).length;
     checksum += JSON.stringify(fromInt(42)).length;
+
     match (fromNumber(1.25)) {
       Ok(value) => {
         checksum += JSON.stringify(value).length;

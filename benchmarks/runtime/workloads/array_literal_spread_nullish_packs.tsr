@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const base = (i * 13 + seed) % 97;
@@ -8,6 +9,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     const nils: null[] = [];
     const absents: undefined[] = [];
     let at = 0;
+
     while (at < count) {
       nils.push(null);
       absents.push(undefined);
@@ -19,6 +21,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     const nilText: string[] = [];
     const absentText: string[] = [];
     at = 0;
+
     while (at < nilResult.length) {
       const kind = typeof nilResult[at];
       nilText.push(kind.concat(":", String(nilResult[at])));
@@ -26,6 +29,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     }
 
     at = 0;
+
     while (at < absentResult.length) {
       const kind = typeof absentResult[at];
       absentText.push(kind.concat(":", String(absentResult[at])));

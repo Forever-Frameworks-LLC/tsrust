@@ -1,0 +1,111 @@
+import { extname, dirname, join } from 'std:path';
+
+export interface LanguageFile {
+  extension: string;
+  language: string;
+}
+
+export interface LanguageServer {
+  id: string;
+  name: string;
+  program: string;
+  arguments: string[];
+  languages: string[];
+  files?: LanguageFile[];
+}
+
+export function tsrustServer(program: string): LanguageServer {
+  return {
+    id: 'tsrust', name: 'Tsrust', program, arguments: [], languages: ['tsrust'], files: [{
+      extension: 'tsr', language: 'tsrust'
+    }, {
+      extension: 'tsrx', language: 'tsrust'
+    }]
+  };
+}
+
+export function validateLanguageServer(server: ReadOnly<LanguageServer>): Result<void, string> {
+  if (server.id.length === 0 || !Array.from(server.id).every((character) => (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') || character === '-' || character === '_')) return Err('Language server IDs must contain lowercase letters, digits, hyphens or underscores.');
+
+  if (server.name.trim() === '' || server.program.trim() === '' || server.program.includes('\0')) return Err('Language servers require a name and executable.');
+
+  if (server.arguments.some((argument) => argument.includes('\0'))) return Err('Language server arguments cannot contain null characters.');
+
+  if (server.languages.length === 0 || server.languages.some((language) => language.trim() === '' || language.includes('\0'))) return Err('Language servers require explicit language IDs.');
+
+  for (let index = 0; index < server.languages.length; index += 1) {
+    if (server.languages.indexOf(server.languages[index]) !== index) return Err('Language server language IDs must be distinct.');
+  }
+
+  const files = server.files;
+
+  if (files !== undefined) {
+    const extensions: string[] = [];
+
+    for (const file of files) {
+      if (file.extension === '' || file.extension !== file.extension.toLowerCase() || file.extension.includes('.') || file.extension.includes('/') || file.extension.includes('\\') || file.extension.includes('\0')) return Err('File extensions must be lowercase names without dots or path separators.');
+
+      if (!server.languages.includes(file.language)) return Err('File associations must use a language registered by the server.');
+
+      if (extensions.includes(file.extension)) return Err('File extensions must be distinct.');
+      extensions.push(clone(file.extension));
+    }
+  }
+
+  return Ok();
+}
+
+export function validateLanguageServers(servers: ReadOnly<LanguageServer[]>): Result<void, string> {
+  const ids: string[] = [];
+  const extensions: string[] = [];
+
+  for (const server of servers) {
+    match (validateLanguageServer(server)) {
+      Err(error) => {
+        return Err(clone(error));
+      },
+      Ok(_) => {}
+    }
+
+    if (ids.includes(server.id)) return Err('Language server IDs must be distinct.');
+    ids.push(clone(server.id));
+    const files = server.files;
+
+    if (files !== undefined) {
+      for (const file of files) {
+        if (extensions.includes(file.extension)) return Err('Only one language server may own each file extension.');
+        extensions.push(clone(file.extension));
+      }
+    }
+  }
+
+  return Ok();
+}
+
+export interface LanguageRoute {
+  server: string;
+  language: string;
+}
+
+export function languageRoute(servers: ReadOnly<LanguageServer[]>, path: ReadOnly<string>): LanguageRoute | undefined {
+  const extension = extname(path).slice(1).toLowerCase();
+
+  for (const server of servers) {
+    const files = server.files;
+
+    if (files === undefined) continue;
+
+    for (const file of files) {
+      if (file.extension === extension) return {
+        server: clone(server.id), language: clone(file.language)
+      };
+    }
+  }
+
+  return undefined;
+}
+
+export function studioServers(program: ReadOnly<string>, external: ReadOnly<LanguageServer[]>): LanguageServer[] {
+  const server = program.includes('/') ? join(dirname(program), 'tsrust-lsp') : 'tsrust-lsp';
+  return [tsrustServer(server), ...clone(external)];
+}

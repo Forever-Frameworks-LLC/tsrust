@@ -3,6 +3,7 @@ function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   const factory = make;
   let i = 0;
+
   while (i < n) {
     const prefix = clone(prefixes[(seed + i) % 4]);
     const action = factory(prefix);

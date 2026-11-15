@@ -1,0 +1,249 @@
+import { at, fromUtf8, toHex } from 'std:bytes';
+import { sha256 } from 'std:crypto';
+import { homeDir } from 'std:env';
+import {
+  readTextFile,
+  writeTextFileAtomic,
+  mkdirAll,
+  stat,
+  lstat,
+  canonicalize
+} from 'std:fs';
+import { basename, dirname, join, separator } from 'std:path';
+
+import { createDocument, dirty, edit } from './documents.tsr';
+import { Workspace, SourceBreakpoint, openFile, selectFile } from './workspace.tsr';
+
+interface Draft {
+  path: string;
+  text: string;
+  savedText: string;
+  durabilityPending: boolean;
+}
+
+interface SavedCaret {
+  path: string;
+  offset: int;
+}
+
+interface Journal {
+  carets?: SavedCaret[];
+  schemaVersion: int;
+  root: string;
+  drafts: Draft[];
+  opened?: string[];
+  active?: string;
+  dockLayout?: string;
+  zoomLevel?: int;
+  sourceBreakpoints?: SourceBreakpoint[];
+}
+
+export interface Recovery {
+  path: string;
+  baseline: string;
+  ready: boolean;
+}
+
+export function recoveryPath(root: ReadOnly<string>): Result<string, string> {
+  try {
+    const home = unwrap(homeDir());
+
+    if (home === undefined) return Err('The home directory is unavailable. Draft recovery is disabled.');
+    const folder = join(home, '.tsrust', 'studio', 'recovery');
+    unwrap(mkdirAll(folder));
+    const hash = unwrap(toHex(sha256(unwrap(fromUtf8(root)))));
+    return Ok(join(folder, hash + '.json'));
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+function openRecoveredDraft(workspace: Mutable<Workspace>, draft: ReadOnly<Draft>): void {
+  if (selectFile(workspace, clone(draft.path))) return;
+
+  match (lstat(draft.path)) {
+    Ok(info) => {
+      if (!info.isDirectory) {
+        unwrap(openFile(workspace, draft.path));
+        return;
+      }
+    },
+    Err(error) => {
+      if (error.code !== 'not-found') throw clone(error.message);
+    }
+  }
+
+  // Keep the draft at its original leaf even when a directory now occupies it.
+  const parent = unwrap(canonicalize(dirname(draft.path)));
+  const name = basename(draft.path);
+
+  if (name === '.' || name === '..' || join(parent, name) !== draft.path || !unwrap(stat(parent)).isDirectory) throw 'Invalid recovery document.';
+  workspace.files.push({
+    name, kind: 'text', document: unwrap(createDocument(clone(draft.path), clone(draft.savedText)))
+  });
+  workspace.active = clone(draft.path);
+}
+
+// Validate the complete journal before changing any open buffers.
+export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Result<Recovery, string> {
+  let baseline = '';
+
+  match (readTextFile(path, 32 * 1024 * 1024)) {
+    Ok(text) => {
+      baseline = text;
+    },
+    Err(error) => {
+      if (error.code === 'not-found') return Ok({
+        path, baseline, ready: true
+      });
+      return Err(clone(error.message));
+    }
+  }
+
+  try {
+    const journal = JSON.parse<Journal>(baseline);
+
+    if (journal.schemaVersion !== 1 || journal.root !== workspace.root) return Err('Draft recovery belongs to another workspace or version.');
+    const zoom = journal.zoomLevel ?? 0;
+
+    if (zoom < -40 || zoom > 40) return Err('Invalid recovery document.');
+    const next = clone(workspace);
+    const opened = journal.opened;
+    const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
+    if (opened !== undefined) {
+      for (const file of opened) {
+        if (!file.startsWith(prefix)) return Err('This file is outside the open project directory.');
+        // Restore missing dirty tabs in their saved positions.
+        match (stat(file)) {
+          Ok(info) => {
+            if (info.isFile) {
+              unwrap(openFile(next, file));
+              continue;
+            }
+          },
+          Err(error) => {
+            if (error.code !== 'not-found') return Err(clone(error.message));
+          }
+        }
+
+        const draft = journal.drafts.find((entry) => entry.path === file);
+
+        if (draft !== undefined) openRecoveredDraft(next, draft);
+      }
+    }
+
+    for (const draft of journal.drafts) {
+      if (!draft.path.startsWith(prefix)) return Err('This file is outside the open project directory.');
+
+      openRecoveredDraft(next, draft);
+      const index = next.files.findIndex((file) => file.document.path === draft.path);
+
+      if (index < 0) return Err('Invalid recovery document.');
+
+      // A journaled text buffer can outlive the disk version that determined its viewer.
+      if (next.files[index].kind !== 'text') {
+        next.files[index].kind = 'text';
+        next.files[index].binaryPreview = undefined;
+        next.files[index].byteSize = undefined;
+        next.files[index].previewBytes = undefined;
+      }
+
+      edit(next.files[index].document, clone(draft.text));
+      next.files[index].document.savedText = clone(draft.savedText);
+      next.files[index].document.durabilityPending = draft.durabilityPending;
+    }
+
+    for (const caret of journal.carets ?? []) {
+      const index = next.files.findIndex((entry) => entry.document.path === caret.path && entry.kind === 'text');
+
+      if (index < 0 || caret.offset <= 0) continue;
+      let offset = caret.offset;
+      {
+        const text = next.files[index].document.text;
+
+        if (offset > text.length) offset = text.length;
+
+        if (offset < text.length) {
+          const bytes = unwrap(fromUtf8(text));
+
+          while (offset > 0 && unwrap(at(bytes, offset)) >= 128 && unwrap(at(bytes, offset)) < 192) offset -= 1;
+        }
+      }
+
+      next.files[index].caret = offset;
+    }
+
+    const active = journal.active;
+
+    if (active !== undefined) selectFile(next, active);
+    const points: SourceBreakpoint[] = [];
+
+    for (const point of clone(journal.sourceBreakpoints) ?? []) {
+      if (point.line < 1 || !point.path.startsWith(prefix)) continue;
+
+      match (canonicalize(point.path)) {
+        Ok(path) => {
+          if (path !== point.path || points.some((entry) => entry.path === path && entry.line === point.line)) continue;
+
+          match (stat(path)) {
+            Ok(info) => {
+              if (info.isFile) points.push(clone(point));
+            },
+            Err(_) => {}
+          }
+        },
+        Err(_) => {}
+      }
+    }
+
+    workspace.sourceBreakpoints = points;
+    workspace.files = next.files;
+    workspace.active = next.active;
+    workspace.dockLayout = journal.dockLayout ?? '';
+    workspace.zoomLevel = zoom;
+    return Ok({
+      path, baseline, ready: true
+    });
+  } catch (_) {
+    return Err('Draft recovery could not be read. Its file was preserved: ' + path);
+  }
+}
+
+export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutable<Recovery>): Result<void, string> {
+  if (!recovery.ready) return Err('Draft recovery is unavailable. Save your work before restarting.');
+  const drafts: Draft[] = [];
+  const carets: SavedCaret[] = [];
+
+  for (const file of workspace.files) {
+    if (file.kind === 'text' && (file.caret ?? 0) > 0) carets.push({
+      path: clone(file.document.path), offset: file.caret ?? 0
+    });
+
+    if (file.kind === 'text' && dirty(file.document)) drafts.push({
+      path: clone(file.document.path), text: clone(file.document.text), savedText: clone(file.document.savedText), durabilityPending: file.document.durabilityPending
+    });
+  }
+
+  const journal: Journal = {
+    schemaVersion: 1, root: clone(workspace.root), drafts, opened: workspace.files.map((file) => clone(file.document.path)), active: clone(workspace.active), dockLayout: clone(workspace.dockLayout), zoomLevel: workspace.zoomLevel, sourceBreakpoints: clone(workspace.sourceBreakpoints)
+  };
+
+  if (carets.length > 0) journal.carets = carets;
+  const text = JSON.stringify(journal);
+
+  if (text === recovery.baseline) return Ok();
+  // shortcut: one Studio writer per workspace; coordinate first journal creation before supporting duplicate workspace windows.
+  const expected = recovery.baseline === '' ? undefined : clone(recovery.baseline);
+
+  match (writeTextFileAtomic(recovery.path, text, expected)) {
+    Ok(_) => {
+      recovery.baseline = text;
+      return Ok();
+    },
+    Err(error) => {
+      if (error.code === 'committed-not-durable') recovery.baseline = text;
+      return Err(clone(error.message));
+    }
+  }
+}

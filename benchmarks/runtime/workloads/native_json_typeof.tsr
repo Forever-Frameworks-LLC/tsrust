@@ -1,8 +1,10 @@
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const label = typeof JSON.parse(input);
+
     if (label !== 'number') {
       throw 'Unexpected JSON type';
     }

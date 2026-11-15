@@ -59,7 +59,7 @@ Usage:
   tsrust bindings generate <file.bindings.json> --crate name --source crate-root.rs --select name,name [--rustdoc crate.json]
   tsrust new [name-or-path] [--ui | --app [--target backend]]
   tsrust ui list | ui add [Component...] [--all] [--force]
-  tsrust package <entry.tsrx> [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
+  tsrust package [entry.tsrx] [--companion PROJECT] [--name NAME] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--sign ID --notarize PROFILE]
   tsrust docs content [--cwd directory]
   tsrust api generate [entry.tsr | --entry file | --config file | --description file | --url HTTPS_URL] [--language typescript|rust] [--out directory] [--header-env Header=ENV] [--check]
   tsrust cache <info|clean>
@@ -70,8 +70,11 @@ Usage:
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust run [input.tsr] [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
-  tsrust format [files/directories] [--check | --write]
-  tsrust check [files/directories] [--json]
+  tsrust format [files/directories] [--check | --write] [--text-files-up-to bytes]
+    Skip binary (invalid UTF-8 or NUL) and larger files when a byte limit is given
+  tsrust format --stdin-filepath <source-path> [--options <JSON>]
+  tsrust check|format [--progress]   Print a task-start message before processing
+  tsrust check [files/directories] [--json] [--diagnostics-only]
   tsrust check|build|test|format [--project name]   At a tsrust.workspace.json root: every member, clients first
 
 Commands:
@@ -90,7 +93,7 @@ Commands:
   new      Create a project with source, tests and configuration; --ui creates a desktop app
   ui       List GPUI Kit components or copy editable wrappers into src/components
   check    Check files/directories recursively; defaults to the current directory
-  format   Format all .tsr project files; one explicit file prints source
+  format   Format .tsr/.tsrx project files; one explicit file prints source
   emit     Emit Rust source or a standalone Cargo package
   build    Build a native executable using config output or -o
   run      Build and run a program
@@ -106,6 +109,8 @@ Options:
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
   --color auto|always|never  Color help, diagnostics, dev status and test reports
+  --debug                   build: retain mapped Rust source beside the executable and emit debugger symbols
+  --source-locations        emit: annotate Rust statements with Tsrust file and byte range
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
@@ -233,6 +238,8 @@ fn run() -> Result<u8, String> {
     let mut test_profile=false;
     let mut release = false;
     let mut package = false;
+    let mut source_locations = false;
+    let mut debug = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-o" | "--output" if output.is_none() => {
@@ -253,6 +260,8 @@ fn run() -> Result<u8, String> {
             }
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
+            "--debug" if command == "build" && !debug => debug = true,
+            "--source-locations" if command == "emit" && !source_locations => source_locations = true,
             "--package" if !package => package = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
@@ -276,6 +285,7 @@ fn run() -> Result<u8, String> {
         .unwrap_or_else(|| source_path.clone())
         .display()
         .to_string();
+    if release && debug { return Err("--debug and --release select different build profiles".into()); }
     if release && command != "build" && command != "run" && command != "test" {
         return Err("--release applies only to build/run/test/dev".into());
     }
@@ -339,7 +349,9 @@ fn run() -> Result<u8, String> {
     }
     let check_elapsed=check_started.elapsed();
     let emit_started=std::time::Instant::now();
-    let (rust, native_features) = analysis.emit_rust_with_native_features();
+    let (rust, native_features) = if source_locations || debug {
+        analysis.emit_rust_with_locations(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?, &source)
+    } else { analysis.emit_rust_with_native_features() };
     let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
         if package {
@@ -410,7 +422,8 @@ fn run() -> Result<u8, String> {
     cache_parts.push(runtime_build::profile_identity(&rust).as_bytes());
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
-    let reused = cache.copy_to(&executable);
+    // Debug symbols can include platform sidecars outside the executable cache.
+    let reused = !debug && cache.copy_to(&executable);
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {
@@ -423,6 +436,12 @@ fn run() -> Result<u8, String> {
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
         let mut command=backend_command();prepared.link(&mut command)?;
+        if debug {
+            prepared.application = retain_debug_source(&prepared.application, &executable)?;
+            command.args(["--crate-name", "program", "-g"]);
+            #[cfg(target_os = "macos")]
+            command.arg("-Csplit-debuginfo=packed");
+        }
         let result = command
             .arg("--edition=2024")
             .args([
@@ -448,8 +467,9 @@ fn run() -> Result<u8, String> {
             };
             return Err(format!("{explanation}\n{}", stderr.trim()));
         }
+        if debug { record_debug_unit(&prepared.application, &executable).map_err(|e|e.to_string())?; }
         // Cache failure must not turn a successful native build into a failure.
-        if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root) { let _ = cache.publish(&executable); }
+        if !debug && backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
     }
     if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});
@@ -493,6 +513,52 @@ fn run() -> Result<u8, String> {
     }
     println!("{} {}", styled("Built", "1;32", color_enabled(std::io::stdout().is_terminal())), executable.display());
     Ok(0)
+}
+
+/// Compile the exact post-runtime-split source from a stable path recorded in DWARF/PDB.
+fn retain_debug_source(application: &Path, executable: &Path) -> Result<PathBuf, String> {
+    use sha2::{Digest, Sha256};
+    let source = fs::read(application).map_err(|error| error.to_string())?;
+    let mut directory = executable.as_os_str().to_owned();
+    directory.push(".tsrust-debug");
+    let directory = PathBuf::from(directory);
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    let digest: String = Sha256::digest(&source).iter().map(|byte| format!("{byte:02x}")).collect();
+    let path = directory.join(format!("program_{digest}.rs"));
+    if !path.exists() {
+        use std::io::Write;
+        let mut staged = tempfile::NamedTempFile::new_in(&directory).map_err(|e|e.to_string())?;
+        staged.write_all(&source).map_err(|e|e.to_string())?;
+        match staged.persist_noclobber(&path) {
+            Ok(_) => return Ok(path),
+            Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {},
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    if fs::read(&path).map_err(|e|e.to_string())? != source {
+        return Err(format!("Generated debugger source differs at {}", path.display()));
+    }
+    Ok(path)
+}
+
+// Bind a completed executable to its retained unit even when the output path is rebuilt.
+fn record_debug_unit(unit: &Path, executable: &Path) -> std::io::Result<()> {
+    use sha2::{Digest, Sha256};
+    use std::io::{Read, Write};
+    let mut file = fs::File::open(executable)?;
+    let mut hash = Sha256::new();
+    let mut bytes = [0; 65536];
+    loop {
+        let count = file.read(&mut bytes)?;
+        if count == 0 { break; }
+        hash.update(&bytes[..count]);
+    }
+    let key: String = hash.finalize().iter().map(|byte| format!("{byte:02x}")).collect();
+    let directory = unit.parent().expect("debug unit directory");
+    let mut staged = tempfile::NamedTempFile::new_in(directory)?;
+    staged.write_all(unit.file_name().expect("debug unit name").as_encoded_bytes())?;
+    staged.persist(directory.join(format!("{key}.unit")))?;
+    Ok(())
 }
 
 fn backend_command() -> Command {

@@ -1,0 +1,87 @@
+import { fromUtf8, toHex } from 'std:bytes';
+import { sha256 } from 'std:crypto';
+import { homeDir } from 'std:env';
+import { mkdirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
+import { join } from 'std:path';
+
+import { ChatHistory, emptyHistory, parseHistory } from '../../lib/ai/conversations.tsr';
+
+export interface ChatStore {
+  path: string;
+  baseline: string;
+  ready: boolean;
+}
+
+export interface RestoredChats {
+  history: ChatHistory;
+  store: ChatStore;
+  error: string;
+}
+
+export function restoreChats(root: ReadOnly<string>): RestoredChats {
+  const result: RestoredChats = {
+    history: emptyHistory(clone(root)), store: {
+      path: '', baseline: '', ready: false
+    }, error: ''
+  };
+
+  try {
+    const home = unwrap(homeDir());
+
+    if (home === undefined) throw 'The home directory is unavailable.';
+    const folder = join(home, '.tsrust', 'studio', 'chats');
+    unwrap(mkdirAll(folder));
+    const hash = unwrap(toHex(sha256(unwrap(fromUtf8(root)))));
+    result.store.path = join(folder, hash + '.json');
+
+    match (readTextFile(result.store.path)) {
+      Ok(text) => {
+        match (parseHistory(text, root)) {
+          Ok(history) => {
+            result.history = history;
+            result.store.baseline = clone(text);
+          },
+          Err(error) => {
+            result.error = clone(error);
+            return result;
+          }
+        }
+      },
+      Err(error) => {
+        if (error.code !== 'not-found') throw error.message;
+      }
+    }
+
+    for (let chat = 0; chat < result.history.chats.length; chat += 1) {
+      for (let message = 0; message < result.history.chats[chat].messages.length; message += 1) {
+        if (result.history.chats[chat].messages[message].status === 'pending') result.history.chats[chat].messages[message].status = 'interrupted';
+      }
+    }
+
+    result.store.ready = true;
+  } catch (_) {
+    result.error = 'Chat history is unavailable. New messages will remain in this window until it is fixed.';
+  }
+
+  return result;
+}
+
+export function persistChats(history: ReadOnly<ChatHistory>, store: Mutable<ChatStore>): Result<void, string> {
+  if (!store.ready) return Err('Chat history is unavailable. New messages will remain in this window until it is fixed.');
+  const text = JSON.stringify(history);
+
+  if (text === store.baseline) return Ok();
+
+  const expected = store.baseline === '' ? undefined : clone(store.baseline);
+
+  match (writeTextFileAtomic(store.path, text, expected)) {
+    Ok(_) => {
+      store.baseline = text;
+      return Ok();
+    },
+    Err(error) => {
+      if (error.code === 'committed-not-durable') store.baseline = text;
+      return Err(error.code === 'conflict' ? 'Chat history changed in another window. Reopen Studio before changing it.' : clone(error.message));
+    }
+  }
+}

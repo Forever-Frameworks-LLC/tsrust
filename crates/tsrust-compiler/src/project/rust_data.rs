@@ -1,7 +1,7 @@
 //! Plain owned Rust data is projected field by field, without serialization.
 use super::*;
 #[derive(Clone,Debug)]
-pub enum Data {Struct(Vec<(String,Type)>),Enum(Vec<Variant>)}
+pub enum Data {Struct(Vec<(String,Type)>),Enum(Vec<Variant>),Resource}
 #[derive(Clone,Debug)]
 pub struct Variant {pub name:String,pub fields:Vec<(String,Type)>,pub tuple:bool,pub named:bool}
 fn fields(fields:&syn::Fields,public:bool,options:&str)->Result<Vec<(String,Type)>,(proc_macro2::Span,String)> {
@@ -35,8 +35,13 @@ pub(super) fn collect(file:&syn::File,options:&str)->Result<BTreeMap<String,Data
  for item in &file.items {
   let (name,generics,attrs,data)=match item {
    syn::Item::Struct(item) if matches!(item.vis,syn::Visibility::Public(_))=> {
-    if !matches!(item.fields,syn::Fields::Named(_)){return Err((item.span(),"Boundary structs require named fields.".into()));}
-    (&item.ident,&item.generics,&item.attrs,Data::Struct(fields(&item.fields,true,options)?))
+    let markers=item.attrs.iter().filter(|attr|attr.path().is_ident("tsrust_resource")).collect::<Vec<_>>();
+    if markers.len()>1 || markers.iter().any(|attr|!matches!(attr.meta,syn::Meta::Path(_))){return Err((item.span(),"Use one #[tsrust_resource] marker without arguments.".into()));}
+    let data=if markers.is_empty(){
+     if !matches!(item.fields,syn::Fields::Named(_)){return Err((item.span(),"Boundary structs require named fields.".into()));}
+     Data::Struct(fields(&item.fields,true,options)?)
+    }else{Data::Resource};
+    (&item.ident,&item.generics,&item.attrs,data)
    },
    syn::Item::Enum(item) if matches!(item.vis,syn::Visibility::Public(_))=> {
     if item.variants.is_empty(){return Err((item.span(),"Boundary enums require at least one variant.".into()));}
@@ -47,7 +52,7 @@ pub(super) fn collect(file:&syn::File,options:&str)->Result<BTreeMap<String,Data
     (&item.ident,&item.generics,&item.attrs,Data::Enum(variants))
    },_=>continue
   };
-  if !generics.params.is_empty() || generics.where_clause.is_some() || attrs.iter().any(|attr|!attr.path().is_ident("doc") && !attr.path().is_ident("derive")) || name.to_string().starts_with("r#") {return Err((name.span(),"Boundary data must be concrete and have only documentation or derive attributes.".into()));}
+  if !generics.params.is_empty() || generics.where_clause.is_some() || attrs.iter().any(|attr|!attr.path().is_ident("doc") && !attr.path().is_ident("derive") && !(matches!(data,Data::Resource)&&attr.path().is_ident("tsrust_resource"))) || name.to_string().starts_with("r#") {return Err((name.span(),"Boundary data must be concrete and have only documentation, derive or supported resource attributes.".into()));}
   types.insert(name.to_string(),data);
  }
  let aliases=imported_paths(file);
@@ -58,7 +63,7 @@ pub(super) fn collect(file:&syn::File,options:&str)->Result<BTreeMap<String,Data
   let syn::Type::Path(owner)=item.self_ty.as_ref()else{continue};if owner.qself.is_some(){continue;}
   let path=&owner.path;let local=path.leading_colon.is_none() && (path.segments.len()==1 || path.segments.len()==2 && path.segments[0].ident=="self");
   let crate_qualified=path.leading_colon.is_none() && path.segments.len()==2 && path.segments[0].ident=="crate";
-  if (local||crate_qualified) && path.segments.last().is_some_and(|segment|types.contains_key(&segment.ident.to_string())) {
+  if (local||crate_qualified) && path.segments.last().is_some_and(|segment|types.get(&segment.ident.to_string()).is_some_and(|data|!matches!(data,Data::Resource))) {
    return Err((item.span(),"Boundary data cannot implement Drop; keep resource owners private to the Rust adapter. Qualified crate boundary owners require an explicit supported local declaration.".into()));
   }
  }
@@ -71,8 +76,11 @@ pub(super) fn validate(ty:&Type,types:&BTreeMap<String,Data>,active:&mut BTreeSe
    let data=types.get(name).ok_or_else(||format!("Unsupported boundary type {name}; declare a public struct or enum in the binding module."))?;
    if active.len()>=128{return Err("Boundary type nesting exceeds 128.".into());}
    if !active.insert(name.clone()){return Err(format!("Recursive boundary data {name} is unsupported."));}
-   let fields=match data {Data::Struct(fields)=>fields.iter().collect::<Vec<_>>(),Data::Enum(variants)=>variants.iter().flat_map(|variant|variant.fields.iter()).collect()};
+   let fields=match data {Data::Struct(fields)=>fields.iter().collect::<Vec<_>>(),Data::Enum(variants)=>variants.iter().flat_map(|variant|variant.fields.iter()).collect(),Data::Resource=>vec![]};
    for (_,ty) in fields{validate(ty,types,active)?;}active.remove(name);
+  },Type::Borrow(inner,_) if matches!(inner.as_ref(),Type::Named(_))=>{
+   let Type::Named(name)=inner.as_ref()else{unreachable!()};
+   if !matches!(types.get(name),Some(Data::Resource)){return Err("Borrowed named inputs require an explicitly marked Rust resource.".into());}
   },Type::Array(inner)|Type::Option(inner,_)|Type::Borrow(inner,_)=>validate(inner,types,active)?,Type::Result(ok,err)=>{validate(ok,types,active)?;validate(err,types,active)?;},_=>{}
  }Ok(())
 }
@@ -98,6 +106,12 @@ fn declarations_impl(types:&BTreeMap<String,Data>,file:&syn::File,seeds:bool)->S
  };
  for (name,data) in types {
   let (seed_name,fields)=match data {
+   Data::Resource=>{
+    source.push_str(&format!("/** {}\nOpaque Rust resource. Move ownership or borrow it; construction, cloning and fields are unavailable. */\nexport type {name} = {{}};\n",docs.get(name).map(String::as_str).unwrap_or("")));
+    // Native call bodies replace these seeds; divergence fabricates neither an owner nor a throw effect.
+    if seeds{source.push_str(&format!("function rustSeed{name}():{name}{{while(true){{}}}}\n"));}
+    continue;
+   },
    Data::Struct(fields)=>{record(&mut source,name,fields);(name.clone(),fields)},
    Data::Enum(variants)=> {
     for variant in variants{record(&mut source,&format!("{name}{}",variant.name),&variant.fields);}
@@ -127,7 +141,7 @@ pub(super) fn input(ty:&Type,types:&BTreeMap<String,Data>)->Result<(),String>{
  let mut pending=vec![ty];let mut seen=BTreeSet::new();while let Some(ty)=pending.pop(){match ty{
   Type::Result(..)=>return Err("Rust Result is output-only; input containers and record fields cannot contain Result.".into()),
   Type::Array(inner)|Type::Option(inner,_)|Type::Borrow(inner,_)=>pending.push(inner),
-  Type::Named(name)if seen.insert(name)=>if let Some(data)=types.get(name){match data{Data::Struct(fields)=>pending.extend(fields.iter().map(|(_,ty)|ty)),Data::Enum(variants)=>pending.extend(variants.iter().flat_map(|variant|variant.fields.iter().map(|(_,ty)|ty)))}}
+  Type::Named(name)if seen.insert(name)=>if let Some(data)=types.get(name){match data{Data::Struct(fields)=>pending.extend(fields.iter().map(|(_,ty)|ty)),Data::Enum(variants)=>pending.extend(variants.iter().flat_map(|variant|variant.fields.iter().map(|(_,ty)|ty))),Data::Resource=>{}}}
   _=>{}
  }}Ok(())
 }
@@ -137,7 +151,7 @@ pub(super) fn uses_option(ty:&Type,types:&BTreeMap<String,Data>)->bool {
   Type::Option(..)=>return true,
   Type::Array(inner)|Type::Borrow(inner,_)=>pending.push(inner),
   Type::Result(ok,err)=>{pending.push(ok);pending.push(err);},
-  Type::Named(name)if seen.insert(name)=>if let Some(data)=types.get(name){match data{Data::Struct(fields)=>pending.extend(fields.iter().map(|(_,ty)|ty)),Data::Enum(variants)=>pending.extend(variants.iter().flat_map(|variant|variant.fields.iter().map(|(_,ty)|ty))) }},
+  Type::Named(name)if seen.insert(name)=>if let Some(data)=types.get(name){match data{Data::Struct(fields)=>pending.extend(fields.iter().map(|(_,ty)|ty)),Data::Enum(variants)=>pending.extend(variants.iter().flat_map(|variant|variant.fields.iter().map(|(_,ty)|ty))),Data::Resource=>{} }},
   _=>{}
  }}false
 }

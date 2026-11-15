@@ -21,6 +21,12 @@ fn temporary_runtime_is_selected_independently_of_ordinary_files() {
     let runtime=units.runtime.unwrap();assert!(runtime.contains("pub mod tsrust_native_tempfiles"));
     assert!(tsrust_compiler::native_runtime::requires_temporary_files(&runtime));
     assert!(!units.application.contains("tempfile::"));assert!(!runtime.contains("crate::stdlib::fs::runtime"));
+    let atomic=checked("import {writeTextFileAtomic} from 'std:fs';function main(){writeTextFileAtomic('document','new','old');}").emit_rust();
+    assert!(atomic.contains("mod tsrust_native_atomic_files"));assert!(!atomic.contains("mod tsrust_native_tempfiles"));
+    assert!(tsrust_compiler::native_runtime::requires_temporary_files(&atomic));
+    let units=tsrust_compiler::native_runtime::separate(&atomic);let runtime=units.runtime.unwrap();
+    assert!(runtime.contains("pub mod tsrust_native_atomic_files"));assert!(tsrust_compiler::native_runtime::requires_temporary_files(&runtime));
+    assert!(!units.application.contains("tempfile::"));assert!(!units.application.contains("fcopyfile"));
 }
 
 #[test]

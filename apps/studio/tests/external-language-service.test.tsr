@@ -1,0 +1,239 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { parse, get as jsonGet, at, stringify } from 'std:json';
+import { join } from 'std:path';
+import { strictEqual, test } from 'std:testing';
+import { completionText } from 'std:ui';
+
+import { LanguageDocument, languageIdentity, publishedDiagnostics, documentProblems } from '../src/lib/language/diagnostics.tsr';
+import { LanguageServer, validateLanguageServer, validateLanguageServers, tsrustServer } from '../src/lib/language/servers.tsr';
+import { languageServices } from '../src/services/lsp/registry.tsr';
+import { LanguageMessage, LanguageUpdate } from '../src/services/lsp/session.tsr';
+
+async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
+  while (true) {
+    const event = await updates.receive();
+
+    if (event.kind === 'failed') throw event.message;
+
+    if (event.kind === kind) return event;
+  }
+}
+
+function invalidServer(server: ReadOnly<LanguageServer>): boolean {
+  match (validateLanguageServer(server)) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+test('foreign diagnostic codes normalize strings and integers without weakening version guards', () => {
+  const report = publishedDiagnostics('{"params":{"uri":"file:///project/main.go","version":2,"diagnostics":[{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":1}},"code":1234,"message":"number"},{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":1}},"code":"type-error","message":"string"}]}}', {
+    maxBytes: 4096, maxDepth: 16, maxEntries: 100, maxNodes: 100
+  });
+  strictEqual(report.diagnostics[0].code, '1234');
+  strictEqual(report.diagnostics[1].code, 'type-error');
+  const document: LanguageDocument = {
+    languageId: 'go', path: '/project/main.go', session: 'one', revision: 1, version: 2, text: 'x'
+  };
+  strictEqual(documentProblems(document, report, 'lsp:go')[0].source, 'lsp:go');
+  report.version = 1;
+  strictEqual(documentProblems(document, report, 'lsp:go').length, 0);
+  report.version = undefined;
+  strictEqual(documentProblems(document, report, 'lsp:go').length, 0);
+});
+
+test('external server definitions reject ambiguous identities and invalid process arguments', () => {
+  const server: LanguageServer = {
+    id: 'go', name: 'Go', program: 'gopls', arguments: ['serve'], languages: ['go']
+  };
+  unwrap(validateLanguageServer(server));
+  let duplicate = false;
+
+  match (validateLanguageServers([clone(server), clone(server)])) {
+    Err(_) => {
+      duplicate = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(duplicate, true);
+  server.id = '../go';
+  strictEqual(invalidServer(server), true);
+  server.id = 'go';
+  server.arguments = ['serve\0'];
+  strictEqual(invalidServer(server), true);
+  server.arguments = ['serve'];
+  server.languages = ['go', 'go'];
+  strictEqual(invalidServer(server), true);
+});
+
+async function nextProblems(updates: ReadOnly<Channel<LanguageUpdate>>): Task<LanguageUpdate> {
+  while (true) {
+    const event = await nextUpdate(updates, 'diagnostics');
+
+    if ((event.problems ?? []).length > 0) return event;
+  }
+}
+
+test('real registry completion imports keep Tsrust and Go independent and unused servers lazy', async () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-gopls-'))));
+  const server: LanguageServer = {
+    id: 'go', name: 'Go', program: unwrap(get('GOPLS')) ?? 'gopls', arguments: ['serve'], languages: ['go']
+  };
+  const messages = new Channel<LanguageMessage>(16);
+  const updates = new Channel<LanguageUpdate>(16);
+  const requests = messages.sender();
+  const path = join(root, 'main.go');
+  const saved = 'package main\nfunc greet(name string, count int) {}\nfunc main() { greet("🦀", 2) }\n';
+  unwrap(writeTextFile(join(root, 'go.mod'), 'module studio-language-test\n\ngo 1.23\n'));
+  unwrap(writeTextFile(path, saved));
+  const unused: LanguageServer = {
+    id: 'unused', name: 'Unused', program: join(root, 'must-not-launch'), arguments: [], languages: ['unused']
+  };
+  const tsrust = unwrap(get('TSRUST')) ?? 'tsrust';
+  const slash = tsrust.lastIndexOf('/');
+  const nativeServer = slash < 0 ? 'tsrust-lsp' : tsrust.slice(0, slash + 1) + 'tsrust-lsp';
+  const nativePath = join(root, 'main.tsr');
+  const nativeText = 'function main() { console.log("ready"); }';
+  unwrap(writeTextFile(nativePath, nativeText));
+  unwrap(writeTextFile(join(root, 'tsrust.config.json'), '{"name":"registry-test","schemaVersion":1,"build":{"entry":"main.tsr","output":"target/test"}}'));
+  const worker = languageServices(clone(root), [tsrustServer(nativeServer), server, unused], messages, updates.sender()).start();
+
+  try {
+    const nativeReady = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(nativeReady.server, 'tsrust');
+    await requests.send({
+      server: 'go', kind: 'start', generation: 0
+    });
+    const ready = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(ready.server, 'go');
+    const document: LanguageDocument = {
+      languageId: 'go', path: clone(path), session: 'go-one', revision: 1, version: 1, text: 'package main\nfunc main() { var value int = "wrong"; _ = value }\n'
+    };
+    await requests.send({
+      server: 'go', kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const broken = await nextProblems(updates).timeout(30000);
+    strictEqual((broken.problems ?? []).length > 0, true, 'Go reports the unsaved type error');
+    strictEqual((broken.problems ?? [])[0].source, 'lsp:go');
+    strictEqual(broken.document?.version, 1);
+    document.revision = 2;
+    document.version = 2;
+    document.text = clone(saved);
+    await requests.send({
+      server: 'go', kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const clean = await nextUpdate(updates, 'diagnostics').timeout(30000);
+    strictEqual(clean.document?.version, 2);
+    strictEqual((clean.problems ?? []).length, 0, 'Go corrected diagnostics: ' + JSON.stringify(clean.problems));
+
+    await requests.send({
+      server: 'go', kind: 'query', generation: ready.generation, query: {
+        id: 'go-hover', method: 'textDocument/hover', document: languageIdentity(document), position: {
+          line: 2, character: 15
+        }
+      }
+    });
+    const hover = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(hover.query?.id, 'go-hover');
+    strictEqual((hover.result ?? '').includes('greet'), true, 'Go hover: ' + (hover.result ?? 'missing'));
+    await requests.send({
+      server: 'go', kind: 'query', generation: ready.generation, query: {
+        id: 'go-completion', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 2, character: 17
+        }
+      }
+    });
+    const completion = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(completion.query?.id, 'go-completion');
+    strictEqual((completion.result ?? '').includes('greet'), true, 'Go completion: ' + (completion.result ?? 'missing'));
+    await requests.send({
+      server: 'go', kind: 'query', generation: ready.generation, query: {
+        id: 'go-signature', method: 'textDocument/signatureHelp', document: languageIdentity(document), position: {
+          line: 2, character: 26
+        }
+      }
+    });
+    const signature = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(signature.query?.id, 'go-signature');
+    strictEqual((signature.result ?? '').includes('count int'), true, 'Go signature: ' + (signature.result ?? 'missing'));
+    strictEqual((signature.result ?? '').includes('"activeParameter":1'), true, 'Go signature parameter: ' + (signature.result ?? 'missing'));
+    document.revision = 3;
+    document.version = 3;
+    document.text = 'package main\nfunc main() { fm }\n';
+    await requests.send({
+      server: 'go', kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    await requests.send({
+      server: 'go', kind: 'query', generation: ready.generation, query: {
+        id: 'go-import-completion', method: 'textDocument/completion', document: languageIdentity(document), position: {
+          line: 1, character: 16
+        }
+      }
+    });
+    const imported = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(imported.query?.id, 'go-import-completion');
+    const response = unwrap(parse(imported.result ?? 'null'));
+    const items = unwrap(jsonGet(response, 'items'));
+
+    if (items === undefined) throw 'Go completion returned no candidate list.';
+    const candidate = unwrap(at(items, 0));
+
+    if (candidate === undefined) throw 'Go completion returned no fmt candidate.';
+    const encoded = unwrap(stringify(candidate));
+    strictEqual(encoded.includes('additionalTextEdits'), true, 'Real Go import edit: ' + encoded);
+    const proposed = unwrap(completionText(document.text, encoded, 27, 29));
+    strictEqual(proposed.includes('import "fmt"'), true, proposed);
+    strictEqual(proposed.includes('func main() { fmt }'), true, proposed);
+    await requests.send({
+      server: 'go', kind: 'restart', generation: ready.generation
+    });
+    const restarted = await nextUpdate(updates, 'ready').timeout(20000);
+    strictEqual(restarted.server, 'go');
+    strictEqual(restarted.generation, ready.generation + 1);
+    await requests.send({
+      server: 'unknown', kind: 'start', generation: 0
+    });
+    let rejected = false;
+
+    while (!rejected) {
+      const update = await updates.receive().timeout(10000);
+
+      if (update.kind === 'failed') {
+        strictEqual(update.server, 'unknown');
+        rejected = true;
+      }
+    }
+
+    const nativeDocument: LanguageDocument = {
+      path: nativePath, session: 'native-one', revision: 1, version: 1, text: nativeText
+    };
+    await requests.send({
+      server: 'tsrust', kind: 'query', generation: nativeReady.generation, document: clone(nativeDocument), query: {
+        id: 'native-hover', method: 'textDocument/hover', document: languageIdentity(nativeDocument), position: {
+          line: 0, character: 27
+        }
+      }
+    });
+    const nativeHover = await nextUpdate(updates, 'query').timeout(10000);
+    strictEqual(nativeHover.server, 'tsrust');
+    strictEqual(nativeHover.generation, nativeReady.generation);
+    strictEqual(nativeHover.query?.id, 'native-hover');
+    strictEqual(nativeHover.result !== 'null', true);
+
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(root));
+  }
+});

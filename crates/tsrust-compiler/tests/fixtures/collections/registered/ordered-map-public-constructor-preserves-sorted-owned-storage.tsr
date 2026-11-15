@@ -7,6 +7,7 @@ export function main() {
   values.set('a', 1);
   values.set('m', 2);
   let seen = '';
+
   for (const entry of values) {
     seen += entry[0];
   }

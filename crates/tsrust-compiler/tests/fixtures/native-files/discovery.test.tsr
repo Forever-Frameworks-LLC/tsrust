@@ -1,0 +1,55 @@
+import { createTempDir, mkdirAll, writeTextFile, walkDir, removeDirAll } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
+test('walkDir shares deterministic ignore policy and returns no partial snapshot on bounds errors', () => {
+  const root = unwrap(createTempDir(undefined, 'discovery-'));
+
+  try {
+    strictEqual(unwrap(walkDir(root, false, 0)).length, 0);
+    unwrap(mkdirAll(root + '/nested'));
+    unwrap(mkdirAll(root + '/target'));
+    unwrap(writeTextFile(root + '/target/compiled', ''));
+    unwrap(writeTextFile(root + '/.gitignore', '*.tmp\nnested/*.tsr\n'));
+    unwrap(writeTextFile(root + '/nested/.gitignore', '!keep.tsr\n'));
+    unwrap(writeTextFile(root + '/nested/keep.tsr', ''));
+    unwrap(writeTextFile(root + '/nested/drop.tsr', ''));
+    unwrap(writeTextFile(root + '/ignored.tmp', ''));
+    unwrap(writeTextFile(root + '/.config.json', '{}'));
+    unwrap(writeTextFile(root + '/café-🦀.txt', ''));
+    const filtered = unwrap(walkDir(root, false));
+    strictEqual(filtered.some((entry) => entry.name === '.config.json'), true);
+    strictEqual(filtered.some((entry) => entry.name === 'keep.tsr'), true);
+    strictEqual(filtered.some((entry) => entry.name === 'drop.tsr'), false);
+    strictEqual(filtered.some((entry) => entry.name === 'ignored.tmp'), false);
+    strictEqual(filtered.some((entry) => entry.name === 'target'), false);
+    const all = unwrap(walkDir(root, true));
+    strictEqual(all.length, filtered.length + 2);
+
+    for (let i = 1; i < all.length; i += 1) strictEqual(all[i - 1].path < all[i].path, true);
+
+    for (const bound of [-1, 0, all.length - 1]) {
+      match (walkDir(root, true, bound)) {
+        Ok(_) => {
+          throw 'invalid or exceeded discovery bound succeeded';
+        },
+        Err(error) => {
+          strictEqual(error.code, 'length-range');
+          strictEqual(error.operation, 'walkDir');
+        }
+      }
+    }
+
+    strictEqual(unwrap(walkDir(root, true, all.length)).length, all.length);
+
+    match (walkDir(root + '/.config.json', true)) {
+      Ok(_) => {
+        throw 'non-directory root accepted';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-directory');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

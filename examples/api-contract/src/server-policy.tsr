@@ -15,6 +15,7 @@ export async function authorize(context: ReadOnly<FixtureContext>): Task<boolean
 
 export async function stopFixture(context: Mutable<FixtureContext>): Task<Response> {
   const allowed = await authorize(context);
+
   if (!allowed) {
     return context.text('Denied', 403);
   }

@@ -69,6 +69,7 @@ function main() {
   const absent = makeBase(trace, 1)?.(argument(trace, 7), trace);
   console.log(typeof absent, trace.factories, trace.arguments, trace.calls);
   const present = makeBase(trace, 0)?.(argument(trace, 4), trace);
+
   if (present !== undefined) {
     console.log(present, trace.factories, trace.arguments, trace.calls);
   }
@@ -84,6 +85,7 @@ function main() {
   console.log(first, second, trace.fallbacks, trace.arguments, trace.calls);
   let owner: (Function<int, [input: int, trace: Mutable<Trace>]>) | undefined = chooseOwned(2);
   owner ??= step;
+
   if (owner !== undefined) {
     console.log(owner(argument(trace, 9), trace), trace.arguments, trace.calls);
   }
@@ -99,6 +101,7 @@ function main() {
     callTrace.calls = callTrace.calls + 1;
     return callValue + consumeText(text).length;
   };
+
   if (once !== null) {
     console.log(once(argument(trace, 11), trace), trace.arguments, trace.calls);
   }

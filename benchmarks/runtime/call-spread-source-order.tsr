@@ -29,6 +29,7 @@ function mixed(prefix: string, ...tail: string[]): string[] {
 function emitInts(values: int[]) {
   let at = 0;
   let line = "";
+
   while (at < values.length) {
     line = line.concat(at === 0 ? "" : ",", String(values[at]));
     at = at + 1;
@@ -40,6 +41,7 @@ function emitInts(values: int[]) {
 function emitText(values: string[]) {
   let at = 0;
   let line = "";
+
   while (at < values.length) {
     line = line.concat(at === 0 ? "" : ",", values[at]);
     at = at + 1;

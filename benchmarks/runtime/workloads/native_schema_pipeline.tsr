@@ -10,11 +10,14 @@ function workload(n: int, seed: int, input: string): int {
   const retry = s.union([s.array(s.int()).refine(values => values.length > 3).transform(values => 0), s.array(s.int()).transform(values => values.length)]);
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     {
       const outcome0 = schema.safeParse([2, 3]);
+
       if (outcome0.success) {
         const value = outcome0.data;
+
         if (value !== 4) {
           throw 'Wrong transformed value';
         }
@@ -28,11 +31,13 @@ function workload(n: int, seed: int, input: string): int {
 
     {
       const outcome1 = schema.safeParse([]);
+
       if (outcome1.success) {
         const value = outcome1.data;
         throw 'Expected rejection';
       } else {
         const error = outcome1.error;
+
         if (error.truncated || error.issues.length !== 1) {
           throw 'Wrong issue count';
         }
@@ -49,8 +54,10 @@ function workload(n: int, seed: int, input: string): int {
 
     {
       const outcome2 = retry.safeParse(JSON.parse('[2,3]'));
+
       if (outcome2.success) {
         const value = outcome2.data;
+
         if (value !== 2) {
           throw 'Wrong rollback';
         }

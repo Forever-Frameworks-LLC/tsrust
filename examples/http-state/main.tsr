@@ -1,4 +1,12 @@
-import { App, Client, Request, Response, Next, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  Next,
+  request,
+  text
+} from 'std:http';
 import { allSettled, delay } from 'std:futures';
 import { strictEqual } from 'std:testing';
 
@@ -50,8 +58,10 @@ async function main(): Task<void> {
   const secondBase = clone(base);
   const thirdBase = clone(base);
   const replies = await allSettled([read(base, '/greet', 200).start(), read(secondBase, '/greet', 200).start(), read(thirdBase, '/missing', 404).start()]);
+
   while (replies.length > 0) {
     const reply = replies.pop();
+
     if (reply !== undefined) {
       strictEqual(unwrap(reply), 'Shared, checked state');
     }

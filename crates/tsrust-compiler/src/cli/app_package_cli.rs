@@ -7,17 +7,19 @@
 use sha2::{Digest, Sha256};
 use std::{fs, path::{Path, PathBuf}, process::Command};
 
-const USAGE: &str = "usage: tsrust package [entry.tsrx] [--name NAME] [--id com.example.app] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--out dist] [--sign IDENTITY] [--notarize KEYCHAIN_PROFILE]. Defaults come from tsrust.config.json package; CLI options override them.";
+const USAGE: &str = "usage: tsrust package [entry.tsrx] [--name NAME] [--id com.example.app] [--version 1.0.0] [--icon icon.png] [--repo owner/name] [--out dist] [--companion PROJECT] [--sign IDENTITY] [--notarize KEYCHAIN_PROFILE]. Defaults come from tsrust.config.json package; CLI options override them.";
 
 #[derive(Default,serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PackageConfig {
+    #[serde(default,rename="opensFolders")] pub opens_folders:bool,
     pub name:Option<String>,pub id:Option<String>,pub version:Option<String>,pub icon:Option<PathBuf>,
     pub repo:Option<String>,pub out:Option<PathBuf>,pub sign:Option<String>,pub notarize:Option<String>,
 }
 
 struct Options {
-    entry: PathBuf, name: String, id: String, version: String, icon: Option<PathBuf>,
+    opens_folders: bool,
+    companion: Option<PathBuf>, entry: PathBuf, name: String, id: String, version: String, icon: Option<PathBuf>,
     repo: String, out: PathBuf, sign: Option<String>, notarize: Option<String>,
 }
 
@@ -29,10 +31,12 @@ fn options_for_project(args:impl Iterator<Item=String>, project:Option<super::pr
     let mut args = args.peekable();
     let (mut entry, config, default_out)=match project {Some(project)=>(Some(project.entry),project.package,project.root.join("dist")),None=>(None,PackageConfig::default(),PathBuf::from("dist"))};
     let (mut name, mut id, mut version, mut icon, mut repo, mut out, mut sign, mut notarize) = (config.name, config.id, config.version, config.icon, config.repo.unwrap_or_default(), config.out.unwrap_or(default_out), config.sign, config.notarize);
+    let mut companion = None;
     let mut explicit_entry=false;
     while let Some(arg) = args.next() {
         let mut value = || args.next().ok_or_else(|| format!("{arg} needs a value. {USAGE}"));
         match arg.as_str() {
+            "--companion" if companion.is_none() => companion = Some(PathBuf::from(value()?)),
             "--name" => name = Some(value()?),
             "--id" => id = Some(value()?),
             "--version" => version = Some(value()?),
@@ -56,7 +60,7 @@ fn options_for_project(args:impl Iterator<Item=String>, project:Option<super::pr
     if version.split('.').count() != 3 || version.split('.').any(|part| part.parse::<u64>().is_err()) {return Err(format!("Version must be MAJOR.MINOR.PATCH, got {version}"));}
     if notarize.is_some() && sign.is_none() {return Err("--notarize requires --sign".into());}
     if !repo.is_empty() && repo.split('/').count() != 2 {return Err(format!("--repo must be owner/name, got {repo}"));}
-    Ok(Options {entry, name, id, version, icon, repo, out, sign, notarize})
+    Ok(Options {opens_folders: config.opens_folders, companion, entry, name, id, version, icon, repo, out, sign, notarize})
 }
 
 #[cfg(test)]
@@ -68,6 +72,7 @@ mod tests {
     #[test]
     fn config_defaults_and_cli_overrides_use_their_own_path_roots() {
         let defaults=options_for_project(std::iter::empty(),Some(project())).unwrap();
+        assert!(!plist(&defaults).contains("CFBundleDocumentTypes"));
         assert_eq!(defaults.entry,Path::new("/project/src/main.tsrx"));
         assert_eq!((defaults.name.as_str(),defaults.id.as_str(),defaults.version.as_str(),defaults.repo.as_str()),("Notes","dev.notes","1.2.3","owner/notes"));
         assert_eq!(defaults.icon.unwrap(),Path::new("/project/assets/icon.png"));
@@ -86,6 +91,38 @@ mod tests {
         for arguments in [vec!["main.tsrx","--name",".."],vec!["main.tsrx","--version","1.2"],vec!["main.tsrx","--notarize","profile"],vec!["main.tsrx","other.tsrx"]] {
             assert!(options_for_project(arguments.into_iter().map(str::to_owned),None).is_err());
         }
+    }
+    #[test]
+    fn companion_is_copied_beside_the_app_without_overwriting_an_existing_file() {
+        let temp = crate::TempDirectory::new().unwrap();
+        let dir = temp.0.join("bin");
+        fs::create_dir(&dir).unwrap();
+        let helper = temp.0.join("tsrust-studio-model-host");
+        fs::write(&helper, b"model host").unwrap();
+        copy_companion(Some(&helper), &dir).unwrap();
+        assert_eq!(fs::read(dir.join("tsrust-studio-model-host")).unwrap(), b"model host");
+        fs::write(&helper, b"replacement").unwrap();
+        assert!(copy_companion(Some(&helper), &dir).is_err());
+        assert_eq!(fs::read(dir.join("tsrust-studio-model-host")).unwrap(), b"model host");
+    }
+
+    #[cfg(target_os="macos")]
+    #[test]
+    fn development_bundle_is_valid_native_metadata_without_release_side_effects(){
+        let directory=crate::TempDirectory::new().unwrap();
+        let input=directory.0.join("program");fs::write(&input,b"executable control").unwrap();
+        let mut project=project();project.package.opens_folders=true;project.package.name=Some("Notes & Café".into());
+        project.package.sign=None;project.package.version=Some("supplied at package time".into());
+        project.package.repo=Some("supplied at package time".into());
+        let binary=development_bundle(project,&input).unwrap();
+        assert_eq!(fs::read(&binary).unwrap(),b"executable control");assert!(!input.exists());
+        let contents=binary.parent().unwrap().parent().unwrap();
+        let metadata=contents.join("Info.plist");
+        assert!(Command::new("/usr/bin/plutil").args(["-lint"]).arg(&metadata).status().unwrap().success());
+        let text=fs::read_to_string(metadata).unwrap();
+        assert!(text.contains("public.folder"));assert!(text.contains("dev.notes.dev"));assert!(text.contains("Notes &amp; Café"));
+        assert!(!contents.join("Resources/app.json").exists());
+        assert!(!directory.0.join("dist").exists());
     }
 }
 
@@ -109,15 +146,16 @@ pub(crate) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     let executable = work.join(if cfg!(windows) {format!("{}.exe", options.name)} else {options.name.clone()});
     let compiler = std::env::current_exe().map_err(|error| error.to_string())?;
     run_tool(Command::new(compiler).arg("build").arg(&options.entry).arg("--release").arg("-o").arg(&executable), "tsrust build --release")?;
+    let companion = options.companion.as_deref().map(|root| build_companion(root, &work, &executable)).transpose()?;
     let manifest = serde_json::json!({"name": options.name, "id": options.id, "version": options.version, "repo": options.repo});
     let manifest = serde_json::to_string_pretty(&manifest).map_err(|error| error.to_string())?;
     let (os, arch) = platform();
     // GitHub rewrites spaces in asset names, so file names use dashes; the updater matches this.
     let base = format!("{}-{}-{os}-{arch}", options.name.split_whitespace().collect::<Vec<_>>().join("-"), options.version);
     let artifacts = match os {
-        "macos" => macos(&options, &executable, &manifest, &work, &base)?,
-        "windows" => vec![portable_zip(&options, &executable, &manifest, &work, &base)?],
-        _ => linux(&options, &executable, &manifest, &work, &base)?,
+        "macos" => macos(&options, &executable, &manifest, &work, &base, companion.as_deref())?,
+        "windows" => vec![portable_zip(&options, &executable, &manifest, &work, &base, companion.as_deref())?],
+        _ => linux(&options, &executable, &manifest, &work, &base, companion.as_deref())?,
     };
     let mut sums = String::new();
     for artifact in &artifacts {
@@ -132,8 +170,41 @@ pub(crate) fn run(args: impl Iterator<Item = String>) -> Result<u8, String> {
     Ok(0)
 }
 
+fn build_companion(root: &Path, work: &Path, executable: &Path) -> Result<PathBuf, String> {
+    let root = fs::canonicalize(root).map_err(|error| format!("Cannot open companion project {}: {error}", root.display()))?;
+    let project = super::project_config::load(&root)?;
+    let name = project.output.file_name().ok_or("Companion output needs a filename")?;
+    let dir = work.join("companion-build");
+    fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
+    let mut output = fs::canonicalize(dir).map_err(|error| error.to_string())?.join(name);
+    if cfg!(windows) { output.set_extension("exe"); }
+    if output.file_name() == executable.file_name() || output.file_name() == Some("app.json".as_ref()) {
+        return Err("Companion filename collides with the application or manifest".into());
+    }
+    let compiler = std::env::current_exe().map_err(|error| error.to_string())?;
+    run_tool(Command::new(compiler).current_dir(root).arg("build").arg("--release").arg("-o").arg(&output), "companion build")?;
+    Ok(output)
+}
+
+fn copy_companion(source: Option<&Path>, directory: &Path) -> Result<(), String> {
+    if let Some(source) = source {
+        let target = directory.join(source.file_name().ok_or("Missing companion filename")?);
+        if target.exists() { return Err(format!("Companion would overwrite {}", target.display())); }
+        fs::copy(source, target).map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
 fn plist(options: &Options) -> String {
     let escape = |text: &str| text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    let documents = if options.opens_folders {r#"
+  <key>CFBundleDocumentTypes</key>
+  <array><dict>
+    <key>CFBundleTypeName</key><string>Folder</string>
+    <key>CFBundleTypeRole</key><string>Editor</string>
+    <key>LSHandlerRank</key><string>Alternate</string>
+    <key>LSItemContentTypes</key><array><string>public.folder</string></array>
+  </dict></array>"#} else {""};
     format!(r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -142,7 +213,7 @@ fn plist(options: &Options) -> String {
   <key>CFBundleIdentifier</key><string>{id}</string>
   <key>CFBundleName</key><string>{name}</string>
   <key>CFBundleDisplayName</key><string>{name}</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundlePackageType</key><string>APPL</string>{documents}
   <key>CFBundleShortVersionString</key><string>{version}</string>
   <key>CFBundleVersion</key><string>{version}</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
@@ -154,6 +225,22 @@ fn plist(options: &Options) -> String {
 </dict>
 </plist>
 "#, name = escape(&options.name), id = escape(&options.id), version = escape(&options.version))
+}
+
+/// Give native dev windows an application identity without signing or packaging.
+#[cfg(target_os="macos")]
+pub(crate) fn development_bundle(mut project:super::project_config::Project,executable:&Path)->Result<PathBuf,String>{
+    // Dev needs identity only; release options can be supplied later on the CLI.
+    let PackageConfig{name,id,opens_folders,..}=project.package;
+    project.package=PackageConfig{name,id,opens_folders,..PackageConfig::default()};
+    let mut options=options_for_project(std::iter::empty(),Some(project))?;
+    options.id.push_str(".dev");
+    let contents=executable.parent().ok_or("Missing development executable directory")?.join(format!("{}.app/Contents",options.name));
+    let binary=contents.join("MacOS").join(&options.name);
+    fs::create_dir_all(binary.parent().unwrap()).map_err(|error|error.to_string())?;
+    fs::write(contents.join("Info.plist"),plist(&options)).map_err(|error|error.to_string())?;
+    fs::rename(executable,&binary).map_err(|error|error.to_string())?;
+    Ok(binary)
 }
 
 /// A PNG becomes AppIcon.icns through sips and iconutil (both part of macOS).
@@ -170,11 +257,12 @@ fn icns(png: &Path, resources: &Path, work: &Path) -> Result<(), String> {
     run_tool(Command::new("iconutil").args(["-c", "icns"]).arg(&set).arg("-o").arg(resources.join("AppIcon.icns")), "iconutil")
 }
 
-fn macos(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str) -> Result<Vec<PathBuf>, String> {
+fn macos(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str, companion: Option<&Path>) -> Result<Vec<PathBuf>, String> {
     let app = work.join(format!("{}.app", options.name));
     let (contents, macos, resources) = (app.join("Contents"), app.join("Contents/MacOS"), app.join("Contents/Resources"));
     for directory in [&macos, &resources] {fs::create_dir_all(directory).map_err(|error| error.to_string())?;}
     fs::copy(executable, macos.join(&options.name)).map_err(|error| error.to_string())?;
+    copy_companion(companion, &macos)?;
     fs::write(contents.join("Info.plist"), plist(options)).map_err(|error| error.to_string())?;
     fs::write(resources.join("app.json"), manifest).map_err(|error| error.to_string())?;
     if let Some(icon) = &options.icon {icns(icon, &resources, work)?;}
@@ -182,6 +270,9 @@ fn macos(options: &Options, executable: &Path, manifest: &str, work: &Path, base
     let dmg = options.out.join(format!("{base}.dmg"));
     let make_zip = |zip: &Path| {let _ = fs::remove_file(zip); run_tool(Command::new("ditto").args(["-c", "-k", "--keepParent"]).arg(&app).arg(zip), "ditto")};
     if let Some(identity) = &options.sign {
+        if let Some(helper) = companion {
+            run_tool(Command::new("codesign").args(["--force", "--options", "runtime", "--timestamp", "--sign", identity]).arg(macos.join(helper.file_name().unwrap())), "codesign (companion)")?;
+        }
         // Hardened runtime and a secure timestamp are required for notarization.
         run_tool(Command::new("codesign").args(["--force", "--options", "runtime", "--timestamp", "--sign", identity]).arg(&app), "codesign")?;
         run_tool(Command::new("codesign").args(["--verify", "--strict", "--verbose=2"]).arg(&app), "codesign --verify")?;
@@ -205,10 +296,11 @@ fn macos(options: &Options, executable: &Path, manifest: &str, work: &Path, base
 }
 
 /// Windows: the executable and app.json in a zip (`tar` ships with Windows 10+).
-fn portable_zip(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str) -> Result<PathBuf, String> {
+fn portable_zip(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str, companion: Option<&Path>) -> Result<PathBuf, String> {
     let folder = work.join(&options.name);
     fs::create_dir_all(&folder).map_err(|error| error.to_string())?;
     fs::copy(executable, folder.join(executable.file_name().unwrap())).map_err(|error| error.to_string())?;
+    copy_companion(companion, &folder)?;
     fs::write(folder.join("app.json"), manifest).map_err(|error| error.to_string())?;
     let zip = options.out.join(format!("{base}.zip"));
     let _ = fs::remove_file(&zip);
@@ -217,10 +309,11 @@ fn portable_zip(options: &Options, executable: &Path, manifest: &str, work: &Pat
     Ok(zip)
 }
 
-fn linux(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str) -> Result<Vec<PathBuf>, String> {
+fn linux(options: &Options, executable: &Path, manifest: &str, work: &Path, base: &str, companion: Option<&Path>) -> Result<Vec<PathBuf>, String> {
     let folder = work.join(&options.name);
     fs::create_dir_all(&folder).map_err(|error| error.to_string())?;
     fs::copy(executable, folder.join(&options.name)).map_err(|error| error.to_string())?;
+    copy_companion(companion, &folder)?;
     fs::write(folder.join("app.json"), manifest).map_err(|error| error.to_string())?;
     let tarball = options.out.join(format!("{base}.tar.gz"));
     run_tool(Command::new("tar").arg("-czf").arg(&tarball).arg("-C").arg(work).arg(&options.name), "tar")?;
@@ -231,6 +324,7 @@ fn linux(options: &Options, executable: &Path, manifest: &str, work: &Path, base
         let (bin, share, apps, control) = (root.join("usr/bin"), root.join(format!("usr/share/{package}")), root.join("usr/share/applications"), root.join("DEBIAN"));
         for directory in [&bin, &share, &apps, &control] {fs::create_dir_all(directory).map_err(|error| error.to_string())?;}
         fs::copy(executable, share.join(&options.name)).map_err(|error| error.to_string())?;
+        copy_companion(companion, &share)?;
         fs::write(share.join("app.json"), manifest).map_err(|error| error.to_string())?;
         fs::write(bin.join(&package), format!("#!/bin/sh\nexec /usr/share/{package}/{} \"$@\"\n", options.name)).map_err(|error| error.to_string())?;
         #[cfg(unix)] {use std::os::unix::fs::PermissionsExt; fs::set_permissions(bin.join(&package), fs::Permissions::from_mode(0o755)).map_err(|error| error.to_string())?;}

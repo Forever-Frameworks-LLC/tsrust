@@ -1,0 +1,72 @@
+import { fromUtf8, length } from 'std:bytes';
+import { get } from 'std:env';
+import {
+  lines,
+  readLine,
+  writeAll,
+  flush,
+  close,
+  read,
+  Reader
+} from 'std:io';
+import { spawn } from 'std:process';
+import { test, strictEqual } from 'std:testing';
+
+import { ModelUpdate } from '../../src/lib/ai/protocol.tsr';
+
+async function drain(reader: Reader): Task<void> {
+  while (length(unwrap(await read(reader, 8192))) > 0) {}
+}
+
+test('native model host pipes report startup failure and close cleanly', async () => {
+  const program = unwrap(get('STUDIO_MODEL_HOST_BINARY'));
+
+  if (program === undefined) throw 'Set STUDIO_MODEL_HOST_BINARY to the built Studio model host.';
+  const child = unwrap(spawn(program, [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe', env: [{
+      name: 'TSRUST_TEST_REPORTER', value: 'plain'
+    }]
+  }));
+  const input = child.takeStdin();
+  const output = child.takeStdout();
+  const errors = child.takeStderr();
+
+  if (input === undefined || output === undefined || errors === undefined) throw 'Missing host pipes.';
+  const replies = unwrap(lines(output, 128 * 1024));
+  const logs = drain(errors).start();
+
+  try {
+    for (const id of ['first', 'retry']) {
+      const command = JSON.stringify({
+        kind: 'start', id: clone(id), prompt: '', maxTokens: 32, modelPath: '/missing/model', tokenizerPath: '/missing/tokenizer'
+      }) + '\n';
+      unwrap(await writeAll(input, unwrap(fromUtf8(command))));
+      unwrap(await flush(input));
+      const failed = unwrap(await readLine(replies).timeout(5000));
+      const stopped = unwrap(await readLine(replies).timeout(5000));
+
+      if (failed === undefined || stopped === undefined) throw 'The native host exited before replying.';
+      const error = JSON.parse<ModelUpdate>(failed);
+      strictEqual(error.kind, 'error');
+      strictEqual(error.error.length > 0, true);
+      strictEqual(JSON.parse<ModelUpdate>(stopped).kind, 'stopped');
+    }
+
+    unwrap(await close(input));
+    strictEqual(unwrap(await child.wait().timeout(5000)).success, true);
+  } finally {
+    logs.cancel();
+
+    try {
+      await logs;
+    } catch (_) {}
+
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    try {
+      unwrap(await child.wait());
+    } catch (_) {}
+  }
+});

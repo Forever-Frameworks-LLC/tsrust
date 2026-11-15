@@ -1,0 +1,108 @@
+import { test, strictEqual } from 'std:testing';
+
+import {
+  createDocument,
+  dirty,
+  reload,
+  edit,
+  propose,
+  apply,
+  markSaved
+} from '../src/lib/workspace/documents.tsr';
+
+test('proposals remain isolated until acceptance', () => {
+  const document = unwrap(createDocument('src/main.tsr', 'original'));
+  const proposal = propose(document, 'proposed');
+  strictEqual(document.text, 'original');
+  strictEqual(document.revision, 0);
+  strictEqual(apply(document, proposal), true);
+  strictEqual(document.text, 'proposed');
+  strictEqual(document.revision, 1);
+  strictEqual(apply(document, proposal), false);
+});
+
+test('typing then reverting still invalidates a proposal', () => {
+  const document = unwrap(createDocument('src/main.tsr', 'original'));
+  const proposal = propose(document, 'proposed');
+  edit(document, 'typing');
+  edit(document, 'original');
+  strictEqual(apply(document, proposal), false);
+  strictEqual(document.text, 'original');
+  strictEqual(document.revision, 2);
+});
+
+test('wrong files and changed text with reused revisions cannot accept', () => {
+  const document = unwrap(createDocument('a.tsr', 'a'));
+  const proposal = propose(document, 'b');
+  const other = unwrap(createDocument('b.tsr', 'a'));
+  strictEqual(apply(other, proposal), false);
+  const reopened = unwrap(createDocument('a.tsr', 'newer disk data'));
+  strictEqual(apply(reopened, proposal), false);
+  strictEqual(reopened.text, 'newer disk data');
+});
+
+test('full-buffer edits preserve Unicode, combining marks and CRLF', () => {
+  const document = unwrap(createDocument('日本語.tsr', 'café e\u0301 🦀\r\n'));
+  document.revision = 7;
+  edit(document, 'café e\u0301 🦀\r\n');
+  strictEqual(document.revision, 7);
+  const proposal = propose(document, '日本語 🦀\r\n');
+  strictEqual(apply(document, proposal), true);
+  strictEqual(document.text, '日本語 🦀\r\n');
+  strictEqual(document.revision, 8);
+});
+
+test('reopening identical contents creates a fresh proposal session', () => {
+  const first = unwrap(createDocument('same.tsr', 'same bytes'));
+  const proposal = propose(first, 'old task result');
+  const reopened = unwrap(createDocument('same.tsr', 'same bytes'));
+  strictEqual(first.session === reopened.session, false);
+  strictEqual(apply(reopened, proposal), false);
+  strictEqual(reopened.text, 'same bytes');
+  strictEqual(reopened.revision, 0);
+});
+
+test('clean reload advances revisions but refuses to discard a dirty buffer', () => {
+  const document = unwrap(createDocument('a.tsr', 'original\r\n'));
+  const old = propose(document, 'stale');
+  strictEqual(dirty(document), false);
+  strictEqual(reload(document, 'disk 🦀\r\n'), true);
+  strictEqual(document.revision, 1);
+  strictEqual(document.savedText, 'disk 🦀\r\n');
+  strictEqual(dirty(document), false);
+  strictEqual(apply(document, old), false);
+  strictEqual(reload(document, 'disk 🦀\r\n'), true);
+  strictEqual(document.revision, 1);
+  edit(document, 'local draft');
+  strictEqual(dirty(document), true);
+  strictEqual(reload(document, 'new disk data'), false);
+  strictEqual(document.text, 'local draft');
+  strictEqual(document.savedText, 'disk 🦀\r\n');
+  strictEqual(document.revision, 2);
+  edit(document, 'disk 🦀\r\n');
+  strictEqual(dirty(document), false);
+  strictEqual(document.revision, 3);
+});
+
+test('committed bytes update the disk baseline without clearing newer edits or durability warnings', () => {
+  const document = unwrap(createDocument('a.tsr', 'original'));
+  edit(document, 'saved snapshot');
+  const snapshot = clone(document.text);
+  edit(document, 'newer draft');
+  markSaved(document, snapshot, true);
+  strictEqual(document.savedText, 'saved snapshot');
+  strictEqual(document.text, 'newer draft');
+  strictEqual(document.revision, 2);
+  strictEqual(dirty(document), true);
+  edit(document, 'saved snapshot');
+  strictEqual(dirty(document), false);
+  markSaved(document, 'saved snapshot', false);
+  strictEqual(document.durabilityPending, true);
+  strictEqual(dirty(document), true);
+  strictEqual(reload(document, 'external'), false);
+  strictEqual(document.text, 'saved snapshot');
+  markSaved(document, 'saved snapshot', true);
+  strictEqual(document.durabilityPending, false);
+  strictEqual(dirty(document), false);
+  strictEqual(document.revision, 3);
+});

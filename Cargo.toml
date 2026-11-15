@@ -7,8 +7,11 @@ resolver = "3"
 [profile.dev]
 debug = 0
 
-# Interactive checking and dev rebuilds need optimized compiler code, with debug checks retained.
+# Interactive checking, editor indexing and dev rebuilds need optimized tools, with debug checks retained.
 [profile.dev.package.tsrust-compiler]
+opt-level = 1
+
+[profile.dev.package.tsrust-lsp]
 opt-level = 1
 
 [patch.crates-io]

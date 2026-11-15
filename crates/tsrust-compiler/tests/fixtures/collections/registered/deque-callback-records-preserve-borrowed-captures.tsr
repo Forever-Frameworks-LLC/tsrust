@@ -11,6 +11,7 @@ export function main() {
   values.pushBack({
     read: () => text.length
   });
+
   for (const item of values) {
     strictEqual(item.read(), 8);
   }

@@ -2,8 +2,10 @@ import { OrderedMap } from 'std:collections';
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i++) {
     const values = new OrderedMap<int, int>();
+
     for (let j = 0; j < 9; j++) {
       const key = (i + seed + j) % 256;
       values.set(key, key * 3 + 1);
@@ -15,8 +17,10 @@ function workload(n: int, seed: int, input: string): int[][] {
     let sum = 0;
     let first = -1;
     let last = -1;
+
     for (const entry of values) {
       const key = entry[0];
+
       if (count === 0) {
         first = key;
       }

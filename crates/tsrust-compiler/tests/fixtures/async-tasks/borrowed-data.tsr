@@ -33,6 +33,7 @@ async function failed(): Task<int> {
 
 async function recover(): Task<int> {
   const task = identity(failed());
+
   try {
     return await task;
   } catch (error) {

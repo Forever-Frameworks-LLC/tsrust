@@ -1,4 +1,14 @@
-import { Logger as NativeLogger, LoggerOptions as NativeLoggerOptions, LogError as NativeLogError, create, enabled, emit, child as nativeChild, flush as nativeFlush, close as nativeClose } from 'std:log-runtime';
+import {
+  Logger as NativeLogger,
+  LoggerOptions as NativeLoggerOptions,
+  LogError as NativeLogError,
+  create,
+  enabled,
+  emit,
+  child as nativeChild,
+  flush as nativeFlush,
+  close as nativeClose
+} from 'std:log-runtime';
 
 export type Logger = NativeLogger;
 

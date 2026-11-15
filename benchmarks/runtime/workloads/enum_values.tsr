@@ -21,6 +21,7 @@ function choose(value: int): Phase {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const phase = choose(i + seed);
     const copy = phase;

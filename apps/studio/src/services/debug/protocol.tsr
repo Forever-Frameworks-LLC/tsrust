@@ -1,0 +1,116 @@
+interface AdapterEnvelope {
+  type: string;
+  command?: string;
+  event?: string;
+  request_seq?: int;
+  success?: boolean;
+  message?: string;
+}
+
+export interface AdapterReply extends AdapterEnvelope {
+  body?: AdapterBody;
+}
+
+export interface DebugThread {
+  id: int;
+  name: string;
+}
+
+export interface DebugSource {
+  name?: string;
+  path?: string;
+  sourceReference?: int;
+}
+
+export interface DebugFrame {
+  id: int;
+  name: string;
+  source?: DebugSource;
+  line: int;
+  column: int;
+  endLine?: int;
+  endColumn?: int;
+  instructionPointerReference?: string;
+}
+
+export interface DebugBreakpoint {
+  id?: int;
+  verified: boolean;
+  message?: string;
+  source?: DebugSource;
+  line?: int;
+  column?: int;
+  endLine?: int;
+  endColumn?: int;
+}
+
+export interface DebugScope {
+  presentationHint?: string;
+  name: string;
+  variablesReference: int;
+}
+
+export interface DebugVariable {
+  name: string;
+  value: string;
+  variablesReference: int;
+}
+
+export interface AdapterBody {
+  error?: AdapterError;
+  result?: string;
+  variablesReference?: int;
+  scopes?: DebugScope[];
+  variables?: DebugVariable[];
+  supportsFunctionBreakpoints?: boolean;
+  breakpoints?: DebugBreakpoint[];
+  breakpoint?: DebugBreakpoint;
+  content?: string;
+  mimeType?: string;
+  threads?: DebugThread[];
+  stackFrames?: DebugFrame[];
+  hitBreakpointIds?: int[];
+  reason?: string;
+  threadId?: int;
+  supportsConfigurationDoneRequest?: boolean;
+  exitCode?: int;
+  category?: string;
+  output?: string;
+}
+
+interface AdapterError {
+  format: string;
+}
+
+export function decodeAdapterReply(frame: ReadOnly<string>): AdapterReply {
+  const envelope = JSON.parse<AdapterEnvelope>(frame);
+
+  if (envelope.type === 'event') {
+    const event = envelope.event ?? '';
+
+    if (event === '') throw 'Invalid debug adapter event.';
+
+    if (event !== 'breakpoint' && event !== 'stopped' && event !== 'output' && event !== 'exited') return {
+      type: 'event', event: clone(event)
+    };
+  } else {
+    const command = envelope.command ?? '';
+
+    if (envelope.type !== 'response' || command === '' || (envelope.request_seq ?? 0) <= 0 || envelope.success === undefined) throw 'Invalid debug adapter reply.';
+
+    if (envelope.success === true && !['initialize', 'setBreakpoints', 'setFunctionBreakpoints', 'threads', 'source', 'stackTrace', 'scopes', 'variables', 'evaluate'].includes(command)) {
+      return {
+        type: 'response', command: clone(command), request_seq: envelope.request_seq, success: true
+      };
+    }
+  }
+
+  const reply = JSON.parse<AdapterReply>(frame);
+
+  if (reply.type === 'response' && reply.success === false) {
+    const reason = clone(reply.body?.error?.format ?? reply.message ?? 'Request failed.');
+    reply.message = (reply.command ?? '') + ': ' + reason;
+  }
+
+  return reply;
+}

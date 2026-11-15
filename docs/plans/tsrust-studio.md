@@ -1,11 +1,146 @@
 # Tsrust Studio
 
-Planning draft, 2026-11-10. Owner requirements are recorded below; architecture
-choices and unmeasured acceptance targets remain proposals. This document does
-not claim implementation, model quality, platform acceptance or release approval.
+Implementation authorized, 2026-11-10. Full scope below remains required.
+Architecture choices and unmeasured acceptance targets remain proposals; source
+implementation is not model quality, platform acceptance or release approval.
+See [the bounded capability audit](tsrust-studio-audit.md) for exact source
+identities, proof contracts, current checks and unresolved prerequisites.
+
+Source Control displays workspace-scoped status, working diff, staged diff and
+current-branch commit history. Conflicts lists workspace-relative unmerged paths.
+Status supports selecting changed files, including deleted paths, for staging
+and unstaging. Working and staged text diffs support selecting, staging and unstaging a hunk.
+
+Single-file chat editing now reaches the native review dialog via an explicit
+Edit: request. The configured local model produced a unique replacement from
+the active draft, and the approval handler updated the draft while preserving
+the disk file. Multi-file edits, semantic retrieval and desktop review interaction
+remain open.
+
+A live local evaluation found that the 1.5B model guessed an ambiguous
+filename. Studio now asks for the path before inference and the configured
+model answered correctly using the selected source. The evaluation exercises
+the chat action and real model service without driving the desktop controls.
+
+Local chat context now includes visible explorer filenames, active editor text
+and bounded excerpts of explicitly named project files. The AI action suite
+and a separate local-host source question passed. Next, connect symbol-aware
+retrieval and model-generated edits to the revision-checked proposal review flow.
+Native chat interaction, change review and the full 8 GiB workload remain open.
+
+Interactive completion refinement, November12: declarations-only project replies
+now bypass single-document compiler cursor repair, preserving incomplete marking
+and the ordinary checked/recovery path. A bounded real-Studio-source probe performs
+hover/completion/signature requests across four private unsaved revisions, records
+response hashes and process memory, and enforces the existing time/memory stops.
+All24responses matched exactly before/after; observed warm completion requests
+changed from380.7–394.7ms to1.7–2.0ms in that probe. These are diagnostic observations,
+not controlled benchmark medians or native end-to-end acceptance. First hover after
+an edit still takes about1.2s, with std:ui declaration indexing the main traced cost.
+Long-running memory stability, native completion/snippet MAT and8GiB editor-plus-AI
+qualification remain open. Exact focused checks and live session in agent-progress.
+
+Follow-up bundled parse reuse, November12: exact compiler-bundled module source
+indices are reused before graph-local import linking; mutable workspace source is
+excluded and returned copies remain isolated. Four focused declaration/alias cases
+passed. All24real-source responses matched; hover after subsequent private edits
+observed~600–617ms versus~1210–1230ms before, while cold startup remained~1.3s.
+These short protocol observations do not qualify native typing latency or a leak fix.
+
+Reference indexing follow-up, November12: reference tables now initialize per
+immutable project snapshot on the first References query. Hover/completion no longer
+pay that eager work after each edit; exact aliases, shadows, Unicode locations and
+snapshot behavior pass focused checks. All24probe responses matched, with hover
+after subsequent edits observed~301–316ms. First reference lookup pays table-build
+cost; native latency and long-running resource qualification remain open.
+
+Native-only bundle follow-up, November12: fully linked state is reused only for
+exact compiler bundles whose imports are all native and have no project targets.
+Workspace-dependent alias linking remains fresh. Four focused cases passed and
+all24real-source responses matched. Hover after subsequent edits observed~100–105ms
+versus~286–303ms before, with cold startup~977ms. Native typing/snippet acceptance
+and long-running resource qualification remain open; resume language features/AI parity.
+
+Language-service controls, November12: each configured server now has a native
+submenu with Start, Stop and Restart. Availability follows connection state; Stop
+keeps that server off while documents remain open for the current Studio session.
+Native Go stop/absence/start/restart/diagnostic restoration passed without replacing
+Tsrust or the active editor. Shared guarded AI Start/Stop/Restart handlers require
+trusted process-control grants and exact connection generation; focused public
+suite11/11 passed. Integrated model hosting and remaining intelligence MAT stay open.
+
+Current language-service slice, November 11: real paired-SDK Tsrust stdio LSP
+connects, synchronizes unsaved .tsr/.tsrx buffers and publishes versioned Problems.
+Live MAT verified an unsaved syntax error, source-labelled row navigation/highlight,
+undo and real status-menu restart. Five focused public cases passed, including
+three-service startup/cancellation and stale/session/version guards. No full
+regression reruns. Initial workspace analysis is slow and remains an acceptance
+gap; hover/completion/snippets, native squiggles, generic server configuration and
+integrated AI hosting are not delivered by this connection slice. Exact current
+source/build/process observations are in docs/agent-progress.md.
+
+Owner priority, November 11: prioritize lightning-fast hover and interactive LSP
+feedback over optimizing full compiler checks. Next intelligence work must wire
+the native editor provider and a fast current-buffer/cached-symbol request path;
+slow background checking must not hold up that interaction.
+
+Search/palette correction, November12 (accepted local section): content search
+uses a separate summary and shared Enter/button submission without result tooltips.
+A title-bar entry opens Kit Command in a dialog; Cmd+P searches files, while > or
+Cmd+Shift+P filters fourteen existing commands. Presentation adapters require a host
+modal grant, and execution retains individual action guards. Owner MAT exposed
+snapshot rows retaining .gitignore after filtering main.; CommandItem values now
+supply stable list identity, with a focused1/1 native regression. Compact title-bar
+geometry is320px maximum width,24px height,12px horizontal padding and8px icon gap.
+Live MAT passed title-bar click, main.tsrx filter/Enter, >terminal command execution,
+separate Channel content-search Enter and summary spacing. Only one dev preview
+remains, with all12owner tabs and original draft intact. No whole-regression or
+memory-stability claim accompanies this UI change.
+
+Native intelligence MAT, November12: keyboard scalar hover now visibly uses syntax
+colors, configured text size and a single outer border. Function completion/Tab/undo
+passed live. Result.match now supplies separate editable Ok/Err body stops and final
+exit, confirmed through native typing/Tab and restored drafts. Focused indentation
+and expanded-source compiler witness1/1 passed; only LSP restarted. A bounded process
+sample found diagnostics doing full graph checking on its worker while the protocol
+thread waits. Short physical-footprint observations do not qualify memory stability;
+redundant background checking and long-running responsiveness remain open.
+
+Diagnostic reuse/signature follow-up, November12: foreground completed results now
+seed the workspace scanner's existing guarded cache. Same current inputs skip a
+second entry check, including failed checks; dependency changes invalidate them.
+Warnings from successful checks are retained. Shared cache holds dependency inputs
+and diagnostics, not full analysis graphs, and is enabled only for workspace-covered
+files. Focused scanner9/9 and request-priority1/1 passed; this is reuse evidence,
+not a measured startup/memory improvement. Native parameter-help MAT follows count,
+name and nested Ok calls with highlighted editor-sized signatures. Common popup
+border moved to shared Popover; final native MAT confirms the border with highlighted
+editor-sized parameter help. Owner12tabs/main/draft restored and one current preview
+left running. No end-to-end speedup or long-running memory qualification claimed.
+
+Manual workflow correction, November12 (native footer acceptance passed): footer Format
+and Check now share the native menu command identifiers, each with Document/Project
+scope. Manual checks are independent of background-check availability. Unsaved
+manual formatting runs the public CLI in a task terminal against a private buffer
+snapshot, then applies only to the original unchanged editor identity/revision.
+CLI errors stay visible in the terminal and also produce formatter Problems.
+Private formatter locations map back only through trusted task metadata and exact
+current editor revisions; other terminal paths retain workspace navigation guards.
+Focused workflow tests6/6 and terminal-formatting/close/link tests3/3 pass. Native footer Format→Document formatted unsaved text in a real CLI task terminal;
+Check→Project launched its actual CLI task, and Check→Document completed with
+“Check passed.” Retained colored output, original disk bytes and restored owner
+workspace were observed. Project-format execution was not replayed. Integrated
+local model startup reached ready, but its one-request resource trial exceeded the
+256MiB global swap-growth stop and was stopped; generation/rendering and full8GiB
+qualification remain open. Exact process/resources and next action are in the
+single continuation handoff.
 
 ## Owner requirements
 
+- Initial dogfooding workspace: open `apps/studio` itself, not the entire Tsrust
+  checkout. Exercise its real source/config/tests through the editor. Broaden the
+  open directory later only for a demonstrated workflow; whole-repository
+  indexing is not part of the first document/project section.
 - Studio lives inside this repository, provisionally at `apps/studio`, and starts
   as an ordinary `tsrust new studio` project using the supported UI setup. Its
   application, worker, agent, evaluation and training orchestration source is
@@ -37,6 +172,377 @@ not claim implementation, model quality, platform acceptance or release approval
   should strengthen capabilities available to other editors and applications.
 - Study upstream designs and reuse suitable dependencies. Implement application
   behavior in Tsrust; do not assume wholesale embedding of Zed or Code OSS.
+- Owner clarification, November 10: model the workspace on established desktop
+  editors (VS Code, Visual Studio, Zed, IntelliJ). No nonfunctional UI, including
+  demos: no decorative app-name/filename header, pretend tabs or placeholder
+  actions. Use actual document tabs and working editor actions. Visual polish
+  must serve editing rather than website branding.
+
+Current formatter/workflow section, November 11: native menus/status commands,
+global/project rules and save/focus triggers are implemented. Focused formatter3/3,
+terminal-link parser1/1, public workflow/model6/6 passed. Native app builds and live
+MAT verified a named CLI check terminal plus Cmd-click navigation with destination
+highlighting; source-labeled Problems was implemented before the LSP connection
+slice described above.
+All8open files/4drafts/zoom-1 survived the final reload. Actual51-file manual CLI
+check completion and broader live focus/settings acceptance are still pending.
+Exact identities/checks and current supervisor are in docs/agent-progress.md.
+
+Save/unsaved feedback acceptance, November 11: protected save conflicts now offer
+plain-language Keep editing / reload / explicit CAS overwrite and actual shared
+split-diff comparison. Open buffers format without requiring a save; unopened
+sources format through explicit CLI task paths. Tree/tab dirty markers and a
+status-bar dirty-file menu expose clipped tabs. Problems has Copy All beside Close;
+diagnostics/file state sit left and actions including Terminal sit right. Shared
+Diff compares text snapshots off the UI thread with stale-result rejection, real
+line/word emphasis, retained/folded context and configured font sizing. Native
+popup text and editor/diff gutters follow compact configured sizing. Focused model
+checks, native text comparison and live macOS acceptance are recorded in the sole
+handoff; actual LSP/agent integration and full resource/platform scope remain open. Status controls now use equal action spacing and independent error/warning
+counters with explicit icon-count gaps. The conflict overlay host reserves no
+workspace height, preserving a single custom titlebar row; live macOS MAT passed.
+
+
+Image/Save All update, November 11: native PNG previews now have resize-aware Fit,
+percentage/actual-size zoom, keyboard controls and two-axis scrollbars. Live MAT
+verified full-image Fit in a smaller pane, zoom, vertical wheel pan and horizontal
+thumb pan. File → Save All/Cmd+S queues all dirty text files through existing
+formatting/CAS/recovery, retains per-file failures, and checks after the batch.
+The focused temporary-file witness covers continuing past conflicts and stale
+revision rejection. Executable image/save tool adapters share these operations;
+full agent hosting and non-PNG/web viewport acceptance remain open.
+
+Terminal color correction, November 11: native ANSI rendering was already functional.
+The Codex dev launcher now clears its inherited NO_COLOR flag so new shells can
+auto-detect color. CLI project-check success and formatter progress/batch summaries
+now honor the existing color policy; JSON and raw source remain unstyled. A focused
+public CLI regression passed; exact live acceptance is in docs/agent-progress.md.
+
+Formatting settings terminology, November 11: the UI calls component syntax TSRX,
+including “Parenthesize TSRX returns”. Language-specific formatting/lint rule
+overrides remain planned; the existing persisted rule keys stay compatible.
+
+Import rules, November 11: shared CLI/LSP formatting now groups consecutive import
+blocks with std: first, then code paths, then asset/data paths; each group has a
+blank line before it and lexical path order.
+Whole declarations retain binding order, aliases and attached comments; bare
+side-effect imports retain their order as boundaries. Named lists above five
+bindings wrap by default. Global/project organizeImports and importWrapThreshold
+settings use the existing guarded formatting routes. Independent
+argumentWrapThreshold defaults to5 (0 disables) for function/callback parameters
+and call arguments, excluding nested commas. Native Settings and global/project
+overrides share the CLI/LSP rule. Focused checks and live
+acceptance are recorded in docs/agent-progress.md; this is not LSP hosting or
+integrated-agent acceptance.
+
+Image resize correction, November 11: bound zoom labels preserve native preview
+identity; the viewport retains decoded pixels across layout updates and separates
+loading from actual errors. Focused native/lifecycle checks and PNG resize MAT
+passed; exact evidence and remaining resource/platform limits are in the handoff.
+
+Language-service preparation, November 11: current declaration headers now reach
+the protocol loop before body diagnostics; provisional completion lists are marked
+incomplete. Invalid project indices/actions release on invalidation, with a focused
+20-edit lifetime witness preserving unrelated current projects. The native editor
+provider bridge and actual hover/completion/snippet UI remain unaccepted. Memory
+observations and exact focused evidence are in docs/agent-progress.md; no overall
+memory reduction or leak qualification is claimed.
+
+Native intelligence bridge, November 12: the existing editor now receives real
+hover/completion through a correlated, cancellable Tsrust session/controller. Live
+MAT verified automatic/member and explicit completion, insertion, numeric snippet
+placeholder replacement/Tab navigation with correct indentation, editor-sized
+syntax-highlighted documentation without inner boxes/language badges, single-line
+completion details and preserved explorer expansion during dirty-state changes.
+Guarded registered AI language reads share the controller, but integrated model
+hosting/full action parity remain open. Space/tab indentation, stale/cancelled
+responses and independent channel endpoints have focused regression evidence.
+
+Profiling found whole-project incomplete-code recovery and repeated immutable
+completion catalogs. Staged cancellation and shared catalogs are implemented;
+compiler passes already running remain synchronous. Compact retained navigation
+and reference locations now use typed LSP values rather than JSON trees; reference
+collection is lazy. A matched manual editing workflow reduced observed idle
+footprint from616.7MiB to264.1MiB and peak from907.5MiB to576.1MiB; live heap
+bytes fell from421,341,280 to151,319,440. These are practical before/after
+observations, not statistical benchmarks or long-running leak qualification.
+Overall editor-plus-AI resource acceptance remains open. Signature UI, external
+servers and complete snippet-language support remain open. Exact checks, SDK identities and current preview are in the sole
+handoff; this section is not full intelligence or resource acceptance.
+
+Completion import transactions, November 12: native completion and the guarded
+AI completion-proposal action now share one edit/snippet planner. Primary and
+additionalTextEdits apply as one undo transaction, with exact Unicode positions,
+overlap rejection, import-adjusted snippet/cursor offsets and deferred revision
+checks. Eleven focused cases pass. Native MAT verified real Go auto-import,
+single undo/redo and subsequent member completion, plus Tsrust function completion,
+syntax-colored active-parameter hints and numeric match-arm placeholder navigation.
+A keyboard nested-update crash found during MAT was repaired and reproduced in the
+native menu regression. Temporary buffers were restored without saves; one current
+preview remains. Complex snippet forms, broader language-server workflows and
+long-run memory qualification remain open; exact scope and identities are in the
+continuation handoff.
+
+Filename navigation, November12 (based on340c2213): Kit Command replaces the
+filename button list. Cmd+P/native File menu focus and select the retained query;
+arrows choose, Enter opens, first Escape clears and second returns to the editor.
+Shared guarded search_files/show_file_search/open_file_search_result adapters pass
+one focused runtime case including Unicode, ignores, grants/root isolation,
+missing files and unsaved-draft preservation. Native MAT passed keyboard/menu
+workflows, no-match safety and restored owner state. Command inputId enables the
+existing controlInput/readInput path; direct class/text-size forwarding fixes
+native-default text overriding editor preferences. Final visual MAT passed effective
+sizes10/11 and restored original zoom-1. One preview remains running. Filename
+worker discovery/policy configuration, actual agent-host integration and long-run
+resource qualification remain open; exact checks/consumer identities are in the
+continuation handoff.
+
+Native scalar coloring, November12 (07ed204c): Tsrust fences retain native identity
+while using Kit's existing grammar, with theme type captures for native primitives.
+Six focused cases passed; installed renderer is running. Post-replacement hover
+visual confirmation remains open because automation did not display a popup.
+
+Go to Definition, November12: connected Kit's existing F12/context
+menu/Cmd-click provider to Studio's LSP session and guarded workspace navigation.
+UI and registered AI definition/location commands share the same services. Host
+protocol conversion3/3 and affected public runtime15/15 cases passed. Native app
+build passed; live F12 and context-menu navigation opened workspace.tsr and selected
+the exact declaration. Owner tabs/draft preserved; one replacement preview running.
+Cmd-click/external-language navigation remain unverified.
+Multiple-target picker and virtual stdlib locations remain open. Exact identities,
+results and next action are maintained in docs/agent-progress.md.
+
+Find References, November12: real symbol queries now use Shift+F12/context menu,
+correlated cancellable LSP reads, declaration inclusion and shared AI read/present/
+clear actions. The pane identifies its queried symbol/source, preserves that origin
+while navigating, opens exact target ranges, uses configured row text sizing and
+clears to explicit usage guidance. Native MAT passed107 Workspace references,
+row navigation/source return and Clear;22distinct focused cases accepted across
+public runtime and native bridge scopes. One current preview and protected owner
+draft retained. Exact identities/timings and limitations are in agent-progress.md.
+Explicit file imports, November12: Project → Find File References (Imports) queues
+`tsrust/fileReferences` through the same guarded read controller used by the
+registered `language_file_references` AI action. This is a deliberate separate
+scope, not an automatic whole-file query. Results identify the source file and
+complete direct Tsrust imports, report files scanned/incomplete resolution, and
+share exact location navigation and Clear. A separate cancellable single worker
+uses compiler import parsing/resolution and current workspace buffers; it does not
+queue behind body checking or retain an analysis cache. Ignored files are omitted
+unless open; only Tsrust importers are scanned. Incomplete import declarations are
+skipped using the existing tolerant header parser. Imported-symbol usage remains
+the separate Find References action. External-language incoming imports are not
+implemented. Focused scanner, actual protocol and UI/AI runtime witnesses pass;
+native MAT passed closed-panel menu dispatch,26 recovery.tsr imports across86files,
+exact row navigation, stable query source and Clear, with owner state restored.
+External-language symbol MAT,
+forced-stall timeout MAT and complete resource qualification remain open.
+
+## Immediate implementation priority — owner, 2026-11-11
+
+Finish the current formatting/task-terminal/Problems integration, then prioritize
+real language services before Git, debugger and extension-management surfaces.
+Use a shared configurable LSP connection for Tsrust and external language servers
+(including Rust, TypeScript and Go), with diagnostics routed to Problems and
+hover, completion and snippets exposed through the existing native editor UI.
+Support server lifecycle, document synchronization, stale-version rejection,
+Unicode position conversion, cancellation and visible connection/error state.
+Language/server registration should permit later language extensions without a
+separate integration architecture for each server. Do not claim external server
+acceptance until the installed server is exercised.
+
+Next prioritize the built-in AI agent and shared semantic editor actions. Agent
+review/diffs and eventual debugger stepping must use the same guarded commands
+as the user; a tool catalog without executable integration is not acceptance.
+Reuse the existing native completion/hover/diff components where appropriate.
+Git, debugger and general extension UI follow these priorities.
+
+Native signature-help progress, November12: Studio now routes guarded signature
+reads through the same synchronization/cancellation path as hover/completion, with
+an executable language_signature_help AI action. Native MAT passed automatic call/
+comma triggers, manual invocation, cursor-based active argument changes, matching
+text size, syntax highlighting and Escape. Temporary edits were undone; the owner
+draft and nine tabs were preserved. Compact documentation, first-line popup placement and the macOS
+parameter-hint shortcut are now in the running renderer; first-line placement and
+shortcut passed native MAT. Tab now accepts selected completion items, also verified
+in Studio. Focused service acceptance is9distinct cases plus1docs-normalization host
+case and1signature-format component case. Base signature/cancellation, menu Tab insertion and indentation-fallback witnesses
+all pass; exact results are in agent-progress. LSP checkpointca5312e2 separates foreground declaration
+reads from full compiler checks; imported completion/hover/signatures passed a
+regression with the full checker deliberately blocked, and stale publication
+protection still passes. This does not qualify all end-to-end typing latency. Overload cycling, context forwarding and external-server
+integration remain open; do not claim the full intelligence section complete.
+
+Typing responsiveness, November12: subsequent document edits now use the existing
+background Syntect parser for small files too. Initial colors stay immediate;
+shifted ranges display until the latest parse completes. Focused acceptance covers
+superseded work, Unicode ranges and fold results. Native typing, automatic completion,
+Tab and undo passed. A bounded follow-up sample places whole-document parsing on
+background queues rather than beneath main-thread insertion. This qualifies work
+placement, not a measured end-to-end latency target or the complete8GiB workload.
+Return to extension-ready external language-service registration before Git/debugger.
+
+External-server transport prerequisite, November12: shared framed sessions now
+accept validated executable/argv/language descriptors and label diagnostics by
+server. Real installed gopls v0.23.0 passed Go unsaved/corrected diagnostics, hover,
+completion, Unicode parameter hints and restart; numeric and string diagnostic
+codes normalize without weakening exact-version guards. Combined focused service
+acceptance12/12 passed; detailed timings and identities are in agent-progress.
+A lazy session registry now routes independently scoped server inboxes and keeps
+unused foreign executables unlaunched. A real simultaneous Tsrust/Go witness passed
+Go restart followed by a Tsrust read at its unchanged generation, unknown-target
+rejection and parent cancellation. Existing Studio service entrypoint passed
+through the registry.
+
+Configured editor routing, November12: global languageServers settings now persist
+validated executable/argv/file associations; startup reads one configuration for
+UI and workers. Settings has categorized Go/Rust/TypeScript-JavaScript controls and
+executable editing. Per-server generations, document routes, diagnostics and
+query/cancel/restart actions are isolated; the native status follows the current
+file. Settings changes currently require restarting Studio. Signal.handle exposes
+the runtime's existing weak state views for reusable settings rows; native lifetime,
+compiler/editor agreement and documentation checks passed.19focused Studio cases
+plus the three affected Signal editor witnesses passed; exact scope/timings are in
+the handoff, not a full regression or resource qualification claim.
+
+Native Settings persistence, executable editing at default window width, lazy Go
+launch, source-labelled Go diagnostics in Problems and owner-observed Go hover are
+verified. Native Go completion/Tab/snippets/signatures, other installed servers,
+live configuration replacement and full8GiB qualification remain open. An introduced
+.tsrx language-ID mismatch (extension .tsrx, protocol tsrust) was caught by owner
+hover feedback and a failing real-service witness; corrected shared routing passed
+and the preview reloaded. The file extension, syntax and status stay .tsrx.
+
+AI configuration read/proposal adapters share validation/catalog with Settings and
+require separate trusted global-settings grants. They return isolated exact-text/
+presence proposals and cannot write, approve or launch. Integrated model-host/review
+application remains unqualified. This is not full extension or AI-host acceptance.
+
+## Shared workspace discovery and ignore rules — owner priority, 2026-11-11
+
+Integrate [`ignore`0.4.28](https://docs.rs/ignore/0.4.28/ignore/) for shared
+filesystem traversal and matching. The crate supports Git-style ignore rules,
+file-type/glob filters and parallel walking. The original compiler discovery
+(`crates/tsrust-compiler/src/project/source_discovery.rs`) used a serial read_dir
+worklist with only .git/node_modules/target directory exclusions. The compiler,
+LSP, Studio tree and content search now share the ignore-backed traversal through
+checked Tsrust APIs; remaining acceptance is recorded below.
+
+Priority: finish the active native hover/completion/snippet presentation and
+profile-driven LSP memory/cancellation section first. Then implement this discovery
+slice before expanding workspace indexing/search or starting Git/debugger/extension
+management. It improves traversal and exclusion behavior; it is not a replacement
+for fixing repeated type analysis or retained completion catalogs.
+
+Current execution order: native signature help and interactive LSP latency/memory
+work first; finish watcher refresh, cancellable background Studio discovery and
+matched traversal measurements before expanding beyond the Studio package.
+Parallel walking remains conditional on profiling evidence. Git, debugger and
+extension management stay behind language intelligence and the integrated AI agent.
+
+Required implementation scope:
+
+- Use one shared walker/matcher with explicit caller policy. Workspace search and
+  background indexing honor configured ignore rules, with an editor option to
+  include ignored files. Tree visibility has an explicit configurable policy;
+  hidden project/config files must not disappear merely because ignore defaults
+  hide dotfiles.
+- Preserve compiler source-selection semantics. Project includes/excludes remain
+  authoritative; Git-ignore filtering is an explicit discovery policy, not an
+  implicit redefinition of compiler inputs. Explicitly opened/selected paths and
+  imports remain resolvable even when excluded from background discovery.
+- Preserve deterministic sorted/deduplicated results, current no-follow symlink
+  behavior, diagnostics for traversal failures and workspace boundaries. Cancel
+  obsolete scans. Reuse matching rules across initial scans and watcher updates.
+- Start with bounded worker concurrency appropriate to the8GiB machine. Use the
+  parallel walker only where measured traversal benefits justify its memory/I/O
+  cost; do not spawn another analysis pool or add arbitrary cache limits.
+- Keep UI and guarded AI search/discovery actions on the same checked operation,
+  with explicit workspace identity, exclusions and cancellation. Agents cannot
+  expand filesystem grants by selecting include-ignored.
+
+Acceptance: a focused shared fixture covers nested ignore rules/negation, hidden
+config files, explicit ignored files/imports, project includes/excludes, symlinks,
+errors, cancellation and deterministic output. Exercise real Studio search/index
+refresh after an ignore-file change. Record discovered-file counts, traversal time
+and peak memory for existing and replacement walkers on the same tree, separating
+cold/warm observations; no speedup claim without comparable measurements. Preserve
+full diagnostic coverage and reuse existing project/LSP acceptance witnesses.
+
+Implementation in progress, November12: ignore0.4.28 is pinned and the shared
+compiler/dev/LSP source walker now uses its serial traversal. Compiler and dev
+selection retain their existing exclusions and include ignored files. A compiler
+Rust API provides explicit workspace-local ignore filtering, hidden-file visibility,
+explicit-file preservation and cancellation; the LSP scanner now cancels during
+traversal rather than waiting for all directories. Focused traversal witness1/1 and
+workspace-scan cases8/8 passed; native Studio reconnected to the installed new LSP
+without replacing its window or losing its owner's draft. This proves the source
+walker/cancellation portion. The checked std:fs.walkDir snapshot now embeds the
+same traversal source and selects ignore only for programs using discovery.
+Studio content search uses it, with a persisted categorized Settings preference
+for ignored files; the registered AI search action shares the implementation and
+requires an exact host root/read grant. Public runtime1/1, Studio search/settings
+7/7, full Studio check and native MAT passed. MAT verified rule changes without
+restart and persisted enable/disable across Settings reopening. This is not full
+integrated-agent acceptance. Tree visibility now has a persisted default-on ignored-file setting and native
+Project -> Refresh Explorer command. The tree consumes one shared snapshot grouped
+by parent; live settings, root/nested insertion/removal/rename and correct file
+opening passed native MAT with expansion, selection and drafts preserved. A shared
+runtime reconciliation fix keys TreeItems by path and treats their snapshot props
+as structural; focused runtime retention checks passed. The guarded registered AI
+route queues the same revision request; completion/error observation and integrated
+host parity remain open. The controller does not scan while request/policy state is
+unchanged. OS watcher/index refresh, cancellable background Studio scans and
+comparable traversal measurements remain required before broader workspace expansion.
+Resume native intelligence/signature-help and latency work on the current small
+package alongside these explicit remaining discovery requirements. Matched native/TypeScript
+benchmark support and independent oracle exist; Node control/source checks passed,
+while native benchmark verification awaits portable source-pack setup for the new
+lockfile. No speedup or measured acceptance is claimed.
+References: [crate overview](https://docs.rs/ignore/0.4.28/ignore/).
+
+## Current native terminal integration — 2026-11-11
+
+The native Terminal, checked command/snapshot API and Studio's first shell are now
+implemented. Public guarded-action2/2, real-PTY2/2, UI-node/HTML1/1 and compiler
+facade1/1 focused witnesses pass. Native shell input, correct apps/studio cwd,
+8x136 grid, ANSI red and Unicode/CJK/emoji were observed. This does not prove full
+terminal/editor acceptance or integrated AI transport.
+
+The right session rail now supports independent shells, retained output when
+switching and per-session removal. New Terminal and Close share the panel header;
+the terminal has no contrasting padded frame. Shared rendering makes editor/panel
+tab labels follow configured size/zoom, with one panel-header bottom line. Native
+MAT observed distinct shell PIDs, retained output, isolated inactive removal and
+shared zoom. A delayed chained reply exposed during Interrupt MAT is fixed by
+deferring its redraw until after the current frame; a new identified120-second
+sleep was interrupted immediately while its shell remained alive. Session model
+and registered guarded adapter witnesses pass2/2; integrated AI transport remains
+pending. Rail resize, copy/selection, restart/quit, accessibility and dev-shutdown
+process-tree behavior remain pending. Restored header inset and a flush terminal
+viewport were observed together; the relocated New Terminal button creates and
+focuses another independent shell.
+Session rows are compact and divided; the ListItem wrapper now honors row utility
+styling. Native MAT observed both rows and their controls without clipping.
+Unix dev group termination does not cover a PTY's separate session by itself;
+prove and fix HUP-ignoring-job cleanup before completing that lifecycle gate.
+Installed public consumers are refreshed from the normal pair containing these
+native renderer fixes. No broad regression run was used for this UI section.
+
+## Current terminal prerequisite — 2026-11-11
+
+After search checkpoint0b6f35d5, the managed GPUI graph admits exact
+alacritty_terminal0.26.0 (Apache2) and async-channel2.5.0 behind opt-in features.
+The native Session source provides real PTY/VT state, input, resize, bounded redraw
+notifications and Unix force-close/reaping. Two real-process boundary checks pass
+in0.03s execution/1.93s setup using the locked isolated dependency graph; whole
+formatter/diff checks pass. Backend dependencies remain unchanged.
+
+This is a prerequisite, not a usable Studio terminal or public API acceptance.
+Renderer, themed palette query replies, checked bindings/catalog/docs, shared
+guarded UI/AI commands, Studio panel and native MAT remain next. Await cleanup
+from GPUI application quit; verify IME, selection, alternate-screen interaction,
+foreground/detached jobs and Windows lifecycle before broad acceptance. Existing
+search preview remains running; exact evidence and next action are in agent-progress.
 
 ## Architecture proposal
 
@@ -97,6 +603,57 @@ On acceptance, compare current revisions and apply transactionally. Conflicts
 require renewed review. Rejection leaves user content untouched. No agent can
 approve its own proposal or use another agent to bypass review.
 
+### Required UI and AI action parity — owner, 2026-11-11
+
+Every semantic editor/user action must have a direct integrated-AI action route.
+This is an implementation requirement, not an optional automation layer after
+editor completion. UI controls, menus, shortcuts and AI tools invoke the same typed
+commands and services. Keep a single command definition for its arguments, result,
+availability, target scope, preconditions and effects; derive discovery/tool
+contracts from it rather than maintaining a second behavior table.
+
+Actor identity and grants come from the trusted host, never model-supplied flags.
+Tool requests target explicit workspace/document/session identities and expected
+revisions. Read/search operations return current unsaved-buffer snapshots where
+appropriate. Background agent work must not steal focus or change the user's
+active tab unless that UI action was requested. Progress, cancellation and failure
+are observable through the same underlying job used by the UI.
+
+Parity does not authorize unrestricted execution. Preserve the existing isolated
+proposal/revision boundary for agent edits and filesystem/settings writes. Run
+commands with file/code-execution effects in isolated task workspaces unless an
+applicable host grant explicitly permits them. Scope external disclosure and
+consequential/destructive actions to the appropriate approval. Agents cannot
+approve their own proposals, change grants or bypass review through another tool,
+terminal, process or agent. Safe inspection/navigation/view commands can execute
+within granted scope without inventing an approval for every action.
+
+A feature is complete only when its UI and registered AI action routes work through
+the same implementation, with relevant stale-target, denied-action, error and
+cancellation behavior demonstrated. Retain already passed UI evidence separately;
+metadata, exported model functions and placeholders are not proof of AI integration.
+Model quality qualification remains a separate acceptance condition.
+
+Current source audit (November 11; AI action integration remains pending):
+
+| Existing feature family | Reusable implementation | Missing AI hookup |
+| --- | --- | --- |
+| Files and content search | workspace entries/projectFiles and shared search actions, including draft search/regex/case and UTF-8 match ranges | Search-content/result-navigation catalog adapters pass host-state/permission/stale-input checks; live agent transport, filename-search and presentation-command routes remain pending |
+| Open/select/close documents | workspace openFile/selectFile/closeFile and recovery publication | Explicit-target command path; retain dirty-close/recovery guards |
+| Edits, saves and proposals | document edit/propose/apply, saveDocument and stale byte/session/revision checks | Registered proposal/review transaction commands; no direct AI write bypass |
+| Selection and editor operations | std:ui readInput/controlInput expose snapshots and some actions | Domain-target adapters; checked undo/redo and remaining native operation hooks |
+| Tabs and split panes | Native Dock interaction and saved layouts | Checked programmatic reorder/split/resize commands; snapshots alone cannot execute actions |
+| Settings, themes, locale and zoom | Validated settings/actions and zoomWorkspace | Shared invocation with guarded persistent writes and explicit view-state targeting |
+| Project checking | .tsr worker with real CLI JSON, result/cancellation channels and bounds | Host-owned job commands and AI transport; current controls are UI-owned |
+| Markdown/images and view toggles | Native viewers and component signals | Shared preview/navigation/panel commands, preserving focus and user state |
+| Terminal, language services, Git, debug, extensions and AI review | Some native/library primitives; product services incomplete | Implement real services and register both UI and AI actions together |
+
+Next implementation section: connect a shared typed dispatcher and executable AI
+adapter to existing search/navigation/project-check services, then extend guarded
+mutations and missing native command hooks. A model is not required to exercise
+that adapter, but invoking a helper directly is not a substitute for testing the
+registered route. Do not label the current app AI-wired before that work lands.
+
 ### Reusable AI capabilities
 
 Investigate a public inference capability (working name `std:ai`) backed by a
@@ -116,6 +673,7 @@ Initial inference candidates:
 |---|---|---|
 | Candle | Rust ML framework with CPU/CUDA/Metal support and quantized model examples; exposes differentiation and optimizer primitives. | Exact selected coding-model coverage, usable streaming/tool output, device memory, adapter training and checkpoint portability through Tsrust. |
 | mistral.rs Rust SDK | Rust-library integration, quantization and supported-model loading are documented. | Dependency closure, optional-feature isolation, selected model/device support, cancellation, Windows build and 8 GiB behavior. |
+| llama-cpp-2 Rust SDK | Pinned 0.1.161 static native library now passes the bounded Metal/mmap quantized-model smoke with strict tokenizer agreement. | Persistent streaming/session API, cancellation, held-out coding quality, full-machine acceptance, clean build/export closure and Windows. Training remains a separate Candle investigation. |
 
 Do not choose a backend from feature claims alone. Pin exact revisions, review
 transitive native build requirements and test through the actual Tsrust facade.
@@ -124,6 +682,20 @@ training orchestration belongs in Tsrust. The inference engine only evaluates
 models and exposes the necessary generation primitives.
 
 ### Local model research, specialization and distribution
+
+Owner priority, November 13: make the small offline model accurate on moderately
+complex workspace tasks before considering Tsrust specialization. Prioritize a
+maintained semantic index, compiler/editor references, and token-efficient source
+selection. Preserve significant whitespace and exact edit anchors. Evaluate
+against held-out tasks that require finding the right files, following references,
+making a reviewed change, and passing the compiler and relevant tests.
+
+Use the selected model's tokenizer and trained window for context decisions.
+Keep current edit source exact, prefer reference lines for symbol questions, and
+compact repeated context before omitting older complete turns. SQLite FTS5 retrieval now ships with Tsrust examples, runtime-test passages
+and GPUI guides, with path and line attribution. Evaluate ranking and task accuracy. Keep
+evaluation fixtures and their derivatives outside that corpus. Compare task
+accuracy, token use, latency and memory on the same small model before scaling.
 
 1. Build versioned evaluation tasks from compiler contracts, API docs, checked
    examples, real application tasks and known failures. Split by task lineage and
@@ -199,6 +771,30 @@ new marketplace. Browser-hosted Studio, multiplayer, mobile clients and Linux
 delivery are outside this agreed initial scope. Supported-file syntax editing and
 language-service capabilities must be stated separately for each file type.
 
+## Purposeful layout and configuration — owner clarification, November 10
+
+UI design and reusable native capabilities progress together with safe document
+editing and storage. Do not leave styling/interaction cleanup until the end.
+Every region needs consistent surfaces, deliberate dividers, compact tooltip
+icons, shared text zoom, truncation/overflow behavior, resize/collapse and verified
+keyboard/focus states. Keep `.tsrx` composition split into chrome, navigation and
+editor panes; format coherent UI sections during development as well as checkpoints.
+
+Configuration must cover locale/i18n and every user-visible label, appearance and
+text sizing, navigation side, activity-rail side, terminal docking and AI-chat
+docking. Defaults are navigation/rail left, terminal bottom beneath the editor
+(with navigation full height) and AI chat right. These are movable defaults.
+Use one validated, persisted settings model with explicit user/workspace scopes;
+retain drafts/editor state when settings or layout change. Reuse std:ui locale,
+translation, Dock, Resizable and Settings capabilities, extending public wrappers
+where native Kit functionality is missing. Do not add separate ad-hoc layout
+switches, invented docking machinery or empty terminal/chat placeholders.
+
+Current shell is an incremental implementation, not acceptance of those settings
+or docking requirements. Persistent configuration, translation catalogs, full
+native docking, working terminal/chat, drag tab reorder and reliable save/recovery
+remain required alongside the current UI correction.
+
 ## Internal execution phases
 
 1. **Capability and acceptance audit.** Inventory current APIs and editor behavior,
@@ -251,7 +847,9 @@ Unresolved: exact backend and model revisions; public API shapes; worker boundar
 training hardware and budget; numeric quality/resource limits; final list of
 language-service implementations; debug/source-map depth; and exact component
 gaps. Resolve these with bounded research witnesses, not speculative general
-frameworks. No model has been downloaded, run, fine-tuned or qualified by this plan.
+frameworks. The initial bounded quantized inference witness now passes through a Tsrust
+worker/test harness using a pinned native library. No model has been fine-tuned
+or qualified for distribution or full minimum-machine acceptance; see the audit.
 
 ## Primary research sources
 
@@ -269,3 +867,173 @@ Existing repository foundations: [GPUI application platform](gpui-application-pl
 [development acceptance workflow](../development-workflow.md) and the current
 [continuation record](../agent-progress.md). This planning work does not silently
 change unrelated v0.2.0 acceptance or authorize a release.
+
+## Current implementation acceptance — November 10
+
+- Initial capability/gap audit and bounded resource contract recorded in
+  [the audit](tsrust-studio-audit.md). Final language-service selections, coding
+  quality floors and full-workflow latency/resource gates remain open.
+- Studio now opens its own apps/studio package with real folder browsing, native
+  file tabs, full-height read-only code views and native Cmd+F Find. Navigation
+  uses std:ui Tree/TreeItem with workspace contents directly at the top level; no
+  redundant root row or convenience button bar. Earlier theme switching passed
+  before removing the theme button; the current layout starts dark.
+  File-opening tests pass3/3; native data-state/composition/navigation tests pass12/12.
+  macOS dev identity and failed-build recovery are verified; existing proposal
+  revision guards pass4/4. Native tab scroll/selection/per-file Find retention is
+  verified after the runtime fix. Full AX/focus, editing,
+  safe saves, recovery and the rest of the editor inventory remain open. The
+  current dev supervisor stays running; current evidence is in the audit.
+- Package tabs now own revisioned document sessions with saved-text baselines.
+  Fresh session identities reject proposals from previously closed/reopened files,
+  even with identical bytes and revision numbers. Dirty reload/close guards pass
+  in the model. Integrated native document/workspace suite10/10 passes; native
+  close prompts, safe disk writes and crash/draft recovery remain required.
+- Shell alignment is checkpointed at acbcb8ed: compact custom chrome, tooltip
+  icons, explicit dividers, restrained surfaces, actual sidebar resizing/collapse,
+  filename search, close controls and shared zoom wiring. Model suite11/11 and
+  final affected workspace5/5 pass. Tree sizing/ellipsis and stable moved rows are
+  built and covered by focused runtime tests; the new native renderer still needs
+  its authorized live load. Persistent settings/i18n/docking remain required.
+- Dev checkpoint79c37206 retains an unchanged live application after successful
+  rebuilds. Focused lifecycle regression covers test-only PID retention, real
+  replacement, failure preservation, exited-child relaunch and shutdown cleanup.
+  The retained Studio supervisor still embeds the earlier image.
+- Atomic storage primitive has focused macOS acceptance: std:fs.writeTextFileAtomic
+  stages/synchronizes replacement, checks optional expected text and observed
+  revisions, and preserves macOS metadata. Native failure/metadata witnesses
+  pass3/3, with final flags/mtime witness1/1. Public runtime/example batch3/3,
+  compiler contracts, affected completion/help phases and backend all-target
+  compilation pass. Exact identities and timings are in the audit.
+  Windows remains unsupported for this new operation. It does not by itself
+  enable Studio saving or recovery; commit/durability outcomes, drafts and
+  editable-document integration remain required.
+- Candle scalar optimizer proof3/3 passes. Three Candle CPU quantized-model
+  attempts stopped on resource conditions, without answers. Those results remain.
+- Exact same official Qwen1.5B Q4 model and arithmetic oracle pass with pinned
+  llama-cpp-2/sys0.1.161, Metal/mmap, static linking, strict tokenizer agreement,
+  unchanged context/output/deadline/swap ceilings and the Studio dev window open.
+  Two native tests pass; all source/resource identities and observations are in
+  the audit. This proves a bounded buffered inference primitive only. Streaming,
+  cooperative cancellation measurement, repeated unload/reload, compiler/test
+  tools, proposed diffs, held-out quality and full8GiB acceptance remain required.
+- Checked Rust bindings now support explicit opaque native owners with private state,
+  moves, shared/exclusive input borrows and native Drop. Five ordinary runtime
+  cases cover scope/move/carriers/worker failure/cancellation; compiler guards and
+  LSP hover/definitions/private completions pass focused acceptance. This removes
+  the plain-data prerequisite for a resident AI model. A real opaque model now
+  passes two sequential generation requests with a rejected request between them;
+  native reuse is verified. Native bounded streaming and a real Tsrust request
+  worker now pass prefix/final equality, cancellation/recovery, request identities,
+  stale controls, shutdown/idle cancellation and scope cleanup. Actual editor agent
+  integration, held-out coding quality and full resource qualification remain open. Returned borrows and resource
+  transfer between threads remain unsupported. Exact evidence is in the handoff.
+- Native cache checksum/extraction whole-artifact buffers replaced by bounded
+  streaming with protocol/validation regressions passing. Performance measurement
+  remains separate; retained dev still uses its existing supervisor image.
+- No cloud integration, model specialization/distribution, Windows, complete
+  application, signing/packaging milestone or release acceptance is claimed.
+
+
+## Owner editor acceptance checklist — November 11
+
+Each item requires observed behavior; source changes alone do not close it.
+
+| # | Requirement | Current acceptance |
+|---|---|---|
+| 1 | Separate Settings window; tsrust_studio.config.json persistence | Own custom-chrome window; Kit searchable General/Workbench pages with GUI theme/font/locale/region controls, immediate persistence, formatted full-height optional JSON and Save/Reload; external-write protection and legacy defaults verified |
+| 2 | Matching navigation/editor text sizing | Shared explicit font-mono family, zoom and per-workspace restart retention observed; Cmd+0 records reset and Settings Reload retains offset; full layout acceptance pending |
+| 3 | Content search, regex/case toggles; distinct filename command | Model regression passes literal/case/regex/UTF-8/open-draft cases; live regex/case toggles and result-line navigation observed; native Enter search, cancellation and subsequent navigation to a draft-only result verified on macOS |
+| 4 | Image and appropriate non-text viewers | Package PNG: Fit/resize/actual-size/keyboard zoom, vertical wheel and horizontal scrollbar pan verified; native JPEG, GIF, BMP and TIFF fit/actual-size transitions verified; corrupt JPEG decode error verified in native accessibility; SVG and WebP fit/actual-size and RGBA ICO zoom verified; local macOS AVIF fit/actual-size and corrupt-file fallback verified; Windows/Linux AVIF pending; visual failure presentation pending |
+| 5 | Clearly distinguished active tab | Dark active-tab contrast observed; light/other themes pending |
+| 6 | Tab/tree drag/drop, resizable editor splits | Native tab reorder/draft/undo, direct right/down splits, nested-pane redraw, all visible editor AX nodes, named tabs/close actions, pane maximize/restore and focused save observed; nested split axes/sizes, dragged tab order and per-group selection restore with exact serialized equality; fast horizontal/vertical/sidebar divider drags now observed with managed GPUI release fix (13 resize regressions pass); active caret restored across native restart including keyboard-only movement; native Explorer file/folder drops into directories and back to blank root verified, including protection of an unsaved destination after external removal; dock edge gestures, duplicate views, selection range/scroll persistence and focused-group restoration pending |
+| 7 | Markdown preview | Native preview observed after shared row-state fix; preview survives tab switches |
+| 8 | Distinct JSON syntax categories | Shared lexical roles pass nested key/value/escape/number/boolean/null witnesses; native Studio Dark, Gruvbox Dark and Catppuccin Latte show distinct keys and values |
+| 9 | Workspace launch argument; later code-dot/dock directory opening | Package default and alternate-directory launches verified on macOS using absolute, relative and symlink arguments, plus current-directory fallback; native Launch Services folder delivery verified in dev, ZIP-extracted and read-only DMG-mounted macOS arm64 builds; physical Finder/Dock gesture pending |
+| 10 | Editable buffers, saving and recovery | Formatted suite18/18 passes; native Unicode typing/Cmd+S/undo/redo/tab switch and unsaved recovery across supervisor restart observed; clean open files/active selection now restore (recovery2/2 passes), native Dock layout/zoom restore verified; IME/conflict/close UX and larger recovery scope pending |
+| 11 | Broad theme catalog; configuration round-trip | 38 themes including36 pinned upstream variants; all38 persistence round-trips pass; detailed capture names retained with nearest-parent fallback; native import/parameter/JSON styling observed in Studio Dark, Gruvbox Dark and Catppuccin Latte, saved configuration preserved; full catalog contrast/rendering pending |
+| 12 | Selected-tab auto-reveal; respect manual scrolling | New last tabs and clipped first/final files selected through named overflow are visibly revealed; manual horizontal wheel scrolling retained its position and active document on macOS; restored far-end tab visible at startup with both opened-files recovery and a saved dock layout on macOS |
+| 13 | Useful status bar with truthful file/diagnostic/service state | File type/encoding and unsaved state implemented; real Tsrust LSP state, diagnostics and restart observed; scan latency and broader intelligence remain pending |
+| 14 | Terminal toggle; planned-feature surfaces and controls | Independent terminal/task and AI-chat toggles/close controls plus configurable left/right/bottom regions observed; PTY/debug/Git/AI/extension functionality remains pending |
+
+Layout configuration now has model acceptance for all36combinations of navigation
+and activity sides plus task/chat placement. Three native arrangements verify all
+supported positions, independent visibility, saved-setting reload, Unicode draft,
+split-pane and Undo preservation. English/Brazilian-Portuguese catalogs and live locale Save/Reload/startup recovery
+are verified for owned Studio UI, with query/editor Undo retained across language
+changes. Wider locale/RTL/native-control coverage, AX selected-range support and
+cursor/scroll/focus restoration and duplicate views across restart remain required.
+
+Owner permits supervisor restarts whenever needed without another permission
+question. Keep one current dev session running. Planned-feature placeholders are
+now explicitly requested and must be labeled honestly. This supersedes earlier
+placeholder restrictions; it does not authorize fake completion claims.
+
+
+November11 feature update: Settings now uses native Kit categorized GUI controls,
+custom chrome and optional formatted full-height JSON, with immediate persistence
+and stale-write protection. Tree/editor explicitly share font-mono. Explorer file
+icons are data-driven, bundled and configurable; native off/on preserves selection,
+expanded folders and panes. Focused mapping/settings proofs and native observations
+are recorded in the audit. Owner prioritizes feature throughput/manual acceptance;
+next work is actual task/terminal/language services, not repeated unchanged suites.
+
+
+November11 organization/service update: src now separates categorized components,
+lib models/actions, .tsr services and bundled assets. Tests/imports/localization
+coverage follow the moves. Native saved-file project checking works in Output via
+CmdShiftB or play, with verified Stop/child cleanup and actual success result.
+Shared compiler fixes preserve concrete race/settled future types and keep async
+GPUI entry on the OS main thread. Focused acceptance and remaining standalonequit
+uncertainty are in the audit. This is compiler-task integration; LSP/PTy remainpending.
+
+
+Search-result presentation now has separated full-width click targets, dividers,
+file/line labels and cropped UTF-8-safe match highlights. Activation selects the
+exact matching range. Shared UI/tool actions and tested search tool adapters are
+implemented; live AI transport and full command parity are still pending. Native
+visual/navigation evidence and focused boundary tests are recorded in the audit.
+
+
+### Conversation interface — November12 owner correction
+
+The chat interface uses a single title-bar robot toggle, no redundant pane title
+or avatar chrome, right-aligned user messages and left-aligned assistant Markdown.
+Conversation history and independent drafts are workspace-bound and stored with
+expected-baseline atomic writes. All Chats owns explicit deletion confirmation;
+settings remain in the application Settings window. Sending automatically loads
+the configured model and queues the exact conversation request. Startup, response,
+errors and output limits are visible. Switching conversations does not retarget
+in-flight output. File and SKILL.md context uses bounded snapshots with trusted
+picker grants for outside paths; current engine is text-only.
+
+Focused shared-action acceptance passed7/7, including stale deletion, draft recovery,
+context grants and storage conflicts. Native streaming, chat switching, persistence,
+context selection, bounded composer growth, typography and deletion cancellation
+passed. The normal preview uses the real host; one automatic request returned exact
+“Ready.”. Resource acceptance failed: global swap rose658.12MiB and pressure reached
+critical, so the owned model was stopped. No unchanged inference replay is planned.
+The engine still limits responses to32tokens and2048prompt tokens; this is not
+useful-agent/8GiB qualification. Profile analysis/model allocations next, then an
+incremental decoder and guarded agent tools. No fake image/tool controls are shown.
+
+### Response-budget continuation — November 12
+
+Implemented persisted `aiResponseTokens` (default1024, integer1–4096) in categorized
+AI Settings and the shared guarded settings-proposal route. Requests snapshot that
+budget. Native Llama generation now decodes token bytes incrementally, rejects
+invalid/truncated UTF-8, bounds output bytes/serialized frames, checks the trained
+context and uses a cooperative deadline during output backpressure. This supersedes
+the prior current32-token implementation statement; historical acceptance is retained.
+
+Focused settings/chat/settings-tool suites pass16/16. Native decoder/transport
+controls pass, native invalid-budget rejection passes without reading model assets,
+and the rebuilt real-host startup-failure/EOF protocol passes. Exact setup/execution
+times, source/binary identities and limits are in the current section of
+[the continuation record](../agent-progress.md). No inference was replayed.
+
+The new Settings control's live MAT remains pending after computer-use tools became
+unavailable. Compiler/LSP expression traversal now avoids its temporary output vector; focused
+error-effect, task, deep-walk and native exception/thread regressions pass. Runtime-cache
+extraction and measured whole-machine performance remain open work. The earlier critical-pressure failure is still failed;
+long-response quality, combined-editor memory and full8GiB qualification remain open.

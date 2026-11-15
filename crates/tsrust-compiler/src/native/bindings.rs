@@ -499,7 +499,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::ui::INPUT,crate::stdlib::ui::INPUT_CHANGE,
     crate::stdlib::ui::TEXT,crate::stdlib::ui::COPY_BUTTON,
     crate::stdlib::ui::VIEW,crate::stdlib::ui::VISIBILITY,
-    crate::stdlib::ui::KIT,crate::stdlib::ui::KIT_SET,crate::stdlib::ui::KIT_BIND,crate::stdlib::ui::KIT_ON,crate::stdlib::ui::KIT_ON_BOOLEAN,crate::stdlib::ui::KIT_PREDICATE,crate::stdlib::ui::KIT_STEP,crate::stdlib::ui::KIT_ON_INT,crate::stdlib::ui::KIT_ON_NUMBER,crate::stdlib::ui::KIT_ON_VOID,crate::stdlib::ui::COMMAND,crate::stdlib::ui::COMMAND_REPLY,crate::stdlib::ui::OPEN_WINDOW,crate::stdlib::ui::APPEARANCE,crate::stdlib::ui::APP_INFO,crate::stdlib::ui::SET_TRANSLATIONS,crate::stdlib::ui::SET_LOCALE,crate::stdlib::ui::LOCALE,crate::stdlib::ui::TRANSLATE,crate::stdlib::ui::TRANSLATION,crate::stdlib::ui::KIT_VALUE,
+    crate::stdlib::ui::KIT,crate::stdlib::ui::KIT_SET,crate::stdlib::ui::KIT_BIND,crate::stdlib::ui::KIT_ON,crate::stdlib::ui::KIT_ON_BOOLEAN,crate::stdlib::ui::KIT_PREDICATE,crate::stdlib::ui::KIT_STEP,crate::stdlib::ui::KIT_ON_INT,crate::stdlib::ui::KIT_ON_NUMBER,crate::stdlib::ui::KIT_ON_VOID,crate::stdlib::ui::COMMAND,crate::stdlib::ui::COMMAND_REPLY,crate::stdlib::ui::OPEN_WINDOW,crate::stdlib::ui::APPEARANCE,crate::stdlib::ui::APP_INFO,crate::stdlib::ui::COMPLETION_PROPOSAL,crate::stdlib::ui::SET_TRANSLATIONS,crate::stdlib::ui::SET_LOCALE,crate::stdlib::ui::LOCALE,crate::stdlib::ui::TRANSLATE,crate::stdlib::ui::TRANSLATION,crate::stdlib::ui::KIT_VALUE,
     crate::stdlib::ui::THEME,
     crate::stdlib::ui::THEME_MODE,
     crate::stdlib::ui::SEMANTICS,
@@ -647,12 +647,14 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::LSTAT,
     crate::stdlib::fs::bindings::FILE_STAT,
     crate::stdlib::fs::bindings::READ_DIR,
+    crate::stdlib::fs::bindings::WALK_DIR,
     crate::stdlib::fs::bindings::MKDIR,
     crate::stdlib::fs::bindings::MKDIR_ALL,
     crate::stdlib::fs::bindings::REMOVE_FILE,
     crate::stdlib::fs::bindings::REMOVE_DIR,
     crate::stdlib::fs::bindings::REMOVE_DIR_ALL,
     crate::stdlib::fs::bindings::RENAME,
+    crate::stdlib::fs::bindings::RENAME_NEW,
     crate::stdlib::fs::bindings::COPY_FILE,
     crate::stdlib::fs::bindings::HARD_LINK,
     crate::stdlib::fs::bindings::CANONICALIZE,
@@ -660,6 +662,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs::bindings::APPEND_FILE,
     crate::stdlib::fs::bindings::READ_TEXT_FILE,
     crate::stdlib::fs::bindings::WRITE_TEXT_FILE,
+    crate::stdlib::fs::bindings::WRITE_TEXT_FILE_ATOMIC,
     crate::stdlib::fs::bindings::TRUNCATE,
     crate::stdlib::fs::bindings::SYNC_ALL,
     crate::stdlib::fs::bindings::SYNC_DATA,
@@ -806,7 +809,7 @@ pub fn http_unwrapped(name:&str)->bool{crate::stdlib::http::public_unwrapped(nam
 /// State method signatures shared by checking and editor inference.
 pub fn ui_method(identity: crate::native_signatures::NativeTypeId, member: &str) -> Option<&'static NativeBinding> {
     if identity==crate::native_signatures::NativeTypeId::UiComputed{return (member=="get").then(||lookup("std:ui-runtime","computedGet").ok()).flatten();}
-    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set") {return None;}
+    if identity!=crate::native_signatures::NativeTypeId::UiSignal || !matches!(member,"get"|"set"|"handle") {return None;}
     lookup("std:ui-runtime",member).ok()
 }
 

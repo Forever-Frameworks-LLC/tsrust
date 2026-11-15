@@ -1,0 +1,62 @@
+import { AiMessage, messageContent } from './conversations.tsr';
+import { ChatMessage } from './prompts.tsr';
+import { ModelRequest } from './protocol.tsr';
+
+// Replace only the newest edit turn and exclude incomplete exchanges.
+export function fitGeneration(request: Mutable<ModelRequest>, history: ReadOnly<AiMessage[]>, includeWorkspace: boolean, editPrompt?: string): Result<boolean, string> {
+  request.workspaceStart = undefined;
+  request.workspaceEnd = undefined;
+  const messages: ChatMessage[] = [];
+  const seen = new Set<string>();
+  const lastUser = history.findLastIndex((entry) => entry.role === 'user' && entry.status !== 'rejected');
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const entry = history[index];
+
+    if (entry.text === '' || (entry.status !== undefined && entry.status !== 'complete')) continue;
+
+    if (index !== lastUser) {
+      const position = index + (entry.role === 'user' ? 1 : -1);
+
+      if (position < 0 || position >= history.length) continue;
+      const partner = history[position];
+
+      if (partner.role === entry.role || partner.request !== entry.request || partner.text === '' || (partner.status !== undefined && partner.status !== 'complete')) continue;
+    }
+
+    const excerpt = entry.workspaceExcerpt ?? '';
+    const editing = editPrompt !== undefined && index === lastUser;
+    const attachWorkspace = includeWorkspace && !editing && excerpt !== '' && !seen.has(excerpt);
+    let content = clone(entry.text);
+
+    if (editing && editPrompt !== undefined) content = clone(editPrompt);
+    // Selected file and skill snapshots require the current workspace read grant too.
+    else if (includeWorkspace) content = messageContent(entry, attachWorkspace);
+
+    if (index === lastUser && includeWorkspace && !editing && excerpt !== '') request.workspaceEnd = excerpt.length;
+
+    // An explicit reference to the last answer can use that exchange as its working context.
+    if (index === lastUser && index >= 2 && includeWorkspace && !editing && entry.text.toLowerCase().includes('previous answer')) {
+      const question = history[index - 2];
+      const answer = history[index - 1];
+      const source = excerpt === '' ? (question.workspaceExcerpt ?? '') : excerpt;
+
+      if (source !== '' && question.role === 'user' && answer.role === 'assistant' && question.request === answer.request && answer.status === 'complete') {
+        content = source + '\n\nPrevious question: ' + question.text + '\nPrevious answer: ' + answer.text + '\n\n' + messageContent(entry, false);
+        request.workspaceEnd = source.length;
+      }
+    }
+
+    if (includeWorkspace && excerpt !== '' && !editing) seen.add(clone(excerpt));
+    messages.push({
+      role: clone(entry.role), content, workspaceEnd: index === lastUser ? request.workspaceEnd : attachWorkspace ? excerpt.length : undefined
+    });
+  }
+
+  messages.reverse();
+  const first = messages.findIndex((message) => message.role === 'user');
+
+  if (first < 0) return Err('A user message is required.');
+  request.messages = first === 0 ? messages : messages.slice(first);
+  return Ok(false);
+}

@@ -51,6 +51,7 @@ function retainedField(value: RetainedOwner, early: boolean, trace: int[]): stri
   const row: RetainedCallbackOwner = {
     text: value.text, run: (): int => stamp[0]
   };
+
   try {
     if (early) {
       return row.text;
@@ -73,6 +74,7 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
   handlers.set("old", {
     run: (): int => old[0]
   });
+
   try {
     try {
       if (early) {
@@ -89,6 +91,7 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
     trace.push(32);
   } finally {
     const item = handlers.get(early ? "old" : "new");
+
     if (item !== undefined) {
       trace.push(item.run() + value.stamp);
     }
@@ -137,6 +140,7 @@ function retainedCatch(value: RetainedOwner, mode: int, trace: int[]): string {
       trace.push(29);
     } catch (error) {
       trace.push(30);
+
       if (mode === 1) {
         return value.text;
       }
@@ -158,6 +162,7 @@ function conditionalCleanup(value: string, early: boolean, replace: boolean): st
   const pair: CleanupChoice = {
     first: value, second: "alternate"
   };
+
   try {
     if (early) {
       return pair.first;
@@ -174,6 +179,7 @@ function conditionalCleanup(value: string, early: boolean, replace: boolean): st
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = (i * 13 + seed) % 97;
     const trace: int[] = [];

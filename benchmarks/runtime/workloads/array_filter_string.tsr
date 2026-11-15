@@ -4,6 +4,7 @@ function workload(n: int, seed: int, input: string): string[][] {
   let trace = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const selected: string[] = values.filter((value: string, index: int): boolean => {
       trace = (trace * 131 + visits + i + seed) % 1000000007;
@@ -27,8 +28,10 @@ function trace_row(trace: int, visits: int): string[] {
   const row: string[] = ["trace"];
   let word = trace;
   let i = 0;
+
   while (i < 31) {
     const bit = word % 2;
+
     if (bit === 0) {
       row.push("0");
     } else {
@@ -42,8 +45,10 @@ function trace_row(trace: int, visits: int): string[] {
   row.push("visits");
   word = visits;
   i = 0;
+
   while (i < 16) {
     const bit = word % 2;
+
     if (bit === 0) {
       row.push("0");
     } else {

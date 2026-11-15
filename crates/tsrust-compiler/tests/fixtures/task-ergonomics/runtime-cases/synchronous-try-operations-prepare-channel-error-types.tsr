@@ -4,6 +4,7 @@ export function run() {
   const channel = new Channel<string>(1);
   unwrap(channel.trySend('owned'));
   console.log(unwrap(channel.tryReceive()));
+
   try {
     unwrap(channel.tryReceive());
   } catch (error) {

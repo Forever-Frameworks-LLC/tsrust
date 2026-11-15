@@ -31,3 +31,68 @@ repeat distributions and more edit/lifecycle cases remain milestone acceptance w
 
 Run harness unit checks with `python3 benchmarks/dev/test_baseline.py`. CPU/RSS
 collection requires local process inspection permission on sandboxed hosts.
+
+## Matched application compilation
+
+Run `python3 benchmarks/dev/rust_control.py --compiler /absolute/path/to/tsrust`.
+This Unix-host protocol takes three alternating-order samples for each established
+graph size. Untimed setup captures the actual prepared Rust source, compiler
+arguments and shared runtime archive from a successful native build. The direct
+control uses those exact flags, the pinned Rust toolchain and identical runtime
+bytes. Both engines verify the independent integer-output oracle outside timing.
+
+Each timed Tsrust build must report an application native-cache miss and a warm
+support-library hit. The application cache is cleared between samples while its
+support cache is retained. This measures fresh application compilation with warm
+support, including Tsrust checking, emission, backend validation, support lookup,
+linking and cache publication. It does not measure cold dependency compilation,
+unchanged build reuse or edit-to-render watcher latency. The separate dev-loop
+protocol retains those workflow observations. Windows invocation capture is
+explicitly unsupported until a native process wrapper is implemented.
+
+The record uses the shared SQLite ingester's manifest/execution format and also
+contains prepared-source hashes, compiler identity, actual commands and phase
+observations. Three development-session samples are an initial diagnostic
+baseline. A stable overhead claim requires matched quiet-machine repetition.
+
+Both protocols use the runtime runner's existing quiet-machine guard before each
+timed process or edit. The guard runs outside the measured interval, keeps its
+established load threshold and timeout, and refuses to start timed work if the
+machine stays busy. Records include the observed load and threshold for each
+sample. This requires Node for the shared guard; sample counts, generated graphs,
+compiler flags and independent output assertions are unchanged.
+
+Dev-loop results also expose the shared manifest/execution format, with one workload
+per graph size and startup/edit scenario. Ingest them with the same store:ingest
+command as matched builds; completed samples retain their original durations.
+The dev backend phase is now the probe's wall span and can overlap frontend work;
+do not add overlapping phase durations to estimate end-to-end latency.
+
+## Worklist environment-context rebuilds
+
+Run `python3 benchmarks/dev/worklist_runtime_context.py --before-compiler /absolute/before/tsrust --after-compiler /absolute/after/tsrust`.
+This builds the existing Worklist without launching another application window.
+Each engine has one untimed setup build and three measured context changes. The
+before group runs first, then the after group, retaining the same dependency
+workspace and shared Cargo target. Every build changes a unique unused caller
+variable, requires both native application and support-cache misses, and verifies
+identical runtime/dependency/profile identity plus unchanged task sources. Cargo's
+normal freshness and compile-time environment checks remain active. The full quiet
+machine guard runs before each build; setup and samples are recorded separately.
+Reports use the shared SQLite format and list created cache keys for selective
+cleanup after ingestion. The native phase includes support work and application Rust compilation/linking.
+This is a dependency-context rebuild comparison, not the matched Rust-overhead
+protocol or proof of application interaction behavior.
+
+## Application frontend emission
+
+Run `python3 benchmarks/dev/worklist_frontend.py --before-compiler /absolute/before/tsrust --after-compiler /absolute/after/tsrust`.
+The driver checks and emits existing Worklist and Studio entries in fresh CLI
+processes without native compilation or another application window. For each app,
+it runs one untimed setup and three before samples, then one untimed setup and
+three candidate samples. The shared quiet-machine guard runs outside each timer.
+Every emitted Rust file must match the first emission byte for byte. Application
+sources, native binding sources, project configuration and compiler hashes must
+remain unchanged. Reports retain completed samples on failure and use the shared
+SQLite format. This measures frontend process/check/emission time, separately from
+native Rust build overhead, editor response time and whole-folder diagnostic scans.

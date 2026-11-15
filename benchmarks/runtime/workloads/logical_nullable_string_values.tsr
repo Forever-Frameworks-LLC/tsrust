@@ -7,6 +7,7 @@ function workload(n: int, seed: int): string[] {
   const output: string[] = [];
   const trace: int[] = [0];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     const left: string | undefined = mode === 0 ? undefined : (mode === 1 ? '' : (mode === 2 ? 'é' : '😀'));

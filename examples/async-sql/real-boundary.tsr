@@ -8,6 +8,7 @@ async function main(): Task<void> {
   const db = await connect('sqlite::memory:', 1);
   const rows = await db.query('SELECT ? AS value', [value]);
   console.log(unwrap(rows[0].number('value')));
+
   match (toFloat32(0.1)) {
     Ok(_) => {
       throw 'unexpected exact binary32 value';

@@ -1,7 +1,9 @@
 //! Checked error effects are separate from scheduling and native representation.
 mod generic_invocation_effects;
 mod traversal;
-use traversal::{body_effect,expression_effect};
+mod propagation;
+use traversal::body_effect;
+#[cfg(test)] use traversal::expression_effect;
 use crate::analysis::{CheckedProgram,CheckedFunction,ClosureForward};
 use crate::syntax::*;
 
@@ -499,16 +501,16 @@ pub(crate) fn defer_unreferenced_error_definitions(program:&mut CheckedProgram) 
     for id in candidates.difference(&required) {program.functions[*id].template=true;}
 }
 
-pub(crate) fn checked_expressions(function:&CheckedFunction)->Vec<&Expr> {
+pub(crate) fn checked_expressions(function:&CheckedFunction)->impl Iterator<Item=&Expr> {
     walk_checked_expressions(&function.body,function.bindings.iter().filter_map(|binding|binding.initializer.as_deref()))
 }
-pub(crate) fn body_expressions(body:&[Stmt])->Vec<&Expr> {
+pub(crate) fn body_expressions(body:&[Stmt])->impl Iterator<Item=&Expr> {
     walk_checked_expressions(body,std::iter::empty())
 }
-fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=&'a Expr>)->Vec<&'a Expr> {
+fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=&'a Expr>)->impl Iterator<Item=&'a Expr> {
         enum Node<'n>{Statement(&'n Stmt),Expression(&'n Expr)}
-        let mut output=Vec::new();
         let mut pending=body.iter().map(Node::Statement).chain(initializers.map(Node::Expression)).collect::<Vec<_>>();
+        std::iter::from_fn(move || {
         while let Some(node)=pending.pop() {
             match node {
                 Node::Statement(statement)=>{
@@ -531,7 +533,6 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                     }
                 }
                 Node::Expression(value)=>{
-                    output.push(value);
                     match &value.kind {
                         ExprKind::Match { body, .. } => pending.extend(body.iter().map(Node::Statement)),
                         ExprKind::SpreadCall(plan)=>pending.extend(plan.expressions().map(Node::Expression)),
@@ -546,10 +547,12 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                         // Source closure bodies execute in their own invocation context.
                         ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>{}
                     }
+                    return Some(value);
                 }
             }
         }
-    output
+        None
+        })
 }
 /// Resolve a checked call graph with callback contracts supplied by specialization.
 /// Missing declarations remain opaque; supplied contracts are not inferred from types.
@@ -575,39 +578,42 @@ pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedF
 /// Include calls in the currently checked region before its callable is stored.
 /// Callback-only cycles retain an unknown contract until a concrete origin exists.
 #[inline(never)]
-pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:&CheckedFunction,unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
+pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:(&[Stmt],&[crate::analysis::Binding]),unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
     for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
-    for function in functions.iter().filter_map(|function|function.as_deref()).chain(std::iter::once(caller)).chain(closures.iter().map(|closure|&closure.function)).chain(closures.iter().flat_map(|closure|closure.methods.iter().map(|method|&method.function))) {
-        for expression in checked_expressions(function) {
-            let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
-            if matches!(expression.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,arguments,closures,invocations) {
-                for (id,ty) in selected {origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});}
-                continue;
+    fn parts_of(function:&CheckedFunction)->(&[Stmt],&[crate::analysis::Binding]) {(&function.body,&function.bindings)}
+    let regions=functions.iter().filter_map(|function|function.as_deref()).map(parts_of)
+        .chain(std::iter::once(caller))
+        .chain(closures.iter().map(|closure|parts_of(&closure.function)))
+        .chain(closures.iter().flat_map(|closure|closure.methods.iter()).map(|method|parts_of(&method.function)));
+    for expression in regions.flat_map(|(body,bindings)|walk_checked_expressions(body,bindings.iter().filter_map(|binding|binding.initializer.as_deref()))) {
+        let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
+        if matches!(expression.target,Some(CallTarget::ClosureMethod(_))) && let Some(selected)=selected_callback_arguments(callee,arguments,closures,invocations) {
+            for (id,ty) in selected {origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});}
+            continue;
+        }
+        let parameters=match expression.target {
+            Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
+            Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
+                let origin=match expression.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>expression.closure_origin()};
+                origin.and_then(|id|closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
             }
-            let parameters=match expression.target {
-                Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
-                Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
-                    let origin=match expression.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>expression.closure_origin()};
-                    origin.and_then(|id|closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
-                }
-                Some(CallTarget::ClosureMethod(method))=>{
-                    let origin=match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None};
-                    origin.and_then(|id|closures.get(id)).and_then(|closure|{
-                        let closure=if let Some(ClosureForward::Once(id))=closure.forward {closures.get(id)?}else{closure};
-                        let method=closure.methods.get(method)?;
-                        Some(method.parameters.iter().map(|id|&method.function.bindings[*id]).collect())
-                    })
-                }
-                _=>None,
-            };
-            let Some(parameters)=parameters else {continue;};
-            for (formal,actual) in parameters.into_iter().zip(arguments) {
-                if let Type::Callback(id)=formal.ty {
-                    let ty=actual.ty.unwrap_or(Type::Void);
-                    origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});
-                }
+            Some(CallTarget::ClosureMethod(method))=>{
+                let origin=match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None};
+                origin.and_then(|id|closures.get(id)).and_then(|closure|{
+                    let closure=if let Some(ClosureForward::Once(id))=closure.forward {closures.get(id)?}else{closure};
+                    let method=closure.methods.get(method)?;
+                    Some(method.parameters.iter().map(|id|&method.function.bindings[*id]).collect())
+                })
+            }
+            _=>None,
+        };
+        let Some(parameters)=parameters else {continue;};
+        for (formal,actual) in parameters.into_iter().zip(arguments) {
+            if let Type::Callback(id)=formal.ty {
+                let ty=actual.ty.unwrap_or(Type::Void);
+                origins.entry(id).or_default().extend(if let Type::Union(id)=ty {unions.members(id)}else{vec![ty]});
             }
         }
     }
@@ -620,8 +626,8 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
         if !changed {break;}
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
+    let mut effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
     loop {
-        let effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
         let mut changed=false;
         for (id,types) in &origins {
             let mut found=FailureSet::default();
@@ -637,6 +643,21 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
             changed|=callbacks.get_mut(id).expect("callback origin").join(found);
         }
         if !changed {return effects;}
+        // Callback contracts only grow, so retain the already established effects.
+        effects.callback_errors.clone_from(&callbacks);
+        propagate_partial_contracts(functions,closures,families,invocations,&storage_grounding(families,&Default::default(),stored_fields),stored_fields,&mut effects);
+        #[cfg(test)]
+        {
+            let cold=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
+            assert_eq!(effects.function_errors,cold.function_errors);
+            assert_eq!(effects.closure_errors,cold.closure_errors);
+            assert_eq!(effects.callback_errors,cold.callback_errors);
+            assert_eq!(effects.method_errors,cold.method_errors);
+            assert_eq!(effects.storage_errors,cold.storage_errors);
+            assert_eq!(effects.invocation_errors,cold.invocation_errors);
+            assert_eq!(effects.functions,cold.functions);
+            assert_eq!(effects.closures,cold.closures);
+        }
     }
 }
 #[inline(never)]
@@ -644,6 +665,16 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
     // A storage-only cycle is not a constructor witness. Ground sources through
     // actual closure families or separately resolved callback/absence contracts;
     // any unresolved source still contributes opaque below.
+    let grounded=storage_grounding(families,uninhabited,stored_fields);
+    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
+    for (id,function) in functions.iter().enumerate() {
+        if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
+    }
+    propagate_partial_contracts(functions,closures,families,invocations,&grounded,stored_fields,&mut effects);
+    effects
+}
+
+fn storage_grounding(families:&[(usize,Vec<usize>)],uninhabited:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)])->std::collections::HashSet<usize> {
     let mut grounded=families.iter().filter(|(id,origins)|!origins.is_empty()||uninhabited.contains(id)).map(|(id,_)|*id).collect::<std::collections::HashSet<_>>();
     loop {
         let mut changed=false;
@@ -653,9 +684,35 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
         }
         if !changed {break;}
     }
-    let mut effects=ErrorEffects{invocation_errors:vec![FailureSet::default();invocations.entries().count()],method_errors:closures.iter().enumerate().flat_map(|(id,closure)|closure.methods.iter().enumerate().map(move |(method,_)|((id,method),FailureSet::default()))).collect(),callback_errors:callbacks.clone(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],function_errors:vec![FailureSet::default();functions.len()],closure_errors:vec![FailureSet::default();closures.len()],runtime_schema:Some(runtime_error_schema()),storage_errors:families.iter().map(|(id,origins)|(*id,if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()})).collect()};
-    for (id,function) in functions.iter().enumerate() {
-        if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
+    grounded
+}
+
+fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+    #[cfg(test)] let mut cold=effects.clone();
+    propagate_contracts::<true>(functions,closures,families,invocations,grounded,stored_fields,effects);
+    #[cfg(test)] {
+        let before=functions.iter().filter_map(|function|function.as_deref()).chain(closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).map(propagation::annotations).collect::<Vec<_>>();
+        propagate_contracts::<false>(functions,closures,families,invocations,grounded,stored_fields,&mut cold);
+        assert_eq!(effects.function_errors,cold.function_errors);
+        assert_eq!(effects.closure_errors,cold.closure_errors);
+        assert_eq!(effects.callback_errors,cold.callback_errors);
+        assert_eq!(effects.method_errors,cold.method_errors);
+        assert_eq!(effects.storage_errors,cold.storage_errors);
+        assert_eq!(effects.invocation_errors,cold.invocation_errors);
+        assert_eq!(effects.functions,cold.functions);assert_eq!(effects.closures,cold.closures);
+        let after=functions.iter().filter_map(|function|function.as_deref()).chain(closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).map(propagation::annotations).collect::<Vec<_>>();
+        assert_eq!(before,after,"cached solving must refresh all expression and catch annotations");
+    }
+}
+fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+    let mut versions=propagation::Versions::default();
+    let mut function_cache=(0..functions.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
+    let mut closure_cache=(0..closures.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
+    let mut method_cache=closures.iter().map(|closure|(0..closure.methods.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>()).collect::<Vec<_>>();
+
+    let mut methods_by_origin=vec![Vec::new();closures.len()];
+    for &(origin,method) in effects.method_errors.keys() {
+        methods_by_origin[origin].push(method);
     }
     // Payload types are checked identities. Every finite coordinate grows
     // monotonically; the final unchanged pass refreshes expression metadata.
@@ -663,15 +720,15 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
         let mut changed=false;
         for (id,function) in functions.iter_mut().enumerate() {
             let Some(function)=function else {continue;};
-            let next=function_effect(function,&effects);
-            changed |= effects.function_errors[id].join(next);
+            let next=if CACHED {function_cache[id].effect(function,effects,&versions)}else{function_effect(function,effects)};
+            changed |= propagation::grow(&mut versions,propagation::FUNCTION,effects.function_errors[id].join(next));
             effects.functions[id]=effects.function_errors[id].may_fail();
         }
         for (id,closure) in closures.iter_mut().enumerate() {
-            let mut next=function_effect(&mut closure.function,&effects);
+            let mut next=if CACHED {closure_cache[id].effect(&mut closure.function,effects,&versions)}else{function_effect(&mut closure.function,effects)};
             for (method_id,method) in closure.methods.iter_mut().enumerate() {
-                let found=function_effect(&mut method.function,&effects);
-                changed|=effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone());
+                let found=if CACHED {method_cache[id][method_id].effect(&mut method.function,effects,&versions)}else{function_effect(&mut method.function,effects)};
+                changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone()));
                 next |= found;
             }
             next |= match closure.forward {
@@ -687,11 +744,11 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
                 Some(ClosureForward::Native(id))=>native_binding_effect(id),
                 None=>FailureSet::default(),
             };
-            changed |= effects.closure_errors[id].join(next);
+            changed |= propagation::grow(&mut versions,propagation::CLOSURE,effects.closure_errors[id].join(next));
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
-            let mut next=if origins.is_empty()&&!uninhabited.contains(id)&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
+            let mut next=if origins.is_empty()&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
             for origin in origins {next |= effects.closure_errors.get(*origin).cloned().unwrap_or_else(FailureSet::unknown);}
             for &(_,source) in stored_fields.iter().filter(|(family,_)|family==id) {
                 next|=match source {
@@ -702,29 +759,40 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
                     _=>FailureSet::unknown(),
                 };
             }
-            changed |= effects.storage_errors.get_mut(id).expect("initialized family effects").join(next);
+            changed |= propagation::grow(&mut versions,propagation::STORAGE,effects.storage_errors.get_mut(id).expect("initialized family effects").join(next));
         }
         // A consuming wrapper calls the selected method on its inner environment.
         // Preserve that identity for effect lookup without merging other methods.
         for (id,closure) in closures.iter().enumerate() {
             if let Some(ClosureForward::Once(inner))=closure.forward {
-                let methods=effects.method_errors.iter().filter_map(|((origin,method),contract)|(*origin==inner).then_some((*method,contract.clone()))).collect::<Vec<_>>();
-                for (method,contract) in methods {
-                    changed|=effects.method_errors.entry((id,method)).or_default().join(contract);
+                let methods=methods_by_origin.get(inner).cloned().unwrap_or_default();
+                #[cfg(test)]
+                {
+                    let indexed=methods.iter().copied().collect::<std::collections::BTreeSet<_>>();
+                    let scanned=effects.method_errors.keys().filter_map(|(origin,method)|(*origin==inner).then_some(*method)).collect();
+                    assert_eq!(indexed,scanned);
+                }
+                for method in methods {
+                    let contract=effects.method_errors[&(inner,method)].clone();
+                    if !methods_by_origin[id].contains(&method) {methods_by_origin[id].push(method);}
+                    if !effects.method_errors.contains_key(&(id,method)) {versions[propagation::METHOD]+=1;}
+                    changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.entry((id,method)).or_default().join(contract));
                 }
             }
         }
-        changed |= effects.refresh_invocation_errors(invocations);
+        changed |= propagation::grow(&mut versions,propagation::INVOCATION,effects.refresh_invocation_errors(invocations));
         if !changed {break;}
     }
-    effects
 }
 fn function_effect(function:&mut CheckedFunction,effects:&ErrorEffects)->FailureSet {
+    function_effect_with(function,&propagation::Reader::new(effects))
+}
+fn function_effect_with(function:&mut CheckedFunction,effects:&propagation::Reader<'_>)->FailureSet {
     let mut failure=FailureSet::default();
     for binding in &mut function.bindings {
-        if let Some(value)=&mut binding.initializer {failure |= expression_effect(value,effects);}
+        if let Some(value)=&mut binding.initializer {failure |= traversal::expression_effect_with(value,effects);}
     }
-    failure | body_effect(&mut function.body,effects)
+    failure | traversal::body_effect_with(&mut function.body,effects)
 }
 #[inline(never)]
 pub(crate) fn annotate_region_body(body:&mut [Stmt],effects:&ErrorEffects)->FailureSet {body_effect(body,effects)}
@@ -811,7 +879,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         {
             FailureSet::default()
         }
-        Some(binding) if binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")=>
+        Some(binding) if binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"walkDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"renameNew"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"writeTextFileAtomic"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")=>
         {
             FailureSet::default()
         }
@@ -832,18 +900,18 @@ fn native_binding_effect(id:usize)->FailureSet {
         _=>FailureSet::unknown(),
     }
 }
-fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSet {
+fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)->FailureSet {
     use CallTarget::*;
     match target {
-        Callback(_)=>value.callback_contract().and_then(|id|effects.callback_errors.get(&id).cloned()).unwrap_or_else(FailureSet::unknown),
-        ConditionalCallback(id)=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+        Callback(_)=>value.callback_contract().map(|id|effects.read(propagation::CALLBACK,effects.callback_errors.get(&id))).unwrap_or_else(FailureSet::unknown),
+        ConditionalCallback(id)=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
         NativeBinding(id) if matches!(crate::native_bindings::BINDINGS[id].name,"invokeRegistration"|"invokeSuite") && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
             let suite=crate::native_bindings::BINDINGS[id].name=="invokeSuite";
             let callback = match &value.kind { ExprKind::Call(_, args) => args.get(usize::from(suite)).and_then(|value| value.ty), _ => None };
             let callback=match callback {
-                Some(Type::Closure(id)) => effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::Callback(id)) => effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::Closure(id)) => effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+                Some(Type::Callback(id)) => effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
                 _ => FailureSet::unknown(),
             };
             if suite {callback|FailureSet::runtime()}else{callback}
@@ -851,13 +919,13 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         NativeBinding(id)=>native_binding_effect(id),
         ClosureMethod(method)=>{
             if let ExprKind::Call(callee,_)=&value.kind && let Some(id)=callee.generic_invocation {
-                return effects.invocation_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown);
+                return effects.read(propagation::INVOCATION,effects.invocation_errors.get(id));
             }
             let origin=match &value.kind {ExprKind::Call(callee,_)=>match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None},_=>None};
-            origin.and_then(|id|effects.method_errors.get(&(id,method)).cloned()).unwrap_or_else(FailureSet::unknown)
+            origin.map(|id|effects.read(propagation::METHOD,effects.method_errors.get(&(id,method)))).unwrap_or_else(FailureSet::unknown)
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
-        SchemaConstraint(id)=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+        SchemaConstraint(id)=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
         // Push itself only transfers an element into storage. Allocation failure
         // is outside checked transport; receiver/argument effects are folded by
         // expression traversal and must still retain their exceptional paths.
@@ -865,7 +933,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         MatchYield(_)=>FailureSet::default(),
         ResultUnwrap(error)=>FailureSet::thrown(Some(error)),
         SchemaExport(id)=>FailureSet { explicit:vec![Type::Record(id)],runtime:false,opaque:false },
-        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),
+        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.read(propagation::STORAGE,effects.storage_errors.get(family))),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
         SchemaAddIssue(_)|SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
@@ -874,9 +942,9 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         ArrayReduceRight|ArraySort|ArrayToSorted=>{
             let callback=match &value.kind {ExprKind::Call(_,args)=>args.first(),_=>None};
             let invoked=match callback.and_then(|value|value.ty) {
-                Some(Type::Closure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::Callback(id))=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
-                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::Closure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+                Some(Type::Callback(id))=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
                 None if matches!(target,ArraySort|ArrayToSorted)=>FailureSet::default(),
                 _=>FailureSet::unknown(),
             };
@@ -885,7 +953,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         _=>FailureSet::runtime(),
     }
 }
-fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
+fn own_expression_effect(value:&Expr,effects:&propagation::Reader<'_>)->FailureSet {
     let runtime=match &value.kind {
         ExprKind::SpreadCall(plan)=>plan.segments.iter().any(|segment|segment.length.is_none()) && (plan.minimum>0 || plan.maximum.is_some()),
         ExprKind::Index(_,_)=>true,
@@ -897,11 +965,11 @@ fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
     };
     if runtime {FailureSet::runtime()}else {
         match value.target {
-            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::Closure(_))=>value.closure_origin().and_then(|origin|effects.closure_errors.get(origin).cloned()).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::ConditionalClosure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::StoredCallable(_))=>value.storage_family().and_then(|family|effects.storage_errors.get(&family).cloned()).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::StoredCallableField(family))=>effects.storage_errors.get(&family).cloned().unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
+            Some(CallTarget::Closure(_))=>value.closure_origin().map(|origin|effects.read(propagation::CLOSURE,effects.closure_errors.get(origin))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::ConditionalClosure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
+            Some(CallTarget::StoredCallable(_))=>value.storage_family().map(|family|effects.read(propagation::STORAGE,effects.storage_errors.get(&family))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::StoredCallableField(family))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&family)),
             Some(target)=>native_effect(target,value,effects),
             None=>FailureSet::default(),
         }
@@ -983,13 +1051,14 @@ mod tests {
         let effects=super::annotate(&mut checked.program);
         assert!(!effects.closure_errors[0].opaque,"lexical basename has no unresolved invocation");
         assert!(!effects.closures[0]);
-        assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
+        assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&super::propagation::Reader::new(&effects)),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
             let audited=matches!(binding.module,
                 "std:ui-runtime"
-                    | "std:log-runtime"|"std:locale"|"std:url"|"std:regex"|"std:cache"|"std:signals"|"std:crypto"|"std:uuid"|"std:date"|"std:decimal"|"std:numeric"|"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression") || binding.module=="std:futures" || (binding.module=="std:threads" && (binding.name.starts_with("__channel") || binding.name.starts_with("__sender"))) || (binding.module=="std:threads" && matches!(binding.name,"spawn"|"spawnScoped"|"join"|"detach"|"cancel"|"cancellationRequested"|"__poolCreate"|"__ownedPoolTask"|"__ownedPoolStats"|"__ownedPoolShutdown"|"__poolSubmission"|"__taskAsync"|"__taskCancelled")) || (binding.module=="std:time" && binding.name=="monotonicNow") || (binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && matches!(binding.name,"get"|"args"|"vars"|"currentDir"|"currentExe"|"tempDir"|"homeDir")) || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut"|"toHex"|"fromHex"|"toUtf8Lossy"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url"|"fromUtf16"|"toUtf16"|"concat"|"copyInto"|"copyWithin"|"equals"|"compare"|"indexOf"|"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness"|"availableParallelism"|"hostname")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount"|"beginOutputCapture"|"endOutputCapture")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"checkAssertion"|"shareCallback"|"deepEqual"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+                    | "std:log-runtime"|"std:locale"|"std:url"|"std:regex"|"std:cache"|"std:signals"|"std:crypto"|"std:uuid"|"std:date"|"std:decimal"|"std:numeric"|"std:http"|"std:sqlite"|"std:sql"|"std:process"|"std:net"|"std:dns"|"std:io"|"std:compression") || binding.module=="std:futures" || (binding.module=="std:threads" && (binding.name.starts_with("__channel") || binding.name.starts_with("__sender"))) || (binding.module=="std:threads" && matches!(binding.name,"spawn"|"spawnScoped"|"join"|"detach"|"cancel"|"cancellationRequested"|"__poolCreate"|"__ownedPoolTask"|"__ownedPoolStats"|"__ownedPoolShutdown"|"__poolSubmission"|"__taskAsync"|"__taskCancelled")) || (binding.module=="std:time" && binding.name=="monotonicNow") || (binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && matches!(binding.name,"get"|"args"|"vars"|"currentDir"|"currentExe"|"tempDir"|"homeDir")) || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush"|"openFile"|"stat"|"lstat"|"fileStat"|"readDir"|"walkDir"|"mkdir"|"mkdirAll"|"removeFile"|"removeDir"|"removeDirAll"|"rename"|"renameNew"|"copyFile"|"hardLink"|"canonicalize"|"readLink"|"appendFile"|"readTextFile"|"writeTextFile"|"writeTextFileAtomic"|"truncate"|"syncAll"|"syncData"|"createTempDir"|"seek"|"position")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut"|"toHex"|"fromHex"|"toUtf8Lossy"|"toBase64"|"fromBase64"|"toBase64Url"|"fromBase64Url"|"fromUtf16"|"toUtf16"|"concat"|"copyInto"|"copyWithin"|"equals"|"compare"|"indexOf"|"readInt"|"writeInt"|"readUint"|"writeUint"|"readFloat32"|"writeFloat32"|"readFloat64"|"writeFloat64")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness"|"availableParallelism"|"hostname")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"trackedResource"|"resourceId"|"closeResource"|"releaseCount"|"releaseOrder"|"liveCount"|"beginOutputCapture"|"endOutputCapture")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"checkAssertion"|"shareCallback"|"deepEqual"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
+            if binding.module=="std:fs" && binding.name=="writeTextFileAtomic" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }
         checked.program.closures[0].forward=Some(crate::analysis::ClosureForward::Native(usize::MAX));
@@ -1532,7 +1601,7 @@ mod tests {
         let (before,remaining)=program.functions.split_at_mut(main);
         let (caller,after)=remaining.split_first_mut().unwrap();
         let mut functions=before.iter_mut().map(Some).chain(std::iter::once(None)).chain(after.iter_mut().map(Some)).collect::<Vec<_>>();
-        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],caller,&unions,&program.polymorphic_invocations,&[],&[]);
+        let regional=annotate_partial_with_callers(&mut functions,&mut program.closures,&[],(&caller.body,&caller.bindings),&unions,&program.polymorphic_invocations,&[],&[]);
         let contract=regional.callback_errors.get(&callback).expect("regional selected callback origin");
         assert!(contract.runtime && !contract.opaque,"regional selected method must receive the failing argument: {contract:?}");
         let effects=annotate_inferred_callbacks(&mut program);
@@ -1597,4 +1666,27 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod expression_walk_tests {
+    use super::*;
+
+    #[test]
+    fn expression_iterator_preserves_reverse_siblings_and_initializer_order() {
+        let source = "function main(){foo(1, bar(2, 3)); baz(4);}";
+        let program = crate::syntax::parse(source).unwrap();
+        let body = &program.functions[0].body;
+        let texts = |expressions: Vec<&Expr>| expressions.into_iter()
+            .map(|value| &source[value.span.start..value.span.end]).collect::<Vec<_>>();
+        let expected = vec!["baz(4)", "4", "baz", "foo(1, bar(2, 3))", "bar(2, 3)", "3", "2", "bar", "1", "foo"];
+        assert_eq!(texts(body_expressions(body).collect()), expected);
+        let StmtKind::Expr(initializer) = &body[1].kind else { panic!("expression"); };
+        let mut with_initializer = vec!["baz(4)", "4", "baz"];
+        with_initializer.extend(expected);
+        assert_eq!(texts(walk_checked_expressions(body, std::iter::once(initializer)).collect()), with_initializer);
+        let mut iterator = body_expressions(body);
+        assert_eq!(iterator.next().unwrap().span, initializer.span);
+        assert_eq!(texts(iterator.take(2).collect()), vec!["4", "baz"]);
+    }
 }

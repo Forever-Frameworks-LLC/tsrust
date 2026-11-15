@@ -5,6 +5,7 @@ export async function run(): Task<void> {
   const pool = new ThreadPool({
     workers: 1, capacity: 2
   });
+
   try {
     await pool.taskAsync((): int => {
       throw 'cause';

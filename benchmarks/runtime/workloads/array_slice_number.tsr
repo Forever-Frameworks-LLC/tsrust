@@ -5,9 +5,11 @@ function workload(n: int, seed: int): number[][] {
   const modes: int[] = [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
   const output: number[][] = [];
   let i = 0;
+
   while (i < n) {
     const query = (i * 13 + seed) % 16;
     const mode = modes[query];
+
     if (mode === 0) {
       output.push(values.slice());
     } else {

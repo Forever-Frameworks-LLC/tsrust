@@ -1,4 +1,20 @@
-import { Date, DateError, parseDate, formatDate, format, addDays, addMonths, differenceInCalendarDays, compareAsc, isLeapYear, getYear, getMonth, getDate, startOfMonth, endOfMonth } from 'std:date';
+import {
+  Date,
+  DateError,
+  parseDate,
+  formatDate,
+  format,
+  addDays,
+  addMonths,
+  differenceInCalendarDays,
+  compareAsc,
+  isLeapYear,
+  getYear,
+  getMonth,
+  getDate,
+  startOfMonth,
+  endOfMonth
+} from 'std:date';
 import { strictEqual } from 'std:testing';
 import { spawn } from 'std:threads';
 
@@ -42,6 +58,7 @@ function main() {
   strictEqual(formatDate(endOfMonth(due)), '2024-02-29');
   reject(parseDate('2023-02-29'));
   reject(addDays(unwrap(parseDate('9999-12-31')), 1));
+
   match (format(due, 'YYYY-MM-DD')) {
     Ok(_) => {
       throw 'unsupported pattern';

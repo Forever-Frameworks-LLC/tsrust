@@ -1,0 +1,826 @@
+import { toUtf8 } from 'std:bytes';
+import { get } from 'std:env';
+import { platform } from 'std:os';
+import { canonicalize, createTempDir, removeDirAll, writeTextFileAtomic } from 'std:fs';
+import { Channel } from 'std:futures';
+import { run, spawn } from 'std:process';
+import { strictEqual, test } from 'std:testing';
+
+import { decodeAdapterReply } from '../src/services/debug/protocol.tsr';
+import {
+  BreakpointBinding,
+  debugProcessId,
+  updateBreakpointBindings,
+  DebugCommand,
+  DebugOutput,
+  debugWorker,
+  debugAdapterCommand,
+  exitStatusText
+} from '../src/services/debug/session.tsr';
+import { readFrame, writeFrame } from '../src/services/lsp/transport.tsr';
+
+async function runDebugTarget(adapter: string, program: string): Task<void> {
+  const child = unwrap(spawn(adapter, [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
+  }));
+
+  try {
+    const writer = child.takeStdin();
+    const reader = child.takeStdout();
+
+    if (writer === undefined || reader === undefined) throw 'Missing adapter pipes.';
+    await writeFrame(writer, JSON.stringify({
+      seq: 1, type: 'request', command: 'initialize', arguments: {
+        clientID: 'tsrust-studio', adapterID: 'lldb', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true
+      }
+    }));
+    let launched = false;
+    let configured = false;
+    let thread = 0;
+    let initialAddress = '';
+    let steppedAddress = '';
+    let selectedFrame = 0;
+    let selectedLine = 0;
+    let stepAcknowledged = false;
+    let resumed = false;
+    let output = '';
+    let exited = false;
+    let terminated = false;
+
+    while (!launched || !configured || !stepAcknowledged || !resumed || !exited || !terminated) {
+      const frame = await readFrame(reader).timeout(10000);
+      const reply = decodeAdapterReply(frame);
+
+      if (reply.type === 'response') {
+        if (reply.success === false) {
+          if (reply.command !== 'evaluate' || reply.request_seq !== 14) throw reply.message ?? 'Debug request failed.';
+          strictEqual((reply.message ?? '').includes('studio_missing_watch'), true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 15, type: 'request', command: 'evaluate', arguments: {
+              expression: '$pc', context: 'watch', frameId: selectedFrame
+            }
+          }));
+        } else if (reply.command === 'initialize') {
+          strictEqual(reply.request_seq, 1);
+          strictEqual(reply.body?.supportsConfigurationDoneRequest, true);
+          strictEqual(reply.body?.supportsFunctionBreakpoints, true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 2, type: 'request', command: 'launch', arguments: {
+              program: clone(program)
+            }
+          }));
+        } else if (reply.command === 'launch') {
+          strictEqual(reply.request_seq, 2);
+          launched = true;
+        } else if (reply.command === 'setBreakpoints') {
+          strictEqual(reply.request_seq, 3);
+          const points = clone(reply.body?.breakpoints) ?? [];
+          strictEqual(points.length, 1);
+          strictEqual(points[0].verified, false);
+          strictEqual((points[0].id ?? 0) > 0, true);
+          await writeFrame(writer, '{"seq":4,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":"main"}]}}');
+        } else if (reply.command === 'setFunctionBreakpoints') {
+          strictEqual(reply.request_seq, 4);
+          const points = clone(reply.body?.breakpoints) ?? [];
+          strictEqual(points.length, 1);
+          strictEqual(points[0].verified, true);
+          await writeFrame(writer, '{"seq":5,"type":"request","command":"configurationDone","arguments":{}}');
+        } else if (reply.command === 'configurationDone') {
+          strictEqual(reply.request_seq, 5);
+          configured = true;
+        } else if (reply.command === 'threads') {
+          strictEqual(reply.request_seq, 6);
+          const threads = clone(reply.body?.threads) ?? [];
+          const selected = threads.find((entry) => entry.id === thread);
+
+          if (selected === undefined || selected.name === '') throw 'Stopped thread missing from adapter thread list.';
+          await writeFrame(writer, JSON.stringify({
+            seq: 7, type: 'request', command: 'stackTrace', arguments: {
+              threadId: selected.id
+            }
+          }));
+        } else if (reply.command === 'stackTrace') {
+          const frames = clone(reply.body?.stackFrames) ?? [];
+          strictEqual(frames.length > 0, true);
+          strictEqual(frames[0].name.includes('main'), true);
+          const address = clone(frames[0].instructionPointerReference) ?? '';
+          strictEqual(address !== '', true);
+
+          if (reply.request_seq === 7) {
+            initialAddress = clone(address);
+            await writeFrame(writer, JSON.stringify({
+              seq: 8, type: 'request', command: 'next', arguments: {
+                threadId: thread, granularity: 'instruction'
+              }
+            }));
+          } else {
+            strictEqual(reply.request_seq, 9);
+            strictEqual(address !== initialAddress, true);
+            steppedAddress = clone(address);
+            selectedFrame = frames[0].id;
+            selectedLine = frames[0].line;
+            const source = frames[0].source;
+
+            if (source === undefined || (source.sourceReference ?? 0) <= 0) throw 'Native entry frame has no adapter source reference.';
+            await writeFrame(writer, JSON.stringify({
+              seq: 10, type: 'request', command: 'source', arguments: {
+                source: clone(source), sourceReference: source.sourceReference
+              }
+            }));
+          }
+        } else if (reply.command === 'source') {
+          strictEqual(reply.request_seq, 10);
+          const content = reply.body?.content ?? '';
+          const lines = content.split('\n');
+          strictEqual(selectedLine > 0 && selectedLine <= lines.length, true);
+          strictEqual(lines[selectedLine - 1].trim() !== '', true);
+          await writeFrame(writer, JSON.stringify({
+            seq: 11, type: 'request', command: 'scopes', arguments: {
+              frameId: selectedFrame
+            }
+          }));
+        } else if (reply.command === 'scopes') {
+          strictEqual(reply.request_seq, 11);
+          const scopes = clone(reply.body?.scopes) ?? [];
+          const registers = scopes.find((scope) => scope.name === 'Registers');
+
+          if (registers === undefined || registers.variablesReference <= 0) throw 'Frame has no register scope.';
+          await writeFrame(writer, JSON.stringify({
+            seq: 12, type: 'request', command: 'variables', arguments: {
+              variablesReference: registers.variablesReference
+            }
+          }));
+        } else if (reply.command === 'variables') {
+          const variables = clone(reply.body?.variables) ?? [];
+
+          if (reply.request_seq === 12) {
+            const group = variables.find((item) => item.name === 'General Purpose Registers');
+
+            if (group === undefined || group.variablesReference <= 0) throw 'General purpose registers missing.';
+            await writeFrame(writer, JSON.stringify({
+              seq: 13, type: 'request', command: 'variables', arguments: {
+                variablesReference: group.variablesReference
+              }
+            }));
+          } else {
+            strictEqual(reply.request_seq, 13);
+            const pc = variables.find((item) => item.name === 'pc' || item.name === 'rip');
+
+            if (pc === undefined || pc.value === '') throw 'Program counter missing.';
+            strictEqual(parseInt(pc.value.split(' ')[0], 16), parseInt(steppedAddress, 16));
+            await writeFrame(writer, JSON.stringify({
+              seq: 14, type: 'request', command: 'evaluate', arguments: {
+                expression: 'studio_missing_watch', context: 'watch', frameId: selectedFrame
+              }
+            }));
+          }
+        } else if (reply.command === 'evaluate') {
+          strictEqual(reply.request_seq, 15);
+          const result = reply.body?.result ?? '';
+          strictEqual(parseInt(result.split(' ')[0], 16), parseInt(steppedAddress, 16));
+          await writeFrame(writer, JSON.stringify({
+            seq: 16, type: 'request', command: 'continue', arguments: {
+              threadId: thread
+            }
+          }));
+        } else if (reply.command === 'next') {
+          strictEqual(reply.request_seq, 8);
+          stepAcknowledged = true;
+        } else if (reply.command === 'continue') {
+          strictEqual(reply.request_seq, 16);
+          resumed = true;
+        }
+      } else if (reply.event === 'initialized') {
+        // Exercise an unresolved location even after Tsrust gains native line tables.
+        const path = program + '.missing-source.tsr';
+        await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(path) + '},"breakpoints":[{"line":2}]}}');
+      } else if (reply.event === 'stopped') {
+        const firstStop = initialAddress === '';
+        strictEqual(reply.body?.reason, firstStop ? 'breakpoint' : 'step');
+        const stoppedThread = reply.body?.threadId ?? 0;
+        strictEqual(stoppedThread > 0, true);
+
+        if (!firstStop) strictEqual(stoppedThread, thread);
+        thread = stoppedThread;
+
+        if (firstStop) {
+          await writeFrame(writer, '{"seq":6,"type":"request","command":"threads"}');
+        } else {
+          await writeFrame(writer, JSON.stringify({
+            seq: 9, type: 'request', command: 'stackTrace', arguments: {
+              threadId: thread
+            }
+          }));
+        }
+      } else if (reply.event === 'output' && reply.body?.category === 'stdout') {
+        output += reply.body?.output ?? '';
+      } else if (reply.event === 'exited') {
+        strictEqual(reply.body?.exitCode, 0);
+        exited = true;
+      } else if (reply.event === 'terminated') terminated = true;
+    }
+
+    strictEqual(output.trim(), 'Studio debugger fixture');
+  } finally {
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    unwrap(await child.wait());
+  }
+}
+
+async function consoleResult(output: ReadOnly<Channel<DebugOutput>>): Task<string> {
+  let text = '';
+
+  while (true) {
+    const update = await output.receive().timeout(10000);
+    text += update.text;
+
+    if (update.finished) return text;
+  }
+}
+
+test('LLDB steps a compiled Tsrust program, inspects frame registers and resumes', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-debug-target-'));
+
+  try {
+    const program = folder + '/debug-target';
+    const source = unwrap(canonicalize('tests/fixtures/debug-target.tsr'));
+    const compiler = unwrap(get('TSRUST')) ?? 'tsrust';
+    const build = unwrap(await run(clone(compiler), ['build', clone(source), '-o', clone(program)], {}));
+    strictEqual(build.status.success, true);
+    await runDebugTarget(await debugAdapterCommand(), clone(program)).timeout(30000);
+    const requests = new Channel<DebugCommand>(1);
+    const output = new Channel<DebugOutput>(16);
+    const commands = requests.sender();
+    const worker = debugWorker(clone(folder), requests, output.sender()).start();
+
+    try {
+      await commands.send({
+        action: 'launch', program: folder + '/missing'
+      });
+      const missing = await consoleResult(output);
+      strictEqual(missing.includes(folder + '/missing'), true);
+      const longTarget = folder + '/debug-running';
+      const longBuild = unwrap(await run(clone(compiler), ['build', 'tests/fixtures/debug-running.tsr', '-o', clone(longTarget)], {}));
+      strictEqual(longBuild.status.success, true);
+      const existing = unwrap(spawn(clone(longTarget), [], {
+        cwd: clone(folder), stdout: 'pipe'
+      }));
+
+      try {
+        const pid = existing.id();
+
+        if (pid === undefined) throw 'Missing fixture PID.';
+        await commands.send({
+          action: 'attach', processId: pid
+        });
+
+        while (true) {
+          const update = await output.receive().timeout(15000);
+
+          if (update.finished) throw 'Attach failed: ' + update.text;
+
+          if (update.stopped === true) break;
+        }
+
+        await commands.send({
+          action: 'stop'
+        });
+        const detached = await consoleResult(output);
+        strictEqual(detached.includes('Debugger detached.'), true);
+        strictEqual(unwrap(existing.tryWait()) === undefined, true);
+      } finally {
+        try {
+          unwrap(await existing.kill());
+        } catch (_) {}
+
+        unwrap(await existing.wait());
+      }
+
+      await commands.send({
+        action: 'launch', program: clone(longTarget), sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }]
+      });
+      let started = '';
+      let sourceMapWarning = false;
+
+      while (!started.includes('Running target ready')) {
+        const update = await output.receive().timeout(10000);
+        strictEqual(update.finished, false);
+
+        if (update.unresolvedBreakpoint !== undefined) {
+          strictEqual(update.unresolvedBreakpoint.path, clone(source));
+          strictEqual(update.unresolvedBreakpoint.line, 11);
+          strictEqual(update.unresolvedBreakpoint.reason, 'Source map unavailable');
+          sourceMapWarning = true;
+        }
+
+        started += update.text;
+      }
+
+      strictEqual(sourceMapWarning, true);
+      await commands.send({
+        action: 'pause'
+      });
+      let inspected = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        strictEqual(update.finished, false);
+        inspected += update.text;
+
+        if (update.stopped === true) break;
+      }
+
+      strictEqual(inspected.includes('#0 '), true);
+      await commands.send({
+        action: 'continue'
+      });
+      await commands.send({
+        action: 'stop'
+      });
+      const interrupted = await consoleResult(output);
+      strictEqual(interrupted.includes('Debug session stopped.'), true);
+      strictEqual(interrupted.includes('Running target completed'), false);
+      const marker = folder + '/studio-debug-mode';
+      unwrap(writeTextFileAtomic(marker, 'fail'));
+      const control = unwrap(await run(clone(program), [], {
+        cwd: clone(folder)
+      }));
+      strictEqual(control.status.success, false);
+      await commands.send({
+        action: 'launch', program: clone(program)
+      });
+      const failed = await consoleResult(output);
+      strictEqual(failed.includes('Requested fixture failure'), true);
+      strictEqual(failed.includes('\nExit code ' + (control.status.code ?? -1).toString() + '\n'), true);
+      unwrap(writeTextFileAtomic(marker, 'pass'));
+      await commands.send({
+        action: 'launch', program: clone(program), stopOnEntry: true, watch: 'studio_missing_watch'
+      });
+
+      let initialWatch = '';
+
+      for (const action of ['stop', 'next', 'continue']) {
+        let stopText = '';
+
+        while (true) {
+          const update = await output.receive().timeout(10000);
+
+          stopText += update.text;
+
+          if (update.finished) throw 'Target exited before the expected stop: ' + update.text;
+
+          if (update.stopped === true) {
+            if (action === 'stop') strictEqual((update.watchValue ?? '').includes('studio_missing_watch'), true);
+
+            if (action !== 'stop') {
+              const value = update.watchValue ?? '';
+              strictEqual(value.includes('0x'), true);
+
+              if (action === 'continue') strictEqual(initialWatch !== '' && initialWatch !== value, true);
+              initialWatch = value;
+            }
+
+            if (action === 'next') {
+              strictEqual(stopText.includes('Stopped: breakpoint'), true);
+              strictEqual(stopText.includes('#0 main'), true);
+            }
+
+            strictEqual(stopText.includes('\n#0 '), true);
+            strictEqual(stopText.includes('0x'), true);
+
+            if (action === 'continue') strictEqual(stopText.includes('Stopped: step'), true);
+            break;
+          }
+        }
+
+        await commands.send({
+          action: clone(action)
+        });
+
+        if (action === 'stop') {
+          const stopped = await consoleResult(output);
+          strictEqual(stopped.includes('Debug session stopped.'), true);
+          strictEqual(stopped.includes('Studio debugger fixture'), false);
+          await commands.send({
+            action: 'launch', program: clone(program), functionBreakpoint: ' main ', watch: '$pc'
+          });
+        }
+      }
+
+      const succeeded = await consoleResult(output);
+      strictEqual(succeeded.includes('Studio debugger fixture'), true);
+      strictEqual(succeeded.includes('\nExit code 0\n'), true);
+
+      const symbols = unwrap(await run(compiler, ['build', clone(source), '--debug', '-o', clone(program)], {}));
+      strictEqual(symbols.status.success, true);
+      await commands.send({
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 10
+        }]
+      });
+      const unresolved = await consoleResult(output);
+      strictEqual(unresolved.includes('No executable statement at ' + source + ':10\n'), true);
+      strictEqual(unresolved.includes('Exit code 0'), true);
+
+      const lines = new Set<int>();
+      await commands.send({
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 10
+        }, {
+          path: clone(source), line: 11
+        }, {
+          path: clone(source), line: 12
+        }]
+      });
+
+      let transcript = '';
+
+      while (true) {
+        const reply = await output.receive().timeout(10000);
+        transcript += reply.text;
+
+        if (reply.finished) break;
+
+        if (reply.stopped === true) {
+          const line = reply.location?.line ?? 0;
+          strictEqual(line === 11 || line === 12, true);
+          lines.add(line);
+          strictEqual(reply.text.includes(source + ':' + line.toString() + ':3'), true);
+          strictEqual(reply.location?.path, clone(source));
+          strictEqual(reply.location?.column, 3);
+          await commands.send({
+            action: 'continue'
+          });
+        }
+      }
+
+      strictEqual(transcript.includes('No executable statement at ' + source + ':10\n'), true);
+
+      if (lines.size !== 2) throw 'Missing mapped stop: ' + transcript;
+      strictEqual(transcript.includes('Exit code 0'), true);
+      await commands.send({
+        action: 'launch', program: clone(program), sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }]
+      });
+      let stepped = false;
+      let continued = false;
+      let stepOutput = '';
+
+      while (true) {
+        const reply = await output.receive().timeout(10000);
+        stepOutput += reply.text;
+
+        if (reply.finished) break;
+
+        if (reply.stopped !== true) continue;
+
+        if (!stepped) {
+          strictEqual(reply.location?.line, 11);
+          await commands.send({
+            action: 'stepOver'
+          });
+          stepped = true;
+        } else {
+          if (reply.location?.line !== 12) throw 'Unexpected source step: ' + reply.text;
+          strictEqual(reply.location?.path, clone(source));
+          strictEqual(reply.text.includes('Stopped: step'), true);
+          await commands.send({
+            action: 'continue'
+          });
+          continued = true;
+        }
+      }
+
+      await commands.send({
+        action: 'launch', program: clone(program), functionBreakpoint: 'twice', watch: 'n', sourceBreakpoints: [{
+          path: clone(source), line: 11
+        }]
+      });
+      let namedStops: int[] = [];
+      let namedText = '';
+
+      while (true) {
+        const update = await output.receive().timeout(10000);
+        namedText += update.text;
+
+        if (update.finished) break;
+
+        if (update.stopped !== true) continue;
+        namedStops.push(update.location?.line ?? 0);
+
+        if (update.location?.functionName === 'twice') strictEqual(update.watchValue, '6');
+        await commands.send({
+          action: 'continue'
+        });
+      }
+
+      strictEqual(JSON.stringify(namedStops), '[11,19]');
+      strictEqual(namedText.includes('Breakpoint verified: twice'), true);
+      strictEqual(namedText.includes('Exit code 0'), true);
+      strictEqual(continued && stepOutput.includes('Exit code 0'), true);
+      await commands.send({
+        action: 'launch', program: clone(program), watch: 'n', sourceBreakpoints: [{
+          path: clone(source), line: 13
+        }]
+      });
+
+      for (const action of ['stepIn', 'stepOut', 'continue']) {
+        while (true) {
+          const update = await output.receive().timeout(10000);
+
+          if (update.finished) throw 'Target exited before ' + action + ': ' + update.text;
+
+          if (update.stopped !== true) continue;
+          const line = update.location?.line ?? 0;
+
+          if (update.location?.path !== source || (action === 'stepIn' && line !== 13) || (action === 'stepOut' && line !== 19) || (action === 'continue' && line !== 13 && line !== 15)) throw 'Unexpected stop before ' + action + ': ' + update.text;
+
+          if (action === 'stepOut') {
+            strictEqual(update.watchValue, '6');
+            const frames = clone(update.frames) ?? [];
+            strictEqual(frames[0].location?.functionName, 'twice');
+            strictEqual(frames[1].location?.functionName, 'main');
+            strictEqual(update.text.includes('#0 twice  '), true);
+            strictEqual(frames[1].location?.line, 13);
+            await commands.send({
+              action: 'selectFrame', stopId: update.stopId, frameId: frames[1].id
+            });
+            const caller = await output.receive().timeout(10000);
+            strictEqual(caller.selectedFrame, frames[1].id);
+            strictEqual(caller.location?.line, 13);
+            strictEqual(caller.watchValue === '6', false);
+
+            const native = frames.find((entry) => entry.location === undefined);
+
+            if (native === undefined || native.name === '') throw 'Missing native stack frame.';
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: native.id
+            });
+            const inspected = await output.receive().timeout(10000);
+            strictEqual(inspected.selectedFrame, native.id);
+            strictEqual(inspected.location === undefined, true);
+            await commands.send({
+              action: 'setWatch', stopId: inspected.stopId, watch: '$pc'
+            });
+            const register = await output.receive().timeout(10000);
+            strictEqual(register.selectedFrame, native.id);
+            strictEqual((register.watchValue ?? '').includes('0x'), true);
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: frames[1].id
+            });
+            const returned = await output.receive().timeout(10000);
+            strictEqual(returned.location?.line, 13);
+
+            for (const expression of ['studio_unknown_local', '$pc', '', 'n']) {
+              await commands.send({
+                action: 'setWatch', stopId: caller.stopId, watch: clone(expression)
+              });
+              const evaluated = await output.receive().timeout(10000);
+              strictEqual(evaluated.stopped, true);
+              strictEqual(evaluated.watchExpression, clone(expression));
+              strictEqual(evaluated.selectedFrame, frames[1].id);
+              strictEqual(evaluated.location === undefined, true);
+              const value = evaluated.watchValue ?? '';
+
+              if (expression === 'studio_unknown_local') strictEqual(value.includes(expression), true);
+              else if (expression === '$pc') strictEqual(value.includes('0x'), true);
+              else if (expression === '') strictEqual(value, '');
+              else strictEqual(value === '6', false);
+            }
+
+            await commands.send({
+              action: 'selectFrame', stopId: caller.stopId, frameId: frames[0].id
+            });
+            const helper = await output.receive().timeout(10000);
+            strictEqual(helper.location?.line, 19);
+            strictEqual(helper.watchValue, '6');
+            strictEqual((clone(helper.locals) ?? []).includes('n = 6'), true);
+          }
+
+          await commands.send({
+            action: clone(action)
+          });
+          break;
+        }
+      }
+
+      strictEqual((await consoleResult(output)).includes('Exit code 0'), true);
+
+      await commands.send({
+        action: 'launch', program: clone(program), functionBreakpoint: 'twice'
+      });
+
+      while (true) {
+        const paused = await output.receive().timeout(10000);
+
+        if (paused.finished) throw 'Target exited before watch inspection.';
+
+        if (paused.stopped !== true) continue;
+        await commands.send({
+          action: 'setWatch', stopId: paused.stopId, watch: 'n'
+        });
+        await commands.send({
+          action: 'stop'
+        });
+        break;
+      }
+
+      const stoppedDuringWatch = await consoleResult(output);
+      strictEqual(stoppedDuringWatch.includes('Debug session stopped.'), true);
+      strictEqual(stoppedDuringWatch.includes('Exit code 0'), false);
+
+      if (platform() === 'darwin') {
+        unwrap(removeDirAll(program + '.dSYM'));
+        await commands.send({
+          action: 'launch', program: clone(program), sourceBreakpoints: [{
+            path: clone(source), line: 11
+          }]
+        });
+        let rejected = false;
+
+        while (true) {
+          const update = await output.receive().timeout(10000);
+
+          if (update.unresolvedBreakpoint !== undefined) {
+            strictEqual(update.unresolvedBreakpoint.path, clone(source));
+            strictEqual(update.unresolvedBreakpoint.line, 11);
+            strictEqual(update.unresolvedBreakpoint.reason, 'Breakpoint not verified');
+            rejected = true;
+          }
+
+          if (update.stopped === true) throw 'A target without line symbols unexpectedly bound the breakpoint.';
+
+          if (update.finished) break;
+        }
+
+        strictEqual(rejected, true);
+      }
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('an exited event without a status cannot report success', () => {
+  const event = decodeAdapterReply('{"type":"event","event":"exited","body":{}}');
+  strictEqual(exitStatusText(event.body?.exitCode), '\nExit status unavailable.\n');
+});
+
+test('debug adapter errors identify the command and adapter explanation', () => {
+  const reply = decodeAdapterReply('{"type":"response","request_seq":2,"command":"launch","success":false,"body":{"error":{"format":"Executable missing"}}}');
+  strictEqual(reply.success, false);
+  strictEqual(reply.request_seq, 2);
+  strictEqual(reply.message, 'launch: Executable missing');
+});
+
+test('adapter selection honors explicit paths and discovers the active Apple toolchain', async () => {
+  strictEqual(await debugAdapterCommand('custom adapter'), 'custom adapter');
+  const override = unwrap(get('LLDB_DAP')) ?? '';
+  let expected = 'lldb-dap';
+
+  if (override !== '') expected = override;
+  else if (platform() === 'darwin') {
+    match (await run('/usr/bin/xcrun', ['--find', 'lldb-dap'])) {
+      Ok(result) => {
+        if (result.status.success) expected = unwrap(toUtf8(result.stdout)).trim();
+      },
+      Err(_) => {}
+    }
+  }
+
+  strictEqual(await debugAdapterCommand(), expected);
+});
+
+test('missing debug adapter reports the configured path and setup action', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-missing-adapter-'));
+  const commands = new Channel<DebugCommand>(1);
+  const sender = commands.sender();
+  const output = new Channel<DebugOutput>(1);
+  const adapter = folder + '/missing lldb-dap';
+  const worker = debugWorker(clone(folder), commands, output.sender(), clone(adapter)).start();
+
+  try {
+    await sender.send({
+      action: 'launch', program: folder + '/target'
+    });
+    const failure = await output.receive().timeout(10000);
+    strictEqual(failure.finished, true);
+    strictEqual(failure.text.includes(adapter), true);
+    strictEqual(failure.text.includes('set LLDB_DAP'), true);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('real adapter rejects a missing executable before the session runs', async () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-debug-missing-'));
+
+  try {
+    let failure = '';
+
+    try {
+      await runDebugTarget(await debugAdapterCommand(), folder + '/missing').timeout(30000);
+    } catch (error) {
+      failure = JSON.stringify(error);
+    }
+
+    strictEqual(failure.includes('"cause":"launch: '), true);
+    strictEqual(failure.includes(folder + '/missing'), true);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('adapter extension bodies cannot break unrelated debugger events or acknowledgements', () => {
+  const custom = decodeAdapterReply('{"type":"event","event":"adapterTelemetry","body":{"variables":"custom representation"}}');
+  strictEqual(custom.event, 'adapterTelemetry');
+  const response = decodeAdapterReply('{"type":"response","command":"customCommand","request_seq":17,"success":true,"body":[1,2]}');
+  strictEqual(response.request_seq, 17);
+  let rejected = false;
+
+  try {
+    decodeAdapterReply('{"type":"response","command":"launch","request_seq":17}');
+  } catch (_) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+test('stack frames preserve file ranges, adapter source handles and unavailable locations', () => {
+  const reply = decodeAdapterReply('{"type":"response","request_seq":4,"command":"stackTrace","success":true,"body":{"stackFrames":[' + '{"id":1,"name":"start","source":{"name":"main.tsr","path":"/workspace/main.tsr"},"line":8,"column":3,"endLine":8,"endColumn":12},' + '{"id":2,"name":"generated","source":{"name":"generated.rs","sourceReference":17},"line":20,"column":1},' + '{"id":3,"name":"runtime","line":0,"column":0}]}}');
+  const frames = clone(reply.body?.stackFrames) ?? [];
+  strictEqual(frames.length, 3);
+  strictEqual(frames[0].source?.path, '/workspace/main.tsr');
+  strictEqual(frames[0].line, 8);
+  strictEqual(frames[0].column, 3);
+  strictEqual(frames[0].endColumn, 12);
+  strictEqual(frames[1].source?.sourceReference, 17);
+  strictEqual(frames[1].source?.path, undefined);
+  strictEqual(frames[2].source === undefined, true);
+  strictEqual(frames[2].line, 0);
+});
+
+test('breakpoint change events retain adapter identity, resolved range and explanation', () => {
+  const event = decodeAdapterReply('{"type":"event","event":"breakpoint","body":{"reason":"changed","breakpoint":{"id":4,"verified":true,"message":"resolved","source":{"path":"/workspace/test.tsr"},"line":9,"column":3,"endLine":9,"endColumn":8}}}');
+  const point = event.body?.breakpoint;
+
+  if (point === undefined) throw 'Missing updated breakpoint.';
+  strictEqual(event.body?.reason, 'changed');
+  strictEqual(point.id, 4);
+  strictEqual(point.verified, true);
+  strictEqual(point.message, 'resolved');
+  strictEqual(point.source?.path, '/workspace/test.tsr');
+  strictEqual(point.line, 9);
+  strictEqual(point.column, 3);
+  strictEqual(point.endColumn, 8);
+});
+
+test('breakpoint changes reconcile original lines across multiple generated bindings', () => {
+  const bindings: BreakpointBinding[] = [{
+    owner: 0, id: 3, verified: false
+  }, {
+    owner: 0, id: 4, verified: true
+  }, {
+    owner: 1, id: 3, verified: false
+  }];
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: true
+  }, 'changed')), '[1]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: false
+  }, 'removed')), '[1]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 3, verified: true
+  }, 'changed')), '[]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 4, verified: false
+  }, 'changed')), '[0]');
+  strictEqual(JSON.stringify(updateBreakpointBindings(bindings, {
+    id: 4, verified: true
+  }, 'changed')), '[0]');
+});
+
+test('debugger accepts positive decimal process IDs within the native PID range', () => {
+  strictEqual(debugProcessId(' 123 '), 123);
+
+  for (const value of ['', '0', '-1', '1.5', '1e3', '0x10', '2147483648']) strictEqual(debugProcessId(value), 0);
+});

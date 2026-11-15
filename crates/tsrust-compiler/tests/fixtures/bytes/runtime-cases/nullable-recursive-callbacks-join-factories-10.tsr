@@ -1,4 +1,11 @@
-import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  alloc,
+  view,
+  length,
+  at
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {
@@ -68,6 +75,7 @@ export function run() {
   const childResult = child.read!();
   strictEqual(length(childResult), 2);
   const result = holder.read!();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);
@@ -81,6 +89,7 @@ export function run() {
   const captured = read(first);
   filled.read = () => captured;
   const replacement = filled.read!();
+
   match (at(replacement, 0)) {
     Ok(value) => {
       strictEqual(value, 3);

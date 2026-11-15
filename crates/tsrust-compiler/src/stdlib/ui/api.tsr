@@ -1,6 +1,56 @@
 import { setTranslations as nativeSetTranslations, setLocale as nativeSetLocale, locale as nativeLocale, translate as nativeTranslate, translation as nativeTranslation } from 'std:ui-runtime';
-import { command as nativeCommand, commandReply as nativeCommandReply, openWindow as nativeOpenWindow, appearance as nativeAppearance, appInfo as nativeAppInfo } from 'std:ui-runtime';
-import { useId as nativeUseId, svg as nativeSvg, path as nativePath, bindPath as nativeBindPath, validateRoot as nativeValidateRoot, bindClass as nativeBindClass, bindVariant as nativeBindVariant, Computed as NativeComputed, computed as nativeComputed, route as nativeRoute, visibility as nativeVisibility, copyButton as nativeCopyButton, location as nativeLocation, createLocation as nativeCreateLocation, routeParam as nativeRouteParam, navigate as nativeNavigate, traverse as nativeTraverse, link as nativeLink, themeMode as nativeThemeMode, bindHidden as nativeBindHidden, branch as nativeBranch, each as nativeEach, TextBinding as NativeTextBinding, bindText as nativeBindText, input as nativeInput, inputChange as nativeInputChange, bindReadOnly as nativeBindReadOnly, bindSemantics as nativeBindSemantics, semantics as nativeSemantics, bindDisabled as nativeBindDisabled, theme as nativeTheme, Signal as NativeSignal, signal as nativeSignal, ownState as nativeOwnState, button as nativeButton, Node as NativeNode, UiError as NativeUiError, text, view, staticButton, document as nativeDocument, run as nativeRun } from 'std:ui-runtime';
+import {
+  command as nativeCommand,
+  commandReply as nativeCommandReply,
+  openWindow as nativeOpenWindow,
+  appearance as nativeAppearance,
+  appInfo as nativeAppInfo,
+  completionProposal as nativeCompletionProposal
+} from 'std:ui-runtime';
+import {
+  useId as nativeUseId,
+  svg as nativeSvg,
+  path as nativePath,
+  bindPath as nativeBindPath,
+  validateRoot as nativeValidateRoot,
+  bindClass as nativeBindClass,
+  bindVariant as nativeBindVariant,
+  Computed as NativeComputed,
+  computed as nativeComputed,
+  route as nativeRoute,
+  visibility as nativeVisibility,
+  copyButton as nativeCopyButton,
+  location as nativeLocation,
+  createLocation as nativeCreateLocation,
+  routeParam as nativeRouteParam,
+  navigate as nativeNavigate,
+  traverse as nativeTraverse,
+  link as nativeLink,
+  themeMode as nativeThemeMode,
+  bindHidden as nativeBindHidden,
+  branch as nativeBranch,
+  each as nativeEach,
+  TextBinding as NativeTextBinding,
+  bindText as nativeBindText,
+  input as nativeInput,
+  inputChange as nativeInputChange,
+  bindReadOnly as nativeBindReadOnly,
+  bindSemantics as nativeBindSemantics,
+  semantics as nativeSemantics,
+  bindDisabled as nativeBindDisabled,
+  theme as nativeTheme,
+  Signal as NativeSignal,
+  signal as nativeSignal,
+  ownState as nativeOwnState,
+  button as nativeButton,
+  Node as NativeNode,
+  UiError as NativeUiError,
+  text,
+  view,
+  staticButton,
+  document as nativeDocument,
+  run as nativeRun
+} from 'std:ui-runtime';
 
 /** An owned UI subtree. Moving a Node transfers all descendants. Nodes cannot be cloned or sent to workers. */
 export type Node = NativeNode;
@@ -25,7 +75,7 @@ export function useId(): string {
 
 /** Shared element identity and accessible naming. Attributes are escaped in HTML and applied to the same native subtree. */
 interface ElementMetadata<Variant> {
-  /** A document ID without ASCII whitespace/control characters. Defaults to no ID. */
+  /** A document ID without ASCII whitespace/control characters. Defaults to no ID. In a reactive child list, distinct nonempty row IDs preserve unchanged row state across moves/removal of siblings; unlabelled rows retain by position. */
   id?: string;
   /** Live accessible name for buttons, headings, named sections or supported named roles. Generic text/containers, paragraphs, code and presentation cannot be named. */
   'aria-label'?: ReactiveValue<string | undefined>;
@@ -119,6 +169,7 @@ export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>
   checkSvgPaint(props.strokeWidth, props.strokeMiterlimit);
   const width: number = props.width ?? 24;
   const height: number = props.height ?? 24;
+
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
     throw 'SVG width/height must be finite and nonnegative';
   }
@@ -127,7 +178,19 @@ export function Svg(props: SvgProps<ReactiveValue<string>, ReactiveValue<string>
   const variant = props['data-variant'];
   const label = props['aria-label'] ?? '';
   const hidden = props['aria-hidden'];
-  const metadata = semanticConfig('svg', String(props.role ?? ''), label, props.id ?? '', hidden, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    'svg',
+    String(props.role ?? ''),
+    label,
+    props.id ?? '',
+    hidden,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: SvgOptions = {
     viewBox: props.viewBox ?? '0 0 24 24', width, height, preserveAspectRatio: props.preserveAspectRatio ?? 'xMidYMid meet', paint: {
       fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
@@ -142,7 +205,19 @@ export function Path(props: PathProps<ReactiveValue<string>, ReactiveValue<strin
   const data = props.d;
   const className = props.className;
   const variant = props['data-variant'];
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: SvgPaintProps = {
     fill: props.fill, stroke: props.stroke, strokeWidth: props.strokeWidth, strokeLinecap: props.strokeLinecap, strokeLinejoin: props.strokeLinejoin, strokeMiterlimit: props.strokeMiterlimit, fillRule: props.fillRule
   };
@@ -210,7 +285,7 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   className?: Classes;
   disabled?: boolean | ReactiveBoolean;
   onPress?: Owned<Function<void>>;
-  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Applies to unclassed buttons. */
+  /** GPUI Kit look: default (neutral, when omitted), primary, secondary, danger, warning, success, info, ghost, link or text. Typography and shrink utilities retain this presentation. Surface/layout utilities author a custom button. */
   variant?: 'default' | 'primary' | 'secondary' | 'danger' | 'warning' | 'success' | 'info' | 'ghost' | 'link' | 'text';
   /** xsmall, small, medium (default) or large. */
   size?: 'xsmall' | 'small' | 'medium' | 'large';
@@ -226,8 +301,8 @@ interface ButtonProperties<Classes, Variant> extends ElementProps<Variant> {
   selected?: ReactiveValue<boolean>;
   /** Adds a dropdown caret after the label. */
   caret?: boolean;
-  /** Tooltip shown on hover. */
-  tooltip?: string;
+  /** Constant or live tooltip text shown on hover. Omitted or empty text hides the tooltip. */
+  tooltip?: ReactiveValue<string> | TextBinding;
   /** A Shortcut command whose keys the tooltip shows, such as save. */
   tooltipCommand?: string;
   /** Side the tooltip opens on. Defaults to top. */
@@ -296,8 +371,8 @@ interface TextFieldProperties<Classes, Variant> extends ElementProps<Variant> {
   value?: InputValue;
   /** Initial uncontrolled value only; an explicit value takes precedence, including the empty string and zero. */
   defaultValue?: string | int | number;
-  /** Hint shown when empty. A visible Label or aria-label should provide the accessible name. */
-  placeholder?: string;
+  /** Constant or live hint shown when empty. Changing it preserves field contents and selection. A visible Label or aria-label should provide the accessible name. */
+  placeholder?: ReactiveValue<string> | TextBinding;
   /** Disabled fields cannot edit or receive focus. State-reading TSRX conditions refresh after handlers. */
   disabled?: boolean | ReactiveBoolean;
   /** Read-only fields retain selection/focus but cannot change text. State-reading TSRX conditions refresh after handlers. */
@@ -457,7 +532,8 @@ export function Input(props: InputProps<ReactiveValue<string>, ReactiveValue<str
   const prefix = props.prefix !== undefined ? clone(props.prefix) : undefined;
   const suffix = props.suffix !== undefined ? clone(props.suffix) : undefined;
   const selected = props.selected;
-  let node = <TextField {...props} multiline={false}/>;
+  let node = <TextField {...props} multiline={false} />;
+
   if (validate !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'validate', validate));
   }
@@ -482,7 +558,7 @@ export function Textarea(props: TextareaProps<ReactiveValue<string>, ReactiveVal
   const wrappingIndent = props.wrappingIndent !== undefined ? clone(props.wrappingIndent) : undefined;
   const tabSize = props.tabSize;
   const hardTabs = props.hardTabs;
-  let node = <TextField {...props} multiline={true}/>;
+  let node = <TextField {...props} multiline={true} />;
   node = fieldNumber(node, 'rows', rows);
   node = fieldNumber(node, 'minRows', minRows);
   node = fieldNumber(node, 'maxRows', maxRows);
@@ -510,12 +586,84 @@ export interface InputActionOptions {
   end?: int;
 }
 
-/** Runs an action on the Input, Textarea or CodeEditor whose id matches, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. CodeEditor rejects insertToken; use Input or Textarea for inline tokens. */
+/** Runs an action on the Input, Textarea or CodeEditor whose id matches, or a Command's inputId, on the next frame. insert and replace edit at the cursor or selection; setValue replaces all text; search actions need searchable. Example: controlInput('name', 'focus'). Unknown ids do nothing. CodeEditor rejects insertToken; use Input or Textarea for inline tokens. */
 export function controlInput(id: string, action: InputAction, options?: InputActionOptions): void {
   const extra = options ?? {};
   unwrap(nativeCommand('input', JSON.stringify({
     id: id, action: `${action}`, value: extra.value ?? '', label: extra.label ?? '', start: extra.start ?? 0, end: extra.end ?? 0
   })));
+}
+
+/** Native terminal commands. close force-terminates the foreground job and shell; hiding the node keeps them alive. */
+export type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'copy-output' | 'scroll' | 'close' | 'restart' | 'select';
+
+/** A command for the explicitly named terminal session. */
+export interface TerminalRequest {
+  /** Expected snapshot generation; omission targets the current mounted session. Agents must supply the generation they observed. */
+  expectedGeneration?: int;
+  action: TerminalAction;
+  /** UTF-8 input for write or clipboard-style text for paste, at most 1 MiB after encoding. Neither action adds Enter. */
+  text?: string;
+  /** Signed 32-bit scrollback line delta; positive moves upward. Used by scroll only. */
+  lines?: int;
+  /** Inclusive viewport cell range [startRow, startColumn, endRow, endColumn], zero based; used by select. */
+  selection?: int[];
+}
+
+/** A command's asynchronous outcome. An unknown/unmounted session reports ok=false and an error. */
+export interface TerminalCommandResult {
+  ok: boolean;
+  error?: string;
+}
+
+/** A bounded snapshot of the visible terminal grid, not the entire history. */
+export interface TerminalSnapshot {
+  generation?: int;
+  found: boolean;
+  directory?: string;
+  title?: string;
+  exited?: boolean;
+  exitCode?: int | null;
+  error?: string;
+  text?: string;
+  selectedText?: string;
+  columns?: int;
+  rows?: int;
+  scrollOffset?: int;
+  focused?: boolean;
+}
+
+/** Queues a native terminal action in this window and reports its outcome on the next frame. Example: controlTerminal('shell', {action: 'interrupt'}, (result) => { if (!result.ok) console.error(result.error ?? 'Terminal action failed'); }). write/paste can execute shell commands when their text contains Enter; callers must enforce actor grants and isolation. close is forceful, not a request for a program to save. */
+export function controlTerminal(id: string, request: TerminalRequest, onResult: Owned<Function<void, [result: ReadOnly<TerminalCommandResult>]>>): void {
+  unwrap(nativeCommandReply('terminal', JSON.stringify({
+    id: id, expectedGeneration: request.expectedGeneration ?? 0, action: `${request.action}`, text: request.text ?? '', lines: request.lines ?? 0, selection: request.selection ?? []
+  }), (text: ReadOnly<string>): void => {
+    onResult(JSON.parse<TerminalCommandResult>(text));
+  }));
+}
+
+/** Reads the native session addressed by id on the next frame. Example: readTerminal('shell', (snapshot) => { output.set(snapshot.text ?? ''); }). found=false means no matching session has mounted. The visible grid, selection and status are copied; reading does not focus, scroll or send input. */
+export function readTerminal(id: string, onRead: Owned<Function<void, [snapshot: ReadOnly<TerminalSnapshot>]>>): void {
+  unwrap(nativeCommandReply('read-terminal', JSON.stringify({
+    id: id
+  }), (text: ReadOnly<string>): void => {
+    onRead(JSON.parse<TerminalSnapshot>(text));
+  }));
+}
+
+/** Result of delivering a language response to its native request. */
+export interface EditorLanguageDelivery {
+  /** False if the request expired, was cancelled, belongs to another window, or its text changed. */
+  accepted: boolean;
+}
+
+/** Replies to a CodeEditor onLanguageRequest in the current window. result is the JSON-encoded LSP hover or completion result, or 'null' to dismiss. Example: answerEditorLanguage(request.id, 'null', (_delivery) => {}); This only supplies native help; it never edits a document. Stale/cancelled requests are ignored. Ownership: result is copied; onResult runs once on delivery. */
+export function answerEditorLanguage(request: int, result: string, onResult: Owned<Function<void, [delivery: ReadOnly<EditorLanguageDelivery>]>>): void {
+  unwrap(nativeCommandReply('editor-language-reply', JSON.stringify({
+    request, result
+  }), (text: ReadOnly<string>): void => {
+    onResult(JSON.parse<EditorLanguageDelivery>(text));
+  }));
 }
 
 /** A field's text, selection and scroll position, read by readInput. */
@@ -548,7 +696,7 @@ export interface InputSnapshot {
   language?: string;
 }
 
-/** Reads the Input, Textarea or CodeEditor whose id matches on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). CodeEditor also reports its language. */
+/** Reads the Input, Textarea or CodeEditor whose id matches, or a Command's inputId, on the next frame, then calls onRead. Example: readInput('notes', (field) => { selection.set(field.selectedText ?? ''); }). CodeEditor also reports its language. */
 export function readInput(id: string, onRead: Owned<Function<void, [field: ReadOnly<InputSnapshot>]>>): void {
   unwrap(nativeCommandReply('read-input', JSON.stringify({
     id: id
@@ -596,14 +744,32 @@ function TextField(props: TextFieldOptions): Node {
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', clone(id), props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    clone(id),
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const options: InputOptions = {
-    placeholder: props.placeholder ?? '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
+    placeholder: '', disabled: typeof disabled === 'boolean' ? disabled : false, readOnly: typeof readOnly === 'boolean' ? readOnly : false, multiline: props.multiline, required: props.required ?? false, name: clone(name), autoComplete: props.autoComplete ?? '', type: 'text'
   };
   const config = JSON.stringify(options);
   const handler = props.onChange;
   const created = handler !== undefined ? unwrapNode(nativeInputChange(props.value, props.defaultValue, config, classes, handler)) : unwrapNode(nativeInput(props.value, props.defaultValue, config, classes));
   let node = applyProperties(inputFlags(created, disabled, readOnly), metadata, className, variant);
+  const placeholder = props.placeholder;
+
+  if (placeholder !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'placeholder', placeholder));
+  }
+
   const size = props.size;
   const role = props.role;
   const height = props.height;
@@ -634,31 +800,37 @@ function TextField(props: TextFieldOptions): Node {
   node = fieldOption(node, 'autoCapitalize', autoCapitalize === undefined ? undefined : `${autoCapitalize}`);
   node = options.autoComplete === '' ? node : fieldOption(node, 'autoComplete', clone(options.autoComplete));
   const paste = props.onPaste;
+
   if (paste !== undefined) {
     node = unwrapNode(nativeKitPredicate(node, 'paste', paste));
   }
 
   const onFocus = props.onFocus;
+
   if (onFocus !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));
   }
 
   const onBlur = props.onBlur;
+
   if (onBlur !== undefined) {
     node = unwrapNode(nativeKitOnVoid(node, 'blur', onBlur));
   }
 
   const onSubmit = props.onSubmit;
+
   if (onSubmit !== undefined) {
     node = unwrapNode(nativeKitOnBoolean(node, 'submit', onSubmit));
   }
 
   const onTokenClick = props.onTokenClick;
+
   if (onTokenClick !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'tokenClick', onTokenClick));
   }
 
   const onTokenHover = props.onTokenHover;
+
   if (onTokenHover !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'tokenHover', onTokenHover));
   }
@@ -680,7 +852,19 @@ export function CopyButton(props: CopyButtonProps<ReactiveValue<string>, Reactiv
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   return applyProperties(unwrapNode(nativeCopyButton(props.value, classes)), metadata, className, variant);
 }
 
@@ -692,8 +876,21 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
   const muted = tone === 'secondary' || tone === 'muted';
   const given: string = typeof className === 'string' ? clone(className) : '';
   const classes = muted ? `text-muted-foreground ${given}` : given;
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    String(props.as ?? ''),
+    String(props.role ?? ''),
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    String(props['aria-orientation'] ?? ''),
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   const result = text(props.children ?? [], classes);
+
   match (result) {
     Ok(value) => {
       const toned = muted ? unwrapNode(nativeKitSet(value, 'variant', 'secondary')) : value;
@@ -708,21 +905,46 @@ export function Text(props: TextProps<ReactiveValue<string>, ReactiveValue<strin
 export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
   props.render = undefined;
+
   if (Render !== undefined) {
-    return <Render {...props}/>;
+    return (
+      <Render {...props} />
+    );
   }
 
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig(String(props.as ?? ''), String(props.role ?? ''), props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', String(props['aria-orientation'] ?? ''), props['aria-describedby'] ?? '', props['aria-invalid'], props.htmlFor ?? '', props.windowDragRegion ?? false, props.tabIndex, undefined, undefined, props['data-state'], props.colSpan, String(props.scope ?? ''));
+  const metadata = semanticConfig(
+    String(props.as ?? ''),
+    String(props.role ?? ''),
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    String(props['aria-orientation'] ?? ''),
+    props['aria-describedby'] ?? '',
+    props['aria-invalid'],
+    props.htmlFor ?? '',
+    props.windowDragRegion ?? false,
+    props.tabIndex,
+    undefined,
+    undefined,
+    props['data-state'],
+    props.colSpan,
+    String(props.scope ?? '')
+  );
   const result = view(props.children ?? [], classes);
+
   match (result) {
     Ok(value) => {
       const decorated = applyProperties(value, metadata, className, variant);
       const observer = props.onVisibilityChange;
       const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
       const hidden = props.hidden;
+
       if (hidden === undefined) {
         return node;
       }
@@ -743,19 +965,47 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
 export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
   props.render = undefined;
+
   if (Render !== undefined) {
-    return <Render {...props}/>;
+    return (
+      <Render {...props} />
+    );
   }
 
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid'], '', false, undefined, props['aria-expanded'], props['aria-controls']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid'],
+    '',
+    false,
+    undefined,
+    props['aria-expanded'],
+    props['aria-controls']
+  );
   const children = props.children ?? [];
   const handler = props.onPress;
   const disabled = props.disabled;
-  const options = buttonOptions(props.variant, props.size, props.icon, props.outline ?? false, props.compact ?? false, props.caret ?? false, props.tooltip ?? '');
+  const options = buttonOptions(
+    props.variant,
+    props.size,
+    props.icon,
+    props.outline ?? false,
+    props.compact ?? false,
+    props.caret ?? false
+  );
   const extra: [string, string][] = [];
+
   if (props.tooltipCommand !== undefined) {
     extra.push(['tooltipCommand', clone(props.tooltipCommand)]);
   }
@@ -808,12 +1058,14 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
     extra.push(['activeColor', clone(props.activeColor)]);
   }
 
+  const tooltip = props.tooltip;
   const progress = props.progress;
   const toggled = props.toggled;
   const onHover = props.onHover;
   const loading = props.loading;
   const selected = props.selected;
   let node: Node;
+
   if (disabled !== undefined && typeof disabled !== 'boolean') {
     if (handler === undefined) {
       node = applyProperties(unwrapNode(nativeBindDisabled(unwrapNode(staticButton(children, classes, false)), disabled.evaluate)), metadata, className, variant);
@@ -842,6 +1094,10 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
     node = unwrapNode(nativeKitSet(node, name, value));
   }
 
+  if (tooltip !== undefined) {
+    node = unwrapNode(nativeKitValue(node, 'tooltip', tooltip));
+  }
+
   if (progress !== undefined) {
     node = kitNumber(node, 'progress', progress);
   }
@@ -858,8 +1114,16 @@ export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<s
 }
 
 /** Kit button options that are set, as name/value pairs. */
-function buttonOptions(variant: string | undefined, size: string | undefined, icon: string | undefined, outline: boolean, compact: boolean, caret: boolean, tooltip: string): [string, string][] {
+function buttonOptions(
+  variant: string | undefined,
+  size: string | undefined,
+  icon: string | undefined,
+  outline: boolean,
+  compact: boolean,
+  caret: boolean
+): [string, string][] {
   const options: [string, string][] = [];
+
   if (variant !== undefined) {
     options.push(['variant', variant]);
   }
@@ -884,9 +1148,6 @@ function buttonOptions(variant: string | undefined, size: string | undefined, ic
     options.push(['caret', 'true']);
   }
 
-  if (tooltip !== '') {
-    options.push(['tooltip', tooltip]);
-  }
 
   return options;
 }
@@ -907,9 +1168,22 @@ export function Link(props: LinkProps<ReactiveValue<string>, ReactiveValue<strin
   const className = props.className;
   const variant = props['data-variant'];
   const classes = typeof className === 'string' ? clone(className) : '';
-  const metadata = semanticConfig('', '', props['aria-label'] ?? '', props.id ?? '', props['aria-hidden'] ?? false, props['data-slot'] ?? '', props['data-size'] ?? '', typeof variant === 'string' ? clone(variant) : '', '', props['aria-describedby'] ?? '', props['aria-invalid']);
+  const metadata = semanticConfig(
+    '',
+    '',
+    props['aria-label'] ?? '',
+    props.id ?? '',
+    props['aria-hidden'] ?? false,
+    props['data-slot'] ?? '',
+    props['data-size'] ?? '',
+    typeof variant === 'string' ? clone(variant) : '',
+    '',
+    props['aria-describedby'] ?? '',
+    props['aria-invalid']
+  );
   let node = unwrapNode(nativeLink(props.children ?? [], classes, props.href));
   const disabled = props.disabled;
+
   if (disabled !== undefined) {
     if (typeof disabled === 'boolean') {
       const fixed = disabled;
@@ -983,6 +1257,8 @@ export interface WindowOptions {
   minHeight?: number;
   /** Native by default. Custom currently requires macOS and keeps traffic-light controls over content. Reserve header space and mark drag surfaces with View.windowDragRegion. Creation-time only. */
   titlebar?: 'native' | 'custom';
+  /** In run on macOS, open each requested local folder in its own workspace process with its canonical path as the first argument. Pair with package.opensFolders for Finder discovery. */
+  opensFolders?: boolean;
   /** Font files (.ttf or .otf) loaded before the window opens, so their families can be used. */
   fonts?: string[];
   /** Default font family for the whole window, such as a family loaded through fonts. */
@@ -994,7 +1270,7 @@ export function run(node: Node, title: string, options?: WindowOptions): Result<
   return nativeRun(node, title, JSON.stringify(options ?? {}));
 }
 
-/** Component-owned scalar state. Returning its UI subtree transfers this owner automatically. */
+/** Component-owned data snapshots. Scalars, nullable values, arrays and plain records are supported; resources and callbacks are rejected. get and set copy independent snapshots. handle() creates an independently owned weak view of the same state without keeping its owner alive. Returning the UI subtree transfers this owner automatically. */
 export type Signal<T = int> = NativeSignal<T>;
 
 export function signal<T>(initial: T): Signal<T> {
@@ -1068,6 +1344,7 @@ export interface ThemeConfig {
 /** Applies checked project tokens to this subtree. Mode defaults to light. A string Signal switches palettes after handlers without remounting children. */
 export function withTheme<T>(node: Node, value: ReadOnly<T>, mode?: string | Signal<string>): Node {
   const config = JSON.stringify(value);
+
   if (mode === undefined) {
     return unwrap(nativeTheme(node, config, 'light'));
   }
@@ -1180,7 +1457,16 @@ function semanticBoolean(value: Mutable<ReactiveValue<boolean | undefined> | und
   return value.evaluate();
 }
 
-function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<ReactiveValue<string | undefined> | undefined>, hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>, describedBy: Mutable<ReactiveValue<string | undefined> | undefined>, invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>, expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>, controls: Mutable<ReactiveValue<string | undefined> | undefined>, state: Mutable<ReactiveValue<string | undefined> | undefined>): string {
+function semanticSnapshot(
+  config: ReadOnly<SemanticConfig>,
+  label: Mutable<ReactiveValue<string | undefined> | undefined>,
+  hidden: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  describedBy: Mutable<ReactiveValue<string | undefined> | undefined>,
+  invalid: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  expanded: Mutable<ReactiveValue<boolean | undefined> | undefined>,
+  controls: Mutable<ReactiveValue<string | undefined> | undefined>,
+  state: Mutable<ReactiveValue<string | undefined> | undefined>
+): string {
   const next = clone(config);
   next.label = semanticString(label);
   const hiddenValue = semanticBoolean(hidden);
@@ -1192,6 +1478,7 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   next.expanded = expandedValue === undefined ? '' : String(expandedValue);
   next.controls = semanticString(controls);
   next.state = semanticString(state);
+
   if (config.tag === 'svg' && config.role === '') {
     next.role = next.label === '' ? 'presentation' : 'img';
   }
@@ -1199,10 +1486,31 @@ function semanticSnapshot(config: ReadOnly<SemanticConfig>, label: Mutable<React
   return JSON.stringify(next);
 }
 
-function semanticConfig(tag: string, role: string, label: ReactiveValue<string | undefined> | undefined, id: string, hidden: ReactiveValue<boolean | undefined> | undefined, slot: string, size: string, variant: string, orientation: string, describedBy: ReactiveValue<string | undefined> | undefined = '', invalid: ReactiveValue<boolean | undefined> | undefined = undefined, htmlFor: string = '', windowDragRegion: boolean = false, tabIndex?: int, expanded?: ReactiveValue<boolean | undefined>, controls?: ReactiveValue<string | undefined>, state?: ReactiveValue<string | undefined>, colSpan?: int, scope: string = ''): ReactiveValue<string> {
+function semanticConfig(
+  tag: string,
+  role: string,
+  label: ReactiveValue<string | undefined> | undefined,
+  id: string,
+  hidden: ReactiveValue<boolean | undefined> | undefined,
+  slot: string,
+  size: string,
+  variant: string,
+  orientation: string,
+  describedBy: ReactiveValue<string | undefined> | undefined = '',
+  invalid: ReactiveValue<boolean | undefined> | undefined = undefined,
+  htmlFor: string = '',
+  windowDragRegion: boolean = false,
+  tabIndex?: int,
+  expanded?: ReactiveValue<boolean | undefined>,
+  controls?: ReactiveValue<string | undefined>,
+  state?: ReactiveValue<string | undefined>,
+  colSpan?: int,
+  scope: string = ''
+): ReactiveValue<string> {
   const config: SemanticConfig = {
     tag, role, label: '', id, hidden: false, slot, size, variant, orientation, describedBy: '', invalid: '', expanded: '', controls: '', htmlFor, windowDragRegion, tabIndex, state: '', colSpan, scope
   };
+
   if ((label === undefined || typeof label === 'string') && (hidden === undefined || typeof hidden === 'boolean') && (describedBy === undefined || typeof describedBy === 'string') && (invalid === undefined || typeof invalid === 'boolean') && (expanded === undefined || typeof expanded === 'boolean') && (controls === undefined || typeof controls === 'string') && (state === undefined || typeof state === 'string')) {
     if (config.tag === '' && config.role === '' && (label === undefined || label === '') && config.id === '' && (hidden === undefined || !hidden) && config.slot === '' && config.size === '' && config.variant === '' && config.orientation === '' && (describedBy === undefined || describedBy === '') && invalid === undefined && expanded === undefined && (controls === undefined || controls === '') && config.htmlFor === '' && !config.windowDragRegion && config.tabIndex === undefined && (state === undefined || state === '') && colSpan === undefined && config.scope === '') {
       return '';
@@ -1215,6 +1523,7 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
     config.expanded = typeof expanded === 'boolean' ? String(expanded) : '';
     config.controls = typeof controls === 'string' ? clone(controls) : '';
     config.state = typeof state === 'string' ? clone(state) : '';
+
     if (config.tag === 'svg' && config.role === '') {
       config.role = config.label === '' ? 'presentation' : 'img';
     }
@@ -1223,7 +1532,16 @@ function semanticConfig(tag: string, role: string, label: ReactiveValue<string |
   }
 
   return {
-    evaluate: () => semanticSnapshot(config, label, hidden, describedBy, invalid, expanded, controls, state)
+    evaluate: () => semanticSnapshot(
+      config,
+      label,
+      hidden,
+      describedBy,
+      invalid,
+      expanded,
+      controls,
+      state
+    )
   };
 }
 
@@ -1286,6 +1604,7 @@ function notifyWith(message: string, options: NotifyOptions): void {
     message: message, title: options.title ?? '', variant: `${options.variant ?? 'info'}`, delivery: `${options.delivery ?? 'app'}`, id: options.id ?? '', icon: options.icon ?? '', placement: `${options.placement ?? ''}`, autohide: autohide === undefined ? '' : (autohide ? 'true' : 'false'), action: options.action ?? ''
   };
   const payload: string = JSON.stringify(body);
+
   if (handler !== undefined) {
     notifyWithEvents(payload, handler);
     return;
@@ -1363,6 +1682,13 @@ export function openUrl(url: string): void {
   })));
 }
 
+/** Reveals an existing local path in the desktop file manager. */
+export function revealPath(path: string): void {
+  unwrap(nativeCommand('reveal-path', JSON.stringify({
+    path: path
+  })));
+}
+
 /** Copies text to the system clipboard. */
 export function writeClipboard(text: string): void {
   unwrap(nativeCommand('write-clipboard', JSON.stringify({
@@ -1390,6 +1716,15 @@ export function pickFiles(onPicked: Owned<Function<void, [paths: ReadOnly<string
   unwrap(nativeCommandReply('pick-files', JSON.stringify({
     multiple: multiple, directories: directories
   }), onPicked));
+}
+
+/** Receives selected UTF-8 paths as separate entries, or an empty list on cancellation. */
+export function pickFilePaths(onPicked: Owned<Function<void, [paths: ReadOnly<string[]>]>>, options?: PickFilesOptions): void {
+  unwrap(nativeCommandReply('pick-files', JSON.stringify({
+    multiple: options?.multiple ?? false, directories: options?.directories ?? false, pathArray: true
+  }), (text: ReadOnly<string>): void => {
+    onPicked(JSON.parse<string[]>(text));
+  }));
 }
 
 /** Shows the system save dialog with a suggested file name. onChosen receives the chosen path, or an empty string when cancelled. */
@@ -1512,4 +1847,22 @@ export function setTheme(mode: 'light' | 'dark' | 'system'): void {
   unwrap(nativeCommand('theme', JSON.stringify({
     mode: `${mode}`
   })));
+}
+
+
+interface CompletionTextResult {
+  text?: string;
+  error?: string;
+}
+
+/** Prepare completion text and same-document additionalTextEdits without editing a view or saving a file. text is the exact current UTF-8 document; item is one JSON-encoded LSP CompletionItem with UTF-16 positions. start/end are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Returns the complete proposed text, expanding numeric snippet stops/defaults. Rejects invalid/surrogate-interior/out-of-document/overlapping ranges, unsupported snippets and inputs larger than 16 MiB. Ignores server commands. Example: unwrap(completionText('pri', '{"label":"print"}', 0, 3)) returns 'print'. Callers must verify document session/revision before applying the proposal. Ownership: reads all inputs; returns independent text. */
+export function completionText(text: string, item: string, start: int, end: int): Result<string, string> {
+  const result = JSON.parse<CompletionTextResult>(nativeCompletionProposal(text, item, start, end), {
+    maxBytes: 128 * 1024 * 1024, maxDepth: 4, maxEntries: 4, maxNodes: 8
+  });
+
+  if (result.error !== undefined) return Err(clone(result.error));
+
+  if (result.text === undefined) return Err('Completion proposal returned no text.');
+  return Ok(clone(result.text));
 }

@@ -1,0 +1,136 @@
+import { parseDate } from 'std:date';
+import { Router, Context, Response, json } from 'std:http';
+import { Pool } from 'std:sql';
+
+import { Snapshot, TaskRecord, WriteTask, RemoveTask, ChangeBatch } from '../../shared/tasks.tsr';
+
+type Database = {
+  pool: Pool
+};
+
+async function snapshot(input: Mutable<Context<Database>>): Task<Response> {
+  const rows = await input.env.pool.query("SELECT jsonb_build_object('cursor', (SELECT COALESCE(MAX(sequence), 0) FROM task_changes), 'tasks', COALESCE((SELECT jsonb_agg(to_jsonb(task) ORDER BY task.id) FROM tasks task), '[]'::jsonb))::text AS payload");
+  return json(JSON.parse<Snapshot>(unwrap(rows[0].text('payload'))));
+}
+
+function failure(code: string, message: string, status: int): Response {
+  return json({
+    code, message
+  }, status);
+}
+
+async function changes(input: Mutable<Context<Database>>): Task<Response> {
+  let after: int = 0;
+  let limit: int = 200;
+
+  try {
+    after = JSON.parse<int>(input.req.query('after') ?? '0');
+    limit = JSON.parse<int>(input.req.query('limit') ?? '200');
+  } catch (_) {
+    return failure('invalid-input', 'Expected integer cursor and page size.', 400);
+  }
+
+  if (after < 0 || after > 9007199254740991 || limit < 1 || limit > 500) {
+    return failure('invalid-input', 'Expected a nonnegative safe cursor and page size from 1 to 500.', 400);
+  }
+  // Only acknowledge delivered rows. Sequence gaps from rolled-back writes are valid.
+  const rows = await input.env.pool.query("WITH batch AS MATERIALIZED (SELECT * FROM task_changes WHERE sequence > $1 ORDER BY sequence LIMIT $2), page AS (SELECT * FROM batch ORDER BY sequence LIMIT $3) SELECT (SELECT COALESCE(MAX(sequence), 0) FROM task_changes) AS head, jsonb_build_object('cursor', COALESCE((SELECT MAX(sequence) FROM page), $1), 'hasMore', (SELECT COUNT(*) FROM batch) > $3, 'changes', COALESCE((SELECT jsonb_agg(jsonb_build_object('sequence', sequence, 'operation', operation, 'id', task_id, 'version', (payload->>'version')::bigint, 'task', CASE WHEN operation = 'upsert' THEN payload ELSE 'null'::jsonb END) ORDER BY sequence) FROM page), '[]'::jsonb))::text AS payload", [after, limit + 1, limit]);
+
+  if (after > unwrap(rows[0].int('head'))) {
+    return failure('reset-required', 'The server history changed. Fetch a new snapshot.', 409);
+  }
+
+  return json(JSON.parse<ChangeBatch>(unwrap(rows[0].text('payload'))));
+}
+
+function validVersion(version: int): boolean {
+  return version >= 0 && version < 9007199254740991;
+}
+
+async function conflict(pool: ReadOnly<Pool>, id: string): Task<Response> {
+  const rows = await pool.query('SELECT to_jsonb(task)::text AS payload FROM tasks task WHERE id = $1', [id]);
+  let current: TaskRecord | null = null;
+
+  if (rows.length > 0) current = JSON.parse<TaskRecord>(unwrap(rows[0].text('payload')));
+  return json({
+    code: 'conflict', message: 'This task changed or was deleted. Review the current version before saving.', current
+  }, 409);
+}
+
+async function writeTask(input: Mutable<Context<Database>>): Task<Response> {
+  let decoded: WriteTask | undefined = undefined;
+
+  try {
+    decoded = JSON.parse<WriteTask>(await input.req.text());
+  } catch (_) {
+    return failure('invalid-input', 'Expected a task and its last seen version.', 400);
+  }
+
+  if (decoded === undefined) return failure('invalid-input', 'Missing task.', 400);
+  const value = decoded;
+  const id = input.req.param('id') ?? '';
+  const title = value.title.trim();
+
+  if (id.length < 1 || id.length > 100 || title.length < 1 || title.length > 200 || value.description.length > 20000 || value.assignee.length > 100 || value.priority < 0 || value.priority > 3 || !validVersion(value.expectedVersion)) {
+    return failure('invalid-input', 'Invalid task fields or version.', 400);
+  }
+
+  if (value.due_date !== null) {
+    match (parseDate(value.due_date)) {
+      Ok(_) => {},
+      Err(_) => {
+        return failure('invalid-input', 'Expected a valid YYYY-MM-DD due date.', 400);
+      }
+    }
+  }
+
+  if (value.expectedVersion === 0) {
+    const rows = await input.env.pool.query('INSERT INTO tasks(id, title, description, status, priority, assignee, due_date) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO NOTHING RETURNING to_jsonb(tasks)::text AS payload', [clone(id), title, value.description, value.status, value.priority, value.assignee, value.due_date]);
+
+    if (rows.length === 0) return await conflict(input.env.pool, id);
+    return json(JSON.parse<TaskRecord>(unwrap(rows[0].text('payload'))), 201);
+  }
+
+  const rows = await input.env.pool.query('UPDATE tasks SET title = $2, description = $3, status = $4, priority = $5, assignee = $6, due_date = $7 WHERE id = $1 AND version = $8 RETURNING to_jsonb(tasks)::text AS payload', [clone(id), title, value.description, value.status, value.priority, value.assignee, value.due_date, value.expectedVersion]);
+
+  if (rows.length === 0) return await conflict(input.env.pool, id);
+  return json(JSON.parse<TaskRecord>(unwrap(rows[0].text('payload'))));
+}
+
+async function removeTask(input: Mutable<Context<Database>>): Task<Response> {
+  let decoded: RemoveTask | undefined = undefined;
+
+  try {
+    decoded = JSON.parse<RemoveTask>(await input.req.text());
+  } catch (_) {
+    return failure('invalid-input', 'Expected the last seen task version.', 400);
+  }
+
+  if (decoded === undefined) return failure('invalid-input', 'Missing task version.', 400);
+  const id = input.req.param('id') ?? '';
+
+  if (id.length < 1 || id.length > 100 || decoded.expectedVersion < 1 || !validVersion(decoded.expectedVersion)) {
+    return failure('invalid-input', 'Expected a task id and positive version.', 400);
+  }
+
+  const rows = await input.env.pool.query('DELETE FROM tasks WHERE id = $1 AND version = $2 RETURNING id', [clone(id), decoded.expectedVersion]);
+
+  if (rows.length === 0) return await conflict(input.env.pool, id);
+  return json({
+    id
+  });
+}
+
+export function routes(pool: Owned<Pool>): Router<Database> {
+  const app = new Router<Database>({
+    pool
+  });
+  app.configure({
+    bodyLimit: 65536, maxConnections: 32, maxRequests: 16, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000, handshakeTimeoutMs: 3000, requestsPerSecond: 1000
+  });
+  app.get('/snapshot', snapshot);
+  app.get('/changes', changes);
+  app.put('/tasks/:id', writeTask);
+  app.delete('/tasks/:id', removeTask);
+  return app;
+}

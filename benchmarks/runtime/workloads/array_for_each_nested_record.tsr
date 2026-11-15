@@ -17,9 +17,11 @@ function workload(n: int, seed: int, input: string): int {
   let trace: int = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {
@@ -31,6 +33,7 @@ function workload(n: int, seed: int, input: string): int {
     const selected = base.slice(0, count);
     selected.forEach((value: Row[], index: int, source: Row[][]): void => {
       let weight = 0;
+
       for (const item of value) {
         weight = weight + rowWeight(item, input);
       }
@@ -46,6 +49,7 @@ function workload(n: int, seed: int, input: string): int {
 
 function stringWeight(value: string, input: string): int {
   let w = 1;
+
   if (value === input) {
     w = w + 3;
   }
@@ -71,6 +75,7 @@ function stringWeight(value: string, input: string): int {
 
 function rowWeight(value: Row, input: string): int {
   let w = value.n + stringWeight(value.text, input);
+
   for (const item of value.values) {
     w = w + item;
   }

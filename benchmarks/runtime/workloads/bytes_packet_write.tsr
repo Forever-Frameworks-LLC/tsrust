@@ -1,7 +1,19 @@
-import { alloc, at, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+import {
+  alloc,
+  at,
+  readInt,
+  writeInt,
+  readUint,
+  writeUint,
+  readFloat32,
+  writeFloat32,
+  readFloat64,
+  writeFloat64
+} from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int[] {
   let size = 64;
+
   if (input === "4k") {
     size = 4096;
   }
@@ -14,8 +26,10 @@ function workload(n: int, seed: int, input: string): int[] {
   const records = size / 64;
   const output: int[] = [];
   let i = 0;
+
   while (i < n) {
     let record = 0;
+
     while (record < records) {
       const base = record * 64;
       const order: "little" | "big" = record % 2 === 0 ? "little" : "big";
@@ -33,6 +47,7 @@ function workload(n: int, seed: int, input: string): int[] {
 
     let checksum = 0;
     let byte = 0;
+
     while (byte < size) {
       checksum += unwrap(at(bytes, byte));
       byte += 1;

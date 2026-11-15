@@ -141,6 +141,7 @@ pub(crate) const COMMAND:NativeBinding=NativeBinding{name:"command",parameters:&
 pub(crate) const COMMAND_REPLY:NativeBinding=NativeBinding{name:"commandReply",parameters:&[parameter("name",NativeType::String,Mode::Read),parameter("payload",NativeType::String,Mode::Read),parameter("handler",NativeType::ObservedValue,Mode::Consume)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_command_reply"},..COMMAND};
 pub(crate) const OPEN_WINDOW:NativeBinding=NativeBinding{name:"openWindow",parameters:&[parameter("node",NativeType::Structured(&NODE),Mode::Consume),parameter("title",NativeType::String,Mode::Read),parameter("options",NativeType::String,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_open_window"},..COMMAND};
 pub(crate) const APPEARANCE:NativeBinding=NativeBinding{name:"appearance",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_appearance"},..TEXT};
+pub(crate) const COMPLETION_PROPOSAL:NativeBinding=NativeBinding{name:"completionProposal",result:NativeType::String,parameters:&[parameter("text",NativeType::String,Mode::Read),parameter("item",NativeType::String,Mode::Read),parameter("start",NativeType::Int,Mode::Read),parameter("end",NativeType::Int,Mode::Read)],backend:NativeBackend::Bundled{symbol:"tsrust_ui_completion_proposal"},..TEXT};
 pub(crate) const APP_INFO:NativeBinding=NativeBinding{name:"appInfo",parameters:&[],result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_ui_app_info"},..TEXT};
 
 // Translations: catalogs, the current locale, live and snapshot lookups, and one
@@ -158,6 +159,8 @@ pub(crate) const HIGHLIGHT_MARKER:&str="// tsrust-ui-highlight-selected\n";
 pub(crate) const SPEECH_MARKER:&str="// tsrust-ui-speech-selected\n";
 /// Selects an HTTP client for remote image sources in programs that use Avatar or Image.
 pub(crate) const HTTP_MARKER:&str="// tsrust-ui-http-selected\n";
+/// Selects native PTY/VT dependencies only for Terminal programs.
+pub(crate) const TERMINAL_MARKER:&str="// tsrust-ui-terminal-selected\n";
 
 /// Generated programs embed the Node model from `crates/tsrust-ui` with the GPUI
 /// renderer as its `native` module; GPUI Kit comes from the separate locked
@@ -184,6 +187,9 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod visibility;",&module("visibility",source!("visibility.rs")))
         .replace("mod kit;",&module("kit",source!("kit.rs")))
         .replace("mod commands;",&module("commands",source!("commands.rs")))
+        .replace("mod editor_completion;",&module("editor_completion",source!("editor_completion.rs")))
+        .replace("mod editor_language;",&module("editor_language",source!("editor_language.rs")))
+        .replace("mod terminal_links;",&module("terminal_links",source!("terminal_links.rs")))
         .replace("mod i18n;",&module("i18n",source!("i18n.rs")))
         .replace("mod update;",&module("update",source!("update.rs")))
         .replace("mod editable;",&module("editable",source!("editable.rs")))
@@ -201,7 +207,7 @@ pub(crate) fn runtime(with_native: bool) -> String {
         .replace("mod web;",&format!("mod web {{\n{web}\n}}"))
         .replace("feature = \"runtime\"", "feature = \"ui\"").replace("feature=\"runtime\"", "feature = \"ui\"");
     if with_native {
-        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs")].concat()));
+        body.push_str(&format!("#[cfg(feature=\"gpui\")] mod native {{\n{}\n{}\n}}\n#[cfg(feature=\"gpui\")] pub use native::{{run,run_configured}};\n",include_str!("gpui.rs"), [&format!("mod image_asset {{\n{}\n}}",include_str!("image_asset.rs")), include_str!("gpui_kit.rs"), include_str!("gpui_icons.rs"), &format!("#[cfg(feature=\"gpui-terminal\")] mod terminal {{\n{}\n}}\n#[cfg(feature=\"gpui-terminal\")] mod terminal_view {{\n{}\n}}", include_str!("terminal.rs"), include_str!("gpui_terminal.rs"))].concat()));
     }
     format!("mod tsrust_native_ui {{\n{body}\n}}\n")
 }

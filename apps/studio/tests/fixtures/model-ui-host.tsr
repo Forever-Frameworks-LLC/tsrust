@@ -1,0 +1,39 @@
+import { delay } from 'std:futures';
+import { stdin, readLineStdin } from 'std:io';
+
+import { ModelRequest, ModelUpdate } from '../../src/lib/ai/protocol.tsr';
+
+function publish(kind: string, id: string, text: string = '', error: string = ''): void {
+  const update: ModelUpdate = {
+    kind, id, text, error
+  };
+  console.log(JSON.stringify(update));
+}
+
+// Renderer/stdio fixture only: no model, tools, files, or inference-cancellation claim.
+async function main(): Task<void> {
+  const input = stdin();
+
+  while (true) {
+    const line = unwrap(readLineStdin(input, 128 * 1024));
+
+    if (line === undefined) return;
+    const request = JSON.parse<ModelRequest>(line);
+
+    if (request.kind === 'start') {
+      publish('ready', '');
+      publish('error', '', '', 'Synthetic UI fixture: no model loaded.');
+    } else if (request.kind === 'generate') {
+      const heading = '**Synthetic UI fixture — no model loaded.**\n\n';
+      publish('prefix', clone(request.id), heading + 'First live prefix 🦀.');
+      await delay(1500);
+      publish('prefix', clone(request.id), heading + 'Second live prefix 日本語.\n\nA growing message must remain visible.');
+      await delay(1500);
+      let text = heading + 'Final streamed response.\n\n';
+
+      for (let row = 1; row <= 12; row += 1) text += 'Paragraph ' + row.toString() + ': retained rows read the current response.\n\n';
+      text += '```tsrust\nconst value: int = 8;\n```\n';
+      publish('complete', clone(request.id), text);
+    } else if (request.kind === 'shutdown') return;
+  }
+}

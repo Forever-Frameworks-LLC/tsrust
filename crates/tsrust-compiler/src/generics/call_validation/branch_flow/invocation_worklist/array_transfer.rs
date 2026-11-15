@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(state.captures.len(),4);
         let mut borrowed=before.clone();
         let environment_state::Capture::Live {bindings,..}=&borrowed.captures[&root] else {panic!("borrowed root")};
-        borrowed.bindings=bindings.clone();let unchanged=borrowed.clone();let mut borrowed_value=make_value(Some(vec![edge(root)]));
+        borrowed.bindings=bindings.clone().into();let unchanged=borrowed.clone();let mut borrowed_value=make_value(Some(vec![edge(root)]));
         assert!(transfer(&mut engine,&expression,&mut borrowed_value,&mut borrowed));assert_eq!(handle(&borrowed_value),root);assert!(borrowed==unchanged);
         let mut invalid=before;invalid.captures.insert(child,environment_state::Capture::Unknown);let saved=invalid.clone();let mut value=make_value(Some(vec![edge(root)]));let original=value.clone();
         assert!(!transfer(&mut engine,&expression,&mut value,&mut invalid));assert!(invalid==saved);assert!(value==original);

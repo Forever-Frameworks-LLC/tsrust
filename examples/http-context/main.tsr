@@ -1,4 +1,11 @@
-import { Router, Context, ContextNext, Response, Client, request } from 'std:http';
+import {
+  Router,
+  Context,
+  ContextNext,
+  Response,
+  Client,
+  request
+} from 'std:http';
 import { strictEqual } from 'std:testing';
 
 type Configuration = {

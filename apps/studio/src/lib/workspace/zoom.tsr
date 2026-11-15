@@ -1,0 +1,49 @@
+import { Signal } from 'std:ui';
+
+import { ImageViewContext, ImageViewTarget, setImageZoom, imageZoomStep } from '../../services/image-actions.tsr';
+import { StudioConfig } from '../settings/settings.tsr';
+import { publishWorkspace } from './document-actions.tsr';
+import { Recovery } from './recovery.tsr';
+import { Workspace } from './workspace.tsr';
+
+export function zoomFontSize(base: int, level: int): int {
+  const size = base + level;
+
+  if (size < 8) return 8;
+
+  if (size > 48) return 48;
+  return size;
+}
+
+export function zoomWorkspace(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  font: Signal<int>,
+  settings: Signal<StudioConfig>,
+  step: int,
+  reset: boolean = false
+): void {
+  const current = workspace.get();
+  const image = current.files.find((file) => file.document.path === current.active && file.kind === 'image');
+
+  if (image !== undefined) {
+    const target: ImageViewTarget = {
+      path: clone(image.document.path), session: clone(image.document.session)
+    };
+    const context: ImageViewContext = {
+      workspace, allowViewChanges: true
+    };
+    unwrap(setImageZoom(context, target, reset ? 0 : imageZoomStep(image.imageEffectiveZoom ?? 100, step)));
+    return;
+  }
+
+  const base = settings.get().fontSize;
+  const size = reset ? base : zoomFontSize(font.get(), step);
+  const next = workspace.get();
+  const level = size - base;
+
+  if (next.zoomLevel === level && font.get() === size) return;
+  next.zoomLevel = level;
+  publishWorkspace(next, workspace, recovery);
+  font.set(size);
+}

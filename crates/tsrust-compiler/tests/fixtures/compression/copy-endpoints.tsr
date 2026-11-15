@@ -1,6 +1,14 @@
 import { gzip, compressWriter, decompressReader, CompressionReader, CompressionError } from 'std:compression';
 import { ThreadPool, SpawnError, ThreadError } from 'std:threads';
-import { Reader, Writer, IoError, reader, writer, copy, close } from 'std:io';
+import {
+  Reader,
+  Writer,
+  IoError,
+  reader,
+  writer,
+  copy,
+  close
+} from 'std:io';
 import { create, readFile, removeFile } from 'std:fs';
 import { fromUtf8, toUtf8 } from 'std:bytes';
 async function plain(input: Mutable<Reader>, output: Mutable<Writer>): Task<Result<int, IoError>> {

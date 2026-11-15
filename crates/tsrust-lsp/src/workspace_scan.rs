@@ -20,6 +20,8 @@ pub struct Scanner {
     published: BTreeSet<SourceId>,
 }
 impl Scanner {
+    pub fn roots(&self) -> Vec<PathBuf> {self.roots.iter().cloned().collect()}
+    pub fn revision(&self) -> u64 {self.revision}
     pub fn initialize(&mut self, params: &serde_json::Value, now: Instant) {
         let uris = params.get("workspaceFolders").and_then(|value|value.as_array())
             .map(|folders|folders.iter().filter_map(|folder|folder.get("uri").and_then(|uri|uri.as_str())).collect::<Vec<_>>())
@@ -82,6 +84,14 @@ pub struct Cache {
 impl Cache {
     /// Number of entry analyses performed by the most recent scan.
     pub fn checked_entries(&self)->usize {self.checked}
+    /// Reuse completed foreground diagnostics without retaining its analysis graph.
+    pub fn remember(&mut self, entry:&SourceId, input:&WorkspaceSnapshot, result:&Result<tsrust_compiler::project::ProjectAnalysis,Vec<ProjectDiagnostic>>) {
+        let (errors,modules)=match result {
+            Ok(analysis)=>(analysis.warnings(),analysis.graph.modules.keys().cloned().collect()),
+            Err(errors)=>(errors.clone(),BTreeSet::new()),
+        };
+        self.entries.insert(entry.clone(),Entry{input:input.retained(),errors,modules});
+    }
     pub fn check(&mut self, job: &Job) -> Result<Buckets,String> {
         self.check_cancellable(job,||false).map(|result|result.expect("uninterrupted scan"))
     }
@@ -89,7 +99,8 @@ impl Cache {
     pub fn check_cancellable(&mut self, job:&Job,mut interrupted:impl FnMut()->bool)->Result<Option<Buckets>,String> {
     self.checked=0;
     let roots=job.roots.iter().filter(|root|root.exists()).cloned().collect::<Vec<_>>();
-    let mut files=tsrust_compiler::source_discovery::discover(&roots)?.into_iter()
+    let Some(discovered)=tsrust_compiler::source_discovery::discover_cancellable(&roots,true,&mut interrupted)? else {return Ok(None);};
+    let mut files=discovered.into_iter()
         .map(|path|SourceId(path.to_string_lossy().into_owned())).collect::<BTreeSet<_>>();
     for id in job.input.open_sources() {
         let path=PathBuf::from(&id.0);
@@ -108,11 +119,8 @@ impl Cache {
         used.insert(file.clone());
         if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
             let input=job.input.fresh();
-            let (errors,modules)=match input.check_with_diagnostics(&file) {
-                Ok(analysis)=>(vec![],analysis.graph.modules.keys().cloned().collect()),
-                Err(errors)=>(errors,BTreeSet::new()),
-            };
-            self.entries.insert(file.clone(),Entry{input:input.retained(),errors,modules});
+            let result=input.check_with_diagnostics(&file);
+            self.remember(&file,&input,&result);
             self.checked+=1;
         }
         let entry=&self.entries[&file];

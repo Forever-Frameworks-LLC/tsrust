@@ -22,6 +22,7 @@ export function main() {
   words.push('界');
   {
     const top = words.peek();
+
     if (top !== undefined) {
       strictEqual(top, '🦀');
     }

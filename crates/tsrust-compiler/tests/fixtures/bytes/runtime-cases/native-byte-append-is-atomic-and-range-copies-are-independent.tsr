@@ -1,4 +1,12 @@
-import { Bytes, fromArray, append, copy, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  fromArray,
+  append,
+  copy,
+  at,
+  set,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function read(bytes: ReadOnly<Bytes>, index: int): int {
@@ -16,6 +24,7 @@ export function run() {
   match (fromArray([0, 65, 255])) {
     Ok(bytes) => {
       const add = append;
+
       match (add(bytes, [7, 8])) {
         Ok(_) => {},
         Err(error) => {
@@ -26,6 +35,7 @@ export function run() {
       strictEqual(length(bytes), 5);
       strictEqual(read(bytes, 3), 7);
       strictEqual(read(bytes, 4), 8);
+
       match (append(bytes, [9, 256, -1])) {
         Ok(_) => {
           throw "invalid append accepted";
@@ -38,6 +48,7 @@ export function run() {
 
       strictEqual(length(bytes), 5);
       strictEqual(read(bytes, 4), 8);
+
       match (append(bytes, [])) {
         Ok(_) => {},
         Err(error) => {
@@ -46,11 +57,13 @@ export function run() {
       }
 
       const duplicate = copy;
+
       match (duplicate(bytes, 1, 4)) {
         Ok(part) => {
           strictEqual(length(part), 3);
           strictEqual(read(part, 0), 65);
           strictEqual(read(part, 2), 7);
+
           match (set(bytes, 1, 90)) {
             Ok(_) => {},
             Err(error) => {
@@ -59,6 +72,7 @@ export function run() {
           }
 
           strictEqual(read(part, 0), 65);
+
           match (set(part, 1, 2)) {
             Ok(_) => {},
             Err(error) => {

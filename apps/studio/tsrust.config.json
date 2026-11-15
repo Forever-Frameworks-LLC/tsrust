@@ -1,0 +1,13 @@
+{
+  "build": {
+    "entry": "src/main.tsrx",
+    "output": "target/studio"
+  },
+  "name": "studio",
+  "package": {
+    "name": "Tsrust Studio",
+    "id": "dev.tsrust.studio",
+    "opensFolders": true
+  },
+  "schemaVersion": 1
+}

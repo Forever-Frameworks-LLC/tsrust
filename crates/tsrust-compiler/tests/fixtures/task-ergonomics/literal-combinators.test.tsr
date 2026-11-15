@@ -1,0 +1,28 @@
+import { test, strictEqual } from 'std:testing';
+import { race, allSettled, delay } from 'std:futures';
+
+async function read(value: ReadOnly<string>, milliseconds: int): Task<string> {
+  await delay(milliseconds);
+  return clone(value);
+}
+
+async function raceBorrowed(): Task<string> {
+  const first = 'first';
+  const second = 'second';
+  return await race([read(first, 0), read(second, 1000)]);
+}
+
+async function settledBorrowed(): Task<string> {
+  const first = 'first';
+  const second = 'second';
+  const values = await allSettled([read(first, 1), read(second, 0)]);
+  return unwrap(clone(values[0])) + unwrap(clone(values[1]));
+}
+
+test('started literal race retains thread safety of internal borrowed futures', async () => {
+  strictEqual(await raceBorrowed().start(), 'first');
+});
+
+test('started literal settled retains order and internal borrowed futures', async () => {
+  strictEqual(await settledBorrowed().start(), 'firstsecond');
+});

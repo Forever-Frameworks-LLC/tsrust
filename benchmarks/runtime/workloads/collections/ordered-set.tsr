@@ -2,8 +2,10 @@ import { OrderedSet } from "std:collections";
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i++) {
     const values = new OrderedSet<int>();
+
     for (let j = 0; j < 9; j++) {
       values.add((i + seed + j) % 256);
     }
@@ -13,6 +15,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     let weighted = 0;
     let first = -1;
     let last = -1;
+
     for (const value of values) {
       if (count === 0) {
         first = value;

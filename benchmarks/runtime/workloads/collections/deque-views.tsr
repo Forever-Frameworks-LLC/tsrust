@@ -26,12 +26,15 @@ function first(part: ReadOnly<ByteView>): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
+
     match (fromArray([byte, 255])) {
       Ok(owner) => {
         const values = new Deque<ByteView>();
         let count = 0;
+
         while (count < 8) {
           values.pushBack(byteWindow(owner));
           count++;
@@ -41,12 +44,14 @@ function workload(n: int, seed: int, input: string): int[][] {
         let read = 0;
         {
           const selected = values.at(4);
+
           if (selected !== undefined) {
             read = first(selected);
           }
         }
 
         let traversed = 0;
+
         for (const part of values) {
           traversed += first(part);
         }
@@ -54,6 +59,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         const front = values.popFront()!;
         const back = values.popBack()!;
         let sum = first(front) + first(back);
+
         while (values.size > 0) {
           const part = values.popFront()!;
           sum += first(part);

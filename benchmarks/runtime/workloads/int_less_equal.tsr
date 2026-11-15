@@ -1,11 +1,13 @@
 function workload(n: int, seed: int): int {
   let digest = seed;
   let i = 0;
+
   while (i < n) {
     const left = (i * 37 + seed) % 2001 - 1000;
     const right = (i * 17 + seed * 3) % 2001 - 1000;
     const result = left <= right;
     let bit = 0;
+
     if (result) {
       bit = 1;
     }

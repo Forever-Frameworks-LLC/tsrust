@@ -40,6 +40,13 @@ mod visibility;
 mod kit;
 #[cfg(feature = "runtime")]
 mod commands;
+mod editor_language;
+// The native kernel also uses its snippet cursor state; headless proposals only need text.
+#[allow(dead_code)]
+mod editor_completion;
+pub use editor_language::completion_proposal_json;
+#[cfg(feature = "runtime")]
+mod terminal_links;
 #[cfg(feature = "runtime")]
 mod i18n;
 #[cfg(feature = "runtime")]

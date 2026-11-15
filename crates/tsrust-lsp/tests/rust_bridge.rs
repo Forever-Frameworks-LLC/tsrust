@@ -6,6 +6,24 @@ use tsrust_lsp::{workspace::Workspace,project_intelligence::ProjectIndex};
 fn host_uri(path:&str)->String{format!("file://{}{path}",if cfg!(windows){"/C:"}else{""})}
 fn host_id(path:&str)->tsrust_compiler::project::SourceId{tsrust_lsp::project_diagnostics::source_id(&host_uri(path)).unwrap()}
 #[test]
+fn opaque_rust_resources_keep_borrow_help_definitions_and_private_completions() {
+ let entry=host_id("/rust-resources/main.tsr");let native=host_id("/rust-resources/owner.rs");let uri=host_uri("/rust-resources/main.tsr");
+ let source="import {Session,create,read} from './owner.rs';function main(){const session=create('hello');console.log(read(session));}";
+ let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());
+ workspace.open(native,1,include_str!("../../tsrust-compiler/tests/fixtures/rust-resources/owner.rs").into());
+ let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":source.find("read(session)").unwrap()}}),&uri).unwrap().unwrap().to_string();
+ assert!(hover.contains("ReadOnly<Session>")&&hover.contains("Read an owned copy"),"{hover}");
+ let definition=index.request("textDocument/definition",&json!({"position":{"line":0,"character":source.find("create('hello')").unwrap()}}),&uri).unwrap().unwrap();
+ assert_eq!(definition["uri"],host_uri("/rust-resources/owner.rs"));
+ let source="import {create} from './owner.rs';function main(){const session=create('hello');session.}";
+ workspace.change(&entry,2,source.into());let input=workspace.snapshot();
+ let graph=tsrust_compiler::project::load_project_headers(&input,&entry.0).unwrap();let index=ProjectIndex::declarations(&graph);
+ let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":source.find("session.}").unwrap()+8}}),&uri).unwrap().unwrap();
+ let items=items.as_array().or_else(||items["items"].as_array()).unwrap();
+ assert!(items.is_empty(),"opaque fields leaked: {items:?}");
+}
+#[test]
 fn rust_imports_offer_checked_signatures_docs_and_real_definitions(){
  let entry=host_id("/rust-bridge/main.tsr");let dependency=host_id("/rust-bridge/compute.rs");
  let source="import {sum as calculate,identity} from './compute.rs';function main(){const values=[1,2,3,4,5];const total=calculate(values);console.log(total);}";

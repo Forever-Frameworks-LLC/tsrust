@@ -71,12 +71,14 @@ function main() {
   strictEqual(text[next(counter)], "b");
   strictEqual(counter[0], 1);
   let spelled = "";
+
   for (let index = 2; index >= 0; index--) {
     spelled += text[index];
   }
 
   strictEqual(spelled, "cba");
   let caught = "";
+
   try {
     strictEqual(text[3], "never");
   } catch (error) {
@@ -87,6 +89,7 @@ function main() {
 
   strictEqual(caught, "range");
   let negative = "";
+
   try {
     position = -1;
     strictEqual(text[position], "never");
@@ -96,6 +99,7 @@ function main() {
 
   strictEqual(negative, "range");
   const present: string | undefined = "ok";
+
   if (present !== undefined) {
     strictEqual(present[1], "k");
   }

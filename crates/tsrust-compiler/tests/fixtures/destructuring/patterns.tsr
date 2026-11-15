@@ -54,6 +54,7 @@ function main() {
   const row: Row = {
     name: "ada", id: 7, tags: ["t", "u"]
   };
+
   for (const [key, value] of Object.entries(row)) {
     console.log(key, key.length, typeof value, String(value));
   }
@@ -61,11 +62,13 @@ function main() {
   const rows: Row[] = [row, {
     id: 8, name: "bob", tags: []
   }];
+
   for (const { id, name, tags } of rows) {
     console.log(id, name.toUpperCase(), tags.length);
   }
 
   let total = 0;
+
   for (const [index, item] of ["x", "yy", "zzz"].entries()) {
     total += index * item.length;
   }
@@ -79,6 +82,7 @@ function main() {
   console.log(a + b, m, n, numbers.length);
   const pairs: [string, int][] = [["one", 1], ["two", 2]];
   let names = "";
+
   for (const [name, amount] of pairs) {
     names += name + "=" + String(amount) + ";";
   }

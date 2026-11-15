@@ -1,4 +1,11 @@
-import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromArray,
+  view,
+  at,
+  length
+} from "std:bytes";
 
 type Chunk = {
   data: ByteView;
@@ -30,14 +37,17 @@ function first(chunk: ReadOnly<Chunk>): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
+
     match (fromArray([byte, 255])) {
       Ok(owner) => {
         let root: Chunk = {
           data: byteWindow(owner)
         };
         let depth = 0;
+
         while (depth < 16) {
           root = {
             data: byteWindow(owner), next: root
@@ -47,6 +57,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         let sum = 0;
         let count = 0;
+
         while (root.next !== undefined) {
           sum += first(root);
           count++;

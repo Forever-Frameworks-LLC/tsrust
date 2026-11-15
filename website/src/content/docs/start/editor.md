@@ -173,6 +173,12 @@ does not fix the cause of a crash.
 
 ## Investigate growing memory use
 
+On macOS, the server defaults to the system allocator's space-efficient mode to
+release freed analysis memory more aggressively. An explicit `MallocSpaceEfficient`
+environment value is preserved. This changes allocation policy, not diagnostics
+coverage or workspace limits. Activity Monitor includes compressed memory; a low
+resident-memory figure alone does not establish that the footprint is small.
+
 If the language server's memory keeps growing during your session, save your work
 and disable the extension for that workspace. Include your OS, CLI/LSP versions,
 workspace size, reproduction steps and relevant **Output → Tsrust** messages when

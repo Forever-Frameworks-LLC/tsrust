@@ -1,4 +1,15 @@
-import { parseDate, formatDate, getDay, startOfYear, endOfYear, parseTime, getHours, getMinutes, getSeconds, getNanoseconds } from 'std:date';
+import {
+  parseDate,
+  formatDate,
+  getDay,
+  startOfYear,
+  endOfYear,
+  parseTime,
+  getHours,
+  getMinutes,
+  getSeconds,
+  getNanoseconds
+} from 'std:date';
 import { strictEqual } from 'std:testing';
 
 function main() {

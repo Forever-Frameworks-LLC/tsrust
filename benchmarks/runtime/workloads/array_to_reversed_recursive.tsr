@@ -7,9 +7,11 @@ type Node = {
 function workload(n: int, seed: int, input: string): Node[] {
   const output: Node[] = [];
   let i = 0;
+
   while (i < n) {
     const values: Node[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
     const result = values.toReversed();
+
     for (const value of result) {
       output.push(clone(value));
     }

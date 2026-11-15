@@ -39,10 +39,11 @@ function main() {
   strictEqual(isOdd(4), false);
   strictEqual(half(8), 0.5);
 
-    // Nested functions and function expressions follow the same rule.
-    const steps: int[] = [];
+  // Nested functions and function expressions follow the same rule.
+  const steps: int[] = [];
   function depth(value: int) {
     steps.push(value);
+
     if (value === 0) {
       return 0;
     }

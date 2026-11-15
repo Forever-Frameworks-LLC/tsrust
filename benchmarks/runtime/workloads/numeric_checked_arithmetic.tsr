@@ -3,6 +3,7 @@ import { checkedAdd, checkedSubtract, checkedMultiply, checkedDivide, checkedRem
 function workload(n: int, seed: int): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const a = seed + i + 10;
     checksum += unwrap(checkedAdd(a, 3)) + unwrap(checkedSubtract(a, 3)) + unwrap(checkedMultiply(a, 3)) + unwrap(checkedDivide(a, 3)) + unwrap(checkedRemainder(a, 3));

@@ -7,8 +7,10 @@ type Item = {
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const item = JSON.parse<Item>(input);
+
     if (!item.active) {
       throw 'Inactive item';
     }

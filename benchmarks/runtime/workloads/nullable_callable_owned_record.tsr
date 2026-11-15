@@ -15,6 +15,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     calls: 0, arguments: 0, fallbacks: 0, factories: 0
   };
   let i = 0;
+
   while (i < n) {
     const tag = (i + seed) % 3;
     const value = (i * 13 + seed) % 97;
@@ -26,6 +27,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const holder: Holder = {
       run: makeOwned(tag, value, input, trace)
     };
+
     if (holder.run !== null && holder.run !== undefined) {
       observed.push(holder.run(argument(trace, value), trace));
       observed.push(holder.run(argument(trace, (value + 1) % 97), trace));
@@ -45,6 +47,7 @@ function main() {
 
 function makeOwned(tag: int, offset: int, input: string, trace: Trace): (Function<int, [input: int, trace: Mutable<Trace>]>) | null | undefined {
   trace.factories = trace.factories + 1;
+
   if (tag === 1) {
     return null;
   }

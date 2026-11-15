@@ -94,6 +94,7 @@ function main() {
     x: 2, y: 3
   }];
   let total = 0;
+
   for (const point of points) {
     total += width(point);
   }

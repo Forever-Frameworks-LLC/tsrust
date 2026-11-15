@@ -37,14 +37,18 @@ function invalid(values: ReadOnly<int[]>): int[] {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const text = textFor((i + seed) % 4);
+
     match (fromUtf8(text)) {
       Ok(bytes) => {
         const before = length(bytes);
+
         match (toUtf8(bytes)) {
           Ok(decoded) => {
             let equal = 0;
+
             if (decoded === text) {
               equal = 1;
             }

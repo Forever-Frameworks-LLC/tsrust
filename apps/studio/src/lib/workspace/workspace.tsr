@@ -1,0 +1,258 @@
+import { Bytes, length, toUtf8, view, toHex } from 'std:bytes';
+import {
+  canonicalize,
+  stat,
+  readDir,
+  open,
+  read,
+  close,
+  readFile,
+  walkDir
+} from 'std:fs';
+import { basename, extname, separator } from 'std:path';
+
+import { Document, createDocument, dirty } from './documents.tsr';
+
+export function maxEditableBytes(): int {
+  return 4 * 1024 * 1024;
+}
+
+export interface ImageScroll {
+  x: number;
+  y: number;
+  request: int;
+}
+
+export interface OpenFile {
+  document: Document;
+  name: string;
+  kind: string;
+  binaryPreview?: string;
+  byteSize?: int;
+  previewBytes?: int;
+  imageZoom?: number;
+  imageEffectiveZoom?: number;
+  imageScroll?: ImageScroll;
+  caret?: int;
+}
+
+export interface SourceBreakpoint {
+  path: string;
+  line: int;
+}
+
+export interface Workspace {
+  sourceBreakpoints?: SourceBreakpoint[];
+  root: string;
+  files: OpenFile[];
+  active: string;
+  error: string;
+  dockLayout: string;
+  zoomLevel: int;
+}
+
+export interface Entry {
+  path: string;
+  name: string;
+  directory: boolean;
+}
+
+export function openWorkspace(path: string): Result<Workspace, string> {
+  try {
+    const root = unwrap(canonicalize(path));
+
+    if (!unwrap(stat(root)).isDirectory) return Err('Choose a project directory.');
+    return Ok({
+      root, files: [], active: '', error: '', dockLayout: '', zoomLevel: 0
+    });
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function entries(path: string): Result<Entry[], string> {
+  try {
+    const children = unwrap(readDir(path, 10000));
+    const visible: Entry[] = [];
+
+    for (const child of children) {
+      if (child.name !== 'target' && child.name !== '.git' && child.name !== 'node_modules') {
+        visible.push({
+          path: clone(child.path), name: clone(child.name), directory: child.isDirectory
+        });
+      }
+    }
+
+    visible.sort((a, b) => a.directory !== b.directory ? (a.directory ? -1 : 1) : (a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)));
+    return Ok(visible);
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function selectFile(workspace: Mutable<Workspace>, path: string): boolean {
+  if (!workspace.files.some((file) => file.document.path === path)) return false;
+  workspace.active = clone(path);
+  workspace.error = '';
+  return true;
+}
+
+export function readPrefix(path: ReadOnly<string>, limit: int): Bytes {
+  const file = unwrap(open(path));
+
+  try {
+    return unwrap(read(file, limit));
+  } finally {
+    unwrap(close(file));
+  }
+}
+
+export function openFile(workspace: Mutable<Workspace>, path: ReadOnly<string>): Result<void, string> {
+  try {
+    const resolved = unwrap(canonicalize(path));
+    const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+
+    if (!resolved.startsWith(prefix)) return Err('This file is outside the open project directory.');
+
+    if (workspace.files.some((file) => file.document.path === resolved)) {
+      workspace.active = clone(resolved);
+      workspace.error = '';
+      return Ok();
+    }
+
+    match (readWorkspaceFile(resolved, imagePath(resolved))) {
+      Ok(file) => {
+        workspace.files.push(file);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    workspace.active = clone(resolved);
+    workspace.error = '';
+    return Ok();
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+export function imagePath(path: ReadOnly<string>): boolean {
+  const extension = extname(path).toLowerCase();
+  return ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tif', '.tiff', '.avif', '.svg'].includes(extension);
+}
+
+// Read the current bytes using the viewer selected by the destination name.
+export function readWorkspaceFile(resolved: ReadOnly<string>, image: boolean): Result<OpenFile, string> {
+  try {
+    const info = unwrap(stat(resolved));
+
+    if (!info.isFile) return Err('Choose a regular file.');
+    // shortcut: initial text reads are bounded to 4 MiB; add a streaming document path for large-file editing.
+    let text = '';
+    let kind = image ? 'image' : 'text';
+    let binaryPreview: string | undefined = undefined;
+    let byteSize: int | undefined = undefined;
+    let previewBytes: int | undefined = undefined;
+
+    if (!image) {
+      const large = info.size > maxEditableBytes();
+      const bytes = large ? readPrefix(resolved, 256) : unwrap(readFile(resolved, maxEditableBytes()));
+
+      if (large) kind = 'bytes';
+      else match (toUtf8(bytes)) {
+        Ok(decoded) => {
+          if (decoded.includes('\0')) kind = 'binary';
+          else text = decoded;
+        },
+        Err(_) => {
+          kind = 'binary';
+        }
+      }
+
+      if (kind !== 'text') {
+        const count = length(bytes);
+        byteSize = large ? info.size : count;
+        const shown = count < 256 ? count : 256;
+        previewBytes = shown;
+        const hex = unwrap(toHex(unwrap(view(bytes, 0, shown))));
+        const rows: string[] = [];
+
+        for (let start = 0; start < hex.length; start += 32) {
+          const cells: string[] = [];
+
+          for (let index = start; index < start + 32 && index < hex.length; index += 2) cells.push(hex.slice(index, index + 2));
+          rows.push(cells.join(' '));
+        }
+
+        binaryPreview = rows.join('\n');
+      }
+    }
+
+    match (createDocument(clone(resolved), text)) {
+      Err(message) => {
+        return Err(clone(message));
+      },
+      Ok(document) => {
+        return Ok({
+          document, name: basename(resolved), kind, binaryPreview, byteSize, previewBytes
+        });
+      }
+    }
+
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}
+
+// Closing a dirty document requires an explicit discard decision from the caller.
+export function closeFile(workspace: Mutable<Workspace>, path: string, discard: boolean = false): Result<void, string> {
+  const index = workspace.files.findIndex((file) => file.document.path === path);
+
+  if (index < 0) return Err('This file is not open.');
+
+  if (!discard && dirty(workspace.files[index].document)) return Err('Save or discard the unsaved changes before closing.');
+  workspace.files.splice(index, 1);
+
+  if (workspace.active === path) {
+    if (workspace.files.length === 0) {
+      workspace.active = '';
+      workspace.error = '';
+    } else {
+      const next = index < workspace.files.length ? index : workspace.files.length - 1;
+      workspace.active = clone(workspace.files[next].document.path);
+      workspace.error = '';
+    }
+  }
+
+  return Ok();
+}
+
+export function moveFile(workspace: Mutable<Workspace>, path: string, direction: int): void {
+  const index = workspace.files.findIndex((file) => file.document.path === path);
+  const next = index + direction;
+
+  if (index < 0 || next < 0 || next >= workspace.files.length) return;
+  const file = clone(workspace.files[index]);
+  workspace.files.splice(index, 1);
+  workspace.files.splice(next, 0, file);
+}
+
+export function projectFiles(path: string, includeIgnored: boolean = false): Result<Entry[], string> {
+  match (walkDir(path, includeIgnored)) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(entries) => {
+      const files: Entry[] = [];
+
+      for (const entry of entries) {
+        if (entry.isFile) files.push({
+          path: clone(entry.path), name: clone(entry.name), directory: false
+        });
+      }
+
+      return Ok(files);
+    }
+  }
+}

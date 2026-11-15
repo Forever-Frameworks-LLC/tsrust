@@ -33,6 +33,7 @@ function emit(logger: ReadOnly<Logger>, n: int, seed: int): void {
 
 function workload(n: int, seed: int): int {
   const directory = unwrap(createTempDir(undefined, 'tsrust-log-'));
+
   try {
     const options: LoggerOptions = {
       sink: 'file', path: `${directory}/events.ndjson`
@@ -44,19 +45,23 @@ function workload(n: int, seed: int): int {
     emit(nested, n, seed);
     unwrap(close(nested));
     unwrap(close(logger));
+
     if (options.path === undefined) {
       throw 'missing file path';
     }
 
     const text = unwrap(readTextFile(options.path));
     const lines = text.split('\n');
+
     if (lines.length !== n + 1) {
       throw 'line count';
     }
 
     let sum: int = 0;
+
     for (let i: int = 0; i < n; i++) {
       const row = JSON.parse<Line>(lines[i]);
+
       if (row.level !== 'INFO' || row.fields.message !== 'é "quoted"\nline' || row.fields.index !== i + seed || !row.fields.ok || row.timestamp.length === 0 || row.target.length === 0) {
         throw 'event fields';
       }

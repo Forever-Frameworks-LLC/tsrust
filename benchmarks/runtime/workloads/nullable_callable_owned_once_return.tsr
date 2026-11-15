@@ -11,6 +11,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     calls: 0, arguments: 0, fallbacks: 0, factories: 0
   };
   let i = 0;
+
   while (i < n) {
     const tag = (i + seed) % 3;
     const value = (i * 13 + seed) % 97;
@@ -20,6 +21,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const beforeFactories = trace.factories;
     const observed: int[] = [];
     const action: (Once<Function<int, [input: int, trace: Mutable<Trace>]>>) | null | undefined = makeOwnedOnce(tag, value, input, trace);
+
     if (action !== null && action !== undefined) {
       observed.push(action(argument(trace, value), trace));
     }
@@ -38,6 +40,7 @@ function main() {
 
 function makeOwnedOnce(tag: int, offset: int, input: string, trace: Trace): (Once<Function<int, [input: int, trace: Mutable<Trace>]>>) | null | undefined {
   trace.factories = trace.factories + 1;
+
   if (tag === 1) {
     return null;
   }

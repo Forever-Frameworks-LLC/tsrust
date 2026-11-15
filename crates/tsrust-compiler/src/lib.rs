@@ -62,7 +62,7 @@ pub use native::runtime as native_runtime;
 pub(crate) use native::emit as native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use stdlib::path::relative as native_path_relative;
-pub use formatting::format;
+pub use formatting::{format, format_with_options, FormatOptions};
 pub use syntax::jsx::attribute_context as jsx_attribute_context;
 mod projections;
 pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
@@ -300,5 +300,7 @@ mod nesting_probe;
 
 pub mod ui_project;
 
+#[doc(hidden)]
+pub use native::dependency_patches as native_dependency_patches;
 #[doc(hidden)]
 pub use native::url_patch as native_url_patch;

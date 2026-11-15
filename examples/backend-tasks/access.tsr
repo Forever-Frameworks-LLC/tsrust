@@ -6,6 +6,7 @@ import { matchesToken } from '../service/security.tsr';
 // A remote deployment must use TLS; desktop loopback credentials stay in preload.
 function allowOrigin(context: Mutable<TaskContext>, required: boolean): boolean {
   const origin = context.req.header('origin');
+
   if (origin !== undefined) {
     if (origin !== context.env.browserOrigin) {
       return false;
@@ -34,6 +35,7 @@ export async function authorize(context: Mutable<TaskContext>): Task<boolean> {
   }
 
   const authorization = context.req.header('authorization');
+
   if (authorization === undefined || !authorization.startsWith('Bearer ')) {
     return false;
   }

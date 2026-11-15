@@ -2,10 +2,12 @@ function workload(n: int, seed: int): boolean[][] {
   const output: boolean[][] = [];
   const sizes: int[] = [0, 1, 4, 5, 17];
   let i = 0;
+
   while (i < n) {
     const count = sizes[(i + seed) % 5];
     const source: boolean[] = [];
     let j = 0;
+
     while (j < count) {
       const ordinal = j;
       source.push((ordinal + seed) % 3 !== 0);

@@ -34,6 +34,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"Signal<string[]>",parameter:"x: Signal<string[]>"},
 Receiver {ty:"SseEvent",parameter:"x: ReadOnly<SseEvent>"},
 Receiver {ty:"SseOptions",parameter:"x: ReadOnly<SseOptions>"},
 Receiver {ty:"WebSocket",parameter:"x: WebSocket"},
@@ -218,6 +219,7 @@ const EXCEPTIONS: &[Exception] = &[];
 const ABSENT: &str = "zzqqabsent";
 
 fn prelude(parameter: &str) -> String {
+    if parameter=="x: Signal<string[]>"{return "import {Signal} from 'std:ui';\n".into();}
     if parameter=="x: ReadOnly<LiteralOrigin>"{return "type LiteralOrigin=(\"start\"|\"current\"|\"end\");\n".into();}
     let annotation=parameter.split_once(':').map(|(_,ty)|ty.trim()).unwrap_or(parameter);
     let annotation=["ReadOnly<","Owned<","Mutable<"].iter().find_map(|prefix|annotation.strip_prefix(prefix)).unwrap_or(annotation);
@@ -262,6 +264,24 @@ fn answer(form: &str, name: &str, parameter: &str) -> Option<(String, String)> {
         }
         (code, message)
     })
+}
+
+fn field_is_present(answer: &Option<(String, String)>, absent: &Option<(String, String)>) -> bool {
+    // A temporary receiver's rejected length uses a dedicated diagnostic, not an unknown-field diagnostic.
+    answer != absent && !answer.as_ref().is_some_and(|(code, message)| code == "type" && message == "Length requires a string or array.")
+}
+
+#[test]
+fn rejected_temporary_length_is_not_a_declared_field() {
+    let form="console.log(x.NAME);";
+    let parameter="x: Signal<string[]>";
+    let rejected=answer(form,"length",parameter);
+    assert_eq!(rejected,Some(("type".into(),"Length requires a string or array.".into())));
+    assert!(!field_is_present(&rejected,&answer(form,ABSENT,parameter)));
+    let parameter="x: ReadOnly<int[]>";
+    let accepted=answer(form,"length",parameter);
+    assert!(accepted.is_none());
+    assert!(field_is_present(&accepted,&answer(form,ABSENT,parameter)));
 }
 
 /// The checker's type of field `name` of the receiver: the type it names
@@ -405,7 +425,7 @@ fn completion_offers_the_fields_the_checker_accepts_and_no_method_it_rejects() {
         let absent_field = answer(field_form, ABSENT, receiver.parameter);
         let absent_call = answer(call_form, ABSENT, receiver.parameter);
         assert!(absent_field.is_some() && absent_call.is_some(), "{}: an absent member must be rejected", receiver.ty);
-        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_')).filter(|name| answer(field_form, name, receiver.parameter) != absent_field).cloned().collect::<BTreeSet<_>>();
+        let fields = candidates.iter().filter(|name|name.chars().all(|ch|ch.is_ascii_alphanumeric()||ch=='_')).filter(|name| field_is_present(&answer(field_form, name, receiver.parameter), &absent_field)).cloned().collect::<BTreeSet<_>>();
         let prelude = prelude(receiver.parameter);
         let before = format!("{prelude}function probe({}) {{\n  x.", receiver.parameter);
         let text = format!("{before}\n}}\nfunction main() {{}}\n");

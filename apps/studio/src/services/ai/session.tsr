@@ -1,0 +1,116 @@
+import { fromUtf8, length } from 'std:bytes';
+import { Channel, Sender, race } from 'std:futures';
+import {
+  Reader,
+  Writer,
+  read,
+  lines,
+  readLine,
+  writeAll,
+  flush
+} from 'std:io';
+import { spawn } from 'std:process';
+
+import { ModelRequest, ModelUpdate } from '../../lib/ai/protocol.tsr';
+
+async function writeRequest(writer: Mutable<Writer>, request: ReadOnly<ModelRequest>): Task<void> {
+  const bytes = unwrap(fromUtf8(JSON.stringify(request) + '\n'));
+
+  unwrap(await writeAll(writer, bytes));
+  unwrap(await flush(writer));
+}
+
+async function forward(writer: Writer, first: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>): Task<void> {
+  await writeRequest(writer, first);
+
+  while (true) {
+    const request = await requests.receive();
+
+    if (request.kind === 'shutdown') return;
+    await writeRequest(writer, request);
+  }
+}
+
+async function receive(reader: Reader, updates: ReadOnly<Sender<ModelUpdate>>): Task<void> {
+  const input = unwrap(lines(reader));
+
+  while (true) {
+    const line = unwrap(await readLine(input));
+
+    if (line === undefined) throw 'The local model process closed its output.';
+    const update = JSON.parse<ModelUpdate>(line, {
+      maxBytes: line.length, maxDepth: 8, maxEntries: 16, maxNodes: 32
+    });
+
+    if (!['ready', 'compacted', 'prefix', 'complete', 'cancelled', 'error', 'stopped', 'rejected'].includes(update.kind)) throw 'Invalid model host response.';
+
+    if (update.kind === 'stopped') return;
+    await updates.send(update);
+  }
+}
+
+async function drain(reader: Reader): Task<void> {
+  // Native engine logs stay on stderr; consume them without retaining an unbounded buffer.
+  while (length(unwrap(await read(reader, 8192))) > 0) {}
+}
+
+async function connected(program: ReadOnly<string>, first: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): Task<void> {
+  const child = unwrap(spawn(program, [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
+  }));
+  const input = child.takeStdin();
+  const output = child.takeStdout();
+  const errors = child.takeStderr();
+
+  try {
+    if (input === undefined || output === undefined || errors === undefined) throw 'Could not open model host pipes.';
+    // Hosts may close their diagnostic stream while the protocol is still active.
+    const diagnostics = drain(errors).start();
+
+    try {
+      await race([forward(input, first, requests), receive(output, updates)]);
+    } finally {
+      diagnostics.cancel();
+
+      try {
+        await diagnostics;
+      } catch (_) {}
+    }
+  } finally {
+    try {
+      unwrap(await child.kill().timeout(5000));
+    } catch (_) {}
+
+    try {
+      unwrap(await child.wait().timeout(5000));
+    } catch (_) {}
+  }
+}
+
+export async function modelService(program: string, requests: Channel<ModelRequest>, updates: Sender<ModelUpdate>): Task<void> {
+  while (true) {
+    const request = await requests.receive();
+
+    if (request.kind !== 'start') {
+      await updates.send({
+        kind: 'rejected', id: request.id, text: '', error: 'Start the local model before sending a request.'
+      });
+      await updates.send({
+        kind: 'stopped', id: '', text: '', error: ''
+      });
+      continue;
+    }
+
+    try {
+      await connected(program, request, requests, updates);
+    } catch (error) {
+      await updates.send({
+        kind: 'error', id: '', text: '', error: JSON.stringify(error)
+      });
+    }
+
+    await updates.send({
+      kind: 'stopped', id: '', text: '', error: ''
+    });
+  }
+}

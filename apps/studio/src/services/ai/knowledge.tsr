@@ -1,0 +1,112 @@
+import { fromBase64, fromUtf8, toHex, toUtf8, view } from 'std:bytes';
+import { sha256 } from 'std:crypto';
+import { homeDir } from 'std:env';
+import {
+  createTempDir,
+  mkdirAll,
+  readFile,
+  removeDirAll,
+  rename,
+  stat,
+  writeFile
+} from 'std:fs';
+import { join } from 'std:path';
+import { compile, escape } from 'std:regex';
+import { recallTerms } from '../../lib/ai/prompts.tsr';
+import { open } from 'std:sqlite';
+
+import encoded from '../../assets/knowledge/passages.txt';
+import manifest from '../../assets/knowledge/manifest.json';
+
+function databasePath(folder: ReadOnly<string>): string {
+  const path = join(folder, manifest.sha256 + '.sqlite');
+
+  match (stat(path)) {
+    Ok(info) => {
+      if (info.isFile && info.size === manifest.size) {
+        match (readFile(path, manifest.size)) {
+          Ok(bytes) => {
+            if (unwrap(toHex(sha256(bytes))) === manifest.sha256) return path;
+          },
+          Err(_) => {}
+        }
+      }
+    },
+    Err(_) => {}
+  }
+
+  unwrap(mkdirAll(folder));
+  const temporary = unwrap(createTempDir(folder, 'install-'));
+
+  try {
+    const file = join(temporary, 'passages.sqlite');
+    unwrap(writeFile(file, unwrap(fromBase64(encoded))));
+    unwrap(rename(file, path));
+  } finally {
+    unwrap(removeDirAll(temporary));
+  }
+
+  return path;
+}
+
+export function knowledgeQuestion(prompt: ReadOnly<string>): boolean {
+  const text = prompt.toLowerCase();
+  return ['tsrust', 'gpui', 'std:', 'sqlite', 'tsrx'].some((term) => text.includes(term));
+}
+
+export function searchKnowledge(prompt: ReadOnly<string>, folder?: string): Result<string, string> {
+  try {
+    const bytes = unwrap(fromUtf8(prompt.toLowerCase()));
+    const words = unwrap(compile('[a-z][a-z0-9_]*'));
+    const terms: string[] = [];
+
+    for (const token of words.findAll(prompt.toLowerCase())) {
+      const word = unwrap(toUtf8(unwrap(view(bytes, token.start, token.end))));
+
+      if (word.length <= 1 || ['the', 'how', 'does', 'show', 'example', 'examples', 'can', 'use', 'using', 'for', 'with', 'from', 'what', 'tsrust', 'gpui', 'std', 'please', 'and', 'that', 'this', 'are', 'code', 'edit', 'you', 'write', 'into', 'make', 'would', 'should', 'could', 'give', 'of', 'to', 'an', 'in', 'is', 'do', 'me', 'my'].includes(word)) continue;
+      const term = '"' + word + '"';
+
+      if (!terms.includes(term)) terms.push(term);
+    }
+
+    if (terms.length === 0) return Ok('');
+    const home = unwrap(homeDir());
+
+    if (folder === undefined && home === undefined) return Err('Studio knowledge cache is unavailable.');
+    const path = databasePath(folder ?? join(home ?? '', '.tsrust', 'studio', 'knowledge'));
+    const db = unwrap(open(path));
+    const passages: string[] = [];
+    let covered = '';
+    {
+      const statement = unwrap(db.prepare('SELECT path,line,body FROM passages WHERE passages MATCH ?1 ORDER BY bm25(passages,6,5,4,1,0),rowid LIMIT 1'));
+      const queries = [terms.join(' OR ')];
+      const symbols = recallTerms(prompt);
+
+      for (const symbol of symbols) {
+        if (!['sqlite', 'tsrust', 'gpui', 'tsrx'].includes(symbol.toLowerCase())) queries.push(clone(symbol));
+      }
+
+      for (let index = 0; index < queries.length; index += 1) {
+        const query = queries[index];
+
+        if (index > 0 && unwrap(compile('(?:^|[^\\p{L}\\p{N}_$])' + escape(query) + '(?:$|[^\\p{L}\\p{N}_$])')).isMatch(covered)) continue;
+        const rows = unwrap(statement.query([index === 0 ? clone(query) : '"' + query + '"']));
+
+        if (rows.length === 0) continue;
+        const row = rows[0];
+        const body = unwrap(row.text('body'));
+        const passage = 'Bundled Tsrust reference: ' + unwrap(row.text('path')) + ':' + unwrap(row.int('line')).toString() + '\n' + body;
+
+        if (!passages.includes(passage)) {
+          passages.push(passage);
+          covered += '\n' + body;
+        }
+      }
+    }
+
+    unwrap(db.close());
+    return Ok(passages.join('\n\n'));
+  } catch (error) {
+    return Err('Could not search the bundled Tsrust references: ' + error.message);
+  }
+}

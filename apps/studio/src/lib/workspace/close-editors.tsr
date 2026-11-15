@@ -1,0 +1,36 @@
+import { dirty } from './documents.tsr';
+import { Workspace } from './workspace.tsr';
+
+export interface CloseEditorTarget {
+  path: string;
+  session: string;
+  revision: int;
+}
+
+export interface CloseEditorsPlan {
+  root: string;
+  targets: CloseEditorTarget[];
+}
+
+export function planCloseEditors(workspace: ReadOnly<Workspace>): CloseEditorsPlan {
+  return {
+    root: clone(workspace.root), targets: workspace.files.map((file): CloseEditorTarget => ({
+      path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
+    }))
+  };
+}
+
+export function closeEditors(workspace: Mutable<Workspace>, plan: ReadOnly<CloseEditorsPlan>, discard: boolean, allowDiscard: boolean): Result<void, string> {
+  if (workspace.root !== plan.root || workspace.files.length !== plan.targets.length) return Err('Open editors changed. Review the close request again.');
+
+  for (const file of workspace.files) {
+    if (!plan.targets.some((target) => target.path === file.document.path && target.session === file.document.session && target.revision === file.document.revision)) return Err('Open editors changed. Review the close request again.');
+  }
+
+  if (workspace.files.some((file) => dirty(file.document)) && (!discard || !allowDiscard)) return Err('Save all files or explicitly discard their unsaved changes before closing.');
+  workspace.files = [];
+  workspace.active = '';
+  workspace.dockLayout = '';
+  workspace.error = '';
+  return Ok();
+}

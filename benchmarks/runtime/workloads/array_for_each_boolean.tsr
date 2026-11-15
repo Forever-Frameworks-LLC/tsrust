@@ -3,9 +3,11 @@ function workload(n: int, seed: int): int {
   let trace: int = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {
@@ -17,6 +19,7 @@ function workload(n: int, seed: int): int {
     const selected = base.slice(0, count);
     selected.forEach((value: boolean, index: int, source: boolean[]): void => {
       let weight = 3;
+
       if (value) {
         weight = 7;
       }

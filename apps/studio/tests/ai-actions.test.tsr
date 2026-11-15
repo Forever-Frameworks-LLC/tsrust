@@ -1,0 +1,2150 @@
+import { attachPickedContext } from '../src/components/ai/context-picker.tsrx';
+import { editorContext, FileDeclarations, referenceContext, referenceLiteral } from '../src/services/ai/context.tsr';
+import {
+  recallTerms,
+  turnMentions,
+  excerptTurn,
+  withoutEarlierWorkspace,
+  excerptWorkspace,
+  replaceWorkspace,
+  ChatMessage
+} from '../src/lib/ai/prompts.tsr';
+import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
+import { LanguageReferences } from '../src/lib/language/references.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
+import { reviewChatEdit, undoChatEdit } from '../src/components/ai/edit-review.tsrx';
+import { replacementProposal, batchProposal, togglePassage } from '../src/lib/ai/edits.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { edit, propose } from '../src/lib/workspace/documents.tsr';
+import {
+  canonicalize,
+  createTempDir,
+  removeDirAll,
+  removeFile,
+  readTextFile,
+  writeTextFile,
+  mkdirAll
+} from 'std:fs';
+import { Channel } from 'std:futures';
+import { separator } from 'std:path';
+import { test, strictEqual } from 'std:testing';
+import { Signal, signal } from 'std:ui';
+
+import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } from '../src/lib/ai/conversations.tsr';
+import { fitGeneration } from '../src/lib/ai/generation.tsr';
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import {
+  initialAiState,
+  invokeModelTool,
+  requestInline,
+  cancelInline,
+  pollModel,
+  syncInlinePreference,
+  AiContext,
+  AiState
+} from '../src/services/ai/actions.tsr';
+import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
+
+function modelConfig(): StudioConfig {
+  const config = defaultConfig();
+  config.aiModelPath = '/models/local.gguf';
+  config.aiTokenizerPath = '/models/tokenizer.json';
+  return config;
+}
+
+function context(state: ReadOnly<Signal<AiState>>, settings: ReadOnly<Signal<StudioConfig>>, commands: ReadOnly<Channel<ModelRequest>>): AiContext {
+  const result: AiContext = {
+    state: state.handle(), settings: settings.handle(), commands: commands.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+  return result;
+}
+
+function denied<T>(result: Result<T, string>): boolean {
+  match (result) {
+    Err(_) => {
+      return true;
+    },
+    Ok(_) => {
+      return false;
+    }
+  }
+}
+
+function send(context: ReadOnly<AiContext>, prompt: string): void {
+  unwrap(invokeModelTool(context, 'local_model_send', JSON.stringify({
+    chat: context.state.get().history.active, prompt
+  })));
+}
+
+test('inline preference warms once before typing, preserves active chat and releases idle model', () => {
+  const config = modelConfig();
+  const settings = signal(config);
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const host = context(state, settings, commands);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  syncInlinePreference(host);
+  const next = state.get();
+  next.phase = 'generating';
+  next.active = 'chat';
+  state.set(next);
+  const off = settings.get();
+  off.inlineCompletions = false;
+  settings.set(unwrap(parseConfig(formatConfig(off))));
+  syncInlinePreference(host);
+  strictEqual(state.get().phase, 'generating');
+  requestInline(state, host.commands, '{"id":31,"prefix":"a","suffix":";"}');
+  strictEqual(state.get().queuedInline === undefined, true);
+  const idle = state.get();
+  idle.phase = 'ready';
+  idle.active = '';
+  state.set(idle);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'shutdown');
+});
+
+test('inline inference uses both sides of the caret and cancels by editor request id', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(4);
+  const sender = commands.sender();
+  requestInline(state, sender, '{"id":37,"prefix":"🦀return ","suffix":"; }"}');
+  const generate = unwrap(commands.tryReceive());
+  strictEqual(generate.kind, 'complete-code');
+  strictEqual(generate.prompt, '🦀return ');
+  strictEqual(generate.suffix, '; }');
+  strictEqual(state.get().phase, 'inline');
+  cancelInline(state, sender, 36);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      strictEqual(true, false);
+    },
+    Err(_) => {}
+  }
+
+  cancelInline(state, sender, 37);
+  const cancel = unwrap(commands.tryReceive());
+  strictEqual(cancel.kind, 'cancel');
+  strictEqual(cancel.id, generate.id);
+  strictEqual(state.get().history.chats.length, 0);
+});
+
+test('fatal inline decode waits for host shutdown before the next model start', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  requestInline(state, host.commands, '{"id":37,"prefix":"return ","suffix":";"}');
+  const request = unwrap(commands.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: request.id, error: 'Decode Error -3: unknown', text: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopping');
+  strictEqual(state.get().inlineRequest, undefined);
+  strictEqual(state.get().notice.includes('Restart the model'), true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopped');
+  send(host, 'Retry from chat');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+});
+
+test('typing code starts the configured host and retains the latest caret through startup', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const sender = commands.sender();
+  const updates = new Channel<ModelUpdate>(2);
+  const config = signal(modelConfig());
+  const host = context(state, config, commands);
+  requestInline(state, sender, '{"id":21,"prefix":"old","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  requestInline(state, sender, '{"id":22,"prefix":"new","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:22');
+});
+
+test('typing after a failed inline startup waits for an explicit retry or different model', () => {
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(2);
+  const host = context(state, settings, commands);
+  requestInline(state, host.commands, '{"id":41,"prefix":"first","suffix":""}');
+  pollModel(host, updates);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: '', text: '', error: 'Invalid GGUF'
+  }));
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  requestInline(state, host.commands, '{"id":42,"prefix":"second","suffix":""}');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'stopped');
+  strictEqual(state.get().queuedInline === undefined, true);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      throw 'Unexpected automatic retry';
+    },
+    Err(reason) => {
+      strictEqual(reason.code, 'empty');
+    }
+  }
+
+  const changed = settings.get();
+  changed.aiModelPath = '/another/model.gguf';
+  settings.set(changed);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).modelPath ?? '', '/another/model.gguf');
+});
+
+test('a full command queue retains only the latest inline request at startup and after readiness', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(1);
+  const sender = commands.sender();
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  const updates = new Channel<ModelUpdate>(1);
+  unwrap(sender.trySend({
+    kind: 'cancel', id: 'old', prompt: '', maxTokens: 0
+  }));
+  requestInline(state, sender, '{"id":31,"prefix":"a","suffix":";"}');
+  pollModel(host, updates);
+  strictEqual(state.get().queuedInline?.id, 31);
+  strictEqual(unwrap(commands.tryReceive()).id, 'old');
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().queuedInline?.id, 31);
+  requestInline(state, sender, '{"id":32,"prefix":"b","suffix":"!"}');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  pollModel(host, updates);
+  const latest = unwrap(commands.tryReceive());
+  strictEqual(latest.id, 'inline:32');
+  strictEqual(latest.suffix, '!');
+  strictEqual(state.get().queuedInline === undefined, true);
+});
+
+test('chat preempts inline inference and survives an editor cold start', () => {
+  for (const phase of ['starting', 'ready']) {
+    const initial = initialAiState();
+    initial.phase = clone(phase);
+    const state = signal(initial);
+    const commands = new Channel<ModelRequest>(1);
+    const sender = commands.sender();
+    const settings = signal(modelConfig());
+    const host = context(state, settings, commands);
+    const updates = new Channel<ModelUpdate>(1);
+    requestInline(state, sender, '{"id":17,"prefix":"old","suffix":";"}');
+    send(host, 'Explain this function.');
+    const active = clone(state.get().active);
+    strictEqual(state.get().pending?.id, clone(active));
+    requestInline(state, sender, '{"id":18,"prefix":"new","suffix":";"}');
+    strictEqual(state.get().queuedInline === undefined, true);
+
+    if (phase === 'ready') {
+      strictEqual(unwrap(commands.tryReceive()).id, 'inline:17');
+      pollModel(host, updates);
+      strictEqual(unwrap(commands.tryReceive()).kind, 'cancel');
+      unwrap(updates.sender().trySend({
+        kind: 'cancelled', id: 'inline:17', text: '', error: ''
+      }));
+    } else unwrap(updates.sender().trySend({
+      kind: 'ready', id: '', text: '', error: ''
+    }));
+    pollModel(host, updates);
+    const chat = unwrap(commands.tryReceive());
+    strictEqual(chat.kind, 'generate');
+    strictEqual(chat.id, active);
+    strictEqual(state.get().phase, 'generating');
+  }
+});
+
+test('cancelling a chat waiting on inline inference restores its draft', () => {
+  const initial = initialAiState();
+  initial.phase = 'ready';
+  const state = signal(initial);
+  const commands = new Channel<ModelRequest>(3);
+  const sender = commands.sender();
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  const updates = new Channel<ModelUpdate>(1);
+  requestInline(state, sender, '{"id":9,"prefix":"old","suffix":""}');
+  send(host, 'Keep this draft');
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: state.get().active
+  })));
+  strictEqual(state.get().pending === undefined, true);
+  strictEqual(state.get().history.chats[0].draft, 'Keep this draft');
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:9');
+  strictEqual(unwrap(commands.tryReceive()).kind, 'cancel');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: 'inline:9', text: 'late', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().active, '');
+});
+
+test('cancelling chat during inline warmup restores the draft and keeps the same host', () => {
+  const state = signal(initialAiState());
+  const commands = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(1);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, commands);
+  syncInlinePreference(host);
+  strictEqual(unwrap(commands.tryReceive()).kind, 'start');
+  send(host, 'Keep this question');
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: state.get().active
+  })));
+  strictEqual(state.get().history.chats[0].draft, 'Keep this question');
+  strictEqual(state.get().phase, 'starting');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  requestInline(state, host.commands, '{"id":71,"prefix":"return ","suffix":";"}');
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:71');
+});
+
+test('rapid edits replace queued inline work while cancellation waits for channel capacity', () => {
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const commands = new Channel<ModelRequest>(1);
+  const sender = commands.sender();
+  const host = context(state, signal(modelConfig()), commands);
+  const updates = new Channel<ModelUpdate>(4);
+  requestInline(state, sender, '{"id":10,"prefix":"old","suffix":";"}');
+  cancelInline(state, sender, 10);
+  requestInline(state, sender, '{"id":11,"prefix":"intermediate","suffix":";"}');
+  requestInline(state, sender, '{"id":12,"prefix":"latest","suffix":"!"}');
+  cancelInline(state, sender, 11);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:10');
+  pollModel(host, updates);
+  const cancel = unwrap(commands.tryReceive());
+  strictEqual(cancel.kind, 'cancel');
+  strictEqual(cancel.id, 'inline:10');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: 'inline:10', text: 'obsolete', error: ''
+  }));
+  pollModel(host, updates);
+  const newest = unwrap(commands.tryReceive());
+  strictEqual(newest.id, 'inline:12');
+  strictEqual(newest.prompt, 'latest');
+  strictEqual(newest.suffix, '!');
+  requestInline(state, sender, '{"id":13,"prefix":"dismissed","suffix":";"}');
+  cancelInline(state, sender, 13);
+  strictEqual(unwrap(commands.tryReceive()).id, 'inline:12');
+  unwrap(updates.sender().trySend({
+    kind: 'cancelled', id: 'inline:12', text: '', error: 'cancelled'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().history.chats.length, 0);
+
+  match (commands.tryReceive()) {
+    Ok(_) => {
+      strictEqual(true, false);
+    },
+    Err(error) => {
+      strictEqual(error.code, 'empty');
+    }
+  }
+});
+
+test('Unicode composer input and first-message titles preserve scalar boundaries', () => {
+  strictEqual(contextTrigger('日本語🦀'), '');
+  strictEqual(contextTrigger('🦀@'), '');
+  strictEqual(contextTrigger('界　@'), 'file');
+  strictEqual(contextTrigger('界\n/'), 'skill');
+  strictEqual(contextTrigger('/'), 'skill');
+  strictEqual(contextTrigger(''), '');
+  const requests = new Channel<ModelRequest>(4);
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  const title = 'x'.repeat(79) + '🦀';
+  const prompt = title + '界\nsecond line';
+  send(host, clone(prompt));
+  strictEqual(state.get().history.chats[0].title, title);
+  strictEqual(unwrap(requests.tryReceive()).prompt, prompt);
+});
+
+test('reading an explicit conversation leaves selection intact and excludes other drafts', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(invokeModelTool(host, 'chat_set_draft', '{"chat":"","prompt":"first draft"}'));
+  const draft = JSON.parse<Conversation>(unwrap(invokeModelTool(host, 'local_model_read', '{"chat":""}')));
+  strictEqual(draft.draft, 'first draft');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const first = host.state.get().history.active;
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const second = host.state.get().history.active;
+  unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+    chat: clone(second), prompt: 'separate draft'
+  })));
+  const target = JSON.stringify({
+    chat: first
+  });
+  const result = unwrap(invokeModelTool(host, 'local_model_read', target));
+  strictEqual(JSON.parse<Conversation>(result).draft, 'first draft');
+  strictEqual(result.includes('separate draft'), false);
+  strictEqual(host.state.get().history.active, second);
+  strictEqual(denied(invokeModelTool(host, 'local_model_read', '{"chat":"missing"}')), true);
+  strictEqual(JSON.parse<AiState>(unwrap(invokeModelTool(host, 'local_model_read', '{}'))).history.chats.length, 2);
+  host.allowRead = false;
+  strictEqual(denied(invokeModelTool(host, 'local_model_read', target)), true);
+});
+
+test('local model settings preserve legacy defaults and artifact paths', () => {
+  const config = defaultConfig();
+  strictEqual(config.aiModelPath, '');
+  config.aiModelPath = '/models/模型.gguf';
+  config.aiTokenizerPath = '/models/tokenizer.json';
+  const loaded = unwrap(parseConfig(formatConfig(config)));
+  strictEqual(loaded.aiModelPath, config.aiModelPath);
+  strictEqual(loaded.aiTokenizerPath, config.aiTokenizerPath);
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).aiModelPath, '');
+});
+
+test('sending loads automatically and delivers a queued response to its exact conversation', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(8);
+  const replies = updates.sender();
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  host.allowInference = false;
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  host.allowInference = true;
+  send(host, 'Hello');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  strictEqual(host.state.get().phase, 'starting');
+  const request = clone(host.state.get().active);
+  const chat = clone(host.state.get().history.active);
+  unwrap(replies.trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const generation = unwrap(requests.tryReceive());
+  strictEqual(generation.kind, 'generate');
+  strictEqual(generation.maxTokens, 0);
+  strictEqual(generation.id, request);
+  strictEqual(generation.messages?.length ?? 0, 1);
+  strictEqual(host.state.get().phase, 'generating');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const selected = clone(host.state.get().history.active);
+  strictEqual(selected === chat, false);
+  unwrap(replies.trySend({
+    kind: 'complete', id: 'stale', text: 'wrong', error: ''
+  }));
+  unwrap(replies.trySend({
+    kind: 'compacted', id: clone(request), text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().notice.includes('Context was shortened'), true);
+  unwrap(replies.trySend({
+    kind: 'prefix', id: clone(request), text: 'Hi 🦀', error: ''
+  }));
+  unwrap(replies.trySend({
+    kind: 'complete', id: clone(request), text: 'Hi 日本語', error: '', stop: 'eos'
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.active, selected);
+  strictEqual(host.state.get().history.chats[0].messages[1].text, 'Hi 日本語');
+  strictEqual(host.state.get().phase, 'ready');
+  unwrap(updates.sender().trySend({
+    kind: 'error', id: '', text: '', error: '{"cause":"The local model process closed its output.","code":"worker"}'
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().notice, 'The local model process closed its output.');
+  strictEqual(denied(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request
+  }))), true);
+});
+
+test('a final reply during shutdown is retained while new sends wait for the host to stop', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'First question');
+  unwrap(requests.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const generation = unwrap(requests.tryReceive());
+  unwrap(invokeModelTool(host, 'local_model_stop', '{}'));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(updates.sender().trySend({
+    kind: 'complete', id: generation.id, text: 'First answer', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().phase, 'stopping');
+  const chat = host.state.get().history.active;
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', JSON.stringify({
+    chat, prompt: 'Too early'
+  }))), true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  send(host, 'Explain your answer');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const followup = unwrap(requests.tryReceive());
+  const messages = followup.messages ?? [];
+  strictEqual(messages.length, 3);
+  strictEqual(messages[1].content, 'First answer');
+  const revision = host.state.get().history.chats[0].revision;
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.chats[0].messages[3].status, 'interrupted');
+  strictEqual(host.state.get().history.chats[0].revision, revision + 1);
+});
+
+test('cancelled startup restores the exact prompt and preserves newer chat selection', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'Keep my draft');
+  unwrap(requests.tryReceive());
+  const id = clone(host.state.get().active);
+  const original = clone(host.state.get().history.active);
+  strictEqual(denied(invokeModelTool(host, 'local_model_cancel', '{"request":"stale"}')), true);
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: id
+  })));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const selected = clone(host.state.get().history.active);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().history.active, selected);
+  strictEqual(host.state.get().history.chats[0].id, original);
+  strictEqual(host.state.get().history.chats[0].draft, 'Keep my draft');
+  strictEqual(host.state.get().history.chats[0].messages.length, 0);
+  strictEqual(host.state.get().phase, 'stopped');
+});
+
+test('late readiness after startup cancellation preserves the newer draft and never queues generation', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'first prompt');
+  unwrap(requests.tryReceive());
+  const active = host.state.get();
+  unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+    chat: active.history.active, prompt: 'second draft'
+  })));
+  unwrap(invokeModelTool(host, 'local_model_cancel', JSON.stringify({
+    request: active.active
+  })));
+  strictEqual(unwrap(requests.tryReceive()).kind, 'shutdown');
+  unwrap(updates.sender().trySend({
+    kind: 'ready', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  strictEqual(host.state.get().phase, 'stopping');
+  strictEqual(host.state.get().pending !== undefined, true);
+  unwrap(updates.sender().trySend({
+    kind: 'stopped', id: '', text: '', error: ''
+  }));
+  pollModel(host, updates);
+  const chat = host.state.get().history.chats[0];
+  strictEqual(chat.draft, 'second draft');
+  strictEqual(chat.messages[0].text, 'first prompt');
+  strictEqual(chat.messages[0].status, 'cancelled');
+  strictEqual(chat.messages[1].status, 'cancelled');
+  strictEqual(host.state.get().pending === undefined, true);
+  send(host, 'second draft');
+  strictEqual(unwrap(requests.tryReceive()).kind, 'start');
+  strictEqual(host.state.get().pending?.messages?.length ?? 0, 1);
+});
+
+test('full queues and missing model paths preserve conversation drafts and identities', () => {
+  const requests = new Channel<ModelRequest>(1);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(host.commands.trySend({
+    kind: 'occupied', id: '', prompt: '', maxTokens: 32
+  }));
+  const before = JSON.stringify(host.state.get());
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  strictEqual(JSON.stringify(host.state.get()), before);
+  unwrap(requests.tryReceive());
+  const config = host.settings.get();
+  config.aiModelPath = '';
+  host.settings.set(config);
+  strictEqual(denied(invokeModelTool(host, 'local_model_send', '{"chat":"","prompt":"Hello"}')), true);
+  strictEqual(JSON.stringify(host.state.get()), before);
+});
+
+test('conversation actions persist drafts and require independent delete approval', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const state = signal(initialAiState());
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  unwrap(invokeModelTool(host, 'chat_set_draft', '{"chat":"","prompt":"Unsent 🦀"}'));
+  unwrap(invokeModelTool(host, 'chat_new', '{}'));
+  const id = clone(host.state.get().history.active);
+  strictEqual(chatDraft(host.state.get().history), 'Unsent 🦀');
+  unwrap(invokeModelTool(host, 'chat_show_all', '{}'));
+  strictEqual(host.state.get().view, 'all');
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision, allowDelete: true
+  }))), true);
+  send(host, 'Pending');
+  unwrap(requests.tryReceive());
+  host.allowDelete = true;
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision
+  }))), true);
+  const ready = host.state.get();
+  ready.phase = 'ready';
+  ready.active = '';
+  ready.targetChat = '';
+  ready.pending = undefined;
+  host.state.set(ready);
+  strictEqual(denied(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: clone(id), revision: host.state.get().history.chats[0].revision + 1
+  }))), true);
+  strictEqual(host.state.get().history.chats.length, 1);
+  unwrap(invokeModelTool(host, 'chat_delete', JSON.stringify({
+    chat: id, revision: host.state.get().history.chats[0].revision
+  })));
+  strictEqual(host.state.get().history.chats.length, 0);
+  strictEqual(host.state.get().view, 'all');
+});
+
+test('chat storage round-trips Unicode and rejects external history conflicts', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-history-'));
+
+  try {
+    const requests = new Channel<ModelRequest>(4);
+    const state = signal(initialAiState());
+    const settings = signal(modelConfig());
+    const host = context(state, settings, requests);
+    unwrap(invokeModelTool(host, 'chat_new', '{}'));
+    unwrap(invokeModelTool(host, 'chat_set_draft', JSON.stringify({
+      chat: host.state.get().history.active, prompt: '日本語 🦀'
+    })));
+    const history = host.state.get().history;
+    const store: ChatStore = {
+      path: folder + '/history.json', baseline: '', ready: true
+    };
+    unwrap(persistChats(history, store));
+    strictEqual(chatDraft(unwrap(parseHistory(unwrap(readTextFile(store.path)), ''))), '日本語 🦀');
+    strictEqual(denied(parseHistory(unwrap(readTextFile(store.path)), '/outside')), true);
+    const invalid = clone(history);
+    invalid.chats.push(clone(invalid.chats[0]));
+    strictEqual(denied(parseHistory(JSON.stringify(invalid), '')), true);
+    unwrap(writeTextFile(store.path, 'external bytes'));
+    history.draft = 'new value';
+    strictEqual(denied(persistChats(history, store)), true);
+    strictEqual(unwrap(readTextFile(store.path)), 'external bytes');
+  } finally {
+    removeDirAll(folder);
+  }
+});
+
+test('mixed picker results retain valid attachments and identify every rejected path', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-mixed-context-'));
+
+  try {
+    const model = unwrap(openWorkspace(clone(folder)));
+    const valid = folder + '/source.tsr';
+    const invalid = folder + '/binary';
+    const missing = folder + '/missing';
+    unwrap(writeTextFile(valid, 'const value = 1;'));
+    unwrap(writeTextFile(invalid, 'binary\0text'));
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const commands = new Channel<ModelRequest>(2);
+    const workspace = signal(model);
+    const host = context(state, settings, commands);
+    host.workspace = workspace.handle();
+    attachPickedContext(host, '', 'file', [clone(invalid), clone(missing), clone(valid)]);
+    const result = host.state.get();
+    strictEqual(result.notice.includes(invalid), true);
+    strictEqual(result.notice.includes(missing), true);
+    strictEqual(result.notice.includes(valid), false);
+    const attached = result.history.context ?? [];
+    strictEqual(attached.length, 1);
+    strictEqual(attached[0].text, 'const value = 1;');
+  } finally {
+    removeDirAll(folder);
+  }
+});
+
+test('file and skill context use guarded snapshots, including unsaved editor text', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-context-'));
+  const outside = unwrap(createTempDir(undefined, 'studio-chat-outside-'));
+  const externalPath = outside + (separator() === '/' ? '/outside\nnotes.txt' : '/outside.txt');
+
+  try {
+    unwrap(writeTextFile(folder + '/main.tsr', 'const disk = 1;'));
+    unwrap(writeTextFile(externalPath, 'outside private text'));
+    unwrap(mkdirAll(folder + '/.agents/skills/review'));
+    unwrap(writeTextFile(folder + '/.agents/skills/review/SKILL.md', '# Review\nRead carefully.'));
+    const model = unwrap(openWorkspace(clone(folder)));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    edit(model.files[0].document, 'const edited = 2;');
+    const workspace = signal(clone(model));
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const requests = new Channel<ModelRequest>(4);
+    const host = context(state, settings, requests);
+    host.workspace = workspace.handle();
+    strictEqual(denied(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: clone(externalPath), kind: 'file', allowOutside: true
+    }))), true);
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/main.tsr', kind: 'file'
+    })));
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/.agents/skills/review/SKILL.md', kind: 'skill'
+    })));
+    host.allowRead = false;
+    strictEqual(denied(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: folder + '/main.tsr', kind: 'file'
+    }))), true);
+    host.allowRead = true;
+    host.allowedContextPaths = [clone(externalPath)];
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', path: clone(externalPath), kind: 'file'
+    })));
+    const ready = host.state.get();
+    ready.phase = 'ready';
+    host.state.set(ready);
+    send(host, 'Explain these references');
+    const request = unwrap(requests.tryReceive());
+    const messages = request.messages;
+
+    if (messages === undefined) throw 'context missing';
+    strictEqual(messages[0].content.includes('const edited = 2;'), true);
+    strictEqual(messages[0].content.includes('Read carefully.'), true);
+    strictEqual(messages[0].content.includes('outside private text'), true);
+    strictEqual(unwrap(readTextFile(folder + '/main.tsr')), 'const disk = 1;');
+    strictEqual((host.state.get().history.context ?? []).length, 0);
+    const updates = new Channel<ModelUpdate>(2);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: 'Done', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    host.allowRead = false;
+    send(host, 'Continue');
+    const restricted = unwrap(requests.tryReceive()).messages;
+
+    if (restricted === undefined) throw 'missing follow-up';
+    strictEqual(restricted[0].content, 'Explain these references');
+    strictEqual(restricted[1].content, 'Done');
+    strictEqual(restricted[2].content, 'Continue');
+    strictEqual((state.get().history.chats[0].messages[0].context ?? []).length, 3);
+  } finally {
+    removeDirAll(folder);
+    removeDirAll(outside);
+  }
+});
+
+test('reference context discards stale source revisions and mismatched target offsets', () => {
+  const folder = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-reference-revision-'))));
+
+  try {
+    const path = folder + '/source.tsr';
+    const target = folder + '/target.tsr';
+    unwrap(writeTextFile(path, 'const sampleValue = 2;'));
+    unwrap(writeTextFile(target, 'sampleValue();'));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, path));
+    unwrap(openFile(workspace, target));
+    const sourceIndex = workspace.files.findIndex((file) => file.document.path === path);
+    const index = workspace.files.findIndex((file) => file.document.path === target);
+    const point: DiagnosticPosition = {
+      line: 0, character: 0
+    };
+    const snapshot: LanguageReferences = {
+      root: clone(workspace.root), query: {
+        path, symbol: 'sampleValue', position: {
+          line: 0, character: 6
+        }, session: clone(workspace.files[sourceIndex].document.session), revision: workspace.files[sourceIndex].document.revision
+      }, locations: [{
+        uri: documentUri(target), range: {
+          start: clone(point), end: {
+            line: 0, character: 11
+          }
+        }
+      }]
+    };
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue').includes('target.tsr:1:1'), true);
+    edit(workspace.files[index].document, 'function sampleValue() {\n  return 73; // }\n}\nfunction unrelated() { return 999; }');
+    const declaration = clone(snapshot);
+    declaration.locations[0].range.start.character = 9;
+    const excerpt = referenceContext(workspace, declaration, 'What does sampleValue() return?');
+    strictEqual(excerpt.includes('target.tsr:1:10  function sampleValue() {\n  return 73; // }\n}'), true);
+    strictEqual(excerpt.includes('999'), false);
+    edit(workspace.files[index].document, 'function sampleValue<T>(t: T) { return t; }\nfunction sampleValue() { return 999; }');
+    strictEqual(referenceContext(workspace, declaration, 'sampleValue').includes('999'), false);
+    edit(workspace.files[index].document, ' sampleValue();');
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue'), '');
+    edit(workspace.files[index].document, 'sampleValue();');
+    edit(workspace.files[sourceIndex].document, 'const sampleValue = 3;');
+    strictEqual(referenceContext(workspace, snapshot, 'sampleValue'), '');
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('ordinary chat sends workspace paths and the current unsaved editor excerpt with a read grant', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-grounding-'));
+
+  try {
+    unwrap(writeTextFile(folder + '/main.tsr', 'disk version'));
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/copy.tsr', 'root duplicate content'));
+    unwrap(writeTextFile(folder + '/lib/copy.tsr', 'nested duplicate content'));
+    unwrap(writeTextFile(folder + '/lib/helper.tsr', 'unopened content' + 'x'.repeat(2031) + '😀' + 'y'.repeat(40000) + 'large file tail'));
+    unwrap(writeTextFile(folder + '/per.tsr', 'unrelated suffix'));
+    const model = unwrap(openWorkspace(clone(folder)));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    edit(model.files[0].document, 'unsaved fact' + 'x'.repeat(2035) + '😀tail');
+    const requests = new Channel<ModelRequest>(4);
+    const state = signal(initialAiState(emptyHistory(clone(model.root))));
+    const settings = signal(modelConfig());
+    const host = context(state, settings, requests);
+    host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+    host.workspace = signal(model);
+    const ready = state.get();
+    ready.phase = 'ready';
+    state.set(ready);
+    unwrap(writeTextFile(folder + '/caller.tsr', '    helperValue("keep  spaces");\n// unrelated caller detail'));
+    const point: DiagnosticPosition = {
+      line: 0, character: 4
+    };
+    host.references = signal<LanguageReferences>({
+      root: clone(state.get().history.root), query: {
+        path: folder + '/main.tsr', position: clone(point), symbol: 'helperValue'
+      }, locations: [{
+        uri: documentUri(folder + '/caller.tsr'), range: {
+          start: clone(point), end: clone(point)
+        }
+      }]
+    });
+    send(host, 'Explain helperValue() in helper.tsr');
+    const messages = unwrap(requests.tryReceive()).messages;
+
+    if (messages === undefined) throw 'missing generation';
+    strictEqual(messages[0].content.includes('Last Find References results for helperValue:\ncaller.tsr:1:5  helperValue("keep  spaces");'), true);
+    strictEqual(messages[0].content.includes('unrelated caller detail'), false);
+    strictEqual(messages[0].content.includes('Active editor file: main.tsr'), false);
+    strictEqual(messages[0].content.includes('unsaved fact'), false);
+    strictEqual(messages[0].content.includes('Referenced workspace file: lib/helper.tsr'), true);
+    strictEqual(messages[0].content.includes('root duplicate content'), false);
+    strictEqual(messages[0].content.includes('nested duplicate content'), false);
+    strictEqual(messages[0].content.includes('tail'), true);
+    strictEqual(messages[0].content.includes('unopened content'), true);
+    strictEqual(messages[0].content.includes('large file tail'), true);
+    strictEqual(messages[0].content.includes('unrelated suffix'), false);
+    strictEqual(state.get().history.chats[0].messages[0].text, 'Explain helperValue() in helper.tsr');
+    const updates = new Channel<ModelUpdate>(4);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: clone(state.get().active), text: 'The helper reads the input.', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    unwrap(writeTextFile(folder + '/lib/helper.tsr', 'changed on disk'));
+    const restored = unwrap(parseHistory(JSON.stringify(state.get().history), state.get().history.root));
+    const resumed = initialAiState(restored);
+    resumed.phase = 'ready';
+    state.set(resumed);
+    send(host, 'What did that helper read? Compare with lib/copy.tsr.');
+    const followUp = unwrap(requests.tryReceive()).messages;
+
+    if (followUp === undefined) throw 'missing follow-up';
+    strictEqual(followUp.length, 3);
+    strictEqual(followUp[0].content, messages[0].content);
+    strictEqual(followUp[1].content, 'The helper reads the input.');
+    strictEqual(followUp[2].content.includes('Last Find References'), false);
+    strictEqual(followUp[2].content.includes('changed on disk'), false);
+    strictEqual(followUp[2].content.includes('nested duplicate content'), true);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: clone(state.get().active), text: 'The original input.', error: '', stop: 'eos'
+    }));
+    pollModel(host, updates);
+    host.allowRead = false;
+    send(host, 'Continue');
+    const withoutRead = unwrap(requests.tryReceive()).messages;
+
+    if (withoutRead === undefined) throw 'missing restricted follow-up';
+    strictEqual(withoutRead[0].content, 'Explain helperValue() in helper.tsr');
+    strictEqual(withoutRead[4].content, 'Continue');
+  } finally {
+    removeDirAll(folder);
+  }
+});
+
+test('named binary and removed files produce a local reply without starting the model', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-unreadable-context-'));
+
+  try {
+    unwrap(writeTextFile(folder + '/data.bin', 'secret\0bytes'));
+    unwrap(writeTextFile(folder + '/gone.tsr', 'old source'));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(writeTextFile(folder + '/draft.tsr', 'saved text'));
+    unwrap(openFile(workspace, folder + '/draft.tsr'));
+    edit(workspace.files[0].document, 'in-memory draft');
+    unwrap(openFile(workspace, folder + '/data.bin'));
+    const requests = new Channel<ModelRequest>(4);
+    const state = signal(initialAiState(emptyHistory(clone(workspace.root))));
+    const settings = signal(modelConfig());
+    const host = context(state, settings, requests);
+    host.projectTree = signal(unwrap(scanTree(clone(workspace.root), false)));
+    host.workspace = signal(workspace);
+    unwrap(removeFile(folder + '/gone.tsr'));
+    unwrap(removeFile(folder + '/draft.tsr'));
+    send(host, 'Explain data.bin and gone.tsr');
+    const reply = state.get().history.chats[0].messages[1];
+    strictEqual(reply.status, 'complete');
+    strictEqual(reply.text.includes('could not read text'), true);
+    strictEqual(reply.text.includes('data.bin') && reply.text.includes('gone.tsr'), true);
+    strictEqual(reply.text.includes('secret'), false);
+    strictEqual(state.get().phase, 'stopped');
+
+    match (requests.tryReceive()) {
+      Ok(_) => {
+        throw 'unexpected inference request';
+      },
+      Err(_) => {}
+    }
+
+    const ready = state.get();
+    ready.phase = 'ready';
+    state.set(ready);
+    send(host, 'Explain draft.tsr');
+    const messages = unwrap(requests.tryReceive()).messages;
+
+    if (messages === undefined) throw 'missing draft context';
+    strictEqual(messages[messages.length - 1].content.includes('in-memory draft'), true);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('edit requests include only versioned diagnostics for the current target draft', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-diagnostics-'));
+
+  try {
+    const model = unwrap(openWorkspace(folder));
+    const path = model.root + '/main.tsr';
+    unwrap(writeTextFile(path, 'function total() { return shipping; }'));
+    unwrap(openFile(model, path));
+    const doc = model.files[0].document;
+    const issue: Problem = {
+      source: 'lsp:tsrust', path, session: clone(doc.session), revision: doc.revision, severity: 'error', code: 'unknown-name', line: 1, column: 27, message: 'Unknown name shipping.'
+    };
+    const stale = clone(issue);
+    stale.revision = doc.revision + 1;
+    stale.message = 'different revision';
+    const other = clone(issue);
+    other.path = folder + '/other.tsr';
+    other.message = 'another file';
+    const unverified = clone(issue);
+    unverified.unversioned = true;
+    unverified.message = 'unversioned report';
+    const requests = new Channel<ModelRequest>(2);
+    const ready = initialAiState(emptyHistory(clone(model.root)));
+    ready.phase = 'ready';
+    const settings = signal(modelConfig());
+    const state = signal(ready);
+    const host = context(state, settings, requests);
+    host.workspace = signal(model);
+    host.problems = signal<Problem[]>([issue, stale, other, unverified]);
+    host.store = signal<ChatStore>({
+      path: folder + '/history.json', baseline: '', ready: true
+    });
+    send(host, 'Can you not insert that console log?');
+    const request = unwrap(requests.tryReceive());
+    const messages = request.messages ?? [];
+    strictEqual(state.get().editTarget !== undefined, true);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: 'I already inserted the console log.', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    strictEqual(state.get().review === undefined, true);
+    const saved = unwrap(parseHistory(unwrap(readTextFile(folder + '/history.json')), model.root));
+    strictEqual(saved.chats[0].messages[1].text, 'The model did not return a valid edit proposal.');
+    const text = messages[0].content;
+    strictEqual(text.includes('main.tsr:1:27 [error unknown-name] Unknown name shipping.'), true);
+    strictEqual(text.includes('different revision') || text.includes('another file') || text.includes('unversioned report'), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('chat edit review rejects ambiguous replacements, stale drafts and dismissed proposals', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-review-'));
+
+  try {
+    const path = folder + '/main.tsr';
+    unwrap(writeTextFile(path, 'one one two'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, path));
+    const snapshot = propose(model.files[0].document, '');
+    strictEqual(denied(replacementProposal(snapshot, '{"before":"one","after":"new"}')), true);
+    strictEqual(denied(replacementProposal(snapshot, 'unfinished')), true);
+    strictEqual(denied(replacementProposal(snapshot, '{"before":"","after":"insert"}')), true);
+    const proposal = unwrap(replacementProposal(snapshot, '{"before":"two","after":"three"}'));
+    strictEqual(unwrap(replacementProposal(snapshot, '[{"before":"one one","after":"one one"},{"before":"two","after":"three"}]')).after, proposal.after);
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"two"}]')), true);
+    strictEqual(denied(replacementProposal(snapshot, '[{"file":1,"before":"two","after":"wrong file"}]')), true);
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"three"},{"file":-1,"before":"one one","after":"other"}]')), true);
+    strictEqual(unwrap(replacementProposal(snapshot, '{"file":0,"before":"two","after":"three"}')).after, proposal.after);
+    const swapped = unwrap(replacementProposal(snapshot, '[{"before":"two","after":"one one"},{"before":"one one","after":"two"}]'));
+    strictEqual(swapped.after, 'two one one');
+    togglePassage(swapped, 1);
+    strictEqual(swapped.after, 'two two');
+    togglePassage(swapped, 0);
+    strictEqual(swapped.after, snapshot.before);
+    togglePassage(swapped, 1);
+    strictEqual(swapped.after, 'one one one one');
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"one one","after":"new"},{"before":"one two","after":"last"}]')), true);
+    strictEqual(denied(replacementProposal(snapshot, '[{"before":"two","after":"valid"},{"before":"missing","after":"absent"}]')), true);
+    strictEqual(model.files[0].document.text, snapshot.before);
+    const workspace = signal(model);
+    const state = signal(initialAiState());
+    const recovery = signal<Recovery>({
+      path: folder + '/journal.json', baseline: '', ready: true
+    });
+    const current = state.get();
+    current.review = {
+      files: [clone(proposal)]
+    };
+    state.set(current);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, false);
+    strictEqual(workspace.get().files[0].document.text, 'one one two');
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, true);
+    strictEqual(workspace.get().files[0].document.text, 'one one two');
+    const again = state.get();
+    again.review = {
+      files: [clone(proposal)]
+    };
+    state.set(again);
+    const changed = workspace.get();
+    edit(changed.files[0].document, 'owner draft');
+    workspace.set(changed);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(proposal)]
+    }, true);
+    strictEqual(workspace.get().files[0].document.text, 'owner draft');
+    strictEqual(state.get().notice.includes('changed'), true);
+    strictEqual(unwrap(readTextFile(path)), 'one one two');
+    const blank = workspace.get();
+    edit(blank.files[0].document, '');
+    const empty = propose(blank.files[0].document, '');
+    workspace.set(blank);
+    const firstSource = '// 🦀\r\nexport const count = 1;\r\n';
+    const insertion = unwrap(replacementProposal(empty, JSON.stringify({
+      before: '', after: clone(firstSource)
+    })));
+    const waiting = state.get();
+    waiting.review = {
+      files: [clone(insertion)]
+    };
+    state.set(waiting);
+    reviewChatEdit(state, workspace, recovery, {
+      files: [clone(insertion)]
+    }, true);
+    strictEqual(workspace.get().files[0].document.text, firstSource);
+    strictEqual(unwrap(readTextFile(path)), 'one one two');
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('one attached edit target stays bound to its captured file when another tab is active', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-single-attached-'))));
+
+  try {
+    const model = unwrap(openWorkspace(clone(root)));
+
+    for (const name of ['attached', 'active']) {
+      unwrap(writeTextFile(root + '/' + name + '.tsr', 'same text'));
+      unwrap(openFile(model, root + '/' + name + '.tsr'));
+    }
+
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/attached.tsr'
+    })));
+    unwrap(writeTextFile(root + '/SKILL.md', 'Use the revised spelling.'));
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'skill', path: root + '/SKILL.md'
+    })));
+    send(host, 'Please update the attached file.');
+    const request = unwrap(requests.tryReceive());
+    {
+      const prompt = request.messages?.[0].content ?? '';
+      strictEqual(prompt.includes('Use the revised spelling.'), true);
+      strictEqual(prompt.includes('File 1:'), false);
+    }
+
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: '[{"file":0,"before":"same text","after":"updated"}]', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing single attached file proposal.';
+    strictEqual(review.files.length, 1);
+    strictEqual(review.files[0].path, root + '/attached.tsr');
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    reviewChatEdit(state, workspace, recovery, review, true);
+    strictEqual(workspace.get().files[0].document.text, 'updated');
+    strictEqual(workspace.get().files[1].document.text, 'same text');
+    strictEqual(unwrap(readTextFile(root + '/attached.tsr')), 'same text');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('unopened chat targets stay closed until review and reject changed disk contents', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-unopened-edit-'))));
+
+  try {
+    const path = root + '/closed.tsr';
+    const active = root + '/active.tsr';
+    unwrap(writeTextFile(path, 'original'));
+    unwrap(writeTextFile(active, 'active'));
+    const model = unwrap(openWorkspace(clone(root)));
+    unwrap(openFile(model, active));
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: clone(path)
+    })));
+    send(host, 'Edit files: Update the attached text.');
+    const target = state.get().editTarget;
+
+    if (target === undefined) throw 'Missing unopened target.';
+    strictEqual(workspace.get().files.length, 1);
+    const proposal = unwrap(batchProposal(target, '[{"file":0,"before":"original","after":"updated"}]'));
+    const pending = state.get();
+    pending.review = clone(proposal);
+    state.set(pending);
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    unwrap(writeTextFile(path, 'external change'));
+    const stale = signal(state.get());
+    reviewChatEdit(stale, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files.length, 1);
+    strictEqual(unwrap(readTextFile(path)), 'external change');
+    const failed = stale.get().review;
+
+    if (failed === undefined) throw 'Missing stale review notice.';
+    strictEqual(failed.stale, true);
+    reviewChatEdit(stale, workspace, recovery, failed, false);
+    strictEqual(stale.get().review === undefined, true);
+    unwrap(writeTextFile(path, 'original'));
+    reviewChatEdit(state, workspace, recovery, proposal, true);
+    strictEqual(workspace.get().files[1].document.text, 'updated');
+    strictEqual(workspace.get().active, active);
+    strictEqual(unwrap(readTextFile(path)), 'original');
+    undoChatEdit(state, workspace, recovery);
+    strictEqual(workspace.get().files[1].document.text, 'original');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('attached workspace edits review and apply as one draft transaction', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-edit-batch-'))));
+
+  try {
+    const model = unwrap(openWorkspace(clone(root)));
+
+    for (const name of ['first', 'second']) {
+      const path = root + '/' + name + '.tsr';
+      unwrap(writeTextFile(path, name));
+      unwrap(openFile(model, path));
+    }
+
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+
+    for (const name of ['first', 'second']) unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/' + name + '.tsr'
+    })));
+    send(host, 'Edit files: Capitalize both words.');
+    const request = unwrap(requests.tryReceive());
+    strictEqual(request.messages?.[0].content.includes('Task: Capitalize both words.') ?? false, true);
+    const batch = state.get().editTarget;
+
+    if (batch === undefined) throw 'Missing edit targets.';
+    const reply = '[{"file":1,"before":"second","after":"SECOND"},{"file":0,"before":"first","after":"FIRST"}]';
+    strictEqual(denied(batchProposal(batch, reply.replace('"file":1', '"file":0'))), true);
+    const one = unwrap(batchProposal(batch, '[{"file":1,"before":"second","after":"SECOND"}]'));
+    strictEqual(one.files.length, 1);
+    strictEqual(one.files[0].path, root + '/second.tsr');
+    strictEqual(one.files[0].after, 'SECOND');
+    strictEqual(denied(batchProposal(batch, '[]')), true);
+    strictEqual(denied(batchProposal(batch, '[{"file":2,"before":"second","after":"SECOND"}]')), true);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: reply, stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing review.';
+    const recovery = signal<Recovery>({
+      path: root + '/recovery.json', baseline: '', ready: true
+    });
+    const stale = workspace.get();
+    edit(stale.files[1].document, 'owner draft');
+    const changed = signal(stale);
+    const staleState = signal(state.get());
+    reviewChatEdit(staleState, changed, recovery, review, true);
+    strictEqual(changed.get().files[0].document.text, 'first');
+    strictEqual(changed.get().files[1].document.text, 'owner draft');
+    const rejected = staleState.get().review;
+
+    if (rejected === undefined) throw 'Missing stale review.';
+    reviewChatEdit(staleState, changed, recovery, rejected, false);
+    strictEqual(staleState.get().history.chats[0].messages[1].text, 'The file changed. Request a new edit proposal.');
+    const dismissed = signal(state.get());
+    reviewChatEdit(dismissed, workspace, recovery, review, false);
+    strictEqual(dismissed.get().history.chats[0].messages[1].text, 'Dismissed the edit proposal.');
+    const store = signal<ChatStore>({
+      path: root + '/chat.json', baseline: '', ready: true
+    });
+    reviewChatEdit(
+      state,
+      workspace,
+      recovery,
+      review,
+      true,
+      {
+        store: store.handle()
+      }
+
+    );
+    strictEqual(unwrap(readTextFile(root + '/chat.json')).includes('Applied the selected changes to the draft.'), true);
+    strictEqual(workspace.get().files[0].document.text, 'FIRST');
+    strictEqual(workspace.get().files[1].document.text, 'SECOND');
+    const later = workspace.get();
+    edit(later.files[1].document, 'later change');
+    const laterWorkspace = signal(later);
+    const laterChat = signal(state.get());
+    undoChatEdit(laterChat, laterWorkspace, recovery);
+    strictEqual(laterWorkspace.get().files[0].document.text, 'FIRST');
+    strictEqual(laterWorkspace.get().files[1].document.text, 'later change');
+    strictEqual(laterChat.get().history.chats[0].messages[1].text, 'Applied the selected changes to the draft.');
+    undoChatEdit(state, workspace, recovery, {
+      store: store.handle()
+    });
+    strictEqual(unwrap(readTextFile(root + '/chat.json')).includes('Undid the chat edit in the draft.'), true);
+    strictEqual(workspace.get().files[0].document.text, 'first');
+    strictEqual(workspace.get().files[1].document.text, 'second');
+    strictEqual(state.get().undoEdit === undefined, true);
+    strictEqual(unwrap(readTextFile(root + '/first.tsr')), 'first');
+    strictEqual(unwrap(readTextFile(root + '/second.tsr')), 'second');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('chat resolves a local import alias in an unsaved draft and skips commented imports', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-import-'));
+
+  try {
+    unwrap(writeTextFile(folder + '/main.tsr', ''));
+    unwrap(writeTextFile(folder + '/tsrust.config.json', '{"schemaVersion":1,"name":"example","paths":{"@prices":"./fees","@*":"./unused/*","@/tie/*rs":"./*rs","@/tie/*ers":"./*ers","@/*":"./unused/*","@/cost/*.js":"./*"}}'));
+    unwrap(writeTextFile(folder + '/fees.tsr', 'const localFee = 91;\nexport function fee() { return localFee; }\nconst discardedFee = 7301;'));
+    unwrap(writeTextFile(folder + '/helpers.tsr', 'export function policyExtra() { return 444; }\nexport function policy() { return 37; }'));
+    unwrap(writeTextFile(folder + '/unused.tsr', 'never include this source'));
+    unwrap(mkdirAll(folder + '/rules'));
+    unwrap(writeTextFile(folder + '/rules/index.tsrx', "// export default function bogus() { return 1; }\nexport default function chosen() { const closing = '}'; /* { */ if (true) { return 42; } return 0; }\nexport function chosenExtra() { return 88; }\nexport function unrelated() { return 777; }"));
+    unwrap(writeTextFile(folder + '/pricing-policy.tsr', 'import { surcharge // } as phantom\n as tax } from "./factors";\nexport function handlingFee() { /* ignoredHelper() */ return rate()+tax(); }\nfunction rate() { return base(); }\nfunction base() { if (false) return rate(); return 81; }\nfunction ignoredHelper() { return 580; }'));
+    unwrap(writeTextFile(folder + '/factors.tsr', 'import { BASE as baseAmount } from "./prices";\nexport function surcharge() { const rate = baseAmount; return 541; }\nexport function unusedFactor() { return 542; }'));
+    unwrap(writeTextFile(folder + '/prices.tsr', '/* export const BASE = 1234; */\nexport const BASE: int = floorPrice;\nconst floorPrice = 37;\nexport const OTHER = 9988;'));
+    unwrap(writeTextFile(folder + '/delivery-fee.tsr', 'export function deliveryFee() { return 63; }\nexport function unrelated() { return 555; }'));
+    unwrap(writeTextFile(folder + '/compute.tsr', 'export function compute() { return 998; }'));
+    unwrap(writeTextFile(folder + '/delivery_fee.tsr', '// function deliveryFee() { return 666; }'));
+    unwrap(writeTextFile(folder + '/helpers.tsrx', 'lower priority candidate'));
+    unwrap(writeTextFile(folder + '/archived.tsr', 'export function dayTotal() { return 814; }'));
+    unwrap(writeTextFile(folder + '/schedule.tsr', 'export function hours() { return 17; }\nexport function secret() { return 606; }'));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, folder + '/main.tsr'));
+    edit(workspace.files[0].document, "/* import { compute } from './unused.tsr'; */\nimport {\n  policy /* } as fakeName */ as\n compute,\n} /* select */ from './helpers';\nimport rules, { chosenExtra as alternate } from './rules';\nimport { fee } from '@prices';\nimport { policy as costAlias } from '@/cost/helpers.js';\nimport { policy as ambiguousCost } from '@/tie/helpers';\nimport { hours as duty } from './schedule';\nfunction dayTotal() { return dayHours(); }\nfunction dayHours() { return duty(); }\nfunction outer() { function packingFee() { return 23; } return packingFee(); }");
+    const requests = new Channel<ModelRequest>(2);
+    const ready = initialAiState(emptyHistory(clone(workspace.root)));
+    ready.phase = 'ready';
+    const state = signal(clone(ready));
+    const host = context(state, signal(modelConfig()), requests);
+    host.projectTree = signal(unwrap(scanTree(clone(workspace.root), false)));
+    host.workspace = signal(workspace);
+    const declarations = signal<FileDeclarations[]>([]);
+    host.declarations = declarations.handle();
+    send(host, 'Explain the expression compute()+rules()*alternate()-fee()+deliveryFee()+handlingFee()+costAlias()+ambiguousCost();');
+    const messages = unwrap(requests.tryReceive()).messages ?? [];
+    strictEqual(messages[0].content.includes('Referenced workspace file: helpers.tsr'), true);
+    strictEqual(messages[0].content.includes('return 37;'), true);
+    strictEqual(messages[0].content.includes('return 444;'), false);
+    strictEqual(messages[0].content.includes('compute refers to policy'), true);
+    strictEqual(messages[0].content.includes('costAlias refers to policy'), true);
+    strictEqual(messages[0].content.includes('ambiguousCost refers to policy'), false);
+    strictEqual(messages[0].content.includes('Referenced workspace file: fees.tsr'), true);
+    strictEqual(messages[0].content.includes('const localFee = 91;'), true);
+    strictEqual(messages[0].content.includes('discardedFee'), false);
+    strictEqual(messages[0].content.includes('Referenced workspace file: pricing-policy.tsr'), true);
+    strictEqual(messages[0].content.includes('Referenced workspace file: delivery-fee.tsr'), true);
+    strictEqual(messages[0].content.includes('return 63;'), true);
+    strictEqual(messages[0].content.includes('return 81;'), true);
+    strictEqual(messages[0].content.includes('Referenced workspace file: factors.tsr\nLocal name: tax refers to surcharge.'), true);
+    strictEqual(messages[0].content.includes('return 541;'), true);
+    strictEqual(messages[0].content.includes('Local name: baseAmount refers to BASE.\nexport const BASE: int = floorPrice;'), true);
+    strictEqual(messages[0].content.includes('const floorPrice = 37;'), true);
+    strictEqual(messages[0].content.includes('9988'), false);
+    strictEqual(messages[0].content.includes('1234'), false);
+    strictEqual(messages[0].content.includes('return 542;'), false);
+    strictEqual(messages[0].content.split('function rate()').length, 2);
+    strictEqual(messages[0].content.includes('return 580;'), false);
+    strictEqual(declarations.get().some((file) => file.names.includes('handlingFee')), true);
+    strictEqual(messages[0].content.includes('return 555;'), false);
+    strictEqual(messages[0].content.includes('return 666;'), false);
+    strictEqual(messages[0].content.includes('return 998;'), false);
+    strictEqual(messages[0].content.includes('never include this source'), false);
+    strictEqual(messages[0].content.includes('Referenced workspace file: rules/index.tsrx\nLocal signature: rules()'), true);
+    strictEqual(messages[0].content.includes('return 0; }'), true);
+    strictEqual(messages[0].content.includes('return 777;'), false);
+    strictEqual(messages[0].content.includes('return 88;'), true);
+    strictEqual(messages[0].content.includes('alternate refers to chosenExtra'), true);
+    strictEqual(messages[0].content.includes('function bogus'), false);
+    strictEqual(messages[0].content.includes('lower priority candidate'), false);
+    unwrap(writeTextFile(folder + '/pricing-policy.tsr', 'export function packingFee() { return 507; }'));
+    const retryState = signal(ready);
+    const retry = context(retryState, signal(modelConfig()), requests);
+    retry.workspace = host.workspace;
+    retry.projectTree = host.projectTree;
+    retry.declarations = declarations.handle();
+    send(retry, 'What do packingFee() and dayTotal() return?');
+    const refreshed = unwrap(requests.tryReceive()).messages ?? [];
+    strictEqual(refreshed[0].content.includes('return 507;'), true);
+    strictEqual(refreshed[0].content.includes('Referenced workspace file: schedule.tsr\nLocal name: duty refers to hours.\nexport function hours() { return 17; }'), true);
+    strictEqual(refreshed[0].content.includes('return 606;'), false);
+    strictEqual(refreshed[0].content.includes('return 814;'), false);
+    strictEqual(declarations.get().some((file) => file.names.includes('handlingFee')), false);
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('an accepted cancellation or shutdown withdraws the edit target before a late completion', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-cancel-'));
+
+  try {
+    const path = folder + '/main.tsr';
+    unwrap(writeTextFile(path, 'const x = 1;'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, path));
+
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/lib/example.tsr', 'const replacement = 2;'));
+
+    for (const action of ['local_model_cancel', 'local_model_stop']) {
+      const requests = new Channel<ModelRequest>(1);
+      const updates = new Channel<ModelUpdate>(1);
+      const ready = initialAiState(emptyHistory(clone(model.root)));
+      ready.phase = 'ready';
+      const state = signal(ready);
+      const settings = signal(modelConfig());
+      const host = context(state, settings, requests);
+      host.workspace = signal(clone(model));
+      host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+      send(host, 'Edit: Change x to the replacement from example.tsr');
+      const args = JSON.stringify({
+        request: clone(state.get().active)
+      });
+      strictEqual(denied(invokeModelTool(host, action, args)), true);
+      strictEqual(state.get().editTarget !== undefined, true);
+      const generation = unwrap(requests.tryReceive());
+      strictEqual(generation.messages?.[0].content.includes('const replacement = 2;') ?? false, true);
+      strictEqual(generation.messages?.[0].content.includes('Editable file: main.tsr') ?? false, true);
+      strictEqual(generation.messages?.[0].content.includes('target initializer is 2.') ?? false, true);
+      unwrap(invokeModelTool(host, action, args));
+      strictEqual(state.get().editTarget === undefined, true);
+      const reply = '{"before":"1","after":"2"}';
+      unwrap(updates.sender().trySend({
+        kind: 'complete', id: generation.id, text: clone(reply), error: '', stop: 'eos'
+      }));
+      pollModel(host, updates);
+      strictEqual(state.get().review === undefined, true);
+      strictEqual(state.get().history.chats[0].messages[1].text, reply);
+      strictEqual(unwrap(readTextFile(path)), 'const x = 1;');
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('single reference literals preserve quoted source and exclude expressions', () => {
+  const prefix = 'Referenced workspace file: lib/é.tsr\nexport const résumé: string = ';
+
+  for (const value of ['"clé=a;b"', "'it\\'s ready'", '""', '"a\\"b"']) {
+    strictEqual(referenceLiteral(prefix + value + ';'), value);
+  }
+
+  for (const expression of ['"a" + "b"', '`value`', '"a"; const other = "b"']) {
+    strictEqual(referenceLiteral(prefix + expression + ';'), '');
+  }
+});
+
+test('ambiguous edit references retain the request and attachments for correction', () => {
+  const folder = unwrap(createTempDir(undefined, 'studio-edit-clarify-'));
+
+  try {
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/main.tsr', 'const x = 1;'));
+    unwrap(writeTextFile(folder + '/example.tsr', 'const value = 2;'));
+    unwrap(writeTextFile(folder + '/lib/example.tsr', 'const value = 3;'));
+    const model = unwrap(openWorkspace(folder));
+    unwrap(openFile(model, folder + '/main.tsr'));
+    const requests = new Channel<ModelRequest>(1);
+    const ready = initialAiState(emptyHistory(clone(model.root)));
+    ready.phase = 'ready';
+    ready.history.context = [{
+      id: 'note', kind: 'file', path: model.root + '/main.tsr', label: 'main.tsr', text: 'const x = 1;'
+    }];
+    const state = signal(ready);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = signal(clone(model));
+    host.projectTree = signal(unwrap(scanTree(clone(model.root), false)));
+    const prompt = 'Edit: Change x to match example.tsr';
+    send(host, clone(prompt));
+    const chat = state.get().history.chats[0];
+    strictEqual(chat.messages[1].text.includes('./lib/example.tsr'), true);
+    strictEqual(chat.messages[1].text.includes('./example.tsr'), true);
+    strictEqual(chat.draft, prompt);
+    strictEqual(chat.context?.[0].id, 'note');
+    strictEqual(state.get().active, '');
+    strictEqual(state.get().editTarget === undefined, true);
+    send(host, 'Edit: Change x to match ./lib/example.tsr');
+    const generation = unwrap(requests.tryReceive());
+    const messages = clone(generation.messages) ?? [];
+    const content = clone(messages[messages.length - 1].content);
+    strictEqual(content.includes('const value = 3;'), true);
+    strictEqual(content.includes('const value = 2;'), false);
+    strictEqual(state.get().history.chats[0].draft, '');
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+test('a long chat retains its transcript and sends all complete turns beyond the old frame limit', () => {
+  const requests = new Channel<ModelRequest>(2);
+  const initial = initialAiState();
+  initial.phase = 'ready';
+  initial.history.active = 'chat';
+  initial.history.chats.push({
+    id: 'chat', title: 'Long chat', revision: 1, draft: '', messages: [{
+      role: 'user', request: 'first', text: '界'.repeat(44000)
+    }, {
+      role: 'assistant', request: 'first', text: 'orphaned if sent alone'
+    }, {
+      role: 'user', request: 'cancelled', text: 'Question with a cancelled answer', workspaceExcerpt: 'Stale test source'
+    }, {
+      role: 'assistant', request: 'cancelled', text: 'Half an answer', status: 'cancelled'
+    }, {
+      role: 'user', request: 'second', text: 'Keep this question'
+    }, {
+      role: 'assistant', request: 'second', text: 'Keep this answer'
+    }]
+  });
+  const state = signal(initial);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'Follow up');
+  const generation = unwrap(requests.tryReceive());
+  const messages = generation.messages ?? [];
+  strictEqual(messages.length, 5);
+  strictEqual(messages[2].content, 'Keep this question');
+  strictEqual(messages[3].content, 'Keep this answer');
+  strictEqual(messages[4].content, 'Follow up');
+  strictEqual(state.get().history.chats[0].messages.length, 8);
+  strictEqual(state.get().history.chats[0].messages[3].text, 'Half an answer');
+  strictEqual(state.get().history.chats[0].messages[0].text.length, 132000);
+  strictEqual(state.get().notice.includes('Context was shortened'), false);
+  const frame: ModelRequest = {
+    kind: 'generate', id: 'boundary', prompt: '', maxTokens: 1, messages: [{
+      role: 'user', content: ''
+    }]
+  };
+  const editFrame = clone(frame);
+  strictEqual(unwrap(fitGeneration(editFrame, [{
+    role: 'user', request: 'earlier', text: 'Original question'
+  }, {
+    role: 'assistant', request: 'earlier', text: 'Original answer'
+  }, {
+    role: 'user', request: 'edit', text: 'Edit: Change the constant'
+  }, {
+    role: 'assistant', request: 'edit', text: '', status: 'pending'
+  }], false, 'File and edit instructions')), false);
+  const editMessages = editFrame.messages ?? [];
+  strictEqual(editMessages[0].content, 'Original question');
+  strictEqual(editMessages[2].content, 'File and edit instructions');
+  const repeatFrame = clone(frame);
+  unwrap(fitGeneration(repeatFrame, [{
+    role: 'user', request: 'a', text: 'First', workspaceExcerpt: 'source snapshot'
+  }, {
+    role: 'assistant', request: 'a', text: 'Answer'
+  }, {
+    role: 'user', request: 'b', text: 'Follow up', workspaceExcerpt: 'source snapshot'
+  }], true));
+  const compact = repeatFrame.messages ?? [];
+  strictEqual(compact[0].content, 'First');
+  strictEqual(compact[0].workspaceEnd === undefined, true);
+  strictEqual(compact[2].workspaceEnd ?? -1, 'source snapshot'.length);
+  strictEqual(compact[2].content.includes('source snapshot'), true);
+  strictEqual(repeatFrame.workspaceEnd ?? -1, 'source snapshot'.length);
+  strictEqual(compact[2].content, 'source snapshot\n\nFollow up');
+  const changedFrame = clone(frame);
+  unwrap(fitGeneration(changedFrame, [{
+    role: 'user', request: 'a', text: 'First', workspaceExcerpt: 'old source'
+  }, {
+    role: 'assistant', request: 'a', text: 'Answer'
+  }, {
+    role: 'user', request: 'b', text: 'Follow up', workspaceExcerpt: 'changed source'
+  }], true));
+  const distinct = changedFrame.messages ?? [];
+  strictEqual(distinct[0].workspaceEnd ?? -1, 'old source'.length);
+  strictEqual(distinct[0].content.slice((distinct[0].workspaceEnd ?? 0) + 2), 'First');
+  strictEqual(editFrame.workspaceStart === undefined, true);
+  const capacity = 128 * 1024 - JSON.stringify(frame).length - 1;
+  const exact = 'x'.repeat(capacity);
+  strictEqual(unwrap(fitGeneration(frame, [{
+    role: 'user', request: 'boundary', text: clone(exact)
+  }], false)), false);
+  strictEqual(JSON.stringify(frame).length + 1, 128 * 1024);
+  strictEqual(denied(fitGeneration(frame, [{
+    role: 'user', request: 'boundary', text: exact + '!'
+  }], false)), false);
+});
+
+test('only a matching generation rejection ends the request and allows a retry', () => {
+  const requests = new Channel<ModelRequest>(4);
+  const updates = new Channel<ModelUpdate>(4);
+  const ready = initialAiState();
+  ready.phase = 'ready';
+  const state = signal(ready);
+  const settings = signal(modelConfig());
+  const host = context(state, settings, requests);
+  send(host, 'First question');
+  const request = unwrap(requests.tryReceive());
+  unwrap(updates.sender().trySend({
+    kind: 'rejected', id: 'older', text: '', error: 'stale'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().active, request.id);
+  strictEqual(state.get().phase, 'generating');
+  unwrap(updates.sender().trySend({
+    kind: 'rejected', id: clone(request.id), text: '', error: 'Request rejected by host'
+  }));
+  pollModel(host, updates);
+  strictEqual(state.get().phase, 'ready');
+  strictEqual(state.get().active, '');
+  const reply = state.get().history.chats[0].messages[1];
+  strictEqual(reply.status, 'rejected');
+  strictEqual(reply.text, 'Request rejected by host');
+  send(host, 'Try again');
+  const retry = unwrap(requests.tryReceive());
+  strictEqual(retry.kind, 'generate');
+  strictEqual((retry.messages ?? []).some((message) => message.content === 'Request rejected by host'), false);
+});
+
+test('compaction selects complete exchanges by exact code identifiers', () => {
+  const terms = recallTerms('Compare caféFee and `montant` against MIN_RATE.');
+  strictEqual(terms.size, 3);
+  strictEqual(recallTerms('Explain increment(n).').has('increment'), true);
+  const messages: ChatMessage[] = [{
+    role: 'user', content: 'caféFeeExtra and montantTotal are unrelated.'
+  }, {
+    role: 'assistant', content: 'Do not include this line.\nUse MIN_RATE.'
+  }, {
+    role: 'user', content: 'montant is 17.'
+  }];
+  strictEqual(turnMentions(messages, 0, 1, terms), false);
+  strictEqual(turnMentions(messages, 0, 2, terms), true);
+  strictEqual(turnMentions(messages, 2, 3, terms), true);
+  const excerpt = excerptTurn(messages, 0, 2, terms);
+  strictEqual(excerpt[0].content, '[Omitted]');
+  strictEqual(excerpt[1].role === 'assistant', true);
+  strictEqual(excerpt[1].content, '[Excerpt]\nUse MIN_RATE.');
+  strictEqual(recallTerms('Tell me more about it.').size, 0);
+});
+
+test('workspace overflow keeps selected context and source attribution', () => {
+  const prefix = 'How much is caféFee?\n\nUser-selected context: 🦀\n\n';
+  const content = prefix + 'Active editor file: main.tsr\n// unrelated\ncaféFeeExtra();\n\nReferenced workspace file: rules.tsr\nconst caféFee = 73;';
+  strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is caféFee?')), prefix + '[Workspace excerpt]\nReferenced workspace file: rules.tsr\nconst caféFee = 73;');
+  strictEqual(excerptWorkspace(content, prefix.length, recallTerms('What is OTHER_FEE?')), '');
+  const snapshot = content.slice(prefix.length);
+  const suffix = '\n\n' + prefix + 'Keep this user-selected text';
+  strictEqual(excerptWorkspace(snapshot + suffix, 0, recallTerms('caféFee()'), true, snapshot.length), '[Workspace excerpt]\nReferenced workspace file: rules.tsr\nconst caféFee = 73;' + suffix);
+  const omitted = '[Automatic workspace context omitted]';
+  strictEqual(replaceWorkspace(content, prefix.length, undefined, omitted), prefix + omitted);
+  strictEqual(replaceWorkspace(snapshot + suffix, 0, snapshot.length, omitted), omitted + suffix);
+  strictEqual(replaceWorkspace(content, 0, undefined, omitted), '');
+  strictEqual(replaceWorkspace(snapshot + suffix, 0, snapshot.length + 1, omitted), '');
+  const body = 'function caféFee() {\n  // }\n  return 73;\n}';
+  const source = prefix + 'Active editor file: main.tsr\n' + body + '\nfunction unrelated() {}';
+  strictEqual(excerptWorkspace(source, prefix.length, recallTerms('caféFee()'), true), prefix + '[Workspace excerpt]\nActive editor file: main.tsr\n' + body);
+});
+
+test('overflow can keep every exchange by retiring historical workspace snapshots', () => {
+  const messages: ChatMessage[] = [{
+    role: 'user', content: 'old source\n\nselected text\nquestion', workspaceEnd: 10
+  }, {
+    role: 'assistant', content: 'answer'
+  }, {
+    role: 'user', content: 'invalid boundary', workspaceEnd: 2
+  }, {
+    role: 'assistant', content: 'answer two'
+  }, {
+    role: 'user', content: 'new source\n\nfollow up', workspaceEnd: 10
+  }];
+  const compact = withoutEarlierWorkspace(messages);
+  strictEqual(compact.length, messages.length);
+  strictEqual(compact[0].content, 'selected text\nquestion');
+  strictEqual(messages[0].content.startsWith('old source'), true);
+  strictEqual(compact[1].content, messages[1].content);
+  strictEqual(compact[2].content, messages[2].content);
+  strictEqual(compact[4].content, messages[4].content);
+  strictEqual(withoutEarlierWorkspace(compact).length, 0);
+});
+
+test('overflow retains a named historical source when the follow-up has no current snapshot', () => {
+  const source = 'Active editor file: fees.tsr\nfunction serviceFee() {\n  return 73;\n}\nconst unrelated = 999;';
+  const messages: ChatMessage[] = [{
+    role: 'user', content: source + '\n\nInspect this file.', workspaceEnd: source.length
+  }, {
+    role: 'assistant', content: 'Reviewed.'
+  }, {
+    role: 'user', content: 'What did serviceFee() return?'
+  }];
+  const terms = recallTerms(messages[2].content);
+  const retained = withoutEarlierWorkspace(messages, terms);
+  strictEqual(retained[0].content, '[Workspace excerpt]\nActive editor file: fees.tsr\nfunction serviceFee() {\n  return 73;\n}\n\nInspect this file.');
+  messages[2].content = 'new source\n\nWhat does serviceFee() return now?';
+  messages[2].workspaceEnd = 10;
+  strictEqual(withoutEarlierWorkspace(messages, terms)[0].content, 'Inspect this file.');
+});
+
+test('a closed file supplies a named constant and its initializer dependencies', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-constant-'));
+
+  try {
+    unwrap(writeTextFile(root + '/rates.tsr', 'const baseRate = 7;\nexport const handlingFee = baseRate + 2;\nfunction other() { const localRate = 12; return localRate; }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const result = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Explain `handlingFee`.',
+      false,
+      false,
+      index
+    );
+    strictEqual(result.excerpt.includes('Referenced workspace file: rates.tsr'), true);
+    strictEqual(result.excerpt.includes('const handlingFee = baseRate + 2;'), true);
+    strictEqual(result.excerpt.includes('const baseRate = 7;'), true);
+    strictEqual(result.excerpt.includes('function other'), false);
+    const followup = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'How does raising the base rate change the handling fee?',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(followup.excerpt.includes('const handlingFee = baseRate + 2;'), true);
+    strictEqual(followup.excerpt.includes('const baseRate = 7;'), true);
+    strictEqual(followup.excerpt.includes('function other'), false);
+    const local = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain `localRate`.',
+      false,
+      false,
+      index
+    );
+    strictEqual(local.excerpt, '');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('spoken project names preserve word boundaries and ambiguous source identities', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-spoken-'));
+
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'export function handling_fee() { return 1; }\nexport function handlingFeeSchedule() { return 2; }'));
+    unwrap(writeTextFile(root + '/b.tsr', 'export function handlingFee() { return 3; }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const both = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Where is the handling fee in this repository?',
+      false,
+      false,
+      index
+    );
+    strictEqual(both.excerpt.includes('function handling_fee()'), true);
+    strictEqual(both.excerpt.includes('function handlingFee()'), true);
+    strictEqual(both.excerpt.includes('handlingFeeSchedule'), false);
+    strictEqual(both.functionLookup, undefined);
+    unwrap(openFile(workspace, root + '/a.tsr'));
+    const withActive = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Where is the handling fee in this repository?',
+      false,
+      false,
+      index
+    );
+    strictEqual(withActive.functionLookup, undefined);
+    const partial = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain handling feedback in this project.',
+      false,
+      false,
+      index
+    );
+    strictEqual(partial.excerpt.includes('Referenced workspace file:'), false);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('active draft symbol lookup includes local dependencies before the outline arrives', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-active-'));
+
+  try {
+    unwrap(writeTextFile(root + '/fees.tsr', 'function quote() { return 999; }'));
+    const workspace = unwrap(openWorkspace(root));
+    unwrap(openFile(workspace, root + '/fees.tsr'));
+    workspace.files[0].document.text = 'function quote() { return fee(); }\nfunction fee() { return base; }\nconst base = 72;\nconst unrelated = 300;';
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const focused = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Explain quote()',
+      false,
+      false,
+      index
+    );
+    strictEqual(focused.excerpt.includes('return fee()'), true);
+    strictEqual(focused.excerpt.includes('return base'), true);
+    strictEqual(focused.excerpt.includes('base = 72'), true);
+    strictEqual(focused.excerpt.includes('unrelated'), false);
+    strictEqual(focused.excerpt.includes('999'), false);
+    const answerOnly = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Double the result you just gave.',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(answerOnly.excerpt, '');
+
+    for (const prompt of ['what is the result of 9*9', 'ok now double the result', 'and now subtract 100']) {
+      strictEqual(editorContext(
+        workspace,
+        clone(tree),
+        [],
+        prompt,
+        false,
+        false,
+        index,
+        '',
+        undefined,
+        false,
+        prompt !== 'what is the result of 9*9'
+      ).excerpt, '');
+    }
+
+    const mixed = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Compare your previous answer with quote()',
+      false,
+      false,
+      index,
+      '',
+      undefined,
+      true
+    );
+    strictEqual(mixed.excerpt.includes('base = 72'), true);
+    strictEqual(mixed.excerpt.includes('unrelated'), false);
+    const full = editorContext(
+      workspace,
+      tree,
+      [],
+      'Show the whole file containing quote()',
+      false,
+      false,
+      index
+    );
+    strictEqual(full.excerpt.includes('unrelated = 300'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('qualified chat paths exclude homonymous active and indexed definitions', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-qualified-'));
+
+  try {
+    unwrap(mkdirAll(root + '/lib'));
+    unwrap(writeTextFile(root + '/quote.tsr', 'export function handlingFee() { return 999; }'));
+    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return fee(); }\nfunction fee() { return réglage; }\nconst réglage = baseFee + 1;\nconst baseFee = 72;\nconst unrelatedValue = 25;\nfunction unrelated() { return 400; }'));
+    unwrap(writeTextFile(root + '/lib/example.tsr', 'import { handlingFee as cost, unrelated as skip } from "./quote";\nexport function total() { return cost(); }'));
+    const workspace = unwrap(openWorkspace(root));
+    const tree = unwrap(scanTree(clone(workspace.root), false));
+    const index = new Map<string, FileDeclarations>();
+    const question = 'What does handlingFee() return in lib/quote.tsr?';
+    const edit = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Edit: Follow example.tsr',
+      true,
+      false,
+      index
+    );
+    strictEqual(edit.namedEditReference, true);
+    strictEqual(edit.excerpt.includes('Referenced workspace file: lib/example.tsr'), true);
+    strictEqual(edit.excerpt.includes('export function total()'), true);
+    strictEqual(edit.excerpt.includes('Local name: cost refers to handlingFee.'), true);
+    strictEqual(edit.excerpt.includes('const baseFee = 72'), true);
+    strictEqual(edit.excerpt.includes('return 400'), false);
+    const closed = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      question,
+      false,
+      false,
+      index
+    );
+    strictEqual(closed.excerpt.includes('return fee()'), true);
+    strictEqual(closed.excerpt.includes('const réglage = baseFee + 1;'), true);
+    strictEqual(closed.excerpt.includes('unrelated'), false);
+    const full = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Show the whole file lib/quote.tsr including handlingFee()',
+      false,
+      false,
+      index
+    );
+    strictEqual(full.excerpt.includes('unrelated'), true);
+    strictEqual(closed.excerpt.includes('baseFee = 72'), true);
+    strictEqual(closed.excerpt.includes('return 999'), false);
+    unwrap(openFile(workspace, root + '/quote.tsr'));
+    const opened = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      question,
+      false,
+      false,
+      index
+    );
+    strictEqual(opened.excerpt.includes('return 999'), false);
+    strictEqual(opened.excerpt.includes('baseFee = 72'), true);
+    strictEqual(opened.candidates.length, 0);
+    unwrap(writeTextFile(root + '/lib/quote.tsr', 'export function handlingFee() { return 84; }'));
+    const follow = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'What does the same function return now?',
+      false,
+      false,
+      index,
+      question
+    );
+    strictEqual(follow.excerpt.includes('return 84'), true);
+    strictEqual(follow.excerpt.includes('return 999'), false);
+    const redirect = editorContext(
+      workspace,
+      clone(tree),
+      [],
+      'Use the same function in ./quote.tsr',
+      false,
+      false,
+      index,
+      question
+    );
+    strictEqual(redirect.excerpt.includes('return 999'), true);
+    strictEqual(redirect.excerpt.includes('return 84'), false);
+    const ambiguous = editorContext(
+      workspace,
+      tree,
+      [],
+      'Explain quote.tsr',
+      false,
+      false,
+      index
+    );
+    strictEqual(ambiguous.candidates.length, 2);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('chat compares open drafts to current disk contents for save questions', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-chat-disk-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const path = workspace.root + '/main.tsr';
+    const old = 'one\ntwo\nthree';
+    unwrap(writeTextFile(path, old));
+    unwrap(openFile(workspace, path));
+    const index = new Map<string, FileDeclarations>();
+    const question = 'Is main.tsr saved to disk?';
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('matches the saved file'), true);
+    unwrap(writeTextFile(path, 'one\nexternal change\nthree'));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('On disk (changed region):\nexternal change\nIn editor (changed region):\ntwo'), true);
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Explain main.tsr.',
+      false,
+      false,
+      index
+    ).excerpt.includes('external change'), false);
+    unwrap(writeTextFile(path, 'one\nthree'));
+    const state = signal(initialAiState(emptyHistory(clone(workspace.root))));
+    const commands = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), commands);
+    host.workspace = signal(clone(workspace));
+    send(host, clone(question));
+    strictEqual(state.get().history.chats[0].messages[1].text.includes('only in the draft, not saved to disk:\ntwo'), true);
+    strictEqual(state.get().phase, 'stopped');
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Is other.tsr saved?',
+      false,
+      false,
+      index
+    ).saveStatus === undefined, true);
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      'Explain how main.tsr is saved.',
+      false,
+      false,
+      index
+    ).saveStatus === undefined, true);
+
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('only in the draft, not saved to disk:\ntwo'), true);
+    unwrap(writeTextFile(path, 'one\ntwo\nexternal insertion\nthree'));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('remain on disk and are absent from the draft:\nexternal insertion'), true);
+    unwrap(removeFile(path));
+    strictEqual(editorContext(
+      workspace,
+      undefined,
+      [],
+      question,
+      false,
+      false,
+      index
+    ).excerpt.includes('Current disk comparison for main.tsr: unavailable.'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('a leading workspace path in a chat edit targets the named closed file and leaves the active draft alone', () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-path-edit-'))));
+
+  try {
+    const model = unwrap(openWorkspace(root));
+    unwrap(mkdirAll(root + '/src'));
+    unwrap(writeTextFile(root + '/active.tsr', 'same text'));
+    unwrap(writeTextFile(root + '/src/other.tsr', 'same text'));
+    unwrap(openFile(model, root + '/active.tsr'));
+    const workspace = signal(model);
+    const ready = initialAiState(emptyHistory(clone(root)));
+    ready.phase = 'ready';
+    const state = signal(ready);
+    const requests = new Channel<ModelRequest>(2);
+    const host = context(state, signal(modelConfig()), requests);
+    host.workspace = workspace.handle();
+    unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+      chat: '', kind: 'file', path: root + '/active.tsr'
+    })));
+    strictEqual(denied(invokeModelTool(host, 'local_model_send', JSON.stringify({
+      chat: '', prompt: 'Update ./src/missing.tsr: replace same text with revised.'
+    }))), true);
+    send(host, 'Please update "./src/other.tsr": replace same text with revised.');
+    const request = unwrap(requests.tryReceive());
+    strictEqual(request.messages?.[0].content.includes('User-selected files (reference only):') ?? false, true);
+    const target = state.get().editTarget;
+
+    if (target === undefined) throw 'Missing edit target';
+    strictEqual(target.files.length, 1);
+    strictEqual(target.files[0].path, root + '/src/other.tsr');
+    strictEqual(target.files[0].unopened, true);
+    strictEqual(workspace.get().files.length, 1);
+    const updates = new Channel<ModelUpdate>(1);
+    unwrap(updates.sender().trySend({
+      kind: 'complete', id: request.id, text: '[{"file":0,"before":"same text","after":"revised"}]', stop: 'eos', error: ''
+    }));
+    pollModel(host, updates);
+    const review = state.get().review;
+
+    if (review === undefined) throw 'Missing edit review';
+    reviewChatEdit(state, workspace, signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    }), review, true);
+    strictEqual(workspace.get().active, root + '/active.tsr');
+    strictEqual(workspace.get().files[0].document.text, 'same text');
+    strictEqual(workspace.get().files[1].document.text, 'revised');
+    strictEqual(unwrap(readTextFile(root + '/src/other.tsr')), 'same text');
+    send(host, 'Is that edit saved to disk?');
+    const status = state.get().history.chats[0].messages[3].text;
+    strictEqual(status.includes('Current disk comparison for src/other.tsr:'), true);
+    strictEqual(status.includes('In editor (changed region):\nrevised'), true);
+    strictEqual(status.includes('active.tsr'), false);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

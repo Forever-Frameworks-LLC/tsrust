@@ -1,0 +1,547 @@
+import { length, fromUtf8 } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { Reader, Writer, read } from 'std:io';
+import { JsonLimits, parse, get, kind, stringify } from 'std:json';
+import { spawn } from 'std:process';
+
+import {
+  LanguageDocument,
+  LanguageIdentity,
+  languageIdentity,
+  publishedDiagnostics,
+  documentProblems,
+  unversionedProblems,
+  diagnosticPath,
+  documentUri,
+  DiagnosticPosition
+} from '../../lib/language/diagnostics.tsr';
+import { LanguageServer, validateLanguageServer } from '../../lib/language/servers.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
+import { readFrame, writeFrame } from './transport.tsr';
+
+export interface LanguageQuery {
+  id: string;
+  method: string;
+  document: LanguageIdentity;
+  position: DiagnosticPosition;
+  nativeRequest?: int;
+  includeDeclaration?: boolean;
+}
+
+export interface LanguageMessage {
+  server?: string;
+  kind: string;
+  generation: int;
+  body?: string;
+  document?: LanguageDocument;
+  path?: string;
+  query?: LanguageQuery;
+  queryId?: string;
+}
+
+export interface LanguageUpdate {
+  server?: string;
+  kind: string;
+  generation: int;
+  message: string;
+  document?: LanguageIdentity;
+  problems?: Problem[];
+  query?: LanguageQuery;
+  result?: string;
+}
+
+interface ReferenceContext {
+  includeDeclaration: boolean;
+}
+
+interface TextChange {
+  text: string;
+}
+
+interface ResponseError {
+  message: string;
+}
+
+interface ConfigurationItem {
+  section?: string;
+}
+
+interface ConfigurationParams {
+  items: ConfigurationItem[];
+}
+
+interface ConfigurationRequest {
+  params: ConfigurationParams;
+}
+
+interface ServerCapabilities {
+  positionEncoding?: string;
+}
+
+interface InitializeResult {
+  capabilities: ServerCapabilities;
+}
+
+interface InitializeResponse {
+  result: InitializeResult;
+}
+
+interface Envelope {
+  jsonrpc: string;
+  id?: string;
+  method?: string;
+  error?: ResponseError;
+}
+
+function envelopeFrom(body: ReadOnly<string>): Envelope {
+  const envelope = JSON.parse<EnvelopeWithoutId>(body, limits());
+  const value = unwrap(parse(body, limits()));
+  const id = unwrap(get(value, 'id'));
+  let encoded: string | undefined = undefined;
+
+  if (id !== undefined) {
+    const type = kind(id);
+
+    if (type !== 'null' && type !== 'string' && type !== 'number') throw 'Invalid JSON-RPC request identity.';
+
+    if (type !== 'null') encoded = unwrap(stringify(id, 4096));
+  }
+
+  return {
+    jsonrpc: clone(envelope.jsonrpc), method: clone(envelope.method), error: clone(envelope.error), id: encoded
+  };
+}
+
+interface EnvelopeWithoutId {
+  jsonrpc: string;
+  method?: string;
+  error?: ResponseError;
+}
+
+function limits(): JsonLimits {
+  return {
+    maxBytes: 16 * 1024 * 1024, maxDepth: 64, maxEntries: 100000, maxNodes: 500000
+  };
+}
+
+async function pump(reader: Reader, events: Sender<LanguageMessage>, generation: int): Task<void> {
+  try {
+    while (true) await events.send({
+      kind: 'frame', generation, body: await readFrame(reader)
+    });
+  } catch (error) {
+    await events.send({
+      kind: 'failed', generation, body: JSON.stringify(error)
+    });
+  }
+}
+
+async function drainErrors(reader: Reader): Task<void> {
+  // Drain stderr independently so a verbose server cannot block its protocol pipe.
+  while (true) {
+    const bytes = unwrap(await read(reader, 4096));
+
+    if (length(bytes) === 0) return;
+  }
+}
+
+function responseFor(body: ReadOnly<string>, envelope: ReadOnly<Envelope>): string | undefined {
+  if (envelope.id === undefined) return undefined;
+  const id = clone(envelope.id);
+  let response = '{"error":{"code":-32601,"message":"Unsupported client method."}}';
+
+  if (envelope.method === 'window/workDoneProgress/create') response = '{"result":null}';
+
+  if (envelope.method === 'workspace/applyEdit') response = '{"result":{"applied":false,"failureReason":"Server edits require review."}}';
+
+  if (envelope.method === 'workspace/configuration') {
+    const request = JSON.parse<ConfigurationRequest>(body, limits());
+    response = '{"result":' + '[' + request.params.items.map((_item) => 'null').join(',') + ']' + '}';
+  }
+
+  return '{"jsonrpc":"2.0","id":' + id + ',' + response.slice(1);
+}
+
+async function initialize(writer: Mutable<Writer>, messages: ReadOnly<Channel<LanguageMessage>>, generation: int, root: ReadOnly<string>): Task<string> {
+  const uri = JSON.stringify(documentUri(root));
+  await writeFrame(writer, '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":' + uri + ',"workspaceFolders":[{"uri":' + uri + ',"name":"workspace"}],"clientInfo":{"name":"Tsrust Studio"},"capabilities":{"general":{"positionEncodings":["utf-16"]},"textDocument":{"documentSymbol":{"hierarchicalDocumentSymbolSupport":true},"definition":{"linkSupport":true},"publishDiagnostics":{"versionSupport":true},"signatureHelp":{"signatureInformation":{"documentationFormat":["markdown","plaintext"],"parameterInformation":{"labelOffsetSupport":true},"activeParameterSupport":true}},"hover":{"contentFormat":["markdown","plaintext"]},"completion":{"completionItem":{"snippetSupport":true,"documentationFormat":["markdown","plaintext"]}}}}}}');
+
+  while (true) {
+    const message = await messages.receive();
+
+    if (message.generation !== generation) continue;
+
+    if (message.kind === 'restart' || message.kind === 'stop') return clone(message.kind);
+
+    if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
+
+    if (message.kind !== 'frame') continue;
+    const body = message.body ?? '';
+    const envelope = envelopeFrom(body);
+
+    if (envelope.jsonrpc !== '2.0') throw 'Invalid language server protocol.';
+
+    if (envelope.method !== undefined) {
+      const response = responseFor(body, envelope);
+
+      if (response !== undefined) await writeFrame(writer, response);
+      continue;
+    }
+
+    if (envelope.id !== '1') continue;
+    const error = envelope.error;
+
+    if (error !== undefined) throw error.message;
+    const reply = JSON.parse<InitializeResponse>(body, limits());
+
+    if ((reply.result.capabilities.positionEncoding ?? 'utf-16') !== 'utf-16') throw 'The language server selected an unsupported position encoding.';
+    await writeFrame(writer, '{"jsonrpc":"2.0","method":"initialized","params":{}}');
+    return 'ready';
+  }
+}
+
+interface QueuedWrite {
+  body: string;
+  bytes: int;
+}
+
+interface Outbox {
+  pending: QueuedWrite[];
+  bytes: int;
+}
+
+function enqueue(outbox: Mutable<Outbox>, body: string): void {
+  const bytes = length(unwrap(fromUtf8(body)));
+
+  if (outbox.pending.length >= 128 || outbox.bytes + bytes > 128 * 1024 * 1024) throw 'Language server is not keeping up. Restart the language service to reconnect.';
+  outbox.bytes += bytes;
+  outbox.pending.push({
+    body, bytes
+  });
+}
+
+async function sendFrames(writer: Writer, writes: Channel<string>, events: Sender<LanguageMessage>, generation: int): Task<void> {
+  try {
+    while (true) {
+      await writeFrame(writer, await writes.receive()).timeout(15000);
+      await events.send({
+        kind: 'wrote', generation
+      });
+    }
+  } catch (error) {
+    await events.send({
+      kind: 'failed', generation, body: JSON.stringify(error)
+    });
+  }
+}
+
+function documentLanguage(document: ReadOnly<LanguageDocument>, server: ReadOnly<LanguageServer>): string {
+  const target = document.server;
+
+  if (target !== undefined && target !== server.id) throw 'Language document targets another server.';
+  return clone(document.languageId) ?? clone(server.languages[0]);
+}
+
+// Independent pipe tasks prevent stdin/stdout backpressure from deadlocking the client.
+async function connected(writer: Writer, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int, server: ReadOnly<LanguageServer>): Task<string> {
+  const writes = new Channel<string>(1);
+  const sender = writes.sender();
+  const output = sendFrames(writer, writes, messages.sender(), generation).start();
+  const outbox: Outbox = {
+    pending: [], bytes: 0
+  };
+  let busy = false;
+
+  try {
+    const documents: LanguageDocument[] = [];
+    let queries: LanguageQuery[] = [];
+
+
+    while (true) {
+      if (!busy && outbox.pending.length > 0) {
+        const item = outbox.pending.shift();
+
+        if (item !== undefined) {
+          outbox.bytes -= item.bytes;
+          unwrap(sender.trySend(item.body));
+          busy = true;
+        }
+      }
+
+      const message = await messages.receive();
+
+      if (message.generation !== generation) continue;
+
+      if (message.kind === 'restart' || message.kind === 'stop') return clone(message.kind);
+
+      if (message.kind === 'wrote') busy = false;
+
+      if (message.kind === 'failed') throw message.body ?? 'Language server stopped.';
+
+      if (message.kind === 'document' || message.kind === 'query') {
+        const document = message.document;
+
+        if (document !== undefined) {
+          const languageId = documentLanguage(document, server);
+
+          if (!server.languages.includes(languageId)) throw 'No matching language is registered for this server.';
+          const path = clone(document.path);
+          const index = documents.findIndex((entry) => entry.path === path);
+          const uri = documentUri(document.path);
+          const session = clone(document.session);
+          const fresh = !documents.some((entry) => entry.path === path && entry.session === session);
+
+          if (index >= 0 && fresh) enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didClose', params: {
+              textDocument: {
+                uri: clone(uri)
+              }
+            }
+          }));
+
+          for (const pending of queries.filter((query) => query.document.path === path)) {
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: '$/cancelRequest', params: {
+                id: 'studio:' + pending.id
+              }
+            }));
+          }
+
+          queries = queries.filter((query) => query.document.path !== path);
+
+          if (index >= 0) documents.splice(index, 1);
+          documents.push(clone(document));
+
+          if (fresh) {
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
+                textDocument: {
+                  uri, languageId: clone(languageId), version: document.version, text: clone(document.text)
+                }
+              }
+            }));
+          } else {
+            const changes: TextChange[] = [{
+              text: clone(document.text)
+            }];
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', method: 'textDocument/didChange', params: {
+                textDocument: {
+                  uri, version: document.version
+                }, contentChanges: changes
+              }
+            }));
+          }
+        }
+
+      }
+
+      if (message.kind === 'cancel') {
+        const id = message.queryId ?? '';
+
+        if (queries.some((query) => query.id === id)) {
+          queries = queries.filter((query) => query.id !== id);
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: '$/cancelRequest', params: {
+              id: 'studio:' + id
+            }
+          }));
+        }
+      }
+
+      if (message.kind === 'query') {
+        const query = message.query;
+
+        if (query !== undefined) {
+          const identity = clone(query.document);
+          const queryId = clone(query.id);
+          const current = query.method === 'tsrust/fileReferences' || documents.some((document) => document.path === identity.path && document.session === identity.session && document.revision === identity.revision && document.version === identity.version);
+          const allowed = query.method === 'textDocument/hover' || query.method === 'textDocument/completion' || query.method === 'textDocument/signatureHelp' || query.method === 'textDocument/definition' || query.method === 'textDocument/references' || query.method === 'textDocument/documentSymbol' || query.method === 'tsrust/fileReferences';
+
+          if (current && allowed && queries.length < 32 && !queries.some((entry) => entry.id === queryId)) {
+            queries.push(clone(query));
+            const context: ReferenceContext | undefined = query.method === 'textDocument/references' ? {
+              includeDeclaration: query.includeDeclaration ?? true
+            }
+
+            : undefined;
+            enqueue(outbox, JSON.stringify({
+              jsonrpc: '2.0', id: 'studio:' + query.id, method: clone(query.method), params: {
+                textDocument: {
+                  uri: documentUri(identity.path)
+                }, position: query.method === 'textDocument/documentSymbol' ? undefined : clone(query.position), context
+              }
+            }));
+          } else {
+            await updates.send({
+              kind: 'query', generation, server: clone(server.id), message: 'Language request is unavailable or outdated.', query: clone(query), result: 'null'
+            });
+          }
+        }
+      }
+
+      if (message.kind === 'close') {
+        const path = message.path ?? '';
+        const index = documents.findIndex((entry) => entry.path === path);
+
+        for (const pending of queries.filter((query) => query.document.path === path)) {
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: '$/cancelRequest', params: {
+              id: 'studio:' + pending.id
+            }
+          }));
+        }
+
+        queries = queries.filter((query) => query.document.path !== path);
+
+        if (index >= 0) {
+          documents.splice(index, 1);
+          enqueue(outbox, JSON.stringify({
+            jsonrpc: '2.0', method: 'textDocument/didClose', params: {
+              textDocument: {
+                uri: documentUri(path)
+              }
+            }
+          }));
+        }
+      }
+
+      if (message.kind !== 'frame') continue;
+      const body = message.body ?? '';
+      const envelope = envelopeFrom(body);
+
+      if (envelope.jsonrpc !== '2.0') throw 'Invalid language server protocol.';
+
+      if (envelope.method === undefined && envelope.id !== undefined) {
+        const id = clone(envelope.id);
+        const index = queries.findIndex((query) => JSON.stringify('studio:' + query.id) === id);
+
+        if (index >= 0) {
+          const query = clone(queries[index]);
+          const queryId = clone(query.id);
+          queries = queries.filter((pending) => pending.id !== queryId);
+          const value = unwrap(parse(body, limits()));
+          const result = unwrap(get(value, 'result'));
+          await updates.send({
+            kind: 'query', generation, server: clone(server.id), message: envelope.error === undefined ? '' : clone(envelope.error.message), query: clone(query), result: result === undefined ? 'null' : unwrap(stringify(result, 16 * 1024 * 1024))
+          });
+        }
+
+        continue;
+      }
+
+      if (envelope.method === 'textDocument/publishDiagnostics') {
+        const published = publishedDiagnostics(body, limits());
+        const path = diagnosticPath(published.uri);
+        const document = documents.find((entry) => entry.path === path);
+        // Unversioned/closed-file reports cannot identify an unsaved buffer safely.
+        if (document !== undefined && published.version === undefined) {
+          await updates.send({
+            kind: 'unversioned', generation, server: clone(server.id), document: languageIdentity(document), problems: unversionedProblems(path, published, 'lsp:' + server.id), message: 'This server sends diagnostics without document versions. Studio cannot verify their locations.'
+          });
+        }
+
+        if (document !== undefined && published.version === document.version) {
+          await updates.send({
+            kind: 'diagnostics', generation, server: clone(server.id), message: '', document: languageIdentity(document), problems: documentProblems(document, published, 'lsp:' + server.id)
+          });
+        }
+      } else {
+        const response = responseFor(body, envelope);
+
+        if (response !== undefined) enqueue(outbox, response);
+      }
+    }
+  } finally {
+    output.cancel();
+
+    try {
+      await output;
+    } catch (_) {}
+  }
+}
+
+async function connection(root: ReadOnly<string>, server: ReadOnly<LanguageServer>, messages: ReadOnly<Channel<LanguageMessage>>, updates: ReadOnly<Sender<LanguageUpdate>>, generation: int): Task<string> {
+  const child = unwrap(spawn(server.program, clone(server.arguments), {
+    cwd: clone(root), stdin: 'pipe', stdout: 'pipe', stderr: 'pipe'
+  }));
+  const writer = child.takeStdin();
+  const reader = child.takeStdout();
+  const stderr = child.takeStderr();
+
+  if (writer === undefined || reader === undefined || stderr === undefined) throw 'Could not open language server pipes.';
+  const input = pump(reader, messages.sender(), generation).start();
+  const errors = drainErrors(stderr).start();
+
+  try {
+    const action = await initialize(writer, messages, generation, root).timeout(15000);
+
+    if (action !== 'ready') return action;
+    await updates.send({
+      kind: 'ready', generation, server: clone(server.id), message: server.name + ' language service connected'
+    });
+    return await connected(writer, messages, updates, generation, server);
+  } finally {
+    input.cancel();
+    errors.cancel();
+
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    try {
+      unwrap(await child.wait());
+    } catch (_) {}
+
+    try {
+      await input;
+    } catch (_) {}
+
+    try {
+      await errors;
+    } catch (_) {}
+  }
+}
+
+export async function languageWorker(root: string, server: LanguageServer, messages: Channel<LanguageMessage>, updates: Sender<LanguageUpdate>): Task<void> {
+  unwrap(validateLanguageServer(server));
+  let generation = 0;
+
+  while (true) {
+    generation += 1;
+    await updates.send({
+      kind: 'starting', generation, server: clone(server.id), message: 'Starting ' + server.name + ' language service…'
+    });
+
+    let waitForStart = false;
+
+    try {
+      const action = await connection(root, server, messages, updates, generation);
+      waitForStart = action === 'stop';
+
+      if (waitForStart) await updates.send({
+        kind: 'stopped', generation, server: clone(server.id), message: server.name + ' language service stopped'
+      });
+    } catch (error) {
+      await updates.send({
+        kind: 'failed', generation, server: clone(server.id), message: JSON.stringify(error)
+      });
+      waitForStart = true;
+    }
+
+    if (waitForStart) {
+      // Stopped/failed servers drain old traffic but launch only on explicit control.
+      while (true) {
+        const command = await messages.receive();
+
+        if (command.generation !== generation) continue;
+
+        if (command.kind === 'start' || command.kind === 'restart') break;
+
+        if (command.kind === 'stop') await updates.send({
+          kind: 'stopped', generation, server: clone(server.id), message: server.name + ' language service stopped'
+        });
+      }
+    }
+  }
+}

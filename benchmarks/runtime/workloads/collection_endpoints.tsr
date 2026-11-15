@@ -3,9 +3,11 @@ import { OrderedSet, OrderedMap } from 'std:collections';
 function workload(n: int, seed: int): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const values = new OrderedSet<int>();
     const map = new OrderedMap<int, int>();
+
     for (const v of [seed + 3, seed + 1, seed + 2]) {
       values.add(v);
       map.set(v, v);

@@ -1,10 +1,12 @@
 function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 4;
     const mode = (i * 7 + seed) % 5;
     const values: string[] = [];
+
     if (count > 0) {
       values.push(input.repeat(1));
     }
@@ -27,6 +29,7 @@ function workload(n: int, seed: int, input: string): string[] {
       return source.length === count && value === source[index] && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
     });
     output.push(typeof selected);
+
     if (selected === undefined) {
       output.push("undefined");
     } else {
@@ -37,6 +40,7 @@ function workload(n: int, seed: int, input: string): string[] {
     output.push(String(visits));
     output.push(String(trace));
     output.push(String(sourceVisits));
+
     if (values.length > 0) {
       output.push(describe(values[0]));
     } else {

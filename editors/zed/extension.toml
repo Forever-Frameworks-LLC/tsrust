@@ -1,0 +1,20 @@
+id = "tsrust"
+name = "Tsrust"
+version = "0.1.0"
+schema_version = 1
+authors = ["Tsrust contributors"]
+description = "Tsrust compiler diagnostics, completion, documentation and navigation."
+icon_themes = ["icon_themes/tsrust.json"]
+
+[language_servers.tsrust-lsp]
+name = "Tsrust"
+languages = ["Tsrust"]
+
+[lib]
+kind = "Rust"
+version = "0.7.0"
+
+[grammars.tsrust]
+repository = "https://github.com/Forever-Frameworks-LLC/tsrust"
+rev = "dcd12923d6f977cf7c70d60007e482a38562713d"
+path = "editors/zed/grammar"

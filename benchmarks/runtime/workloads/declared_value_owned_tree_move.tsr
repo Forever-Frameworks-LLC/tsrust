@@ -8,6 +8,7 @@ function workload(n: int, seed: int, input: string): Node[] {
   const output: Node[] = [];
   const action = take;
   let i = 0;
+
   while (i < n) {
     const root: Node = {
       code: seed + i, text: clone(input), children: [{

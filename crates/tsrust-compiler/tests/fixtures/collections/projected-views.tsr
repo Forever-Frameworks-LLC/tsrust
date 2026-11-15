@@ -1,4 +1,11 @@
-import { Bytes, ByteView, fromUtf8, view, toUtf8, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromUtf8,
+  view,
+  toUtf8,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function bytes(text: string): Bytes {
@@ -46,6 +53,7 @@ function collect(owner: ReadOnly<Bytes>): Map<int, ByteView> {
 
 function selected(values: ReadOnly<Map<int, ByteView>>): ByteView {
   const item = values.get(1);
+
   if (item !== undefined) {
     match (view(item, 0, length(item))) {
       Ok(result) => {

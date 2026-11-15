@@ -1,6 +1,42 @@
 mod support;
 use tsrust_compiler::native_cache::NativeCache;
 #[test]
+fn lookup_checks_identity_length_and_bytes_past_the_first_chunk() {
+    let dir = support::TempDirectory::new();
+    let artifact = dir.0.join("artifact");
+    std::fs::write(&artifact, b"program").unwrap();
+    let cache = NativeCache::new(&dir.0, &[&vec![7; 131072]]);
+    cache.publish(&artifact).unwrap();
+    let identity = cache.lookup().unwrap().parent().unwrap().join("identity");
+    let mut bytes = std::fs::read(&identity).unwrap();
+    bytes[65536] ^= 1;
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+    bytes[65536] ^= 1;
+    bytes.push(0);
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+    bytes.truncate(bytes.len() - 2);
+    std::fs::write(&identity, &bytes).unwrap();
+    assert!(cache.lookup().is_none());
+}
+#[test]
+fn streamed_checksums_preserve_existing_cache_bytes_across_buffer_boundaries() {
+    use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
+    let directory=support::TempDirectory::new();
+    for length in [0usize,1,65535,65536,65537,196625] {
+        let bytes=(0..length).map(|index|(index%251)as u8).collect::<Vec<_>>();
+        let artifact=directory.0.join("artifact");std::fs::write(&artifact,&bytes).unwrap();
+        let field=length.to_le_bytes();let cache=NativeCache::new(&directory.0,&[&field]);
+        cache.publish(&artifact).unwrap();
+        let restored=cache.lookup().expect("new artifact is readable");
+        let mut legacy=DefaultHasher::new();bytes.as_slice().hash(&mut legacy);
+        assert_eq!(std::fs::read(restored.parent().unwrap().join("checksum")).unwrap(),legacy.finish().to_le_bytes());
+        assert_eq!(std::fs::read(&restored).unwrap(),bytes);
+        std::fs::write(restored,b"damaged").unwrap();assert!(cache.lookup().is_none());
+    }
+}
+#[test]
 #[ignore = "subprocess worker, invoked with isolated paths by the process contention test"]
 fn cache_publication_process_worker() {
     use std::io::Read;

@@ -9,9 +9,11 @@ function workload(n: int, seed: int): int {
   };
   let trace = seed;
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {
@@ -22,6 +24,7 @@ function workload(n: int, seed: int): int {
 
     const output = receiver(base, count, probe).concat(arrayArgument(base, mode % 3 + 2, probe), scalarArgument(seed + i, probe));
     let index = 0;
+
     for (const value of output) {
       trace = (trace * 131 + value + index + i) % 1000000007;
       index = index + 1;

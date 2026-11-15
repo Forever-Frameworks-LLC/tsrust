@@ -15,6 +15,7 @@ function main() {
     name: "Sam", active: false
   });
   activate(users[0]);
+
   for (const user of users) {
     console.log(user.name);
     console.log(user.active);

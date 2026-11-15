@@ -1,0 +1,125 @@
+import { toUtf8 } from 'std:bytes';
+import { Channel, Sender, race } from 'std:futures';
+import { run } from 'std:process';
+
+import { Problem, operationProblem } from '../lib/workspace/problems.tsr';
+
+export interface CheckResult {
+  output: string;
+  failed: boolean;
+  problems: Problem[];
+  reveal?: boolean;
+  cancelled?: boolean;
+}
+
+interface CheckLocation {
+  file?: string;
+  line: int;
+  column: int;
+}
+
+interface CheckDiagnostic {
+  file?: string;
+  code: string;
+  message: string;
+  location?: CheckLocation;
+  severity?: string;
+}
+
+interface CheckReport {
+  ok: boolean;
+  diagnostics: CheckDiagnostic[];
+}
+
+// Read the CLI's structured diagnostics, never terminal styling or error prose.
+export function formatCheckReport(text: ReadOnly<string>): CheckResult {
+  const report = JSON.parse<CheckReport>(text);
+  let output = '';
+  const problems: Problem[] = [];
+
+  for (const diagnostic of report.diagnostics) {
+    const location = diagnostic.location;
+    const path = clone(diagnostic.file ?? (location === undefined ? '' : location.file ?? ''));
+    output += clone(path);
+
+    if (location !== undefined) output += ':' + location.line.toString() + ':' + location.column.toString();
+    output += ' [' + clone(diagnostic.code) + '] ' + clone(diagnostic.message) + '\n';
+    problems.push({
+      source: 'check', path, line: location === undefined ? 0 : location.line, column: location === undefined ? 0 : location.column, code: clone(diagnostic.code), message: clone(diagnostic.message), severity: clone(diagnostic.severity ?? 'error')
+    });
+  }
+
+  output += report.ok ? 'Check passed.\n' : 'Check failed.\n';
+  return {
+    output, failed: !report.ok, problems
+  };
+}
+
+export async function checkSavedProject(root: ReadOnly<string>, program: ReadOnly<string>): Task<CheckResult> {
+  let result: CheckResult = {
+    output: '', failed: true, problems: []
+  };
+
+  // The desktop event loop can exit before this task gets to cancel its compiler.
+  match (await run(program, ['check', '.', '--json', '--color=never'], {
+    env: [{
+      name: 'TSRUST_CHECK_WATCH_PARENT', value: '1'
+    }], cwd: clone(root), deadlineMs: 300000, maxOutputBytes: 4 * 1024 * 1024
+  })) {
+    Ok(output) => {
+      try {
+        result = formatCheckReport(unwrap(toUtf8(output.stdout)));
+
+        if (!output.status.success && !result.failed) result = {
+          output: 'The compiler failed without diagnostics.\n', failed: true, problems: []
+        };
+      } catch (_) {
+        match (toUtf8(output.stderr)) {
+          Ok(text) => {
+            result.output = text === '' ? 'The compiler returned an invalid check report.\n' : clone(text);
+          },
+          Err(_) => {
+            result.output = 'The compiler output is not valid UTF-8.\n';
+          }
+        }
+      }
+    },
+    Err(error) => {
+      result.output = clone(error.message);
+    }
+  }
+
+  if (result.failed && result.problems.length === 0) result.problems.push(operationProblem('check', '', clone(result.output)));
+  return result;
+}
+
+async function cancelled(requests: ReadOnly<Channel<string>>): Task<CheckResult> {
+  await requests.receive();
+  return {
+    output: 'Check cancelled.\n', failed: true, problems: [], cancelled: true
+  };
+}
+
+export async function projectCheckWorker(root: string, program: string, requests: Channel<string>, results: Sender<CheckResult>): Task<void> {
+  while (true) {
+    let reveal = false;
+
+    try {
+      const command = await requests.receive();
+
+      if (command !== 'check' && command !== 'check-background') continue;
+      reveal = command === 'check';
+    } catch (_) {
+      return;
+    }
+    // Check never spawns Cargo/native children; dropping its task reaps the CLI process.
+    const result = await race([checkSavedProject(root, program), cancelled(requests)]);
+    result.reveal = reveal;
+
+    try {
+      await results.send(result);
+    } catch (_) {
+      return;
+    }
+  }
+}

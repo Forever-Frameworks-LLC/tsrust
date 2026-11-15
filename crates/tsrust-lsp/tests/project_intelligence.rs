@@ -99,7 +99,11 @@ fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
     assert!(completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "name")), "{completion}");
     let definition = ask(&index, &entry, "user.name", "textDocument/definition");
     assert_eq!(definition["uri"], uri, "{definition}");
-    assert_eq!(definition["range"]["start"]["line"], 5, "{definition}");
+    let binding=entry.find("Ok(user)").unwrap()+3;
+    let prefix=&entry[..binding];
+    let line=prefix.matches('\n').count();
+    let column=prefix.rsplit('\n').next().unwrap().encode_utf16().count();
+    assert_eq!(definition["range"],json!({"start":{"line":line,"character":column},"end":{"line":line,"character":column+4}}),"{definition}");
 }
 
 #[test]

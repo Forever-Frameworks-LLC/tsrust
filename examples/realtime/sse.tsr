@@ -20,6 +20,7 @@ async function main(): Task<void> {
   // Channel-only mode keeps the producer's explicit owner outside the body.
   const external = new Channel<SseEvent>(1);
   const externalProducer = produce(external.sender()).start();
+
   try {
     const response = sse(external);
     console.log((await response.text()).replaceAll('\n', '|'));

@@ -1684,6 +1684,7 @@ pub(in crate::analysis) fn check_function_parameters(analyzer: &mut Analyzer, co
 }
 
 pub(in crate::analysis) fn check_function(analyzer: &mut Analyzer, index: usize) -> Result<(), Diagnostic> {
+    crate::project_session::check_cancelled()?;
     let mut root = Context::new(String::new());
     let task = Task::Function(Box::new(functions::FunctionTask::new(index)));
     let Completion::Function(result) = drive(analyzer, &mut root, task) else { unreachable!("function schedule result") };

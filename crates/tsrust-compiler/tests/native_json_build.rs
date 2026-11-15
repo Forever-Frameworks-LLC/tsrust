@@ -47,17 +47,22 @@ fn dependency_build_honors_shared_target_and_stages_only_reported_artifacts(){
  // conceal the production regression and violate the shared-build contract.
  let target=std::env::var_os("CARGO_TARGET_DIR").map(std::path::PathBuf::from).unwrap_or_else(||std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_owned()).canonicalize().unwrap();
  let source=directory.0.join("main.tsr");let binary=directory.0.join(format!("program{}",std::env::consts::EXE_SUFFIX));
- for (index,value) in [41,42,42].into_iter().enumerate(){
+ let mut library_names=Vec::new();
+ for (index,value) in [41,42,42,42].into_iter().enumerate(){
   let text=format!("import {{fromInt}} from 'std:json';function main(){{console.log(JSON.stringify(fromInt({value})));}}");fs::write(&source,support::format_round_trip(&text)).unwrap();
-  let output=support::run(support::cli().current_dir(&directory.0).arg("build").arg(&source).arg("-o").arg(&binary).env("CARGO_TARGET_DIR",&target).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),180);support::success(&output);
-  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0{"runtime=miss"}else if index==1{"runtime=hit"}else{"cache=hit"}),"{log}");
+  let output=support::run(support::cli().current_dir(&directory.0).arg("build").arg(&source).arg("-o").arg(&binary).env("CARGO_TARGET_DIR",&target).env("CARGO_PROFILE_DEV_OPT_LEVEL",if index==0{"0"}else{"1"}).env("TSRUST_TEST_BUILD_INPUT",if index==3{"changed"}else{"initial"}).env("TSRUST_CACHE_DIR",&cache).env("TSRUST_BUILD_TIMINGS","1"),180);support::success(&output);
+  let log=String::from_utf8_lossy(&output.stderr);assert!(log.contains(if index==0 || index==3{"runtime=miss"}else if index==1{"runtime=hit"}else{"cache=hit"}),"{log}");
+  let manifest=fs::read_dir(cache.join("runtime/build-v1")).unwrap().map(Result::unwrap).map(|entry|entry.path().join("native-support/Cargo.toml")).find(|path|path.is_file()).unwrap();
+  let manifest=fs::read_to_string(manifest).unwrap().parse::<toml_edit::DocumentMut>().unwrap();
+  library_names.push(manifest["lib"]["name"].as_str().unwrap().to_owned());
   let output=support::run(&mut std::process::Command::new(&binary),10);support::success(&output);assert_eq!(String::from_utf8_lossy(&output.stdout).trim(),value.to_string());
  }
+ assert_eq!(library_names[2],library_names[3],"an environment-only bundle miss must not rename an unchanged Cargo library");
  let workspaces=fs::read_dir(cache.join("runtime/build-v1")).unwrap().map(Result::unwrap).filter(|entry|entry.path().join("native-support").is_dir()).collect::<Vec<_>>();assert_eq!(workspaces.len(),1);
  let workspace=workspaces[0].path();assert!(!workspace.join("native-target").exists());
  let artifacts=workspace.join("artifacts");assert!(artifacts.join("libtsrust_runtime.rlib").is_file());
  let staged=|dir:&std::path::Path|fs::read_dir(dir).map(|entries|entries.filter_map(Result::ok).map(|entry|entry.file_name().to_string_lossy().into_owned()).filter(|name|name.contains("tsrust_runtime")).collect::<Vec<_>>()).unwrap_or_default();
- // The shared-target runtime library is named per build identity.
+ // The shared-target runtime library is named per dependency workspace and runtime body.
  assert!(staged(&target.join("debug")).iter().any(|name|name.starts_with("libtsrust_runtime")&&name.ends_with(".rlib")),"target {}: debug {:?}, workspace artifacts {:?}",target.display(),staged(&target.join("debug")),staged(&artifacts));
  // Staging is an independent, graph-local directory, never shared deps itself.
  assert_ne!(artifacts.canonicalize().unwrap(),target.join("debug/deps").canonicalize().unwrap());

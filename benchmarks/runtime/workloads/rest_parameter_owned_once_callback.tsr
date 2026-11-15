@@ -16,7 +16,14 @@ function apply(action: Once<Function<string[], [trace: Mutable<Trace>, ...values
     return action(trace, base);
   }
 
-  return action(trace, base, base + 1, base + 2, base + 3, base + 4);
+  return action(
+    trace,
+    base,
+    base + 1,
+    base + 2,
+    base + 3,
+    base + 4
+  );
 }
 
 function workload(n: int, seed: int, input: string): string[][] {
@@ -25,6 +32,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     calls: 0, defaults: 0
   };
   let i = 0;
+
   while (i < n) {
     const before = trace.calls;
     const mode = (i + seed) % 3;
@@ -34,6 +42,7 @@ function workload(n: int, seed: int, input: string): string[][] {
       callTrace.calls = callTrace.calls + 1;
       const result: string[] = [consume(text)];
       let at = 0;
+
       while (at < values.length) {
         result.push(String(values[at]));
         at = at + 1;

@@ -48,6 +48,7 @@ function counter(start: int): Result<Function<int>, int> {
 
 function failureScenario(value: int): int {
   let held: Result<Function<int>, int> = Err(value);
+
   if (value % 5 !== 0) {
     const text = "x".repeat(value % 4 + 1);
     held = Ok((): int => {
@@ -56,6 +57,7 @@ function failureScenario(value: int): int {
   }
 
   let observed = 0;
+
   try {
     match (held) {
       Ok(action) => {
@@ -81,12 +83,14 @@ function failureScenario(value: int): int {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = i % 17 + seed % 19 + 1;
     const result = make(value);
     const first = inspect(result);
     const second = inspect(result);
     let owned = 0;
+
     match (result) {
       Ok(user) => {
         owned = user.value + 7;
@@ -102,6 +106,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     update(editable);
     update(editable);
     let mutated = 0;
+
     match (editable) {
       Ok(user) => {
         mutated = user.value;
@@ -114,6 +119,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const callback = counter(value);
     let callA = 0;
     let callB = 0;
+
     match (callback) {
       Ok(action) => {
         callA = action();

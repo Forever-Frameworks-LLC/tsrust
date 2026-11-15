@@ -1,9 +1,25 @@
-import { App, Client, Request, Response, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  request,
+  text
+} from 'std:http';
 import { Channel, Sender, allSettled, delay } from 'std:futures';
 import { formatUuid, parseUuid } from 'std:uuid';
 import { monotonicNow } from 'std:time';
 import { strictEqual } from 'std:testing';
-import { Trace, Event, Metrics, newTrace, emitEvent, collect, stopTelemetry, emptyMetrics } from './telemetry';
+import {
+  Trace,
+  Event,
+  Metrics,
+  newTrace,
+  emitEvent,
+  collect,
+  stopTelemetry,
+  emptyMetrics
+} from './telemetry';
 
 type Loaded = {
   trace: Trace;
@@ -14,6 +30,7 @@ type Loaded = {
 async function loadNote(trace: Owned<Trace>, fail: boolean): Task<Loaded> {
   const start = monotonicNow();
   await delay(1);
+
   if (fail) {
     throw 'DATABASE_PASSWORD=must-not-leak';
   }
@@ -26,16 +43,45 @@ async function loadNote(trace: Owned<Trace>, fail: boolean): Task<Loaded> {
 async function handle(sender: ReadOnly<Sender<Event>>, input: Request, fail: boolean): Task<Response> {
   const trace = newTrace();
   const start = monotonicNow();
-  await emitEvent(sender, trace, 'request-start', 'service.handle', 0, 0);
+  await emitEvent(
+    sender,
+    trace,
+    'request-start',
+    'service.handle',
+    0,
+    0
+  );
   let response = text('unavailable', 503);
+
   try {
     const job = loadNote(clone(trace), fail).start();
     const loaded = await job;
-    await emitEvent(sender, loaded.trace, 'task-end', 'service.loadNote', 200, loaded.elapsedMs);
+    await emitEvent(
+      sender,
+      loaded.trace,
+      'task-end',
+      'service.loadNote',
+      200,
+      loaded.elapsedMs
+    );
     response = text(loaded.body);
-    await emitEvent(sender, trace, 'request-end', 'service.handle', 200, monotonicNow() - start);
+    await emitEvent(
+      sender,
+      trace,
+      'request-end',
+      'service.handle',
+      200,
+      monotonicNow() - start
+    );
   } catch {
-    await emitEvent(sender, trace, 'request-failed', 'service.loadNote', 503, monotonicNow() - start);
+    await emitEvent(
+      sender,
+      trace,
+      'request-failed',
+      'service.loadNote',
+      503,
+      monotonicNow() - start
+    );
   }
 
   response.setHeader('x-request-id', formatUuid(trace.requestId));
@@ -58,6 +104,7 @@ async function read(url: string, status: int): Task<string> {
   const response = await client.send(input);
   strictEqual(response.status(), status);
   const id = response.header('x-request-id');
+
   if (id === undefined) {
     throw 'Missing request id';
   }
@@ -65,6 +112,7 @@ async function read(url: string, status: int): Task<string> {
   const canonical = formatUuid(unwrap(parseUuid(id)));
   strictEqual(canonical, id);
   const body = await response.text();
+
   if (status === 200) {
     strictEqual(body, 'ready');
   } else {
@@ -78,6 +126,7 @@ async function exercise(control: Owned<Sender<Event>>, ok: Owned<Sender<Event>>,
   try {
     const app = routes(ok, failed);
     const server = await app.listen('127.0.0.1:0');
+
     try {
       const base = 'http://' + server.address();
       const first = base + '/ok?secret-query';
@@ -85,8 +134,10 @@ async function exercise(control: Owned<Sender<Event>>, ok: Owned<Sender<Event>>,
       const third = base + '/fail?secret-query';
       const outcomes = await allSettled([read(first, 200).start(), read(second, 200).start(), read(third, 503).start()]);
       const ids: string[] = [];
+
       while (outcomes.length > 0) {
         const outcome = outcomes.pop();
+
         if (outcome !== undefined) {
           ids.push(unwrap(outcome));
         }
@@ -113,8 +164,10 @@ export async function verifyObservability(): Task<void> {
   const failed = queue.sender();
   const outcomes = await allSettled([collect(queue).start(), exercise(control, ok, failed).start()]).timeout(5000);
   const total = emptyMetrics();
+
   while (outcomes.length > 0) {
     const outcome = outcomes.pop();
+
     if (outcome !== undefined) {
       const metrics = unwrap(outcome);
       total.started += metrics.started;

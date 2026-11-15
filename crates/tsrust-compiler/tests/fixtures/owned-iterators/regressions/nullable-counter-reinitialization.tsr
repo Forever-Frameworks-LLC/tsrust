@@ -9,6 +9,7 @@ function counter(): Owned<Function<int>> {
     }
 
     const step = current.next();
+
     if (step.done) {
       current = undefined;
       return 0;
