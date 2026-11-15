@@ -4,6 +4,95 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Modal shortcuts fixed; focused Worklist/LSP validation — 2026-11-14
+
+Optimization remains deferred per owner. Validation found a correctness issue:
+zoom stopped when a task sheet took focus outside the content root. gpui.rs now
+registers GPUI's existing global TsrustCommand fallback, captures the active window,
+and defers its update until key dispatch releases the window. Normal foreground
+handlers keep precedence, and existing run_command enforces visible mounted
+Shortcut ownership. No new application API/dependency or owner gpui_kit.rs edits.
+The initial immediate-update version failed at GPUI's nested window-borrow boundary;
+it is not accepted. The revised fallback and native checks below are accepted.
+
+Durable native process-boundary witness tools/worklist-shortcuts.swift verifies
+an idle Worklist process, bounded accessibility readiness, fresh control lookup
+across redraws, no existing draft, exact one-step zoom in the main view and an
+empty new sheet, and reset while the sheet owns focus. It closes only the empty
+sheet it opened, never edits/saves fields, and restores zoom. Original native
+reproduction failed sheet zoom after main-view zoom passed. Startup AX lookup and
+retained-element assumptions in the witness were corrected without weakening its
+zoom assertions. Final witness passed against isolated corrected PID99978.
+A final identical pre-fix control built from installed accepted3922153 and ran with
+a temporary cache, but its focus guard stopped before completion; that final
+negative replay is unverified, not a passed regression control. No keys were sent
+after focus was lost. Source/initial native reproduction still establish the bug.
+
+Actual Cmd+S acceptance in corrected isolated Worklist: entered uniquely named
+fixture "Worklist keyboard acceptance 1794701124", sent Cmd+S only after checking
+foreground PID99978, and verified
+API task2e7937c3ae9a2d8cd0955a55dcf47b3f at version1 with empty notes. Removed only
+that id using expectedVersion1; fresh API snapshot returned300 tasks and no fixture.
+The isolated recovery journal was null before shutdown. This proves the actual
+sheet save path as well as the shared zoom dispatch path. Task data outside the
+fixture was not edited by these checks.
+
+Final release pair built in3m40s. Native consumer build passed with check2173.7ms,
+emit285.3ms,native+link56240.6ms; diagnostic setup, not a benchmark. First candidate
+release/native builds also compiled, but did not pass the shortcut witness.
+Authorized final desktop supervisor99887/native99918 runs in exec session14972,
+log /tmp/tsrust-worklist-desktop-dev.log. Startup12.921s is a dev observation, not
+matched performance. API33729/45647 and Zed75803 remained alive; Studio stays
+stopped. CLI release and atomically verified installed binary both SHA-256
+`e82c15ae70eafdc140e108c0925f0968d368e1180325511941eea5c4c706e971`;
+LSP unchanged at `7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+All builds include protected owner SDK additions; do not call these immutable
+clean-HEAD runs excluding those hunks. No owner SDK/Studio/service-test edits staged.
+Whole formatter passed0 source files/snippets/fingerprints before checkpoint.
+
+Refresh handling mistake: a shell assertion found an open task, but the following
+kill still ran and stopped interim97914/97953. Its captured title/notes matched
+sample293 and the recovery journal was null. No task field edits were performed.
+Final dev app was restored; sample293 sheet was reopened by its accessible card
+action. Final owner view is1180x821/zoom14/cards background/sample293 sheet open;
+the attempted Table switch while modal did not apply. Do not claim Table background
+restoration. Further checks moved to isolated temporary-cache instances. Use Python
+checked control flow or && for guards before mutations; a newline does not stop a
+shell after assertion failure. Temporary corrected99978 and pre-fix361 are stopped;
+only final authorized desktop/API/Zed sessions remain. Synthetic table-row clicks
+did not reopen the sheet; do not count them as successful native row activation.
+A future isolated replay should distinguish the input bridge from the application.
+
+Other focused validation: real Worklist LSP clean/error/repair sequence passed
+through tools/verify-application-editor.mjs with disk files preserved. Studio probe
+initially failed a stale source anchor (const files became const model); only three
+anchor strings changed in tools/lsp-memory-probe.mjs. Repaired probe passed26
+requests/four in-memory revisions in2.748s; warm assistance medians0.687–0.715ms,
+initial hover464.245ms. Peak footprint311198512B, swapped/compressed max9256960B.
+Separate established synthetic retention check passed890 requests,12 cycles of24
+open/edit/close documents and512KiB unrelated revisions, in25.401s.25 samples:
+footprint3.08MiB initially,15.00MiB final/peak with plateau over last~9s; RSS max
+23379968B, swapped/compressed max1818624B, system free46–48 percent. Dependency
+invalidation and stale-answer counters passed. Both used the unchanged accepted
+LSP hash above. These bounded diagnostics are not a soak/leak proof, stable latency
+benchmark or full workspace diagnostic latency acceptance. Raw reports are disposable,
+not canonical SQLite benchmark records. Owner editor buffers were not controlled.
+
+Native AX checks before the repair: all300 tasks, table24 rendered rows before/
+after scroll with changed first data title (pointer-string comparison was repaired
+to compare actual titles). Settled cards18 rendered nodes/three columns at1180px;
+8 nodes/two412px columns at860px/zoom24. Initial one-column measurement preceded
+settled layout. At860x760/zoom24 all eight sheet controls fit. At860x600/zoom14 Save
+and Close fit. The attempted zoom after opening that minimum-size sheet failed and
+is not zoom24 acceptance. Ten explicit light/dark badge palette pairs have minimum
+6.37:1 computed contrast. This is geometry/source-palette evidence, not pixel review.
+
+Next: retain this accepted correctness fix and tool-anchor repair, clean closed
+scratch outputs after checkpoint, then finish local milestone regressions and
+product acceptance (including isolated table activation and visual review) before
+one validated push/PR. Supported-platform CI/merge remain open. Do not launch more
+optimization experiments or pursue the owner-deferred <10 percent target now.
+
 ## Recursive cycle cache experiment rejected; optimization deferred — 2026-11-14
 
 Owner direction after reviewing progress: retain the measured gains, do not spend

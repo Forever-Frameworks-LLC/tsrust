@@ -58,8 +58,8 @@ up their fixture rows. The snapshot case also checks the running API process.
 The desktop cache stores rows and its applied cursor in a single SQLite
 transaction. The sync client fetches an initial snapshot, applies ordered CDC
 pages, and refreshes the snapshot when the server requires a cursor reset. Network
-errors leave the last committed cache available. The desktop UI remains in
-progress.
+errors leave the last committed cache available. The desktop renders that cached
+snapshot while its background worker synchronizes changes.
 
 To include cache, reconnect and crash-recovery tests in the same native runner,
 pass `tests ../desktop/tests` to the test command above. The crash case launches
@@ -86,3 +86,9 @@ DATABASE_URL=postgres://worklist:worklist-local@127.0.0.1:5443/worklist \
 The seed preserves all existing ids and edits on repeated runs. It uses external
 database writes so the running desktop receives the rows through CDC. It is never
 run automatically at application startup.
+
+On macOS, run `swift tools/worklist-shortcuts.swift WORKLIST_PID` from the repository
+root against an idle Worklist review window with accessibility access enabled.
+The native check refuses an existing task sheet, verifies that zoom fires exactly
+once both in the workspace and after a new sheet takes focus, then closes the
+untouched sheet and resets zoom. It does not edit or save task data.

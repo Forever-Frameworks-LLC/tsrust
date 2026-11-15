@@ -56,6 +56,18 @@ pub fn run_configured(mut node: Node, title: String, options: &str) -> Result<()
         #[cfg(target_os="macos")]
         launching.set(false);
         init(cx);
+        // Sheets and dialogs focus outside the content root; normal handlers win before this fallback.
+        cx.on_action(|command: &TsrustCommand, cx| {
+            let Some(window) = cx.active_window() else {return};
+            let name = command.name.clone();
+            cx.defer(move |cx| {
+                let _ = window.update(cx, |_, window, cx| {
+                    let Some(base) = window.root::<gpui_kit::base::Root>().flatten() else {return};
+                    let Ok(root) = base.read(cx).view().clone().downcast::<Root>() else {return};
+                    root.update(cx, |root, cx| root.run_command(&name, cx));
+                });
+            });
+        });
         cx.bind_keys([KeyBinding::new(if cfg!(target_os="macos") {"cmd-k cmd-i"} else {"ctrl-k ctrl-i"}, gpui_kit::base::input::ShowHover, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("ctrl-space", gpui_kit::base::input::ShowCompletions, Some("Input && mode == editor"))]);
         cx.bind_keys([KeyBinding::new("shift-f12", gpui_kit::base::input::FindReferences, Some("Input && mode == editor"))]);

@@ -131,9 +131,9 @@ async function probeStudio() {
             : {textDocument: {uri: document, version: revision}, contentChanges: [{text}]});
         for (const warm of [false, true]) {
             for (const [method, needle, inside] of [
-                ['hover', 'const files = workspace.get()', 'const files = workspace.'.length + 1],
-                ['completion', 'const files = workspace.get()', 'const files = workspace.'.length],
-                ['signatureHelp', 'const files = workspace.get()', 'const files = workspace.get('.length],
+                ['hover', 'const model = workspace.get()', 'const model = workspace.'.length + 1],
+                ['completion', 'const model = workspace.get()', 'const model = workspace.'.length],
+                ['signatureHelp', 'const model = workspace.get()', 'const model = workspace.get('.length],
             ]) {
                 const started = performance.now();
                 const result = await request('textDocument/' + method, {textDocument: {uri: document}, position: position(text, needle, inside)});
