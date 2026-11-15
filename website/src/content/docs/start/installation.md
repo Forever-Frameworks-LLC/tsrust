@@ -11,7 +11,8 @@ ordinary Rust emission work without a Rust installation.
 
 Choose the archive for your host from
 [GitHub Releases](https://github.com/Forever-Frameworks-LLC/tsrust/releases):
-Linux x64/glibc, Windows x64/MSVC, macOS Apple Silicon or macOS Intel.
+Linux x64/glibc, Windows x64/MSVC or macOS Apple Silicon. Intel macOS requires
+a source build.
 If no stable release has been published, use the source build below.
 
 Verify the archive against the digest on the official release/API before extracting
@@ -19,8 +20,8 @@ it. Releases also contain SHA256SUMS. For example, after downloading the matchin
 archive and checksum file from that official release:
 
 ```sh
-grep 'tsrust-v0.2.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
-  tar -xzf tsrust-v0.2.0-aarch64-apple-darwin.tar.gz
+grep 'tsrust-v0.2.1-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
+  tar -xzf tsrust-v0.2.1-aarch64-apple-darwin.tar.gz
 ```
 
 Substitute the actual version and target. Linux uses `sha256sum --check`; Windows

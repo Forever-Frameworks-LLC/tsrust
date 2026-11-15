@@ -18,7 +18,7 @@ reviewing it. Tests remain mandatory. CODEOWNERS continues to request the owner'
 review without requiring that the single approval come from that account.
 
 A `stag` to `main` PR runs **Release gate**: optimized CLI/LSP builds and packaged
-smoke checks on Linux, Windows and both macOS architectures, plus the VSIX package.
+smoke checks on Linux x64, Windows x64 and Apple-silicon macOS, plus the VSIX package.
 Once every artifact passes, the trusted **Promote and publish** workflow merges the
 PR and publishes those exact artifacts. It checks the current head/base and verifies
 that the merged source tree matches the built tree. Main requires an up-to-date
@@ -31,8 +31,9 @@ records the original setup.
 
 ## Caching and cost
 
-PR tests use Linux only. Release builds happen for promotion PRs, not every feature
-PR. There is no duplicate push-triggered run. Superseded runs are cancelled.
+PR builds, runtime suites and host-boundary tests run on Linux, Windows and
+Apple-silicon macOS; library tests, tooling and editor checks run on Linux.
+Optimized release builds happen for promotion PRs, not every feature PR. There is no duplicate push-triggered run. Superseded runs are cancelled.
 Pinned `Swatinem/rust-cache` caches Cargo downloads and compiled workspace outputs;
 platform, Rust version, lockfiles and separate test/release keys prevent incompatible
 reuse. npm caches extension package downloads. Cargo still checks freshness and all
@@ -69,7 +70,7 @@ Dispatch the Release workflow manually against a branch or commit. It derives th
 package version from Cargo.toml, checks source cleanliness, runs packaging tests,
 builds both optimized consumers and runs the distributed CLI smoke plus LSP
 initialization, capability and clean-shutdown assertions on Linux,
-macOS ARM/Intel and Windows x64. Archives remain temporary Actions artifacts;
+Apple-silicon macOS and Windows x64. Archives remain temporary Actions artifacts;
 manual dispatch never creates a tag or publishes a GitHub release. This focused
 package check does not repeat the full CI gate and is not release authorization.
 Manual validation never merges a PR; pushing a tag does not trigger this workflow.

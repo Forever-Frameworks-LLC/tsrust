@@ -4,6 +4,93 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
 
+## Promotion requested; v0.2.1 release metadata prepared locally — 2026-11-15
+
+Owner said "ok, promote away" and set the active goal to getting these changes
+released, including documentation/benchmark updates where relevant. Release and
+main-promotion intent is authorized. Existing v0.2.0 prevents reuse; project skill
+still requires an explicit version/public-outcome authorization before publication.
+Candidate is compiler/CLI0.2.1,LSP0.3.1,VS Code0.2.2 (runtime unchanged).
+Release branch codex/release-0.2.1 starts at stagingc4b5aa2d5; only release versions,
+lock entries,release notes and this handoff change. Earlier acceptance/evidence
+checkpoints23d18ba18/daaea5caa remain on codex/compiler-lsp-worklist.
+No publication,promotion PR,version push or staging review bypass for this new
+version change has happened yet. Release metadata and public notes are ready.
+Corrected stale release-guide platform/CI claims,installation archive example and
+website status. Packaging/release policy26/26 pass (2.467s); Cargo metadata
+--locked --offline confirms CLI0.2.1/LSP0.3.1. Whole formatter changed0 files,
+0 snippets,0 fingerprints. Documentation generation46 API pages/146 groups and
+performance1165 comparisons/213 existing runs; full site79 routes/129 HTML passes.
+Five website tests pass (.067s),and rendered links/anchors/assets across129 pages
+pass. Initial build hit the reused external Astro cache sandbox; authorized cache
+write rerun succeeded. Initial link-check invocation used wrong default dist path;
+correct website/dist invocation passed. No product failure was hidden.
+Benchmark SQLite and formatting identities are byte-unchanged from accepted
+staging; no new benchmark measurements are claimed. Existing complete source CI
+on9c05fd7e2 is retained; metadata changes need release packaging checks,not speculative
+new performance work. Next: present concrete v0.2.1 publication and metadata-PR
+review exception for authorization under .agents/skills/tsrust-development; after
+approval push the coherent metadata batch to staging via PR,then open stag→main
+once,following existing automated packaging/promotion/publication without duplicate
+dispatch. Do not treat creating the main PR as a read-only action: it auto-publishes.
+
+## PR19 merged into staging; main publication unapproved — 2026-11-15
+
+Remote accepted head9c05fd7e28ab4516337a49356a044d6c2ab85a5f on
+codex/compiler-lsp-worklist. Two total pushes: initial candidate, then one locally
+diagnosed repair batch after original CI became terminal. No more push is needed
+for these evidence notes. Owner explicitly authorized the review bypass for the
+exact green9c05fd7e2 head into staging only. gh pr merge --squash --admin
+--match-head-commit verified that exact head, then succeeded. PR19 is MERGED
+(2026-11-15T11:43:02Z), staging commitc4b5aa2d5d39bd20780a25003d01cb7c482b5b9a:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/19
+
+Exact-head CI43678661709 completed SUCCESS, every13 jobs green:
+https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/43678661709
+Documentation43678661698 also succeeded; staging deployment correctly skipped.
+Owned watch48365 exited0; it is terminal, do not poll/restart it.
+
+Acceptance from completed job logs:
+- Core: compiler1558 passed/8 existing ignored (147.37s),CLI62 (8.25s),LSP36
+  (3.86s),scheduler7 (.03s):1663 passed,0 failures; build/setup4m58s.
+- Runtime suites:143/143 groups,0 failures on every platform. macOS wall895.0s/
+  build879.660s/test7.018s; Linux1048.4s/1033.940s/8.217s;
+  Windows1084.4s/1063.188s/8.365s. GPUI starter3files passed everywhere:
+  macOS442.499s build/.004s test,Linux592.503s/.003s,Windows527.634s/.005s.
+- Linux host:22 targets,181 passed,0 failed/ignored; summed target test-wall
+  1281.95s including nested native builds. Top-level dev1m36s/compiler-host
+  build2m03s/LSP-host build2m00s.
+- macOS host:22 targets,182 passed,0 failed/ignored; target test-wall1419.22s;
+  top-level dev2m13s/compiler-host build2m13s/LSP-host build2m43s.
+- Windows host:22 targets,177 passed,0 failed,1 existing ignored; target test-wall
+  2385.89s (39.8min),including nested native builds. Top-level dev4m50s/
+  compiler-host build4m21s/LSP-host build3m38s. Formatting36/36 and LSP stdio17/17
+  passed, proving the portable fixture repairs on Windows. All host execution
+  stays conservatively below one hour even counting nested builds as execution.
+- All3 packaged builds,format/lint/tooling,VS Code and final CI aggregate passed.
+These are CI observations,not quiet-machine benchmark measurements. Existing
+SQLite records and owner drafts are unchanged. Original failed/cancelled evidence
+below remains retained,not counted as acceptance for the old head.
+
+The staging review boundary is resolved by explicit owner authorization; no
+independent review was claimed. GitHub ruleset25884267, "Staging: one review with
+owner bypass", allowed the authorized owner PR bypass. Verified main remains
+88db8210a7965fa22f5af59e2c720e950f7ceb36. GitHub compare reports main...stag diverged
+(ahead1/behind5), reflecting the existing squash/promotion history; inspect actual
+trees and release policy before any later promotion, do not blindly merge history.
+Main promotion automatically publishes and still needs an unused version plus
+explicit version/public-outcome approval per project skill. v0.2.0 already exists;
+no new publication,version bump,main promotion,tag or manual dispatch is authorized.
+The owner authorized staging only. Next action requires a separate publication
+decision; do not reinterpret automatic goal continuation as release authorization.
+
+All app/model/database sessions remain stopped; original Zed LSP and SDK drafts
+remain protected. General tuning/<10% target and broader closed-app visual/stress
+acceptance remain owner-deferred. Do not restart app sessions on continuation.
+This evidence-only local checkpoint must not be pushed merely to synchronize notes
+or retrigger CI. Temporary raw CI logs under /private/tmp/tsrust-ci-43678661709-*
+are disposable after this checkpoint; completed counts above are durable.
+
 ## Original PR19 CI terminal; complete repair batch ready — 2026-11-14
 
 Previous goal turn made progress by retaining completed Linux host and cancelled
