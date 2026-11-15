@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): number[][] {
   const output: number[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const position = (i * 13 + seed) % 9;

@@ -1,0 +1,796 @@
+import { toUtf8 } from 'std:bytes';
+import { toInt } from 'std:numeric';
+import { platform } from 'std:os';
+import { get } from 'std:env';
+import { canonicalize, stat } from 'std:fs';
+import { Channel, Sender } from 'std:futures';
+import { Reader, Writer } from 'std:io';
+import { basename } from 'std:path';
+import { Child, run, spawn } from 'std:process';
+
+import { readFrame, writeFrame } from '../lsp/transport.tsr';
+import { DebugBreakpoint, decodeAdapterReply } from './protocol.tsr';
+import { OriginalPosition, debugLocations, executableDebugUnit } from './source-locations.tsr';
+
+import { SourceBreakpoint } from '../../lib/workspace/workspace.tsr';
+
+export interface DebugCommand {
+  action: string;
+  frameId?: int;
+  stopId?: int;
+  generation?: int;
+  frame?: string;
+  program?: string;
+  processId?: int;
+  stopOnEntry?: boolean;
+  functionBreakpoint?: string;
+  sourceBreakpoints?: SourceBreakpoint[];
+  watch?: string;
+}
+
+export interface SourceFrame {
+  id: int;
+  depth: int;
+  name: string;
+  location?: OriginalPosition;
+}
+
+export interface UnresolvedBreakpoint {
+  path: string;
+  line: int;
+  reason: string;
+}
+
+export interface BreakpointBinding {
+  owner: int;
+  id?: int;
+  verified: boolean;
+}
+
+// Several generated lines may bind the same original line, or share an adapter ID.
+export function updateBreakpointBindings(bindings: Mutable<BreakpointBinding[]>, point: ReadOnly<DebugBreakpoint>, reason: ReadOnly<string>): int[] {
+  const affected = new Set<int>();
+  const id = point.id;
+
+  if (id === undefined || (reason !== 'changed' && reason !== 'removed')) return [];
+
+  for (const binding of bindings) {
+    if (binding.id === id) affected.add(binding.owner);
+  }
+
+  const previouslyVerified = new Set<int>();
+
+  for (const binding of bindings) {
+    if (binding.verified && affected.has(binding.owner)) previouslyVerified.add(binding.owner);
+  }
+
+  for (let i = 0; i < bindings.length; i += 1) {
+    if (bindings[i].id !== id) continue;
+    bindings[i].verified = reason !== 'removed' && point.verified;
+
+    if (reason === 'removed') bindings[i].id = undefined;
+  }
+
+  return Array.from(affected).filter((owner) => previouslyVerified.has(owner) !== bindings.some((entry) => entry.owner === owner && entry.verified));
+}
+
+export interface DebugOutput {
+  unresolvedBreakpoint?: UnresolvedBreakpoint;
+  verifiedBreakpoint?: SourceBreakpoint;
+  frames?: SourceFrame[];
+  selectedFrame?: int;
+  stopId?: int;
+  locals?: string[];
+  stopped?: boolean;
+  location?: OriginalPosition;
+  watchExpression?: string;
+  watchValue?: string;
+  text: string;
+  finished: boolean;
+}
+
+export function exitStatusText(code: int | undefined): string {
+  return code === undefined ? '\nExit status unavailable.\n' : '\nExit code ' + code.toString() + '\n';
+}
+
+export async function debugAdapterCommand(configured?: string): Task<string> {
+  if (configured !== undefined && configured !== '') return clone(configured);
+  const override = unwrap(get('LLDB_DAP')) ?? '';
+
+  if (override !== '') return override;
+
+  if (platform() === 'darwin') {
+    match (await run('/usr/bin/xcrun', ['--find', 'lldb-dap'])) {
+      Ok(output) => {
+        if (output.status.success) {
+          const path = unwrap(toUtf8(output.stdout)).trim();
+
+          if (path.startsWith('/')) return path;
+        }
+      },
+      Err(_) => {}
+    }
+  }
+
+  return 'lldb-dap';
+}
+
+function startDebugAdapter(adapter: ReadOnly<string>): Child {
+  match (spawn(clone(adapter), [], {
+    stdin: 'pipe', stdout: 'pipe', stderr: 'inherit'
+  })) {
+    Ok(child) => {
+      return child;
+    },
+    Err(error) => {
+      if (error.code === 'not-found') throw 'Debug adapter not found: ' + adapter + '. Install LLVM lldb-dap on PATH or set LLDB_DAP to its executable path.';
+      throw 'Could not start debug adapter ' + adapter + ': ' + error.message;
+    }
+  }
+}
+
+async function readAdapter(reader: Reader, events: Sender<DebugCommand>, generation: int): Task<void> {
+  try {
+    while (true) await events.send({
+      action: 'frame', generation, frame: await readFrame(reader)
+    });
+  } catch (error) {
+    await events.send({
+      action: 'adapterClosed', generation, frame: JSON.stringify(error)
+    });
+  }
+}
+
+async function inspectFrame(writer: Mutable<Writer>, seq: int, frameId: int, watch: ReadOnly<string>, location: ReadOnly<OriginalPosition | undefined>): Task<int> {
+  await writeFrame(writer, JSON.stringify({
+    seq, type: 'request', command: 'scopes', arguments: {
+      frameId
+    }
+  }));
+
+  if (watch === '') return seq + 1;
+  const names = clone(location?.parameters) ?? [];
+  const slot = names.findIndex((name) => name === watch);
+  await writeFrame(writer, JSON.stringify({
+    seq: seq + 1, type: 'request', command: 'evaluate', arguments: {
+      expression: slot < 0 ? clone(watch) : 'value' + slot.toString(), context: 'watch', frameId
+    }
+  }));
+  return seq + 2;
+}
+
+export function debugProcessId(value: ReadOnly<string>): int {
+  const text = value.trim();
+
+  if (text === '' || !Array.from(text).every((c) => c >= '0' && c <= '9')) return 0;
+
+  match (toInt(Number(text))) {
+    Ok(pid) => {
+      return pid > 0 && pid <= 2147483647 ? pid : 0;
+    },
+    Err(_) => {
+      return 0;
+    }
+  }
+}
+
+async function launchDebugTarget(
+  adapter: string,
+  root: string,
+  generation: int,
+  command: ReadOnly<DebugCommand>,
+  requests: ReadOnly<Channel<DebugCommand>>,
+  output: ReadOnly<Sender<DebugOutput>>
+): Task<void> {
+  const attaching = command.action === 'attach';
+  const selected = command.program ?? '';
+  let program = clone(selected);
+
+  if (selected !== '') match (canonicalize(selected)) {
+    Ok(path) => {
+      program = clone(path);
+    },
+    Err(_) => {}
+  }
+
+  const child = startDebugAdapter(adapter);
+
+  try {
+    const writer = child.takeStdin();
+    const reader = child.takeStdout();
+
+    if (writer === undefined || reader === undefined) throw 'Missing adapter pipes.';
+    await writeFrame(writer, '{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"lldb","clientID":"tsrust-studio","pathFormat":"path","linesStartAt1":true,"columnsStartAt1":true}}');
+
+    const breakpoint = (command.functionBreakpoint ?? '').trim();
+    let seq = 6;
+    let disconnectRequest = 0;
+    let resumeRequest = 0;
+    let threadRequest = 0;
+    let pauseRequest = 0;
+    let stackRequest = 0;
+    let watchRequest = 0;
+    let sourceFrames: SourceFrame[] = [];
+    let selectedFrame = -1;
+    let stopId = 0;
+    let refreshWatch = false;
+    let pausedText = '';
+    let pausedLocation: OriginalPosition | undefined = undefined;
+    let scopesRequest = 0;
+    let variablesRequest = 0;
+    let locals: string[] = [];
+    let watchValue: string | undefined = undefined;
+    let watch = (command.watch ?? '').trim();
+    let thread = 0;
+    let stopReason = '';
+    let currentLine = '';
+    let currentAddress = '';
+    let continuingLine = '';
+    const continuedAddresses = new Set<string>();
+    const bindings: BreakpointBinding[] = [];
+    let sourceHit = false;
+    let steppingLine = '';
+    let stepCommand = 'next';
+    let stepAddresses = new Set<string>();
+    const requested = clone(command.sourceBreakpoints) ?? [];
+    const owners: int[] = [];
+    let mappedUnit = '';
+    let positions = new Map<int, OriginalPosition>();
+
+    const functionPoints = new Set<int>();
+    let functionVerified = false;
+    let mappedFunction = false;
+    let nativeFunctions = false;
+
+    const input = readAdapter(reader, requests.sender(), generation).start();
+    let paused = false;
+
+    try {
+      while (true) {
+        const control = await requests.receive();
+
+        if (control.generation !== undefined && control.generation !== generation) continue;
+
+        if (control.action === 'adapterClosed') throw control.frame ?? 'Debug adapter closed.';
+
+        if (control.action !== 'frame') {
+          if (disconnectRequest !== 0) continue;
+
+          if (control.action === 'pause') {
+            if (!paused && threadRequest === 0 && pauseRequest === 0) {
+              threadRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'threads', arguments: {}
+              }));
+              seq += 1;
+            }
+
+            continue;
+          }
+
+          if (control.action === 'selectFrame' || control.action === 'setWatch') {
+            if (!paused || control.stopId !== stopId) continue;
+            refreshWatch = control.action === 'setWatch';
+
+            if (refreshWatch) {
+              if (selectedFrame < 0) {
+                await output.send({
+                  text: 'No stack frame available.\n', frames: clone(sourceFrames), selectedFrame, stopId, locals: clone(locals), stopped: true, finished: false
+                });
+                continue;
+              }
+
+              watch = (control.watch ?? '').trim();
+            } else {
+              const frame = sourceFrames.find((entry) => entry.id === control.frameId);
+
+              if (frame === undefined) continue;
+              selectedFrame = frame.id;
+              pausedLocation = clone(frame.location);
+            }
+
+            paused = false;
+            pausedText = '';
+            locals = [];
+            watchValue = undefined;
+            scopesRequest = seq;
+            seq = await inspectFrame(writer, seq, selectedFrame, watch, pausedLocation);
+            watchRequest = watch === '' ? 0 : seq - 1;
+            continue;
+          }
+
+          if (!paused && control.action !== 'stop') continue;
+          paused = false;
+
+          if (control.action === 'stop') {
+            disconnectRequest = seq;
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'disconnect', arguments: {
+                terminateDebuggee: !attaching
+              }
+            }));
+          } else if (['next', 'stepOver', 'stepIn', 'stepOut'].includes(control.action)) {
+            resumeRequest = seq;
+            stepCommand = control.action === 'stepIn' || control.action === 'stepOut' ? clone(control.action) : 'next';
+
+            if (control.action === 'stepOver' || control.action === 'stepIn') {
+              steppingLine = clone(currentLine);
+              stepAddresses = new Set<string>();
+              stepAddresses.add(clone(currentAddress));
+            }
+
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: clone(stepCommand), arguments: {
+                threadId: thread, granularity: control.action === 'next' ? 'instruction' : 'line'
+              }
+            }));
+          } else if (control.action === 'continue') {
+            resumeRequest = seq;
+            continuingLine = sourceHit ? clone(currentLine) : '';
+            continuedAddresses.clear();
+            continuedAddresses.add(clone(currentAddress));
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'continue', arguments: {
+                threadId: thread
+              }
+            }));
+          } else throw 'Invalid debugger control.';
+
+          seq += 1;
+          continue;
+        }
+
+        const reply = decodeAdapterReply(control.frame ?? '');
+
+        if (disconnectRequest !== 0 && reply.request_seq !== disconnectRequest) continue;
+
+        if (reply.event === 'continued' || reply.event === 'stopped' || reply.event === 'exited') resumeRequest = 0;
+
+        if (['continue', 'next', 'stepIn', 'stepOut'].includes(reply.command ?? '')) {
+          if (resumeRequest !== 0 && reply.request_seq === resumeRequest) {
+            resumeRequest = 0;
+
+            if (reply.success === false) {
+              continuingLine = '';
+              steppingLine = '';
+              const message = (reply.message ?? 'Could not resume the target.') + '\n';
+
+              if (selectedFrame < 0 && sourceFrames.length > 0) {
+                // Automatic source stepping can fail before the new stop has been inspected.
+                pausedText = message;
+                sourceFrames = [];
+                stackRequest = seq;
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'stackTrace', arguments: {
+                    threadId: thread
+                  }
+                }));
+                seq += 1;
+              } else {
+                paused = true;
+                await output.send({
+                  text: message, frames: clone(sourceFrames), selectedFrame, stopId, watchExpression: clone(watch), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+                });
+              }
+            }
+          }
+
+          continue;
+        }
+
+        if (reply.command === 'threads' && reply.request_seq === threadRequest) {
+          threadRequest = 0;
+          const threads = clone(reply.body?.threads) ?? [];
+
+          if (reply.success === false || threads.length === 0) {
+            await output.send({
+              text: (reply.message ?? 'No running thread available to pause.') + '\n', finished: false
+            });
+          } else {
+            pauseRequest = seq;
+            await writeFrame(writer, JSON.stringify({
+              seq, type: 'request', command: 'pause', arguments: {
+                threadId: threads[0].id
+              }
+            }));
+            seq += 1;
+          }
+
+          continue;
+        }
+
+        if (reply.command === 'pause') {
+          if (reply.success === false && reply.request_seq === pauseRequest) {
+            pauseRequest = 0;
+            await output.send({
+              text: (reply.message ?? 'Could not pause the target.') + '\n', finished: false
+            });
+          }
+
+          continue;
+        }
+
+        if (reply.event === 'breakpoint') {
+          const point = reply.body?.breakpoint;
+
+          if (point !== undefined) {
+            const reason = reply.body?.reason ?? '';
+
+            for (const owner of updateBreakpointBindings(bindings, point, reason)) {
+              const target = requested[owner];
+
+              if (reason !== 'removed' && point.verified) {
+                await output.send({
+                  verifiedBreakpoint: clone(target), text: '', finished: false
+                });
+              } else {
+                await output.send({
+                  unresolvedBreakpoint: {
+                    path: clone(target.path), line: target.line, reason: 'Breakpoint not verified'
+                  }, text: '', finished: false
+                });
+              }
+            }
+          }
+
+          continue;
+        }
+
+        if (reply.command === 'threads') continue;
+
+        if (reply.success === false && !['stackTrace', 'evaluate', 'scopes', 'variables'].includes(reply.command ?? '')) throw reply.message ?? 'Debug request failed.';
+
+        if (reply.event === 'initialized') {
+          if (program !== '' && (requested.length > 0 || breakpoint !== '')) {
+            match (stat(program + '.tsrust-debug')) {
+              Ok(folder) => {
+                if (folder.isDirectory) {
+                  try {
+                    mappedUnit = executableDebugUnit(program);
+                  } catch (_) {}
+                }
+              },
+              Err(_) => {}
+            }
+          }
+
+          if (mappedUnit !== '') positions = debugLocations(program, mappedUnit);
+
+          if (positions.size === 0) {
+            for (const point of requested) {
+              await output.send({
+                unresolvedBreakpoint: {
+                  path: clone(point.path), line: point.line, reason: 'Source map unavailable'
+                }, text: 'Source map unavailable: ' + point.path + ':' + point.line.toString() + '\n', finished: false
+              });
+            }
+          }
+
+          if (breakpoint !== '') {
+            const entries = new Map<string, int>();
+
+            for (const entry of positions.entries()) {
+              const position = entry[1];
+
+              if (position.functionName !== breakpoint) continue;
+              const first = entries.get(position.path);
+
+              if (first === undefined || position.line < first) entries.set(clone(position.path), position.line);
+            }
+
+            mappedFunction = entries.size > 0;
+
+            for (const entry of entries.entries()) {
+              let index = requested.findIndex((point) => point.path === entry[0] && point.line === entry[1]);
+
+              if (index < 0) {
+                index = requested.length;
+                requested.push({
+                  path: clone(entry[0]), line: entry[1]
+                });
+              }
+
+              functionPoints.add(index);
+            }
+
+            if (!mappedFunction && !nativeFunctions) throw 'Adapter does not support function breakpoints.';
+          }
+        }
+
+        if (reply.command === 'setBreakpoints' && reply.request_seq === 3) {
+          const verified = new Set<int>();
+          const points = clone(reply.body?.breakpoints) ?? [];
+
+          for (let i = 0; i < points.length && i < owners.length; i += 1) {
+            bindings.push({
+              owner: owners[i], id: points[i].id, verified: points[i].verified
+            });
+
+            if (points[i].verified) verified.add(owners[i]);
+          }
+
+          for (let i = 0; i < requested.length; i += 1) {
+            if (verified.has(i)) {
+              if (functionPoints.has(i)) functionVerified = true;
+            } else {
+              const mapped = owners.includes(i);
+              const reason = mapped ? 'The debugger could not resolve ' : 'No executable statement at ';
+              await output.send({
+                unresolvedBreakpoint: {
+                  path: clone(requested[i].path), line: requested[i].line, reason: mapped ? 'Breakpoint not verified' : 'No executable statement'
+                }, text: reason + requested[i].path + ':' + requested[i].line.toString() + '\n', finished: false
+              });
+            }
+          }
+        }
+
+        if (reply.command === 'initialize') {
+          nativeFunctions = reply.body?.supportsFunctionBreakpoints === true;
+
+          if (attaching) await writeFrame(writer, JSON.stringify({
+            seq: 2, type: 'request', command: 'attach', arguments: {
+              pid: command.processId, stopOnEntry: true
+            }
+          }));
+          else await writeFrame(writer, JSON.stringify({
+            seq: 2, type: 'request', command: 'launch', arguments: {
+              program: clone(program), cwd: clone(root), stopOnEntry: command.stopOnEntry ?? false
+            }
+          }));
+        } else if (reply.event === 'initialized' && requested.length > 0 && positions.size > 0) {
+          const generated: string[] = [];
+
+          for (let i = 0; i < requested.length; i += 1) {
+            const point = requested[i];
+
+            for (const entry of positions.entries()) {
+              if (entry[1].path !== point.path || entry[1].line !== point.line) continue;
+              generated.push('{"line":' + entry[0].toString() + '}');
+              owners.push(i);
+            }
+
+          }
+
+          await writeFrame(writer, '{"seq":3,"type":"request","command":"setBreakpoints","arguments":{"source":{"path":' + JSON.stringify(basename(mappedUnit)) + '},"breakpoints":[' + generated.join(',') + ']}}');
+        } else if ((reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3)) && breakpoint !== '' && !mappedFunction) {
+          await writeFrame(writer, '{"seq":5,"type":"request","command":"setFunctionBreakpoints","arguments":{"breakpoints":[{"name":' + JSON.stringify(breakpoint) + '}]}}');
+        } else if (reply.event === 'initialized' || (reply.command === 'setBreakpoints' && reply.request_seq === 3) || (reply.command === 'setFunctionBreakpoints' && reply.request_seq === 5)) {
+          if (mappedFunction) await output.send({
+            text: (functionVerified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
+          });
+
+          if (reply.command === 'setFunctionBreakpoints') {
+            const points = clone(reply.body?.breakpoints) ?? [];
+            const verified = points.length === 1 && points[0].verified;
+            await output.send({
+              text: (verified ? 'Breakpoint verified: ' : 'Breakpoint unresolved: ') + breakpoint + '\n', finished: false
+            });
+          }
+
+          await writeFrame(writer, '{"seq":4,"type":"request","command":"configurationDone","arguments":{}}');
+        } else if (reply.event === 'stopped') {
+          threadRequest = 0;
+          pauseRequest = 0;
+          pausedText = '';
+          pausedLocation = undefined;
+          locals = [];
+          watchValue = undefined;
+          thread = reply.body?.threadId ?? 0;
+
+          if (thread <= 0) throw 'Stopped thread unavailable.';
+          stopReason = clone(reply.body?.reason ?? 'unknown');
+          const hits = clone(reply.body?.hitBreakpointIds) ?? [];
+          sourceHit = stopReason === 'breakpoint' && hits.length > 0 && hits.every((id) => bindings.some((entry) => entry.verified && entry.id === id));
+          sourceFrames = [];
+          selectedFrame = -1;
+          stopId = seq;
+          stackRequest = seq;
+          await writeFrame(writer, JSON.stringify({
+            seq, type: 'request', command: 'stackTrace', arguments: {
+              threadId: thread
+            }
+          }));
+          seq += 1;
+        } else if ((reply.command === 'stackTrace' && reply.request_seq === stackRequest) || (reply.command === 'evaluate' && reply.request_seq === watchRequest) || (reply.command === 'scopes' && reply.request_seq === scopesRequest) || (reply.command === 'variables' && reply.request_seq === variablesRequest)) {
+          let text = '';
+          let location: OriginalPosition | undefined = undefined;
+
+          if (reply.command === 'scopes') {
+            scopesRequest = 0;
+            const scopes = clone(reply.body?.scopes) ?? [];
+            const scope = scopes.find((entry) => entry.presentationHint === 'locals' || entry.name.toLowerCase() === 'locals');
+
+            if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+
+            if (scope !== undefined && scope.variablesReference > 0) {
+              variablesRequest = seq;
+              await writeFrame(writer, JSON.stringify({
+                seq, type: 'request', command: 'variables', arguments: {
+                  variablesReference: scope.variablesReference
+                }
+              }));
+              seq += 1;
+            }
+          } else if (reply.command === 'variables') {
+            variablesRequest = 0;
+
+            if (reply.success === false) text = (reply.message ?? 'Local variables unavailable.') + '\n';
+            else {
+              const names = clone(pausedLocation?.parameters) ?? [];
+
+              for (const variable of clone(reply.body?.variables) ?? []) {
+                let name = clone(variable.name);
+
+                for (let slot = 0; slot < names.length; slot += 1) {
+                  if (variable.name === 'value' + slot.toString()) {
+                    name = clone(names[slot]);
+                    break;
+                  }
+                }
+
+                locals.push(name + ' = ' + variable.value);
+              }
+            }
+          } else if (reply.command === 'evaluate') {
+            watchRequest = 0;
+            watchValue = reply.success === false ? clone(reply.message ?? 'Watch unavailable.') : clone(reply.body?.result ?? '');
+          } else {
+            stackRequest = 0;
+            text = '\nStopped: ' + stopReason + '\n';
+
+            if (reply.success === false) text += (reply.message ?? 'Call stack unavailable.') + '\n';
+            else {
+              const frames = clone(reply.body?.stackFrames) ?? [];
+
+              for (let i = 0; i < frames.length; i += 1) {
+                const frame = frames[i];
+                const source = frame.source?.path ?? frame.source?.name ?? '';
+
+                if (source.endsWith('.rs') && source.includes('.tsrust-debug') && source !== mappedUnit) {
+                  positions = debugLocations(program, source);
+                  mappedUnit = clone(source);
+                }
+
+                const original = source === mappedUnit ? clone(positions.get(frame.line)) : undefined;
+
+                const name = original?.functionName ?? frame.name;
+                sourceFrames.push({
+                  id: frame.id, depth: i, name: clone(name), location: clone(original)
+                });
+                text += '#' + i.toString() + ' ' + name;
+
+                if (original !== undefined) {
+                  text += '  ' + original.path + ':' + original.line.toString() + ':' + original.column.toString();
+
+
+                  if (i === 0) location = clone(original);
+                } else if (source !== '') {
+                  text += '  ' + source;
+
+                  if (frame.line > 0) text += ':' + frame.line.toString();
+
+                  if (frame.line > 0 && frame.column > 0) text += ':' + frame.column.toString();
+                }
+
+                if (frame.instructionPointerReference !== undefined) text += '  ' + frame.instructionPointerReference;
+                text += '\n';
+              }
+
+              currentLine = location === undefined || frames.length === 0 ? '' : JSON.stringify([thread.toString(), frames.length.toString(), clone(frames[0].name), clone(location.path), location.line.toString()]);
+              currentAddress = frames.length === 0 ? '' : clone(frames[0].instructionPointerReference ?? '');
+
+              // Continuing through additional locations of the same line must still expose a loop revisit.
+              if (sourceHit && continuingLine !== '' && continuingLine === currentLine && currentAddress !== '' && !continuedAddresses.has(currentAddress)) {
+                resumeRequest = seq;
+                continuedAddresses.add(clone(currentAddress));
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: 'continue', arguments: {
+                    threadId: thread
+                  }
+                }));
+                seq += 1;
+                continue;
+              }
+
+              if (steppingLine !== '' && steppingLine === currentLine && (stopReason === 'step' || stopReason === 'breakpoint') && currentAddress !== '' && !stepAddresses.has(currentAddress)) {
+                resumeRequest = seq;
+                stepAddresses.add(clone(currentAddress));
+                await writeFrame(writer, JSON.stringify({
+                  seq, type: 'request', command: clone(stepCommand), arguments: {
+                    threadId: thread, granularity: 'line'
+                  }
+                }));
+                seq += 1;
+                continue;
+              }
+
+              if (frames.length > 0) {
+                selectedFrame = frames[0].id;
+                scopesRequest = seq;
+                seq = await inspectFrame(writer, seq, selectedFrame, watch, location);
+                watchRequest = watch === '' ? 0 : seq - 1;
+              }
+
+            }
+
+            continuingLine = '';
+            steppingLine = '';
+            pausedLocation = clone(location);
+
+          }
+
+          pausedText += text;
+
+          if (watchRequest !== 0 || scopesRequest !== 0 || variablesRequest !== 0) {
+            continue;
+          }
+
+          await output.send({
+            text: clone(pausedText), frames: clone(sourceFrames), selectedFrame, stopId, location: refreshWatch ? undefined : clone(pausedLocation), watchExpression: clone(watch), watchValue: clone(watchValue), locals: clone(locals), stopped: true, finished: false
+          });
+          refreshWatch = false;
+          paused = true;
+        } else if (reply.event === 'output') {
+          await output.send({
+            text: clone(reply.body?.output ?? ''), finished: false
+          });
+        } else if (reply.event === 'exited') {
+          await output.send({
+            text: exitStatusText(reply.body?.exitCode), finished: false
+          });
+        } else if (reply.command === 'disconnect' && reply.request_seq === disconnectRequest) {
+          await output.send({
+            text: attaching ? '\nDebugger detached.\n' : '\nDebug session stopped.\n', finished: false
+          });
+          return;
+        } else if (reply.event === 'terminated' && disconnectRequest === 0) return;
+      }
+    } finally {
+      input.cancel();
+
+      try {
+        await input;
+      } catch (_) {}
+    }
+  } finally {
+    try {
+      unwrap(await child.kill());
+    } catch (_) {}
+
+    unwrap(await child.wait());
+  }
+}
+
+export async function debugWorker(root: string, requests: Channel<DebugCommand>, output: Sender<DebugOutput>, configuredAdapter?: string): Task<void> {
+  let generation = 0;
+
+  while (true) {
+    const command = await requests.receive();
+
+    if (command.action !== 'launch' && command.action !== 'attach') continue;
+    generation += 1;
+    let error = '';
+
+    try {
+      if (command.action === 'attach' && (command.processId === undefined || command.processId <= 0 || command.processId > 2147483647)) throw 'Enter a valid process ID.';
+
+      if (command.action === 'launch' && !command.program) throw 'Select an executable to debug.';
+      const adapter = await debugAdapterCommand(clone(configuredAdapter));
+      await launchDebugTarget(
+        adapter,
+        clone(root),
+        generation,
+        command,
+        requests,
+        output
+      );
+    } catch (reason) {
+      if (typeof reason === 'string') error = reason;
+      else error = JSON.stringify(reason);
+    }
+
+    await output.send({
+      text: error, finished: true
+    });
+  }
+}

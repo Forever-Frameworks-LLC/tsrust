@@ -36,6 +36,7 @@ function advanced(): void {
   strictEqual(total, 14);
   inspect(values, requirePositive);
   let caught = 0;
+
   try {
     inspect(new Map<string, int>([["bad", -1]]), requirePositive);
   } catch (error) {
@@ -123,9 +124,11 @@ function main() {
   let caught = 0;
   let finalized = 0;
   let count = 0;
+
   try {
     values.forEach((value, key) => {
       count += 1;
+
       if (key === "a") {
         throw "stopped";
       }

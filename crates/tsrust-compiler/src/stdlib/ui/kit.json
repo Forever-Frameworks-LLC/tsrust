@@ -1155,7 +1155,7 @@
     },
     {
       "name": "Pagination",
-      "doc": "Page navigation buttons. Pages are numbered from 1.",
+      "doc": "Page navigation buttons. Pages are numbered from 1. Text-size classes also size the numbered, previous, next and ellipsis buttons.",
       "props": [
         {
           "name": "page",
@@ -1388,7 +1388,7 @@
     },
     {
       "name": "Tabs",
-      "doc": "A row of Tab triggers that switches between TabsContent panels.",
+      "doc": "A row of Tab triggers that switches between TabsContent panels. Explicit text-size classes on Tabs or an individual Tab apply to the labels; the height grows to fit larger text.",
       "props": [
         {
           "name": "value",
@@ -1714,7 +1714,7 @@
     },
     {
       "name": "Select",
-      "doc": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop.",
+      "doc": "A button that opens a list of options and shows the chosen one. Options come from SelectItem children (optionally inside SelectGroup) or the items prop. Text-size classes reach both the trigger and option rows; the trigger grows to fit the text.",
       "props": [
         {
           "name": "items",
@@ -2543,7 +2543,7 @@
         {
           "prop": "onOk",
           "value": "void",
-          "doc": "Runs when the okText button is pressed."
+          "doc": "Runs on Return or confirmation. With a custom footer and no shorthand buttons, set open to false in the handler after validation succeeds."
         },
         {
           "prop": "onCancel",
@@ -3077,6 +3077,11 @@
           "name": "externalLinkIcon",
           "type": "boolean",
           "doc": "Shows an external-link icon on link items. Defaults to true."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened."
         }
       ],
       "example": "<DropdownMenu label=\"Actions\"><MenuItem label=\"Duplicate\" onSelect={() => { duplicate(); }}/></DropdownMenu>",
@@ -3171,6 +3176,11 @@
           "name": "externalLinkIcon",
           "type": "boolean",
           "doc": "Shows an external-link icon on link items. Defaults to true."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Popup text size in logical pixels, 8–40. Omission uses native menu defaults. Applies to entries when the popup is opened."
         }
       ],
       "example": "<ContextMenu><Text>Right-click me</Text><MenuItem label=\"Copy\" onSelect={() => { copy(); }}/></ContextMenu>"
@@ -3364,6 +3374,11 @@
           "name": "size",
           "type": "number",
           "doc": "The group's size in pixels along its axis."
+        },
+        {
+          "name": "reverse",
+          "type": "boolean",
+          "doc": "Displays panels in reverse order without moving or recreating their owned child subtrees. Defaults to false. onResize reports sizes in displayed order."
         }
       ],
       "example": "<Resizable><ResizablePanel size={240}><Text>Files</Text></ResizablePanel><ResizablePanel><Text>Editor</Text></ResizablePanel></Resizable>",
@@ -3571,13 +3586,30 @@
           "name": "alt",
           "type": "string",
           "doc": "Text shown while loading or when the image cannot be loaded."
+        },
+        {
+          "name": "zoom",
+          "type": "number",
+          "doc": "Enables a scrollable native image viewport. 0 fits the entire image without enlarging it; positive values from 1 through 3200 select a percentage of natural image size. Omit for the ordinary fixed image box. Fit follows pane resizing. Scrollbars and trackpad scrolling pan in both directions."
+        },
+        {
+          "name": "scrollTo",
+          "type": "string",
+          "doc": "For a zoom-enabled image, JSON with finite nonnegative x/y scroll offsets in logical pixels and a nonnegative integer request identifier. Offsets clamp to image bounds. Change request to reapply the same coordinates after manual scrolling. Example: {\"x\":120,\"y\":80,\"request\":1}. Does not change zoom."
         }
       ],
-      "example": "<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>"
+      "example": "<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>",
+      "events": [
+        {
+          "prop": "onZoomChange",
+          "value": "number",
+          "doc": "Reports the effective percentage after loading or resizing a zoom-enabled image. Fit may report a fractional percentage. Does not change the requested zoom. Runs only when the effective percentage changes."
+        }
+      ]
     },
     {
       "name": "TitleBar",
-      "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option.",
+      "doc": "A custom window title bar holding its children. Use it with the custom titlebar window option. Its height grows to fit its controls, keeping macOS window buttons centered and the full bar draggable.",
       "props": [],
       "example": "<TitleBar><Text>My App</Text></TitleBar>",
       "children": true,
@@ -4118,6 +4150,16 @@
           "name": "autoFocus",
           "type": "boolean",
           "doc": "Focuses the list (or its search field) when it mounts."
+        },
+        {
+          "name": "scrollResetKey",
+          "type": "string",
+          "doc": "Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection."
+        },
+        {
+          "name": "minItemWidth",
+          "type": "number",
+          "doc": "Positive minimum card width in logical pixels enables a responsive virtualized grid of flat ListItem children. Columns follow the measured list width; each card remains clickable and keyboard focusable. Use selectable=false and onConfirm for card activation. Omit for ordinary list selection and sections."
         }
       ],
       "events": [
@@ -4156,7 +4198,7 @@
         {
           "name": "value",
           "type": "string",
-          "doc": "Value List events report for this row; defaults to the row index."
+          "doc": "Value List events report for this row; defaults to the row index. In reactive lists, distinct nonempty values also preserve row identity when rows move or are removed."
         },
         {
           "name": "keywords",
@@ -4263,6 +4305,11 @@
           "name": "autoFocus",
           "type": "boolean",
           "doc": "Focuses the tree for keyboard navigation when it mounts."
+        },
+        {
+          "name": "backgroundDropTarget",
+          "type": "string",
+          "doc": "Destination id passed to onItemDrop when an item is dropped in empty tree space."
         }
       ],
       "example": "<Tree className=\"h-64\" defaultSelected=\"main.tsrx\" onSelect={(id) => { console.log(id); }}>\n  <TreeItem id=\"src\" defaultExpanded={true}>\n    src\n    <TreeItem id=\"main.tsrx\">main.tsrx</TreeItem>\n    <TreeItem id=\"pages\" icon=\"folder-code\">pages</TreeItem>\n  </TreeItem>\n  <TreeItem id=\"readme\">README.md</TreeItem>\n</Tree>",
@@ -4290,9 +4337,15 @@
           "value": "string",
           "param": "id",
           "doc": "Receives the right-clicked item's id as its TreeMenu opens."
+        },
+        {
+          "prop": "onItemDrop",
+          "value": "string",
+          "param": "items",
+          "doc": "Receives a JSON array [sourceId, targetId] when one row is dropped on another row in this tree. The application decides how to move it."
         }
       ],
-      "children": "TreeItem and TreeMenu"
+      "children": "TreeItem, TreeMenu and TreeBackgroundMenu"
     },
     {
       "name": "TreeItem",
@@ -4312,6 +4365,16 @@
           "name": "icon",
           "type": "icon",
           "doc": "Row icon. Defaults to a folder (open or closed) or file icon."
+        },
+        {
+          "name": "iconSvg",
+          "type": "string",
+          "doc": "Inline SVG glyph. Nonempty markup takes precedence over icon; empty markup uses the named or default folder/file icon. The Tree retains the source; the row label remains its accessible name. Parsing follows the same native SVG behavior as Icon.svg."
+        },
+        {
+          "name": "iconColor",
+          "type": "string",
+          "doc": "Tint for the row icon: a theme color, palette name or #rrggbb. Omitted, empty or unrecognized values inherit the row foreground. Applies to named and SVG icons without changing text color."
         },
         {
           "name": "expanded",
@@ -4341,6 +4404,14 @@
       "doc": "The right-click menu for every Tree row; onContextMenu on the Tree tells which row opened it.",
       "props": [],
       "example": "<TreeMenu><MenuItem>Rename</MenuItem><MenuItem>Delete</MenuItem></TreeMenu>"
+    },
+    {
+      "name": "TreeBackgroundMenu",
+      "item": true,
+      "children": "MenuItem, MenuSeparator and MenuLabel",
+      "doc": "The right-click menu for empty space around the tree rows.",
+      "props": [],
+      "example": "<TreeBackgroundMenu><MenuItem>New file</MenuItem></TreeBackgroundMenu>"
     },
     {
       "name": "Calendar",
@@ -4626,6 +4697,11 @@
       "name": "Command",
       "doc": "A search field over a filtered list of commands, in groups with separators, header, footer and an empty state.",
       "props": [
+        {
+          "name": "inputId",
+          "type": "string",
+          "doc": "Stable id for controlInput/readInput on the search field. Repeated focus/selectAll preserves the palette and its items."
+        },
         {
           "name": "placeholder",
           "type": "string",
@@ -4944,8 +5020,58 @@
       "example": "<CarouselPagination />"
     },
     {
+      "name": "Terminal",
+      "doc": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount, or runs an explicit program with args as a visible task. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory/program/args are read once at mount. Starting a task can execute code or write files; its host must grant those effects.",
+      "props": [
+        {
+          "name": "id",
+          "type": "string",
+          "doc": "Unique nonempty session identifier within this window. Required for programmatic control and reading."
+        },
+        {
+          "name": "directory",
+          "type": "string",
+          "doc": "Existing shell working directory. Read at mount; omission uses the application current directory. Changing this prop never changes a running shell."
+        },
+        {
+          "name": "program",
+          "type": "string",
+          "doc": "Optional executable to run directly instead of the login shell, for a task terminal. Nonempty and without NUL. Read at mount; restart reruns this program. No shell expansion is performed."
+        },
+        {
+          "name": "args",
+          "type": "string[]",
+          "doc": "Arguments for program, passed individually without a shell. Requires an explicit program when nonempty; NUL is rejected. Read at mount and reused on restart.",
+          "json": true
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid."
+        },
+        {
+          "name": "accessibilityLabel",
+          "type": "string",
+          "doc": "Accessible terminal name. Defaults to Terminal."
+        }
+      ],
+      "example": "<Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"h-64\"/>",
+      "events": [
+        {
+          "prop": "onExit",
+          "value": "void",
+          "doc": "Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session."
+        },
+        {
+          "prop": "onOpenLink",
+          "value": "string",
+          "doc": "Cmd-click (Ctrl-click outside macOS) a path:line:column to request guarded editor navigation. Value is JSON containing path, line and column. Includes soft-wrapped locations. The host must validate workspace scope; no external URL is opened."
+        }
+      ]
+    },
+    {
       "name": "CodeEditor",
-      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles.",
+      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles. Show Hover in the context menu or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere) requests documentation at the caret without editing or moving focus. A hover provider is required; Escape dismisses and cancels pending hover.",
       "props": [
         {
           "name": "value",
@@ -5031,6 +5157,16 @@
           "name": "lineNumbers",
           "type": "boolean",
           "doc": "Shows source line numbers. Defaults to true."
+        },
+        {
+          "name": "initialCaret",
+          "type": "int",
+          "doc": "Initial UTF-8 byte offset in the native editor. Read once after mounting its text. Offsets clip to a character boundary inside the document."
+        },
+        {
+          "name": "breakpointLines",
+          "type": "string",
+          "doc": "Comma-separated one-based source lines marked in the native editor gutter, for example '2,5'. An empty string shows an empty gutter. Omission hides it. Requires visible line numbers."
         },
         {
           "name": "folding",
@@ -5187,6 +5323,48 @@
           "value": "predicate",
           "param": "payload",
           "doc": "Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it."
+        },
+        {
+          "prop": "onLanguageRequest",
+          "value": "string",
+          "param": "request",
+          "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+        },
+        {
+          "prop": "onCaretChange",
+          "value": "int",
+          "param": "offset",
+          "doc": "Receives the active caret's UTF-8 byte offset when it moves in the native editor, including keyboard navigation without edits."
+        },
+        {
+          "prop": "onBreakpointClick",
+          "value": "int",
+          "param": "line",
+          "doc": "Receives the one-based source line when the user clicks the native breakpoint gutter. Update breakpointLines to change the markers. Wrapped rows refer to their original source line."
+        },
+        {
+          "prop": "onInlineCompletion",
+          "value": "string",
+          "param": "request",
+          "doc": "Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions."
+        },
+        {
+          "prop": "onLanguageCancel",
+          "value": "int",
+          "param": "request",
+          "doc": "Receives the window-scoped request id when a native language read is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored."
+        },
+        {
+          "prop": "onLanguageNavigate",
+          "value": "string",
+          "param": "location",
+          "doc": "Receives LSP ShowDocumentParams JSON for Go to Definition. The host must validate the file URI and UTF-16 selection and open the target. Native URL/local-buffer fallbacks are consumed even when omitted; omission disables navigation delivery."
+        },
+        {
+          "prop": "onLanguageReferences",
+          "value": "string",
+          "param": "locations",
+          "doc": "Receives JSON {locations, error} after Shift+F12 or Find References. locations is an array of LSP Locations; error is an optional failure message. Only the current focused buffer/cursor receives results. The host presents locations; opening one requires file-URI and UTF-16 range validation. No text changes occur."
         }
       ]
     },
@@ -5375,6 +5553,11 @@
             "large"
           ],
           "doc": "Control size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "focusRing",
+          "type": "boolean",
+          "doc": "false removes the native outer focus ring. Defaults to true. Focus and keyboard input remain enabled."
         }
       ],
       "children": "One Input or Textarea and InputGroupAddon",
@@ -5531,12 +5714,12 @@
     },
     {
       "name": "Diff",
-      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners.",
+      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. Alternatively supply originalText and modifiedText with filePath to compare full snapshots on a background worker, retaining all context for expansion and rejecting stale comparison results. Do not combine text snapshots with patch.",
       "props": [
         {
           "name": "patch",
           "type": "string",
-          "doc": "Unified diff text, as printed by git diff."
+          "doc": "Unified diff text, as printed by git diff. Omit when using originalText and modifiedText."
         },
         {
           "name": "mode",
@@ -5632,6 +5815,26 @@
           "name": "syntaxMaxLineLength",
           "type": "int",
           "doc": "Maximum source-line byte length for syntax coloring. Defaults to 1000; requires an integer >= 1. Longer lines remain plain text."
+        },
+        {
+          "name": "originalText",
+          "type": "string",
+          "doc": "Complete original snapshot, up to 16 MiB. Requires modifiedText; cannot be combined with patch. Comparison runs in the background."
+        },
+        {
+          "name": "modifiedText",
+          "type": "string",
+          "doc": "Complete modified snapshot, up to 16 MiB. Requires originalText. Changing either snapshot replaces the comparison; outdated results are discarded."
+        },
+        {
+          "name": "filePath",
+          "type": "string",
+          "doc": "File name/path used for the complete-text comparison header and highlighting language. Defaults to comparison.txt. No filesystem I/O is performed."
+        },
+        {
+          "name": "fontSize",
+          "type": "int",
+          "doc": "Code and line-number text size in logical pixels, 8–40. Omission uses the theme monospace size. Live changes preserve the diff state."
         }
       ],
       "example": "<Diff patch={patch} mode=\"split\" className=\"h-96\"/>",
@@ -6021,7 +6224,7 @@
     },
     {
       "name": "DataTable",
-      "doc": "A virtualized table over many rows: sortable, resizable and movable columns, fixed columns, row, column or cell selection, a right-click menu and incremental loading. Columns come from DataTableColumn children; give it a height with className.",
+      "doc": "A virtualized table over many rows: sortable, resizable and movable columns, fixed columns, row, column or cell selection, a right-click menu and incremental loading. Columns come from DataTableColumn children; give it a height with className. Explicit text-size classes size plain cells and grow the default row height to fit; headerRowHeight remains an explicit override.",
       "props": [
         {
           "name": "rows",
@@ -6056,7 +6259,7 @@
         {
           "name": "columnSelectable",
           "type": "boolean",
-          "doc": "Clicking a header selects the column."
+          "doc": "Clicking a non-sortable header selects the column. Sortable headers change the sort instead."
         },
         {
           "name": "cellSelectable",
@@ -6147,6 +6350,16 @@
             "large"
           ],
           "doc": "Row size: xsmall, small, medium (default) or large."
+        },
+        {
+          "name": "scrollResetKey",
+          "type": "string",
+          "doc": "Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection."
+        },
+        {
+          "name": "manualSorting",
+          "type": "boolean",
+          "doc": "When true, sortable headers emit onSort and show direction without rearranging the supplied rows. Sort the full dataset in onSort before pagination. Defaults to false, which sorts the supplied rows locally."
         }
       ],
       "events": [
@@ -6222,7 +6435,7 @@
         }
       ],
       "example": "<DataTable className=\"h-72\" rows={JSON.stringify(rows)} stripe={true} onSelect={(row) => { selected.set(row); }}>\n  <DataTableColumn key=\"0\" width={160} fixed=\"left\">Name</DataTableColumn>\n  <DataTableColumn key=\"1\" sortable={true}>Role</DataTableColumn>\n  <DataTableColumn key=\"2\" sortable={true} align=\"right\">Salary</DataTableColumn>\n  <DataTableEmpty><Text variant=\"muted\">No people.</Text></DataTableEmpty>\n</DataTable>",
-      "children": "DataTableColumn, DataTableEmpty and DataTableMenu"
+      "children": "DataTableColumn, DataTableCell, DataTableEmpty and DataTableMenu"
     },
     {
       "name": "DataTableColumn",
@@ -6239,7 +6452,7 @@
         {
           "name": "key",
           "type": "string",
-          "doc": "Column identity events report. A number picks that cell of each row; defaults to the column's position."
+          "doc": "Column identity events report. An in-range numeric key picks that cell of each row; other keys use the original declared column position. Reordering keeps the same cell data. Defaults to the original column position."
         },
         {
           "name": "width",
@@ -6259,15 +6472,16 @@
         {
           "name": "sortable",
           "type": "boolean",
-          "doc": "A header click cycles ascending, descending and original order. Numbers sort numerically."
+          "doc": "A header click cycles ascending, descending and original order. Local sorting puts numbers before text ascending, with stable ties. Signed 128-bit integer strings compare exactly; other numeric strings use 64-bit floats, including their total order for signed zero, infinities and NaN. Text compares lexically. Descending reverses that order without reversing ties."
         },
         {
           "name": "defaultSort",
           "type": [
             "ascending",
-            "descending"
+            "descending",
+            "none"
           ],
-          "doc": "Sort indicator shown at first."
+          "doc": "Initial sort direction when sort is omitted. Later row refreshes preserve user sorting. Use sort for controlled updates; defaults to none."
         },
         {
           "name": "align",
@@ -6304,9 +6518,42 @@
           "name": "padding",
           "type": "number",
           "doc": "Cell padding in pixels; 0 removes it."
+        },
+        {
+          "name": "fill",
+          "type": "boolean",
+          "doc": "Expands this column into unused table width, keeping its width/minWidth as a minimum. Use on one column; narrower tables retain horizontal scrolling. Defaults to false."
+        },
+        {
+          "name": "sort",
+          "type": [
+            "ascending",
+            "descending",
+            "none"
+          ],
+          "doc": "Controlled sort direction. Bind none on inactive columns. After onSort, the indicator and local row order follow this value even when the handler retains its previous value. Without it, defaultSort initializes an uncontrolled three-state sort."
         }
       ],
       "example": "<DataTableColumn key=\"2\" sortable={true} align=\"right\" width={120}>Salary</DataTableColumn>"
+    },
+    {
+      "name": "DataTableCell",
+      "item": true,
+      "children": true,
+      "doc": "Rich content for one DataTable cell. Row is the original zero-based index in rows; column is its DataTableColumn key. Sorting preserves the association. The rows value remains the accessible text and local sort value. Unspecified cells keep their plain text. Example: <DataTableCell row={0} column=\"1\"><Tag variant=\"success\">Done</Tag></DataTableCell>.",
+      "props": [
+        {
+          "name": "row",
+          "type": "int",
+          "doc": "Zero-based row index in rows, before local sorting. Omitted, negative and out-of-range indices leave the original text cell unchanged."
+        },
+        {
+          "name": "column",
+          "type": "string",
+          "doc": "DataTableColumn key, such as \"0\" for the first column. An omitted or unknown key leaves the original text cell unchanged."
+        }
+      ],
+      "example": "<DataTableCell row={0} column=\"1\"><Tag variant=\"success\">Done</Tag></DataTableCell>"
     },
     {
       "name": "DataTableEmpty",
@@ -6552,16 +6799,58 @@
     },
     {
       "name": "Dock",
-      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels.",
+      "doc": "A workspace of DockPanel elements in resizable splits; users drag tabs to rearrange, stack and split panels. Live keyed DockPanel additions/removals preserve the user layout. Give each panel a distinct value when controlling selection or handling close requests. Explicit text-size classes on Dock apply live to its document-tab labels.",
       "props": [
         {
           "name": "vertical",
           "type": "boolean",
           "doc": "Stacks the panels top to bottom instead of side by side."
+        },
+        {
+          "name": "tabbed",
+          "type": "boolean",
+          "doc": "Initially groups all panels into one tab bar instead of separate splits. Read at mount; subsequent dragging owns the arrangement."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Selects the panel with this value in its current group. Update from onChange. Other visible split groups stay open."
+        },
+        {
+          "name": "initialLayout",
+          "type": "string",
+          "doc": "Native GPUI saved layout from onLayoutChange, read only at mount. Empty or omitted uses tabbed/vertical defaults. Restores split axes, sizes, tab order and each group selection by distinct DockPanel.value; absent panels are skipped and new children are appended. Invalid JSON, unsupported version/shape, duplicate values, nonfinite/negative sizes, more than 64 levels or 1 MiB falls back to the default layout and reports onLayoutError. Does not open files, restore panel contents, focus, zoom or editor cursor/scroll state. HTML retains the option without native docking behavior. Ownership: copies text; no panel or callback ownership changes."
         }
       ],
       "children": "DockPanel",
-      "example": "<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>"
+      "example": "<Dock className=\"h-96\"><DockPanel title=\"Files\" size={240}><Tree/></DockPanel><DockPanel title=\"Editor\"><CodeEditor/></DockPanel></Dock>",
+      "events": [
+        {
+          "value": "string",
+          "doc": "Reports a panel value when its tab becomes active.",
+          "prop": "onChange"
+        },
+        {
+          "value": "string",
+          "doc": "Reports a panel value after a user closes it. Remove that DockPanel child to accept; retaining it restores the panel. Set closable=false to prevent closing dirty content.",
+          "prop": "onClose"
+        },
+        {
+          "value": "string",
+          "prop": "onLayoutChange",
+          "doc": "Native GPUI emits an opaque versioned JSON snapshot after a layout change and the next frame, coalescing changes and suppressing unchanged snapshots. Includes measured split sizes, tab order and per-group active tabs using DockPanel.value. Persist it and pass it as initialLayout on the next mount; do not update layout by parsing/reconstructing this payload. Content and editor state are excluded. The borrowed text is valid only during the callback; clone to retain."
+        },
+        {
+          "value": "string",
+          "prop": "onLayoutError",
+          "doc": "Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout."
+        },
+        {
+          "value": "void",
+          "prop": "onCloseAll",
+          "doc": "Requests closing all panels through the host. Resolve unsaved data before removing children; no panel is removed automatically."
+        }
+      ]
     },
     {
       "name": "DockPanel",
@@ -6576,6 +6865,26 @@
           "name": "size",
           "type": "number",
           "doc": "Initial width (or height when vertical) in pixels; omitted panels share the remaining space."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "doc": "Distinct stable panel value for Dock selection and events. Defaults to this mounted node identity."
+        },
+        {
+          "name": "closable",
+          "type": "boolean",
+          "doc": "Whether native close controls can close this panel. Defaults to true; changes update without resetting its layout or content."
+        },
+        {
+          "name": "padded",
+          "type": "boolean",
+          "doc": "Adds the default content padding. Set false for edge-to-edge editors; defaults to true."
+        },
+        {
+          "name": "splitControls",
+          "type": "boolean",
+          "doc": "Shows native Split Right and Split Down toolbar buttons. They move this panel into a resizable split when its group has another tab; otherwise they are disabled. Defaults to false."
         }
       ],
       "children": true,

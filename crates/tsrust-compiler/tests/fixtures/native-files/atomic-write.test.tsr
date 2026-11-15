@@ -1,0 +1,121 @@
+import { test, strictEqual } from 'std:testing';
+import {
+  createTempDir,
+  writeTextFileAtomic,
+  writeTextFile,
+  readTextFile,
+  readDir,
+  stat,
+  hardLink,
+  removeDirAll,
+  mkdir
+} from 'std:fs';
+import { platform } from 'std:os';
+
+test('atomic text writes create, replace exact UTF-8 and reject stale baselines without leftovers', () => {
+  const root = unwrap(createTempDir(undefined, 'atomic-text-'));
+
+  try {
+    const path = root + '/café-🦀.txt';
+
+    if (platform() === 'win32') {
+      unwrap(writeTextFile(path, 'original'));
+
+      match (writeTextFileAtomic(path, 'draft', 'original')) {
+        Ok(_) => {
+          throw 'Windows atomic replacement is not implemented';
+        },
+        Err(error) => {
+          strictEqual(error.code, 'unsupported');
+        }
+      }
+
+      strictEqual(unwrap(readTextFile(path)), 'original');
+      return;
+    }
+
+    const original = '\ufeffcafé e\u0301 🦀\r\n';
+    unwrap(writeTextFileAtomic(path, original));
+    strictEqual(unwrap(readTextFile(path)), original);
+    const replacement = '日本語 🦀\r\n'.repeat(1025);
+    const write = writeTextFileAtomic;
+    unwrap(write(path, replacement, original));
+    strictEqual(unwrap(readTextFile(path)), replacement);
+
+    match (writeTextFileAtomic(path, 'stale task', original)) {
+      Ok(_) => {
+        throw 'stale disk baseline overwrote current data';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'conflict');
+        strictEqual(error.operation, 'writeTextFileAtomic');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(path)), replacement);
+    strictEqual(unwrap(readDir(root)).length, 1);
+    unwrap(writeTextFileAtomic(path, '', replacement));
+    strictEqual(unwrap(readTextFile(path)), '');
+    unwrap(writeTextFileAtomic(path, 'unguarded', undefined));
+    strictEqual(unwrap(readTextFile(path)), 'unguarded');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('atomic writes reject removed files, directories, hard links and absent parents', () => {
+  if (platform() === 'win32') return;
+  const root = unwrap(createTempDir(undefined, 'atomic-failures-'));
+
+  try {
+    match (writeTextFileAtomic(root + '/missing', 'draft', 'old')) {
+      Ok(_) => {
+        throw 'removed file was silently recreated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'conflict');
+      }
+    }
+
+    unwrap(mkdir(root + '/directory'));
+
+    match (writeTextFileAtomic(root + '/directory', 'draft')) {
+      Ok(_) => {
+        throw 'directory was replaced';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-file');
+      }
+    }
+
+    const path = root + '/document';
+    unwrap(writeTextFile(path, 'original'));
+    unwrap(hardLink(path, root + '/alias'));
+
+    match (writeTextFileAtomic(path, 'draft', 'original')) {
+      Ok(_) => {
+        throw 'hard links were separated';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'multiple-links');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(path)), 'original');
+    strictEqual(unwrap(readTextFile(root + '/alias')), 'original');
+
+    match (writeTextFileAtomic(root + '/absent/file', 'draft')) {
+      Ok(_) => {
+        throw 'missing parent unexpectedly succeeded';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
+
+    strictEqual(unwrap(stat(root + '/directory')).isDirectory, true);
+    strictEqual(unwrap(readDir(root)).length, 3);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

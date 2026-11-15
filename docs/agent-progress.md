@@ -1,152 +1,8954 @@
 # Tsrust continuation
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. Full goal remains active;
-Owner authorized PR preparation, new-version promotion to main/publication, deployment
-and local installation/update verification on2026-11-10. Candidate compiler0.2.0,
-LSP0.3.0, extension0.2.2; v0.1.2 remains public until promotion completes.
+B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
+v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
+
+## Promotion requested; v0.2.1 release metadata prepared locally — 2026-11-15
+
+Owner said "ok, promote away" and set the active goal to getting these changes
+released, including documentation/benchmark updates where relevant. Release and
+main-promotion intent is authorized. Existing v0.2.0 prevents reuse; project skill
+still requires an explicit version/public-outcome authorization before publication.
+Candidate is compiler/CLI0.2.1,LSP0.3.1,VS Code0.2.2 (runtime unchanged).
+Release branch codex/release-0.2.1 starts at stagingc4b5aa2d5; only release versions,
+lock entries,release notes and this handoff change. Earlier acceptance/evidence
+checkpoints23d18ba18/daaea5caa remain on codex/compiler-lsp-worklist.
+No publication,promotion PR,version push or staging review bypass for this new
+version change has happened yet. Release metadata and public notes are ready.
+Corrected stale release-guide platform/CI claims,installation archive example and
+website status. Packaging/release policy26/26 pass (2.467s); Cargo metadata
+--locked --offline confirms CLI0.2.1/LSP0.3.1. Whole formatter changed0 files,
+0 snippets,0 fingerprints. Documentation generation46 API pages/146 groups and
+performance1165 comparisons/213 existing runs; full site79 routes/129 HTML passes.
+Five website tests pass (.067s),and rendered links/anchors/assets across129 pages
+pass. Initial build hit the reused external Astro cache sandbox; authorized cache
+write rerun succeeded. Initial link-check invocation used wrong default dist path;
+correct website/dist invocation passed. No product failure was hidden.
+Benchmark SQLite and formatting identities are byte-unchanged from accepted
+staging; no new benchmark measurements are claimed. Existing complete source CI
+on9c05fd7e2 is retained; metadata changes need release packaging checks,not speculative
+new performance work. Next: present concrete v0.2.1 publication and metadata-PR
+review exception for authorization under .agents/skills/tsrust-development; after
+approval push the coherent metadata batch to staging via PR,then open stag→main
+once,following existing automated packaging/promotion/publication without duplicate
+dispatch. Do not treat creating the main PR as a read-only action: it auto-publishes.
+
+## PR19 merged into staging; main publication unapproved — 2026-11-15
+
+Remote accepted head9c05fd7e28ab4516337a49356a044d6c2ab85a5f on
+codex/compiler-lsp-worklist. Two total pushes: initial candidate, then one locally
+diagnosed repair batch after original CI became terminal. No more push is needed
+for these evidence notes. Owner explicitly authorized the review bypass for the
+exact green9c05fd7e2 head into staging only. gh pr merge --squash --admin
+--match-head-commit verified that exact head, then succeeded. PR19 is MERGED
+(2026-11-15T11:43:02Z), staging commitc4b5aa2d5d39bd20780a25003d01cb7c482b5b9a:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/19
+
+Exact-head CI43678661709 completed SUCCESS, every13 jobs green:
+https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/43678661709
+Documentation43678661698 also succeeded; staging deployment correctly skipped.
+Owned watch48365 exited0; it is terminal, do not poll/restart it.
+
+Acceptance from completed job logs:
+- Core: compiler1558 passed/8 existing ignored (147.37s),CLI62 (8.25s),LSP36
+  (3.86s),scheduler7 (.03s):1663 passed,0 failures; build/setup4m58s.
+- Runtime suites:143/143 groups,0 failures on every platform. macOS wall895.0s/
+  build879.660s/test7.018s; Linux1048.4s/1033.940s/8.217s;
+  Windows1084.4s/1063.188s/8.365s. GPUI starter3files passed everywhere:
+  macOS442.499s build/.004s test,Linux592.503s/.003s,Windows527.634s/.005s.
+- Linux host:22 targets,181 passed,0 failed/ignored; summed target test-wall
+  1281.95s including nested native builds. Top-level dev1m36s/compiler-host
+  build2m03s/LSP-host build2m00s.
+- macOS host:22 targets,182 passed,0 failed/ignored; target test-wall1419.22s;
+  top-level dev2m13s/compiler-host build2m13s/LSP-host build2m43s.
+- Windows host:22 targets,177 passed,0 failed,1 existing ignored; target test-wall
+  2385.89s (39.8min),including nested native builds. Top-level dev4m50s/
+  compiler-host build4m21s/LSP-host build3m38s. Formatting36/36 and LSP stdio17/17
+  passed, proving the portable fixture repairs on Windows. All host execution
+  stays conservatively below one hour even counting nested builds as execution.
+- All3 packaged builds,format/lint/tooling,VS Code and final CI aggregate passed.
+These are CI observations,not quiet-machine benchmark measurements. Existing
+SQLite records and owner drafts are unchanged. Original failed/cancelled evidence
+below remains retained,not counted as acceptance for the old head.
+
+The staging review boundary is resolved by explicit owner authorization; no
+independent review was claimed. GitHub ruleset25884267, "Staging: one review with
+owner bypass", allowed the authorized owner PR bypass. Verified main remains
+88db8210a7965fa22f5af59e2c720e950f7ceb36. GitHub compare reports main...stag diverged
+(ahead1/behind5), reflecting the existing squash/promotion history; inspect actual
+trees and release policy before any later promotion, do not blindly merge history.
+Main promotion automatically publishes and still needs an unused version plus
+explicit version/public-outcome approval per project skill. v0.2.0 already exists;
+no new publication,version bump,main promotion,tag or manual dispatch is authorized.
+The owner authorized staging only. Next action requires a separate publication
+decision; do not reinterpret automatic goal continuation as release authorization.
+
+All app/model/database sessions remain stopped; original Zed LSP and SDK drafts
+remain protected. General tuning/<10% target and broader closed-app visual/stress
+acceptance remain owner-deferred. Do not restart app sessions on continuation.
+This evidence-only local checkpoint must not be pushed merely to synchronize notes
+or retrigger CI. Temporary raw CI logs under /private/tmp/tsrust-ci-43678661709-*
+are disposable after this checkpoint; completed counts above are durable.
+
+## Original PR19 CI terminal; complete repair batch ready — 2026-11-14
+
+Previous goal turn made progress by retaining completed Linux host and cancelled
+runtime evidence. Continued the same original run43673677678 until terminal;
+owned watch16944 exited1 because the run failed, not because observation expired.
+Remote source remains aa628e637. No second push or manual rerun has happened yet.
+
+Original completed outcomes:
+- All3 packaged toolchain builds, compiler/LSP core and VS Code checks passed.
+- Linux host:22 targets,181 passed,0 failed/ignored; target test-wall1269.01s.
+- macOS host:22 targets,182 passed,0 failed/ignored; target test-wall1531.97s.
+  Top-level dev build3m27s, compiler host test build3m18s, LSP host build2m33s.
+- Windows host:22 targets,170 passed,7 failed,1 existing ignored; target test-wall
+  1644.19s. Dev build3m09s, compiler host build2m50s, LSP host build2m23s. These
+  wall reports include native compilation inside tests, so actual execution on
+  every host remains conservatively below one hour. No ignored case is a pass.
+- Linux runtime142/143 groups passed, failing only GPUI starter compilation;
+  Windows runtime recorded the same GPUI failure before cancellation; macOS
+  runtime passed87 groups including GPUI before cancellation. Neither cancelled
+  job is full platform acceptance. Exact retained counts/profiles remain below.
+- Tooling formatting and documentation failed for the diagnosed causes repaired
+  in b624b681c; platform guard72e74985e addresses both Linux/Windows GPUI errors.
+  The final CI aggregate correctly failed. Do not merge this original remote head.
+
+Windows host diagnosis completed locally before a follow-up push:
+1. bounded_project_format_preserves_binary_and_oversized_sources used nul.tsr,
+   which is the Windows NUL device even with an extension; it was not a regular
+   enumerated fixture, yielding2 skipped files instead of3. Renamed only that
+   fixture to embedded-nul.tsr; retained its embedded-NUL content and every exact
+   count/untouched-byte assertion. Microsoft naming rules confirm the cause:
+   https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file .
+2. Six stdio formatting cases supplied drive-less file:///formatter... URIs,
+   which Windows correctly rejects as non-absolute. A small shared test helper
+   now constructs native absolute temporary-document URIs with the existing
+   project_diagnostics::file_uri converter. No source files or per-case source
+   trees are created. Formatting outputs, analysis and idempotence assertions
+   remain unchanged. Production URI validation and formatter code are untouched.
+
+Affected local replay passed (tool50853 command outputs): compiler exact bounded
+format case1/1 in0.50s after3m02s build/setup; full affected stdio target18/18 in
+0.99s after3m17s build/setup. Retain the original35 other compiler-format cases
+and other host targets; do not repeat the full matrix for test-fixture edits.
+The orchestration postcondition initially failed because Cargo overwrote the cached
+LSP artifact chosen for consumer restoration; neither test command failed. Restored
+from the unchanged installed executable with the standard verified temporary-copy/
+atomic-rename procedure, keeping independent consumer inodes. Configured and
+installed LSP both match a0e43372045e0a39a57a13f13097db9e34303739199ab490aeeb64fdaea9fa01;
+original owner LSP28276 stayed live throughout and was not restarted. No binary
+snapshot/archive was made. Installed CLI and original owner source were untouched;
+ordinary shared-target CLI output may refresh as part of Cargo test setup.
+
+This closes local diagnosis of every reported original-run failure. Next: format
+and checkpoint this final fixture/evidence slice, read current PR/base state,
+then push the accepted batch once to update PR19 and follow its new exact head.
+The changed inputs are docs/catalog/provenance, matching format policy, the native
+platform guard and portable host fixtures. Existing CI/docs will synchronize once;
+no duplicate manual dispatch. Do not rerun unchanged local core/runtime/host gates.
+No app/model/PostgreSQL restart or new publication is authorized. Staging still
+requires review or an explicit owner exception; main publication still requires
+an unused version and explicit version-specific approval on a concrete candidate.
+
+## PR19 Linux GPUI failure diagnosed; platform guard accepted locally — 2026-11-14
+
+Current original CI43673677678 is still running on remote aa628e637. Linux runtime
+job132691338131 completed failure:142/143 suite groups passed; only GPUI starter
+compilation failed. Reported traversal872.3s, successful build profiles423.511s,
+executed tests6.892s. The437.3s failing GPUI build has no completed build profile
+and no test acceptance. Existing fail-fast policy cancelled macOS132691338102 and
+Windows132691338117 runtime jobs; do not call cancelled jobs passed. Three host
+jobs132691338109/132691338125/132691338197 remain live at the last verified snapshot.
+No workflow was manually cancelled, rerun or dispatched; no second push yet.
+
+Subsequent read-only original-run evidence:
+- Linux host132691338125 passed22 targets,181 cases,0 failed/ignored. Summed Rust
+  target test-wall reports1269.01s include native build/setup within tests, so
+  actual execution is conservatively below the owner's one-hour limit. Separate
+  top-level dev setup1m40s; compiler host test build2m04s; LSP host build1m59s.
+- Cancelled Windows runtime log records66 passed groups and1 failed group: the
+  same GPUI starter E0599 for set_traffic_light_position. No second cause found.
+  Passed profiles sum354.295s build and5.331s tests; the449.8s failed GPUI build
+  has no completed profile/test acceptance. Remaining scope was cancelled/unrun.
+- Cancelled macOS runtime log records87 passed groups and no recorded failures.
+  GPUI starter itself passed3 files (412.461s build,0.003s tests). Passed profiles
+  sum863.175s build and5.542s tests. The job's remaining scope was cancelled, so
+  this partial evidence is not a full macOS runtime pass.
+- Windows/macOS host jobs and owned CI watch16944 remain live. No extra workflow
+  was started. All observations refer to original remote aa628e637, not the local
+  repaired candidate. The same platform guard addresses both recorded native
+  compiler errors; no extra Windows workaround is necessary from these logs.
+
+Failure is Rust E0599 in patched GPUI Kit title_bar.rs: its prepaint callback calls
+Window::set_traffic_light_position unconditionally. The pinned gpui-pre0.3.11
+window.rs defines that method only under cfg(target_os="macos"). Audited all calls
+across compiler UI runtime, patched GPUI Base and patched GPUI Component: this is
+the single caller of the single macOS-only Window method found there. Added the
+same compile-time platform guard to the call. macOS keeps the exact position and
+height calculation; non-macOS no longer attempts an unavailable API. No titlebar
+feature was removed and no UI/application was started. Rustfmt parse-only stdout
+validation passed without reformatting the upstream file.
+
+Focused embedded-patch tests pass3/3 in0.14s after4m24s setup, using the retained
+shared release target, incremental off/jobs1. The initial public alias filter
+selected0 cases and has no test acceptance; corrected actual module filter
+native::dependency_patches::tests ran all3 cases (0.45s warm setup, tool2d0d1e).
+Coverage preserves GPUI/URL relocation, exact payload and injection rejection,
+source identities and directory-symlink rejection. Full native Linux/Windows GPUI
+compilation remains for the next necessary CI run; this Mac has no Linux native
+toolchain. The existing GPUI starter remains the regression witness.
+
+PR19 also reports REVIEW_REQUIRED. Repository ruleset25884267 requires1 approving
+review on stag and allows only owner user80602015 to bypass through a PR. This is
+a real merge boundary, separate from the CI gate and later new-version publication
+approval. Do not bypass it merely to checkpoint. Local branch already holds accepted
+docs/format repair b624b681c and cleanup evidence4dda92935. Batch this platform fix
+with those repairs after original host results finish; preserve all passed evidence.
+Original owner tree/drafts, release consumers and stopped app state remain intact.
+
+## PR19 active; diagnosed docs/format repair accepted locally — 2026-11-14
+
+Previous goal turn made progress:143 runtime/catalog groups accepted and f3a6c27ce.
+This turn integrated and qualified committed source as recorded below, then pushed
+exactly once: aa628e6376e300c3e7a49c5d1ac54433c653febf on
+codex/compiler-lsp-worklist. PR19 is open/mergeable against stag:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/19 . GitHub connector methods
+returned Unknown tool; fallback gh performed the authorized push/PR creation.
+No publication, main promotion or manual workflow dispatch occurred.
+
+Authoritative live runs on that head:
+- CI43673677678: https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/43673677678 .
+  All3 packaged toolchain builds, compiler/LSP core and VS Code checks passed.
+  Three runtime-suite and three host-boundary jobs remain in progress at the last
+  verified snapshot. Do not claim platform runtime acceptance before they finish.
+- Documentation43673677729 completed failure: unmapped Signal catalog group.
+- CI tooling job132689046368 completed failure:393 files flagged by default import
+  organization. Correctness lint had passed; the failure is formatting policy.
+- A live owned gh run watch follows CI43673677678 (tool session16944, redirected
+  target/staging-ci-watch.log in the original checkout). Poll this handle/run;
+  do not start another workflow because observation times out. Functions state
+  active_staging_validation also records these exact handles.
+
+Diagnosed/repaired locally in the managed candidate, without another push:
+1. Map Signal members into the std:ui reference. The next local build exposed
+   malformed completionText parameter objects using name/type instead of the
+   catalog's canonical label/documentation records. Normalized those4 records,
+   preserving the signature and compiler behavior. The initially suspected
+   Signal.set metadata was valid; completionText was the malformed entry.
+2. Performance rendering rejected3 formatting-only source transitions: HTTP
+   requests.tsr, HTTP cpu.tsr and runtime local_closures.tsr. Compared current code
+   tokens including comments with immutable main88db8210a originals and verified
+   every original hash matches the published measurement pins. Registered those
+   exact transitions in the existing format-source-identities registry and reused
+   sourceIdentityMatches at the3 rendering boundaries. Original measured source
+   hashes, timestamps, protocols, oracles and results stay unchanged. Measurement
+   SQLite is byte-identical to committed source. No new performance run is claimed.
+   Existing mutation guards reject new whitespace bytes without a registered proof,
+   semantic edits and unrelated hashes. The CPU-highlight test uses the same
+   exact original/formatted identity pair rather than rewriting measurement pins.
+3. Aligned CI format --check with the existing checkpoint policy:
+   --options '{"organizeImports":false}'. This preserves import evaluation order;
+   no files or triggers are excluded. Reproduced locally: default options flag
+   exactly393 files and exit1; the checkpoint options pass exit0. No formatter
+   implementation changed and imports were not silently reordered.
+
+Focused local repair acceptance:
+- Full site build passes:46 API reference pages/146 catalog groups;79 site pages,
+  Pagefind129 HTML files. All5 website tests passed (including parameter schema and
+  rendered Signal/completionText witnesses); rendered links/anchors/assets checked
+  across129 pages. Existing performance values and comparison tests still pass.
+- Existing formatting identity/mutation test passes, including all3 new proofs.
+- Affected LSP library36/36 passed1.05s after3m17s build/setup (tool32333).
+- Tooling Python discovery5/5 passed0.018s. Whole-project formatter0 files/snippets/
+  fingerprints; whitespace diff check clean. Temporary Node dependency symlinks
+  only reuse the original checkout's installed modules; remove before checkpoint.
+
+Continuation verified the exact original run43673677678 and owned watch16944
+remain live; the6 native runtime/host jobs started around03:54:40Z after the full
+build matrix. No further failure is reported at this snapshot. Reclaimed6.4GiB
+of closed shared debug/native-test outputs after verifying no process used that
+directory. Free space now approximately193GiB; the6.9GiB release target and live
+owner LSP28276 remain intact. No compiler/app rebuild was started to repopulate
+the deleted cache. Original owner source remains untouched. This cleanup is real
+progress; current platform waiting is a verified wait, not a blocker or a pass.
+
+Next: let the original CI runtime/host jobs finish and diagnose any further real
+failure locally. Batch all accepted repairs into one necessary follow-up push;
+no second push has happened yet. A new PR synchronize will trigger existing CI
+once for changed inputs; do not dispatch a duplicate run or push evidence-only
+updates. Keep passed local gates and original remote build/core/editor evidence.
+Apps/PostgreSQL/model hosts remain stopped, original owner drafts untouched, and
+no new release is authorized. Main promotion still needs an unused version and
+explicit publication approval after staging is green. Goal remains incomplete.
+
+## Committed candidate accepted locally; staging PR next — 2026-11-14
+
+Previous goal turn made progress: runtime/catalog acceptance and checkpoint
+f3a6c27ce. Read-only GitHub reconciliation found no open PR, and the handoff's
+release status was stale. PR17 merged into main88db8210a on2026-11-11T02:59:05Z;
+v0.2.0 published at02:59:55Z. This does not authorize another publication.
+
+Managed checkout: /Users/seancotter/.codex/worktrees/committed-source-check/tsrust,
+branch codex/compiler-lsp-worklist. The original checkout remains on codex/gpui-ui
+with all protected Studio/SDK drafts unchanged. No drafts were copied, committed,
+stashed or reverted. No app/model/PostgreSQL session was restarted.
+
+Direct merging squashed main previewed611 artificial history conflicts. Verified
+ac195a4762d46709b9bda65da316ee7ec5375775, origin/stag3c2f01d5e and
+origin/main88db8210a share exact tree0a69b5863adfbc4570defbd8f566563fc3f96ac4.
+The original release source shares11f63fd48 with this branch and adds6 commits;
+merging that source has only the handoff conflict. Preserved current evidence and
+recorded the release reconciliation. Source integration70bdeb879 retains upstream
+Windows Cargo target-path spelling, Linux ALSA/offline GPUI preparation, release
+provenance checks, VS Code0.2.2, native-suite build/test timing and the existing
+1800s cold GPUI build allowance. No Worklist CI job/service was added. Full formatter
+made only token-preserving layout changes in2 committed Studio files; original
+owner versions in the other checkout were not touched.
+
+Exact clean70bdeb879 source validation, shared root target, jobs1/incremental off:
+- Core release-profile tests (tool92875): build/setup9m14s; compiler1558 passed,
+  8 existing ignored,78.97s; CLI62/62 including Windows drive/UNC path witness,
+  1.72s; LSP library36/36,1.07s; scheduler7/7,0.02s.1663 passed,0 failed.
+- Compiler/LSP all-target offline locked check (tool52392) passed1m52s, including
+  integration harnesses. Existing unused-code warnings remain explicit.
+- CI correctness lint, release/offline/locked lib+bins (tool64941), passed26.99s;
+  non-correctness suggestions remain, no warning suppression or cleanup was added.
+- Compiler UI authoring contracts against committed SDK (tool32601):13/13 passed
+  6.74s after26.35s build/setup. No desktop program was opened.
+- Packaging/release-policy tests26/26 passed4.299s; suite discovery/profiling/catalog
+  Python controls5/5 passed0.016s. Existing policy checks now cover GitHub's mutable
+  PR association recovery. No release action was executed.
+- VS Code0.2.2 typecheck/build,4 discovery and2 grammar cases passed; local VSIX
+  packaging passed (12files,123.74KB), without installation/publication.
+- Local version/clean-source preflight passed for the existing0.2.0 manifests. This
+  does not prove a new release is available: v0.2.0 already exists remotely.
+
+Then verified the original release source is an ancestor and its tree equals
+main's. History-only merge89ec655c0 connects the already included squashed promotion
+history; an assert proves the candidate tree stayed exactly
+3baebb27545e55656da5020f208893bba005ce34. No upstream content was discarded. A second
+whole-project formatter passed0 files/snippets/fingerprints. Prior unchanged host
+and runtime/catalog acceptance stays retained; it is not relabeled as a fresh
+committed-source full replay. These new core/UI checks specifically qualify the
+committed SDK without the protected additions used by the earlier run.
+
+Next remote boundary: one push of the accepted candidate and PR to stag, to merge
+finished compiler/LSP/GPUI changes, not a CI experiment. Existing3-host CI is the
+smallest remaining Windows/Linux/native packaging check unavailable on this Mac;
+no equivalent run exists for this new candidate. Main/stag point to the released
+v0.2.0 tree; no pending Dependabot/other PR exists at this reconciliation. Current
+CI/docs PR triggers target stag. Promotion from stag to main invokes the publisher
+and requires a new unused version plus explicit owner publication approval; do not
+open that promotion or publish a tag merely to test. General tuning/<10% target
+and closed-app visual stress/zoom review remain deferred/unverified as recorded.
+The overall goal is still incomplete. Preserve these accepted checks instead of
+repeating them after evidence-only changes. Temporary build reports and the local
+VSIX are disposable after recording results; keep one shared Cargo target.
+
+## Runtime/catalog milestone accepted locally — 2026-11-14
+
+Previous goal turn only clarified the owner's memory observation; it added no new
+acceptance. Revalidated current source and resumed the remaining existing compiler
+runtime/catalog milestone. Apps, PostgreSQL and model hosts stayed stopped. No
+additional performance tuning, app CI or remote mutation was introduced.
+
+Initial generation reported1,078 executable catalog examples in120 groups and42
+host-controlled examples. A final disk-count audit exposed silent filename
+collisions: only1,075 files in119 directories existed. The registered repository
+adds23 fixture/example groups and33 files. See the collision repair below.
+Used the public tsrust test runner, each directory compiled together once, original
+sources in place, fresh runtime-data working directories and the shared root Cargo
+target; incremental off/jobs1. Restored the normal release CLI with cargo build
+--release --offline --locked (0.35s), SHA256
+a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372.
+The executable initially differed from the recorded hash; this command restored
+the already accepted normal release consumer.
+
+Initial sandboxed structured-logging execution could not bind its HTTP listener;
+no acceptance was claimed. Stopped only the identified owned validation processes
+and reran with local-listener access. First full traversal (tool5869) accepted19
+groups, but GPUI's cold dependency build exceeded the runner's600s wall timeout.
+The regex binding setup then rejected its stale lockfile, aborting discovery before
+the remaining groups. Confirmed all compiler descendants were terminal before
+resuming. Preserved the19 passed groups rather than replaying them.
+
+Repair: examples/rust-regex/regex.bindings.lock lacked the current runtime's admitted
+ignore dependency and its bstr/globset closure. Regenerated with the existing pinned
+backend manifest offline. Added exactly those3 package records and the root ignore
+edge; no existing package version/checksum changed. Public bindings resolve --offline
+now passes; existing lock-drift rejection behavior remains unchanged. No product
+compiler code or binding schema changed.
+
+Resumed only123 unfinished groups (tool45203), allowing cold setup/build up to3600s
+per CLI invocation and using existing --reporter json --profile observations. All
+123 passed, including12 GPUI starter cases and the repaired regex example. Combined
+with the retained19 groups, that traversal accepted142 distinct groups and1,506
+cases in1,108 files, before the final generator audit identified3 omitted examples.
+It was not full catalog coverage and is not represented as such.
+Successful invocations report334.251s build/setup and3.614s test execution total;
+the earlier timed-out cold build has no completed profile and adds600s of wall
+setup, not a passed test. Traversal/replay wall totals702.449s+260.266s including
+that cold build. Actual execution stays far below the owner's one-hour limit.
+These are acceptance observations, not quiet-machine performance benchmarks.
+
+Generator repair: numeric group/member identities prefix readable slugs, preventing
+case-folded group/member collisions on Windows/macOS. Exclusive file creation
+rejects accidental overwrite. A small host unit verifies Number/number groups and
+Request/request members survive independently even under case-folded path comparison
+(1/1 passed,0.003s). Regeneration now creates exactly1,078 files in120 directories.
+The old lowercase naming had overwritten std:http request/Request, std:testing
+TrackedResource/trackedResource and std:url SearchParams/searchParams examples,
+and merged Number/number into one directory. No executable example body or expected
+output changed. Existing directory batching and host-only exclusions remain intact.
+
+Focused public-runner replay (tool13217) passes84/84 cases in5 groups: both separate
+Number groups plus std:http/std:testing/std:url. Build/setup8.240s, execution0.015s,
+wall10.240s. Retain the unaffected138 original groups; replace their4 old affected
+groups with these5 current groups. Final complete coverage is143 groups,1,509
+unique accepted cases,1,111 files,0 failures/hook failures/skips across preserved
+runs. All1,078 generated examples are now present and accepted. No unchanged suite
+was rerun merely because generated filenames changed.
+
+Fingerprint guards covered9,225 regular Git-reported files before/after each run;
+all stayed unchanged during each run. The intentional lock/generator repairs
+occurred between runs. The final replay guarded9,226 regular files with no changes
+during execution. Symlinks were excluded from this regular-file count. Owner Studio/SDK drafts
+and benchmark data remain preserved and unstaged. Validation includes the protected
+SDK additions; committed-source qualification without them remains distinct.
+Whole-project formatter passed0 files/snippets/fingerprints; diff whitespace clean.
+
+No test processes remain; the owner's existing Zed LSP was left running. All four
+app targets remain0B. Pruned closed native executable/runtime-artifact caches
+(~8.9GiB), retaining shared Cargo dependencies and471MiB generated runtime build
+inputs. Free space approximately188GiB. Temporary catalog/generated lock preparation,
+profiling reports and orchestration are disposable after this evidence checkpoint.
+Only the regex example lock, catalog generator, its discovery regression and this
+record belong to the checkpoint. Core, host and runtime/catalog local milestones are now accepted; exact committed-source
+qualification, supported-platform CI and eventual merge remain open. Existing
+owner deferrals and closed-app visual limits remain unchanged.
+
+## Existing native/process host milestone accepted locally — 2026-11-14
+
+Previous goal turn made progress with measured memory repair4fbefd10e. No further
+tuning was introduced. Continued the existing compiler/LSP host validation that
+the owner cleanup had interrupted, without starting Worklist, Studio, PostgreSQL,
+model hosts or hosted CI. Used the retained release target, incremental off/jobs1.
+The current portable source pack f934fd529d205d4e2fb3bf9031bebe001be602557a3fdab1c999fb5cacc5920d
+verified offline without regeneration. Built all20 existing compiler host-test
+targets together once in1m14s (tool85663); no fresh compiler debug consumer build.
+
+One no-fail-fast execution covered all20 compiler targets (tool70161), with a
+conservative3600s wall watchdog. It completed in947.503s inclusive of native build/
+setup within tests, so actual test execution was below one hour. Target reports
+sum942.69s inclusive.161 passed,2 failed,0 ignored. Failures were stale formatting
+expectations: default blank_lines_around_blocks=true inserts a blank line before
+if; reindent_gap indents a comment-only function body by the default2 spaces.
+Verified both policies in formatting/mod.rs, options.rs and trivia.rs. Changed
+only the two literal expected strings in tests/formatting.rs; kept all comment,
+idempotence, contract-equality and native-output assertions. No formatter behavior
+or product source changed.
+
+Affected formatting target replay passed36/36 in1.91s after3.62s setup (tool47962).
+The other19 passed targets remain accepted; do not rerun them for this test-only
+repair. All163 registered compiler host cases are accepted across those runs,
+not a fabricated single all-green invocation. Coverage includes CLI acceptance,
+API/Rust SDK/router boundaries, dependency bundles,10 offline relocated native
+package cases, package management, processes/signals, scoped test registration,
+project commands, Rust adapters/data/resources, service/shared sources, reporter,
+async HTTP setup/teardown and toolchain installation/rollback.
+
+Remaining LSP API-project integration passed1/1 in0.05s after2.36s setup (tool87877):
+unsaved operations/config regenerate dispatch and editor diagnostics without disk
+outputs. Reuse the unchanged18/18 stdio acceptance from the memory checkpoint.
+Original source/evidence fingerprints covered9227 Git-reported paths; all stayed
+unchanged during the20-target run. After the intentional test repair, exactly
+tests/formatting.rs differed. Owner source/SDK drafts and canonical benchmark data
+were preserved. App targets remain clear; ordinary shared compiler/native test
+dependencies were reused. No app CI job or new validation pipeline was added.
+
+This closes the pending local host milestone, not all remaining runtime/catalog,
+platform or merge acceptance. Source validation still includes protected SDK
+additions, so immutable committed-source qualification remains distinct. Existing
+memory fix and its stop-tuning decision remain accepted. Whole-project formatting
+passed0 files/snippets/fingerprints. Final guarded differences were exactly the
+intentional tests/formatting.rs repair and this progress record. Closed raw reports
+can be removed after checkpoint. Host tests populated shared root native/debug
+dependencies (~3.8GiB total) for remaining runtime validation; app targets remain
+clear and free space is approximately191GiB (~205GB decimal). Preserve all passed
+counts instead of repeating this host batch. Only tests/formatting.rs and this
+evidence belong to the checkpoint; no remote action occurred.
+
+## Generic flow-state sharing reduces the reproduced startup peak — 2026-11-14
+
+Previous goal turn made progress: core regression acceptance and stale Settings
+wrapper repair690f1dd7f. No core/app processes were live at the start of this
+turn except owner Zed LSP28276; system-free memory61%. Apps remain stopped and
+their caches clear. General performance tuning remains deferred. This section
+only investigates the newly reported actual startup memory spike.
+
+Before any compiler edits, installed CLI e82c15ae emitted both real Studio main
+and ai-actions.test.tsr with MallocSpaceEfficient=1. Fingerprints of172 Studio/SDK
+source files stayed identical. Main: sampled peak footprint275,006,400B, OS peak
+RSS616,300,544B, emitted SHA2566d723adbbc56921a4243ddb23397b2ad5b869ca87f3d371afb1fb196f12efe7d.
+AI-actions: sampled lifetime peak footprint3,077,295,032B, OS peak RSS2,225,618,944B,
+emitted SHA256277a7ac1c30c3fb6d8af732938b49eec5af4f3793397b742478413d2b737ed93.
+Both exited0 and generated output was removed. Overall58.295s/17.986s are diagnostic
+observations, not quiet-machine timing benchmarks. Sampling can miss a late peak;
+OS peak RSS is complete but does not include compressed memory. Diagnostics had
+180s/3.5GiB-footprint/system-free20% stop conditions and built no native outputs.
+
+The test file reproduces the multi-GiB peak outside Zed. A first3-second stack
+capture localized heavy allocation to Analyzer::new_with_source_proofs,
+generic call validation's branch-flow invocation worklist and guard-partition
+state joins. The proposed early Analyzer/CheckedProgram drops occur after this
+work; do not implement them as a demonstrated repair for this spike.
+
+Accepted implementation: FlowState bindings use Arc<Vec<Binding>> so unchanged
+clones share storage; DerefMut uses Arc::make_mut. Equal, fully normalized joins
+retain existing storage. Capture state, target normalization, branch partitioning,
+fact sets, budgets and all checks are unchanged. Three direct callers adapt their
+construction/mutation to the shared representation. One internal regression proves
+sharing across clones/equal joins and write isolation. Release CLI/LSP build passed
+in3m37s (tool84969). Installed controls were retained through the comparison. CLI SHA256
+a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372.
+
+Candidate paired replay passed with identical172 source fingerprints and identical
+emitted Rust hashes for both files. AI-actions sampled peak1,342,621,448B (56.37%
+lower in this diagnostic) and OS peak RSS1,306,968,064B (41.28% lower). Main sampled
+peak212,091,696B but OS peak RSS643,366,912B,4.39% higher than before. Do not claim
+universal peak-memory improvement or a stable timing speedup. Overall59.284s and
+14.798s remain single diagnostic observations. This meets the bounded candidate's
+requirement to reduce the reproducing file's peak without changing generated code.
+
+Complete release-profile core regressions passed (tool46737):8m28s build/setup;
+compiler library1558 passed,0 failed,8 pre-existing ignored in79.77s; CLI61/61 in
+1.63s; LSP library36/36 in1.08s; LSP scheduler7/7 in0.02s. The new sharing/isolation
+case and existing equal-state target normalization, recursive request/environment,
+array transfer and guard-correlation cases all pass. Transport integration18/18
+passed in1.44s after3.78s setup (tool38794). Real private LSP acceptance on ai-actions.test.tsr passed
+clean diagnostics, rejection of an in-memory invalid return and clearing after
+repair; disk source bytes were preserved (tool36624). No app/model/hosted CI started.
+
+This is one bounded successful memory repair, not a new timing benchmark or a
+demonstration that every restored-tab Zed startup stays below1GiB. General further
+tuning remains deferred; do not layer additional optimization onto this section.
+Installed consumers were staged, version/hash checked and replaced atomically per
+file. CLI0.2.0 matches a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372;
+LSP0.3.0 matches a0e43372045e0a39a57a13f13097db9e34303739199ab490aeeb64fdaea9fa01.
+Release and installed copies agree. Owner Studio/SDK drafts remain protected and
+unstaged; validation includes those SDK additions rather than an immutable HEAD
+without them. Existing full-goal host/runtime/platform/merge requirements remain
+open. No owner Zed process was killed for this checkpoint; a language-server restart
+is needed to load the new binary. Whole-project formatting passed0 files/snippets/
+fingerprints. Only the four branch-flow files and this evidence belong to the
+checkpoint; closed diagnostic scripts/reports are disposable after recording these
+results. No app target was repopulated and no remote action occurred.
+
+## Core milestone and actual restarted Zed observation — 2026-11-14
+
+Previous goal turn made source progress: macOS allocator startup repair62e931f00
+passed its focused protocol/scheduler checks and was installed. Owner has now
+restarted Zed's LSP: PID28276, parent17082, with MallocSpaceEfficient=1 verified
+from that process's environment without printing other environment fields.
+The actual session still reached3,377,843,536B lifetime peak (3.15GiB), then fell
+to128,388,432B footprint/74,334,208B swapped at capture. Owner independently
+reported over1GB followed by123MB. Reclamation is improved; the full startup
+transient spike remains unresolved. Do not substitute the smaller private replay
+for this actual restored-session observation.
+
+A bounded3-second stack sample found tsrust-analysis in check_graph_entry and
+analyze_with_recursive_fallback/analyze_recursive_with_proofs. Declarations and
+file-reference workers were waiting. Source review found two concrete lifetime
+overlaps worth a later bounded memory repair: the seed Analyzer remains alive
+after its parameter modes have been copied; the final speculative CheckedProgram
+remains alive while the definitive Analyzer is created/run. No compiler analysis
+source has been changed for this observation. Do not resume broad speculative
+performance tuning or reduce diagnostics coverage. Owner Studio/Worklist sessions
+and app caches remain stopped/clear.
+
+Core release-profile regression invocation (tool38585):6m13s build/setup;
+compiler library1557 passed,0 failed,8 pre-existing ignored in78.65s. CLI bin60/61
+passed in8.15s; the single failure was a stale expected Settings wrapper family,
+still listing4 names after SettingsFooter/SettingsTitleSuffix were added to the
+committed catalog. Kept the exact export assertion and updated its expected6
+names; added generated-wrapper signature assertions for both additions. Exact
+replay passed1/1 in0.00s after14.69s setup (tool32300). Together these accept all61
+CLI cases across the two runs, not a fabricated single green run. LSP library/bin
+remainder (tool31946) passed36 library cases in1.07s and7 scheduler cases in0.03s
+after25.40s setup. Cargo had stopped before them at the original CLI failure.
+
+VS Code npm test passed type checking/build,4 executable-discovery cases and2
+TextMate grammar cases. Zed Tree-sitter corpus passed3/3, covering match syntax,
+ownership annotations and typed JSX. GitHub connector lookup was unavailable;
+read-only gh pr list found no open PRs. No push, comment, CI dispatch or app launch.
+All validation includes protected SDK additions in the working tree; immutable
+committed-source proof without those additions remains distinct. The full goal,
+remaining host/runtime/platform acceptance and eventual validated merge stay open.
+Whole-project formatting passed0 files/snippets/fingerprints; only ui_cli.rs and
+this record belong to this checkpoint. No further source optimization was introduced.
+
+## Zed startup memory investigation — 2026-11-14
+
+Owner restarted Zed on apps/studio and reported 1.28GB, with screenshot showing
+2.34GB for LSP21430 (parent Zed17082). Stopped our unrelated release core-regression
+build group22656 with SIGTERM before test execution; tool77364 exited143. No test
+passes belong to that interrupted build. Earlier lightweight checks passed24/24
+packaging/release-policy cases (2.754s),22 storage cases (0.350s),2 suite-discovery
+cases (0.015s), and the retained release LSP initialize/capabilities/shutdown smoke.
+
+Read-only footprint/vmmap/sample captured the actual live server:1,374,408,352B
+footprint,3,858,517,616B lifetime peak,1,293,877,248B swapped/compressed. Heap zones
+reported193.0MiB allocated and1.0GiB dirty+swap fragmentation (85%); empty small
+regions alone held815.1MiB swapped. All worker threads were idle. A later sample
+fell to874,106,480B footprint/803,192,832B swapped without a restart. This proves
+substantial freed-heap retention and delayed reclamation, not that startup's whole
+peak or a sustained live-object leak has been explained.
+
+A private bounded LSP replay initialized apps/studio and opened disk main.tsrx,
+returned clean version1 diagnostics, shut down normally and preserved source bytes.
+Default allocator:748,569,752B peak,441,271,448B final footprint,26,853,376B final
+swapped;20 samples,58.889s overall. With process-local MallocSpaceEfficient=1 and
+the same binary/protocol/source:566,084,616B peak,143,213,624B final footprint,
+3,375,104B final swapped;21 samples,60.292s overall. These are bounded diagnostic
+observations, not quiet-machine timing benchmarks or reproduction of every restored
+Zed tab. The diagnostic had120s/3GiB footprint/system-free20% stop conditions.
+A separate25.6MB allocator smoke returned0 bytes from pressure-relief; no periodic
+trim hook or new allocator dependency was added.
+
+Accepted source uses macOS process re-exec before stdio/workers to set the system
+allocator policy before libmalloc initialization. Explicit existing values are
+preserved, including0; arguments/PID/stdio are retained. Other platforms are
+unchanged. No check, index or workspace cap is introduced. stdio regression adds
+actual process initialization/shutdown and OS environment proof for default1 and
+explicit0. All18 stdio cases passed in1.54s after3m19s release setup. All7 scheduler
+unit cases passed in0.01s after16.41s setup. Rebuilt-default real Studio replay,
+without an injected allocator environment setting, passed clean diagnostics and
+source preservation:529,728,448B peak,121,144,424B final footprint,3,325,952B final
+swapped;21 samples,62.285s overall. The first16.41s overlapped unit-test setup;
+none of these durations are quiet benchmark claims. Full restored-tab Zed startup
+and multi-hour memory stability remain unverified.
+
+Release/installed LSP0.3.0 both SHA-256
+de919999f1fd20409a0e7e0530f55aeb6de1962017740ad1daa642a9e7921e96.
+Installed copy was staged, version/hash verified and atomically replaced. CLI
+remains accepted e82c15ae70eafdc140e108c0925f0968d368e1180325511941eea5c4c706e971.
+No owner Zed process was killed or restarted and no app sessions were started.
+Zed's current process still maps the old binary until `editor: restart language
+server`. Source/SDK drafts remain unstaged; build/replay included those protected
+SDK additions, rather than proving an immutable HEAD without them. Whole-project
+formatting passed0 files/snippets/fingerprints after the final source/docs edits.
+Apple allocator behavior is documented in
+https://github.com/apple-oss-distributions/libmalloc/blob/main/src/malloc.c.
+
+## Zed file icon support — 2026-11-14
+
+Owner reported missing icons for .tsr and .tsrx. Language recognition already
+includes both suffixes; Zed's icon associations are separate from its language
+registry. Added the optional Tsrust (Zed Default) icon theme to editors/zed,
+mapping tsr to the built-in typescript icon and tsrx to react (Zed's JSX icon).
+Zed merges default suffix associations and falls back to built-in icon assets,
+so this requires no copied artwork, adapter build or compiler change. Reference:
+https://zed.dev/docs/extensions/icon-themes and Zed crates/theme/src/registry.rs.
+
+Registered the theme in the existing local development extension index and
+selected it for both light/dark settings, preserving the existing mode and all
+other settings. JSON parsing and both suffix mappings were checked. Whole-project
+formatting passed with0 files/snippets/fingerprints changed. Live icon rendering has not been
+visually verified; the already-running Zed may need `zed: reload extensions` to
+refresh its in-memory registry. No app session was restarted. Prior cleanup/CI
+rollback is checkpoint263b9dbe7; only the icon theme, manifest, README and this
+record belong to the next checkpoint. Owner source/SDK drafts remain unstaged.
+
+## Owner closed application sessions and rejected test-app CI — 2026-11-14
+
+Latest owner direction: the Worklist component-validation app does not justify
+additional CI/CD jobs. Remove the proposed integration job, stop all Worklist
+processes, and clean Worklist/Studio caches and targets. This supersedes the
+previous keep-Worklist/API-running directions and the proposed CI work below.
+Do not restart Worklist, its API/database, Studio or model hosts on automatic goal
+continuation. Do not recreate app build caches just to refill them. Application/
+experimental acceptance stays local; no Worklist CI job/service/gate is authorized.
+Optimization also remains deferred. Compiler/LSP source acceptance and any eventual
+validated PR remain separate; the full original goal is not newly claimed complete.
+
+All uncommitted workflow expansion and optional --roots selector were removed.
+.github/workflows/ci.yml matches HEAD exactly. The generic runtime runner now
+excludes apps/ and experiments/ so their resource-dependent tests cannot silently
+expand ordinary CI. Library fixtures, examples and every generated catalog group
+remain registered. Two lightweight discovery checks pass locally. No test assertions
+or application source files were deleted. docs/plans/ci-build-once.md records this
+owner clarification. No new CI job or step is retained and no remote action occurred.
+
+The rejected local workflow replay had already terminated before the stop request:
+13/14 cases passed in572.69ms; change-feed failed with migration-source/No such file
+or directory because that discarded workflow invoked tests from its temporary root
+rather than the API directory containing migrations. API snapshot passed. This is
+not a new compiler failure or an all-green application milestone. Its temporary API
+exited and its owned PostgreSQL database worklist_ci_validation_037387dd925a was
+removed by the harness. Do not resume or expand that rejected CI experiment.
+Preserve prior correctly rooted14-case application acceptance below.
+
+Stopped requested dev supervisors99887 and33729 with SIGTERM; their native children
+99918 and45647 exited. Docker compose down removed only the Worklist Postgres
+container and network. Persistent postgres-data volume remains; it is data, not a
+build cache. No Studio/model-host process was present. Zed's separate LSP75803 was
+left running. There is no authorized background Worklist/API/Studio dev session now.
+
+Cleared all contents of apps/tasks/api/target, apps/tasks/desktop/target,
+apps/studio/target and apps/studio/model-host/target except lock-inode skeletons.
+Also removed the cold debug/runtime caches created by the rejected replay under
+target/debug and target/tsrust-native, plus compiled target/studio-model-host and
+studio-model-host-hybrid helpers. Exclusive nonblocking locks guarded cache removal;
+all source files reported by Git (including owner untracked sources) were content-
+fingerprinted before/after and unchanged. No source symlink target was followed.
+
+Removed ~/.tsrust/worklist offline SQLite cache and its null draft journal; no real
+Worklist draft was present. Removed Studio's derived ~/.tsrust/studio/knowledge
+cache. Kept Studio recovery drafts, chats, settings and configured model/tokenizer
+assets. The current Studio configuration points into target/studio-models; those
+configured model files were deliberately retained as assets rather than treating
+them as compiled output. No owner asset relocation or settings rewrite occurred.
+This distinction is explicit: model assets and persistent database data were not
+uninstalled. Owner source/SDK drafts and benchmark acceptance records are untouched.
+
+Filesystem free space is now approximately195GiB (~209GB decimal), compared with
+48GiB before the two earlier cleanup passes. Current release CLI/LSP consumers
+remain available, so formatting/checking does not require recreating a debug build.
+Whole-project formatting passed0 files/snippets/fingerprints; two local suite-
+discovery checks passed. Further app/UI/hardware validation is stopped per owner;
+any later work must respect these constraints instead of following historical
+live-process handles or adding test-app CI. Source checkpoint retains only the
+small local-only discovery guard, its test and these owner-direction records.
+
+## Broad generated-cache cleanup completed — 2026-11-14
+
+Owner rejected the first19.5GiB-only cleanup as insufficient: more than200GB was
+available before Studio/UI work. Audited the whole checkout and Tsrust cache roots,
+then removed the accumulated generated build trees instead of only old object files.
+Observed filesystem free space rose from48GiB before the first pass to68GiB after
+it, then191GiB (~205GB decimal) after the broad pass: roughly143GiB reclaimed across
+both passes. Checkout disk usage dropped from~181GiB after the first pass to~13GiB.
+APFS shared/cloned extents mean directory sizes do not sum one-for-one to physical
+space reclaimed. No performance speedup is claimed from this cleanup.
+
+Broad removal covered shared target/debug, target/admission, target/tsrust-native,
+obsolete nested compiler/LSP targets, the UI-table-state fixture target, experimental
+AI target, docs target, Rust-example targets, GPUI starter target, Studio and model-
+host targets, and obsolete Worklist API/desktop target contents. Kept every lock
+inode and its directory skeleton, acquiring nonblocking exclusive locks before
+mutation. No source path reported by Git (tracked or untracked/unignored) was under
+any deletion target. No symlink target was followed during removal. Original first
+pass removed297 older executable variants (~6.97GiB logical) and17959 old Rustc
+intermediate objects (~12.51GiB logical), retaining newest executable variants.
+The broad pass then removed the remaining shared debug cache, not release tools.
+
+Kept complete release tools/dependencies (~6GiB), model weights, portable source
+packs, source, owner drafts and SQLite acceptance records. Kept exact byte-matched
+active application/runtime cache entries:
+- API application06bc1d5b7c887676; runtime97101fa2805ae6c3.
+- Worklist application625b14c04fe965f6; matching runtime bundles23a70d2fc80cac05 and
+  adb10649e35db2a6 (identical runtime payload, distinct validated input identities).
+Final Worklist target is~1.8GiB and API target~464MiB; stopped Studio/example targets
+contain only retained lock skeletons. Active executables and all three retained
+runtime bundles were SHA-256 compared against the live supervisors' exact temporary
+artifacts after cleanup. Release/installed CLI and LSP hashes still match the
+accepted e82c15ae /7064063d full hashes in the section below.
+
+An initial aggregate source/evidence check reported a changed file set because
+removing a generated ignore marker exposed the retained rust-owned-words cache lock
+as untracked. Restored a generated target/.gitignore marker, preserving the lock
+inode; Git status returned to the previous owner/own change set. Do not describe
+that initial aggregate assertion as passed. Independent application source/config
+aggregate still exactly matches the established
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Canonical measurements.sqlite integrity check passes; no history was changed.
+Whole formatter passed0 files/snippets/fingerprints. No owner source drafts were
+formatted or staged, and no app/API/editor restart was performed for cleanup.
+
+Owner-prioritized cleanup interrupted the new host milestone before test execution:
+tools/host-tests.py session63106/group2720 was stopped with SIGTERM (exit143).
+It had built debug consumers and prepared the current offline portable source pack,
+then was compiling host test binaries. No host test case pass is claimed. Preserve
+prior accepted library/CLI/LSP/app evidence. Do not rerun builds merely to refill the
+removed cache. Future compiler/dependency builds will be cold; active native runtime
+bundles and release consumers were retained to avoid discarding every useful input.
+
+Current live sessions remain Worklist supervisor99887/native99918 (tool14972),
+API33729/45647 and Zed75803. API responds to /snapshot; the later read contained299
+tasks at cursor446, so do not claim the earlier300-row count was reverified after
+cleanup. Cleanup performed no database requests other than GET and never touched
+the Docker volume or home-directory caches/drafts. Studio stays stopped.
+
+Pending own source outside this cleanup checkpoint: tools/run-suites.py now has an
+optional --roots selector while default discovery still includes all tracked suites;
+tools/tests/test_runtime_suites.py covers default application/experimental inclusion,
+catalog preservation, application roots, invalid/outside/empty roots.4 unit cases
+passed in0.003s. CI wiring is NOT implemented/accepted yet. The audit found generic
+CI runtime discovery now includes resource-dependent application/model suites with
+no provisioned DB/model/host prerequisites. Next finish explicit ordinary-runtime CI
+scope plus a required PostgreSQL-backed Worklist integration job, without removing
+or weakening application/model assertions.120 catalog groups/1078 tests were generated
+under target/catalog-suites; no runtime-suite execution yet. Retain this pending work
+unstaged until that coherent CI section is validated. Optimization remains deferred;
+full local/platform/product acceptance and PR merge remain incomplete. No remote action.
+
+## Modal shortcuts fixed; focused Worklist/LSP validation — 2026-11-14
+
+Optimization remains deferred per owner. Validation found a correctness issue:
+zoom stopped when a task sheet took focus outside the content root. gpui.rs now
+registers GPUI's existing global TsrustCommand fallback, captures the active window,
+and defers its update until key dispatch releases the window. Normal foreground
+handlers keep precedence, and existing run_command enforces visible mounted
+Shortcut ownership. No new application API/dependency or owner gpui_kit.rs edits.
+The initial immediate-update version failed at GPUI's nested window-borrow boundary;
+it is not accepted. The revised fallback and native checks below are accepted.
+
+Durable native process-boundary witness tools/worklist-shortcuts.swift verifies
+an idle Worklist process, bounded accessibility readiness, fresh control lookup
+across redraws, no existing draft, exact one-step zoom in the main view and an
+empty new sheet, and reset while the sheet owns focus. It closes only the empty
+sheet it opened, never edits/saves fields, and restores zoom. Original native
+reproduction failed sheet zoom after main-view zoom passed. Startup AX lookup and
+retained-element assumptions in the witness were corrected without weakening its
+zoom assertions. Final witness passed against isolated corrected PID99978.
+A final identical pre-fix control built from installed accepted3922153 and ran with
+a temporary cache, but its focus guard stopped before completion; that final
+negative replay is unverified, not a passed regression control. No keys were sent
+after focus was lost. Source/initial native reproduction still establish the bug.
+
+Actual Cmd+S acceptance in corrected isolated Worklist: entered uniquely named
+fixture "Worklist keyboard acceptance 1794701124", sent Cmd+S only after checking
+foreground PID99978, and verified
+API task2e7937c3ae9a2d8cd0955a55dcf47b3f at version1 with empty notes. Removed only
+that id using expectedVersion1; fresh API snapshot returned300 tasks and no fixture.
+The isolated recovery journal was null before shutdown. This proves the actual
+sheet save path as well as the shared zoom dispatch path. Task data outside the
+fixture was not edited by these checks.
+
+Final release pair built in3m40s. Native consumer build passed with check2173.7ms,
+emit285.3ms,native+link56240.6ms; diagnostic setup, not a benchmark. First candidate
+release/native builds also compiled, but did not pass the shortcut witness.
+Authorized final desktop supervisor99887/native99918 runs in exec session14972,
+log /tmp/tsrust-worklist-desktop-dev.log. Startup12.921s is a dev observation, not
+matched performance. API33729/45647 and Zed75803 remained alive; Studio stays
+stopped. CLI release and atomically verified installed binary both SHA-256
+`e82c15ae70eafdc140e108c0925f0968d368e1180325511941eea5c4c706e971`;
+LSP unchanged at `7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+All builds include protected owner SDK additions; do not call these immutable
+clean-HEAD runs excluding those hunks. No owner SDK/Studio/service-test edits staged.
+Whole formatter passed0 source files/snippets/fingerprints before checkpoint.
+
+Refresh handling mistake: a shell assertion found an open task, but the following
+kill still ran and stopped interim97914/97953. Its captured title/notes matched
+sample293 and the recovery journal was null. No task field edits were performed.
+Final dev app was restored; sample293 sheet was reopened by its accessible card
+action. Final owner view is1180x821/zoom14/cards background/sample293 sheet open;
+the attempted Table switch while modal did not apply. Do not claim Table background
+restoration. Further checks moved to isolated temporary-cache instances. Use Python
+checked control flow or && for guards before mutations; a newline does not stop a
+shell after assertion failure. Temporary corrected99978 and pre-fix361 are stopped;
+only final authorized desktop/API/Zed sessions remain. Synthetic table-row clicks
+did not reopen the sheet; do not count them as successful native row activation.
+A future isolated replay should distinguish the input bridge from the application.
+
+Other focused validation: real Worklist LSP clean/error/repair sequence passed
+through tools/verify-application-editor.mjs with disk files preserved. Studio probe
+initially failed a stale source anchor (const files became const model); only three
+anchor strings changed in tools/lsp-memory-probe.mjs. Repaired probe passed26
+requests/four in-memory revisions in2.748s; warm assistance medians0.687–0.715ms,
+initial hover464.245ms. Peak footprint311198512B, swapped/compressed max9256960B.
+Separate established synthetic retention check passed890 requests,12 cycles of24
+open/edit/close documents and512KiB unrelated revisions, in25.401s.25 samples:
+footprint3.08MiB initially,15.00MiB final/peak with plateau over last~9s; RSS max
+23379968B, swapped/compressed max1818624B, system free46–48 percent. Dependency
+invalidation and stale-answer counters passed. Both used the unchanged accepted
+LSP hash above. These bounded diagnostics are not a soak/leak proof, stable latency
+benchmark or full workspace diagnostic latency acceptance. Raw reports are disposable,
+not canonical SQLite benchmark records. Owner editor buffers were not controlled.
+
+Native AX checks before the repair: all300 tasks, table24 rendered rows before/
+after scroll with changed first data title (pointer-string comparison was repaired
+to compare actual titles). Settled cards18 rendered nodes/three columns at1180px;
+8 nodes/two412px columns at860px/zoom24. Initial one-column measurement preceded
+settled layout. At860x760/zoom24 all eight sheet controls fit. At860x600/zoom14 Save
+and Close fit. The attempted zoom after opening that minimum-size sheet failed and
+is not zoom24 acceptance. Ten explicit light/dark badge palette pairs have minimum
+6.37:1 computed contrast. This is geometry/source-palette evidence, not pixel review.
+
+Next: retain this accepted correctness fix and tool-anchor repair, clean closed
+scratch outputs after checkpoint, then finish local milestone regressions and
+product acceptance (including isolated table activation and visual review) before
+one validated push/PR. Supported-platform CI/merge remain open. Do not launch more
+optimization experiments or pursue the owner-deferred <10 percent target now.
+
+## Recursive cycle cache experiment rejected; optimization deferred — 2026-11-14
+
+Owner direction after reviewing progress: retain the measured gains, do not spend
+much more effort risking regressions, and revisit optimization later unless a
+substantial improvement appears soon. The owner accepts the gains found so far
+for now. The current cycle-cache experiment has no such gain, so it is discarded.
+Do not start further speculative optimization or pursue the original <10 percent
+target as an immediate acceptance blocker; that target is deferred by the owner,
+not achieved or silently weakened. Retain its measurements for a later revisit.
+The full application/compiler acceptance goal remains incomplete; this is an
+optimization scheduling decision, not a performance pass or a request to stop the
+running Worklist/API sessions. Remaining validation may proceed without more tuning.
+
+The rejected candidate replaced four uncached recursive-cycle queries in
+analysis/native_view_storage_contracts.rs, analysis/record_branch_carriers.rs and
+analysis/continuations/records.rs with the existing native_recursive_shapes cache.
+An existing recursive_view_shapes case compared cycle membership with/without
+stored callback access. Native-view library tests passed 139/139 in 75.14s after
+3m30s setup; cycle-index cases passed 4/4 in 0.00s after 0.50s setup. Existing three
+fs helper warnings remained. Release pair built in 3m39s; LSP library passed 36/36
+in 2.40s after 2m26s setup. No backend checks or wrappers were removed. These
+passing checks did not justify retaining an unhelpful optimization; all four owned
+candidate files, including the additional test assertions, were restored from
+17bf57220. No protected owner changes were reverted.
+
+The maintained frontend-emission harness used the original three samples per
+engine/app, one untimed setup per engine/app, shared quiet-machine guard and
+byte-identical emitted Rust checks throughout. No builds/tests overlapped timing.
+
+| Frontend emission median, milliseconds | Accepted before | Rejected candidate |
+| --- | --- | --- |
+| Worklist | 2334.025792 | 2322.642000 |
+| Studio | 58162.551875 | 60021.993542 |
+
+Worklist changed by -0.49 percent; Studio by +3.20 percent. This grouped diagnostic
+comparison shows no useful gain; it does not establish a universal stable regression.
+Loads were 2.14697–3.29785, below the established limit4. Setup excluded:
+Worklist2302.56/2725.62ms,Studio57940.60/58009.04ms. Source/config aggregate SHA-256:
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Harness SHA-256 `c0e17c82be770b7380fb5aa68eb243ec53f32ef09e4ae977d3741e37aa5264d3`.
+Every emitted Rust hash matched: Worklist
+`e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`,Studio
+`fd9592913c7c63a1ee321f434f1755389154a49e7fa6be8031876cb687f7974e`.
+Baseline CLI `39221534341ccac3a786d6b26296dd368cce0953dda37b010c32b4d4f998738a`;
+rejected CLI `f86215dd4ff4f1f2b1c3d2f3bbfce0174119f67108f835f170afb47e9a767fc4`,
+rejected LSP `2a42c9bf47371a3873d01441165730b2f5c10d0d30a10720f63c9bc8fd4058b3`.
+Four histories were ingested and independently verified at
+`2026-11-14T23:22:46.457018+00:00`,3 samples each; SQLite integrity=ok. Prior histories
+remain intact. Closed raw reports are removed after checkpoint.
+
+Accepted-source release restoration passed in 3m45s. Release and installed CLI
+both match the accepted baseline hash above; release and installed LSP both match
+`7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+Whole-project formatting passed:0 source files,0 documentation snippets and0
+fingerprints changed. No new compiler/LSP source is retained. The local checkpoint
+contains only this progress record and four measurement histories. Keep
+Worklist87431/87575,API33729/45647 and Zed
+LSP75803 alive; Studio stays stopped. Owner Studio/SDK drafts and service-test
+import ordering remain unstaged. No remote actions. The <10 percent matched Rust
+target remains unmet; retain last accepted38.32/49.12 percent observations.
+Remaining product stress/zoom/visual, LSP latency/memory, full local milestones and
+supported-platform CI/PR acceptance remain open. Do not silently drop those checks
+or call the whole goal complete because optimization is being deferred.
+
+## Native dev idle wait accepted — 2026-11-14
+
+New CLI-only source replaces the unconditional idle sleep with bounded native
+notification waiting. POSIX poll observes kqueue/inotify readiness without consuming
+events; Windows WaitForSingleObject leaves rearming to changed(). The supervisor
+still times out after 100ms to poll external source/config/binding dependencies and
+observe child exit/signals. Debounce and in-flight cancellation intervals remain
+unchanged. Wait failures fall back for only the remaining original timeout. Empty
+native reconciliations retain one polling interval of backoff, preventing repeated
+scans under unchanged-byte/irrelevant notification storms while preserving later
+real edits. All source reconciliation and backend validation checks remain intact.
+
+Only dev_cli.rs, dev_events.rs, dev_windows_events.rs and dev_watch.rs changed.
+All 22 dev unit cases passed in 0.54s. After fixture formatting, watcher 8/8 passed
+in 0.45s; final remaining-time refinement replay passed 8/8 in 0.44s (9.07s setup)
+and cancellation integration 6/6 in 16.04s (12.29s setup). Earlier unchanged alias/
+cache integration 3/3 passed in 4.89s and colors 1/1 in 1.20s. Native event/frontend/
+dependency cases from the 22-case run remain accepted. Tests prove early wakeup,
+queued-event preservation, unchanged-notification backoff with a queued real edit,
+polling fallback and external imports after timeout. Successful source fixtures
+exercise formatting/idempotence. Initial compilation used an invalid CLI-bin
+formatting path and was repaired; a filter typo ran zero cases and is not counted.
+The external-import witness initially supplied a noncanonical private Watcher
+root; it now mirrors the public supervisor's canonical-root contract and retains
+its dependency assertion. Windows INFINITE import was checked against windows-sys;
+Windows/Linux execution is not verified here. Release CLI built in 23.72s;
+compiler all-target checking passed in 11.19s with existing warnings. Core/LSP
+source and APIs are unchanged; preserve the previous full regression evidence.
+
+Established benchmarks/dev/baseline.py ran the original default 3-sample 6/130
+module protocol with the shared quiet guard, independent program-output checks and
+idle observations. Source fingerprints and harness SHA-256 match every before/
+after run. No builds/tests ran concurrently with timing.
+
+| Modules | Cold start ms, before/after | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| 6 | 536.33 /583.93 | 113.01 /99.21 | 391.93 /373.24 | 440.97 /374.59 | 308.63 /223.09 |
+| 130 | 563.56 /493.13 | 106.04 /104.67 | 406.68 /389.48 | 496.14 /389.29 | 310.01 /217.60 |
+
+Shared-edit reductions were 15.05/21.54 percent; configuration-edit reductions
+27.72/29.81 percent. Leaf reductions were smaller, 4.77/4.23 percent. The 6-module
+cold median initially regressed 8.87 percent. Individual cold samples were noisy:
+before 1130.18/477.61/536.33ms, after 1694.84/502.01/583.93ms, with large backend/native
+phase variation. The wait is after initial program spawn; no startup speed claim
+is made. Follow-up reran only the affected 6-module graph, preserving 3 samples,
+after untimed version launches of both binaries and with no intervening build:
+
+| 6-module follow-up | Cold start | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| Before, ms | 498.54 | 176.82 | 443.11 | 448.21 | 248.09 |
+| After, ms | 487.47 | 114.31 | 373.38 | 364.56 | 224.85 |
+
+The cold regression did not repeat; retain both runs rather than selecting one.
+Edit latency improved in both comparisons. Original before loads 3.0874–3.9058,
+after 2.1440–2.5059; follow-up before 1.9194–2.0059,after 2.2983–2.4346,all below existing
+limit 4. These grouped three-sample diagnostics do not establish universal/stable
+startup or edit speed. Idle supervisor CPU deltas were 0–0.02s over about 3s and
+within-sample RSS stayed fixed (roughly 21/27 MiB). These short observations are not
+a retained-memory leak proof. Thirty workload/engine history entries were ingested
+and independently verified, 3 samples each; SQLite integrity=ok. All prior histories
+remain intact. Run timestamps: 2026-11-14T22:30:33.840973+00:00,
+22:34:36.856110+00:00,22:40:17.966898+00:00,22:40:35.659644+00:00.
+Baseline CLI SHA-256 `44dfbdd7549b4aae8fa90ac5ac2ad34f42a779ae9bbce28ed5d5dfbe1a10b06e`;
+candidate `39221534341ccac3a786d6b26296dd368cce0953dda37b010c32b4d4f998738a`.
+Release/installed LSP remain identical at
+`7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+
+Whole-project formatting passed: 0 source files, 0 snippets, 0 fingerprints changed.
+Installed CLI was staged, version/hash verified and atomically replaced. LSP is
+unchanged. This section completes local dev-wait acceptance; the source checkpoint
+contains only its four CLI files, measurements and this progress record. Owner
+Studio/SDK drafts and service-test import ordering remain unstaged. Benchmark
+temporary projects/children cleaned themselves up; closed raw results are removed
+after checkpoint and independent SQLite verification. Keep Worklist 87431/87575,
+API 33729/45647 and Zed LSP 75803 running. They retain previously loaded supervisor
+code until a later authorized refresh; no buffer/app restart is required for this
+non-language change. Next: a proven backend-probe optimization preserving wrappers
+and full pinned-version validation, or further profiled frontend work. The <10%
+matched Rust target remains unmet (last accepted core comparison 38.32/49.12 percent
+for 6/130 modules; not remeasured for this dev-only edit). Full application/platform
+milestones and PR merge remain pending. No remote action.
+
+## Error-effect body reuse validated — 2026-11-14
+
+The new candidate caches function, closure-body and method-body effects only
+within one propagate_partial_contracts solve. A local Reader records actual
+contract lookups by function/closure/storage/callback/method/invocation category.
+Category versions invalidate bodies when a contract grows; new forwarded method
+keys also invalidate readers even if their empty contract does not grow. Original
+iteration order, failure payload ordering, caller discovery, family/forwarding and
+invocation propagation remain intact. Every solve starts fresh. No caller state or
+checked body is retained across solves. ErrorEffects layout and Send/Sync properties
+are unchanged; tracking lives in a stack-local Cell-based Reader.
+
+In test builds each cached solve is compared with the full original traversal,
+including all contract vectors/maps, expression own/aggregate/check flags and catch
+payload contracts. The focused witness proves unrelated category changes reuse a
+body while changed callee contracts recheck it. All 55 error-effect cases pass in
+0.88s after 3m30s setup. An initial helper-rename compile error was fixed before
+this pass and is not counted as acceptance. Full compiler library: 1527 passed,
+30 sandbox failures,8 pre-existing ignored in 247.51s. Exact replay of those 30
+outside the sandbox passed in 0.52s (loopback listeners and working-directory
+boundary). All 1557 non-ignored cases are accepted across these two runs, not a
+fabricated single green run. Stress depths and existing ignored cases unchanged.
+Three existing fs helper dead-code warnings remain.
+
+LSP library passed 36/36 in 2.39s after 2m26s setup. Compiler/LSP all-target offline
+checking passed in 1m32s with retained test/deprecation warnings; none target this
+module. Editor-consistency integration initially passed 30/31 in 87.65s (23.66s
+setup). The filesystem-hover witness exposed an existing wording mismatch.
+DirEntry.path now explicitly says relative readDir input yields a relative path,
+while walkDir retains canonical absolute semantics. Existing assertions remain.
+Exact replay passed 1/1 in 9.54s after 20.45s setup. Stdio passed 17/17 in 1.57s;
+workspace scan 9/9 in 0.05s (2.76s combined setup). Only the DirEntry.path doc hunk
+in builtins.json belongs here; leave owner's initialAnchor/selectionChange hunks
+unstaged. Release compiler/LSP pair built in 3m40s.
+
+The maintained benchmarks/dev/worklist_frontend.py compares both existing app
+entries through public emit CLI, one untimed setup and 3 samples per engine/app,
+unchanged source/config/compiler guards and identical emitted Rust required. It
+uses the established shared quiet guard and SQLite format, retaining completed
+samples on failure. Source guards accept additional roots and include native .rs
+binding inputs. All 12 harness cases pass (0.020s), including changed-emission
+rejection, partial samples, empty caches and additional-root/native-input guards.
+
+| Three-sample frontend emission median, milliseconds | Before | Candidate |
+| --- | --- | --- |
+| Worklist | 2401.147750 | 2364.092458 |
+| Studio | 73558.160375 | 58297.722208 |
+
+Studio reduction is 20.75 percent; Worklist reduction is 1.54 percent. These are
+this grouped quiet diagnostic comparison, not a universal or stable-speed claim.
+Observed loads 2.6382–3.5689, established limit 4. Setup excluded: Worklist
+2428.75/2876.79ms; Studio 76269.80/58554.39ms. No native Rust toolchain executes in
+this workload. Every output Rust file was byte-identical within and across engines.
+Four histories were ingested and independently verified at
+`2026-11-14T21:55:25.990354+00:00`, 3 samples each; SQLite integrity=ok. Existing
+negative experiment histories remain intact. Source/config aggregate SHA-256:
+`decd24fc62d49d9042eddb9de9fc7a21b4c4e3762ebd772baa4dcd3239a4bec6`.
+Emitted Rust: Worklist `e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`,
+Studio `fd9592913c7c63a1ee321f434f1755389154a49e7fa6be8031876cb687f7974e`.
+Baseline CLI `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`;
+candidate CLI `44dfbdd7549b4aae8fa90ac5ac2ad34f42a779ae9bbce28ed5d5dfbe1a10b06e`;
+LSP `7064063d5398115428b4ba8bd8f7b8d945c54dcc944b2487f46117c2a3e2d9e1`.
+Installed pair was staged, version/hash verified and atomically replaced per file.
+Zed's existing server was not restarted. Existing Worklist/API sessions remain
+running, using their previously loaded supervisor code. No buffers were changed.
+
+Current-source Worklist combined suite passes all 14 cases in 10 files,699.60ms
+execution,22.33s build/setup, with the real development Postgres/API and one normal native runner.
+This covers retained worker/channel, stale edits, offline/reconnect, CDC and crash
+replay. Whole-project formatting passed 0 source files /0 snippets /0 fingerprints.
+Acceptance uses current worktree including protected owner SDK additions; do not
+claim an immutable clean-HEAD app run excluding those hunks. Preserve all owner
+Studio edits and task service-test import ordering.
+
+Matched Rust regression comparison completed with the original 3-sample 6/130
+module protocol, independent integer outputs, matched Rust arguments/runtime and
+required application misses/support hits. Medians: 6 modules 135.784250ms Tsrust /
+98.164708ms Rust (38.32 percent overhead);130 modules 175.636500/117.783750ms
+(49.12 percent). Check/emit/backend medians were 1.3/0.4/26.4ms and14.5/1.9/26.6ms.
+The <10 percent target remains unmet. Compared with retained earlier 136.81/97.11
+and178.13/119.11ms medians this shows no new broad regression; three samples do not
+establish a stable tiny-workload speedup. All observed quiet loads were 2.2075,
+limit4. Four histories were ingested and independently verified at
+`2026-11-14T22:10:01.901804+00:00`,3 samples each; SQLite integrity=ok. Native controls
+and emitted inputs are unchanged. No toolchain/wrapper checks were bypassed.
+
+Accepted source checkpoint is `7cd18d091`. It contains only this propagation,
+benchmark, measurement and progress section plus the DirEntry.path documentation
+hunk. Owner SDK selection additions, Studio drafts and service-test import ordering
+remain unstaged. Closed raw reports were removed after independent ingestion
+verification; no source/binary archives were made. One shared Cargo target remains;
+benchmark temporary source/output trees clean themselves up.
+Keep Worklist 87431/87575, API 33729/45647 and Zed LSP 75803 alive. Next: investigate
+native idle waiting in dev (retain debounce, cancellation and external dependency
+polling) or a proven backend-probe optimization preserving wrappers and full pinned
+version validation. Further cross-region effect reuse needs complete typed-input
+invalidation; this candidate intentionally retains only per-solve state. Full goal,
+<10 percent target, remaining milestone/platform checks and PR merge stay open.
+
+## Function-body revision experiment rejected — 2026-11-14
+
+Accepted runtime-alias optimization is checkpoint `06b18babb`. The subsequent
+experiment narrowed only function-body consumption so it would not bump the
+conservative record-shape revision. A focused scheduling witness reproduced the
+unnecessary revision change (1 to 2). The candidate passed all 140 native-view
+cases in 76.53s execution after 3m31s setup, including existing in-place record,
+union and scoped-family invalidation witnesses. Scheduling cases passed 11/11 in
+0.32s. The release compiler/LSP pair built in 3m40s. Three pre-existing fs helper
+dead-code warnings appeared in the debug library test build; no new warning arose.
+
+However, quiet-gated Worklist frontend emission showed no improvement: 3-sample
+median 2368.414166ms before versus 2405.472875ms candidate (1.56 percent slower).
+This small grouped diagnostic run does not establish a stable regression either.
+The candidate is discarded; do not repeat that isolated body-take tweak as a new
+optimization. Its paired revision-only test was removed with the discarded code;
+all pre-existing checks and runtime capabilities remain unchanged.
+
+Protocol: existing Worklist entry, public CLI emit into one temporary Rust file,
+one untimed setup per engine, then 3 before samples followed by 3 candidate samples;
+shared rust_control.run quiet guard before each invocation, outside timing. Verify
+source/config snapshot and compiler hashes before each sample and source/config
+snapshot after each emission; require every emitted Rust SHA-256 to match.
+Observed loads 2.1548–2.2842, limit 4. Setup was 2427.82ms before /2843.07ms candidate.
+Source/config aggregate SHA-256 is `9483bf98be5c94c0ffa25be1c4a9f284851a8d02fc2712f62081de580d79cebb`;
+emitted Rust SHA-256 is `e0ce21b940f6ea316134ba179d5c524db0c1d9bedc4141cf369dd9a9eb5240de`.
+Baseline CLI SHA-256 remains `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`;
+rejected candidate was `12e745f861244bc6f6cd9985117f33afc7555908bca3e6f1c5876a6b4604c09e`.
+Two worklist-frontend-emit engine histories were ingested and independently verified
+at `2026-11-14T21:12:13.203068+00:00`, 3 samples each; SQLite integrity=ok.
+This is frontend emission, not native build overhead. No performance pass is claimed.
+The temporary output tree was removed automatically; raw report is disposable.
+
+The context benchmark now handles an initially absent native cache and ignores
+incomplete entries. Ten harness cases pass in 0.015s. This is the only retained
+source change after the experiment; owner drafts remain untouched. Accepted-source
+release restoration passed in 3m48s. CLI and LSP match installed tools byte for byte:
+CLI SHA-256 above, LSP `be5bd5775b7efa806e5148dc915392776851557d97238a1a6a136b2709c45689`.
+Worklist and Studio whole-project diagnostics both pass with exit 0. The Studio
+scan completed after the bounded diagnostic sample below; its timing is not a
+benchmark. Whole-project formatting passed: 0 source files, 0 documentation snippets
+and 0 fingerprints changed. Benchmark fix and negative evidence are accepted for
+local checkpoint. Next: investigate the sampled repeated contract propagation,
+then complete the appropriate coherent regression/performance section. Keep Worklist
+supervisor 87431 / child 87575 and API 33729 / native child 45647 running. Zed LSP
+75803 was not restarted. Worklist remains populated; no app/session restart needed.
+
+A bounded two-second,5ms sample of the Studio check captured 293 active worker
+samples; main thread joins the worker. The captured stack repeatedly enters
+analyze_recursive_with_proofs and region_caller_error_effects, then
+annotate_partial_with_callers / annotate_partial_with_contracts /
+propagate_partial_contracts. One sampled region branch includes 61 samples in
+region_caller_error_effects,53 under annotate_partial_with_callers. This is an
+instantaneous diagnostic window, not full-scan attribution. Footprint/peak was
+480.8M; a separate process observation was about 383MiB RSS. These are different
+metrics, not a leak proof. Raw sample /tmp/tsrust-studio-check-sample.txt is temporary
+until this next hypothesis is investigated. Prioritize this repeated global
+contract propagation path over the rejected body-take tweak; preserve caller-specific
+contracts, checked-body mutation semantics, exception and recursive-mode checks.
+Alternatively native idle wait could replace the unconditional 100ms dev-loop sleep
+without consuming pending events or weakening the 100ms external-dependency polling
+fallback; debounce/cancellation checks must remain. Neither follow-up is implemented.
+Matched Rust <10%, full milestone/platform acceptance and PR merge remain pending.
+
+## Stable Cargo runtime alias accepted — 2026-11-14
+
+The runtime alias fix is checkpoint `06b18babb`, following `78ecc064c`. Its source
+and measured acceptance are preserved. Installed CLI and release
+candidate match SHA-256 `162611aff0d930998300449b023d7611b557326f8742652612f743ee7b060717`.
+Worklist release supervisor 87431 / native child 87575 is running with its normal
+persisted data and API at localhost:4317. Its fresh unused caller context required
+full cache misses and launched in 14.997s, with runtime-build+publish 3.056s.
+Accessibility inspection confirms populated task rows, full-width table, search,
+filter, view buttons and Updated descending state. This is a launch smoke check,
+not a repeat of the earlier full interaction acceptance. API supervisor 33729
+remains running. Zed LSP 75803 remains untouched. Studio remains stopped.
+
+The previous Worklist refresh observed 47.161s runtime-build+publish despite
+identical runtime source, GPUI patch, lock, profile and backend identity. Comparing
+runtime entries `db651e4f75413488` and `7255d802ad702903` proved only field 10 (full
+environment/Cargo configuration digest) differed. Naming Cargo libraries by the
+full artifact-cache key forced recompilation even when Cargo could reuse unchanged
+inputs. Libraries now use dependency-workspace identity plus runtime body, with
+the existing 16-hex name width. Full cache keys, environment/configuration validation,
+source guards, locks, reported artifacts and checksums remain unchanged. Distinct
+graph/body aliases remain distinct; Cargo still invalidates actual changed inputs.
+
+The retained native_json_build witness failed before the fix on unequal library
+names for an environment-only miss. Candidate validation passes 5 runtime preparation
+unit tests (3.83s execution; 9.26s setup), 6 JSON/artifact integration cases (5.96s),
+3 public cache cases (3.18s), and runtime-cancellation replay 1/1 (3.66s). Existing
+A/B/A fresh-graph/current-output witnesses pass. A new unchanged-source Cargo env!
+witness produces 41 then 42 under changed child compiler environment; child-only
+test overrides are never published into parent-keyed caches. Release pair built
+in 22.61s. Nine benchmark harness tests pass in 0.013s, including malformed identity,
+included Cargo config changes and public CLI timing/cache-miss parsing.
+
+The maintained benchmarks/dev/worklist_runtime_context.py driver uses existing
+Worklist, one shared Cargo target, one untimed setup per engine and 3 samples per
+engine. Every invocation changes a unique unused caller value, requires app/support
+cache misses, verifies unchanged task sources and Cargo config/include contents,
+and verifies identical support inputs except the expected environment/config digest.
+Quiet loads were 2.1963–3.105 against established limit 4. Source guards passed.
+
+| Three-sample median, milliseconds | Before | After |
+| --- | --- | --- |
+| Total public CLI build | 58135.524 | 12919.275 |
+| Native compilation/linking phase | 55522.100 | 10349.800 |
+
+Total median reduction is 77.78 percent; native phase reduction is 81.36 percent.
+The native phase includes support and application compilation/linking, not support
+alone. Untimed setup was 57041.5ms before and 59014.6ms after. These are this caller-
+context workload's results, not matched-Rust <10% acceptance or general UI latency.
+Four workload/engine histories were ingested, independently verified with 3 samples
+each and SQLite integrity=ok. Existing histories remain intact. Eight comparison
+app entries, eight support entries and 30 obsolete baseline/failed-setup Cargo
+alias paths were selectively removed under namespace/target locks. The stable
+candidate alias and all unrelated artifacts were retained. No byte-reclamation
+claim is made because hard links exist. Disposable raw reports are removed after
+recording this evidence. Earlier driver setup/parser failures produced no accepted
+measurements and their two entries were removed separately.
+
+Next: checkpoint this accepted section after whole-project formatting, then inspect
+sampled overbroad AnalysisProgram revision bumps on function-only mutation, preserving
+all in-place record/union/scoped-family invalidation checks. Watcher/debounce costs,
+matched Rust <10%, full regression/platform acceptance and final PR remain open.
+Preserve unrelated owner edits, including apps/tasks/desktop/tests/service.test.tsr
+import ordering, Studio drafts, relocated Go fixtures and SDK selection additions.
+
+## Cancellable dev probe overlap validated — 2026-11-14
+
+The existing backend probe now starts alongside frontend work. Its same Process
+owner still kills/reaps descendants on cancellation or frontend failure. Spawn
+errors are deferred until the frontend result, retaining source-error precedence.
+Version/output validation, wrappers and cache integrity checks remain unchanged.
+The backend phase is its overlapping wall span; do not sum it with frontend time.
+Alias tests passed 3/3 in 4.75s, cancellation 6/6 in 14.97s (including the new invalid-edit
+pending-probe descendant witness), colors 1/1 in 1.33s. Setup 153s. Release pair build
+passed in 22.50s. Six benchmark harness tests pass. Dev-loop reports now export the
+shared measurement schema, including partial completed sample sets; no duration is
+replaced or inferred. The earlier completed baseline's timestamp comes from its
+report completion mtime because that version lacked an explicit timestamp.
+
+Quiet-gated 3-sample medians (before to after, milliseconds):
+
+| Modules | Cold start | Warm start | Leaf edit | Shared edit | Config edit |
+| --- | --- | --- | --- | --- | --- |
+| 6 | 594.15 to 497.55 | 107.56 to 109.66 | 460.86 to 469.79 | 452.26 to 430.39 | 264.33 to 288.36 |
+| 130 | 521.76 to 473.11 | 128.75 to 109.58 | 517.49 to 515.99 | 458.39 to 455.69 | 296.63 to 297.95 |
+
+The result is mixed: startup improved, especially the 130-module warm case; edit
+latency is dominated by watcher/debounce/polling delays and the 6-module config
+median regressed 9.09 percent. Do not claim a universal or stable speedup from three
+samples. All completed program-output oracles passed; after-run idle CPU deltas were
+0/0.01s with stable supervisor RSS (about 21/27MiB). These are short observations,
+not a retained-memory leak proof. Twenty dev workload/engine history entries were
+ingested, independently verified with 3 samples each, and SQLite integrity passed.
+Existing matched-build and probe histories remain intact. Raw results are disposable.
+
+A two-second,5ms macOS sample of successful Worklist emission captured 329 active
+compiler-thread samples, mostly within analysis/check_graph. Recursive native-view
+shape refresh/index construction and record matching appear repeatedly alongside
+call checking and allocation. Physical footprint was 99.3M, observed peak 119.5M.
+This is an early-window diagnostic sample, not full-workload attribution or a
+benchmark. Raw sample /tmp/tsrust-worklist-frontend-sample.txt is temporary while the
+next cause is investigated. Next: inspect overbroad AnalysisProgram revision bumps
+on function-only mutation; preserve all in-place record, union and scoped-family
+invalidation witnesses. Do not bypass checks or weaken existing assertions. Keep
+Worklist 65742/67828 and API33729 running, and preserve all owner edits. The <10%
+matched Rust target and full goal remain unaccepted.
+
+## Quiet-gated compiler/dev profiling — 2026-11-14
+
+Previous goal turn made progress: accepted shared UI sections are checkpointed.
+Both existing dev benchmark protocols now call the runtime runner's existing
+quiet-machine guard before each timed process/edit, outside the measured interval.
+Records include every observed load/threshold. Original 3-sample counts, 6/130-module
+graphs, compiler arguments, shared runtime bytes and independent integer-output
+oracles are unchanged. Five Python harness tests and the shared Node quiet-machine
+negative test pass; busy-machine rejection starts no timed process or dev supervisor.
+
+Quiet-gated matched medians with the refreshed release compiler: 6 modules,
+136.81ms Tsrust /97.11ms Rust, 40.89 percent overhead; 130 modules,178.13/119.11ms,
+49.56 percent overhead. Median check/emit/backend verification phases were
+1.3/0.4/25.9ms and14.7/1.9/27.3ms. Loads were2.19–2.58 against established limit4.
+A separate three-sample, alternating, same-version probe measured27.495ms through
+rustup and20.111ms directly; direct invocation alone cannot meet the target and
+must not bypass custom wrappers. Six workload/engine histories were ingested with
+npm run store:ingest, verified at their timestamps (3 samples each), and SQLite
+integrity_check passed. Disposable raw reports were removed after verification.
+These are three-sample observations, not complete performance acceptance.
+
+Runtime-cache identity inspection found legitimate SDK/body changes among retained
+entries. The earlier app-only toggle miss is inconclusive; do not call it a proven
+cache invalidation defect. Next: overlap the existing cancellable backend probe
+with dev frontend work using the existing Process ownership/teardown, retain version
+validation/error precedence/custom wrappers, run affected cancellation/alias checks,
+and compare the unchanged dev-loop protocol. No compiler optimization is implemented
+yet in this section. Keep Worklist/API sessions and protected Studio/selection plus
+service-test import edits intact. Required <10 percent, full cache/edit matrix,
+LSP/stress/pixel/platform/milestone checks and PR merge remain open.
+
+## Shared zoom repairs accepted section — 2026-11-14
+
+Numeric sorting is checkpoint f73795b21; accepted zoom repairs are f3c3dea2d.
+The zoom source forwards Select
+trigger/option/group typography, Pagination button typography and TitleBar styles.
+Native Button/Input/Select frames fit explicit fonts and icons; TitleBar grows to
+its contents, centers macOS traffic lights and keeps the full bar draggable.
+DataTable plain cells inherit explicit fonts and default rows grow to fit. Worklist
+retains its full 11–24 zoom range; toolbar/footer heights grow with their contents.
+No controls, sorting states, validations or accessibility checks were removed.
+
+Managed widget batch passed 79/79 (0.13 s execution, 30.23 s setup), including the
+new 24px native Button/Input/Select/TitleBar geometry witness. After the final group
+label refinement, affected Select/searchable-list/TitleBar replay passed 12/12
+(0.03 s execution, 30.71 s setup). All tsrust-ui library tests passed 167/167
+(0.08 s execution, 0.24 s setup), retaining negative structural/validation controls.
+Initial newly introduced test import/selector errors were repaired before executed
+passes. Managed Cargo.lock registry metadata is restored. Whole-project formatter
+reports 0 files/snippets/fingerprints changed. Debug compiler built in 2m24s.
+
+Native Worklist replay passed zoom24 at 1180px and minimum 860px width, popup
+selection Done/All statuses, two-column cards, unchanged task-sheet open/close,
+zoom11 and reset14. At zoom24 the title bar contains 40px controls, toolbar/footer
+are 56px, search editor bounds are 36px, Select triggers 40px, popup rows 43px and
+DataTable rows 44px. Sheet fields and Save/Delete controls remain inside the sheet.
+Dragging at y=39 within the enlarged 41px title bar moved the window 27px and reverse
+drag restored its position within 1px. Three-state Task header replay again showed
+ascending/descending/unsorted, then restored Updated descending. A temporary host
+probe first matched AXApplication instead of AXWindow and failed before any drag;
+its corrected window-scoped replay passed. An earlier ambiguous Done target matched
+a table cell; only the subsequent popup-scoped selection replay is accepted. An
+unexpected intervening zoom11 observation did not recur in scoped replay; do not
+silently attribute it to application source or claim the earlier sequence passed.
+These are native geometry/interaction checks, not pixel/screenshot acceptance.
+No task data was changed. Preserve prior full-header/API-oracle acceptance.
+
+Worklist supervisor 65742 / exec 79888 / child 67828 remains running, Table / Updated
+descending / zoom14, 1180x821. API supervisor 33729 / exec 48973 remains running;
+Studio remains stopped. Desktop log /tmp/tsrust-worklist-desktop-dev.log. Native
+SDK refresh was 185.164s setup (runtime 165.155s); unchanged follow-up reused the
+checked application and program in 621ms. These are diagnostic observations, not
+matched Rust benchmark results. Release compiler/LSP refresh passed in 3m47s, log
+/tmp/tsrust-widget-zoom-release-build.log. Both default installed binaries were
+atomically replaced and independently verified against release SHA256 and versions;
+no staging/rollback copies remain. The final release compiler also checks Worklist
+main cleanly. Owner restarted Zed: process 67536 replaces
+37383 and uses configured target/release/tsrust-lsp, but predates this final rebuild.
+Its open-document diagnostic contents are not accessible through available desktop
+tools; no live-clear claim or final-image reload acceptance. VS Code is not running;
+its ignored overrides still select release binaries. Preserve the newly observed
+owner import-order edit in apps/tasks/desktop/tests/service.test.tsr unstaged.
+
+Cleanup pruned closed fixture workspaces 5e25d46347b5a780 and 5e1bab3b875173d5 while
+retaining lock inodes, and their two obsolete runtime bundles under nonblocking
+locks. Current reusable fixture support and unknown application entries remain.
+Next: profile backend verification/runtime invalidation and resume the matched Rust
+performance matrix. <10 percent overhead, stress/pixel/platform checks, complete
+compiler/LSP milestone regressions and final PR merge remain required and open.
+
+## Mixed numeric sorting accepted; zoom repair next — 2026-11-14
+
+Shared widget repairs are checkpoint 88d2b576f. The next audit reproduced a real
+comparator defect: pairwise integer/float/text fallback produced inconsistent order
+and rounded mixed large integers. A retained witness failed before the repair.
+Local table sorting now parses each key once, preserves exact i128 comparisons,
+compares integers against floats without first rounding the integer, and consistently
+orders numbers before lexical text ascending. Stable ties, signed zero, infinities,
+NaN and descending order are documented. Focused table-related UI tests pass 16/16
+(0.01 s execution, 3.48 s setup), including original row identities, numeric range
+boundaries and exhaustive antisymmetry/transitivity over the boundary corpus.
+These changes do not affect Worklist's remote sorting. Compiler consumer rebuild
+for this pure runtime repair remains pending; native widget boundary acceptance from
+88d2b576f stays preserved, not relabeled as acceptance of this new comparator.
+
+Maximum Worklist zoom (14 to 24 via existing shortcuts) exposed incomplete shared
+sizing: native Buttons grow to 40px but escape the fixed 34px TitleBar; input editor
+bounds stay 20px, Select bounds 24px and DataTable rows 30px. Select, Pagination,
+DataTable and TitleBar currently get class wrappers rather than native refinements;
+the input frame has fixed-rem line height. Investigate shared typography forwarding
+and geometry, keep the full zoom range and all controls. Restored baseline zoom14
+after observation. No pixels are available; do not infer font appearance from bounds
+alone. No source changes for zoom yet. The Zed palette-focus question remains pending.
+
+## Shared framework audit accepted section — 2026-11-14
+
+Checkpoint d518e47fd preserves the Worklist/table section. The following shared
+repairs are validated and ready for the next local checkpoint; required goal scope
+remains open. Preserve capabilities and repair their shared implementation rather
+than reducing features to bypass edge cases.
+
+Named DataTable keys now resolve through original source_columns after column
+reordering. Typography/shrink-only Button classes retain native Kit variants,
+selection, loading/disabled semantics and custom content; surface/layout classes
+retain their authored presentation. Text inherits from the semantic root, explicit
+interaction refinements merge after native styles, icons scale and hit targets fit
+the text. Classed Links retain their inline behavior. Documentation is updated.
+SearchableList forwards row labels and disabled state. List accessibility activation
+uses the same confirmation path as pointer selection, and disabled rows expose no
+press action. Existing enabled-item validation remains. The existing base disabled
+adapter is exported without introducing layout/focus nodes. Worklist view toggles
+also expose truthful accessibility values.
+
+Focused validation: style routing 1/1 (0.00 s execution, 4.21 s setup); managed Button
+19/19 (0.05 s execution, 37.63 s setup), including real inherited-font hover probes;
+managed List/Select/searchable-list 20/20 (0.05 s execution, 29.24 s setup), including
+readable labels, disabled/readonly actions and retained negative confirmation checks.
+Initial test compilation failures were repaired before these executed passes.
+LSP library 36/36 (1.97 s execution, 16.66 s setup). New release compiler checks both
+Worklist main and the whole Studio directory cleanly. Whole-project formatting is
+idempotent. Tests ran with protected owner selection hunks present; those hunks and
+all unrelated Studio edits remain outside our checkpoint.
+
+The retained ui-table-state native fixture passed named-key move/resize/refresh,
+exact large-integer sorting, stable ties, original row selection and genuine unsort.
+Explicit 20px Buttons have 34px hit targets; the 20px Link remains inline. Both plain
+and InputGroup-addon Select options expose readable names and working press actions;
+the disabled option reports AXEnabled=0, no offered action and unchanged selection.
+macOS AXPerformAction can return success even for an unavailable action; disabled
+acceptance checks advertised actions and selection, not the return code. Final
+bundled fixture setup was 169.323 s; its temporary supervisors are stopped.
+Worklist native replay accepted card-sort option activation, ascending direction and
+cross-view state against independently sorted live API data, then restored Table /
+Updated descending. No task mutations occurred in this audit. All twelve source
+badge foreground/background pairs exceed 4.5:1 contrast (minimum 6.37:1); this is
+source-color evidence, not screenshot/pixel acceptance. Screen capture unavailable.
+
+Debug compiler refresh passed (2m26s setup); release compiler/LSP pair passed
+(3m55s setup). Both installed default binaries now match release hashes after atomic
+replacement. Ignored local VS Code overrides point to the release pair; VS Code is
+not running. Zed's active server remains on the prior inode. A focus clarification
+is pending before typing its restart command: accessibility exposes the menu but
+cannot verify command-palette focus. Do not risk typing into an owner source buffer.
+No live open-document refresh acceptance is claimed.
+
+Keep Worklist supervisor 53222 / exec 77609 / native child 54061 and API supervisor
+33729 / exec 48973 running. Desktop log: /tmp/tsrust-worklist-desktop-dev.log. Studio
+remains stopped. SDK refresh setup was 178.694 s (runtime 159.666 s); a subsequent
+app-only view-toggle change took 26.157 s, including a 4.547 s runtime cache miss.
+These are diagnostic observations, not matched benchmark results. The <10 percent
+Rust overhead target remains unmet; prior matched observations were 50.29/53.09
+percent. Next: checkpoint these repairs, test mixed integer/decimal sorting and
+full zoom, investigate the measured runtime invalidation and compiler phases, then
+complete stress, performance, milestone/platform acceptance and PR merge. Do not
+repeat unchanged accepted suites or remove a capability to make acceptance pass.
+
+## Owner correction: preserve capabilities — 2026-11-14
+
+The owner rejected reducing sort behavior to two states to avoid a controlled-state
+edge case. Restore ascending, descending and genuinely unsorted source order. Fix
+controlled/uncontrolled synchronization in the shared table, including handlers
+that retain the same bound value. Add coverage for Updated and every other column.
+Audit this section for similar shortcuts; do not disable or remove a capability to
+make acceptance pass. The older two-state acceptance note below is superseded.
+Current source restores an original-order query and adds a corresponding model
+witness, but the complete framework repair and new validation remain in progress.
+Card view also needs its own sort controls because removing the redundant table
+sort menu accidentally removed card-mode access to sorting. Keep one toolbar.
+Core nullable repair is checkpoint af1cbfeca; UI/SDK changes remain uncommitted.
+
+The current repair adds an explicit controlled DataTableColumn.sort while keeping
+defaultSort initial-only. Delegate refresh preserves uncontrolled sorting, column
+widths and reordered columns; controlled sort events invalidate the delegate even
+when a handler retains the same bound value. Local sorting now preserves original
+row identities, stable ties and exact i128 integer comparisons. The focused
+tsrust-ui unit passed (1/1, 0.00 s); the rebuilt debug compiler checks Worklist and
+the new ui-table-state native fixture successfully. Compiler setup took 2m29s.
+Native controlled/uncontrolled acceptance and the changed four-case model suite
+have now passed: the native fixture retained controlled descending through three
+same-value handler attempts, preserved uncontrolled asc/desc/unsorted on row
+replacement, sorted exact large integers, retained stable ties and reported original
+source indices. Resizing 420 to 360 px and moving the second column first both
+survived a row refresh with the active sort. The four-case model runner passed in
+3.18 ms execution with 2.912 s build/setup. Public UI authoring passed 1/1 in 1.37 s
+with 2m30s host setup, including rejection of an invalid controlled direction.
+The fixture supervisor was stopped after acceptance. Its first sandboxed launch
+failed on macOS pasteboard access; a direct unbundled launch lacked a usable AX
+content tree. Acceptance used the normal bundled dev flow (53.365 s setup).
+The whole-project formatter was idempotent at this point.
+The audit also confirmed that typography-only Button classes bypass semantic
+variants/selection in the shared renderer; that repair remains required. Keep
+custom card layouts, semantic variants and zoom rather than removing capabilities.
+The same audit found Grid.source uses the current display position as a fallback
+for nonnumeric column keys. Use the original source_columns position so reordering
+named keys cannot switch their cell data. Include named keys in the retained native
+fixture when repairing this alongside the Button renderer. This is pending, not
+covered by the current numeric-key native acceptance.
+
+Worklist native replay passed every header (Task, Status, Priority, Assignee,
+Due date and Updated) through ascending, descending and unsorted. Each active
+indicator and first displayed task matched an independent sort of the live API
+snapshot; Task used full-header pointer clicks. Inactive indicators stayed
+unsorted. LSP library replay passed 36/36 in 2.05 s (2m30s setup).
+Card mode exposes the restored selector and direction control, but opening its
+selector did not expose menu options in the AX tree through either activation
+or pointer clicks. Investigate this before claiming the restored card sort flow
+accepted; do not remove the selector. Screen capture remains unavailable.
+Current Worklist dev supervisor is 35538, exec session 80718, native child 37735.
+API dev supervisor 33729 remains running. The Worklist SDK refresh rebuilt its
+runtime (163.624 s) and launched in 183.385 s total; these are development
+observations, not matched performance results. Studio remains stopped.
+
+Local source checkpoint d518e47fd retains the Worklist workspace and table repairs,
+excluding all protected Studio and editor-selection hunks. Card direction and
+cross-view synchronization subsequently passed native replay against API data.
+Outside pointer clicks dismissed the active selector popup and restored navigation;
+the popup therefore appears to open but lacks its options in the AX tree. Inspect
+the shared deferred-popup accessibility path rather than treating this as proof
+that selection itself fails. The attempted keyboard/AX selection did not change
+its value, so actual option selection and its accessibility remain unaccepted.
+Worklist was returned to Table / Updated descending; API and desktop dev remain
+running. Removed only the two closed unbundled fixture program/runtime cache
+entries; retained the bundled fixture cache for the named-column regression.
+
+## Worklist focused acceptance complete; goal remains open — 2026-11-14
+
+All requested core flows now have native acceptance: one native TitleBar with
+aligned controls, flat full-width toolbar, colored readable badges, measured full
+width table, single-row/card sheet activation, new/edit sheet fields, real save and
+confirmed delete, full-header sorting, numbered pagination with scroll reset and
+responsive virtual cards. Live native checks observed title sorting ascending then
+descending, a sort-icon click cycling exactly once, table page 2 resetting its first
+row to y=273, and card page 3 resetting to y=243. At 860 px window width cards were
+two 412 px columns; at 1180 px they were three 377/377.5 px columns. Sheet Save aligns
+at the right edge after the shared footer-width repair. Final card styling adds an
+explicit zoom-aware text size and a two-line title clamp. App headers now use a
+straight ascending/descending cycle, rather than restoring the default query at the
+widget's third step; this avoids trapping the initially descending Updated column.
+The changed three-case model suite passed in 2.62 ms execution. Native pixels and
+broader stress/zoom/accessibility review still remain; do not claim full product
+or goal acceptance.
+
+Worklist's ten-file runner passed all 13 tests (739.76 ms execution; 13.85 s setup).
+The managed native table-header test passed (0.02 s; 42.94 s setup) when configured
+with the matching managed GPUI base patch. Its first standalone attempt used the
+registry base and failed to compile missing patched editor methods; no checks were
+removed. The public UI authoring regression passed (1.04 s). LSP library passed all
+36 cases (1.93 s). Compiler/LSP all-target checking passed (1m30s setup), with the
+same existing atomic deprecation and test unused/dead-code warnings.
+
+Readonly-nullable integration is complete: the previously timed-out exact literal
+case passed (9.24 s host execution including native setup); mutable captures passed
+1/1 (1.13 s), native string-literal unions 3/3 (2.71 s), and nullable unions preserved
+three native passes then repaired/replayed their diagnostics case (1.30 s).
+Union-array elements passed 7/7 (5.21 s). An old nullable-template rejection was
+stale since scalar-union templates were admitted in commit 3477d11d05; it now rejects
+an actual nullable array interpolation. The other changed rejection now explicitly
+uses Owned<string|null>, retaining genuine transfer rejection while inferred Read
+parameters borrow as intended. All 15 negative witnesses remain valid. A stable
+std:testing fixture has two positive cases (inferred readonly reuse and scalar
+nullable interpolation) run together through one public runner, registered in the
+host suite; its host check passed in 1.12 s including build/setup. Template diagnostic
+wording now includes null and undefined. Earlier compiler-library 1556 passes and
+18 data-union passes remain applicable; only diagnostic wording changed afterward.
+
+Current desktop dev supervisor 12973, exec session 7469; latest native child 17646
+at last observation. Log /tmp/tsrust-worklist-desktop-dev.log; rediscover before use.
+The last app rebuild passed in 25.515 s, a dev observation rather than a matched
+performance claim. API supervisor 33729 remains running; Studio remains stopped.
+Current debug compiler contains all SDK/native header repairs. Release artifacts
+still predate the final card/header/footer repairs and require one milestone rebuild.
+Validation ran with protected owner selection edits present; checkpoint staging must
+exclude their initialAnchor/selectionChange hunks and all unrelated Studio files.
+The API/cache originally had zero tasks at cursor 71; replaying the retained changes
+also left zero survivors. Explicit tools/seed-review.tsr populated 300 marked tasks
+with ON CONFLICT DO NOTHING; seeding is never automatic. API/cache both reached
+cursor 371. Live sheet acceptance created task 31784b456fa3816c8c96f1efa8a01658,
+observed version 1, reopened it from its card, and deleted that exact row through
+confirmation, restoring 300 rows. Source and README retain the safe setup command.
+The final native vendor rebuild observed 159.39 s runtime preparation plus link,
+178.39 s total dev startup; this is not a matched Rust performance measurement.
+The current native app has since rebuilt after app-only styling/model edits.
+
+Next UI review must include semantic button variants/selection under typography-only
+classes: the renderer currently sends every classed Button through its unstyled
+path. Check zoom and hit targets across all controls, not only ordinary text.
+Full zoom/stress/platform/performance acceptance and final push/merge remain open.
+No release/publication is authorized by these local passes.
+
+## Worklist desktop implementation in progress — 2026-11-14
+
+Uncommitted desktop sources now include main.tsrx, theme.json, model.tsr,
+drafts.tsr and service.tsr plus model/draft/channel-worker tests and a desktop
+project config. The two-view screen has a native virtualized DataTable with a
+fixed title column, a virtualized card list, global sorting/search/status filtering,
+pagination/all-rows mode, create/edit/delete controls, confirmation and conflict
+feedback, local draft recovery and a background HTTP/cache worker. Shared contracts
+now name TaskStatus explicitly. These are implemented, not yet native UI accepted.
+
+Owner objected to mechanically numbered eventState/submitSender declarations.
+Removed all of them. action/eventAction bind an owned set of weak Workspace handles
+at each control; command senders share through workspaceHandles. Root JSX reads
+direct state bindings, retaining reactivity. The revised complete screen passes
+release-compiler type checking. Do not reintroduce numbered callback variables.
+The native build is active in exec session 67645, log
+/tmp/tsrust-worklist-desktop-build.log, compiler PID 68728 and child Cargo 70683
+at the last observation. Rediscover processes before acting. Keep the running API
+dev supervisor 33729 and its current child 45647; Studio remains stopped.
+
+Application tests exposed a second compiler bug: a required ReadOnly<Record|null>
+parameter consumed an untagged owned record during contextual union injection.
+The argument adaptation condition now also borrows concrete members of required
+nullable unions. Added a focused internal regression covering record/string/array
+members, stored calls, retained mutation-overlap rejection and genuine Owned
+transfer. Its initial check passed. Later added formatting/idempotence assertions
+to that unit, requiring only its focused replay. The broad run passed compiler
+library 1556 with 8 preexisting ignores (139.90 s) and data_unions 18/18 (7.41 s).
+literal_union_arguments passed 5/6; its Decimal/locale native case timed out at
+180 s waiting during the concurrent native UI dependency build. Preserve those
+passes and replay only that case after the target is quiet. The run stopped there:
+mutable_union_captures, native_string_literal_unions, nullable_unions and
+union_array_elements remain unrun for this change. Broad run log:
+/tmp/tsrust-worklist-nullable-regressions.log. Avoid more concurrent Cargo consumers.
+
+The freshly built debug compiler checks all desktop tests cleanly, including
+Readonly nullable draft helpers. They have not executed yet. Complete the current
+native build, repair any emitted-Rust or renderer failure, validate these tests
+through one std:testing runner, and run the remaining affected checks. Rebuild the
+release pair with the union repair and validate actual native interactions before
+claiming UI acceptance. Existing SDK UI/selection changes and owner Studio drafts
+remain protected outside these changes. The earlier eight-case API/cache proof
+and performance records remain accepted. Full goal and <10% target remain open.
+
+## Worklist versioned API, offline CDC cache and exceptional loans — 2026-11-14
+
+Implemented API routes in apps/tasks/api/src/application.tsr using the existing
+Router-owned SQL environment. PUT /tasks/:id creates with expectedVersion 0 or
+updates the matching observed version. DELETE requires the observed version.
+Stale writes return HTTP 409 with current data. Inputs use checked typed JSON,
+field/version validation, real calendar-date parsing and the existing HTTP body
+limit. The development server only permits loopback binding. GET /changes pages
+committed changes by sequence, acknowledges only delivered rows, preserves empty
+cursors and requests a snapshot reset for cursors beyond the current history.
+
+Migration 002 preserves per-id versions after deletion/recreation, preventing an
+old editor version from matching a replacement task. It indexes identity/version
+lookups in the retained CDC log. Tests now use random ids to preserve fresh-record
+assertions across repeated runs. The statement-level advisory-lock protocol and
+one-statement snapshot remain intact.
+
+Desktop src/cache.tsr stores task payloads and its cursor atomically in SQLite.
+It supports consistent reads, snapshot replacement, ordered CDC pages, duplicate
+replay, tombstones and rejection of malformed/outdated pages. src/sync.tsr loads
+an initial snapshot, applies one CDC page per call and resets from a new snapshot
+when required. Network failures preserve committed local state. README documents
+running the API and one shared std:testing runner across API/desktop suites.
+Desktop UI and its worker integration remain unimplemented.
+
+Application validation exposed a compiler false capture-conflict: awaiting a SQL
+call with an inline cloned parameter inside try left a temporary future loan live
+in finally/catch, preventing pool.close(). Exit-state unwind now removes newly
+introduced lowered-future temporaries while preserving entry loans, real outer
+owners and pending payload loans. Added two internal regression cases and a
+public SQL/compiler witness, including rejection of closing a pool with a genuinely
+pending operation. The original minimal failure now checks cleanly. No ownership
+checks were removed. The initial aggregate-task warning was valid because a later
+sender creation could throw; creating the sender before the tasks removes that
+abandonment path without suppression.
+
+Compiler library passed 1555 with 8 preexisting ignored cases (153.88 s execution).
+SQL integration passed 6 with 2 existing ignored cases (72.78 s host execution,
+including native setup). Async I/O passed 16 initially; its sole export failure
+was a missing portable source-pack prerequisite. Prepared the current pack offline
+in target/portable-source-packs and replayed exactly that case successfully
+(361.34 s including target-lock/build setup). Task integration passed 29 initially;
+one case hit its 60-second build deadline during shared-target activity. Its quiet
+exact replay passed in 1.52 s. Preserve those passes; do not restart entire suites.
+LSP library passed 36/36 (2.10 s). Compiler/LSP all-target offline checking passed
+(1m30s setup), with the existing test dead-code/unused-import and atomic deprecation
+warnings. No warnings target the exceptional-loan repair.
+
+The first six-case formatted Worklist run passed in 443.86 ms test execution with
+38.58 s build/setup. Adding HTTP offline/reconnect/reset recovery produced a
+seven-case pass in 477.59 ms. Final formatted-source acceptance using the rebuilt
+release passed all eight cases in 516.84 ms execution, with 32.30 s build/setup.
+This includes the migration's recreation-version conflict witness. The real
+crash-replay case (19.44 ms) reuses the compiled runner in a filtered child process,
+holds uncommitted row/cursor changes, and has its parent terminate it before
+reopening/replaying. Both cached rows and cursor retained their prior committed
+values, and replay applied once. No separate per-case native program was built.
+
+Release compiler/server build passed in 3m44s setup. Stopped only the verified
+snapshot-only API child 20887 after checking its cwd and launcher. One new release
+API dev supervisor remains running in exec session 48973, cwd apps/tasks/api,
+log /tmp/tsrust-worklist-api-dev.log. Its current application child is 33880 at
+127.0.0.1:4317. The live snapshot and CDC routes both returned HTTP 200. The test
+fixtures left no task rows; CDC history is retained. Its initial dev build reported
+7.658 seconds with a cold runtime-cache preparation. This is a startup observation,
+not matched Rust timing. Studio remains stopped. Existing Zed's in-memory server
+has not been forcibly restarted; newly launched servers use the rebuilt pair.
+
+Next: implement the two-view desktop UI and worker wiring over these accepted
+API/cache contracts, then sorting/search/filtering, cards/table, sticky columns,
+virtualization and pagination, real resize/interaction checks and simultaneous
+API/desktop dev acceptance. Continue measured compiler/LSP profiling. Full goal,
+<10% overhead, remaining platform/editor acceptance and final push/merge are
+incomplete. Preserve protected Studio and selection-recovery edits outside these
+checkpoints. Offline export prerequisites are now prepared under the shared
+root target; run future relocated exports after ordinary compiler/editor builds.
+
+## Lazy runtime extraction and matched Rust controls — 2026-11-14
+
+Completed the pending runtime-extraction optimization and matched native-build
+control. Runtime dependency detection and extraction now check exact module
+headers before constructing large bundled module variants. Exact whole-body
+matching remains mandatory, so incomplete definitions stay untouched. Both UI
+variants and existing bytes, JSON, threads, futures and dependency selection
+checks remain covered. No compiler checks or backend identity validation were
+removed. Public build/dev/export consumers share this runtime boundary.
+
+Compiler library acceptance passed 1553/1553 with 8 preexisting ignored tests in
+138.29 seconds execution. Public dev alias, cancellation and color integration
+suites passed 9/9 in 2.69, 8.73 and 1.21 seconds respectively. The Worklist SQL/HTTP
+suites passed 2/2 in 247.95 ms. Release compiler/server build passed in 3m51s;
+compilation/setup is separate from test execution. Harness checks passed 3/3.
+Compiler/LSP all-target offline checking also passed (1m38s setup), with existing
+test-harness dead-code/unused-import warnings and an atomic fetch_update
+deprecation. No warnings point into this runtime extraction change. Whole-project
+formatting made no changes. Existing owner Studio edits and pending selection
+recovery remain outside this checkpoint.
+
+Added benchmarks/dev/rust_control.py using the existing 6/130-module graphs.
+Untimed setup captures the actual prepared Rust source, pinned compiler invocation
+and support archive. Each timed Tsrust build must miss the application cache and
+hit its warm support cache. Its direct Rust control receives identical prepared
+source, compiler flags and support bytes. Alternating sample order and independent
+integer-output assertions remain explicit. Records include compiler/harness/source/
+support hashes and backend version. Windows capture requires a native wrapper and
+is deliberately rejected. This protocol measures fresh application compilation
+with warm support, not cold dependency builds or watcher edit latency.
+
+Three-sample initial matched medians before optimization were 244.92/119.44 ms
+(Tsrust/Rust) for 6 modules and 276.17/136.25 ms for 130 modules. The final control
+with complete identity metadata observed 150.58/100.20 ms and 191.42/125.03 ms:
+50.29% and 53.09% overhead. An earlier post-change serial observation was
+147.32/104.55 ms and 200.53/122.74 ms. These are development-session observations,
+not stable quiet-machine performance claims. All valid observations were ingested
+through the shared SQLite tool; raw reports are disposable. The <10% goal remains
+unmet. Backend validation and remaining frontend/cache costs still need profiling.
+
+The unchanged dev-loop protocol also completed its original three samples per
+graph, including idle observations. Warm startup medians were 113.89/141.51 ms,
+leaf edits 451.60/491.30 ms, shared edits 457.81/462.13 ms and config edits
+259.02/332.29 ms for 6/130 modules. Ten workloads were ingested separately from
+the matched Rust controls. Do not substitute these observations for matched
+native build overhead or claim universal edit-speed improvement.
+
+Rechecked the Zed grammar: all three reviewed corpus cases pass and all 132
+current Studio .tsr/.tsrx files parse without error/missing nodes. The dedicated
+match/ownership/typed-JSX grammar and local installed WASM remain accepted.
+Interactive highlighting/indentation pixels and remote grammar fetching remain
+unverified; the pinned grammar revision has not been pushed. Studio stays stopped.
+Full Worklist goal and final push/merge remain incomplete. Next independent
+section is resumable task mutations/CDC and the desktop/offline consumer, alongside
+further measured compiler/LSP profiling. Preserve previous acceptance evidence.
+
+## Compiler/dev performance and Worklist goal — 2026-11-14
+
+Owner set a new active goal covering compiler/LSP/dev optimization, less than
+10 percent overhead relative to matched Rust compilation, a complete two-view
+task-management app, offline cached Postgres CDC, simultaneous projects, repair
+of discovered issues, and a locally validated push/PR guided to main. The concrete
+acceptance checklist is docs/plans/task-management-validation.md. This replaces
+autonomous Studio polishing. Existing Studio source/drafts and evidence remain
+preserved. The previous <10 percent target has not been demonstrated.
+
+Applied frontend-design skill and selected compact native work-management
+styling. Worklist roots are apps/tasks/api, apps/tasks/desktop and shared
+contracts in apps/tasks/shared. Docker Desktop was started and the dedicated
+tsrust-worklist Postgres 17 Compose service is healthy on 127.0.0.1:5443.
+Local credentials are in the development Compose file. API is running at
+127.0.0.1:4317 through the authorized native tsrust run session. Studio remains
+stopped; Zed and VS Code remain available.
+
+The established dev harness unit checks passed 2/2. Ran its original
+three-sample protocol for 6/130-module graphs and three-second idle observations.
+Stored all ten timing workloads through npm run store:ingest in
+benchmarks/measurements.sqlite. Medians in milliseconds for 6 / 130 modules:
+cold startup 594.50 / 627.00, warm startup 138.74 / 155.81, leaf edit
+487.95 / 521.42, shared edit 480.49 / 498.61, config edit 279.97 / 302.89.
+These are initial development observations, not a quiet-machine matched Rust
+overhead comparison. Logs showed approximately 47 ms backend setup, including
+cached rebuilds. An isolated nine-run rustup/rustc version probe observed a
+29.292 ms median. Backend polling and identity-probe reuse remain candidates;
+no checks have been removed. Baseline compiler/harness hashes follow.
+
+Compiler SHA-256 e5e01e8dfca8b153eac9e9da6d34f4bdd0d3ba7d1a3233d31ea6b1f33da72588.
+Harness SHA-256 f13c753baff1100d269f1c8b5514671e1d1a6cfedb8e07bfb54ad3350dffe27c.
+
+Added Postgres task/version/change-log migrations and a consistent one-statement
+snapshot API. The statement-level advisory transaction lock precedes mutations
+and sequence allocation, preventing lower committed changes from arriving after
+an acknowledged cursor. Insert/update triggers maintain task versions and CDC
+payloads; delete triggers preserve tombstones. API retains its SQL pool through
+the existing checked async HTTP binding and returns typed shared snapshots.
+
+Initial snapshot acceptance exposed HTTP 500 because ordinary SQL execution
+rejects SET TRANSACTION. The API now reads rows and high-water cursor in one
+Postgres MVCC statement. This is an application repair respecting the existing
+SQL boundary, not a compiler/runtime defect. The coherent std:testing SQL/HTTP
+suites passed 2/2 in 197.25 ms execution, with build/setup separate. They verify
+version increments, tombstones, atomic rollback, and external database inserts
+reaching the live snapshot with an acknowledged cursor. The formatted-source rerun
+also passed 2/2 in 192.26 ms. First network attempt was
+sandbox-blocked; the authorized rerun connected successfully.
+
+Pending full scope includes matched Rust controls, the <10 percent criterion,
+compiler/LSP improvements, API mutations/resumable CDC, concurrent snapshot and
+commit-order cases, the entire desktop UI/offline cache, broader package/editor
+acceptance, local milestone regressions, cross-platform CI and the final merged
+PR. Current API has a snapshot endpoint only. Docker and the experimental API are
+left running for continued implementation.
+
+## Tsrust grammar in Zed and indexed method effects — 2026-11-14
+
+Owner requested completing Zed syntax for match/ownership and investigating further
+safe optimizations. Added a Tree-sitter grammar extending pinned
+tree-sitter-typescript 0.23.2 TSX with match expressions, block/value arms,
+variant bindings, wildcard and literal patterns, negative numeric literals and
+contextual match identifiers. Generated with tree-sitter-cli 0.25.10, including
+parser C, scanner and source licenses. Three reviewed corpus cases pass, covering
+nested matches, ordinary match variables/optional chaining, all four ownership
+wrappers and typed JSX. Parsed all 132 Studio .tsr/.tsrx application/test sources
+with zero error/missing nodes. The first draft rejected context.tsr's const match;
+the contextual primary-expression conflict fixes it.
+
+Compiled a 1.5 MiB WASM grammar with WASI SDK 34 using Zed's documented builder
+flags. Highlight, indentation and outline queries validated against main.tsrx.
+Separate query assertions verified builtin-type captures for ReadOnly, Mutable,
+Owned and Once and the match keyword inside typed JSX. Changed language grammar
+from tsx to tsrust and pinned grammar source checkpoint dcd12923d in the manifest.
+That revision remains local; an automatic remote grammar checkout needs it
+published first. The local dev extension uses the compiled grammar artifact.
+Refreshed Zed's generated extension index, which originally retained an empty
+grammar manifest. The rebuilt index records grammar tsrust and its exact source
+revision; subsequent Zed startup produced no grammar/query loading errors.
+The stalled CLI launch was recovered through macOS Launch Services. Pixel
+appearance and interactive indentation gestures remain unverified.
+
+A second effect optimization replaces each Once forwarder's full method-contract
+map scan with an index by origin. New forwarded method IDs are inserted into the
+index during propagation, preserving same-pass visibility. Test builds compare
+the indexed method IDs to the old full scan at every forwarding operation,
+alongside the prior warm/cold contract comparisons.
+
+Focused effects passed 54/54 (0.77 s). Full compiler library had 1522 passes,
+30 identical sandbox-permission failures and 8 preexisting ignored cases
+(156.24 s execution); replaying exactly the restricted cases outside the sandbox
+passed 30/30. The final release passed VS Code extension-host integration.
+A single current Studio main LSP observation returned no diagnostics after
+85.31 s, including 80.968 s compiler checking. Earlier warm-only observation was
+88.98/84.589 s, initial observation 97.03/93.007 s. These are development-session
+observations with other processes active, not a repeated quiet-machine benchmark.
+No major additional speedup is established. Full project checking remains costly.
+Whole-project formatting produced no changes. Pending Studio/owner edits remain
+outside these checkpoints. Studio app and watcher remain stopped.
+
+## Retained error-effect propagation — 2026-11-14
+
+Owner requested reducing repeated error-effect work without removing checks and
+reported three VS Code errors plus a red tests folder in Zed. Implemented warm
+propagation within annotate_partial_with_callers: increasing callback contracts
+reuse the established function, closure, method, storage and invocation effects
+instead of restarting each inner fixed point from empty effects. The same
+fixed-point convergence and final metadata refresh remain. Grounding is unchanged.
+Test builds compare every retained propagation result with a fresh computation
+across all eight effect/boolean collections.
+
+Focused error-effect tests passed 54/54 with differential assertions (0.79 s
+execution). Full compiler library run passed 1522 with 30 sandbox failures and
+8 preexisting ignored cases (157.00 s execution). Inspected every failure:
+listener binding or restricted temporary working-directory creation. Replayed only
+those 30 cases outside the sandbox; all passed (0.56 s). LSP library passed 36/36
+(2.11 s). VS Code extension-host integration against the optimized release passed,
+including ownership errors/repairs, formatting, navigation and restart. Builds
+and setup are separate from these test execution durations.
+
+Single foreground LSP observations on current Studio main.tsrx: before 97.03 s
+total / 93.007 s checker, after 88.98 s total / 84.589 s checker; both returned no
+diagnostics. These are single observations with other development processes
+running, not a repeated quiet-machine benchmark or a proven stable speedup.
+Repeated cross-region contract discovery remains a larger unresolved cost.
+
+The owner's exact VS Code errors were unknown CodeEditorProps.initialCaret,
+unknown WindowOptions.opensFolders and “Function async#entry must return closure.”
+Its process 87390 started before the 06:00 server rebuild. Replaced that stale
+process through a normal VS Code restart. Both editors were subsequently reopened
+on apps/studio with the validated optimized release, launching language servers
+51447 and 51700 at 06:41. Studio app/watcher remained stopped.
+The tests folder has tracked deletions of tests/go.mod and
+tests/editor-language-mat.go with byte-identical files under tests/languages/go.
+This explains a possible red Git decoration. Actual Zed folder pixels and
+post-restart unsaved-buffer diagnostics remain unverified. Owner file moves and
+pending selection-recovery work are preserved outside this checkpoint.
+
+## External editor diagnostics investigation — 2026-11-14
+
+Owner authorized investigating latency and the errors visible in Zed. A fresh
+public LSP session on the current disk main.tsrx returned no diagnostics in
+97.03 seconds: declarations 1.535 s, check 93.007 s, index 2.045 s, diagnostics
+0.259 s. A separate initialize-only workspace session completed 146 diagnostic
+publications, all empty, including test files, in 179.45 seconds (including the
+10-second quiet wait). These checks cover current disk inputs, not unsaved Zed
+buffers.
+
+A one-second native sample of the foreground analysis showed Tsrust compiler
+analysis, including async/task wrappers, region_caller_error_effects and
+annotate_partial_with_contracts. A second workspace-scan sample showed the same
+error-effect path. These checks run inside tsrust-lsp; their delay precedes Rust
+code generation/build. Repeated whole-program error-contract propagation is an
+optimization candidate, not a measured optimization or a proven single cause.
+
+Confirmed Zed's language server PID 86097 started at 05:58:46, before the
+configured binary was rebuilt at 06:00:07. Its persisted diagnostics could
+therefore disagree with the fresh clean scan. Keyboard Restart Language Server
+did not replace the process. Quit Zed normally and reopened apps/studio/main.tsrx.
+Verified new Zed PID 4812 launched current language server PID 5143 at 06:23:34.
+Stale analysis is the likely explanation for the reported Zed errors; their
+individual original messages were not captured. No compiler analysis semantics
+were changed. The full Studio goal remains paused.
+
+## External editor direction — 2026-11-14
+
+Owner paused the full Studio goal and requested stopping its running application,
+cleaning generated builds, implementing Zed support and checking VS Code. Sent
+SIGINT to verified dev supervisor 72328; its log confirmed Stopped and subsequent
+process inspection found no Studio app/watcher. Retained the two newest entries
+in each cache while removing 109 obsolete Studio application entries, 137 Studio
+runtime entries and 131 root runtime entries under their namespace locks. Free
+disk increased from approximately 4 GiB to 92 GiB.
+
+Added editors/zed with a Rust WASI adapter for the existing tsrust-lsp, .tsr/.tsrx
+registration, highlighting, brackets and outline queries. Uses Zed's built-in
+TSX grammar. A dedicated Tsrust grammar remains pending for match and ownership
+syntax. Cargo check and release wasm32-wasip2 build passed with API 0.7.0.
+Installed the generated adapter through Zed's dev symlink layout and configured
+an absolute tsrust-lsp path alongside the owner's existing Zed settings. Zed
+opened apps/studio and launched the exact configured server as its child.
+Initial highlight query used anonymous true/false nodes and was rejected;
+changed to named nodes before reloading. Zed's automatic dev compiler initially
+lacked its WASI target, so the adapter was built with the pinned toolchain into
+the shared target and copied to ignored extension.wasm. Removed its redundant
+254 MiB nested target afterward. Visible Zed hover/completion gestures remain
+unverified because accessibility exposed only window chrome.
+
+Installed the existing local VS Code VSIX, opened apps/studio and configured the
+same current compiler/server paths in user settings. Rebuilt tsrust-lsp.
+The installed VS Code extension-host integration passed against that rebuilt
+server, including unsaved ownership/type/syntax errors, UTF-16, quick fixes,
+completion/hover/signatures, definitions/references, imports, multiple documents,
+formatting and format-on-save, CLI checks/native execution, restart and recovery.
+One run failed by inspecting formatted text immediately after the command;
+the test now waits for the asynchronous edit and the complete rerun passed.
+
+A direct public LSP session opened the real apps/studio/src/main.tsrx and received
+two versioned diagnostics after 120.25 seconds. Trace reported declarations
+1.912 s, compiler check 116.953 s and index 1.154 s. Foreground analysis preceded
+workspace scanning. This establishes a shared large-project analysis bottleneck
+across editor clients. It does not establish clean Studio diagnostics or good
+interactive latency. Previous selection-recovery source changes and owner edits
+remain outside this editor integration checkpoint. Full Studio goal stays paused.
+
+## Studio chat edit routing, warm inline completion and navigation — 2026-11-13
+
+Replayed the invoice-policy task in a disposable native Studio window with the installed Qwen2.5-Coder-3B Q4. Its reviewed draft changed only the return statement to shelfCharge(fragile, billableUnits(units)). The target retained its original bytes until File > Save; both reference files remained byte-identical. A native test of the saved caller passed all four assertions for positive fragile/non-fragile orders and zero/negative orders (0.13 ms test execution). Post-response model-host RSS was 1,709,040 KiB; peak was not sampled. The earlier 1.5B native attempt on this task was rejected. A separate 7B Q4 production-host trial intended to run the identical captured prompt stopped at critical system pressure during model load, before ready. Baseline swap was 2861.50 MiB, maximum sampled increase 494.44 MiB, sampled peak host RSS 1852.27 MiB, elapsed 7.4 seconds. No 7B answer was obtained. The editor and Codex were running; this does not establish Studio-alone capacity. The owner’s model selection and development session were preserved.
+
+Rejected chat edits now persist the localized replacement validation reason on the requesting conversation's assistant message. In a disposable native Studio window, Qwen2.5-Coder-1.5B Q4 attempted the invoice-policy usage task. The chat journal contained “The proposed change did not match one unique passage in the original file.” and the caller retained its original bytes. This confirms failure reporting; the model did not complete the requested repair. The AI actions suite passed 46/46 (312.11 ms execution), including parsing the persisted reason after a model falsely claimed to have inserted a log. Whole-project formatting completed. The dev watcher rebuilt and launched PID 83964.
+
+Corrected the string-transfer evaluation baseline. The original fixture consumed a module-owned string with return gate. The release language server reported module-state-consume on both the starting draft and the intended literal-only replacement, and a different name error on the model's return available response. With return clone(gate), the language server reported no errors on the initial or intended drafts and an unknown-value error on the bad response. All three versioned checks used in-memory text with unchanged disk bytes. In two fresh native macOS Studio sessions, Qwen2.5-Coder-1.5B Q4 resolved the corrected filename and copied "clé=a;b" and "ready" respectively. Approved drafts changed only the initializer. Before Save the target disk contents remained unchanged. Both saved fixtures passed native assertions for enabled() and the unrelated export, and both reference files retained their exact bytes. Model host RSS immediately after the responses was 1,122,624 and 1,286,656 KiB (single observations). The earlier failed proposals remain evidence for edits against the invalid starting draft. Current review checks verify replacement structure and unique source matches; compiler validation of prospective drafts before review remains open.
+
+Verified a blank-root drop collision on native Studio build PID 59003 at font size 14. Opened a dirty root original.txt and a separate dirty other.kt, then externally removed the root original.txt on disk. Dragged dest/original.txt onto the blank root. Studio reported that an open editor used the destination. The root file stayed absent, the nested source retained its exact bytes, and both recovery drafts retained their original paths and contents. The unrelated file also kept its original disk bytes. This replay checks the filesystem and native accessibility result. Drag preview and highlight pixels remain unverified.
+
+Rechecked Explorer on native Studio build PID 79287. At font size 20, a dirty file moved into a folder and back to blank root, its row Save wrote the draft, and the blank-area menu created a folder. At 14 with specialized icons off, an empty folder moved into another folder and back to root and accepted a child file. The observed tree/menu row heights were 40.5/34 points at 20 and 30.5/25.5 at 14. The renderer clones the row icon, compensates for the original grab offset, positions it 12 points below and right of the pointer, and assigns the theme's active background to the grabbed row. macOS screen-capture preflight returned false. Visual pixels remain unverified. An older collision replay stopped looking for the removed workspace-name row before dragging. Prior collision evidence remains above or below in this handoff.
+
+Extended named-reference literal extraction to quoted strings, preserving delimiters, Unicode, escapes and embedded punctuation. Focused AI actions passed 46/46 (327.60 ms execution). In separate native 1.5B Q4 sessions with reference values "clé=a;b" and "ready", ambiguity correction retrieved the right source but both proposals returned the undefined reference available and left the requested gate initializer unchanged. The same failure occurred before the extraction change with the punctuation fixture. The draft assertions failed before Save. These remain failed model-quality cases.
+
+Fixed boolean literal transfer in the named-reference edit prompt. The previous 1.5B Q4 replay selected the correct source but proposed gate = available, an unresolved reference in the target. Studio now includes the exact value extracted from the already validated single literal declaration in the prompt. In separate native macOS sessions, corrected an ambiguous filename, approved and saved false-to-true and true-to-false edits. Running the saved programs verified enabled() in both directions and preserved the unrelated export. Both reference files retained their original bytes. A numeric control copied 47 and passed a compiler check after Save. The focused AI actions suite passed 45/45 (310.26 ms execution). Dev supervisor launched PID 76896. These cases cover booleans and a decimal integer, not arbitrary expressions.
+
+Completed the native ambiguity-correction workflow with the configured 1.5B Q4. Before the fix the corrected request retrieved only ./lib/example.tsr but proposed base = rate, referring to a declaration unavailable in the target. Studio now gives literal-transfer guidance when a named reference supplies a single simple numeric or boolean constant and an edit asks for a value from that source. In separate macOS sessions with reference values 23 and 47 and a distractor of 11, corrected the retained prompt, reviewed and applied each edit, saved the target, checked exact bytes for all three files, and passed tsrust check on the saved program. Both reference files and unrelated target code were preserved. Combined AI actions and 3B composition evaluation passed 46/46 (7.841 s execution). The 3B caller passed both pricing policies. Boolean transfers have not been replayed. Dev supervisor launched PID 72990; pruned ten old generated runtime entries under the namespace lock for native build space.
+
+Ambiguous chat edit requests now retain their composer text and selected context so the user can correct the filename and resend. Before the change macOS Studio listed ./example.tsr and ./lib/example.tsr but persisted an empty draft. Replaying the same request after rebuilding verified both candidates, the original text in the native textarea and chat journal, unchanged disk bytes and no model host running. The AI actions regression additionally retained the attachment, submitted a qualified correction, and verified that only the selected reference's value reached the new generation turn. All 45 AI action tests passed in 534.67 ms execution.
+
+The configured Qwen2.5-Coder-1.5B Q4 failed the same two-function usage edit that 3B passed. The real host flattened the original function into one line and returned only billableUnits(units), omitting shelfCharge. Studio rejected the unmatched original before review or save (3.041 s test execution); neither policy ran for that response. Separately fixed reference prompt selection for a uniquely named file in a subdirectory: context retrieval now reports when the current edit explicitly named a source it actually included. The previous check searched rendered excerpt headings for the full relative path in the user's text and missed a basename-only request. Focused regressions verified the retrieved lib/example.tsr and outgoing edit prompt, and 3B still passed the original and changed-policy native cases. Combined 45/45 in 8.381 s test execution excluding outer build. Supervisor 2670 launched PID 58084.
+
+Reproduced the 3B usage evaluation failure through the production model host: the proposed original removed line breaks and its replacement returned units + billableUnits(units), omitting shelfCharge. For an active-file edit that names a retrieved reference path with no explicit attachments, Studio now places read-only references first and the editable source immediately before the string-valued replacement schema. Exact-match validation remains in force. A real 3B review applied the nested call to the temporary caller, preserved the policy file through save, and passed both native pricing policies with the withheld quantities. Final combined run passed the usage evaluation and 44 AI action tests (6.753 s execution including inference and nested tests, excluding outer build). Native Studio dev supervisor 2670 launched PID 54283. Pruned four older generated runtime entries under the namespace lock, recovering approximately 3.4 GiB. This validates the named-reference usage case; other compositions and models are not established by this result.
+
+Strengthened the opt-in Studio workspace edit evaluation. After the reviewed caller passes its original four native assertions, the harness changes both formulas inside the temporary imported policy and exercises the unchanged caller with new positive quantities and the existing zero/negative cases. The second stage catches edits that merely reproduce the original policy outputs. With Qwen2.5-Coder-3B-Instruct Q4_K_M, the reordered-argument repair passed both policy versions (4.637 s test execution including inference and nested tests, excluding outer build). The separate two-function usage variant retrieved the relevant example and definitions but returned a replacement whose original passage did not uniquely match the target. Studio rejected it before review; native behavior was not evaluated for that response (4.409 s test execution, failed quality case). The dev watcher retained the running application.
+
+Matched the previous JavaScript array exchange through Studio's production model host using installed Qwen2.5-Coder-3B Q4_K_M and its own tokenizer. It filtered correctly to [2,8,4], returned [4,8,2] on the threaded slice/reverse follow-up and [8,2] with the literal input in a fresh message (expected [4,8] in both). All responses ended at EOS. Sampled host RSS peaked at 1,307.20 MiB and system swap grew up to 227.38 MiB in this short run. In separate single-model runs, asking for the array after each method produced correct intermediate and final values from both 1.5B and 3B for [2,8,4] and [17,6,3,9]. The 1.5B additionally supplied JavaScript that aliases the sliced array before reversing it and claimed it would print the two intermediate values; Node confirmed that code prints the reversed array twice. The 3B described the steps without that code. Sampled host RSS for the longer responses peaked at 1,274.56 MiB (1.5B) and 2,083.42 MiB (3B); system swap did not grow during either run. Two examples do not establish a default model or a general prompting improvement. Owner settings were untouched.
+
+Evaluated a two-turn JavaScript array question with the configured Qwen2.5-Coder-1.5B Q4 in a disposable native Studio conversation, then independently through its production model host. Both returned [2,4] for filtering [5,2,8,4] to even numbers (expected [2,8,4]). Both returned [4,2] when asked to apply .slice(1).reverse() to their own first answer (expected [4]). A fresh host message explicitly spelling out [2,4].slice(1).reverse() also returned [4,2]. All three direct generations ended at EOS. This example fails even with the input supplied literally, so it cannot diagnose lost chat history or degradation at higher context usage. Node independently confirmed both expected values. Sampled native-session host RSS peaked at 1,223,264 KiB; direct-host peak was 1,195.36 MiB. During the direct run system swap rose by up to 133.75 MiB and peak system pressure level was 2. These are sampled process RSS and whole-system observations, not a machine capacity benchmark.
+
+Multi-file chat review now identifies each include/exclude action by workspace-relative path, line and column; section captions also use relative paths. Previously two changes at line 3 column 1 both exposed “Exclude change · Line 3:1”. On the rebuilt macOS Studio with the 1.5B Q4 host, verified distinct controls for fees.tsr:3:1 and visible.tsr:3:1, excluded fees.tsr by its exact accessible name, and confirmed only visible.tsr received the approved draft. Both disk originals and the active unsaved fees.tsr draft were preserved. Native menu Undo restored visible.tsr and the undo outcome was persisted to chat history. The earlier replay sampled chat history immediately after the independent recovery write; waiting for both writes verified the final state. AI actions suite passed 44/44 in 298.57 ms execution. Dev supervisor 2670 launched PID 41122.
+
+Verified partial approval of a real two-file chat edit in two disposable macOS Studio sessions with Qwen2.5-Coder-1.5B Q4. Excluding the first change and applying the second kept the original dirty fees.tsr draft active and changed only the unopened visible.tsr draft (73 to 85). Both disk originals remained byte-identical and chat history recorded only visible.tsr as edited. In the second session, Edit > Undo Last Chat Edit removed only the approved change, retained the preexisting dirty draft and selection, and recorded the undo outcome without edited paths. Post-generation model host RSS was 1,159,600 and 1,199,616 KiB respectively; peak memory was not measured.
+
+Verified chat proposal identity across Explorer folder renames. The compiled regression captures a proposal on an unsaved document, renames its parent through the Explorer service, and rejects applying the old proposal to both the moved document and a newly opened replacement at the old path with matching draft text and revision. All five Explorer filesystem tests passed in 17.26 ms execution. Separately, the configured 1.5B Q4 host generated a real two-file review in native macOS Studio. Renaming the second, unopened file externally before approval rejected the entire proposal. The first file's active selection, unsaved draft and disk bytes were preserved; the renamed file retained its bytes and its former path stayed absent. The UI displayed the stale-file reason. Host RSS after generation was 1,192,352 KiB (single observation).
+
+Protected open editor paths during Explorer creation, moves and renames when another process has removed their disk entries. Before the fix, a native drag moved original.txt into dest/original.txt while an unrelated open draft already owned that missing path. Replayed the same drag on rebuilt macOS Studio (PID 32644): Explorer displayed the collision, the source retained its bytes, the destination remained absent and both recovery drafts retained their exact contents. The filesystem regression also covers a folder rename onto an open draft's missing parent and permits recreating an empty parent directory. The focused explorer-files and localization suites passed 5/5 in 12.15 ms of test execution; setup/build excluded. Both catalogs contain the new error message.
+
+Resolved the Explorer Save replay timeout on build 692479167. The original lookup matched by filename alone and could select the identically named editor tab. In separate macOS sessions at font sizes 14 and 20, targeted the Explorer row by accessibility role and filename and verified the pointer hit that row. Moving a dirty file into a folder and back onto blank root, saving the draft from its row, preserving the unrelated file on disk and creating a folder from blank space all passed at both sizes. Tree rows measured 30.5 and 40.5 points, respectively, and Save menu items measured 25.5 and 34 points. No product change was needed. Drag rendering still lacks pixel verification.
+
+Save-conflict labels and footer actions now follow Studio's font setting alongside the diff. Reduced the diff viewport to keep the footer in reach. In disposable native macOS windows the Reload button measured 181 × 22 points at font size 14 and 235 × 28 at 20. Center clicks on Reload at 20 and Overwrite at 14 produced the expected target bytes and preserved the unrelated draft. Supervisor 2670 launched the rebuilt Studio (PID 19797). Reviewed the existing Explorer renderer: it clones only the row icon, offsets it 12 points from the pointer and uses the theme's active-row background for the source. Replayed dragging a dirty file into a folder and back onto blank root at size 20. The subsequent scripted context-menu Save lookup timed out; prior successful Save and blank-area creation evidence remains below. Preview and highlight pixels remain unverified.
+
+Verified the two remaining recovered save-conflict actions in separate native macOS Studio sessions. After external disk changes and restart, Discard draft and reload kept the external 918 version byte-for-byte. Overwrite with my draft wrote the approved 637 version byte-for-byte. Both choices kept the target editor active and removed only its recovery draft, preserving the unrelated dirty reference and its original disk bytes. A subsequent named-file chat query reported matching editor and disk contents with no model host present. The development window remained separate.
+
+Verified approved edit recovery across a native macOS Studio restart. Approved the 1.5B model's update to inactive lib/fees.tsr (72 to 637), terminated the disposable Studio instance, changed the target on disk to 918, and reopened the same profile with inline inference disabled. “Is that edit saved to disk?” in the restored conversation returned the correct path, current disk 918 and recovered draft 637; no model host was present after the reply. Save opened the conflict dialog. Choosing Keep editing preserved 918 on disk and both exact unsaved drafts in the recovery journal. The separate development session remained open.
+
+Immediate chat save-status follow-ups now use paths recorded on the approved edit's assistant message. Only files with selected changes are recorded; explicit filenames retain precedence. Before the change, “Is that edit saved to disk?” after editing inactive lib/fees.tsr returned the comparison for the active reference policy.tsr. After rebuilding, the same native macOS conversation reported lib/fees.tsr with 72 on disk and 637 in the editor. The first turn used the real 1.5B Q4 host and the follow-up used Studio's current disk comparison. Save wrote only the reviewed file; its native assertions passed. All 44 AI action tests passed (392.99 ms). Older histories without edit paths keep the existing behavior.
+
+Cross-file literal transfer, configured Qwen2.5-Coder-1.5B Q4: on the original native build, asking for a value from an attached unsaved policy.tsr produced base = requestedBase in a target where that identifier was unavailable. Named-edit prompts now present reference paths with plain source and explain how to copy literal initializers. The same native request then produced exactly base = 637, preserved the reference draft and target disk bytes until Save, and passed a compiled test checking both dependent functions and an unrelated export. Post-response host RSS 1,164,944 KiB (single observation). Added the opt-in named-reference model evaluation; it transferred 47 from the unsaved reference while disk held 25, changing only the named unopened target. Real native host run passed (2.64 s test execution); sandbox-only inference failed during llama.cpp initialization. This validates two literal transfers, not general code synthesis.
+
+Named chat edits now resolve the explicit ./path even when files are attached. Only that file can receive replacements; the remaining attached file snapshots go to the model as reference material. A missing named target fails before generation. The focused AI actions suite passed 44/44 (302.46 ms). In a disposable native macOS Studio profile, restored an attachment for the active dirty visible.tsr containing the same code as unopened lib/fees.tsr. With the 1.5B Q4 production host, asked to update ./lib/fees.tsr; verified both context paths in the user message, exact approved draft for only the named target, preserved dirty reference, and unchanged disk before Save. Saving fees.tsr and executing its native test returned 84 from both requested functions and retained the unrelated 300 export. Dev supervisor 2670 launched PID 5298.
+
+Fixed native declarative dialog replacement. GPUI Kit stacks opened dialogs; the previous renderer opened the stale-file warning over the removed review, leaving an invisible modal intercepting pointer events. On the prior build the center of the target tab hit AXWindow and the editor did not switch. With the rebuilt renderer the same coordinate hit the fees.tsr tab (AXRadioButton). Two independent disposable Studio sessions with the real 1.5B Q4 completed stale rejection, dismissal, retry and approval. Selecting the tab and using File > Save wrote the intended file. In the second session, expanding lib and choosing Save from the file's row wrote the same result while the unrelated editor stayed active. Both saved fixtures passed native assertions for quote() and fee() (84) and the externally changed export (423), and preserved the unrelated unsaved draft. Release compiler rebuilt; supervisor 2670 launched PID 2855 in apps/studio. Pruned ten superseded generated runtime entries under the cache lock before the native rebuild. Other dialog transitions and other platforms were not replayed.
+
+Closing a stale edit review now records the change-of-file reason on the original assistant message and clears the matching transient notice. Voluntary dismissal retains its previous outcome. All 44 AI action tests passed (304.33 ms execution). In native Studio using Qwen2.5-Coder-1.5B Q4, changed the unopened target from 72 to 91 and a separate export from 300 to 423 after generation. Apply rejected the old proposal, the accessible failure dialog closed, and the conversation journal recorded the reason. A second request in that conversation produced the exact draft with 84 and 423. The unrelated active unsaved draft and both files on disk remained intact through approval. The subsequent Save step did not complete in these replays: the pointer and accessibility tab selectors failed to select the target, and a separate explorer attempt failed to expand the target folder. Earlier single-review Save evidence still stands. Save after two review dialogs and tab/explorer input routing remain open.
+
+Empty folders now retain their generic folder glyph when language/file-type symbols are disabled. Previously the native tree inferred file status from the absence of children after Studio cleared the icon override; the drag preview cloned that same file glyph. At font size 20 with file icons disabled in a disposable macOS profile, dragged the empty directory empty.go into dest and back to blank root, then used its row menu to create empty.go/child.swift. Both moves and creation were checked on disk. This confirms interaction; icon and highlight pixels remain unverified.
+
+Restored direct workspace contents in the explorer, removing the redundant containing row and its extra indentation. In a native macOS window at font size 20 a dirty file moved into an empty folder, the old row disappeared on refresh, opening the folder exposed the child, and dragging it to blank space returned it to root. Save wrote the draft and preserved the unrelated unsaved file. Blank-area New folder succeeded. In a second window with an entirely empty project, blank-area New file created the first root entry at font size 14. The earlier replay checked row visibility immediately after the filesystem move, before the 150 ms tree refresh. The new replay waits for the old root row to disappear before expanding the folder. Seven focused explorer tests passed in 50.64 ms. Dev supervisor 64770 rebuilt and launched PID 93829.
+
+Rechecked explorer styling on the running build at font size 20. Rows measured 40.5 points and menu items 34 points. The dedicated folder replay verified root drop, collision handling and dirty-child Save. A separate file replay passed creation, rename and drop into a folder, then lost the nested row before the root gesture; screen capture returned no image. The drag preview and source highlight still lack pixel verification.
+
+In a disposable native macOS Studio window, asked the configured Qwen2.5-Coder-1.5B Q4 to update ./lib/fees.tsr without an attachment. The review changed only the requested constant from 72 to 84. Apply opened the unopened target as an inactive draft and preserved the active editor's identical unsaved source. Save on the target wrote only that file. A native test of the saved program verified both function results (84) and the unrelated export (300). Model host RSS after the reply was 1,208,672 KiB (one observation).
+
+Named chat edits: an edit verb followed by ./workspace/path: uses that file as the review target, including quoted paths. A missing target reports the read error without proposing an active-file replacement. Explicit Edit: and Edit files: keep their existing scopes. The model-action suite passed 44/44. Configured Qwen2.5-Coder-1.5B-Instruct Q4_K_M through the production Studio model host proposed changing return 73 to 84 in unopened lib/answer.tsr, with answer.tsr active. Approval updated only the intended draft, preserving active selection, the other return value (51), and disk contents (73). This is a model-service integration replay, not a desktop interaction. The dev watcher recovered from linker space exhaustion after pruning superseded large runtimes under its cache lock, reclaiming 13.19 GiB.
+
+Explorer deletion now selects the next surviving tab to the right of a removed active editor, falling back to the previous tab at the end. Unrelated selections stay active. The regression previously selected the last tab instead of its nearer sibling. Seven explorer and recovery tests passed in 79.14 ms. In native macOS Studio, confirming deletion of a folder with two open files selected the adjacent surviving editor and persisted the expected selection and remaining tab order.
+
+A real explorer rename from drawing.txt to drawing.svg with unsaved text previously made restart reject the whole journal. Recovery now restores journaled text regardless of the viewer selected by the new extension, preserving the original save baseline. Formatted recovery and explorer suites passed 6/6 (64.42 ms), including an unrelated dirty tab and clean SVG reopening in the image viewer. A native macOS Studio restored the exact SVG draft into an editable field and saved it through the explorer, retaining the other draft in recovery.
+
+Explorer filesystem suite passed 2/2 on macOS with a real directory symlink. Deletion through an external parent link was rejected. Renaming and moving the link, then deleting its containing project folder, preserved the external file contents. This exercises the filesystem service. Pruned nine superseded Studio program/runtime cache entries under the namespace locks and recovered 5.43 GiB while the dev session stayed running.
+
+Native macOS folder-drop replay: dragging a nested folder onto empty explorer space with a same-named root folder exposed the collision in the accessibility tree and preserved both directories. After clearing that conflict in the fixture, dragging the same folder to root moved its open dirty child. Targeted Save wrote the draft at its moved path. The recovery journal recorded the moved active tab and breakpoint and retained an unrelated unsaved draft. Explorer errors now use the same accessible status role as the dialog.
+
+Fixed startup reveal of the restored active editor tab. Before the fix, with 20 files, the selected page-19 tab began at screen x=3790 while the overflow control began at x=1371. GPUI consumed the first reveal before initializing its scroll axis. After deferring the initial reveal until the first layout, two native macOS launches (opened-files recovery, then Studio’s saved dock layout) both hit page-19 at the trailing edge without an initial click. Horizontal scrolling reached page-04, held during idle with page-19 still active, and allowed selecting page-00. All 20 disk files retained their bytes. Whole-project formatting produced zero changes. Dev supervisor 10923 launched PID 11180.
+
+Verified the packaged macOS arm64 application running directly from its read-only DMG mount. Both distribution checksums and the disk image integrity check passed. The release executable opened three requested projects in one cold launch. In each editor, AXPress on the same-name.txt Explorer row changed the active file from prior.txt, displayed that project's distinct contents, and updated its journal in the disposable user profile. No extra launcher survived. The fixture closed all three applications and ejected the disk image. The authorized dev session was separate. Signing, notarization and a physical Dock drag remain untested.
+
+Release-bundle folder delivery verified on macOS arm64. Built Studio with the public package command, companion model host and application icon into a fresh temporary directory. Both ZIP and DMG passed the emitted SHA256SUMS check. The ZIP-extracted app had the release identifier dev.tsrust.studio, public.folder registration, a nonempty AppIcon.icns and an executable sibling model host. A single cold Launch Services request opened three folders, including a symlink to a Unicode directory and a path containing #. Read the actual three release editors by PID: each restored its own canonical path and expected file contents, with no extra no-argument release process. The dev supervisor stayed separate. Distribution signing, notarization, a physical Dock drag and launching from a mounted DMG were not exercised.
+
+Verified a single cold macOS Launch Services request containing three folder documents and no explicit workspace argument. The first was a symlink to a Unicode directory with spaces, the third contained a literal #. Each workspace restored its own same-named file with the exact distinct contents and canonical editor path. No extra no-argument Studio launcher survived. The first pointer-based attempt did not open a file with three overlapping windows. The passing run read the three restored editors directly by PID using independent preseeded recovery journals. This extends cold launch evidence to multiple folders in the development bundle.
+
+Fixed a cold macOS folder launch leaving a second Studio workspace at filesystem root. On the prior build, the no-argument launch opened the requested directory but also retained an extra process whose cwd was /. A folder-only launch now re-executes the startup process on the first valid folder before the initial window opens. A native replay opened the selected file and checked that no extra launcher survived. A System Events pointer replay failed to find the re-executed PID; direct CG input opened the expected file. Separately verified explicit-argument launch with a different folder document and a fully running no-argument window receiving two folder URLs while retaining its recovered draft and disk baseline. Supervisor 45222 launched PID 45301. These used macOS events and the development bundle.
+
+Verified delivery to an already-running native macOS Studio via a PID-targeted open-documents Apple event containing two folder URLs. A symlink to a Unicode project and a directory with a literal # and spaces opened as separate canonical workspaces. Their same-named files exposed distinct expected contents and separate recovery journals. The original window displayed the same recovered unsaved draft both before and after delivery, with its unchanged disk baseline and journal verified. Earlier synthetic typing attempts failed to establish the intended draft before sending any event; the passing replay used seeded recovery and checked the live editor both times. This verifies native event delivery, not a physical Dock drag.
+
+Implemented opt-in macOS folder document registration in development and release bundle generation, plus a native run option that receives local folder URLs and starts the executable with the canonical workspace path. Studio enables both. The rebuilt dev bundle declares public.folder with alternate handler rank. A Launch Services test sent a Unicode folder with spaces to a disposable app launched with a different workspace argument. Both windows opened their own same-named file, showed distinct expected contents and canonical paths, and recorded separate recovery journals. Package tests passed 3/3, including plutil validation and default opt-out. Whole-project formatting passed. Dev supervisor 40184 launched PID 41778. A physical Finder/Dock gesture and a packaged release launch remain unverified.
+
+Pre-fix native Launch Services folder-open reproduction. Launched a disposable Studio via macOS open with one project passed as the folder document and another as an explicit process argument, each containing a same-name file with distinct contents. The window opened the argument project's file. The generated Info.plist contains no CFBundleDocumentTypes declaration; run_configured starts GPUI without registering its on_open_urls callback. Folder events cannot currently select a workspace through that renderer. The first script missed the disposable process because Launch Services canonicalized /var to /private/var; it was closed and the corrected replay checked the editor path and exact contents. No physical Dock drag or Finder association was tested.
+
+Verified workspace-root selection on four native macOS launches from a caller directory containing a different file with the same name. Absolute and relative paths with spaces and Unicode, and a relative symlink to the project, all opened the target's exact file contents, exposed its canonical editor path and shared one recovery journal. Launch without an argument opened the caller's distinct contents and used its own journal. The authorized development window remained open throughout. This covers process arguments, not Finder/Dock directory delivery.
+
+Verified manual tab-strip scrolling in a disposable macOS Studio with 20 restored text files. Selecting the first and last files successively in Explorer revealed the final tab under the pointer. A horizontal wheel gesture moved the hit target from page-19 to page-04 with page-19 still active. After a 1.5-second idle interval the strip remained in place. Clicking the now-visible first tab selected its editor and persisted it as active; all disk files retained their contents. Initial restoration in a separate run opened the last editor while the strip showed early tabs. Automatic reveal on initial restoration remains open. A separate scripted attempt to select an overflow menu entry did not locate the menu item.
+
+Verified hexadecimal selection and copy in native macOS Studio. After zooming from 14 to 20, Cmd+A and Cmd+C copied exactly the displayed hex digits, spaces and line breaks for a complete 69-byte file and the 256-byte prefix of a 4,194,373-byte file. Typing and Backspace left the preview unchanged, disk bytes remained exact after rename, and the journal retained only the unrelated draft. A third session confirmed a physical click inside the hex text alone supplied keyboard focus. The first probe clicked near the left margin immediately before the shortcuts and did not establish copy; subsequent runs verified the pointer hit and allowed focus to settle. Prior clipboard contents were restored after successful copy.
+
+The read-only hex viewer's byte-count caption now follows Studio's font and zoom and exposes the localized count as accessible status text. Two disposable native macOS replays renamed a 69-byte PNG and a 4,194,373-byte padded PNG to .bin and back. The accessible previews matched the complete small file and the first 256 bytes of the oversized file. Both captions grew from 30.5 to 40.5 points high when zoomed from 14 to 20. The reverse rename restored image controls and preserved every disk byte, the active tab, breakpoint and unrelated draft. Workspace/localization suites passed 7/7 (57.84 ms execution). Dev supervisor launched PID 5291. Screen reader speech was not sampled.
+
+Explorer now switches an open clean file between image and non-image viewers when a rename changes its viewer type. It prepares the replacement from the existing bytes before renaming, reusing the normal text/binary/large-file classification. Dirty or conflicted text stays editable. Before the fix a native rename of icon.txt to icon.svg left the text editor active and exposed no image controls. On the rebuilt macOS Studio the same rename exposed Fit image to window immediately. Renaming the SVG to icon.tsr returned to the text editor with the exact source bytes. The active path, breakpoint, underlying workspace tab order and unrelated draft were verified in recovery. Focused Explorer filesystem and recovery suites passed 10/10 (87.64 ms execution). Whole-project formatting completed and the development supervisor launched PID 2831. Actual icon pixels and syntax colors were not sampled.
+
+Verified Explorer folder rename and restart in two isolated native macOS profiles. The active child's unsaved text, tab order, breakpoint and unrelated draft survived under the renamed path. Run and Debug displayed renamed/original.txt:1 after each restart. Targeted Save in the first profile wrote the recovered child draft and preserved the other dirty tab and disk bytes. In the second profile an external writer changed the renamed child before restart. Save opened the conflict dialog; Keep editing preserved the external bytes, the recovered draft and the unrelated draft. The old directory stayed absent in both replays.
+
+Verified recursive deletion with a dirty active child in two disposable native macOS Studio sessions at font size 20. Return on the folder confirmation reported the unsaved-child error; Escape dismissed the dialog. Reopening showed the exact target warning and cleared the previous error. Disk contents, both recovery drafts, the child breakpoint and active tab survived cancellation. In the second session, Save on the child row wrote just that draft. Confirming folder deletion then removed the folder, selected the surviving dirty editor, and removed the deleted child's tab and breakpoint from recovery. The unrelated file retained its original bytes and its unsaved text remained in the journal.
+
+Explorer deletion confirmation now exposes its existing permanent-deletion warning and exact target path as one accessible alert. Before the change macOS exposed Cancel/Delete/Close but the warning could not be found. In a disposable rebuilt Studio session, blank-area New file rejected an open dirty document's name, kept the dialog open, and accepted the corrected filename using Cmd+A and Return. The delete dialog then exposed the full expected warning and path. Escape dismissed it and the newly created empty file, existing disk contents and both recovery drafts remained intact. Explorer, filesystem and localization suites passed 10/10 in 37.41 ms execution. Whole-project formatting passed. Dev supervisor launched PID 98674. VoiceOver speech was not measured.
+
+Follow-up on explorer keyboard confirmation. Reproduced Return dismissing New folder with no directory on disk. Return and the footer action now share the native Dialog confirmation callback. Native macOS replay verified create directory, create file and rename with Return. A filename collision retained the dialog and original bytes. Separate pointer replay verified the styled confirmation button, cancel and recursive delete. Explorer filesystem regression passed in 2.06 ms. The earlier Return limitation below describes the prior build.
+
+Explorer context menus support new files and folders, rename, confirmed recursive delete, targeted save and native reveal. Tree drag/drop moves entries without replacing an existing destination. Open drafts and breakpoints follow folder moves. Filesystem, explorer and save suites passed 6/6 (39.01 ms execution). A disposable native macOS window verified both creation buttons, rename, drag into a folder, cancel and confirm recursive deletion, exact Finder selection, and saving one dirty file while the other remained unchanged on disk. Use the dialog action button for submission. Return dismissed a create dialog without creating the directory in one replay. Empty explorer space offers root file/folder creation and accepts drops to the root. Drag preview uses the row icon with a 12-point cursor offset and theme source-row highlight. Text in tree menus and explorer dialogs follows Studio font size. macOS accessibility bounds at font settings 14 and 20 measured tree rows of 30.5 and 40.5 points and menu rows of 25.5 and 34 points. The nine focused explorer, save, icon and localization tests passed together in 47.88 ms. Native create, move-to-folder and move-to-root checks passed at both sizes. Screen capture failed, so preview and highlight pixels are unverified. Windows and Linux gestures remain unverified.
+
+Added 28 pinned Simple Icons families to explorer and quick-open file decoration. Exact filenames take priority over extensions, including package.json and CMakeLists.txt. Verified all 40 embedded upstream glyph hashes. Focused icon and localization suites passed 3/3 in 1.38 ms. This checks the mappings and assets; individual glyph pixels were not sampled.
+
+Debug Console drains up to the channel capacity per tick and coalesces adjacent console updates. An isolated macOS Studio attached LLDB to a disposable target; a relay injected 120 ordered output events immediately before the real stopped event. The previous build showed all lines and paused controls after 6.52 s, the rebuilt app after 0.54 s. Detach left the target running.
+
+Cancelling a chat queued during inline warmup now restores the composer immediately while the shared host finishes loading. Chat-only startup cancellation still shuts down its host. In a disposable macOS Studio, held the real 1.5B Q4 host's ready notification, sent a question and pressed Stop response. The original draft returned. Released readiness, then resent the restored draft; the answer was 14 for 8 plus 6. Observed exactly one host launch and two inbound frames, start followed by generate after resend. AI action tests passed 43/43 in 308.03 ms.
+
+Extensions refresh now retains locally picked model/tokenizer pairs for the current session before activation, deduplicates them and drops pairs that disappeared. Sidebar toggles, the keyboard shortcut and download completion share that discovery path. On macOS, picked an unconfigured external file sharing a catalog filename, switched to Files, reopened Extensions via Cmd+Shift+X, then activated the retained external selection. Saved model and tokenizer paths matched the external pair and both weight fixtures were intact. The six model-extension tests passed in 5.30 ms. The owner reported the earlier visible error is gone; its cause remains unknown.
+
+Verified same-basename model selection in the native macOS Extensions picker. A disposable profile contained a catalog 7B Q4 fixture and a previously configured external file named qwen2.5-coder-7b-instruct-q4_k_m.gguf. Picking and activating the external file persisted its exact path and its configured external tokenizer. Both weight fixtures retained their original contents. Inference was disabled for this selection check.
+
+Editor requests now honor the selected model's prior startup attempt. With a corrupt GGUF in an isolated native macOS profile, the model host failed once and exited. Two edits in visible.tsr separated by pauses for inline completion produced zero additional launches. After replacing the fixture with the installed 1.5B Q4 weights and toggling inline completion off and on, exactly one new host launched and reached ready. The focused AI actions suite passed 42/42 in 286.49 ms, including retry after changing the selected path.
+
+With inline completions enabled at startup, a disposable native macOS Studio attempted to load an invalid GGUF file. The real host returned an error and exited. No second host launch occurred in the next three idle seconds. Replaced the fixture with a symlink to the installed 1.5B Q4 weights, then turned inline completions off and on from the AI Settings page. Exactly one new host launched, returned ready at the original selected path and received no completion request. The owner's profile and weights were untouched.
+
+Verified the inline-completion switch on the AI Settings page with the installed Qwen2.5-Coder-1.5B Q4 and the real Studio model host in a disposable macOS profile. Turning it on persisted the preference and the host emitted ready before any completion request. One post-ready RSS observation was 1,185,328 KiB. Restarting Studio with that profile warmed the model before Settings was opened again. Turning the switch off persisted false and the idle host process exited. This run checked the preference and model lifetime; it did not request generated text.
+
+The native Text renderer exposed no accessibility label for extension descriptions marked as notes. The selected detail now presents its description as status text. In separate native English and Brazilian Portuguese profiles, keyboard selection of all four catalog rows exposed the complete matching description after each selection. Each check also verified that the other three descriptions were absent from the window's accessibility tree. No model download or inference was involved.
+
+Verified Cmd+S window routing in the rebuilt macOS Studio with two dirty workspace files. In Edit settings JSON, submitted a malformed draft consisting of an opening brace. The settings file stayed byte-for-byte unchanged and the editor retained the invalid text. Corrected the JSON and changed fontSize, then Cmd+S persisted the new size while both workspace files still matched their original bytes. After closing Settings, Cmd+S in the workbench wrote both expected drafts. This replay used a disposable profile and did not identify the owner's earlier visible error.
+
+Cmd+P file results use the explorer glyph catalog and current File icons preference. The original path remains the command value and accessible label. Two isolated macOS runs searched for go.mod, pressed Enter and verified its module declaration in the editor, once with file icons enabled and once disabled. The fixture-window pixel check could not run because ScreenCaptureKit returned -3801 (screen capture permission declined). Rendered Go pixels remain unverified.
+
+Settings and workbench used different globally registered command names for the same save shortcut. Both windows now dispatch save-all with a window-local handler. In an isolated native macOS window, opened Settings, selected the AI page, observed inline completions and chat position, closed Settings, then pressed Cmd+S in the editor. Both dirty fixture drafts matched disk afterward. The owner's live window reported Errors: 0 and Warnings: 0 when inspected; the previously reported error was unidentified. Added the pinned Simple Icons Go glyph for .go, go.mod, go.sum, go.work and go.work.sum. Catalog model details include localized purpose and variant descriptions. File icons, save-all, settings, localization and model extensions passed 15/15 in 546.40 ms. Icon mappings were tested in code; rendered pixels were not measured.
+
+Extensions has a native Open local model action in the search field. Selecting a file opens its details and Use model saves a GGUF path with its tokenizer. Catalog entries resolve by installation path, so an external file with the same basename has its own row. Native macOS replays selected a disposable GGUF through the system picker, activated it and checked the persisted settings. One started with empty model settings and a sibling tokenizer.json. The other reused the configured custom tokenizer for a previous external model. Both preserved the fixture bytes. These checks covered selection and persistence only. Same-basename selection was not independently replayed.
+
+Model action errors in Extensions are displayed only for the originating selection. The download ticker uses the pending model name when a reply arrives. In an isolated native macOS replay, started a Q5 download, switched to the installed Q4 detail while the local downloader was sleeping, then waited for Q4's Use model button to re-enable after failure. Q4 showed no error. Selecting Q5 revealed its error. The existing Q4 pair was intact and the temporary download directory was removed.
+
+Extensions now reports a localized failure when the downloader exits unsuccessfully with empty or unreadable stderr. The detail view exposes download errors as accessible status text. In a native macOS Studio with a disposable catalog and local curl fixture, three consecutive attempts on 7B Q5 exercised silent nonzero exit, corrupt artifact and explicit network error. Each displayed the expected message and allowed another download. The final catalog contained only the original Q4 pair with both file contents intact. This replay made no network requests.
+
+Extensions displays each catalog model's quantization in its sidebar label and detail title. Search uses that label and catalog installation identifiers remain stable. In an isolated macOS Studio, lowercase q4 returned exactly the 1.5B, 3B and 7B Q4_K_M rows. Q5 returned the single 7B Q5_K_M row. With placeholder files present only for 7B Q4 in the temporary catalog, keyboard selection exposed Use model for Q4 and Download for Q5. Neither action was executed.
+
+Composer Send now recognizes common direct edit requests. It captures attached workspace files or the active text draft and validates anchored replacements before displaying review. Chat displays a Studio-generated proposal status. Invalid model prose cannot report a successful edit through this route. Legacy explicit edit prefixes remain supported. In an isolated native Studio with a seeded prior exchange suggesting a startup log, the real 1.5B Q4 model received “Can you not insert that console log?” through the composer. Review and Apply to draft inserted exactly one console.log('Yo ho yo ho') before openWindow(). Other draft and disk contents stayed intact. Model-host RSS after generation was 1,239,696 KiB (single observation).
+
+Edit review now records the actual outcome on the originating assistant message and persists it through the chat journal. In a rebuilt native Studio, the 1.5B startup-log replay applied exactly one insertion to the active draft, preserved both disk files and the inactive draft, and recorded “Applied the selected changes to the draft.” in the saved transcript. AI actions and localization passed 41/41 (261.75 ms execution), including dismissal, undo and preserving the applied status after a failed undo.
+
+For questions about saved or unsaved files, chat now compares the named open text documents (or active document) with the current regular file inside the workspace. It includes the changed line region and reports unavailable reads. AI action tests passed 41/41 (301.84 ms execution), including externally modified, missing and identical files. In an isolated native replay the 1.5B Q4 model correctly identified the unsaved log and the subsequent save. After an external writer removed just the log from disk, it repeated the prior saved answer despite a fresh comparison in the persisted user turn. Explicitly labeling the draft-only insertion and repeating the replay produced the same incorrect answer. Model-host RSS samples on this replay were 1,233,296–1,234,576 KiB. The transcript is evidence of a context-use failure, not a successful external-change answer. The dev supervisor recovered from linker space exhaustion after pruning old generated programs under the cache lock.
+
+Direct English save-status questions now return Studio’s current disk comparison through the chat transcript. Compound questions and explanations continue through generation. Replayed the previously failing external-removal case in a rebuilt isolated Studio: after Save the reply reported matching contents; after an external edit removed the startup log, repeating the identical question returned the exact draft-only console.log line. The focused AI action suite passed 41/41 (303.41 ms execution), including direct completion with the model stopped. This route covers open workspace text documents. Broader model reasoning remains unverified.
+
+Inline completions now have a persisted Settings switch. An isolated real host was ready before any typing and received both sides of the caret after Return under a comment. Tab inserted the result. Comment typing also requested inline generation, with ordinary symbol completion suppressed. Model quality remains uneven: the 1.5B produced extra unrelated code and a duplicate closing brace on the newline probe.
+
+Extensions now uses a searchable sidebar and a selected model detail in the main area. Native accessibility replay selected Qwen 7B Q5 at configured sizes 12 and 20, verified its Download action and absence of a duplicate selector. The same sidebar row grew from 25 to 33 logical pixels in height. Screen capture was unavailable, so exact glyph sizes were not measured. Run and Debug exposes launch and a native function breakpoint in its sidebar. Source gutter breakpoints and cross-platform debugger acceptance are pending.
+
+Focused AI and extension suites passed 45/45. Two debugger cases failed in a sandboxed run with default tool resolution; rerunning the seven debugger cases with explicit release compiler, Xcode LLDB and native launch permissions passed 7/7 (4.59 s execution). The dev supervisor picked up the chat change and started the rebuilt Studio.
+
+## Unresolved original-source breakpoints — 2026-11-13
+
+A four-launch native macOS replay connected editor persistence to an actual LLDB stop. At font size 13 a physical gutter click set fixture.tsr line 2. After restart, the sidebar restored the row. Launching the debug build through the file picker stopped in main at fixture.tsr:2:3 for reason breakpoint, and F5 continued to exit zero. On the third launch a second gutter click removed the point, and the fourth confirmed it absent. The source stayed byte-identical and the journal had exactly the expected path and line on every launch. Two earlier attempts timed out in executable selection. The passing replay used the executable alias and explicitly submitted the native Open panel. The separate development session remained open. Linux and Windows were not exercised.
+
+The worker now tracks generated breakpoint bindings from the setBreakpoints response by adapter ID and original source line. Changed and removed events update the line's warning when its last verified binding disappears or its first one verifies. Removal drops the ID association. Source-hit handling follows the current verification state. The focused debugger suite passed 10/10 in 9.49 seconds, including a regression for multiple bindings per line, shared IDs and a stale event after removal. A disposable native Studio session using Xcode LLDB and a test relay received controlled verification changes for the actual returned IDs while paused. The sidebar cleared and restored its warning, then continue reached exit zero. Natural verification changes during dynamic-library loading and native Windows operation remain unverified.
+
+A source breakpoint with mapped statements now receives the localized “Breakpoint not verified” sidebar warning when the initial adapter response verifies none of its generated locations. LLDB regression suite passed 9/9 in 9.65 seconds, including a disposable macOS target with a retained Tsrust source map and its dSYM removed. In an isolated Studio, F9 set the source breakpoint, F5 stopped on entry, and the sidebar reported “Breakpoint not verified · fixture.tsr:3”. Continue reached exit zero and cleared the warning. Later adapter breakpoint change events still need reconciliation.
+
+A saved workspace source breakpoint previously aborted debug launch when the selected executable lacked its Tsrust source map. Studio now reports each affected path and line as “Source map unavailable” and completes native launch. The row tooltip and accessible name use the worker's reason. With a usable source map, a blank line keeps its distinct “No executable statement” reason. Real LLDB suite passed 9/9 in 8.90 seconds, including launching without source maps with a saved breakpoint, pausing, inspecting, continuing and stopping. In a disposable native macOS Studio, F9 added a source breakpoint and F5 launched an ordinary build with Stop on entry enabled. The sidebar reported “Source map unavailable · fixture.tsr:3”. Continue reached exit zero and cleared the warning. The authorized preview rebuilt in 141.80 seconds.
+
+Run and Debug now marks a listed breakpoint when the selected executable has no generated statement for its source line. The worker sends the original path and line, and the sidebar supplies a warning icon, localized tooltip and accessible name. The indication clears on session exit. In an isolated macOS Studio at font size 20, set F9 on a blank line, launched, hit twice(6) and observed the sidebar button named “No executable statement · fixture.tsr:3”. After stepping out and continuing to exit zero the row reverted to “fixture.tsr:3”. Localization passed 1/1. The watcher recovered from disk exhaustion after removing an interrupted duplicate Cargo target and pruning 2,615 MiB of old executable cache under lock. The editor gutter and dynamic adapter re-verification remain open.
+
+Launching a mapped Tsrust executable with a breakpoint on a blank line now reports its source path and line in the Debug Console and continues configuring the other breakpoints. A mapped function breakpoint reports verification only when the adapter verifies one of its generated locations. The real LLDB suite passed 9/9 in 8.48 seconds, including a blank line alone and a blank line alongside two executable lines. Both executable lines stopped and the target exited zero. In a disposable native macOS Studio, F9 on a blank line followed by F5 reported fixture.tsr line 3, hit the named twice breakpoint, showed watch n = 6 and resumed to exit zero. Breakpoint editing during a running session and visual distinction for unresolved markers remain open.
+
+## Debugger inspection sections — 2026-11-13
+
+Local variables and Call stack now open independently using labeled disclosure buttons sized with the configured font. Both start expanded. In an isolated native macOS Studio at size 20, stopped at twice(6), collapsed each section with the mouse and reopened it with Space. Its rows disappeared and returned while the sibling stayed available and watch n remained 6. Selecting main and twice refreshed the watch, stepping out returned to main, and continue exited zero. The source rebuild took 141.62 seconds.
+
+## Debugger input sizing — 2026-11-13
+
+The shared native Input ignored explicit height for single-line fields, so Studio's watch/local height setting did not reach layout. Moved the explicit-height application outside the multiline-only branch. The focused native GPUI layout regression passed 1/1 (0.02 s execution; 4m33s build), checking 24 and 32 point field heights. The test temporarily selected local gpui-base/url patches; restored its lockfile afterward. Whole-project formatting changed no files or documentation snippets and refreshed no fingerprints. Release compiler and LSP rebuilt together in 3m39s. A public LSP hover on CodeEditor reported both breakpointLines and onBreakpointClick. Screen capture returned “could not create image from display”; exact visual consistency remains unverified.
+
+The first rebuilt Studio replay confirmed the inspection fields scaled, but at size 20 the first local was below the viewport after the native stack, and the launch label remained in a fixed 20-point button. Moved local variables above the call stack and set a font-relative minimum height on the launch button. At configured sizes 12 and 20 the rebuilt macOS window measured launch heights of 24 and 32 points; neighboring icon buttons stayed centered at 20 points. Watch/local accessibility fields measured 20 and 28 points tall. Both replays asserted the first local was inside the window above the first stack frame, hit twice(6), switched frames and recovered watch n = 6, stepped out, and resumed to exit zero. The source-only rebuild reused the runtime and took 138.65 seconds, including 92.69 seconds checking. The authorized dev supervisor remained active in apps/studio. Native Windows layout and pixel-level inspection remain open.
+
+At continuation, the existing LSP sampled 1,091,936 KiB RSS at 99.4% CPU, then returned to idle (12,320 KiB RSS at the next process check). These are process observations, not proof of resolved retention. Pruned 88 obsolete generated executable cache entries under target/tsrust-native/v2/.cache.lock, reclaiming 2.02 GiB and retaining at least the newest twenty entries. No model host was launched.
+
+## Native debugger transport
+
+Invalid process IDs now display a localized message beside the PID field. A native macOS replay submitted 0, confirmed the console stayed closed and focus remained in the PID field, replaced the value using the keyboard and saw the validation message clear. Enter attached and Shift+F5 detached. Submitting junk afterward left the full prior console transcript intact. The target survived detach and Studio exit.
+
+Reproduced the keyboard detach failure in an isolated native macOS window. After submitting a PID and reaching Step over, Shift+F5 left the target paused with Detach debugger still visible. Attach now moves focus from the disappearing PID field to the Debug Console. The same replay submitted the PID, waited for Step over, sent Shift+F5 without another click, observed the idle launch toolbar and “Debugger detached.”, and confirmed the target was still alive after Studio exit.
+
+The editable Watch expression, Function breakpoint and Process ID fields and their input groups now size from the same font preference as the inspection rows. Native macOS accessibility checks measured all three fields at 20 points tall with font 12 and 28 points with font 20. At each size the rebuilt Studio accepted a PID, paused the fixture and detached via the sidebar. The fixture remained alive after Studio exited. This measures field bounds only.
+
+Run and Debug now sets the pane font from the same preference as Search and Source Control. Breakpoints and Watch reuse the collapsible inspector rows, with Watch closed at startup. Native macOS replays at 12 and 20 px opened Watch, collapsed Breakpoints, attached to a disposable process by PID, reached the paused step controls and detached via the toolbar. Both targets survived Studio exit. The real adapter suite passed 11/11 in 10.66 seconds including PID validation and detach behavior. PID-only attach does not supply an executable for Tsrust source mapping. A separate Shift+F5 attach replay did not observe the idle toolbar before timeout. Keyboard detach, exact rendered glyph sizes and native Linux/Windows acceptance remain unverified.
+
+Verified the automatic same-line step rejection branch in the native macOS preview from 0d130fe93. F9 set a breakpoint on the first console call. A test relay converted the first F10 line step to one actual LLDB instruction step, then rejected Studio's automatic second step on the same source line. Studio showed the adapter explanation, rebuilt a single top stack row at fixture.tsr line 2 and refreshed watch $pc from 0x100001058 to 0x10000105c. Continue reached exit zero. An earlier replay using ordinary Continue ran straight to exit and did not exercise that branch. The controlled instruction replay did. No product code changed.
+
+A rejected step or continue response previously terminated the debug session. The worker now correlates the active resume request, reports its failure and restores the paused inspection state. A later stopped, continued or exited event supersedes the pending request. During automatic same-line stepping, a rejection requests a fresh stack for the stop before presenting it. Existing real LLDB tests passed 10/10 in 10.60 seconds. In the rebuilt macOS Studio, an isolated relay rejected the first Step Out and Continue while LLDB was stopped in twice(6). Both adapter explanations reached the console and watch n remained 6. Retrying Step Out returned to main and Continue exited zero. The controlled replay covers user-issued commands. The automatic same-line rejection path and Windows operation remain unverified.
+
+Stop during frame inspection passed with the existing worker. Added a real LLDB regression that launches to twice, queues a watch update followed immediately by Stop, and checks that Studio reports a stopped session. Debugger suite passed 10/10 in 9.24 seconds. In a disposable native macOS Studio window a relay held LLDB's actual evaluate response until it saw the disconnect request triggered by Shift+F5. It then delivered the late response before forwarding disconnect. Studio returned to Run last executable, reported “Debug session stopped.”, and showed neither a watch value nor step controls. No production change was needed for this interaction.
+
+After the first debug launch, F5 and the sidebar play action reuse that executable within the open Studio session. A compact folder button chooses a replacement. The isolated macOS replay launched twice, hit twice(6) both times, retained watch n = 6, and exited zero. It also activated the replacement picker by keyboard and cancelled before the second F5. Localization passed 1/1. The watcher recovered from disk exhaustion after pruning 2.31 GB of obsolete generated executables under its cache lock while retaining the newest fifteen entries.
+
+A stopped-frame response carries its evaluated watch expression. Studio displays its value only when it matches the current trimmed input. In an isolated macOS Studio, edited n to an unknown local without submitting, selected the caller, verified the pending input persisted and its result stayed blank, then submitted it and saw the matching evaluation error. Submitting n and selecting the callee restored 6; step out and continue reached exit zero. Real debugger suite passed 9/9 (8.66 s execution), including an unknown local followed by register evaluation on the same paused session.
+
+Call stack now exposes all adapter frames. Selecting an unmapped native frame inspects its own scopes and watch value without opening an unrelated source location. The real LLDB suite passed 9/9 (8.92 s execution), including reading $pc on a native frame then inspecting the mapped caller. An isolated macOS Studio replay selected native frame #2 FnOnce::call_once after stopping in twice(6), confirmed the watch changed, selected main and twice again, restored n = 6, stepped out and continued to exit zero.
+
+Call stack, breakpoint rows and content search use the same workspace-relative path label as file search. The label checks the root boundary before trimming it, keeping external source paths intact and the first filename character when searching from a filesystem root. Explorer regressions exercise a nested file, a trailing separator, a sibling with the same prefix, an empty root and a filesystem root on macOS. Native Windows rendering is unverified.
+
+Verified adapter discovery through the rebuilt Studio window on macOS. A disposable Studio launched with LLDB_DAP unset and PATH restricted to /usr/bin:/bin:/usr/sbin:/sbin, with no lldb-dap executable on that PATH. Run and Debug launched the compiled fixture, hit the named twice breakpoint, displayed n = 6, updated the watch when switching between caller and callee, stepped out to main, and continued to exit zero. The owner workspace was not used for the replay.
+
+With LLDB_DAP unset, macOS Studio now resolves lldb-dap through /usr/bin/xcrun and falls back to the executable on PATH when discovery fails. Explicit adapter commands and LLDB_DAP take precedence. On this Mac, the shell's PATH selected Homebrew LLVM while xcrun selected Xcode. Debugger suite passed 9/9 with the override unset, including comparing the selected executable to xcrun, stopping at mapped breakpoints, stepping and resuming the real target. Linux and Windows still use PATH and need native acceptance.
+
+Reproduced a failed workspace recovery after an external rename left a directory at a clean tab’s former path. Recovery now drops that stale tab and its breakpoint, retains other tabs and drafts, and restores a dirty tab at a replaced path as a journal-backed text draft in its original tab position. A normal save of that draft failed safely and the replacement directory and its child bytes were preserved. Recovery and storage suites passed 8/8 (84.80 ms). The explorer currently has no filesystem rename command; external renames do not transfer breakpoints to a guessed destination.
+
+A GPUI regression now clicks the breakpoint gutter on a wrapped continuation of line 1 and on the next visible line after folding away lines 2 and 3. It checks the actual laid-out rows and asserts the native callbacks return source lines 1 and 4. Focused gpui-base test passed with test-support on macOS. This uses simulated mouse events in the native component.
+
+Studio source editors expose a dedicated breakpoint strip before the line numbers. The native editor paints configured one-based source lines in the diagnostic error color and reports clicked buffer lines through the generated CodeEditor API. Studio routes gutter clicks and F9 through the same workspace update. Two macOS native replays with temporary workspaces verified a physical click at line 2, the corresponding sidebar entry and restoration. One removed the breakpoint from the sidebar and the other clicked the same gutter location after reopen. Both confirmed absence after a third launch. The second replay asserted unchanged source bytes on every launch. Recovery and real debugger suites passed 11/11 (8.54 s execution). Generated Kit sources and IntelliSense passed the regeneration check. This replay did not exercise wrapped lines, folds, or marker-color pixel sampling.
+
+Watch results and locals use borderless selectable fields with the configured monospace size and the sidebar row inset. Isolated macOS sessions at font settings 12 and 20 hit twice(6), switched frames with live watch updates, stepped out and exited zero. Six toolbar controls remained adjacent. The native accessibility text-field bounds for both watch and local values measured 216 by 20 points at both sizes. The local field moved down 42 points at the larger setting. These measurements establish layout, not exact glyph size.
+
+Workspace recovery now saves source breakpoints. A three-launch native macOS replay set line 2 with F9, found and removed its row after reopening, then verified it stayed absent on the third launch. Recovery and debugger suites passed 11/11 (9.61 s execution), including an older journal and a deleted source file. Breakpoints store a path and line number.
+
+Breakpoint rows now open the source line through the same workspace navigation used by stopped frames. A separate labeled × removes an individual breakpoint before launch. In an isolated native Studio on macOS, set lines 2 and 4, removed line 4, then clicked line 2. Its breakpoint remained and a saved marker confirmed the editor caret at the beginning of line 2. The focused language navigation suite passed 4/4 (15.26 ms execution).
+
+Watch expressions can now be added, replaced or cleared with Enter while paused. The worker checks the current stop identity and evaluates in the selected adapter frame. Watch-only replies omit the navigation location. In an isolated macOS Studio window, launched without a watch, stopped in an imported twice(6), submitted $pc and observed a hexadecimal value, then submitted n and observed 6. Switching to the caller and back refreshed the watch and the program resumed to exit zero. The debugger and localization suites passed 9/9 (8.68 s execution), including clearing an expression and updating in the selected caller.
+
+LLDB bound one console.log source breakpoint to native locations 1.1, 1.2 and 1.3. Continue now skips further distinct addresses for that same mapped source line, frame and thread when all reported breakpoint IDs belong to Studio source breakpoints. Revisiting an address exposes the next stop. A regression continued from the console call directly to the named twice breakpoint and exited zero; debugger suite passed 8/8 (7.70 s execution). An isolated native Studio window on macOS hit the same console.log in a two-iteration loop exactly twice and exited zero after the second Continue. Adapters without breakpoint IDs retain ordinary stops.
+
+Run and Debug now keeps session controls in a single horizontal toolbar above the scrollable sidebar. Breakpoint and watch inputs reuse the square InputGroup treatment from Source Control. Breakpoint and frame rows use its padding, divider and accent styles. Native macOS accessibility checks at configured fonts 12 and 20 measured six adjacent 20-by-20-point controls on the same row while paused. Both replays launched with a named Tsrust function breakpoint on twice in an imported module, inspected the caller and callee, stepped out and continued to exit zero. The real debugger suite passed 8/8 (8.40 s execution), including a source call-site breakpoint and the named function entry in one session. During development a breakpoint on a console.log line stopped at that line three times; this remains open. Accessibility bounds verify placement, not rendered pixels.
+
+Debug builds record function names at original statement positions. Studio displays them in the Call stack and Debug Console. A native macOS replay entered an imported helper, selected “#1 main  fixture.tsr:3” and “#0 twice  helper.tsr:2”, verified the watch changed with the selected frame, and resumed to exit zero. A separate replay against a binary built with the prior compiler verified the existing file/line rows and inspection. Single/linked compiler regression passed (0.58 s execution, 3m31s release build); real debugger tests passed 8/8 (7.74 s execution). Named top-level functions verified.
+
+Run and Debug now lists mapped source frames at each stop. Selecting a frame requests scopes, locals and watch evaluation for its adapter frame ID, then opens its source through guarded editor navigation. An isolated macOS Studio replay stepped into twice(6), selected caller fixture.tsr:2 and callee fixture.tsr:6 via their sidebar rows, observed the watch change per frame and recover 6 in the callee, then stepped out and continued to exit zero. Debugger and localization passed 9/9 (11.69 s execution), including original source lines and callee local n = 6 after switching back. Unmapped native frames remain in the console. Pruned 7.08 GB of old compiled programs under the native cache lock for linker space.
+
+Step into (F11) and Step out (Shift+F11) use LLDB line stepping and the existing source map. In a rebuilt isolated macOS Studio window, F11 at the call to twice(6) reached the helper return, Shift+F11 restored the caller frame, and F5 completed with exit code zero. The worker regression checked the mapped original paths and lines for all three stops. Debugger suite passed 8/8 (8.25 s execution); localization also passed. This verifies an ordinary Tsrust helper call on macOS arm64.
+
+Run and Debug can pause a running target before it reaches a breakpoint. Studio requests the adapter thread list, pauses the first reported thread, then inspects the thread reported by the stopped event. An isolated macOS Studio replay launched the delayed fixture without breakpoints, clicked Pause debugging, observed a stack frame in the console, clicked Continue and stopped the running program with Shift+F5. Real LLDB and localization suites passed 9/9 (7.49 s execution). Thread selection and native Windows/Linux acceptance remain open.
+
+Stop debugging and Shift+F5 now terminate a running target as well as a paused one. The worker reads complete DAP frames independently and handles controls while the program runs. The real Xcode LLDB suite passed 8/8 (6.82 s execution), including stopping a target after its ready message during a 30-second delay and launching another session. In an isolated rebuilt Studio window, F5 launched the delayed fixture without breakpoints, its ready message appeared in the Debug Console, and Shift+F5 produced “Debug session stopped.” Verified on macOS arm64.
+
+F5 opens the executable picker and Run and Debug when idle, and continues a paused target. Shift+F5 stops a paused session. Two isolated native Studio replays launched through F5, hit a mapped breakpoint and focused the source editor. The continue replay reached exit code zero; the stop replay reported session stopped. The worker still reads controls at stops; interrupting a freely running target remains open.
+
+A watch consisting of an exact mapped source parameter name now evaluates its generated LLDB slot in the stopped frame. An isolated native Studio replay entered n before launch, stopped at the return in twice(6), and observed Watch value 6 and local n = 6. Existing native register/error watches and debugger regressions passed 8/8 (5.85 s execution). Compound expressions still use the adapter expression language directly.
+
+Debug position metadata now includes ordered parameter names from the checked function. Studio resolves exact LLDB value-slot names against the paused mapped frame, falling back to adapter names for older binaries or other slots. The focused compiler single/linked-source regression verified the parameter list on the imported helper’s return (0.57 s). A freshly compiled native fixture called twice(6); the isolated rebuilt Studio stopped at its return and showed “n = 6” in Local variables. This covers parameter display, not expression rewriting or general local declaration names.
+
+Run and Debug reads the stopped top frame’s locals scope and displays its immediate values alongside the watch. Stack location, watch and locals are delivered together before the worker accepts the next control. Scope/variables request failures go to the console and leave stepping available. Native macOS Studio replay launched twice(6), stopped on the return line with a watch, and observed the local “value0 = 6” in the sidebar. LLDB exposes the generated parameter name rather than the Tsrust name n. Nested variable expansion and original-name mapping remain open. Debugger and localization suites passed 9/9 (5.60 s execution).
+
+Missing adapter launch now identifies the attempted executable and explains PATH and LLDB_DAP setup in the Debug Console. An isolated native Studio with a nonexistent configured path containing a space displayed that path and setup message. Existing launches and the new worker failure case passed 8/8 debugger tests (5.58 s execution). Host was macOS arm64. The configured desktop-linux Docker socket was absent; no native Linux or Windows session was validated.
+
+F10 invokes Step over from the focused editor. The button and shortcut share paused-state dispatch, which clears the paused flag once the command is queued. In an isolated rebuilt Studio on macOS, launched a two-line fixture under Xcode LLDB with a breakpoint and watch, focused the editor, pressed F10, then saved a marker at the resulting caret. The only changed text was the marker immediately before the second console call.
+
+Step over now requests LLDB line stepping. Within the same thread and mapped source frame, successive native addresses for the same original line are stepped past; revisiting an address exposes the stop. Distinct original lines, unmapped frames and other stop reasons remain visible. The real adapter regression set a breakpoint only at line 11, stepped to mapped line 12 and continued to exit zero. Debugger and localization passed 8/8 (6.32 s execution). An isolated native Studio replay set a breakpoint on the first console call, entered a watch, pressed Step over and saved a marker at the editor caret immediately before the second console call. Verified on macOS with Xcode LLDB.
+
+F9 in the editor toggles the source breakpoint before launch, including with the Files sidebar active. Cmd+Shift+X opens and focuses Extensions search; the binding uses Ctrl on other platforms. Native replay at configured 12 and 20 px typed Q5 immediately after the shortcut, selected the model and found its Download action in the main view. In both runs F9 retained fixture.tsr line 2 across Extensions navigation; added and removed line 4, launched, and verified the debugger-selected caret at line 2 by saving a disposable marker. The debugger breakpoint button measured 24 and 32 logical pixels tall. Windows and Linux native debugger operation and editor gutter clicks remain unverified.
+
+Break at cursor now toggles individual source locations before launch. The sidebar lists relative paths and line numbers, with individual removal. The worker batches generated lines into one LLDB request and requires a verified location for each original breakpoint. The real fixture stopped at both original lines 11 and 12 and continued to exit zero. Debugger and localization passed 8/8 (6.18 s execution). In an isolated rebuilt Studio, set fixture.tsr lines 2 and 4, removed line 4 through its sidebar row, launched, and verified the focused editor caret at the remaining return statement by saving a disposable marker. Gutter clicks and changing breakpoints during a running session remain open.
+
+Run and Debug now offers Break at cursor for one original-source breakpoint before launch. It captures the active editor line and shows its file and line until cleared. Debug builds publish the retained Rust unit name keyed by the SHA-256 of the linked executable. Studio verifies the retained unit, translates the original line to matching generated rows, asks LLDB to verify them, and then completes launch. In an isolated rebuilt Studio window, opened fixture.tsr, moved to the return line, selected Break at cursor, entered $pc, and launched through an executable alias. LLDB stopped and the editor focused the return; a disposable marker was inserted immediately before the return and the rest of the saved text was unchanged. The real worker and localization tests passed 8/8 (9.90 s execution). The compiler rebuild/revision regression passed (2.44 s). Gutter clicks, multiple original-source breakpoints and changes during an active session remain open. Pruned 50 least recently used generated application cache entries under lock for linker space.
+
+A mapped top frame now delivers its structured original position to the sidebar, which opens the document through Studio's guarded workspace navigation and focuses the editor at the stop, including when a watch is evaluated. Launch resolves executable aliases so LLDB can find their adjacent symbol bundles. In an isolated native Studio on macOS, selected an executable symlink, set a function breakpoint and watched $pc. The first breakpoint opened the previously closed fixture.tsr and focused the editor. Typed a marker at the debugger-selected caret and saved with formatting off; the only changed bytes were the marker immediately before the return on line 2, column 3. Debug adapter suite 7/7 in 4.67 s, including missing target and real mapped stop. Clickable gutter breakpoints and selection of other frames remain open.
+
+Debug builds now retain the original one-based line and UTF-16 column alongside the existing UTF-8 byte range. Studio indexes the retained Rust unit once per session and checks its content hash and canonical location beside the selected executable. Frames on the generated line directly following a marker pair use the captured Tsrust path and coordinates, without rereading the original file. Other frames keep the native location. The worker can configure a generated source-line breakpoint before launch. The public worker regression built the fixture, configured a breakpoint from its source mapping, and observed original debug-target.tsr:11:3 at the LLDB stops before continuing to exit zero. The debugger suite passed 7/7 in 4.59 s, and the compiler single/linked UTF-8 offset and UTF-16 column regression passed in 0.67 s. Gutter selection and document navigation are still open.
+
+The public `tsrust build <entry> --debug -o <executable>` command now embeds native debug information and retains the exact post-runtime-split Rust unit in <executable>.tsrust-debug. The file name identifies its contents. Repeated identical builds reuse it, and rebuilding changed source preserves the old unit for readers. The debugger build links afresh because platform symbol sidecars are outside the executable cache. On macOS it emits packed symbols. Xcode LLDB launched an ordinary debug build after compiler exit, stopped on the mapped helper.tsr line 3 with argument 6 and resumed to output 12. The compiled Studio debug worker separately launched a fixture built with std:fs runtime support, got a real frame in its retained source and continued to exit zero. Focused compiler regression passed (1.98 s), debugger suite 7/7 (4.83 s). Studio still needs to map those frames and editor gutter actions to the original documents. Cross-platform debugger validation remains open.
+
+The compiler's opt-in `tsrust emit <entry> --source-locations` writes line comments containing a JSON tuple of original source path and half-open UTF-8 byte offsets at emitted statement boundaries. Offsets identify the checked statement token span, which can be just the keyword. In a real two-module fixture with a non-ASCII character before the helper function, the return token on helper.tsr line 3 mapped to generated Rust line 8. Compiled the emitted Rust with rustc debug info and used Xcode LLDB to break on that generated line. The stopped frame held argument 6 and resuming printed 12 and exited zero. Ordinary native build artifacts, debugger launch wiring and gutter mapping still need integration.
+
+Studio now evaluates a user-entered watch expression against the top frame on each stop. In an isolated rebuilt native window, the macOS accessibility replay entered main and $pc, launched the fixture, read Watch value as 0x00000001000009f8, stepped once, read 0x00000001000009fc and continued to exit code zero. The worker test also reports an unknown watch expression and permits stopping the session afterward. Debugger and localization suites passed 8/8, 4508.14 ms execution, with Xcode LLDB. Current UI supports one expression entered before launch. Frame selection, original Tsrust source mapping and editor gutter breakpoints remain open.
+
+A public Studio test builds tests/fixtures/debug-target.tsr into a temporary native executable and launches it under the Xcode LLDB debug adapter using Studio's existing Content-Length stdio transport. Verified initialize capabilities, correlated launch and configurationDone responses, stdout “Studio debugger fixture”, exit code zero and terminated event. Ran from apps/studio with TSRUST pointing to the release compiler and LLDB_DAP to Xcode’s lldb-dap. Suite passed (409.66 ms including cached fixture build and adapter execution). The test reaps its adapter and removes the fixture directory. This establishes the protocol and process boundary. The debugger panel, breakpoints, stepping and generated source maps remain open.
+
+The same native-target regression now sets a function breakpoint at main before configurationDone. Xcode LLDB confirmed the breakpoint, emitted a breakpoint stop with a thread ID, returned main in the top frame of that thread, and acknowledged continue. The process then produced its expected stdout and exit code. Suite passed (376.03 ms including cached fixture build). This exercises a native symbol; no Tsrust source-line mapping or interactive panel result.
+
+Instruction stepping passed through the real Xcode adapter. After the native main breakpoint the regression requested next with instruction granularity, received its acknowledgement and a step stop on the same thread, and read a different nonempty instruction pointer from the top main frame. Continue preserved the expected program stdout and exit. Suite passed (370.44 ms including cached fixture build). Source-level stepping and Studio UI integration remain open.
+
+The stopped-frame regression now requests scopes using the stepped main frame ID, expands Registers and General Purpose Registers through their adapter-issued variable references, and checks that the program counter equals the stepped frame instruction address. The target then resumes to its original stdout and exit. Xcode LLDB on Apple Silicon passed (410.82 ms including cached build). This checks a nested register value; source-level locals and Studio’s variables UI remain open.
+
+Studio service code now owns the typed debug-adapter event/response decoder. The LLDB regression consumes it for successful launch, stop, stack, registers, step and exit. Failed responses report the command with the adapter explanation. A separate actual launch of a nonexistent temporary executable reported launch and the exact missing path through the async worker, and a fixture checked the adapter error-body format. All three debugger cases passed (470.97 ms). The service is not yet connected to the debugger panel.
+
+Debugger decoder now validates the event/response envelope before interpreting a supported payload. Unknown events and successful extension acknowledgements preserve their names and request correlation without decoding unrelated shapes as frame variables. Responses missing the success field are rejected. Tested both extension cases, the malformed response, real successful LLDB execution and real missing-target launch failure (4/4, 526.91 ms). Extension-specific payloads are not surfaced by this decoder.
+
+The decoder now exposes DAP threads with their IDs and names. At the real native breakpoint, the test requested the adapter thread list, matched the stopped event’s ID to a named thread, and used the returned ID for stack inspection. Stepping, register inspection, process output, exit and error cases passed in the same four-test run (658.40 ms). Multi-thread switching and the debugger panel remain open.
+
+Stack frames retain adapter source names, paths and references, line/column and optional end range. Xcode LLDB reported a synthetic path for native main with sourceReference 1; after one instruction step its line changed from 1 to 2. The regression requested source through that handle and verified the stepped line exists and contains text before continuing with scopes, registers and exit. Synthetic decoder cases also cover ordinary file-backed and unavailable locations. Five debugger tests passed (480.49 ms). Original .tsr source mapping and editor navigation remain open.
+
+Xcode LLDB returned a breakpoint ID with verified=false for line 2 of the compiled fixture’s original debug-target.tsr; the native main function breakpoint verified and stopped. Studio now decodes source-breakpoint responses and breakpoint-change events with their IDs, verification, message and optional resolved source range. The stable regression requests an intentionally absent source so future .tsr line mapping can succeed without invalidating the test. A synthetic change event verifies the resolved range. Original .tsr breakpoint binding remains open.
+
+Studio decodes DAP evaluate results and their child variable references. After stepping the real fixture, LLDB evaluated $pc in the selected frame with watch context. Its numeric value matched the stack instruction address. The target resumed and exited normally. All six debugger cases passed (553.23 ms execution). Watch UI and Tsrust expression translation remain open.
+
+The DAP decoder now returns failed requests with their request sequence, command and explanation. Malformed envelopes still throw. In a single stopped LLDB session the regression evaluated an unknown watch, checked that its error named the expression, evaluated $pc successfully in the same frame and then resumed to exit. Missing-executable launch still surfaced its path. Six debugger tests passed (1527.96 ms execution).
+
+Run and Debug now opens a Debug Console with a native executable picker. Studio’s worker launches the selected binary through LLDB DAP with the workspace as cwd, streams adapter output and reports exit status. In a separate rebuilt Studio window the accessibility replay clicked Run and Debug, clicked Launch executable, selected /private/tmp/studio-debug-target in the macOS Open panel, and read back its path, “Studio debugger fixture” and “Exit code 0” from the console. Used Xcode lldb-dap via LLDB_DAP. A missing target followed by a successful launch on the same worker passed. Debugger and localization 7/7; language-service and shared worker lifecycle 14/14. Supervisor 75904 rebuilt in 98.9 seconds and started preview 19625 after seven older generated runtime-cache entries were pruned under lock for space. Interactive stop/step, attach, watch UI and original source mapping remain open.
+
+The debug console now reports an unavailable exit status when an adapter omits exitCode. The real fixture reads a test marker from its workspace cwd and throws on request. The worker streamed the failure and reported the same nonzero status as a direct native run, then launched the same program successfully after the marker changed. The omitted-status case used a synthetic event. Seven debugger tests passed (2832.30 ms execution).
+
+The Debug Console now offers Stop on entry before launch and Step instruction / Continue while LLDB reports a stopped thread. In an isolated rebuilt native Studio window, selected Stop on entry, launched the compiled fixture with the macOS picker, clicked Step instruction, observed the adapter’s step stop, clicked Continue, and read “Studio debugger fixture” and “Exit code 0” from the console. Xcode’s adapter reported the initial stop reason as exception. The focused debugger, language-service lifecycle and localization suites passed 22/22 (4894.79 ms execution). This verifies instruction stepping; editor breakpoints, source-line stepping and attach remain open.
+
+Each debug stop now requests the stopped thread’s stack trace and prints the numbered frames with adapter-supplied source locations and instruction addresses. In the rebuilt native Studio window the first frame was _dyld_start at 0x1000ACBF0; Step instruction advanced it to 0x1000ACBF4 and changed the adapter disassembly line from 1 to 2. Continue produced the fixture output and exit zero. Seven debugger regressions passed (2984.28 ms). Supervisor 75904 launched preview 27597. This replay exercised a one-frame stack. Original Tsrust locations and interactive frame selection remain open.
+
+Paused sessions now offer Stop debugging. Studio issues DAP disconnect with terminateDebuggee=true and waits for the correlated acknowledgement. An isolated rebuilt window stopped at entry, clicked Stop debugging, displayed LLDB’s report that process 29989 was killed and the session stopped, then re-enabled Launch executable. The same-worker regression terminated before fixture output, relaunched, stepped and continued to exit zero. Seven debugger cases passed (3408.50 ms execution). Supervisor 75904 launched preview 29841. Interrupting a freely running target remains open.
+
+## Image preview zoom accessibility
+
+On opening a 2400 × 1200 JPEG in a temporary Studio workspace, the accessibility tree exposed all four image controls but no effective zoom percentage. The Actual image size control now includes the live effective percentage in its accessible name. On the rebuilt preview, four isolated windows opened restored JPEG, GIF, BMP and TIFF tabs. Each reported 34% in Fit and 100% after clicking Actual image size. Localization and image action suites passed 2/2 (1.49 ms execution). The corrupt JPEG's fallback text was absent from the prior accessibility tree; visible fallback and spoken VoiceOver output remain unverified. The authorized supervisor rebuilt and launched PID 30051.
+
+The zoom-enabled native Image viewport now gives its nonempty decode-error fallback the Label role and the same accessible name as its displayed text. A corrupt JPEG in a temporary workspace produced an AXStaticText element labelled “Unable to decode broken.jpg” in rebuilt Studio. In a separate window, a valid JPEG still decoded at 34% Fit and the Actual image size control changed it to 100%. Spoken output and pixel-level appearance were not checked.
+
+Native format sweep with supervisor 33064 and preview 34783. Isolated restored 2400 × 1200 SVG and WebP tabs reported 17% and 34% Fit respectively and both changed to 100% on Actual image size. A 256 × 256 ICO containing a 32-bit RGBA PNG reached 125% on Zoom in. The earlier ICO probe embedded an RGB PNG in an entry marked 32-bit and failed; exclude it from the RGBA result. A 2400 × 1200 8-bit YUV444 AVIF produced by avifenc failed twice with “Unable to decode sample.avif”. avifdec independently decoded the second fixture to a PNG with the intended dimensions. Studio routes AVIF to ImageViewport, but the pinned gpui-pre image dependency omits AVIF decoding. Native AVIF support remains open. These probes verify decode and zoom controls, not rendering fidelity.
+
+AVIF decoder prerequisite on the 8 GB Mac: a standalone probe linked to system ImageIO and CoreGraphics decoded a 2400 × 1200 AVIF to sRGB RGBA [36,135,191,255] against the source PNG [36,135,192,255]. Both ran outside the compiler sandbox with PATH restricted to /usr/bin:/bin. The probe used CGImageSourceCreateImageAtIndex and drew the resulting image into a full-size bitmap context before reading a pixel. Inside the compiler sandbox the same AVIF reported the correct dimensions but drew [0,0,0,0]; the PNG control drew correctly there. Dimensions alone are insufficient for acceptance. This establishes an available macOS system decoder without a user-installed executable; the Studio renderer still uses GPUI’s loader and needs integration and a native-window replay. No Windows or Linux codec result.
+
+Studio now loads local AVIF files on macOS through a GPUI asynchronous asset loader using AppKit’s bitmap representation, then hands the in-memory TIFF representation to GPUI for rendering. Paths with other extensions keep the existing loader. No external command or temporary converted file is involved. The bitmap conversion of the same fixture yielded RGBA [36,135,191,255] against the source PNG [36,135,192,255]. In isolated rebuilt Studio windows the 2400 × 1200 AVIF opened at 34% Fit and switched to 100%; malformed AVIF exposed AXStaticText “Unable to decode broken.avif”; valid JPEG fit and actual-size still passed. Static local AVIF on macOS only. No framebuffer readback, sequence playback or Windows/Linux AVIF result.
+
+## Distinguishing attachments in the composer
+
+File chips now display workspace-relative paths, and their localized remove-button tooltip and accessible name identify the target path. Skill chips keep their short label with the full target in the remove control. Paths are derived from stored snapshots at render time. Restored a temporary draft containing two legacy labels fees.tsr for src/fees.tsr and tests/fees.tsr. Before the change both controls reported “Remove context”. On the rebuilt native preview both paths were distinguishable, clicking the tests path removed only that chip, and the persisted context exactly matched the original src fragment including its ID and text. AI actions and localization passed 39/39 (261.62 ms execution). The dev watcher launched PID 53201.
+
+A second isolated native replay restored same-name fees.tsr attachments inside outerpicker/src and its external sibling outerpicker-copy. The composer exposed the workspace removal button by relative path and the external one by full canonical path. Clicking the external button removed that fragment alone. The saved journal retained the original workspace fragment byte-for-byte in its text and with its ID intact, and both source files retained their original contents. This exercised draft restoration and removal, not the external file-selection dialog.
+
+In isolated native Studio, Attach text files → Choose from disk opened the macOS Open panel. Pressing its Cancel button returned to the Studio context search. The persisted draft retained exactly the original workspace attachment, and both source files retained their contents. Two attempts to automate selecting the external file did not confirm selection or attachment. Successful external selection through this dialog remains unverified.
+
+Studio’s native file picker now receives a structured array through std:ui pickFilePaths. Embedded newlines in UTF-8 paths remain inside their selected entry. External context reads use the platform absolute-path predicate. Existing pickFiles callers retain their documented line-oriented reply. The native serialization regression passed for newline, quote, empty and invalid UTF-8 selections. All 38 AI action tests passed (255.21 ms execution), including the trusted grant and submitted snapshot for a newline-containing external file on macOS. The rebuilt native picker passed cancellation and retained the original attachment and both files. Two live keyboard-selection attempts did not verify the external attachment in the journal; successful external selection remains open. Supervisor 61437 and preview 62103.
+
+External selection now passed end to end in an isolated native Studio window. Opened Attach text files → Choose from disk, selected a uniquely named temporary file in Documents with a literal newline in its basename, and pressed the enabled macOS Open button. The persisted journal contained exactly the original workspace fragment and one new fragment with the complete canonical external path and expected text. Both source files retained their original contents. No model generation. The authorized dev session remained in apps/studio (supervisor 61437, preview 62103). This verifies one selected external file; simultaneous multiple selection was not exercised.
+
+Multiple external attachments passed in one native macOS Open dialog. Selected two distinct temporary files together, one with an embedded newline in its basename. The journal contained exactly the original workspace fragment followed by the two selected snapshots, each with its expected canonical path and full text. All three fragment IDs were distinct and all three disk files retained their original contents. This run used an isolated draft and did not start model inference.
+
+The native multi-file picker now retains path-specific notices across the whole selection. Previously each subsequent successful attachment cleared an earlier failure. All 39 AI action tests passed (265.14 ms execution), including binary and missing paths followed by a valid source; both rejected paths remained in the notice and only the valid snapshot entered the draft. Native mixed-file trials on the old and rebuilt previews retained the preexisting fragment and the selected text file and excluded the NUL-containing file. All disk contents remained intact. The file-specific notice could not be found in the macOS accessibility tree after rebuilding. Its visual and spoken presentation remain unverified. The authorized supervisor launched preview 73682.
+
+Chat notices now use the Text status role in the thread and deletion dialog. The GPUI Text renderer maps explicit status and alert roles to native accessibility nodes and uses the accessible label or full text as their name. In a rebuilt isolated Studio window, the mixed external selection exposed an AXApplicationStatus with the exact rejected path and UTF-8 requirement, previously absent. Verified the valid attachment and preexisting fragment in the journal and original bytes on disk. The UI semantic validation test passed. Supervisor 75904 launched preview 77669. Three obsolete runtime cache artifacts pruned under lock. VoiceOver speech and separate deletion-dialog presentation were not exercised.
+
+Verified the deletion-dialog status in isolated native Studio. Opened confirmation on revision 1, then wrote revision 2 with a new draft to the same temporary chat journal. Confirming Delete left the dialog open with AXApplicationStatus reporting the exact external-change and reopen message. Cancel dismissed it and returned to the conversation list. The complete revision-2 journal matched the external writer’s bytes afterward. The first replay observed the closing animation before dismissal completed; the second waited for the modal to disappear. VoiceOver speech was not exercised.
+
+Chat deletion now identifies the conversation in the row tooltip, accessible row action, dialog title and accessible confirmation action. The prompt retains the title captured with the revision at the time deletion was requested. Only ID and revision are sent to the guarded delete action. Two isolated native trials (English and Brazilian Portuguese) selected the second of two conversations by its named trash button and confirmed using a button naming Target λ. Only the second conversation disappeared from the list and journal. The original active ID and complete first draft survived. Localization suite passed (1.05 ms execution); watcher launched preview 83650. No spoken VoiceOver test.
+
+Reopen-and-retry verified across two isolated native Studio processes sharing one temporary workspace and journal. A revision-1 deletion confirmation encountered a revision-2 external draft, showed the external-change status and was cancelled. The complete revision-2 journal survived closing the first process. On restart the chat composer’s accessibility value matched the external draft. A fresh named confirmation deleted the revised chat; the persisted conversation list and active ID were then empty. The authorized development window was not restarted.
+
+## Relative paths in the chat attachment picker
+
+The chat attachment picker searched absolute paths while displaying relative paths. In a native workspace called outerpicker, typing OUTERPICKER returned src/fees.tsr even though neither displayed path component matched. The picker now uses the shared filename-search matcher and label helper for files and skills. Two fresh Studio windows confirmed OUTERPICKER excluded src/fees.tsr and SRC/FEES returned that row. All four explorer tests passed (38.50 ms execution), including read and navigation grants and root-relative matching. The authorized watcher rebuilt and launched PID 43776. Skill search uses the same component; no separate native skill replay for this change.
+
+Native skill-picker follow-up on the rebuilt Studio. A temporary workspace contained pricing/SKILL.md, pricing/notes.md and catalog/SKILL.md under .agents/skills. Searching the workspace folder name OUTERPICKER returned no skill rows. In a fresh window, uppercase PRICING returned exactly .agents/skills/pricing/SKILL.md. Pressing Enter displayed the removable context chip. The chat journal contained exactly one attachment with kind skill, the canonical pricing/SKILL.md path and its complete expected text. No generation was requested.
+
+Two native Studio conversations with Qwen2.5-Coder-1.5B-Instruct Q4_K_M used the filtered skill picker and identical prompts. Only the selected pricing skill defined quote(subtotal) as subtotal plus a surcharge. An unselected catalog skill specified +91 in both runs. With pricing +17, quote(40) returned 57 correctly; using the previous result as the next subtotal returned 64 (expected 74). With pricing +7, replies were 47 then 47 (expected 47 then 54). Both journals showed pricing attached on the first question and no new attachment on the follow-up; the +7 replay had no automatic workspace excerpt on either turn. Sampled peak model-host RSS 1193.19 and 1194.78 MiB respectively. One run per rule; follow-up arithmetic failed on both. No conclusion about longer context or accuracy on other tasks.
+
+The attempted 7B Q4 comparison on the same skill task stopped at critical system pressure before ready (6.62 s, sampled peak host RSS 2333.94 MiB, system swap +714.75 MiB over 2679.69 MiB). Neither question ran. Separately compared full attachment JSON with a shortened representation containing only kind, label and text through the production 1.5B Q4 host. In independent conversation histories using the same fixed attachment ID/path and identical questions, +17 produced 57 then 64 under both representations (expected 57 then 74); +7 produced 47 then 48 with full metadata and 47 then 47 with reduced metadata (expected 47 then 54). All eight replies reached EOS, with sampled peak host RSS 1259 MiB, normal pressure and zero sampled swap increase. One sample per condition. Removing those two metadata fields alone did not repair the observed follow-up errors. No production prompt change.
+
+## Editing an attached, unopened workspace file
+
+Independently exercised Save through Edit → Command Palette in native Studio. After the 1.5B reviewed edit, selected fees.tsr, searched for Save and clicked the matching result. The reviewed target alone reached disk, the other dirty draft remained in recovery and its disk bytes stayed unchanged. Opening the palette again and clicking Save for the now-clean tab left the palette open. A native test importing the saved module passed the quote, fee and unrelated assertions (0.16 ms test execution). The macOS accessibility tree exposed the disabled result's label as enabled static text under a list; pointer behavior passed, accessible disabled-state reporting remains unverified.
+
+File → Save and the Save palette command submit the active dirty text document through the existing revision-checked save queue. Cmd+S remains Save All. Native Studio trial with two dirty drafts: 1.5B Q4 used the attached skill to update the previously closed fees.tsr from 72 to 84. Apply left the original tab selected and the disk untouched. Selecting fees.tsr and invoking File → Save wrote exactly the reviewed target, preserving the other draft in recovery and its original bytes on disk. A public native test imported the saved fees.tsr and verified quote() = 84, fee() = 84 and unrelated = 300 (0.14 ms test execution). Save All and explorer suites passed 5/5, and the extended active-target regression passed (9.28 ms execution). File menu exercised live; palette entry not independently activated.
+
+Stale Apply now replaces the invalid diff with a dismissible review dialog explaining that the file changed and a new proposal is needed. The stale batch cannot be reapplied. Its localized Close control exposes the failure reason to macOS accessibility. All 38 AI action tests passed (265.90 ms execution), including retaining the failure state and dismissing it. Native two-file trial with real 1.5B Q4: changed the closed second target on disk after generation, clicked Apply, verified the prior unsaved first draft, external edit and selected tab, located the reason by accessible button name and dismissed it. Spoken VoiceOver output was not tested. Post-reply host RSS 1198768 KiB. Supervisor 84334 launched preview 95079. Two obsolete generated cache entries pruned under lock.
+
+Stale mixed-file review verified in an isolated Studio window. The real 1.5B Q4 proposed indexed replacements for an open unsaved file (72 to 84) and a closed file (73 to 85). After generation, changed the closed file on disk and clicked Apply. The recovery journal contained only the original open draft with its full unsaved text and active path intact. Both the original disk contents of the open file and the external change to the closed file survived. The rejection notice could not be located through macOS accessibility. Adding a named status role did not resolve that observation and was reverted. Window capture failed, so visual presentation and VoiceOver announcement remain unverified. One replay during preview startup missed the second keyboard attachment and was excluded; both attachments were verified on the subsequent run.
+
+Fixed the native tab-selection failure below. The docking adapter previously inserted every panel with activation enabled, including background drafts while the controlled Dock value still named the current tab. It now inserts those panels without activating them. Existing callers of the native add methods retain their activation behavior. Rebuilt the release compiler, Studio executable and authorized dev preview. Replayed the real closed-file picker, skill, 1.5B generation and Apply workflow. The recovery journal showed visible.tsr active and fees.tsr newly open across twelve post-Apply observations. Only the new draft changed (72 to 84); the existing draft and both disk files retained their contents. Post-reply host RSS 1181376 KiB. New supervisor 84334 and preview 86005. Three obsolete generated runtime cache entries removed under lock for build space.
+
+`Edit files:` now accepts workspace text files directly from the attachment picker. A closed target is checked against its attachment snapshot without publishing a tab. Apply reads it again through the normal workspace opener and validates its contents before publishing the draft batch. Changed contents, an intervening open or a file outside the workspace cannot silently replace a draft. The AI action suite passed 38/38 (279.31 ms execution), including disk-change rejection, draft application and undo. Two native 1.5B Q4 trials attached a closed fees.tsr and a skill specifying 84. The target stayed closed through generation. Apply changed only its new draft from 72 to 84, and both disk files and the existing unsaved draft retained their exact contents. The UI selected the newly opened target in both runs, so the live focus-preservation assertion failed even though the action-level check preserved the previous selection. Post-reply host RSS samples were 1210416 and 1206992 KiB. The watcher recovered from ENOSPC after pruning seven superseded generated runtime entries under lock and launched PID 81945.
+
+## Single attached file edit targeting
+
+Multi-file native undo verified in an isolated Studio window. From an empty chat, keyboard-selected two open files with different unsaved base constants (72 and 73). The resident 1.5B Q4 returned both requested indexed replacements (84 and 85). Apply to draft produced the exact expected pair in the recovery journal. Invoking Edit → Undo Last Chat Edit through the macOS menu restored both complete pre-edit draft texts and preserved the active tab. Disk contents matched their original bytes after Apply and Undo. Post-reply host RSS was 1218656 KiB. This closes the native menu gap recorded under “Multi-file chat edit review” for a successful two-file undo.
+
+The file and skill pickers now focus their search input on each open using the same next-frame input control as quick open. Before the fix the native replay observed empty query fields and no attachments after Return. On the rebuilt Studio, typing immediately after opening populated each query (verified via macOS accessibility) and Return persisted the selected file and skill including their exact contents. In the same isolated window Qwen2.5-Coder-1.5B Q4 proposed 72 to 84, and Apply updated only the inactive target draft. The active duplicate and both disk files retained their contents. Host RSS after the answer was 1198480 KiB. Watcher launched PID 74898.
+
+Repeated the two-draft trial from an empty chat using Studio’s file and skill pickers. Selecting each search result by click persisted the inactive file’s unsaved text and the skill contents. The real 1.5B Q4 model returned file 0 with the requested 72 to 84 replacement. Applying it changed only the inactive draft. The active duplicate and both disk files retained their original contents. Host RSS sampled after reply was 1207760 KiB. A separate keyboard automation attempt did not persist attachments; Return selection remains unverified.
+
+A single-file edit response containing file index 1 previously parsed as a valid replacement if its passage matched the active draft. Reproduced with a failing public native regression. Single-file proposals now accept an omitted index or index 0 and reject an out-of-range index anywhere in the replacement list. Edit files now accepts one explicitly attached open workspace file. With two open files containing identical text and the other tab active, the native action test attaches the first file, sends the request, receives an indexed model update, reviews it and applies it only to the attached draft. Disk and the other draft remain unchanged. AI actions and knowledge suites passed 38/38 (306.52 ms execution). This test injects the model response. Watcher launched PID 66710. Two superseded morning runtime cache entries pruned under cache lock for build space.
+
+Live Qwen2.5-Coder-1.5B Q4 trial in an isolated window with two identical unsaved drafts and a restored chat attachment: the model returned file index zero and only the inactive attached draft changed from 72 to 84 after Apply to draft. The active duplicate and both disk files stayed unchanged. Found and repaired a separate omission: Edit files ignored user-attached skill snapshots during generation. They now accompany numbered sources as reference only. Native AI action test verifies the skill text enters the frame without a second target. Replayed the two-tab UI trial with the desired value supplied only in the attached SKILL.md: same correct replacement and draft/disk checks. Host RSS after reply 1212880 KiB. The attachment picker itself was not exercised in these restored-attachment trials. Both suites passed 38/38 (312 ms execution); watcher launched PID 70431. Seven old generated runtime cache entries pruned under namespace lock.
+
+## Selective chat edit review
+
+Chat edit review preserves the model's validated, nonoverlapping replacements in original source order. In multi-replacement or multi-file reviews each passage can be excluded and re-included by its original line. The displayed modified text is rebuilt from the captured original; applying updates selected drafts and creates inverse edits only for changed files. Empty selections disable Apply. Native actions and knowledge suites passed 37/37, including excluding, including and resetting adjacent replacement choices. Real isolated Studio trial repeated the failing quote/fee task: the model again proposed doubling both. Excluding line 2 through the review dialog and applying kept fee unchanged. Actual recovered draft ran a public native test asserting quote() = 144, fee() = 72, base = 72, unrelated = 300; all assertions passed, disk fixture unchanged. Main preview PID 60890. This is reviewed-edit correctness; the unfiltered model proposal remains incorrect.
+
+Review controls now identify the original one-based line and Unicode character column. Two changes on one line previously exposed identical action names. Live 1.5B trial with an emoji before both same-line functions verified distinct accessible buttons at 1:9 and 1:44. Excluding 1:44 and applying preserved the helper; native assertions on the recovered draft passed and disk stayed unchanged. All 36 AI action tests passed. Preview PID 62959 under the authorized watcher. Four superseded generated runtime-cache entries pruned under the namespace lock for rebuild space.
+
+## Reviewed local model edits on a recovered draft
+
+In isolated Studio windows, the 1.5B Q4 model proposed a unique replacement for base = 72 to base = 84. Clicking Apply to draft changed exactly the requested constant in the recovery journal, with the sibling declarations preserved and the disk fixture unchanged. A second task asked quote() to double fee() while preserving fee(), base and unrelated. The model changed both quote and fee. Studio rendered the review and applied both changes to the isolated draft; the native test of the actual reviewed source compiled and failed (expected 144, got 288). Replaying the same fixture and request with an extra edit-prompt instruction to preserve dependencies produced identical replacements and the same native failure. Reverted the ineffective prompt experiment. 36 AI action tests passed during the experiment; no new production behavior claimed. The authorized watcher restored the original binary (PID 55767). Four superseded runtime cache entries pruned under lock after an ENOSPC rebuild failure. This demonstrates why successful proposal parsing and review alone do not establish edit correctness.
+
+## Active draft excerpts before outline availability
+
+When a named function or constant is resolved in the active editor draft, chat can select its body and local dependencies from the current text before the language-server outline arrives. Previously a source-based function match retained the entire active file, and constant initializer dependencies were omitted from the narrowed outline path. Explicit whole-file requests keep the full draft. Focused native coverage uses disk and draft versions with different return values, traces a helper to its constant and excludes an unrelated constant. AI actions and bundled knowledge passed 37/37 in 278 ms execution. Rebuilt the corpus from 335 files (1734 passages). The authorized watcher rebuilt Studio and launched PID 44130. Prompt source selection verified; generated-answer accuracy on this case unmeasured.
+
+Live Qwen2.5-Coder-1.5B-Instruct Q4_K_M evaluation, twice in isolated Studio windows with independent temporary workspace, recovery journal and chat storage. Disk quote() returned 999; the recovered active draft called fee(), which returned base = 72. The first question about quote() returned 72 with only those three declarations in the persisted excerpt. "Double the result you just gave" returned 144 in both chats. The second excerpt included the entire active draft, including an unrelated constant. This leaves excess retrieval on purely conversational follow-ups open. Model host RSS after replies on the repeat was 1191328 and 1190272 KiB. These are point samples, not peak or system memory. The temporary disk fixture remained unchanged and the regular watcher and preview remained live.
+
+Resolved the observed follow-up overfetch for explicit references to the previous answer after a completed exchange. Such questions skip the implicit whole active draft; an explicit symbol can still select its current declaration and dependencies. Whole-file, active draft and file path requests remain eligible. Native actions and knowledge suites 37/37 (283.62 ms). Replayed the same isolated active-draft Studio conversation on the updated binary: quote() returned 72 with only its helper and constant in the excerpt, then "Double the result you just gave" returned 144 with no new workspace excerpt. Host RSS after each reply was 1201856 and 1198112 KiB. No peak memory claim. Dev watcher launched PID 49570. Pruned three superseded morning generated runtime cache entries under the namespace lock during rebuild.
+
+Replayed the owner's three arithmetic turns in an isolated Studio 1.5B chat, followed by a return to quote() in the unsaved draft. Before the change all three arithmetic turns attached the entire draft; the third answer printed 62 but its JavaScript computed 81 - 100. Studio now omits implicit editor text for standalone numeric expressions and simple arithmetic continuations following a completed answer. Named code lookups and explicit file requests stay available. Same four prompts after rebuild: 81, 162, 62 (explicitly subtracting from 162), then 72. No new workspace excerpts on turns 1–3, and just quote(), fee() and base on turn 4. Host RSS across the four post-reply observations was 1199120–1204160 KiB. One replay per configuration, not a general model benchmark. Updated native context and knowledge suites passed 37/37. Authorized watcher launched PID 51768; owner drafts preserved.
+
+## Dev watcher undo and redo
+
+The frontend worker retains the last two successful checked revisions. Changing a dependency from one valid version to another and undoing or redoing now reuses matching checked output and skips semantic analysis and Rust emission. Matching still compares captured inputs, application paths, resolutions and read errors through the existing watcher predicate. Failed checks leave both revisions usable. One extra checked output and snapshot remain resident; unchanged source byte buffers are shared. Focused public dev-supervisor integration passed (4.29 s execution, 53.22 s setup), including checking actual stdout after valid undo and redo, failure recovery, process replacement and cleanup. Whole-project formatting reported zero changes. The live Studio supervisor still runs the prior compiler. New styles still need full checking; the saved class string alone cannot identify a rendered element (two search-panel Views share the same literal).
+
+Activated the revision cache in the release dev watcher for apps/studio. On the same px-2 to px-4 search-panel edit the replacement window appeared in 95.35 s (process launch 93.65 s, check 58.03 s, emit 1.75 s, native/link 33.17 s). Restoring the original bytes launched the restored executable in 0.96 s, with a visible window at 2.24 s versus 63.88 s on the previous compiler. The frontend and native cache both hit: check, emit and native/link all zero; watcher build 287 ms. vmmap watcher physical footprint immediately after startup, edit and undo was 743.7M, 378.6M and 388.9M respectively, peak 997.6M. Previous watcher before restart measured 177.3M, peak 999.0M. Process-wide samples do not isolate the extra retained output or include Studio app memory. Final supervisor 40397 and app 40695 verified live, test edit restored, only owner drafts dirty. Whole-project formatter changed zero files.
+
+## Studio exception checking on rebuild
+
+Removed unused preliminary whole-program error-contract calculations when opening partial exception environments in callables, matches and try regions. The post-body calculation still resolves pending callees and annotates the checked region. Optimized CLI check of apps/studio/src/main.tsrx took 62.64 s versus the prior 84.73 s observation. Both produced 418896 bytes, SHA-256 da7625adc94ec32091e7e5718efbcdf913151e4fbd91719a049cb7598b0cf896. The new check overlapped the tail of the library tests. This is a compiler observation; the live supervisor still uses its loaded compiler from the previous checkpoint.
+
+54 error-effect and 90 exception-state unit tests passed. Full compiler library in sandbox: 1521 passed, 31 failed, 8 ignored (153.13 s). With local socket access: 1551 passed, 1 failed, 8 ignored (108.77 s). The remaining test found that the bundled ignore dependency could be redeclared in bindings. Reserved that existing runtime pin for both manifest schemas and reran the affected dependency tests successfully. Whole-project formatting changed zero files and zero fingerprints. Owner chat and editor drafts excluded from checkpoint.
+
+The authorized apps/studio dev watcher now runs the updated compiler with the existing model host and Cargo target. A fresh search-panel padding edit (px-2 to px-4) took 96.32 s from write to observed process launch and 98.03 s to an on-screen layer-zero window for that PID (1120 by 781). Check 60.40 s, emit 1.76 s, native build/link 33.46 s, runtime cache hit. Prior comparable edit launched in 135.31 s. Exact-byte restoration launched in 62.47 s and the restored window appeared at 63.88 s (check 59.81 s, executable cache hit). Both warm builds reused 94/96 syntax trees and 95/96 headers. Window observation uses CoreGraphics and does not measure first rendered content or input readiness. A five-second startup CPU sample still showed expression_effect and own_expression_effect as the highest active frames (120 and 60 observations). Final preview PID 36721 under supervisor 36287. Recovery draft digest matched and the two owner source drafts remain outside the checkpoint.
+
+## Studio compiler error-effect traversal
+
+An 8-second sample of optimized Studio main checking showed expression_effect and own_expression_effect as the two most frequent active top frames (187 and 85 observations). The expression traversal now schedules child visits in reverse stack order and visits the first fixed child directly, avoiding reversal of queued continuation frames. The previous list payload order, reachable optional branches and expression annotations are covered by the error-effect regressions (54 passed, 0.32 s execution, 1m54s setup). Whole-project formatting reported zero changes.
+
+Same checkout, sequential optimized CLI checks of chat-panel.tsrx: old 10.56 s, new 9.99 s, new 8.95 s, old 9.70 s. Identical 131395 output bytes by SHA-256. One full Studio main comparison: old 92.67 s, new 84.73 s, identical 418896 output bytes by SHA-256. These are local wall-time observations for checking, not a release benchmark or a measured save-to-window change. The existing dev session retains its loaded compiler. Full semantic checking still dominates the observed rebuild.
+
+Activated the updated optimized CLI in the authorized dev session. The previous supervisor and app exited. New supervisor 42080 watches apps/studio with the existing model host and shared Cargo target. A reversible px-2 to px-3 change in the search panel took 135.31 seconds from file write to replacement process launch. It reused 94/96 syntax trees and 95/96 headers, spent 98.32 seconds checking, 1.80 seconds emitting and 34.50 seconds in native build/link with a runtime cache hit. Restoring the exact file bytes took 101.41 seconds including 98.31 seconds checking; the executable cache hit avoided native compilation entirely. These observations stop at process launch, not first paint. Recovery journal draft digest matched before and after; the final restored preview PID 42410 was confirmed under supervisor 42080. No test styling remains. This isolates full semantic rechecking as the primary remaining cost even with a known-good prior executable.
+
+## Read grant on attachment replay
+
+Restoring a prior chat exchange could send attached file and skill snapshots even when workspace read access was absent. Prompt assembly now uses plain message text for that request. The native action regression sends three explicitly selected snapshots under a grant (unsaved file, local skill and trusted outside file), completes the reply, removes the read grant and verifies the next frame contains only the original question, reply and follow-up. Stored history retains all three attachments. The AI action and offline knowledge suites passed 36/36. This controls future snapshot inclusion; conversation text already supplied by a user or returned by a model remains ordinary dialogue.
+
+The watcher initially retained the prior working app after ENOSPC. Removed six pre-08:30 generated Studio runtime cache entries, recovering about 5 GiB. Retry rebuilt in 156.6 seconds and launched Studio PID 39653 under the existing supervisor.
+
+## Chat transcript completeness
+
+A two-turn native 1.5B conversation retrieved the terminal session example, correctly identified the remaining session as second, and then correctly gave the fourth session's ordinal as 4. Inspecting prompt assembly also found that cancelled partial assistant output and the associated question could enter later prompts. Generation now includes prior exchanges only when the adjacent user and assistant have matching request identities, nonempty text and completed status (legacy messages without a status remain eligible). The current user question remains eligible while its response is pending. The long-transcript native regression verifies that a cancelled partial answer stays in the stored chat while the next inference frame retains both completed exchanges and the follow-up. Regenerated the bundled test corpus and passed 36 tests across AI actions and offline knowledge. No change to token limits.
+
+## Bundled Studio test examples
+
+Extended the offline FTS5 corpus with Studio application and model-host test suites. Excluded the retrieval oracle itself so expected search answers cannot become search hits. The rebuilt database has 1,733 passages across 335 files, including 184 passages across 30 Studio files. The native retrieval suite passed against the embedded asset, including prior language, SQLite and GPUI cases. In an isolated Studio window using 1.5B, a natural-language question about the active terminal after removing the third session retrieved apps/studio/tests/terminal-sessions.test.tsr:16. The persisted source excerpt included the real session transitions. The answer correctly identified 'second', with extra prose. The dev watcher rebuilt and launched PID 33952. This verifies one grounded answer and does not establish general coding accuracy.
+
+## Closed-file constants in Studio chat
+
+Workspace declaration lookup now includes top-level constants in closed Tsrust files. A native AI action test asks about an exported constant, verifies that the model context contains the defining initializer and its private base constant, excludes the unrelated function, and separately verifies that a local variable inside that function cannot be selected as a workspace declaration. The full AI action suite passed 35/35. This is source retrieval acceptance, not a model-generated answer score.
+
+Native two-turn check using the real 1.5B Q4 model, isolated chat storage and an unopened rates.tsr. For baseRate = 17 and handlingFee = baseRate + 6, the model answered 23. Asked for the new handling fee if the base rate increased by four, it answered 21 (expected 27). Before the change the follow-up had no new workspace excerpt. Studio now resolves spoken compound identifiers on an ordinary follow-up after a completed workspace-grounded exchange. Replaying the identical inputs in the rebuilt app confirmed that the second user turn included both fresh constant declarations and excluded the decoy function. The model still answered 21. All 35 AI action tests passed with follow-up coverage. No production prompt or model-selection change. The original dev supervisor rebuilt the preview (PID 31650).
+
+## Local macOS bundle with the Studio inference host
+
+From apps/studio, `tsrust package --companion model-host` now builds the nested model-host project in release mode and places its executable at the sibling path used by Studio without an environment override. On macOS the helper is included before ZIP and DMG creation, and signed before the enclosing app when signing is requested. Three packaging CLI tests passed. The real unsigned arm64 Studio ZIP and DMG built locally under /tmp/studio-with-model-host and passed the generated SHA256SUMS check. The extracted application's Contents/MacOS directory contained the 63 MiB Studio executable and 15 MiB tsrust-studio-model-host. Running the public native host protocol test directly against that extracted executable passed both missing-model attempts, restart and clean pipe shutdown. This covers package contents and helper startup, not packaged-window inference, signed/notarized distribution or other operating systems. The dev preview remained running separately.
+
+Packaged-window follow-up: launched the actual ZIP-extracted Studio executable with isolated settings and chat storage, the installed 1.5B Q4 weights and no TSRUST_STUDIO_MODEL_HOST override. Using the native chat controls, the model correctly filtered [3,5,8] to [5,8], then answered [5,8,16] when asked to double only the last element (expected [5,16]). Both completed replies persisted in the same conversation with its first exchange intact. Process inspection showed the packaged sibling helper as a direct child of that window. Both exited at cleanup; the original dev window remained under its supervisor. A separate run against the extracted helper via private stdio produced the same two answers starting from [2,5,8]. That run took 7.31 seconds total; sampled peak helper RSS was 1193.48 MiB, system pressure stayed normal and system swap did not increase. This verifies packaged-window inference and context delivery for this exchange. The follow-up transformation failed.
+
+## Failed inference backend recovery
+
+The 9B Q4 Metal log reported that the failed backend needed recreation. Studio previously returned this model to the ready loop. The worker now releases it and emits stopped after publishing the request error for the pinned llama.cpp allocation/compute decode failures (-2/-3). The Studio controller enters stopping on that error, including inline errors, and displays a localized restart or model-selection notice. A fresh chat request after stopped issues a new start. All 34 AI action tests passed including separate error and stopped deliveries; the native host subprocess startup-failure/retry test passed with the rebuilt host. The dev watcher rebuilt and launched Studio (PID 18246). No live OOM induced for this change.
+
+## Studio model host on 8 GB
+
+Verified interruption and reuse of the installed 7B Q4 host on the floor inline prompt that previously outlasted a 180-second trial. After 750 ms submitted a cancellation for a different request ID; the host rejected it. Cancellation for the actual ID then returned `cancelled` with empty text in 87 ms. The same resident process accepted the next second-argument insertion and returned `second` in 950 ms, followed by clean shutdown (exit 0). Sampled peak host RSS 2401.38 MiB, maximum system pressure warning, swap increase 606.87 MiB from 3541.38 MiB baseline. Direct production protocol observation; timings exclude editor debounce and UI delivery.
+
+The Llama host now sizes decode batches from the actual input length (up to the existing 2048-token prefill chunk and 128-token microbatch). Longer generations still grow the KV context and replay history in bounded chunks. On the same five 1.5B Q4 requests Metal compute buffers fell from 77.32 MiB each to 38.66, 58.59, 15.70, 30.81 and 30.81 MiB; all five outputs matched the earlier observations. Native host startup/restart/EOF protocol passed. A 3B 600-token continuation crossed context allocations and reached the requested length, with the prior observed output length and ending. Rebuilt binary installed atomically at the dev session's configured host path. On 7B Q4 the two chat answers remained correct and the second-argument insertion returned `second` in 0.79 seconds. Metal compute buffers for those three requests were 40.69, 61.67 and 16.53 MiB versus 81.38 MiB each before. The floor inline request continued generating until the harness's 180-second whole-trial deadline and received no score; signed probe not reached. Peak sampled host RSS 2855.52 MiB, system swap increase 753.81 MiB, maximum pressure warning. Different run durations and machine baselines preclude a total-memory or speed improvement claim.
+
+Qwen2.5-Coder-7B-Instruct Q4_K_M subsequently reached ready in the production Studio Metal host with the editor and Codex running. On the same two prompts as the 1.5B comparison, it answered [5,8] then [5,16], both correct. The first inline insertion was `second` in 0.77 seconds; a native test of the assembled function returned blue for pick('red','blue'). During the next inline request the monitor reached critical system pressure and stopped the isolated host at 13.52 seconds elapsed. The floor and signed probes are unscored. Baseline swap 3086.38 MiB, maximum sampled increase 1022.74 MiB, maximum sampled host RSS 1949.94 MiB (excludes separate Metal accounting). Six old generated runtime entries pruned under the cache lock before the trial, yielding 8.4 GiB free disk. No model setting changed. One conversation and one finished completion on a loaded machine; sustained or Studio-alone use remains unmeasured.
+
+Matched 1.5B quantization probe on the loaded 8 GB Mac. Ran the installed Qwen2.5-Coder-1.5B-Instruct Q4_K_M and the upstream Q8_0 sequentially through Studio's Metal host using the same tokenizer, chat history format, uncapped requests and inline prefix/suffix prompts. The Q8 artifact at catalog revision f86cb2c1fa58255f8052cc32aeede1b7482d4361 matched its upstream size (1894532160 bytes) and SHA-256 (507de59046601282ba768a9789900e6ccf60ed93ddf346730b7c68eb0715bc47). Both produced [5,8] for the filter and [5,8,16] when asked to double only the last element of that answer (expected [5,16]). All six assembled inline completions compiled. Native assertions: Q4 selected the second string and floored a negative difference correctly, but returned 0 instead of -3 for signed subtraction. Q8 selected the first string, returned -3 instead of 0 for the floor, and 3 instead of -3 for signed subtraction. One generation per probe. Q4/Q8 sampled peak host RSS 1194.12/1437.09 MiB, peak system swap increases 64.50/420.76 MiB from different baselines, peak pressure warning on both. Elapsed including load and shutdown 2.76/18.17 s; Q4 overlapped the Q8 download, cache and system conditions differed, and these are not speed benchmarks. Temporary Q8 weights removed. Owner settings unchanged.
+
+Qwen2.5-Coder-7B-Instruct Q4_K_M was added to the model extension catalog. Three extension tests passed with the opt-in install, including SHA-256 verification of the 4,683,073,536-byte artifact. The normal dev watcher rebuilt Studio. A separate Studio host attempted to load these weights with the application still running. System pressure went from normal to critical before ready. The trial terminated its host at 7.41 seconds. System swap grew from 2486.62 to 3134.50 MiB. Peak sampled host RSS was 1573 MiB, while Metal logged 4594.94 MiB allocated. These are different accounting measures. No prompts ran. This is a loaded-machine observation. The owner wants Studio-alone viability assessed separately. Codex was also running, and its memory was not isolated. The harness stopped the test host before a natural load result. Treat 7B Q4 chat quality, load success and responsiveness on a quiet 8 GB machine as open. This sample does not justify a catalog restriction or a production memory threshold.
+
+Qwen3.5-9B ran next through the same Studio Metal host and existing conversation template, using Unsloth UD-IQ2_XXS (3,190,613,216 bytes, verified SHA-256 570ce2bbc92545cffbcb01df43cba59d86093dadc34c25da9f554d256bc70b91) and the Qwen3.5-9B tokenizer. Asked for the result of [2,5,8].filter(n => n > 4), it returned [2,5] (expected [5,8]). Asked to double only the last element of its own result, it correctly returned [2,10]. Both replies included empty think tags and ended at EOS. Load, both turns, and shutdown took 17.99 seconds combined. Starting swap was 3194.94 MiB, peak increase 291.12 MiB, peak system pressure warning (2), sampled peak host RSS 1373.81 MiB. Metal logged a 3032.36 MiB weight buffer. This was one chat, with a different quantization and baseline from the 7B run. The 9B trial used temporary weights and did not change the user's selected model.
+
+A subsequent 9B run exercised the unchanged Studio complete-code path with prefix and suffix. The second-argument insertion was a newline, four spaces, `second`, and a newline (0.86 seconds). The assembled function passed the public native test on red/blue arguments. The floor and signed cases both inserted a new `return available;` statement after the existing return keyword (0.72 and 0.70 seconds). Both assembled sources failed compiler diagnostics at the duplicate return and stray semicolon. All timings are request to completed response with the model resident, excluding model load and editor debounce. Total run 15.95 seconds; pressure rose from normal to warning, swap grew 230.25 MiB above a 3374.06 MiB baseline, sampled peak host RSS 2259.64 MiB. One native pass and two syntax rejections across three probes. No changes to the owner’s selected model.
+
+The less quantized Qwen3.5-9B Q4_K_M artifact (5,680,522,464 bytes; SHA-256 03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8) replaced the disposable IQ2 artifact for follow-up. Same tokenizer, host template and filter prompt. The production all-Metal host reached ready but first decode returned -3: Metal command buffer reported kIOGPUCommandBufferCallbackErrorOutOfMemory. Peak sampled system pressure was normal, peak swap increase zero, elapsed 16.07 seconds. A separate host built from the same source with 16 layers offloaded also loaded and hit the same Metal error before an answer, after 63.43 seconds. System pressure reached critical and swap grew 3239.69 MiB. Neither failure came from a pressure-based harness stop. No changes to production placement. Neither observation establishes the outcome with only Studio running. A subsequent 7B retry was denied by automatic approval review due to recent pressure, swap growth and remaining disk space. No retry was launched.
+
+A diagnostic of the 7B Q4 floor completion returned the correct expression followed by a copy of the closing code and example comment, with an extra blank line before the comment. The 40-token diagnostic limit applied only to this observation. The model host now also recognizes the suffix with one inserted blank line before its confirming line. An uncapped replay stopped at the suffix after 2.58 seconds and returned only `available > 0 ? available : 0`. The assembled native test passed for negative, positive and zero differences. Host startup-failure/retry also passed. Sampled peak host RSS was 2793.44 MiB, swap grew 412.26 MiB from a 3939.62 MiB baseline, and system pressure reached warning. One loaded-machine replay. Higher precision 7B and Studio-alone measurements remain open.
+
+Studio Extensions now offers the official 7B Q5_K_M alongside Q4_K_M, with separate install folders and quantization in each catalog row. The real installer verified the pinned Q5 artifact (5444831232 bytes, SHA-256 586844eac4d6d6321689f0192c8aa8e69cd8625974a5cc2d925b1a03366e4d16) and tokenizer. Model extension tests passed 4/4 including installation (190.75 s execution including download), Studio check passed, and the dev supervisor launched PID 17147. The monitored production Metal host reached ready and received the filter question. System pressure reached critical before a complete answer and the harness terminated the host at 29.12 s. System swap increased 1618.06 MiB over the 3493.75 MiB baseline; sampled host RSS peaked at 1376.39 MiB. No response quality or inline latency measured. A Studio-alone trial remains open. The user's selected model was unchanged.
+
+The model catalog now refreshes from disk when opening Extensions from the activity bar or panel tabs. A native Studio trial started with only the configured 1.5B model available in a temporary home, then linked the real installed 7B Q5 folder into that home after the window appeared. Before the change, opening Extensions and choosing the next option kept 1.5B selected. After the change, the same interaction persisted the Q5 model path. The owner’s settings were not used for writes and no model inference was started. Five focused model extension tests passed (5.38 ms execution), including reopening after a previously missing model and tokenizer appeared. The watcher rebuilt and launched PID 26130.
+
+## Hover on an inferred started job
+
+In the actual Studio `main.tsrx`, the prior release server reported `const workers` without a type and returned null on `workers.cancel()`, even though `studioWorkers(...).start()` had hover documentation. The server now uses Task and Job method catalog results when inferring a chained initializer. Both declaration-only and checked imported-task regression paths passed. Framed hover requests to the rebuilt server against Studio main returned `const workers: Job<void, E>`, `cancel(): boolean` with Job cancellation documentation, and the existing `start()` tooltip. The live Studio window reloaded the server through its Restart action. Earlier project-edit candidate checks also passed (five code action and four project action cases); validated memory change at `e6a762a3`.
+
+## Local inline arithmetic completion evaluation
+
+Apple Foundation Models was available on this arm64 macOS 27.0.1 machine. Two fresh `LanguageModelSession`s used `SystemLanguageModel.default`, a cursor marker and an instruction to return only the expression. Both responses contained full return statements. Testing their logic as returned statements on (2,7), the floor response returned -5 (expected 0), and the signed response returned 5 (expected -5). This is an instruction-based comparison, not a native Qwen FIM interface or a Studio provider integration. System-wide model memory was not isolated.
+
+Candidate validation experiment: the current CLI formatter accepted all four assembled sources (whole and trimmed versions of the 3B overrun and the valid nested control), including the missing-brace case. The release CLI diagnostics distinguished the correct candidate in each pair. A separately launched release language server reproduced the same decisions using four successive versions of one unsaved `.test.tsr` document. The whole overrun reported `test-entry`, the trimmed overrun had no errors, the whole nested control had no errors, and the trimmed nested control reported a missing brace. The source path never existed on disk. This establishes a diagnostics oracle for these two cases only. Production ghost-text validation would need isolated speculative analysis that leaves the live document version and diagnostics intact. No production integration or workspace-scale latency result yet.
+
+Boundary experiment: truncating an insertion at the first `;\n}\n` shared with the buffer suffix repaired the recorded 3B signed completion and passed the two withheld native assertions. The identical rule also truncated a valid multiline insertion (`-value;\n}\n  return value`) inside an `if` block. The complete magnitude function passed the examples and withheld tests; the truncated file failed with a missing closing brace. A live 3B attempt at the nested fixture was cancelled by the evaluation harness after 12 seconds and yielded no completed insertion. Do not use a punctuation-only suffix match for this repair. A candidate-selection design needs to distinguish the enclosing scope or check the assembled source.
+
+Follow-up with executable examples: prepended the `std:testing` import and replaced the prose suffix with a test containing `strictEqual(remaining(4, 7), X)` and `strictEqual(remaining(7, 4), 3)`. Both models passed the clamped case on visible and withheld inputs. The 1.5B signed completion computed absolute value and failed both the visible -3 and withheld -5 assertions. The 3B signed completion began with the correct `available` expression, copied the closing syntax, then generated a new `export function main()` before the existing test. The compiler rejected the resulting test entry with `test-entry`; it was never executed. All four responses ended at EOS. Peak sampled host RSS was 1,216,080 KiB (1.5B) and 1,603,984 KiB (3B). Executable example context alone did not resolve either failure. This was a host evaluation, without a change to editor behavior.
+
+Ran the installed 1.5B and 3B Q4_K_M models sequentially through Studio's actual `complete-code` host. Both received the prefix `function remaining(limit: int, used: int): int {\n  const available = limit - used;\n  return ` followed by the suffix `;\n}\n// remaining(4, 7) returns X. remaining(7, 4) returns 3.\n`, first with X=0, then X=-3. All four insertions stopped at EOS with maxTokens=0. Each was compiled unchanged and exercised via `tsrust test` with withheld pairs (2,7), (9,5), (6,6). Both models passed the zero-floor contract. For the signed contract the 1.5B clamped -5 to 0 and the 3B returned its absolute value, 5. Peak host RSS observed at half-second intervals was 1,215,424 KiB and 1,554,464 KiB respectively. Two prompts and one run per model do not establish comparative accuracy. Owner settings were untouched.
+
+## Inline completions across block comments in the desktop editor
+
+Two isolated `.tsr` workspaces exercised the current Studio binary on macOS. Typing on an interior line of a multiline comment showed zero completion controls after two seconds and never started the model host. Tab inserted two spaces and saving preserved the closing delimiter on the following line. In code after `/* selected value */`, the editor buffer still read `return ;` before Tab. With the configured local model, Tab changed it to `return second;` and Save produced the exact expected file. These fixtures disabled format-on-save and check-on-save in temporary settings. Both fixture windows closed independently of the dev session.
+
+## Submodule conflict inspection
+
+Desktop follow-up: the old Studio opened the gitlink diff, but Stage resolution rejected the directory and the index stayed unresolved. The service now allows directory actions only for the exact indexed gitlink and requires its own working tree for staging. The native fixture selected the incoming commit inside the submodule, then clicked Stage resolution in a rebuilt Studio window. Git reported a single stage-zero 160000 entry for the selected ID and the nested untracked sentinel remained untracked. The focused suite verifies staging, unstaging and ordinary directory rejection; all 14 cases passed in 2.021 seconds. The dev watcher launched PID 3053.
+
+A native Git fixture merges divergent mode-160000 index entries with no local submodule objects. From a nested workspace, Studio listed the unresolved path and returned the exact base, current and incoming commit IDs in stage order. Git's unmerged index records matched byte-for-byte before and after inspection. All 13 Studio Git cases passed in 1.562 seconds of execution. This covers the Git service on macOS. Desktop selection and resolution of a checked-out submodule remain open. The dev watcher retained the running app after the test-only edit.
+
+## History patch boundaries and native cache housekeeping
+
+The diff viewer now finds a Git file header only at the start of a line. An indented patch example inside a commit message previously matched its substring search and could become a spurious file section. Tests cover a message without a patch, the same message followed by a real Unicode-path patch and direct working-tree patch input. All 12 Git tests passed in 1.659 seconds of execution. Project formatting passed.
+
+The CLI explicitly retains valid build artifacts without an automatic quota. Under the runtime namespace lock, 22 least-recently-used complete runtime artifacts older than four hours were removed (13,618,419,019 logical bytes). Available disk space rose from 3.9 GiB to 17 GiB. Current builds and the shared Cargo target stayed in place.
+
+## Merge commits in History
+
+Studio requests a first-parent patch from Git for merge commits, so the existing split diff can show the files and changes introduced onto the receiving branch. Extended the real Git conflict fixture to finish the merge, select it from History in a nested workspace, and verify the non-ASCII file header, removed first-parent line, added resolution and exclusion of the sibling file. The regression failed with the previous command. All 11 Git cases then passed in 1.705 seconds of execution. Project formatting passed.
+
+Desktop verification opened a two-file merge in an isolated workspace with the rebuilt Studio. Both file paths appeared, and one section collapsed and reopened independently. The dev watcher retained the old window after a native compile ran out of disk space. Pruning fourteen least-recently-used runtime cache entries recovered 3.6 GiB, and the watcher reused its checked application and launched PID 87027.
+
+## Centered sidebar pagination and commit file sections
+
+History and content search center their numbered pager. Commit history uses the native split diff's per-file action bar with path, change counts and a disclosure. The live Studio watcher rebuilt and launched PID 79153. In its 248-pixel History sidebar, the midpoint between the outer paging buttons and the list midpoint both measured 467 logical pixels on screen. Opening a two-file commit exposed separate controls for `src/components/explorer/search-panel.tsrx` and `src/components/workbench/git-panel.tsrx`. Collapsing the first left the second expanded, and expanding the first restored its collapse control. Project formatting passed.
+
+## Compiler shape-cache lookup during Studio checks
+
+Follow-up on `e2d961644`: the release diagnostics-only check of `apps/studio/src/main.tsrx` passed. Three two-second macOS samples taken across 49 seconds of the same check found `expression_effect` at the top of the compiler worker stack 106, 98 and 111 times respectively, with `own_expression_effect` next at 60, 44 and 56. Allocation and free also appeared in every sample. The reported peak compiler footprint was 358.2 MiB. The live editor's separate language server was idle at the process observation. Inspect repeated whole-function visits inside the regional contract fixed point before tuning individual expression allocations. These samples locate work; they do not measure its fraction of total rebuild time.
+
+Recursive native-view shape-cache validation now checks a union-members revision. Creating a union, binding a reserved recursive union and remapping closure origins invalidate the snapshot. Reusing an existing union identity keeps it valid. The earlier record and scoped-family validation paths remain in effect. Three cache invalidation and nine union tests passed. The updated language server loaded through Studio’s Restart action under the existing dev session.
+
+A single release CLI check of Studio main passed before and after. Observed wall time was 104.99 seconds before and 101.15 seconds after, with 103.68 and 99.40 seconds of user CPU respectively. Concurrent work and one observation per binary preclude a benchmark claim. A separate three-second baseline sample found exception-effect propagation repeatedly traversing checked expressions through region_caller_error_effects. That remains a candidate for the next compiler latency investigation.
+
+## Language-server startup priority
+
+Studio recovery had one open source tab, main.tsrx. The language controller synchronizes changed session/revision identities on its 150 ms tick. The server previously scheduled a disk workspace scan immediately on initialization and could enter a synchronous compiler check before the first didOpen. It now debounces the initial workspace scan from the initialized notification using the configured debounce. Open documents remain immediately eligible. A framed regression received versioned diagnostics for an unsaved repaired module first and then the error from a separate closed file. All 17 stdio and nine workspace scan tests passed. One existing formatting assertion expected two spaces despite explicitly requesting four; its witness now checks the requested four-space indentation on both fields.
+
+In a standalone stdio replay against apps/studio, main.tsrx opened 150 ms after initialized. Opt-in timings identified the foreground job first. It produced declarations in 1.412 seconds, spent 110.818 seconds in the full compiler check, built the checked index in 1.713 seconds and returned zero diagnostics at 114.34 seconds. The workspace scan started afterward. These are observed wall times under concurrent machine load. This addresses startup ordering; sustained whole-workspace cost and compiler latency still require work. Studio's Language services → Restart action loaded the rebuilt LSP under the same live application (PID 71921).
+
+## Accessible pagination menus
+
+The two ellipsis buttons now have localized accessible names and hover text identifying the pages available in each menu. In a rebuilt Studio window with a temporary 451-commit repository, page 5 exposed “Pages 2–3” and “Pages 7–9”. The latter accepted native focus. Return opened the menu and Down followed by Return selected page 7. The resulting pager showed 6, 7 and 8. This verifies the macOS English path.
+
+A separate two-second sample of the live Studio language server found the worker in workspace compiler diagnostics in every sample while the main thread waited. At sampling time the process was consuming about one core, eight minutes after startup. Frequency and cause of repeated checks are still unverified.
+
+## History typography, search focus and numbered sidebar pagination
+
+The History search uses the same full-width 32-pixel input group as the Changes and search fields. History tabs, input and row labels use the Studio font setting. The field group's resting border is transparent and its focus edge uses the theme ring. File picker focus uses the theme ring inside the query frame. Git and search rows use the command picker's accent and foreground selection colors. Native list selection respects the row style.
+
+In the rebuilt macOS Studio the four-page history showed each page. In an isolated 451-commit repository, choosing page 5 exposed Previous, 1, ellipsis, 4, 5, 6, ellipsis, 10, Next within a 248-pixel panel. The 20-pixel History field was centered in its 32-pixel row. Native focus was observed on History search, content search and the file picker query. macOS window capture failed, so no pixel comparison of theme colors was obtained.
+
+## Source Control symbolic links
+
+Stage and unstage now inspect the link itself. An untracked link to a directory exposed a separate Git no-index preview failure. Studio now previews untracked links with an isolated intent-to-add index. On macOS the regression checked directory and dangling targets with a non-ASCII link name, exact target blobs, mode 120000, a clean real index after preview, and unstaging. All 11 formatted Git cases passed in 1.72 seconds after a 7.45-second build. The native Stage file button in an isolated Studio workspace staged the link to a sibling directory and preserved its sentinel file.
+
+## Sidebar row alignment and selection
+
+Changed-file paths now begin at the commit field's 8-pixel inset. The native list's confirmed checkmark follows the open file or commit alongside its selection background and leading border. The Changes, History and content-search panels no longer insert gaps between their full-width sections. In the rebuilt Studio window both changed rows and an actual content-search result measured 248 logical pixels wide at the same horizontal origin. Both input fields began 8 pixels inside that edge. Clicking the first two changed rows opened the chat-panel and editor diffs in order.
+
+## Chat priority on the shared model host
+
+Chat can send while the editor loads the model or runs an inline request. Studio queues the chat, cancels obsolete editor work and dispatches the chat on the same resident host. Cancelling a waiting chat restores its draft. The native composer now keys its stop button to an active chat request. The 33 AI action cases passed in 0.218 seconds. In an isolated rebuilt Studio window a deliberately delayed inline command allowed an actual chat submission during the overlap. The real 1.5B host received start, complete-code, cancel and generate in order, and the persisted answer to 4 + 7 was 11.
+
+## Inline completion during model queue congestion
+
+When the model command queue is full, Studio retains the latest editor request across both cold startup and dispatch to a ready host. Newer caret requests replace older queued ones, and a closed queue or missing startup permission still resolves the editor request. A capacity-one channel regression occupied the queue at both boundaries, replaced the waiting request, then observed only the newest prefix/suffix request after capacity returned. All 31 AI action cases passed in 0.187 seconds.
+
+## Installed model selector integrity
+
+Extensions now checks that both weights and tokenizer are regular files before listing configured or remembered model paths, and refreshes the list from current files after download. Switching to a remembered custom model resolves its tokenizer before updating the remembered pair. All three focused model-extension tests passed in 28 ms after a 3.92-second build, including missing-tokenizer and custom-path cases. The download gate had already passed separately.
+
+Native model switching passed in an isolated Studio window using the same executable as the live dev session. After Tab accepted an actual 1.5B completion, Extensions selected 3B and the old resident host exited. A fresh edit in a second file started exactly one new host. Its open files identified the installed 3B GGUF. During the request the selector exposed AXEnabled=false. Tab inserted the expected identifier and saving produced the exact expected file bytes. Switching back restored the 1.5B weights and tokenizer in the temporary settings. The owner's settings and running dev workspace were separate from the fixture.
+
+A separate native conversation switched from 1.5B to 3B between completed turns. 1.5B answered the array-filter question with [5, 8]. The second host received the exact first question, answer and dependent follow-up in order, and the persisted conversation retained its identity and first two messages. The 3B GGUF was open in the new host. Asked to double the last element while retaining the others, 3B returned [5, 8, 16] instead of [5, 16] on two runs. Model handoff and history delivery passed; this dependent answer failed. No edits to production prompts or owner settings.
+
+## Reference-only attachments in a multi-file edit
+
+Studio now reviews just the files named by a nonempty replacement array. Every named change still requires a valid file index and an exact, unique original passage. An empty array remains an error. All 30 AI action cases passed (0.213 seconds). The installed 3B model used an unsaved reference draft containing 47 while disk held 25. It proposed only the other attached draft's timeout change from 10 to 47. Accepting the proposal preserved the reference draft and both on-disk originals. The opt-in `reference-draft` case passed through the Studio model service and review action in 4.90 seconds after 55.63 seconds of build time.
+
+## Installed 3B model workspace edit evaluation
+
+The public Studio model evaluation suite accepts an installed extension name via `TSRUST_STUDIO_EVAL_MODEL`. It selects the GGUF and tokenizer in memory for that run and leaves the owner's model settings intact. On the existing 8 GiB Mac, Qwen2.5-Coder-3B-Instruct Q4_K_M changed two attached drafts with the same filename to their exact requested values (6.11 seconds). Peak sampled model-host RSS across the batch and dataflow tests was 2,281,104 KiB. The separate reordered-parameters case passed the normal edit review, save and four withheld native pricing assertions using an unopened policy module.
+
+The two-step dataflow case failed. The model flattened a multiline original into a single-line replacement anchor and added charges instead of feeding adjusted units to the pricing function. Studio rejected that proposal before application. Two alternate prompt layouts also failed. One obtained an exact anchor but reversed the call arguments and omitted the quantity adjustment. Both experimental prompts were discarded. These cases do not establish that 3B can carry out general code changes or that it outperforms 1.5B.
+
+## Model extensions, editor completion and Source Control history
+
+Studio's extension worker installed the pinned Qwen2.5-Coder-3B-Instruct Q4_K_M and tokenizer using streamed SHA-256 verification and atomic directory publication. The two public runner cases passed in 83.55 seconds including download. The configured 1.5B model remained selected. Studio now queues the latest caret request during cold model startup. All 30 AI action cases passed in 0.214 seconds. A focused native Syntect test passed for line comments, multiline comments, strings and code immediately after a closing delimiter.
+
+The first 3B Metal chat on this 8 GiB machine reserved 1,152 MiB for 32,768 KV cells. The trial stopped at critical machine memory pressure before an answer. Other builds were running. The host now allocates a prompt-sized cache with initial continuation space and replays tokens into a larger context when needed, retaining the original generation budget. With that host, an actual two-turn conversation answered the filter question with [5, 8] and the follow-up with [5, 16]. The same resident model then inserted exactly `second` between the function prefix and suffix in 0.14 seconds. Each request allocated 18 MiB for KV. Peak sampled host RSS was 2,042.73 MiB, normal pressure, zero observed swap growth. A separate 600-token generation crossed two allocation boundaries, continued its numbered list and returned the requested length stop. These are short functional trials, not comparative model-quality or speed benchmarks.
+
+The running Studio History tab filtered commit subjects and opened the selected diff. The Extensions selector reported both installed models. In an isolated Studio workspace the first editor request started the configured 1.5B model, Tab inserted exactly `second` and saving preserved the fixture bytes. A second isolated test caught an automatic insertion in a line comment despite the direct Syntect test passing. The shared Cargo target had staged an old gpui-base library from an earlier generated workspace. The rebuilt compiler now passes the patch revision through Cargo. In the resulting Studio bundle the same comment fixture left the model stopped, displayed zero completion controls and inserted only ordinary Tab whitespace. The paired code fixture still inserted exactly `second`. The changed-file row measured the full 248-pixel list width, the commit field began 8 pixels inside the panel and native selection moved from the first file to the second. The selected row also gets a 2-pixel leading border with compensating padding.
+
+## Source Control file picker rows
+
+Source Control now uses the file picker’s single-line relative path, leading file icon and row padding. In rebuilt Studio PID 9776, the first changed row measured 232 × 32 logical pixels and opened the diff for src/components/ai/chat-panel.tsrx. The previous content-search row measured 232 × 53.
+
+## Local fill-in-the-middle model host
+
+Studio's model service accepts a complete-code request with the source before
+the cursor in prompt and the remaining source in suffix. The host encodes
+both with Qwen's FIM tokens, without chat history. In two requests with the
+same function prefix, changing only a comment after the cursor changed the
+exact insertion from first to second. Both ended at EOS with maxTokens=0.
+Peak sampled host RSS was 2,069,456 KiB. The opt-in completion case in
+chat-model-eval.test.tsr passed through the service in 8.98 seconds. The dev
+host binary matches the tested executable. Ghost-text delivery, cancellation
+on typing, Tab acceptance and broader completion quality remain unverified.
+
+Oversized FIM requests now discard distant source until the model tokenizer
+accepts the prompt. An oversized prefix containing 35,000 crab emoji produced
+the exact insertion first after compaction. The same host then produced second
+without compaction. The focused Metal service test passed in 2.54 seconds.
+The dev host binary matches that build.
+
+Studio now routes debounced CodeEditor requests to a ready local model and
+returns the insertion to the native GPUI ghost-text provider. Requests are
+window-scoped and cancel by identity. The editor checks focus, revision,
+selection and caret before showing the reply. Typing does not load a stopped
+model. Studio compiled and its AI actions suite passed 28/28 in 197 ms,
+including prefix/suffix routing and matching cancellation. Three native
+request-lifecycle tests passed. In a disposable Studio workspace, real chat
+loaded the 1.5B model and answered 81. Typing a space after return triggered
+a suggestion using the trailing comment requesting the second string. The
+accessible editor buffer contained no insertion until Tab, then contained
+return second;. Save wrote exactly those expected file bytes. The fixture
+closed. Supervisor 78503 and dev app 80549 remained live in apps/studio.
+
+Five real Studio expressions were withheld from dirty, apply, searchPage,
+diagnosticColumn and markSaved. The local host ran greedy FIM with maxTokens=0.
+The measurement harness cancelled each request still running after 12 seconds.
+With whole files the original host exactly restored 1/5 expressions. For dirty,
+the model emitted the correct field then copied the suffix and continued.
+The host now stops when generated text repeats the existing suffix through a
+complete line with an identifier. It delivers only the insertion to Studio.
+The same whole-file cases then restored 2/5 exactly (dirty in 1.02 s, apply
+in 0.76 s). Pagination timed out, diagnosticColumn used a wrong UTF-16 width,
+and markSaved assigned the opposite durability flag and continued writing.
+Function-only context restored 0/5. Function plus selected local interface
+declarations (byte-helper import for diagnosticColumn) also restored 0/5.
+These are single-run reconstruction results on five holes, with no claim of
+general accuracy. Peak host RSS sampled every 0.5 s was 2,213,952 KiB across
+the revised runs; GPU allocations and combined Studio memory were not measured.
+The focused service regression passed in 3.41 s across both existing samples
+and the real dirty expression, with no partial inline responses. The tested
+host is installed for the dev session.
+
+A live rapid-typing fixture reproduced a lost inline suggestion on the previous
+build. A test host delayed the cancelled request by 1.2 seconds, then returned
+a stale success. The old app sent no replacement and Tab inserted indentation.
+Studio now keeps the latest debounced request until the previous one finishes,
+retries cancellation when its channel is full, and dismisses superseded replies.
+The same fixture against the rebuilt executable observed inline:1 replaced by
+inline:2. The real model answered the replacement. Tab and Save produced exactly
+return second; with the rest of the fixture unchanged. The 29 AI-action cases
+passed in 203 ms, including cancellation with a full channel, two queued edits,
+stale success and dismissal. The fixture exited and the dev watcher restarted
+Studio as PID 89547 in apps/studio.
+
+## Combined memory and compiler lifetime
+
+On the physical 8 GiB Mac, an isolated Studio window loaded the 1.5B model,
+opened Terminal and Source Control, accepted an inline suggestion, saved it
+and closed. With 138 tracked Studio source/test/config files, two baseline
+runs peaked at 2,296,672 and 2,261,664 KiB summed process-tree RSS. In the
+second run the model host exited within one second of Studio. The background
+save check survived reparented to PID 1 for at least 20 seconds at 100% CPU
+and 221,824 KiB RSS. The minimal-workspace control had no sampled survivor
+after two seconds. RSS samples every ~0.2 s can double-count shared pages and
+exclude unsampled GPU/system allocations. This exercise does not qualify
+long-running memory stability or the full 8 GiB application workload.
+
+Studio now opts its read-only project checks into Unix parent-lifetime
+monitoring. The release CLI exited 286 ms after a test owner disappeared.
+The process-boundary regression passed (0.88 s), and both saved-project
+diagnostic cases passed (14.56 ms). In the same 138-file desktop fixture,
+the repaired build accepted and saved the real inline completion while Terminal
+and Source Control were exercised. The save check and model were both present
+at close; no sampled descendant remained at the one-second follow-up. Peak
+summed RSS across 69 samples was 2,207,488 KiB, of which the model host held
+2,097,040 KiB. The authorized dev window remained in apps/studio. The orphaned
+compiler and the earlier Git-worker stack overflow are distinct defects. The
+macOS report for Studio PID 70197 records a Tokio worker hitting its stack
+guard. The Git-worker reproduction and repair are recorded below at f6cfdbbf0.
+
+## Source-control sidebar and editor comparison
+
+Native Stage file and Commit staged changes produced a commit with the entered
+subject and staged bytes while a later working-file edit remained unstaged.
+A delayed pre-commit hook reproduced loss of edits to the message field made
+after submission on build 79964301. Studio now clears only the submitted
+message. The same fixture passed on rebuilt app 68220, including preservation
+of the newer field text and verification of HEAD and worktree bytes.
+
+Two isolated text-conflict repositories exercised the native conflict editor
+from build 79964301. Accept incoming changed the merge-result buffer to
+`incoming\n` while the working file still contained Git conflict markers.
+Stage resolution then saved the result, cleared the unmerged entries and
+placed those exact bytes in the index. In a second run an external write
+between acceptance and staging survived the stage attempt, and Git continued
+to report UU. Both fixture windows closed. Dev app 61633 remained in apps/studio.
+
+Source Control now follows the sidebar content-search input and result-row
+styling. In the same running window both input groups occupied (351, 225)
+at 232 by 32 logical pixels. A changed-file row measured 232 by 53 and
+opened the chat-panel.tsrx diff. A separate temporary UD binary conflict
+verified that Stage resolution kept the surviving bytes in the Git index,
+cleared the unmerged entries and exposed neither merge text nor marker choices.
+
+Owner removed the diff viewer toolbar. Source Control opens ordinary diffs
+directly below the workbench title bar. The guarded Stage resolution control
+now sits below the merge result and appears only for conflicts. The live
+en.json diff measured 822-by-719 logical pixels at y=218; the prior toolbar
+layout started at y=239. The Close diff action was absent from the live window.
+
+Modify/delete conflict previews identify which side deleted the file. The
+merge result editor requires an open text document. Marker-choice buttons
+require an opening marker in that draft. The resolver and staging check
+now share the marker predicate, so a literal such as `<<<<<<<literal` is
+preserved and does not prevent staging. The focused Git suite passed 10/10
+in 1.37 s and Studio rebuilt in 139 s. A temporary binary modify/delete
+fixture produced Git status UD. Desktop automation could not consistently
+select its conflict row, so the live conflict controls remain unverified.
+
+The latest revision uses a square, edge-to-edge commit InputGroup, 22-pixel
+change rows, secondary directory text and a full-path tooltip. Status and
+stage controls share a trailing slot. The working-group label is hidden
+when it is the only group. The diff exposes hunk staging in its gutter.
+Each control retains its reviewed file, mode and patch. Git rechecks these
+before applying. Ten Git tests passed in 2.22 s, including a wrong-path
+same-name request and both zero-count sides of a patch. All five Syntect
+diff presentation tests passed in 3.40 s, including Tsrust-specific type
+highlight spans for both sides of .tsr and .tsrx files. The prior language
+detector had classified both extensions as plain text.
+
+Native interaction on the updated layout measured 248-by-22 rows and an
+822-by-698 diff pane. Pressing the first Stage hunk button in the regression
+test diff staged only its two added assertions. The dev supervisor was
+reloaded in apps/studio to pick up the rebuilt embedded native renderer.
+
+After owner visual review, the sidebar uses a single commit row, filenames
+first and editor zoom for change text. File staging stays on its row. The
+split diff wraps at the pane width, hides its redundant file header, and
+places hunk actions in a menu alongside Close diff. Native controls carry
+hover help. In the running Studio dev window, selecting chat-panel.tsrx
+opened the diff. At window widths 1120 and 850, its measured bounds were
+822 and 614 logical pixels wide, starting one pixel after the sidebar list.
+Restored the original window size. Hovering Close diff exposed its help and
+a tooltip surface. macOS denied pixel capture, so paint-level inspection
+remains pending. No owner change was staged in this check.
+
+Source Control shares the navigation area with Files and Search. Git's
+NUL-delimited status supplies separate Changes, Staged changes and Merge
+changes groups. Selecting a path opens a syntax-highlighted split Diff in
+the editor area. File and hunk staging, unstaging, history and staged commits
+use the Git worker. Nested workspaces reject a commit when sibling paths are
+staged outside the displayed project. Text conflicts compare the two index
+stages and expose an editable, recoverable result with current/incoming/both
+actions for the first marker block. Stage resolution goes through guarded
+document saving. Ten Git service and merge tests passed, including partial
+staging, CRLF diff3 markers, actual conflicted index stages from a nested
+workspace, and preservation of unstaged content during commit. The dev window
+exposed the sidebar controls and a native change list. A temporary test
+window accidentally opened the repository root because Studio indexed argv
+as though it included the executable. That process was terminated; the
+sole dev window's cwd was confirmed as apps/studio. Startup now uses the
+first user argument for an explicit workspace path. After rebuild, clicking
+the changed en.json row in the running Studio window opened its editor diff
+and exposed Stage file, Stage hunk and Close diff. PID 27629 ran in apps/studio.
+
+Separate model check: with the owner's four arithmetic prompts, the 1.5B host
+returned 81, 162, 62, then interpreted the correction as a further subtraction
+and returned -38. Full history was passed each time; all responses reached EOS.
+Peak host RSS was 2,187,329,536 bytes. This differs from the owner's third-turn
+failure and does not demonstrate reliable conversational reference tracking.
+
+## Dev cache lookup allocation
+
+A cache hit used to read the full identity file into a second buffer. The
+cache now compares exact bytes in 64 KiB chunks and preallocates its framed
+identity once. A standalone release probe of eight validated lookups using
+the actual 20,981,826-byte Studio identity and retained input bytes measured
+64,356,832 versus 43,303,344 bytes peak physical footprint. Cache and retention
+tests passed 16/16, including length mismatches and corruption beyond the
+first chunk. The unchanged running watcher later measured 239 MiB idle. The
+2.3 GiB build peak remains unaccounted for by this isolated measurement.
+
+## Source-control worker stack overflow in Studio
+
+macOS reported SIGABRT for Studio PID 70197 at 05:59; the dev log recorded
+a Tokio worker stack overflow. A native regression starting the same Git worker
+and requesting status on a tiny repository reproduced the abort. Polling Git
+subprocess I/O as a separate structured child task now keeps the nested
+request and process futures off the same poll stack. The regression requests
+status, an untracked diff, staging and status again on the same worker.
+Ten Git and terminal-session tests passed after a 17.85 s build.
+The surviving dev watcher (63326) had 812.1 MiB physical footprint and a
+2.3 GiB peak. Relaunched Studio and LSP measured 208.6 and 566.8 MiB.
+No allocation trace for the exited process exists. This fix addresses the
+reproduced abort. The watcher rebuilt in 153.61 s. On the resulting Studio
+PID 96226, macOS AXPress opened Terminal 1 and then Source Control. The status
+text showed the branch and both existing owner drafts. After switching, Studio
+had a 231.1 MiB physical footprint (289.5 MiB peak). Watcher memory growth
+remains separate and unresolved.
+
+On build df03cb4b, a 139-file disposable Studio Git workspace on the 8 GiB
+Mac loaded the real model, opened Terminal, then switched from Files to Source
+Control, confirmed a changed-file diff and refreshed status 12 times. Each cycle
+checked the native Diff for pick.txt view. Tab acceptance and Save then wrote
+the expected insertion. Across 131 process-tree samples, summed RSS peaked at
+2,207,632 KiB. One second after window close, every sampled descendant,
+including the active check and model host, had exited. This short run exercises
+the recorded crash sequence; sustained memory growth remains unmeasured.
+
+## Project questions using ordinary words for compound function names
+
+For a project-scoped question with no explicit file, symbol or reference result,
+Studio compares whole phrases with indexed camelCase and snake_case function
+names. The existing dependency selector supplies the matched function body.
+One match pins its project-relative path and identifier for a “same function”
+follow-up. Multiple matches retain their source identities.
+
+The local 1.5B answered 12 when asked for the handling fee for five units, then
+19 when asked to pass its answer through the same function. The selected source
+was an unopened pricing-policy file and excluded its unrelated export. Peak
+sampled model-host RSS was 2,225,568 KiB. This measures one two-turn conversation.
+Final chat action and live model validation passed 28/28 after 62.44 s build,
+including compound-word boundaries, duplicate declarations, and an active-file
+collision. Paraphrases with different vocabulary and cold-index latency remain
+unverified.
+
+## Compound overflow and diagnostic-assisted repair
+
+The host now uses extracted historical definitions in its whole-turn fit search
+when stripping workspace snapshots alone cannot fit the conversation. A live
+1.5B recall test includes a 35,000-line historical file followed by a separate
+35,000-word irrelevant exchange. It returned 73 for the old function, reported
+compaction, and preserved all six transcript messages. A separate dependent
+follow-up returned 42. Across the mixed recall and first verified diagnostic
+run, peak sampled model-host RSS was 2,137,056 KiB (35 observations).
+
+The paired caller-repair fixture gets the undefined shipping diagnostic from
+the real Studio language worker in both runs. It checks the report's document
+identity and verifies its inclusion or exclusion in the outgoing context.
+Without the diagnostic the model repaired the argument and passed all four
+native assertions. With the diagnostic appended after the task, the model
+repeated the broken line and review rejected the no-op. Moving the task after
+the diagnostic also failed and that prompt change was discarded. All 26 AI
+action cases and mixed-source recall passed in that run (54.82 s build).
+Diagnostic-assisted repair remains a failing opt-in quality witness.
+
+## Current editor diagnostics in chat edits
+
+Studio passes language-service diagnostics into edit prompts for the active
+draft or explicitly attached batch targets. Each report must match the file,
+session and revision and have verified positions. The outgoing prompt test
+checked a diagnostic with its relative path, location, severity, code and
+message, and excluded stale, unversioned and unrelated reports. The live
+language-service fixture diagnosed an unsaved buffer and cleared its report
+after correction. Updated its Git worker channel to the current request
+type. All 40 cases passed after 74.15 s build. The watcher launched Studio
+PID 70197. Model repair quality with this additional context is unmeasured.
+
+## Referenced project examples supply imported definitions during edits
+
+An edit request naming a sibling source file now retrieves definitions for
+local imports used in that file. The action witness follows an alias through
+a helper and a constant while excluding an unused import. The opt-in
+workspace evaluation `usage` supplies an invoice caller and both imported
+policy functions, with a distractor export omitted. All 25 action cases
+passed. The 1.5B quality case failed: the model proposed `units - shipping`
+although the target has no shipping parameter. The review harness stopped
+before applying or running it. Peak sampled host RSS was 2,088,512 KiB
+across 16 observations. A separate signatures-only trial dropped one of the
+required calls; that context change was discarded. Neither trial passes
+two-function composition acceptance.
+
+## Local model delegates a caller across parameter-order variants
+
+The reordered workspace evaluation uses the same task and caller but changes
+the imported policy signature. Initially the model delegated only the fragile
+branch and copied the other formula. Studio now clarifies explicit requests
+to delegate to the imported function. The 1.5B host produced the direct call
+with the correct order in both named-import variants. Each reviewed edit
+passed native negative, zero, standard and fragile cases. Peak sampled host
+RSS for the reordered success was 2,079,504 KiB. A default-import run exposed
+a separate review issue: the model returned the correct replacement alongside
+two exact unchanged passages. Review now validates and skips those passages
+while rejecting all-no-op proposals. The final default-import edit and 25
+action tests passed (51.21 s build). No model-generated edit touched an
+owner file. This does not resolve the recorded two-function composition failure.
+
+## Large conflict objects
+
+The conflict reader asks Git for each blob's exact size before requesting
+its contents. Objects over the Git worker's existing 2 MiB output allowance
+show their byte count and leave the other stages visible. The real merge
+fixture included a 2,097,153-byte binary version, a two-byte base and an
+absent side. All seven Git cases passed after 4.42 s build, including exact
+index comparison. This gate covers the worker and excludes desktop input.
+
+## Binary and modify/delete conflict previews
+
+Conflict previews render the base, ours and theirs stages in order, with an
+explicit absent marker when a stage is missing. Binary versions display
+their byte length. A real merge produced two binary modify/delete conflicts,
+with opposite sides deleting. The fixture verified the stages for both
+files, exercised both NUL-containing and invalid UTF-8 content, and compared
+Git's complete staged-entry listing before and after inspection. All seven
+Git cases passed. The desktop picker and submodule cases remain unverified.
+
+## Inspect unresolved Git index stages
+
+The Conflicts tab lists unresolved paths in the workspace and provides a
+searchable picker. Selecting a path reads the available base, ours and
+theirs index objects and labels each version by stage. Staging the saved
+file refreshes the unresolved list. The nested merge regression verified
+three distinct texts for one file, excluded an outside sibling, and found
+the conflict still unresolved after inspection. The Git and localization
+suites passed 7/7 after 12.10 s build. Native interaction and binary and
+submodule conflict presentation remain unverified.
+
+## Inspect a commit from workspace history
+
+The History tab now has a searchable commit picker. Selecting a row requests
+Git's author, commit dates, message and workspace-relative patch on the Git
+worker. Clearing the picker returns to the history list. Stage and unstage
+controls are disabled in History. The six-case Git suite passed after 3.91 s
+build. A nested workspace fixture read a historical addition, excluded a
+sibling outside the workspace and the current working edit, and rejected an
+option in place of a commit ID. Native picker interaction remains unverified.
+
+## Review an untracked file before staging
+
+Working diff now shows Git's new-file patch for a selected untracked file.
+Previewing leaves the index untouched. Reviewed additions use the existing
+hunk staging action and refresh to an empty working diff when fully staged.
+All six Git cases passed (3.22 s build). The nested workspace fixture
+covered a bracket filename beside its wildcard match, a literal dash and an
+ignored file. Native click-through and Windows execution remain unverified.
+
+## Selected file in Source Control diff views
+
+Choosing a changed path in Status carries it into Working diff and Staged
+diff. Both views show the path, read its literal Git pathspec and use the
+same scope for hunk validation and refresh. Clearing the Status picker
+restores the workspace-wide diff. The focused Git suite passed 6/6 (2.88 s
+build), including a bracket filename, staged deletion in a nested repository,
+outside-path rejection and stale hunk rejection. Native interaction remains
+unverified.
+
+## Studio runtime cache reuse across compiler-owned Cargo overrides
+
+Of 16 retained Studio runtime identities, 13 matched byte for byte except
+for the final shared-input digest. That digest covers environment and Cargo
+configuration. It cannot identify which input differed historically.
+Runtime compilation now excludes caller flags and profile overrides removed
+from Cargo's environment, plus the incremental setting fixed by the compiler.
+It still keys the explicit target directory and inherited build-script inputs.
+Application executable keys retain their previous environment behavior.
+The focused native JSON build regression ran four executable builds against
+one target. Changing the caller profile across an application edit reused
+the runtime, repeating the build hit the executable cache, and changing an
+inherited variable missed the runtime cache. Every binary produced the
+expected output. The final regression took 4.91 s execution.
+This does not establish long-running Studio cache growth or save latency.
+
+## Imported snippets retain local constant dependencies
+
+Direct imports, indexed workspace functions and transitive imports now share
+the named-file dependency expansion. The focused action fixture follows an
+alias to an exported constant backed by a local constant, and excludes
+unused neighbors. In the Studio 1.5B evaluation the model used an imported
+base charge backed by a local minimum of 7. It answered 12 for handlingFee(5)
+and 19 when asked to pass its previous answer back into the same function.
+All 26 focused cases passed after 53.41 s build. Peak sampled model host RSS
+was 2,049,968 KiB. The watcher encountered ENOSPC in rustc. Removing 95 old
+generated Studio runtime caches while retaining the newest 16 restored
+34 GiB available; cache growth across future builds is still possible.
+
+## Follow constants from a named workspace function
+
+Named non-active file context indexes top-level value offsets once per selected
+source and follows referenced const initializers transitively. Referenced
+mutable values, classes, enums and unsupported constant shapes keep the file
+intact. The action fixture retained a helper and two linked constants (one
+Unicode name), omitting an unrelated constant and function. The qualified
+1.5B evaluation resolved a helper returning a constant and answered 73, 84
+and 96 over three turns. All 26 focused cases passed (60.96 s build). Peak
+sampled model-host RSS was 2,068,864 KiB across 12 observations; this is
+process RSS, not a measurement of the complete Studio session.
+
+## Function questions in a named workspace file
+
+For a named non-active file, a question about an indexed function selects
+its body and follows local helper calls. Edit and explicit whole-file
+requests retain the source. Files with detected value, class or enum
+declarations conservatively retain full source. The action test checks
+both the reduced excerpt and the whole-file override. In the qualified
+three-turn Studio evaluation the actual 1.5B model answered 73 through
+a helper, then 84 and 96 after disk edits. Its first prompt excluded an
+unrelated function returning 420 and a same-name active file returning 51.
+All 26 focused cases passed, with 50.90 s build. This run did not measure RSS.
+
+## Repeated same-function follow-ups
+
+For qualified-file questions Studio stores the resolved relative paths and
+lookup identifiers on the user message. A subsequent same-function request
+uses that lookup to retrieve current source. The optional field allows older
+messages to fall back to their question text. Lookup metadata is not rendered
+in the model transcript. In the local 1.5B evaluation, lib/answer.tsr changed
+twice while the active answer.tsr still returned 51. Across three turns the
+model replied 73, 84 and 96. The last prompt contained the current 96 source
+and excluded the active copy. All 26 focused cases passed. This establishes
+the explicit same-function wording in one chat, not general pronoun resolution.
+
+## Same-function follow-up keeps the qualified path
+
+When a same-function question refers to the preceding completed exchange,
+chat reuses its qualified workspace path unless the current question names
+a visible file. Source text is read again. The action regression also
+redirected the follow-up to ./quote.tsr and verified the old nested file
+was excluded. In the local 1.5B evaluation the open answer.tsr returned 51,
+the requested lib/answer.tsr initially returned 73, then was edited on disk
+to return 84. Chat answered 73 then 84. All 26 cases in the combined action
+and model evaluation passed. Longer reference chains remain unverified.
+
+## Chat disambiguates same-named files by relative path
+
+A qualified workspace path now suppresses competing implicit active-file
+and indexed excerpts with the same basename. A bare ambiguous basename
+still asks for clarification. All 25 AI action cases passed (46.46 s build).
+The qualified local 1.5B evaluation opened answer.tsr returning 51, asked
+about answer() in lib/answer.tsr, and verified that the prompt contained 73,
+excluded the conflicting definition, and produced exactly 73. This verifies
+one file-resolution scenario. Desktop chat interaction was not repeated.
+
+## Executable mode in hunk review
+
+Unstaging a deleted executable via its hunk previously recreated the index
+entry with regular-file permissions. Studio now carries Git's new/deleted
+file mode headers through review and apply, including reverse apply. The real
+Git regression failed before the fix and passed afterward. It checks the
+restored index mode (100755), empty staged diff and unchanged working-tree
+deletion. All six Git cases passed (2.89 s build). Native button interaction
+and symlink-specific behavior were not tested in this run.
+
+## Repeated context in partial staging
+
+A real repository reproduced a wrong-occurrence edit. An earlier unselected
+insertion shifted the selected hunk's destination by exactly one repeated
+block. Studio now anchors a standalone patch to the index-side start after
+validating the reviewed bytes. Reverse apply uses the staged side's start.
+The regression compares full index blobs for both operations. It failed on
+the previous checkpoint and all five Git tests passed after the fix (2.51 s
+build). The test exercises Git through the Studio service, without GUI input.
+
+## Stage and unstage individual Git hunks
+
+The hunk picker now offers Stage hunk in Working diff and Unstage hunk in
+Staged diff. Studio compares the selected header and body to a fresh diff,
+then passes that matching patch to Git through stdin for an index-only apply
+or reverse apply. The views use explicit a/b prefixes, three context lines and
+separate deletion/addition diffs for renames. A real two-hunk file in a nested
+workspace with spaces proved a stale selection left the index untouched,
+staging the second hunk left the first unstaged, and unstaging returned the
+original working diff. Four Git tests and the panel source check passed.
+Desktop interaction and binary changes remain outside this hunk test.
+
+## Inspect individual Git diff hunks
+
+Working diff and Staged diff now provide a searchable hunk picker with file
+and line-range labels. Selecting a hunk exposes its exact diff text and
+disables whole-file mutations while focused. Clearing it restores the full
+diff. The three Git tests passed, including adjacent hunks, Unicode offsets,
+duplicate hunk ranges across files, combined-diff boundaries and a final
+line without a newline. The panel source checked and both locale catalogs
+passed (541 keys). Native interaction and individual hunk mutations remain open.
+
+## Select changed paths for staging
+
+The Status tab now offers a searchable changed-file picker. Its selection
+takes precedence over the active editor only in Status. Clearing it restores
+active-file targeting. NUL-delimited Git output supplies workspace-relative
+staged, modified and untracked names. A missing path must match an actual
+change before Studio can stage or unstage it. Both real Git tests passed
+(3.02 s build), including unstaging a deleted Unicode file without restoring
+its disk contents, and preserving a filename containing both a tab and a
+newline in the picker data. Panel source and 540 translation keys checked.
+Native picker interaction and hunk staging remain open.
+
+## Editor caret recovery
+
+Studio persists the active UTF-8 byte offset for each open text buffer. Verified on macOS with two disposable launches of the rebuilt native Studio. Typed X after the s in “second”, moved right without editing, then terminated the fixture. Its journal contained byte offset 14. Reopened, focused the recovered editor and typed Y: the draft contained “sXeYcond” and the file on disk retained its original bytes. The recovery suite passed 4/4 (60 ms execution), including recovery after an external edit moved the old byte offset inside a multibyte character. Selection ranges and viewport scroll restoration remain open. The initial implementation published the workspace journal on each caret move. A native replay subsequently sent 30 Right presses 33 ms apart in a 266,240-byte unsaved text fixture. The 541,402-byte journal showed 30 distinct movement offsets before batching and four after batching at 250 ms. Both runs reached offset 31 and preserved the original disk bytes and exact draft. A separate two-launch replay verified restored keyboard-only movement after batching. Draft edits still publish immediately; terminating within the timer window can lose recent caret movement.
+
+## Workspace merge conflicts
+
+Verified direct macOS accessibility activation of the named staged row and its nested Unstage file button. The row advertised AXPick and AXPress. AXPress opened the staged diff with the external resolution line and preserved the staged blob. In a second disposable repository, AXPress on its nested Unstage file button returned the UI to the working diff, removed the staged entry and restored the index blob to HEAD. Both runs preserved working bytes, merge parents and the unsaved resolution draft. The staged-row gestures used accessibility actions without pointer coordinates. Spoken VoiceOver output remains unverified.
+
+Fixed named Studio ListItem rows in the macOS accessibility tree by forwarding the item's configured label to the outer list row that owns selection. The same filename-based native replay failed on PID 30314 and passed on rebuilt PID 34762. After an external index-only resolution and refresh, both merge.txt rows were individually exposed, one containing Unstage file and the other Stage file. Selecting the named staged row opened the exact external resolution diff and preserved the competing draft, index, worktree and merge parents. Spoken VoiceOver output was not exercised. Whole-project formatting produced no changes. Six obsolete generated runtime cache entries were pruned under the namespace lock for build space. Active supervisor 34555 runs Studio in apps/studio.
+
+Native stale-resolution refresh on macOS: an external index-only update staged different bytes and left the merge in progress. Pressed the stale Stage resolution action, refreshed Source Control and opened the staged file. Its diff showed the exact external line and Unstage hunk. The old resolution control disappeared. HEAD, MERGE_HEAD, index blob, marker-filled working file and journaled Studio draft all retained their expected values. The initial replay could not select the row by filename: native AX inspection showed a group with no title or value and only the named Unstage file button beneath it. Selecting by list position completed the workflow. The Tsrust ListItem renderer forwards accessibilityLabel to its inner ListItem, while the GPUI component delegate wraps it in a separate ListItem-role element without that label. That build left Source Control filename row accessibility open; the later named-row replay above verifies the repair.
+
+Fixed stale Stage resolution when another process changes Git's index while working-file bytes still match Studio's original baseline. Previously a native click overwrote the working file with the stale draft. The worker now returns the exact previewed stage entries and checks them before the versioned draft save and again before staging. The rebuilt native Studio preserved an externally committed two-parent HEAD, its distinct index blob, unchanged conflict-marked working bytes and the unsaved Studio draft. The external writer updated the index directly via cacheinfo in this passing replay. A separate normal two-block resolution still produced the expected clean merge commit. Git suite 14/14 (1.759 s execution), whole-project formatter passed; supervisor 10923 launched PID 30314. These separate Git commands do not form an atomic transaction against simultaneous external writers.
+
+Verified an externally completed merge with the conflict editor still open on native macOS. Resolved both diff3 blocks into an unsaved Studio draft, then wrote different resolution bytes, staged and committed them with an external Git process. Pressing the still-visible Stage resolution action preserved the external two-parent HEAD, clean index, and exact worktree bytes. The recovery journal retained the exact competing Studio draft. This exercises a changed working file; index-only changes were not exercised.
+
+Verified interrupted merge recovery across two disposable native macOS Studio launches. After resolving the first of two diff3 blocks, the journal contained the exact partial draft and original save baseline. Disk still contained both original conflicts and Git's three index stages were unchanged. Killed only the fixture Studio process and reopened the same workspace/profile. Selecting the conflict in Source Control restored the partial result, including the intact second diff3 block. Accepted incoming for that block, staged, and committed through Studio. The resulting merge had both expected parents, the expected committed bytes, and a clean index and worktree. This run covers interruption after the journal write.
+
+Verified the full native macOS resolution-to-commit flow in a disposable local repository with two diff3 conflicts in one file. Accept both retained current then incoming for the first block and preserved the complete second block, including its base. An attempted Stage resolution with that second block unresolved left both the original working file and the partial draft intact. Accept incoming resolved only the second block. Disk remained unchanged until Stage resolution. Submitted the commit message through Source Control and verified the new commit had both original branch tips as parents in order, its blob matched the expected bytes, and the index and worktree were clean. The merge was initiated with Git before opening Studio.
+
+Verified live zoom and wrapping in a 720-by-600 native macOS window at Studio’s minimum width. At font size 20 all three merge actions fit on one row. Eight Command+= zoom steps increased Accept current from 154 by 28 to 202 by 36 points. Accept both moved onto the next row, with all three rectangles inside the window. Its center hit the named button and produced both versions in the result draft. Disk retained the original unresolved file until staging, after which Git had no unmerged entries and the staged bytes matched the working file and expected combined text. A separate session starting directly at font size 28 verified the same wrap and staging.
+
+Merge editor resolution actions now use the same font-sized button styling as the save-conflict dialog, and the row allows wrapping. Previously all three controls measured 24 points high at both font settings 14 and 20. In the rebuilt macOS Studio the controls measured 22 and 28 points high respectively. Accept incoming measured 133 and 171 points wide. At each size a center pointer hit the named Accept current button and resolved the draft. Stage resolution then wrote identical expected working and index bytes, preserving the embedded literal conflict example. Whole-project formatting passed and dev supervisor 2670 launched PID 92971. These runs used the normal window width.
+
+Source Control now obtains conflict-marker-size for all unresolved paths in one NUL-delimited git check-attr call. Resolution and staging use the selected file's width. A native disposable merge with 12-character markers around a literal seven-character example failed to accept incoming on the prior build. After rebuilding, two macOS Studio replays accepted incoming and current respectively. Stage resolution preserved exact working-file and index bytes in both cases, including the complete literal conflict example in the current version. Each draft left disk unchanged before staging, and Git reported no remaining unmerged entries afterward. The focused Git suite passed 14/14 (1.747 seconds execution), including three-character markers and a workspace-relative attribute on a non-ASCII filename. Project formatting passed and the dev supervisor launched PID 90218.
+
+Source Control lists unresolved Git paths in the Conflicts tab. Its stage
+action refreshes that list after a saved file is resolved. In a real merge
+with conflicts both inside and outside a nested workspace, only the inside
+path appeared. Staging its resolution emptied the local list and preserved
+the outside conflict. Both Git tests passed after 3.86 s build, the panel
+source checked, and both locale catalogs passed (537 keys). Direct desktop
+interaction and a three-way merge editor remain unverified.
+
+## Current Studio dev session and workspace commit history
+
+Supervisor 63326 uses the rebuilt optimized CLI and the existing model host.
+Startup took 217.84 s with a native runtime cache miss (110.60 s to build and
+publish it). A source change for the Source Control History tab rebuilt in
+132.91 s with a runtime hit, including 92.37 s checking and 36.85 s native
+compilation/linking. Preview 65566 was alive under the new supervisor after
+replacement. These are live observations, not matched benchmark samples.
+
+History lists abbreviated commit, author date and subject for HEAD commits
+affecting the open workspace. The real Git suite passed (3.04 s build) with
+an unborn branch and an outside-only commit. Both locale catalogs passed
+the 535-key check. Desktop interaction and large-history pagination are open.
+
+## Studio compiler check profiling
+
+CPU samples of a full Studio check showed reused UI signal and result types
+re-entering whole-record layout validation. The shared native application
+checker now bypasses that traversal when specialization added no records and
+all fields are resolved. New records still go through layout validation.
+Two signal authoring tests passed in 0.63 s (2m03s build). A direct generic
+record cycle still failed with recursive-layout. Studio entry checks passed
+before and after. Elapsed/user CPU seconds were 154.58/140.73 before and
+163.92/128.44 after during overlapping builds. A subsequent check without
+the competing build took 93.32/92.27 with the test-built optimized CLI.
+These are observations with different build loads, not a matched speedup.
+The later CPU sample also showed repeated expression error-effect analysis.
+The existing dev supervisor retains its loaded executable.
+
+## Stage and unstage the active file
+
+Source Control's plus and minus actions capture the active workspace-relative
+file, run Git on the worker, then refresh the selected view. Staging reads
+disk and unstaging affects only the index. The focused Git test passed after
+3.16 s build. Real repositories covered literal bracket filenames, a sibling
+file matching the wildcard, Unicode, a nested workspace, rejected outside
+paths, an unborn branch and unstaging after a commit while preserving working
+changes. The Studio entry source check passed. Change-list selection, deleted
+paths, hunk controls and desktop interaction remain open.
+
+## Recalling code from earlier workspace snapshots
+
+When the latest question has no automatic workspace snapshot and names a code
+identifier, overflow compaction now tries attributed matches from earlier
+snapshots before removing them. A current snapshot takes precedence. The host
+checks actual token fit and can still drop the historical excerpts to preserve
+the conversation. All 24 AI action tests passed after 40.90 s build. The
+historical-source recall evaluation passed through the Studio chat action with
+a 35,000-line historical snapshot, no active file, a compaction notice and all
+four transcript messages intact. The direct 1.5B host conversation returned OK
+then 73 for serviceFee(), with 2,251,390,976 bytes peak RSS. This verifies a
+named historical symbol and does not establish recall from unnamed concepts.
+
+## Context compaction and multi-file undo
+
+On actual tokenizer overflow the host can now strip historical automatic
+workspace snapshots and retain all questions, answers and explicit attachments
+when that candidate fits. Stored transcripts and the current snapshot survive.
+The rebuilt local 1.5B host received 35,000 irrelevant source lines with a
+Rust arithmetic question, replied 42, then replied 43 when asked to add one
+to its previous result. Both requests reported compaction and EOS. Peak host
+RSS from getrusage was 2,228,895,744 bytes. This is one conversation.
+
+Edit → Undo Last Chat Edit restores all affected drafts together and rejects
+the operation when any target revision changed. All 23 AI action tests
+passed (45.09 s build), and Studio's main entry and host passed source checks.
+Native menu interaction remains unverified.
+
+## Multi-file chat edit review
+
+Edit files: with at least two attached open workspace files captures each
+draft revision and supplies numbered edit targets. Studio validates every
+replacement against the original target, presents all diffs together and
+publishes one workspace and recovery update on acceptance. A stale second
+draft prevents the first change from being published. The action suite passed
+22/22, including owner-draft preservation, disk isolation and missing-target
+rejection. The Studio entry point passed its source check.
+
+The real local 1.5B model copied placeholder strings with the first prompt,
+then used an unexpected field name with a nested format. Studio rejected both.
+With flat file/before/after entries it correctly proposed 51 → 52 and 73 → 74
+in two files with the same basename. The opt-in batch evaluation checked
+both review proposals and both resulting drafts. Peak sampled host RSS was
+2028.12 MiB, peak system swap increase 0 MiB, peak pressure level 2.
+Native visual review and compound undo across files remain unverified.
+
+## Dependencies of outline-selected functions
+
+Chat now consults the same current top-level document outline while walking
+dependencies of selected bodies. Generic helper implementations and simple
+module constant initializers can be included even when the question names
+only the caller. Constant extraction starts at the located declaration and
+uses the existing delimiter-aware initializer scanner. In the live worker
+test, the unsaved identity<T> snippet included chooseValue<T>, DEFAULT_CODE
+and its dependency BASE_CODE, and omitted main and UNRELATED. All 35
+language-service and AI action tests passed after 65.10 s setup/build.
+Dependency identification within a body still uses lexical matching;
+scope-shadowed names and model answer quality were not established here.
+
+## Automatic active-draft outlines for chat
+
+The Studio language ticker requests a document outline for the active
+Tsrust or Tsrx draft. The controller keeps one internal outline result and
+uses normal pending-query cancellation and revision invalidation. Chat
+uses matching top-level function ranges for explicitly named symbols when
+the open file, session and revision agree. It extracts UTF-16 ranges from
+the live draft and also follows local calls and imports through the existing
+retrieval path. Explicit whole-file requests keep their full source.
+
+The real Studio worker test exercised automatic scheduling, receipt, range
+extraction for identity<T> and stale-draft fallback. All 35 language-service
+and AI action cases passed (63.37 s setup/build). The Studio entry point
+passed its source check. Supervisor 36374 remained running. This run verified
+context construction; model inference and UI observation were not repeated.
+
+## Compiler-backed document outline read
+
+Studio exposes language_document_symbols through its guarded language tool
+dispatcher. The live worker requests textDocument/documentSymbol for the
+synchronized revision, advertises hierarchical symbol support and omits the
+cursor position on the wire. Existing result consumption, cancellation,
+workspace identity and stale-read handling apply. The real Studio worker
+received the name selection at column 9 and the full extent ending at line
+2, column 1 for an unsaved multiline generic identity<T> function. All 14
+language-service tests passed after 24.99 s setup/build. Automatic use of
+the outline by the local chat prompt builder is still pending.
+
+## Function bodies from language-server reference locations
+
+When a chat question matches the last Find References symbol, a declaration
+hit can now include the complete simple function at that exact location,
+including unsaved edits. Usage hits keep their original single-line excerpts.
+Unsupported signatures retain the located line; the scanner cannot substitute
+a later definition. The AI actions suite passed 21/21 (32.34 s build).
+The real Studio language worker queried tsrust-lsp with includeDeclaration
+both off and on for an unsaved multiline greet implementation. Chat context
+included the call in both cases and console.log(name) only in the latter.
+The focused process-boundary test passed (25.11 s build). This reads the
+existing references result; automatic definition requests remain open.
+
+## Same-name functions in workspace chat
+
+A simple top-level function found in the active draft resolves that name for
+the implicit workspace search. Other names still use the index, and explicit
+file selection remains independent. The declaration scanner counts brace
+depth while skipping strings and comments, so a nested declaration cannot
+suppress an unrelated module's indexed definition. The action suite passed
+21/21 (33.65 s build) with both top-level and nested collisions. The active
+draft two-turn 1.5B evaluation passed (40.05 s build): a second module's
+handlingFee returning 999 was excluded, and the model answered 12 then 19.
+Sampled peak host RSS 2018.20 MiB, system swap delta 55.81 MiB, maximum
+pressure level 2. This is lexical recognition of simple function declarations,
+not a compiler symbol-identity index.
+
+## Unsaved active function dependencies across chat turns
+
+For a named function in the active draft, retrieval follows its local helper
+calls and resolves identifiers from those bodies through the draft's imports.
+A follow-up explicitly mentioning “same function” uses identifiers from the
+immediately preceding completed question to repeat lookup against current
+sources. A “previous answer” prompt can pair the previous exchange with that
+fresh excerpt. Existing whole-file and explicit attachment behavior is retained.
+
+The AI actions suite passed 21/21 (34.51 s build), checking that a caller
+through a local helper brings in an aliased imported definition and excludes
+its neighboring export. TSRUST_STUDIO_RUN_MODEL_EVAL=active used an unsaved
+handlingFee implementation, a local fixedPart helper and baseCharge imported
+as charge from a second file. The local 1.5B host answered 12 for input 5
+and 19 when asked to use the previous answer. Before follow-up retrieval
+was changed the same questions produced 12 and 17. Final evaluation passed
+1/1 (43.26 s build). Sampling observed peak host RSS 2005.44 MiB, system
+swap usage up to 131.81 MiB above baseline and peak pressure level 2.
+These are lexical lookups and one tested follow-up phrasing.
+
+## Oversized automatic context on prose questions
+
+When the latest turn overflows and identifier-based snippets cannot fit or
+find a match, the host can omit the marked automatic workspace portion and
+keep the original question and explicit attachments. It emits a marker for
+the model. Older user messages now carry their own optional workspace
+boundary, allowing a recent question, attachments and answer to be recovered
+together on a prose follow-up. Edit turns still carry no elidable source
+boundary. The Studio notice now describes context shortening in both locales.
+
+All 21 AI action tests passed (32.31 s build). The direct 1.5B Metal check
+compared identical questions with and without 35000 unrelated words.
+Both returned 56 from explicit code, and both incorrectly returned 61 for
+“Add two to your previous answer” (expected 58). Only the oversized requests
+emitted compaction. Four requests plus model load took 4.73 s, maximum RSS
+2198798336 bytes, peak footprint 1177684392 bytes. This is a model quality
+failure even in the uncompressed control. No model arithmetic fix is claimed.
+
+## Studio frontend check latency
+
+The release CLI checked apps/studio/src/main.tsrx with --diagnostics-only
+in 102.18 s (101.25 s user) after skipping repeated record-shape comparisons
+between mutable program accesses. The previous run on the same Studio entry
+took 156.90 s (155.22 s user). These are individual frontend checks, not
+end-to-end watcher timings. Existing in-place record, recursive union and
+scoped callable cache tests passed 3/3 in 0.01 s. The full shape comparison
+still runs after mutable access, and union and callable validation are
+independent. The retained dev supervisor PID 36374 uses its previous binary.
+Error-effect passes remain a known frontend cost.
+
+## Answer-dependent follow-ups after context overflow
+
+When only the latest user turn fits and it has no explicit recall identifiers,
+the model host tries the previous assistant answer with an omission marker for
+its oversized question. One tokenizer fit check chooses that representation.
+The persisted conversation is untouched. Against 35000 unrelated words, the
+configured 1.5B Metal host extracted crateFee() = 73 and then answered 74 to
+“Add one to your previous answer” without a symbol hint. Both requests reported
+compaction. The two-turn run took 3.73 s, maximum RSS 2203598848 bytes, peak
+memory footprint 1182747096 bytes. This does not evaluate general prose recall
+or decide which historical answer to keep for ambiguous questions.
+The Studio chat-path regression passed in followup mode (1/1, 46.53 s build),
+checking 41 → 42, the compaction notice and preservation of all six messages.
+
+The current Studio source check passed in 156.90 s before the host change.
+The slow frontend check remains open.
+
+## Dev builds survive unrelated source changes
+
+In-flight frontend checks, runtime/backend work and launch validation now
+compare the captured application inputs before superseding a build. Creation,
+edits and deletion of unimported .tsr/.tsrx files can reuse a checked result
+when the dependency closure, resolutions, failures and non-source inputs agree.
+The public native and runtime cancellation tests each held the backend, added,
+edited and deleted an unimported test, verified the compiler PID stayed live,
+then changed an application dependency and verified replacement and cleanup.
+Both passed in 8.93 s after 16.57 s build. Existing dev restart, failure, undo
+and interrupt coverage passed in 3.72 s after 1.13 s build. The release CLI
+rebuilt in 24.42 s. The existing supervisor (36374) was retained and still
+runs the previous executable image. Genuine Studio source check time was
+not optimized or remeasured by this change.
+
+## Imported constants in chat context
+
+Workspace retrieval follows imported identifiers used as values in selected
+bodies and extracts exported const declarations through the terminating
+semicolon. The focused action suite passed 21/21 in 154.24 ms, including
+an aliased constant used by an imported helper and exclusion of an adjacent
+export and commented decoy. The compiler accepted the two-file calculation.
+TSRUST_STUDIO_RUN_MODEL_EVAL=constant verified both source paths and an
+exact constant declaration. The local 1.5B model answered 12 for handlingFee(5)
+but repeated 12 when asked to pass that result back in (expected 19).
+This opt-in case remains red. Name matching still lacks binding scope.
+
+## Workspace chat import trivia
+
+Chat recognizes named aliases across whitespace, line comments and block
+comments in both active drafts and retrieved dependency modules. A brace or
+alias-like text inside a comment no longer terminates the binding list.
+The current compiler accepted the commented multiline import used in the
+chat regression. It rejected import * as with its expected module-syntax
+diagnostic; namespace imports are outside the current language grammar.
+The focused chat suite passed 21/21 in 85.21 ms, including the attributed
+caller and imported helper bodies. Scope remains lexical import lookup.
+
+## Imported callees in chat context
+
+Selected function snippets now follow bare calls into workspace imports,
+using the importing file's own path mappings. The queue retains target and
+binding identities, and only files in the current explorer tree can supply
+source. The AI action suite passed 21/21 in 89.08 ms. Its added witness
+checked an aliased helper, its definition and exclusion of an unrelated
+export. TSRUST_STUDIO_RUN_MODEL_EVAL=imports retrieved handlingFee and
+baseCharge from separate unopened files without naming the helper in the
+question. The configured 1.5B model answered 12 then 19 in 2397.48 ms.
+This covers named function imports and answer generation; compiler-scoped
+shadowing, namespace imports and multi-file edit review remain open.
+
+## Wildcard import mappings in workspace chat
+
+Chat decodes the nearest saved configuration's paths as string mappings.
+Exact names win, followed by the longest matching wildcard prefix. Suffixes
+must match and equal-priority wildcard matches are ambiguous. The outgoing
+request test resolves an unsaved import from @/cost/helpers.js through the
+more specific mapping, retains the existing exact import despite a matching
+wildcard, and omits a tied alias. All 21 AI action tests passed in 92.02 ms.
+This verifies request construction. The compiler and Studio still have
+separate resolver implementations.
+
+## Grounded question order and previous-answer replay
+
+Ordinary grounded chat sends the retrieved source before the question. The
+new workspaceEnd boundary keeps the question and explicit attachments intact
+when overflowing source is excerpted. The host still accepts workspaceStart
+from older request frames. When a follow-up explicitly says “previous answer”
+and has no new automatic excerpt, Studio supplies the preceding completed
+exchange and its workspace snapshot in the follow-up, with the read grant.
+
+In matched direct-host trials the original layout produced 14 then 14.
+Question-last produced 12 then 12. Repeating the previous question, answer
+and source together on the second turn produced 12 then 19. Removing the
+original exchange from history lost the improvement. Through Studio's real
+chat service the helper variant now passed in 2431 ms, alongside all 21 AI
+action cases. The index-only variant also returned 12 then 19 in 2208 ms.
+This deliberately duplicates context for that explicit reference. Broader
+wording, large follow-ups and held-out reasoning quality remain unqualified.
+
+## Same-file helper retrieval and cross-function model evaluation
+
+Chat follows bare calls in selected function bodies to simple functions in the
+same file, including transitive calls. A visited-name set terminates cycles.
+The AI action suite passed 21/21, including a two-helper chain, a cycle and
+a call inside a comment that must not retrieve its unrelated definition.
+This lexical scan does not resolve shadowed bindings or imported helper calls.
+
+TSRUST_STUDIO_RUN_MODEL_EVAL=helpers supplied handlingFee(units) returning
+units + baseCharge() and baseCharge() returning 7. The host received the
+helper body and excluded the unrelated neighbor. Asked for handlingFee(5),
+the configured 1.5B model answered 14 instead of 12. Asked to reuse its
+previous answer, it returned 14 again (21 from its own input, 19 on the
+correct trajectory). The opt-in evaluation remains red. Maximum sampled
+host RSS was 2066224 KiB. The earlier index-only evaluation remains intact.
+
+## Real model chat with an indexed workspace function
+
+TSRUST_STUDIO_RUN_MODEL_EVAL=index runs Studio chat against the configured
+local host. The workspace has no open editor and the question mentions only
+handlingFee(5). The actual request contained the function from unopened
+lib/pricing-policy.tsr and excluded the neighboring function returning 999.
+Qwen2.5-Coder-1.5B returned 12, then 19 when asked to pass its previous
+answer to the same function. The two-turn evaluation passed in 2.36 seconds
+excluding compilation. Sampled peak host RSS was 2048720 KiB. This covers
+an indexed pure function and a dependent follow-up. It does not exercise
+cross-function reasoning, repository edits, or desktop interaction.
+
+## Session index for named workspace functions
+
+Chat now discovers explicitly named functions in arbitrary Tsrust filenames.
+For unresolved identifiers it indexes names in the current explorer tree.
+The in-memory cache stores names and file identity stamps, never file bodies.
+Disk entries use the canonical path, size and modification timestamp.
+Open documents use session and revision. Retrieval rereads matched source
+under the existing workspace guard and extracts simple function bodies.
+Cold indexing currently runs synchronously on send. Large-workspace latency,
+background scheduling, semantic binding resolution and persistence remain open.
+
+The AI action regression retrieves handlingFee from unopened pricing-policy.tsr,
+alongside the existing imported and filename-matching examples. It renames the
+function externally, then verifies a subsequent request retrieves packingFee
+and the obsolete name disappears from the session cache. All 21 focused tests
+passed in 74.98 ms. Supervisor 36374 rebuilt Studio in 197911 ms (166822 ms
+checking, 29045 ms native compilation and link) and launched PID 96562.
+
+## Chat discovery of symbol-named workspace modules
+
+For explicit identifiers without a resolved import, Studio uses the explorer
+tree to find matching .tsr/.tsrx stems, ignoring case, underscores and hyphens.
+It reads a candidate under the existing workspace read grant and includes an
+exact simple function declaration and body. The focused chat witness asks
+about deliveryFee() without an import or filename, retrieves its return 63
+from unopened delivery-fee.tsr and excludes the unrelated neighbor and a
+comment-only match. Explicit import resolution takes precedence. This lookup
+still misses functions in arbitrarily named files and is not a maintained
+workspace-wide semantic index.
+
+## Offline retrieval of example setup
+
+Studio's bundled index now includes top-level state and test hooks preceding
+the first named declaration or test. All 1545 earlier database rows were
+retained exactly. Four new passages cover two examples and two compiler
+fixtures. Independent regeneration produced the same SHA-256 digest.
+The shipped SQLite retrieval suite passed in 310.37 ms and verified that
+“Tsrust beforeAll setCount” returns examples/testing/program-state.test.tsr:3
+with the actual setCount(7) setup. Model answer quality was not measured.
+
+## Multiline functions in an overflowing current turn
+
+Workspace compaction tries complete bodies for named simple functions before
+falling back to matching lines when the tokenizer rejects the larger excerpt.
+The import and overflow paths share the same brace scanner. The regression
+uses a Unicode function name, a brace inside a comment, and an unrelated
+neighboring declaration. With 35000 unrelated words, a multiline crateFee
+returning 73, and a follow-up asking for one more, the configured 1.5B host
+reported compaction twice and answered 73 then 74. Maximum RSS was 2199093248
+bytes and peak memory footprint 1189644784 bytes in 4.14 seconds. Scope is
+simple named functions; helper dependencies and complex signatures remain open.
+
+## Latest-turn workspace compaction
+
+Studio records where automatic workspace context starts in ordinary model requests.
+If the latest turn alone exceeds the tokenizer window, the host tries matching
+identifier lines with source headings, retaining the prompt and explicit attachments.
+Edit requests retain exact source. A context error remains possible when the
+selection cannot fit or there are no matching symbols. A normal function call
+such as increment(n) now qualifies for identifier recall.
+
+Direct two-turn check with the configured Qwen2.5-Coder-1.5B host, 35000 unrelated
+words and a crateFee function returning 73: first answer 73, follow-up adding one
+74. Both requests emitted compacted. macOS time -l observed maximum RSS
+2172862464 bytes and peak memory footprint 1191348696 bytes over 4.16 s.
+This single identifier-based scenario does not establish optimal selection
+for prose, indirect dependencies, or multiline calculations.
+
+## Import retrieval from code expressions
+
+Chat matches imported local names using whole Unicode identifier tokens in
+the prompt. Operators and punctuation in a pasted expression no longer hide
+adjacent imports. The outgoing request for compute()+rules()*alternate()-fee()
+contained all four definitions from the unsaved draft's three imported modules.
+Reference-query matching uses the same tokenizer. The focused AI action suite
+passed 20/20 in 73.38 ms. This checks retrieval only.
+
+## Exact project path mappings for chat
+
+Symbol retrieval recognizes exact import mappings in the nearest saved
+tsrust.config.json inside the workspace. Extension candidates are based on
+the mapped target. Retrieved source still goes through workspace tree selection
+and canonical read checks. The AI action suite verified an unsaved draft
+importing fee from @prices, resolved the unopened fees.tsr and included its
+return value in the outgoing request. Existing relative import cases also
+passed (20/20 in 71.08 ms). Wildcard mapping, complete config validation and
+a workspace-wide symbol index remain open.
+
+## Native GPUI examples in the offline corpus
+
+The generator extracts rustdoc blocks containing fenced examples from
+the tracked gpui-base and gpui-component patch sources. Each passage carries
+a native Rust label, source path and line so chat can distinguish these APIs
+from Tsrust wrappers. The 53 new passages span 37 files. Two regenerations
+produced identical bytes and exact row comparison retained all 1492 prior
+passages. The SQLite suite retrieved the RopeExt line_start_offset example
+and preserved existing cases in 274.42 ms. Full upstream application examples
+and model accuracy on native Rust remain unverified.
+
+## Offline knowledge cache repair
+
+Before reusing the installed corpus, Studio verifies its bytes against the
+bundled SHA-256 digest. A mismatch takes the existing temporary-file and
+rename installation path. The native SQLite regression overwrote its private
+cache with different bytes of exactly the expected length, then recovered
+the same rollback passage and passed the remaining retrieval cases in
+237.48 ms. Warm lookups now read and hash the 1744896-byte cache file.
+Desktop interaction latency has not been measured.
+
+## Public strings guide in a two-turn local chat
+
+In the strings variant of TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL, Studio attached
+the public strings guide and the 1.5B model correctly identified UTF-8 bytes
+as the length unit. Asked to apply that rule to "A😀B" in the same chat, it
+answered 10. The native Tsrust expression returned 6. The follow-up oracle
+failed in 3262.08 ms; this case remains opt-in and red. An earlier dispatch
+ran the existing SQLite scenario, which is excluded from strings evidence.
+The registered knowledge tool description now covers public guides and
+multi-passage retrieval. AI action regression 20/20 in 51.38 ms.
+
+## Current public guides in offline retrieval
+
+The bundled corpus includes the tracked website language, learn, library,
+start and tools guides. Markdown front matter supplies the introductory
+passage title. Headings inside fenced code remain part of the example.
+Historical implementation records were excluded. Two builds produced
+identical bytes (1744896). Exact row comparison preserved all 1027 previous
+passages and added 465 from 29 guides. The native SQLite suite retrieved
+both the missing-linker repair command and the string position-unit table,
+and preserved the earlier retrieval cases (83.39 ms). This verifies
+retrieval, not model answer accuracy on the new material.
+
+## Bundled retrieval for multi-symbol questions
+
+The bundled FTS query now supplements its best matching passage with a
+ranked result for each explicit code identifier missing from selected bodies.
+Already covered identifiers skip a query. Duplicate passages are sent once.
+The SQLite regression retrieved both ClearableGroup and MessageScroller from
+distinct files and preserved single-result behavior for a repeated identifier
+(67.10 ms). No corpus regeneration was needed.
+
+The opt-in pair evaluation confirmed both files and jumpLabel="Latest" in
+the outgoing Studio chat context. The 1.5B model supplied group-search on the
+first turn but omitted the exact second value. Asked specifically for the
+jumpLabel in the same conversation, it answered Latest (3887.20 ms for the
+two-turn test). Single-turn exact-answer acceptance failed. General
+multi-symbol accuracy and workspace semantic indexing remain open.
+
+## Reference freshness in chat requests
+
+Native editor symbol queries now record the originating document session and
+revision. Chat omits that reference snapshot after the source changes or
+closes. For each candidate location it verifies the exact symbol starts at
+the reported UTF-16 offset in current text. Stale or unreadable hits no
+longer contribute bare coordinates. Existing unversioned reference queries
+still receive target checks; the references panel itself is unchanged.
+
+The native AI and navigation suites passed 24/24 in 59.84 ms, including an
+unsaved target shift and a source revision changing with identical spelling.
+An unchanged spelling at the same location in a different target scope
+still requires a fresh language-server query to establish semantic identity.
+
+## Chat composer focus edge
+
+The native InputGroup applies a four-sided external child ring after its style
+refinements, even with zero side border widths. Studio now clips descendants
+at the group itself. Its existing top border still receives the native focus
+color. The chat component passed the compiler diagnostic check and whole-tree
+formatting changed zero files. macOS listed the running Studio window but
+targeted screencapture failed, so visual acceptance remains open.
+
+## Composition follow-up with native feedback
+
+The feedback variant keeps the model service and chat alive across review,
+save and native testing of the temporary caller. After failure it supplies
+a diagnostic example (4 units, adjusted quantity 6, expected charge 17)
+and requests a corrected edit. The first proposal was the known incorrect
+sum. The final follow-up repeated the exact same source; Studio rejected the
+no-op and produced no reviewable proposal (6032.85 ms, quality test failed).
+An earlier wording giving the actual 19 produced a subtraction instead.
+Replay with TSRUST_STUDIO_RUN_WORKSPACE_EVAL=feedback. Feedback is supplied
+by the test harness; automatic product test execution is not implemented here.
+
+A generic nested-call example retained the incorrect sum, and grouping the
+two function signatures caused the model to omit the charge entirely. Both
+product prompt experiments were reverted. Native cases and prior passes
+remain intact. Logs /tmp/studio-composition-example-dataflow.log,
+ /tmp/studio-compose-signatures.log and /tmp/studio-compose-feedback-final.log.
+
+## Live two-function composition probe — failed
+
+The opt-in combined and dataflow variants of the Studio workspace model
+evaluation exercise one caller, two imported definitions in a separate file,
+and a distractor export. Both definitions reached the model and the distractor
+was absent. The compact question produced units * 2. Temporarily moving the
+task after the code produced billableUnits(units) + shelfCharge(fragile, units).
+That product prompt experiment was reverted. Explicitly explaining the data
+flow with the original prompt layout also produced the sum. No output cap
+was introduced.
+
+After review of this side-effect-free expression, the evaluation applied it
+only to the temporary fixture and ran the native cases. For four nonfragile
+units the sum yields 19 instead of the required 17. Native acceptance failed
+in the dataflow evaluation (4030.59 ms including inference). Leave these
+opt-in quality probes red until the generated edit passes the behavioral
+oracle. Existing single-function successes remain recorded. Logs under
+/tmp/studio-combined-*.log. This case identifies a composition failure
+despite successful retrieval, not a general model-size limit.
+
+## Multiple imported functions in one chat question
+
+Studio keeps each requested relative import binding per resolved path. When
+all requested definitions can be extracted it sends their source once per
+distinct excerpt, with local alias labels. An explicit filename or a missing
+definition falls back to full source. The regression inspected the actual
+outgoing request for an unsaved draft with named, aliased and default imports
+across two modules. Both requested definitions from the same module were present
+and an unrelated export in that module was absent. The AI action suite passed
+19/19 in 47.13 ms. Model reasoning on the combined definitions is unmeasured.
+
+## Named import source excerpts
+
+Chat resolves a named function import by its exported spelling and includes
+its local alias alongside the extracted definition. The same scanner serves
+default and named functions. Explicit file requests, several requested
+bindings from one module, and unmatched declarations retain complete source.
+
+The unsaved alias regression selected policy for compute and excluded
+policyExtra. The live 1.5B named-import caller repair excluded unrelatedRule,
+preserved the policy source, and passed four native behavior checks. Two
+focused suites passed 20/20 in 4473.93 ms. No general workspace symbol index
+or transitive dependency retrieval is implied by this case.
+
+## Default import source excerpts
+
+Symbol-only requests for a simple default-imported function now carry its
+declaration and body plus the local signature. The scanner skips comments and
+quoted strings when balancing braces. Explicit filename requests, mixed named
+and default symbol requests, and unrecognized signatures retain full source.
+This is lexical extraction. Transitive helper definitions and general
+compiler-backed symbol indexing remain open.
+
+The local 1.5B caller-repair case verified the outgoing context included the
+full target function and excluded an unrelated export. The reviewed caller
+used shelfCharge(fragile, units), passed four native behavior checks, and
+left the policy file intact. Both focused suites passed 20/20 in 4126.79 ms
+with TSRUST_STUDIO_RUN_WORKSPACE_EVAL=default.
+
+## Recall when the answer omits the symbol
+
+When a historical question mentioning the requested identifier must be
+excerpted, the worker tries to keep its full paired assistant reply. If
+the tokenizer rejects that combination, it tries matching lines as before.
+The answer can now supply a decision without repeating the identifier.
+
+The exact same direct Metal input (35000 preamble words, a separate 35000
+word distractor, value only in the assistant reply) returned [Omitted] before
+and 73 after, both stopping at EOS. Sampled peak RSS was 2069552 KiB and
+1324880 KiB respectively, single runs. The reply variant of the public
+Studio chat-session evaluation passed in 3398.58 ms with all six messages
+retained. Run with TSRUST_STUDIO_RUN_RECALL_EVAL=reply and the configured
+model host. Natural-language paraphrase recall remains open.
+
+## Excerpts from oversized historical exchanges
+
+When a symbol-relevant complete exchange exceeds the remaining tokenizer
+window, Studio tries lines mentioning the exact requested identifiers. It
+preserves speaker roles and marks excerpts and omitted messages. It includes
+the result only if the tokenizer confirms a fit. Saved history stays intact.
+Facts on separate nonmatching lines, paraphrases and oversized matching lines
+remain unresolved.
+
+With TSRUST_STUDIO_RUN_RECALL_EVAL=excerpt the local 1.5B model recovered
+crateFee=73 after 35000 preamble words in the relevant exchange and 35000
+distractor words in another. The Studio chat action retained all six messages.
+Both focused suites passed 20/20 in 3492.93 ms. A separate direct host run
+returned 73 at EOS and sampled peak RSS of 1339248 KiB. This is one workload,
+not 8 GiB qualification. The configured host executable was rebuilt.
+
+## Dev watcher recovery after undo
+
+The frontend worker retains the last successful input snapshot and output
+through a failed check. Undoing an invalid dependency edit now reuses the
+checked application. The public dev process test observed the original PID
+still running and a later valid edit starting a new PID. Passed in 3.82 s
+after 6.90 s build. Whole-project formatter changed zero files.
+
+An independent optimized check of Studio main printed Check passed in 149.70 s.
+The time wrapper failed to read kern.clockrate for memory accounting. Samples
+from two phases showed repeated recursive native-view shape comparisons and
+expression error-effect traversal. This undo fix does not accelerate those
+paths. Supervisor 36374 and child 19954 were live on the prior toolchain.
+
+## Recall across oversized unrelated exchanges
+
+After selecting a recent suffix with the model tokenizer, the host looks back
+for complete exchanges mentioning code identifiers in the current question.
+It restores fitting exchanges newest-first, preserving their original role
+and order. Matching uses exact Unicode identifiers, including backtick-quoted
+names, internal capitals and underscores. This runs only on overflow and does
+not modify the transcript. Natural-language paraphrase retrieval and summaries
+of oversized individual exchanges remain open.
+
+With crateFee agreed as 73, then 35000 unrelated words, the prior host returned
+10 and the updated host returned 73. Single-run sampled RSS was 1231248 KiB
+and 2103536 KiB respectively; this is not a memory optimization claim.
+The Studio chat-session evaluation confirmed the compaction notice, answer
+and six retained messages. Final focused suites passed 20/20 in 2621.83 ms.
+Use TSRUST_STUDIO_RUN_RECALL_EVAL=1 with the configured local host to replay.
+
+## Default imports and extensionless chat retrieval
+
+Relative imports in the active draft now support default and combined bindings.
+Extensionless targets use the compiler candidate order: .tsr, .tsrx, index.tsr,
+index.tsrx. The retrieval result supplies the local spelling of simple default
+function signatures and preserves the original source. Richer signatures fall
+back to the binding label. Compiler path aliases and project-wide symbol lookup
+remain open.
+
+In the extensionless default-import variant of the live caller repair, the model
+twice selected the wrong argument order (the first response also included no-op
+replacements). With the signature rendered using the caller's local name and the
+original code attached, it produced shelfCharge(fragile, units). Review, save and
+four native behavior checks passed in 3.88 s. Together with AI action coverage,
+19/19 tests passed in 3.92 s. The opt-in workspace evaluation retains both named
+(mode 1) and default (mode default) variants. This is a comparison on one task.
+
+## Live two-file caller repair
+
+Studio resolves a named relative import from the active draft when its local
+symbol appears in the prompt. Source text comes from the workspace tree and
+existing canonical-path checks. The focused AI suite passed 18/18 in 41.07 ms,
+including a multiline alias in an unsaved draft and a misleading commented
+import. This is lexical lookup of direct named imports with explicit paths.
+Default imports, compiler aliases, re-exports and workspace-wide discovery are
+outside this implementation.
+
+In a new temporary workspace the local 1.5B model changed quote(units, fragile)
+to call shelfCharge(fragile, units), preserving the signature. Naming the policy
+filename passed in 4.43 s. Naming only the imported function passed in 5.20 s.
+The latter check required the unopened module's contents in the outgoing turn.
+The harness reviewed and saved the proposal using Studio handlers. It then
+created and ran a separate native suite checking negative, zero, standard and
+fragile orders. The policy file remained intact. This evaluates one repair of
+a single file using a second file as context, with no training or test feedback.
+
+## Bundled SQLite retrieval
+
+Studio now embeds a prebuilt SQLite FTS5 corpus with 1,027 source passages from
+239 tracked Tsrust example, compiler runtime-test and GPUI guide files. The
+generator excludes Studio and its model evaluations. Two regenerations produced
+identical bytes. Search returns the top BM25 passage with its original path and
+line. Chat automatically searches for Tsrust, GPUI, TSRX, SQLite and std: prompts
+in a bound workspace with a read grant. The explicit search_tsrust_knowledge
+action accepts other queries. The database is installed locally on first use.
+Regenerate with python3 tools/generate-studio-knowledge.py after corpus changes.
+
+The native retrieval and chat-action suites passed 18/18 in 59.99 ms, checking
+rollback, the GPUI ClearableGroup and the controlled/uncontrolled switch guide.
+A live 1.5B chat retrieved the rollback source in an empty workspace and answered
+0 rows after the exception. This example contains its own expected result.
+Held-out multi-file task quality and workspace semantic discovery remain open.
+
+## Model limits and context selection
+
+Studio now passes zero for generation budget, meaning use the trained model
+window until EOS or cancellation. The native engine prefills in batches, with no
+Studio prompt-byte, 2048-token input, output-byte, 4096-token output or elapsed
+generation limit. The request/response pipes accept full lines. Legacy saved
+response budgets are ignored. References supply matching lines, named files and
+edit targets retain exact text, and duplicate workspace excerpts occur only at
+their latest relevant turn. A file-list question includes workspace paths.
+When the templated conversation exceeds the real tokenizer window, the host
+selects a suffix of complete turns and notifies Studio. An oversized current turn
+still reports a model-context error. No summary of discarded turns is generated.
+
+Local Qwen2.5-Coder-1.5B GGUF reported 32768 context tokens. With 2200 repeated
+irrelevant comment words before increment(n), it answered 9 then 9 (expected
+9 then 10); sampled peak host RSS 2092320 KiB. Removing those words in the
+matched input yielded 9 then 10, peak 1799728 KiB. All four replies stopped
+at EOS. These are individual runs; the comparison used manual input compaction.
+A separate real host request with 35000 repeated words in an earlier turn emitted
+compacted and returned 57 from the final turn at EOS. Peak sampled RSS 1171472
+KiB. An over-window turn cannot establish quality on complex workspace edits.
+Storage, host frames and explicit attachments no longer use the old size quotas.
+Five Studio suites passed 29/29 in 610.75 ms before the final compaction pass,
+the final chat/action and real-pipe suites passed 18/18 in 44.92 ms, the
+built host protocol check passed in 19.67 ms, and the native output/backpressure
+control passed in 0.26 s. Persistent SQLite
+retrieval and autonomous workspace symbol lookup remain outstanding.
+
+## Chat retrieval from editor references
+
+A prompt naming the symbol from a completed Find References query now receives
+bounded workspace-relative locations. Up to four source files provide matching
+lines, preferring open drafts. Only external line whitespace is trimmed. The AI
+action suite passed 17/17 in 44.43 ms, including literal spaces, a separate
+caller file, unrelated lines, follow-up history and read permission. This
+uses the most recent editor query. Autonomous lookup, a maintained workspace
+symbol index, tokenizer-budget selection and held-out task accuracy are pending.
+
+## Source Control panel
+
+Studio reads workspace-scoped Git status, working diff and staged diff in a
+background worker. Git and localization tests passed 2/2 in 124.54 ms.
+Language-service integration passed 14/14 in 448.90 ms including worker
+shutdown. Native panel interaction, staging and hunk actions remain open.
+
+## Chat composer and referenced files in edit requests
+
+The square, full-width composer uses a top separator and clips the native
+focus ring to its container. Message rows have a slightly wider inset.
+Edit requests include excerpts from explicitly named workspace files alongside
+the full active draft. Existing file access and ambiguity checks still apply.
+The AI action suite passed 17/17 in 28.47 ms. Native visual verification and
+project-wide semantic retrieval remain open.
+
+## Model request rejection and retry
+
+A matching rejected generation settles the transport deadline, records the
+reason on its transcript row and releases the active request. Generation skips
+that diagnostic row on later turns. A dormant service also emits stopped so
+the next send can start its host. The AI action and real-pipe session suites
+passed 18/18 in 46.96 ms. Coverage includes stale versus current rejection,
+retry history, a request before startup and subsequent fresh sessions.
+Native desktop rejection interaction was not replayed.
+
+## Building long-chat requests
+
+Studio now reads the saved transcript backwards and renders eligible messages
+until the next message exceeds the host frame. It avoids rendering earlier
+turns and their attachment JSON. Local clarification replies skip model frame
+construction. The edit-specific prompt replaces only the current user turn.
+AI action and session suites passed 17/17 in 48.73 ms, including complete-turn
+selection, exact byte boundaries, previous-turn contents and pending replies.
+No process-memory reduction or model token-budget improvement was measured.
+
+## Long chat requests at the host frame limit
+
+The send action now fills the 128 KiB model frame with recent messages,
+starting at a user turn and keeping the current request intact. Older messages
+remain in the transcript and the chat shows a notice when context was omitted.
+Sizing counts serialized UTF-8 bytes including the terminating newline. The
+AI action and session suites passed 17/17 in 52.01 ms, including an oversized
+historical turn, an exact-limit frame and a current turn one byte over.
+Model tokenizer context limits and long-session memory remain separate work.
+
+## Unicode chat typing and titles
+
+Chat titles take up to 80 Unicode scalar values from the first trimmed line.
+The composer checks for a trailing ASCII trigger before removing that trigger
+and checking its preceding whitespace. AI action tests passed 15/15 in
+31.21 ms, including a four-byte emoji across the prior byte cutoff, exact
+prompt delivery, Japanese text, Unicode whitespace and a newline. Native
+keyboard/IME composition and grapheme-cluster truncation were not tested.
+
+## Cancellation during chat edit generation
+
+Once a cancellation or shutdown command enters the host queue, Studio drops
+the captured edit target. A racing completion can still finish the transcript
+without creating an edit review. A failed queue submission keeps the original
+request eligible. AI action tests passed 14/14 in 37.64 ms, covering a full
+queue, successful retry, and a valid late replacement for both operations.
+This was a deterministic host-channel test; desktop clicks were not exercised.
+
+## Multiple replacements in one chat edit
+
+The edit parser accepts the previous single replacement and a JSON array.
+Each passage must match uniquely in the captured original draft. The review
+combines disjoint matches in source order; an overlapping or missing passage
+rejects the whole proposal. The AI action suite and configured 1.5B model
+evaluation passed 14/14 in 5.315 s. The model changed two constants in one
+file and preserved an intervening declaration and formatting exactly. The
+parser fixture exercised reverse-order replacements whose outputs are also
+inputs, plus overlap and partial-match failure. Multi-file edits remain open.
+
+## Chat edits for an empty active draft
+
+An empty before string identifies an insertion only when the captured draft
+itself is empty. A nonempty draft still requires one unique original passage.
+The configured 1.5B model proposed the exact requested declaration in a new
+empty file. The extended native evaluation passed in 3.851 s. The AI action
+suite passed 13/13 in 41.24 ms, including acceptance of a multiline CRLF and
+Unicode insertion into an unsaved empty draft without changing disk bytes.
+Desktop interaction and multi-file edits remain open.
+
+## Chat edit proposals for the active document
+
+An explicit Edit: message captures the active open text buffer, session and
+revision before inference. The model supplies one before/after text replacement.
+A complete response with a unique match produces a native diff review. Reject
+discards the proposal. Apply to draft rechecks identity, revision and before
+text and publishes the edit through the normal workspace/recovery path.
+Workspace file saving remains a separate user action. No multi-file support or
+persistent pending review yet. AI actions, model evaluation and localization
+passed 15/15 in 3.083 s. The final documented Edit: command passed the native
+model evaluation separately in 2.949 s: the configured model proposed changing
+73 to 84, acceptance changed the draft, and disk retained its exact old bytes.
+Stale drafts, dismissal and repeated before passages are covered. Desktop
+review clicks and memory under this workflow remain unverified.
+
+## Unreadable files in chat
+
+If named entries in the explorer snapshot cannot supply text, Studio replies
+locally with the affected relative paths. A named open text buffer supplies its
+current draft even when its backing file has disappeared. The chat and
+localization suites passed 13/13 in 22.84 ms. A single test covered a binary
+active tab, a deleted unopened file, an empty model queue, and a subsequent
+request containing the unsaved draft from a different deleted file. Paths
+absent from the explorer snapshot are outside this check.
+
+## Real local chat clarification
+
+The configured local 1.5B model initially guessed 1 when two different
+answer.tsr files were possible. Studio now returns a localized clarification
+and the relative paths itself, without dispatching an inference request.
+A follow-up selecting lib/answer.tsr reached the native model through the
+production chat action, request channel, model service and reply handler.
+The model answered 73, the value in that file (the other returned 51).
+Opt-in model evaluation plus AI action and localization suites passed 13/13
+in 2.494 s of test execution. Peak sampled model host RSS 1165.77 MiB,
+peak OS pressure level 2, zero observed system swap growth. Sandbox-only
+inference failed at native llama.cpp initialization; native run passed.
+The evaluation used a disposable workspace and no desktop interactions.
+Run chat-model-eval.test.tsr with TSRUST_STUDIO_RUN_MODEL_EVAL=1 and the
+absolute TSRUST_STUDIO_MODEL_HOST, using the local Studio model configuration.
+
+## Chat filename resolution
+
+Chat resolves a bare filename against the explorer snapshot when it is unique.
+For duplicate names the model request includes bounded disambiguation paths
+instead of choosing a file. Workspace-relative paths and explicit ./ paths
+select a particular match. AI action tests passed 11/11 in 15.15 ms. The
+fixture covered a nested unique file, duplicate root/nested names and the
+subsequent qualified selection. Native chat interaction, model clarification
+quality, large-tree latency and semantic symbol lookup remain unverified.
+
+## Workspace excerpts across chat turns
+
+Automatic excerpts now persist with the originating user turn in the local
+workspace chat history. This supersedes the earlier transient-excerpt behavior.
+Replaying them requires the current read grant and matching workspace root.
+Previously saved messages without this optional field still load. The AI action
+suite passed 11/11 in 15.71 ms, including a changed file, JSON history restore,
+a dependent follow-up and subsequent revocation of the read grant. This checks
+the request received by the model channel. Long-chat storage and inference memory
+have not been measured for this change.
+
+## Named project file excerpts
+
+Unopened files named in a chat question now use a bounded 2,049-byte prefix read.
+The extra byte distinguishes a complete 2 KiB file from a longer one and lets
+the excerpt stop on a UTF-8 boundary. Manual attachment limits still apply to
+full snapshots. AI and workspace suites passed together, 17/17 in 22.18 ms,
+including an unopened source larger than 32 KiB with an emoji at the cutoff.
+Only the prefix is inspected for text suitability. File-size scaling and
+model quality on long documents have not been measured.
+
+## Chat workspace context and composer edge
+
+Ordinary local chat sends now include a sample of the current explorer paths,
+up to 2 KiB of the active unsaved text, and excerpts for up to two explicit
+workspace-relative paths in the question. This uses the explorer snapshot and
+the existing guarded attachment reader. Automatic excerpts are transient.
+The AI action suite passed 11/11 (32.43 ms), including a Unicode excerpt
+boundary, unopened named file, unrelated suffix and preserved transcript.
+The configured 1.5B local host separately identified fileSearchLabel from a real
+2 KiB excerpt in 3.21 s including startup/shutdown. Peak sampled host RSS
+1215.47 MiB, peak pressure 1, observed swap delta 0 MiB. This was direct host
+inference. No window-driven chat or visual right-border acceptance claimed.
+Project-wide semantic retrieval and model-issued diff proposals remain open.
+The composer no longer draws a right border. Command-only palette open skips
+file enumeration; clearing the command prefix discovers new files. Explorer
+suite 4/4, 43.06 ms, checkpoint 5e58b1f9.
+
+## File palette dismissal
+
+Selecting a file or dismissing the palette releases the file list held in
+palette state. Reopening refreshes that list and retains the query. The explorer
+suite passed 4/4 in 23.33 ms, covering both close paths and reopening a nested
+Unicode filename containing a space with an unsaved draft. This is a state
+lifetime check. Process memory and native keyboard interaction were not measured.
+
+## Large content-search result lists
+
+The search panel now builds up to 50 native result rows per page. Existing
+search snapshots and tool results still contain every matching line. The
+compact Kit pagination control and localized page counter appear on multi-page
+results and reset when a search is submitted. The focused search suite passed
+5/5 in 36.28 ms, including 101 matching lines, the last partial page and UTF-8
+offsets. Panel check and 502-key locale validation passed. Total result storage,
+native page clicks and end-to-end frame timing have not been measured.
+
+## Save conflict comparison freshness
+
+Keep Editing, Reload and Overwrite now require a matching comparison still
+held by the document. Dismissal or a new edit invalidates an older request.
+Reload refreshes the comparison when disk contents change again. Comparisons
+accept regular UTF-8 text without NUL up to the editor's 4 MiB limit. A missing,
+binary or oversized replacement clears the old comparison and directs the user
+to Save a Copy. Storage, action and formatting tests passed 14/14 in 139.69 ms,
+including an overwrite request after dismissal and exact preservation of a
+local draft and replacement bytes. Locale parity passed for 501 keys. The
+native conflict dialog interaction has not been replayed.
+
+## Protect read-only previews during project formatting
+
+Reproduced the previous CLI rewriting closed .tsr files with NUL bytes in a
+comment or string. Studio now supplies its 4 MiB editor limit to the formatter.
+The opt-in --text-files-up-to disk mode reads at most the limit plus one byte
+and skips invalid UTF-8, NUL-containing and oversized sources. Skips are
+reported separately from writes. Single-file writes with progress now report
+completion too. CLI regression passed in 0.80 s (3m12s setup). Studio formatting
+suite 7/7 in 117.58 ms includes open draft preservation, an editable closed
+file, and exact preservation of binary and oversized files in the same task.
+Ordinary CLI invocations without this option retain their input size policy.
+
+## Check Document target and output
+
+Ran the Studio terminal's CLI arguments against src/lib/ai/conversations.tsr.
+It emitted one progress line and one success line. The shared workflow adapter
+now requests plain output for tool calls. File, status and palette document
+commands require an open text source. Before launching Check Document, Studio
+checks that the saved path still resolves to the original path and is a regular
+file. Removed files and paths replaced by directories fail before launching the
+CLI. Real-CLI coverage includes success with a closure, a saved type error,
+binary preview rejection and both filesystem replacements. Formatting/task
+suite 7/7 in 63.90 ms. Physical menu interaction has not been replayed.
+
+## Individual unversioned language problems
+
+Unversioned publications for open files now retain each diagnostic message,
+severity and code. Problems rows show their file and unversioned status and
+have no navigable coordinates. Copy Problems also marks them unversioned.
+An empty publication clears its file's advisory rows. A matching versioned
+result takes precedence even if it contains zero problems. Service tests
+passed 15/15 in 977.98 ms, including actual TypeScript 2322 from an unsaved
+buffer and subsequent cross-module definition. Problems panel check and
+498-key locale parity passed. A server omitting versions cannot establish
+freshness or exact locations; physical Problems panel review remains open.
+
+## Diagnostic freshness and unversioned TypeScript publications
+
+Studio now records the session/revision on accepted language problems and
+removes stale rows on the next poll even when the server inbox is full. A
+server sending unversioned diagnostics gets one informational Problems row per
+connection. The row has no file location and clears on stop or restart.
+typescript-language-server 6.1.0 with TypeScript 5.9.3 exercised the notice
+on an unsaved type error and still resolved a subsequent cross-file definition.
+The focused controller/service suites passed 15/15 in 918.22 ms. The panel
+check and both locale catalogs passed. Actual TypeScript error text/locations
+for unversioned reports and native Problems panel interaction remain open.
+
+## TypeScript module files and cross-file navigation
+
+Studio's TypeScript server preset and Explorer icons recognize .mts, .cts and
+their declaration forms. Explicit saved server associations remain user-owned.
+The shared editor highlighter resolves .mts/.cts and .mjs/.cjs aliases.
+File icon and settings tests passed 6/6 in 2.97 ms. GPUI grammar test passed
+1/1 in under 10 ms with 2m56s setup. With typescript-language-server 4.3.4
+and TypeScript 5.9.3 installed under /tmp/studio-typescript-lsp-qualification,
+the checked Studio registry resolved a .mjs import in an unsaved .mts file
+to the exact identifier in its .mts source via NodeNext. Initial replies can
+point to the local alias before semantic loading finishes. Regression 1/1 in
+528.33 ms; set TYPESCRIPT_LANGUAGE_SERVER to the executable to reproduce.
+Supervisor 36374 rebuilt and launched preview 95076. Physical TypeScript
+navigation and highlighting in the live window remain unverified.
+
+## Real Rust language service
+
+The Rustup proxy on this Mac has no rust-analyzer component. The installed VS
+Code Rust extension contains rust-analyzer 0.3.3105 (b98172d80f). The new
+rust-language-service.test.tsr selects the existing Rust preset, routes a .rs
+file through Studio's lazy registry and launches the configured executable.
+Hover resolves an unsaved function name and return type. Definition resolves
+its exact URI and identifier range. Disk contents stay at the original revision.
+The real service passed 1/1 in 4.37 s execution. Set RUST_ANALYZER to the server
+executable to reproduce with a non-PATH installation. Native Rust hover and
+navigation gestures remain unverified. A subsequent real-server run applied a field
+completion to an unsaved Rust buffer after an emoji, preserving the surrounding
+text. The same session reported the later syntax error under lsp:rust and cleared
+the list for the corrected version. The combined service case passed in 2.73 s
+execution; physical completion acceptance and Problems interactions remain open.
+
+## Save a copy of a recovered draft
+
+File → Save a Copy… and the command palette open a native destination picker
+for the active text document. The copy uses the draft revision captured when
+opening the picker. The write rejects stale revisions and open destinations.
+Focused document and explorer tests passed 6/6 in 67.33 ms, including copying
+a deleted original with Unicode and CRLF while preserving the active tab and
+saved baseline. Chrome check, locale parity and whole-project formatting passed.
+The native picker interaction has not been exercised.
+
+## Recovery after external file replacement or deletion
+
+A real-filesystem regression reproduced an entire journal failing to restore
+when a dirty text file became binary. Recovery now restores journaled text and
+its saved comparison baseline for binary and oversized replacements. A removed
+file with an existing canonical parent can return as an unsaved buffer at its
+original tab position. Recovery does not create the missing file. Ordinary save
+reports a conflict in all three cases and preserves disk contents. The regression
+checks order, draft text, baseline, save conflicts and the replacement bytes.
+Recovery/storage suites 7/7 in 73.62 ms execution. Whole-tree formatting passed.
+Logs /tmp/studio-replaced-recovery-{before,order,format-final}.log. Native
+restart with owner drafts was not exercised.
+
+## Binary and large-file previews
+
+Opening a non-image file containing invalid UTF-8 or NUL bytes now presents a
+read-only hex view with the file size and preview byte count. Non-image files
+over the 4 MiB editing limit read at most 256 bytes. Existing image handling
+and ordinary UTF-8 editing remain in place. Workspace/document suites passed
+7/7 in 31.94 ms; search/chat suites passed 14/14 in 47.88 ms. The fixtures
+covered two binary encodings, a 4 MiB + 1 byte text file and exclusion of
+embedded NUL data from content search. Editor check and both locale catalogs
+passed. Supervisor 36374 rebuilt in 125341 ms and launched preview 79756.
+Logs /tmp/studio-byte-preview-{tests,consumers,editor-final,format-final}.log.
+Native visual appearance and hex selection/copy have not been observed.
+
+## Stale diagnostic coordinates
+
+Terminal links, Problems rows and the registered open_problem action now reject
+a column past the current line before publishing workspace changes. A position
+at the end of a line or on the trailing empty line remains valid. Resolving a
+location scans up to the requested line and converts just that line's scalar
+column into a UTF-8 selection. Focused formatting and terminal suites passed
+10/10 in 138.15 ms, including Unicode offsets and no new tab on rejection.
+Whole-tree formatting completed. Logs /tmp/studio-diagnostic-navigation{,-format}.log.
+No physical click was replayed.
+
+## Terminal diagnostic path navigation
+
+The terminal link parser preserves quoted relative filenames with spaces and
+relative paths on compiler arrow lines. Locations on the same output line are
+scanned independently, including after invalid numeric coordinates. Studio uses
+the host path API to distinguish absolute from workspace-relative destinations.
+Focused parser test passed; Studio terminal-formatting suite 4/4 in 100.24 ms
+includes opening the same Unicode file by absolute and relative path. Final
+formatter zero changes. Logs /tmp/studio-terminal-link-{paths,nav,format-final}.log.
+Native pointer interaction and Windows host execution remain unverified.
+
+## Keyboard navigation in retained terminal output
+
+The native terminal handles Page Up/Down and Home/End locally after exit. In a
+live primary screen Shift with those keys scrolls history; ordinary keys and live
+alternate-screen applications retain PTY key delivery. Linux Ctrl+Shift+C/V now
+routes to the clipboard alongside the existing Windows and macOS bindings. Real
+PTY tests passed 3/3 in 0.03 s with live routing, exited history offsets, resize
+and selection. Rebuilt workspace compiler and linked a native arm64 Terminal
+consumer. Whole-project formatter zero changes. Logs /tmp/studio-terminal-key-
+{compiler,native,format}.log and /tmp/studio-terminal-scroll-keys.log. The live
+supervisor 36374 and preview 68305 still use their existing toolchain. Physical
+key events and clipboard contents were not verified.
+
+## Cancelling content searches
+
+The search button becomes a stop control while a submission is pending or
+running. An edit, stop or replacement invalidates the active generation. The
+worker checks cancellation before discovery, between files and every 128 lines;
+late requests for an older generation cannot cancel a newer one. Search jobs
+carry the root and open files' path, kind and current text. Line scanning uses
+UTF-8 offsets without splitting the entire document into an array. Search tests
+4/4 (32.76 ms) and shared service tests 14/14 (489.86 ms) passed, including
+a cancelled generation followed by a successful draft search, CRLF, Unicode and
+final empty-line matching. Both locale catalogs and the panel check passed;
+final formatter zero changes. Supervisor 36374 rebuilt in 141143 ms and
+launched preview 68305. Logs /tmp/studio-cancel-search-{final,lifecycle,panel-ok,
+format-ok}.log. Discovery, an ongoing read and a single regex operation still
+finish before the next cancellation check. No native click or memory measurement.
+
+## Background content search
+
+Studio's content-search panel submits Enter, button and filter requests to a
+bounded background service. The panel keeps one scan in flight and only the
+latest pending submission. Editing the query invalidates the prior generation.
+The worker uses the same matching and ignore rules as the registered search
+tool and reads open drafts from the submitted workspace snapshot. The shared
+service group owns worker shutdown. Search suite 4/4 in 35.94 ms and language
+service suite 14/14 in 494.88 ms passed. Panel type check, locale check and
+whole-tree formatting passed. Supervisor 36374 rebuilt in 142162 ms and started
+preview 63162. Logs /tmp/studio-worker-{search-test,language-test,search-panel,
+search-format-final}.log. In-flight filesystem scans currently run to completion;
+interactive Enter, cancellation latency and large-workspace memory remain open.
+
+Dense native content search previously timed out during a 100-second UI replay. A CPU sample showed repeated cloning of the reactive state record containing the entire hit collection. Separated the full result collection from scalar control state and supplied only the current 50 hits to the rendered list. On the rebuilt Studio, 64,000 matches across 1,024,000 lines supported next/previous page navigation (line 16 to 816 and back), repeated cancellation, and navigation into an unsaved draft. A separate twelve-cycle run completed. Studio-process RSS sampled via ps roughly every 50 ms was 153,664 KiB before search, peaked at 269,984 KiB, and ended the twelfth idle period at 260,720 KiB. Idle RSS fell during cycles 7–8 and rose again; steady-state retention remains unresolved. For comparison, the earlier sparse 64-match run on the prior build ended its third idle at 128,928 KiB (112,944 KiB immediately before first search). These are single process observations, not matched performance benchmarks. Focused search suite passed 5/5 in 40.39 ms test execution. Whole-project formatting passed; dev supervisor 10923 started PID 20322.
+
+Native macOS replay on 2026-11-14 with 64 files containing 16,001 lines each plus 20 open documents. Enter on the content-search input found the known marker on line 16,001. Resubmitted, activated Cancel search, and observed the run control return after 0.169 seconds (one UI observation, not a benchmark). Checked that the cancelled marker results stayed absent after idle. A replacement Enter search found a marker present only in a recovered unsaved tab. Clicking that result switched from page-00 to page-19 and persisted the active path. All 20 open files retained their original disk bytes. The later dense and sparse replay measurements above cover Studio process RSS.
+
+## Content-search result freshness
+
+The shared UI and editor tool navigation action verifies the full preview line,
+its one-based line number, its byte offset and the selected UTF-8 range against
+the current document. Extending a matched line or moving it to a different line
+at the same byte offset now rejects the stale result. The search suite passed
+3/3 in 50.94 ms execution, including valid Unicode selection, malformed ranges,
+open drafts and ignored files. Tool registration checks target the two search
+actions independently of unrelated catalog entries. Whole-tree formatter reported
+zero changes. Logs /tmp/studio-search-hit-{check,format}.log. Native clicks were
+not replayed for this change.
+
+## File picker result navigation
+
+The file picker and search_files use the same relative-path matching. The shared
+open action now requires a matching row in the currently open file picker. A
+hidden row, a closed picker, command mode or a deleted file leaves the workspace
+unchanged. Filesystem-root labels retain their first character. Explorer suite
+4/4 passed in 34.03 ms execution; navigation component check passed. Final
+whole-tree formatter reported zero changes. Logs /tmp/studio-visible-search-
+{final,ui,format-final}.log. Native picker interaction remains unverified here.
+
+## Nested workspace project checks
+
+The structured saved-project check now passes the selected directory explicitly,
+matching the terminal task. The real CLI previously discovered the parent
+tsrust.config.json and reported an unrelated sibling's error when Studio opened
+a nested folder. The new case reproduced that failure before the fix. Afterward
+the clean folder passed and a type error inside it produced one located problem.
+Project-check suite 2/2 passed in 93.13 ms of test execution. Background checks
+and the registered check_project tool use this service. Whole-tree formatter
+reported zero changes. Logs /tmp/studio-nested-check-{before,after,format}.log.
+
+## Studio project formatter discovery
+
+Format Project and the registered format_project tool now share the compiler's
+filesystem walker through projectFiles. Explicit project formatting includes
+ignored sources, skips generated target directories and avoids following symlinks.
+The formatting suite passed 6/6 in 56.40 ms execution. The real host tool wrote
+a nested ignored source, skipped a target source and returned a revision-matched
+proposal for an open draft while preserving its disk copy. Whole-tree formatter
+reported zero further changes. Logs /tmp/studio-format-discovery-{final,fmt-final}.log.
+Menu and terminal interaction were not replayed for this change.
+
+## Unimported source edits in dev
+
+The frontend worker retains its last successful Rust output. It reuses that
+output when only the contents of existing unimported .tsr/.tsrx files changed
+and capture still proves the same application paths, resolutions and failures.
+New or removed files, configuration changes and changed dependencies still go
+through normal checking. Downstream native dependency and application identity
+checks remain active. The process-boundary test observed reuse on a saved
+test file, retained the live PID, and subsequently rejected a broken import and
+restarted on a repaired dependency. Two watcher tests passed in 3.47 s, three
+alias/data tests in 3.05 s and seven snapshot tests in 0.03 s. Logs under
+/tmp/studio-unused-{final-check,aliases,snapshot,format}.log. Supervisor 36374
+and Studio 41211 were verified live on the existing toolchain. No live latency
+measurement for this change. Imported Studio styles still require checking.
+
+## Chat layout and code wrapping
+
+Studio overrides MessageScroller's native 12px horizontal row padding with
+px-1. Sent bubbles keep their horizontal inset and use less vertical padding.
+The composer fills the pane width, uses square corners and sits flush above
+the status bar. Code tabs explicitly disable native soft wrap so layout during
+hover cannot wrap other source lines. The multiline composer keeps its existing
+wrap behavior. The prior Studio toolchain rebuilt the complete app in 129126 ms
+and launched preview 41211 under supervisor 36374. macOS listed the window;
+targeted screenshot capture failed. Visual appearance and real hover interaction
+remain unverified. Whole-project formatter zero changes; owner edits retained.
+
+## Leaf expression analysis during Studio checks
+
+Leaf expressions now record their own failure and return it directly without a
+separate finish operation. Checking a leaf root needs no work-stack allocation.
+Empty bodies return immediately. Deep-expression traversal still uses a heap
+stack; child evaluation and failure payload order are unchanged. All 54 focused
+error-effect cases passed in 0.91 s (build 4m44s). Final whole-project formatter
+reported zero changes. Logs /tmp/studio-leaf-tests.log and /tmp/studio-leaf-format.log.
+
+Before/after optimized CLI checks returned byte-identical output for chat-panel
+(100358 bytes, 17.15/15.45 s) and Studio main (318227 bytes, 140.59/84.98 s).
+The earlier full-entry check overlapped compiler builds, so the full timing
+difference cannot be attributed to this edit. Logs /tmp/studio-leaf-{before,after}.time
+and /tmp/studio-full-effect-{before,after}.time. The optimized CLI/LSP on disk
+include the change. Supervisor 36374 retains its prior executable and preview
+37080; no live-rebuild speedup claimed for this change.
+
+## Live rebuild after the owner quit Studio
+
+The owner quit preview 4521 while supervisor 1088 was rebuilding. Its final
+replacement took 541735 ms and launched 36104. The frontend reported 185845 ms
+checking, 5511 ms emission and 34750 ms native/link. Earlier stacks showed
+the supervisor waiting to submit work while the worker analyzed a previous
+snapshot. The watcher now cancels superseded analysis at function boundaries.
+The next snapshot retains the pre-link syntax cache. Seven frontend cases
+passed (0.03 s, build 2m40s), including cancellation then comparison to fresh
+emission, and two public watcher cases passed (3.48 s, build 14.65 s).
+Whole-project formatting zero changes. Logs /tmp/studio-cancel-frontend-tests.log,
+/tmp/studio-cancel-watcher-tests.log and /tmp/studio-cancel-frontend-format.log.
+
+Built the optimized CLI/LSP pair in the shared target (6m45s one-time setup)
+and replaced supervisor 1088 with 36374 in apps/studio. Runtime host override
+preserved. TSRUST points at target/release/tsrust in the new supervisor;
+Studio uses its sibling LSP. A real padding save superseded the startup check
+and produced preview 36764 in 177672 ms (91.17 s check; runtime cache miss).
+Restoring the original padding produced preview 37080 in 127099 ms (99.14 s
+check, 1.35 s emission, 26.35 s native/link; runtime hit). Verified old PIDs
+exited, new watcher and child alive. No test style change remains. Logs
+/tmp/studio-optimized-dev.log and /tmp/studio-optimized-toolchain.log. These
+are development observations under different loads. The optimized watcher sample
+/tmp/studio-optimized-style.sample still showed expression-error traversal and
+allocator work. Fast style-only rebuilds and native visual verification remain open.
+
+## Development dependency capture
+
+Each snapshot now discovers aliases and validates the nearest configuration and
+UI lock once per importer directory. Every new capture resolves them afresh.
+Repeated observations of an external file with different stamps invalidate the
+capture even when the provider already holds its original bytes. The prior
+implementation could overwrite the original stamp and accept those stale bytes.
+
+Six frozen-snapshot cases passed (0.04 s), three public watcher cases passed
+(3.21 s, build 14.89 s), and the new mid-capture external-edit regression passed
+(under 0.01 s, build 8.46 s). Logs /tmp/studio-capture-snapshot-check.log,
+/tmp/studio-capture-alias-check.log and /tmp/studio-capture-race-check.log.
+Supervisor 1088 and preview 4521 remained alive. This change has no measured
+end-to-end rebuild timing and is not installed in that supervisor.
+
+## Read a conversation without selecting it
+
+The registered local_model_read action accepts an optional chat ID. An explicit
+ID returns only that conversation, including its draft and message attachments.
+An empty ID reads the unassigned composer. Omitting the ID preserves the existing
+workspace-wide model state response under the host read grant. A scoped read
+does not change selection. The public action suite passed 10/10 in 10.56 ms,
+including separate drafts, missing IDs, denied reads and legacy response shape.
+Final project format zero changes. Logs /tmp/studio-chat-read-tests-final.log
+and /tmp/studio-chat-read-format-final.log. Preview 4521 and supervisor 1088
+were alive. Live model tool dispatch remains pending.
+
+## Final model reply during shutdown
+
+A completion, cancellation or generation error received after Stop now settles
+the active reply while keeping new sends disabled until the host reports stopped.
+A host exit during a pending reply advances the conversation revision when it
+marks that reply interrupted. Shared AI action suite 9/9 passed in 32.81 ms,
+including a restarted conversation whose next request contains its previous
+answer. Whole-project formatter final pass reported zero changes. Logs
+/tmp/studio-stop-race-tests.log and /tmp/studio-stop-race-format-final.log.
+Verified supervisor 1088 and preview 4521 alive. Validation used synthetic
+channel updates. Desktop shutdown timing and integrated memory remain open.
+
+## Dev watcher under successive saves
+
+The persistent frontend now accepts a snapshot only when ready to check it.
+While a check runs, the watcher can replace its pending snapshot on another
+save. Previously, one additional superseded revision could queue behind the
+active check and consume a full linked-project check. An already-running check
+still runs to completion. Two public watcher process tests passed (3.43 s
+execution, 15.86 s build), including last-good recovery, restart, unchanged
+application retention, cache reuse and cleanup. Whole-project format zero
+changes. Logs /tmp/studio-dev-coalesce-check.log and /tmp/studio-dev-coalesce-format.log.
+
+A live one-second sample of the original supervisor 1088 found its frontend
+in linked-project analysis, footprint 479.6 MiB, peak 629.8 MiB
+(/tmp/studio-dev-followup.sample). The existing preview was retained through
+a capture retry. This change has not been installed into that watcher. No
+latency improvement has been measured on Studio.
+
+## Model host pipe lifetime and recovery
+
+Studio now keeps receiving protocol updates after a host closes stderr. A
+POSIX fixture closes stderr before readiness, streams a prefix, then exits with
+status 7. The model service delivered the prefix, reported unexpected stdout
+EOF, emitted stopped, and accepted a fresh start on the same service. The public
+model-session suite passed on macOS (1/1, 13.91 ms execution). Final project
+format reported zero changes. Logs: /tmp/studio-model-pipes-tests-final.log and
+/tmp/studio-model-pipes-format-final.log. Supervisor 1088 and its prior preview
+4521 were alive during validation. The fixture exercises process transport;
+desktop recovery and Windows coverage remain open.
+
+## Chat startup cancellation and draft recovery
+
+A late ready update could override stopping and dispatch a cancelled generation.
+Ready now advances only a starting session. Startup rollback restores the original
+prompt and attachments into an empty composer. If the user has started another
+draft or selected new context, rollback preserves that work and retains the original
+turn in history with its cancellation/error status. Unsent user turns are excluded
+from subsequent model context. Legacy user turns without status remain supported.
+This shared action path serves Studio and the guarded model tools.
+
+Final AI action suite 8/8 passed in 13.45 ms execution, including cancellation,
+late readiness, independent drafts, subsequent request history, attachments,
+permissions and storage conflicts. No weights loaded. Whole-project format final
+0 files, snippets or fingerprints. Logs /tmp/studio-chat-startup-tests-final.log
+and /tmp/studio-chat-startup-format-final.log. Supervisor 1088 and preview 4521
+were alive during validation. Actual cancellation through the desktop remains
+unverified. Owner changes to chat-panel.tsrx and editor.tsrx remain separate.
+
+## Dev rebuild visibility and matched diagnostic observation
+
+The native watcher reports the entry being checked before dispatching the frontend
+request and reports application compilation/linking when it actually runs. The
+existing process-boundary watcher test passed, including initial failure, saved
+edit, cache reuse, last-good preservation and cleanup (4.18 s execution, 21.82 s
+setup). Whole-project formatter: 0 files, snippets or fingerprints. Logs:
+`/tmp/studio-rebuild-status-tests.log`, `/tmp/studio-rebuild-status-format.log`.
+
+A standalone check of Studio's chat-panel.tsrx and its imports took 39.71 s at
+6cfc5731 and 42.13 s with the installed f0063276 CLI. Both exited 0 with identical
+stdout and empty stderr. Source fingerprint matched across both checks. An earlier
+comparison was discarded when a concurrent owner save changed the source. This
+single pair during live development does not establish a speedup, and it does not
+measure the whole Studio watcher, linker or restart. The running supervisor 1088
+and preview 4521 were verified; the new status messages require a newer supervisor.
+
+## Studio rebuild analysis — borrowed exception-region inputs
+
+The Studio save profile showed repeated partial error-contract analysis. The checker
+now reads the current region body and bindings directly during callback-origin
+discovery. It formerly cloned both into a synthetic CheckedFunction used only for
+iteration. Initializers, caller position in traversal, closure methods and the
+fixed-point analysis retain their ordering. Catch and finally phases borrow the
+retained effects when refresh is unnecessary. A refreshing body computes the
+current effects directly without first copying the discarded snapshot.
+
+Focused compiler error effects 54/54 passed in 0.92 s (setup 3m38s), native
+exception regions 3/3 in 1.05 s, unreachable catch bodies 3/3 in 2.33 s (shared
+setup including target lock wait 5m53s). Logs /tmp/studio-borrow-region-tests-final.log
+and /tmp/studio-borrow-region-native.log. Whole-project format 0 files, snippets
+or fingerprints. Verified the existing dev 1088 and Studio 4521 alive; no restart
+or installed toolchain switch. No matched speed or memory measurements yet.
+Next compare identical saved-edit inputs with the prior compiler and separate
+the remaining fixed-point body scans from cloning and native preparation costs.
+
+## Studio coding conversation and active language analysis — November 12
+
+The owner selected a direct model-host test because desktop controls were unavailable.
+The configured Qwen2.5-Coder-1.5B-Instruct Q4_K_M host handled two turns with the
+same loaded model and the first answer included in the second request. Both reached
+EOS under a 192-token limit per turn. It wrote a correct Python first-even function
+and reused its chosen name, find_first_even, in both assertions. It covered the
+no-even case but missed the explicitly requested zero-before-another-even case:
+its positive example was [2, 4, 6, 8]. This is a partial instruction-following result.
+Host launch to shutdown 3.73 seconds, peak sampled host RSS 1183.94 MiB, starting
+system swap 2342.88 MiB, maximum observed growth 0 MiB, highest observed pressure
+1, host exit 0. Existing GUI pressure failure and full 8 GiB acceptance remain open.
+
+Verified dev 1088, Studio 1588, LSP 1639. During focused compiler build the existing
+LSP was at 99% CPU. One-second sample /tmp/studio-before-sparse-active-lsp.sample
+recorded 409.8 MiB footprint, 446.6 MiB peak during recursive analysis. This is
+an active sample of the installed pre-change binary, not a quiet comparison.
+
+Compiler expression-effect traversal now keeps only failures in its child-result
+stack. Infallible subtrees still annotate every visited node; prior sibling
+failures, reverse payload order and reachability are preserved. The 54 error-effect
+tests passed in 1.13 seconds, including the new mixed-sibling and all-infallible
+recheck case. /tmp/studio-sparse-effects-tests.log. Whole-project formatter
+reported 0 files, snippets and fingerprints. This source change has no measured
+latency gain and is not installed in the live dev session.
+
+The owner's saved chat header padding edit triggered a genuine native rebuild.
+A one-second sample of dev 1088 during the rebuild showed ProjectSession::check
+in recursive analysis, including repeated partial error-contract annotation.
+See /tmp/studio-save-rebuild.sample. The compiler caches pre-link syntax but
+rechecks the linked project. Style literals are compiled into the application.
+The saved edit rebuilt in 271554 ms; 83/85 module parses reused, 84/85 headers
+reused. Check 226707.2 ms, emit 6262.6 ms, native+link 37676.8 ms (runtime hit).
+Same supervisor 1088 launched Studio PID 4521. Concurrent compiler test build
+and active LSP make this a user-observed rebuild, not a quiet benchmark.
+
+## Studio terminal and check repairs — November 12
+
+Format Project uses one CLI terminal for unopened disk sources. Open buffers use
+stdin formatting and revision-checked background proposals. Explicit Format Document
+retains its named terminal. A file opened during a disk task is reloaded only when
+clean and included in that task. Mounted hidden terminals receive exit events.
+Session indicators observe current status. Check Document requests diagnostics-only
+text, retaining warnings/errors, normal exit codes and the CLI's existing default.
+
+Live and completed grids resize. Exited programs cannot intercept local mouse
+selection or wheel events. Session actions include page up/down and Copy terminal
+output (retained grid and scrollback), alongside Copy terminal selection.
+Clipboard and navigation grants still apply to the shared tool routes.
+
+Focused evidence: 11/11 Studio workflow/terminal cases in 113.37 ms, 6/6 UI kit
+cases under 0.01 s, 3/3 native PTY cases in 0.06 s, CLI regression 1/1 in 0.90 s.
+Direct check of conversations.tsr printed only progress and success. Locale check
+passed for 487 keys. Native Studio build passed. Logs use the prefix
+/tmp/studio-terminal-repair-. Whole-project format finished with 0 further changes,
+0 snippets, 0 fingerprints. No new model run. Exact real “Ready.” delivery and failed
+8 GiB pressure evidence below stand. Physical clipboard, mouse and divider MAT
+still require computer use. Owner edits to chat-panel.tsrx and editor.tsrx remain
+outside the checkpoint. Recovery journal read-only before supervisor restart
+showed 15 open files and 0 drafts. No editor or settings actions performed.
+
+Current one preview: supervisor 1088, app 1588, LSP 1639.
+Installed CLI/LSP pair built in 3m05s and installed by atomic replacement.
+Dev build 241460 ms; /tmp/studio-terminal-repair-dev.log. Current bundle:
+`/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-1088-1794532530949204000-0/Tsrust Studio.app`.
+Previous supervisor rejected copy-output with its stale embedded API and kept
+its preview alive until the SDK switch. No second supervisor remains.
+
+## Current continuation — November 12, compiler traversal storage
+
+Response-budget implementation is checkpoint `1be743f6`. Its focused evidence
+below remains valid. The old goal remains paused; this is the direct continuation.
+
+The compiler expression walker now yields an iterative traversal instead of
+retaining a second vector containing every expression. Regional error analysis,
+callback contracts, task predicates and emitter queries use that shared iterator.
+The thread validator and finally-slot analysis explicitly collect when they need
+repeated passes. Existing child order, initializer order, source-closure boundaries
+and complete traversals are preserved; no shape-cache invalidation checks changed.
+
+Focused evidence from the current compiler source:
+- Error-effect suite: 53/53 passed, 0.87 seconds execution; 3m51s setup/build.
+  Includes the new exact node-order/initializer/partial-iteration witness and
+  existing deep-region, callback, catch-payload and error-transport controls.
+  `/tmp/studio-analysis-memory-tests.log`.
+- Same fresh library binary, task diagnostics: 11/11 passed, 0.22 seconds;
+  deep ownership walks: 2/2 passed, reported under 0.01 seconds.
+  `/tmp/studio-analysis-task-tests.log`, `/tmp/studio-analysis-deep-tests.log`.
+- Native exception-region suite: 3/3 passed, 0.86 seconds; native thread suite:
+  4/4 passed, 1.21 seconds. Combined Cargo setup/build: 2m28s.
+  `/tmp/studio-analysis-native-tests.log`. No full compiler/LSP matrix replay.
+- Whole-project formatter: 0 files, 0 documentation snippets, 0 fingerprints;
+  `/tmp/studio-analysis-format.log`. Performance and whole-machine memory gains
+  have not been measured. The fix removes temporary storage, not repeated global
+  annotation or the need to detect in-place shape changes.
+
+A one-second sample of old installed CLI supervisor 86834 at 19:45:46 observed
+298.6 MiB footprint/395.5 MiB peak and repeated shape comparisons in expression
+finishing. `/tmp/studio-response-dev.sample`. This is diagnostic evidence, not a
+quiet benchmark, a leak claim, or 8 GiB acceptance. No inference was launched.
+
+Supervisor 86834 was stopped deliberately after its native build revealed the
+restart omitted `CARGO_TARGET_DIR`. Its child 88919 exited. The accidental nested
+Cargo target was created at 19:47:41 in this session; no files predated it and
+`lsof` found no open files. Removed only that closed target: 170 files,
+69,466,740 logical bytes. This is not a measured free-space or memory improvement.
+Source workspaces, the shared target, owner drafts and recovery data were preserved.
+
+Corrected detached supervisor 89257 now runs app 93314 and fresh LSP 93363, with
+explicit repository `CARGO_TARGET_DIR`, incremental off, jobs=1 and the real host
+override. Verified one supervisor/app/LSP and no resident model process. Log:
+`/tmp/studio-response-dev.log`. Current bundle:
+`/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-89257-1794531135507992000-0/Tsrust Studio.app`.
+Native preview build passed in 377408 ms; check 165758.3 ms, emit 5804.0 ms,
+runtime prepare 6702.6 ms, runtime build/publish 174409.9 ms, native/link
+204923.8 ms. These counters overlap; do not sum them or invent an attribution.
+No second supervisor is authorized or needed.
+CLI/LSP pair build passed in 2m46s (`/tmp/studio-analysis-sdk-build.log`) and was
+atomically installed. CLI SHA256:
+`ba8f13e9d3b8e2f95fc6ebfec8a0728455e03107215a6c0e99f1e212dbae8ed8`;
+LSP SHA256:
+`5bdaae629cdeaf319c2d93664b7ebf8fdd1d535e0c84da51c3a608a82988520f`.
+The supervisor still maps its earlier CLI inode; app 93314 started the fresh
+installed LSP. No further restart is required for this source checkpoint.
+
+Fresh active-analysis LSP sample at 19:56:32: footprint/peak 268.1 MiB;
+`/tmp/studio-analysis-lsp.sample`. The sampled stack still contains regional error
+analysis, expression-effect traversal work-vector growth and FailureSet joins.
+This is not a matched quiet comparison against the earlier 276.8/365.1 MiB sample,
+so no memory reduction or latency improvement is claimed. Next profiling should
+separate those allocations and repeated annotation from shape-cache validation.
+Computer-use tools remain unavailable; Settings MAT and visible recovery verification
+remain pending. Next resource work must retain failed pressure evidence and profile
+quiet/active language analysis before any new model qualification run. Runtime-cache
+extraction and repeated global annotation remain open; do not weaken checks to hide them.
+
+## Current continuation — November 12, response budget and memory work
+
+This section supersedes the transfer's immediate-next-step and process identities;
+the transfer and all earlier acceptance remain historical evidence. The old goal
+remains paused as requested. One writer is continuing the owner's direct request.
+Full Studio acceptance remains incomplete. Owner drafts, recovery files, chat
+history and settings have not been saved, discarded or rewritten through the UI.
+
+- Replaced the hardcoded Studio generation budget with persisted `aiResponseTokens`:
+  default 1024, integer range 1–4096, legacy-file migration, categorized AI Settings
+  NumberInput and shared `commitSettings` validation/conflict handling. Sending
+  snapshots the budget; later settings changes do not retarget queued requests.
+  Control messages use zero rather than a pretend generation budget.
+- Registered `ai_response_configuration` and `propose_ai_response_budget` through
+  the existing guarded settings-tool dispatch. Proposals require independent host
+  read/proposal grants and explicit root, validate through the same config parser,
+  and return before/after text without writing or approving their own change.
+- Llama now converts each token once with the pinned token-piece byte API and a
+  reusable piece buffer. The incremental decoder retains at most three incomplete
+  UTF-8 bytes, rejects malformed/truncated sequences, and retains bounded prefixes.
+  Removed the generated-token vector and repeated full-prefix detokenization.
+  Prompt plus output budget sizes the context, checked against `n_ctx_train()`.
+  Native safeguards: 2048 prompt tokens/65536 prompt bytes, 4096 output tokens,
+  16384 output bytes, cooperative 180-second deadline including queue backpressure.
+  EOS/length stop reasons and cancellation/model ownership stay intact. The host
+  checks serialized 128 KiB output frames. Candle's separate admission is unchanged.
+- Focused Studio suites PASS16/16; setup/build35254.0ms, plain reporter did not
+  retain individual execution durations. Log `/tmp/studio-response-tests.log`.
+  Decoder/transport native host witness PASS1/1 (four internal controls),0.26s
+  execution,2m37s Cargo setup; `/tmp/studio-output-native-tests.log`. It compiles
+  the actual decoder/helper source once without native model dependencies or weights.
+  Budget-rejection runner PASS1/1,4inference tests explicitly skipped;0.280584ms
+  selected test,6204.417542ms setup; `/tmp/studio-response-budget-native.log`.
+  Actual rebuilt host protocol PASS1/1,29.42525ms test,2240.891458ms setup;
+  `/tmp/studio-response-host-tests.log`. An initial JSON-reporter failure exposed
+  inherited `TSRUST_TEST_REPORTER=json` wrapping child stdout. The protocol test
+  now explicitly gives its child `plain`; real raw error/stopped frames were valid.
+- Model-host normal project build exposed its invalid `../../../target` config
+  output. It now uses a project-relative output; explicit build `-o` still installs
+  at the existing root target. Runtime caches are ignored under model-host/target;
+  Cargo continues using the single repository target. Real host rebuilt and
+  atomically installed SHA2568eec6e66c93081955c23f5820be5e775951e03f01471a6785c83e17e24f1122e.
+  No inference/model loading was replayed. No CLI/LSP rebuild was necessary.
+- Memory investigation: confirmed runtime-cache hits copy/unpack into private
+  per-build directories in runtime_build.rs, so the earlier unpack sample is
+  consistent with the current path, not evidence of a cache miss. No checksum,
+  path/symlink, offline or Windows-import safety was weakened. Confirmed regional
+  error annotation traverses every checked function and materializes expression
+  vectors. Shapes.matches deliberately checks in-place records/unions/families;
+  its guards remain unchanged. LSP scan caches retain observed inputs and deduplicate
+  equal source Arcs; no demonstrated leak or measured performance improvement.
+  One active-build machine observation: swap5314.31MiB, memory_pressure free39%.
+  This is not quiet baseline or 8GiB qualification. Earlier critical-pressure
+  failure remains failed. Next memory work: remove unnecessary traversal storage
+  without losing order/coverage, then measure affected analysis before inference.
+- Prior supervisor66933 and replacement77935 disappeared during chat interruptions;
+  no kill was issued. Rediscovery proved no preview remained. Started detached
+  supervisor86834 (parent1), cwd apps/studio, real-host override retained,
+  log `/tmp/studio-response-dev.log`; it is currently rebuilding, no app PID yet.
+  Do not launch another supervisor. Rediscover live identities before acting.
+  Computer-use tools became unavailable after read-only app inventory; new Settings
+  control MAT and recovered-draft verification remain pending. Do not claim them.
+- Locale checker PASS2catalogs/484keys. Whole-project formatter completed3files
+  then1file,0documentation snippets/0fingerprints. Final checkpoint formatting
+  completed1file,0documentation snippets/0fingerprints after the protocol-test edit. No full matrix, benchmarks,
+  push, tag, release or model-resource qualification has been performed.
+
+## Thread transfer — 2026-11-12, authoritative restart instructions
+
+The owner requested a complete handoff to a fresh ChatGPT/Codex thread to reduce
+client memory pressure. The reduction is not measured. Keep this file as the only
+handoff; do not create source snapshots, archives or a second handoff document.
+
+- Continue the FULL Tsrust Studio goal, not an MVP or only the last chat slice.
+  Original mandate: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29fb58a3/pasted-text-1.txt.
+  Read that attachment, root/apps/studio AGENTS.md, local tsrust-development,
+  Ponytail and Caveman skills, docs/development-workflow.md, and the Studio plan.
+  Source app is apps/studio, macOS first, 8GiB minimum full offline editor/agent.
+  All application/orchestration code remains .tsr/.tsrx; native libraries use
+  checked Tsrust bindings. No hidden cloud fallback or external model server.
+- Repository /Users/seancotter/Desktop/dev/learning/tsrust; branch codex/gpui-ui.
+  Latest source checkpoint4a892a1c; worktree was CLEAN when preparing transfer.
+  Previous accepted checkpointsfeb9fa82/c68528df remain valid. No push/tag/release.
+  One writer only: the owner PAUSED this old goal for transfer. Keep it paused
+  while the new chat works. The full goal is incomplete, not achieved.
+- Latest owner question: why a configured output limit? Answered candidly that
+  the current32-token limit is a hardcoded initial-inference admission limit,
+  not a real Studio preference or the model's limit. Promised to replace it with
+  a normal response budget. NO OUTPUT-BUDGET IMPLEMENTATION HAS STARTED. This is
+  the immediate next coherent feature, alongside the measured memory work below.
+- Next executable implementation: trace all32-token defaults in
+  src/services/ai/actions.tsr and services/ai/session.tsr, ModelRequest protocol,
+  model-host worker, and crates/tsrust-compiler/src/stdlib/ai/llama_admission.rs.
+  Replace repeated full-prefix detokenization with an incremental UTF-8 decoder
+  BEFORE raising the native cap. Handle byte-split Unicode, malformed/truncated
+  sequences, EOS, cancellation/backpressure, bounded output frames and stop reason.
+  Use a normal default and validated persisted AI response-budget setting in the
+  existing categorized Settings window, through its shared guarded settings route.
+  Remove duplicate hardcoded generation values; retain finite native/context/time
+  safeguards with truthful errors. Do not merely raise32 and call it done.
+- Primary local API source for that work: pinned llama-cpp-2=0.1.161 in
+  ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/llama-cpp-2-0.1.161/src/vocab.rs:
+  token_to_piece/token_to_piece_into(special,lstrip) expose token bytes;
+  model.rs has n_ctx_train(). Preserve tokenizer agreement and native ownership.
+  Model-host llama.bindings.json reads llama_admission.rs directly; verify which
+  consumers need rebuilding rather than rebuilding the entire SDK by habit.
+  The unrelated Candle admission primitive remains a separate proof; don't
+  change its contract accidentally. Current Llama limits:2048prompt tokens,
+  65536prompt UTF-8 bytes,32output tokens; context allocation fixed2080.
+- Do not replay inference unchanged: the latest bounded UI request delivered
+  exact “Ready.” but global swap-growth/critical-pressure stop FAILED. Full8GiB,
+  model quality, tools and useful coding-agent operation are NOT qualified.
+  Read precise passed/failed evidence below and preserve it. Profile allocations
+  and quiet/active analysis conditions before another resource-qualified run.
+- Dev is already running. ONE supervisor66933/PTY53832, cwd apps/studio,
+  log/tmp/studio-chat-real-dev.log. Real host override:
+  /Users/seancotter/Desktop/dev/learning/tsrust/target/studio-model-host.
+  Current verified app70214, LSP70219, resident model70263 (owner used chat after
+  the guarded test; do NOT stop/replay it merely to reproduce the earlier test).
+  Exact app bundle:
+  /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-66933-1794529343016316000-0/Tsrust Studio.app.
+  Rediscover PIDs/paths before acting; never getApp an obsolete bundle, which can
+  launch a duplicate. Keep one working independent preview open.
+- Last CUA was read-only verification of that exact current app:13tabs,
+  active src/lib/ai/prompts.tsr,3unsaved owner drafts(main.tsrx,editor.tsrx,
+  services/ai/actions.tsr), All Chats visible with2conversations. Owner is using
+  the app concurrently; preserve their newer edits/chats. Never restore earlier
+  synthetic drafts/messages or save/discard owner buffers. Recovery journal:
+  ~/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+  Theme Alduin/base font11/zoom-1. Chat history is workspace-hashed under
+  ~/.tsrust/studio/chats/. Settings ~/.tsrust/studio/tsrust_studio.config.json.
+- Last CUA phase completed “Verified running handoff preview.” New CUA session
+  must initialize/read documentation; after compaction use rewriteDocumentation
+  first. UI actions only via CUA, no AppleScript. Current owner changes may reject
+  an action; requery state and never overwrite their active field.
+- Current SDK pair: CLI7b5e97055c303c0c4dfa66c6d70fb0c1342044f22e76a77afca436e7f18de8f8;
+  LSP89051e62168607cad2f4a783fc0321c9be359a77cdd4ac63588b2a00c40268ff.
+  Real model-host1b23f85dc409be87d9bd82fddd45a1cd015aad81cd8419742e3b02543a004f27.
+  Synthetic transport fixture source is retained in tests/fixtures/model-ui-host.tsr;
+  its binary was removed and normal preview now uses the REAL host. Never leave
+  a fixture override in the owner's final preview or call it model acceptance.
+- Current source checkpoint includes the plain worker-error cause/message unwrap.
+  Focused changed-case1/1 passed,1.20ms execution. Dev reload completed in424187ms,
+  reported check188437.8ms/emit5650.9ms/runtime-prepare11397.8ms/runtime hit/
+  native+link38326.9ms. Counters do not explain the entire wall time; don't invent
+  an attribution. It is now loaded in app70214, no pending source build at transfer.
+- Profiling, no further workload replay: existing LSP sample
+  /tmp/studio-chat-lsp.sample at19:17:47:276.8MiB footprint/365.1MiB peak, diagnostic
+  worker in graph/recursive analysis. Its total-stack table (line3712) also shows
+  native_view_recursive::Shapes::matches and repeated shape refresh at expression
+  finish, layout validation and error-effect traversal. Another compiler sample
+  /tmp/studio-dev-build.sample showed region_caller_error_effects repeatedly
+  annotating all functions. These are hotspots, not proven leaks or benchmarks.
+  Existing Shapes cache deliberately detects in-place record/union/scoped-family
+  mutation; preserve its regression tests. Do NOT replace it with length-only
+  cache validation or arbitrary skipped checks. No compiler optimization edited yet.
+- Warm-reload sample /tmp/studio-chat-pending-build.sample caught runtime prepare
+  unpacking native dependency bundles despite a later runtime-cache hit. Trace
+  src/cli/runtime_build.rs + native_dependency_bundle.rs before optimizing IO;
+  preserve artifact checksums, symlink/path safety, Windows import libraries and
+  offline guarantees. Again, investigation only, no cache implementation change.
+- Existing-model READ-ONLY vmmap summary /tmp/studio-live-model-vmmap.txt sampled
+  previous owner-respawned PID70055 at19:22:15:footprint102.0MiB/peak222.8MiB,
+  mapped-file resident896.0MiB, malloc allocated98.9MiB,98.8MiB writable swapped.
+  RSS alone therefore overstates private allocation; this does not explain the
+  global critical-pressure event or qualify GPU/combined-editor memory. No new
+  inference was launched for this observation. PID70055 later ended in dev reload;
+  current owner model70263 is different. Do not kill unrelated/user-owned processes.
+- Preserve workflow: one Cargo target at /repo/target,CARGO_INCREMENTAL=0,
+  CARGO_BUILD_JOBS=1, CMAKE_BUILD_PARALLEL_LEVEL=1 for native engine. Native preview
+  launches require desktop-capable escalated shell and env -u CODEX_TOOL_CALL_ID;
+  sandbox NSPasteboard/XPC failures are not solved with plist permissions.
+  Restart permission is standing; preserve drafts, stop old supervisor first.
+  Atomic SDK installs copy to sibling then os.replace, never overwrite live inode.
+- Whole-project formatter before source checkpoints:
+  env -u CODEX_TOOL_CALL_ID TSRUST=/repo/target/debug/tsrust node tools/format-project.mjs.
+  Await completion before editing. Last pass1file,0documentation snippets and0
+  benchmark fingerprints; locale checker2catalogs/480keys passed. Focused chat7/7,
+  branch11/11 and all prior accepted subsets stay passed: do not rerun full matrices
+  or the already tested model just because the thread changed. Add focused witnesses
+  during coherent implementation, then batch affected acceptance and human MAT.
+- Broad remaining product scope stays in docs/plans/tsrust-studio.md and original
+  attachment: responsive hover/completion/signatures/snippets and cross-language
+  extension-ready LSP; full guarded local AI agent/proposed diffs and shared action
+  parity; context/skills/images with real capabilities; Git/debug/extensions; model
+  evaluation/specialization and actual quantized quality/resource acceptance; cloud
+  APIs/external agents; complete polished configurable editor then packaging.
+  Existing editor/save/recovery/terminal/search/settings/layout fixes must survive.
+  No filler controls or fake successful features. Use std:ui/GPUI Kit, native
+  editor conventions and organized .tsr/.tsrx components. Settings only in Settings.
+  No public release, push, signing, publication or hidden cloud fallback authorized.
 
 ## Current continuation — 2026-11-08
 
-### Active release preparation — 2026-11-10
+### Tsrust Studio active implementation — 2026-11-11
 
-Release-only managed worktree: /Users/seancotter/.codex/worktrees/toolchain-release/tsrust,
-branch codex/release-0.2.0 from11f63fd4; release checkpoint includes this record. Original checkout is actively implementing
-Studio in a separate chat; do not edit, stage, reset or switch it. No authorization
-was given to send that chat messages. Shared Cargo target remains the original
-checkout's target, incremental off/jobs1. First release push completed at7b256e4a6621794e0a0834f5cd286659fad42182.
-PR#18 targets stag: https://github.com/Forever-Frameworks-LLC/tsrust/pull/18.
-First Documentation42926496344 passed. First CI42926496496 passed docs-independent
-lint/library/extension and all3 packaged builds; runtime/host groups were still
-active when the proven publisher-recovery repair changed the input. Current
-candidate0984945028d8ba9539710a87ac20c65a5fed13c7 is pushed on PR#18. Final CI42928362164
-and Documentation42928362199 passed. CI42928362164 passed lint/tooling, compiler/LSP
-libraries, extension and all3 packaged builds. Windows runtime137 suites completed:
-136passed, only examples/gpui-starter/tests failed. GPUI shader build.rs appends
-forward slashes to verbatim OUT_DIR (`\\?\D:\.../quad_vs.h`), causing Windows
-InvalidFilename123. Runtime_artifacts canonicalizes the target for locking; that
-spelling was also passed to Cargo. Repair retains canonical locks/artifact checks
-but passes the existing display_path drive/UNC spelling to Cargo. Non-Unicode paths
-are retained without lossy conversion. Drive/UNC and non-Windows regression1/1
-passed (0.00s execution,9.14s build); actual Cargo graph/cache-lock regression1/1
-passed (1.45s execution,0.12s setup). Distribution/promotion26/26 passed again.
-Whole formatter0files; Windows shader compilation still requires hosted verification.
-Cancelled Linux runtime logs also contain a real failed suite: the cold GPUI
-starter exceeded the combined600s build/run timeout. Mac passed that same suite
-in496.4s; Linux completed93 suites and Mac106 before fail-fast cancellation.
-Runner repair gives only examples/gpui-starter/tests1800s combined cold-build/run
-budget; other suites retain600s, and the enclosing CI job remains45minutes.
-Existing public --profile/--reporter json now separates buildSeconds/testSeconds;
-failed JSON output is retained even when later passing tests follow. Python2/2
-regressions pass and are wired into CI tooling. Real public runner local samples:
-examples/testing and complete GPUI starter2directories/5files pass,27.4s wall,
-26.976s reported build and0.004s reported test execution. Intentional async-failure
-fixture remains rejected with exit1,1.833s build/0.010s tests, complete failure events.
-This does not count a timeout as passing; Linux cold completion still needs CI.
-Host boundaries on0984945: Linux21targets/170tests pass28m40 job wall; Mac21/170
-pass37m54 job wall (1663.20s harness wall includes child compilation, separate top
-builds2m54/3m08/2m51). Windows21targets/166tests pass45m32 job wall (2048.17s harness wall includes
-child compilation; separate top builds3m18/3m14/2m30). Aggregate old-head CI failed
-as expected for the Windows shader failure and Linux timeout; Mac/Linux runtime
-cancellation is incomplete acceptance. Both repairs are locally ready together.
-Next push is for required final merge acceptance; exact new source checkpoint and
-clean preflight identify its inputs. Previous equivalent input0984945 is fully
-accounted above. Windows shader completion and Linux cold GPUI build cannot be
-proved on this Mac and require the repaired hosted matrix. No duplicate manual
-workflow dispatch or speculative release publication is authorized/needed.
-Staging rules require squash/rebase and linear history, CI mandatory without bypass.
-The owner has an explicit PR-only review bypass. Main requires a normal merge and
-Release gate with no bypass. Use the configured owner review path only after green
-CI; do not bypass checks or alter rules. No merge/publication yet.
-Candidate checkpoint3fbfad83 passed clean
-v0.2.0 preflight. Final CI setup audit found the newly selected GPUI closure was
-not fetched before offline suites, and Linux speech builds lacked ALSA headers;
-added the exact GPUI manifest fetch and libasound2-dev before the first push;7b256e4a clean release preflight passed.
+Active owner update — November12 17:47, supersedes earlier AI composer controls:
+Remove the AI Chat/X header and all avatars. Alternate messages left/right, with a
+subtle user background. Support multiple persistent chats and an All Chats page;
+trash/deletion belongs there. Model startup must be automatic on Send with clear
+readiness/errors; no manual model Start/Stop/settings/clear buttons in composer.
+Settings stay in Application→Settings. Remove left-rail AI toggle; use bot icon on
+single title-bar AI toggle. Real file/skill context and eventually image/tool
+controls are desired, but no nonfunctional filler. Current text-only engine cannot
+consume images; do not pretend it can. Full agent/tool integration remains scope.
 
-Live remote: v0.1.2 latest, compiler0.1.2/LSP0.2.2/extension0.2.1. Promotion PR#17
-stag->main is open at9bcbfa1c; prior Release42654579465 passed Linux/Windows/editor,
-macOS was cancelled/abandoned, gate failed. CI42617834174 oncf7dfbae passed.
-Stag9bcbfa1c is a squash with EXACT tree5033211af1ffa04e7891a8cf29112367fb884b8b,
-identical to ancestorcf7dfbae. Ordinary merge causes false historical conflicts;
-aborted that merge, verified tree equality, then merge -s ours --no-commit origin/stag
-preserves all staging content plus accepted UI work. The release checkpoint records both parents after proving this exact equivalence.
+Chat section — source checkpoint4a892a1c, based on feb9fa82/c68528df:
+- Implemented avatar-free alternating messages, one title-bar bot toggle, no
+  redundant AI Chat/X or manual model lifecycle/settings/trash composer controls.
+  All Chats/New/open/delete-confirmation use shared executable guarded actions.
+  Workspace UUID histories, revisions, independent drafts and context snapshots
+  persist with bounded typed parsing and expected-baseline atomic writes; storage
+  conflicts/corruption preserve disk. Automatic Send loads then queues generation
+  for the exact chat; switching does not redirect replies. Startup cancellation
+  restores original prompt/context. Read/control/inference/deletion grants are
+  host supplied, not model arguments. File/SKILL.md reads use bounded UTF-8 snapshots
+  (unsaved open text preferred), with trusted picker grants outside workspace.
+- Native MAT passed synthetic streamed Unicode prefixes through final12-paragraph
+  Markdown response; correct alignment/background, configured body/code typography,
+  All Chats/New/open, independent draft/context through switching, @ file picker,
+  skill picker/Escape, deletion confirmation/Cancel, suffix actions no longer
+  select/confirm their parent. Composer12pasted lines caps at8visible rows; actual
+  native draft persisted to history. Saved conversations survived real-host restart.
+  Owner used chat2 during MAT; its sent prompt consumed the earlier test draft.
+  Do not restore that old draft over the owner's newer conversation.
+- One REAL local request through UI automatically loaded Qwen and returned exact
+  “Ready.”. Delivery works. Resource qualification FAILED: monitor baseline swap
+  4988.69MiB, maximum5646.81MiB,+658.12MiB,critical pressure4; sampled model RSS
+  1074400KiB (not GPU/total footprint). Guard SIGTERM'd only the owned model child;
+  child gone, editor alive, response retained. No unchanged replay. LSP was still
+  scanning at~99%CPU; no manual CLI/compiler build was running at inference start.
+  This is a bounded delivery observation, not an8GiB/quality acceptance claim.
+- The forced stop exposed raw {cause,code} worker JSON in the notice. ModelFailure
+  now unwraps cause/message into plain text. Focused changed-case test1/1 passed,1.20ms execution,
+  log/tmp/studio-chat-error-test.log; dev loaded this UI-only service fix in app70214. No model replay needed for error formatting. Whole-project formatter
+  after fix passed1file,0documentation/benchmark fingerprint changes.
+- Shared ListItem value-key identity fix: branch::tests11/11 passed,5.03s setup,
+  <.01s tests, including removal/reorder/duplicate-key callback witness. ListItem
+  catalog/generated Kit/builtins refreshed. Native shifted-row regression originally
+  reproduced in terminal rail. Shared Markdown direct style/code font and streaming
+  MessageScroller changed-row remeasurement compiled in final native runtime and
+  were visually observed. Suffix click/mouseDown propagation repair MAT passed.
+- Shared chat suite7/7 passed,12.68ms execution, including stale delete revision;
+  preceding context slice7/7,19.23ms tests/18224.8ms setup. Component check passed.
+  Locale check2catalogs/480keys passed. No full compiler/LSP/benchmark matrix replay.
+  Paired SDK final build3m29s, atomic install: CLI
+  7b5e97055c303c0c4dfa66c6d70fb0c1342044f22e76a77afca436e7f18de8f8;
+  LSP89051e62168607cad2f4a783fc0321c9be359a77cdd4ac63588b2a00c40268ff.
+  Real model-host rebuilt1b23f85dc409be87d9bd82fddd45a1cd015aad81cd8419742e3b02543a004f27.
+- ONE normal dev supervisor66933/PTY53832, log/tmp/studio-chat-real-dev.log,
+  TSRUST_STUDIO_MODEL_HOST=/repo/target/studio-model-host. Initial final app67346,
+  LSP67347,bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-66933-1794528394528091000-0/Tsrust Studio.app.
+  Latest service fix may replace it: rediscover exact PID/path before CUA getApp.
+  Native cold build420734ms (check155555ms,runtime228781ms,native+link258867ms).
+  Removed29obsolete private Studio artifact dirs (~8GiB) and stopped synthetic
+  executable; cleanup made native runtime cold. Keep current runtime artifacts;
+  do not rebuild just to repopulate caches. Stable fixture source remains in tests.
+- Protected current owner state13tabs,active src/lib/ai/prompts.tsr,3drafts:
+  main.tsrx,editor.tsrx,services/ai/actions.tsr; themeAlduin/font11/zoom-1. No saves,
+  discards or source restoration through UI. Older11tab/0draft records are history.
+- Owned LSP one-second sample67347,19:17:47: footprint276.8MiB,peak365.1MiB;
+  diagnostic worker in check_graph_diagnostics/check_graph_entry/recursive analysis.
+  Frontend was idle on its transport selector, so background analysis rather than
+  main-thread UI dispatch occupied this sample. Further hotspot extraction pending.
+- Performance clue: one-second old-app sample221MiB footprint/442.9MiB peak found
+  215/417main-thread samples in settle_event/refresh work. AI polling now stopped
+  while unloaded,1s ready/150ms loading/50ms generation. Build sample316.1MiB peak
+  339.1MiB found region_caller_error_effects/annotate_partial_with_callers repeatedly
+  scanning functions. Not benchmark/leak attribution. Next: profile/cut repeated
+  analysis and model allocation before another inference; graduate32-token admission
+  with an incremental decoder, then real guarded agent tool/proposal loop. Current
+  engine remains2048prompt/32output tokens, text only; no fake vision/tool buttons.
+- Final CUA phase completed “Verified running handoff preview.” App70214 loaded
+  the plain-error fix;13tabs/3drafts preserved. No inference replay.
 
-Release changes: extension0.2.2 in package and lock; release notes include GPUI,
-new versions/Rust1.99.1/three prebuilt targets and explicit UI limitations. Public
-reference generator had stale UiComputed/UiSignal exclusions and hid std:ui;
-repaired mapping and added UI reference, overview link and accurate status scope.
-Generator comments/test title now reflect current UI/three-host behavior.
+Current accepted Studio section — November12, source checkpoint feb9fa82:
+- Footer Format/Check now open Document/Project menus using the SAME command IDs
+  as native menus. Manual Check is independent of background-check busy state.
+  Live CUA passed footer Check→Project actual CLI task startup/progress;
+  Check→Document completed with “Check passed.” in its named retained terminal.
+  Footer Format→Document formatted an UNSAVED fixture from
+  `const studioFormatProbe=1;` to `const studioFormatProbe = 1;` in an actual
+  colored CLI task terminal, without saving the source file. Restored fixture
+  exactly through UI, closed only that clean fixture, no disk diff.
+- Manual formatting stages a private exact buffer snapshot; terminal exit receipt
+  returns it through existing session/revision/baseline checks. Errors retain the
+  terminal and populate formatter Problems. Source/staging failures return errors
+  without permanently terminating the worker loop. Save/focus automation retains
+  background CLI behavior and does not take focus. Trusted formatter snapshot
+  links map only to the same current editor revision; other paths keep normal
+  workspace navigation guards.
+- Focused terminal-formatting suite FINAL3/3,68.06ms tests,7803.2ms setup. Covers
+  actual CLI staging/disk preservation/stale rejection, Close All stale/dirty/
+  discard guards and trusted snapshot link mapping. Workflow suite6/6,25.71ms
+  tests,31998.8ms setup, including check-document scope and denied/stale tool calls.
+  Existing AI actions3/3 and native host protocol1/1 remain passed, not replayed.
+- Native More menu contains Split right/down and Close All; standalone split
+  buttons removed. Close All opens explicit unsaved-discard dialog; Cancel MAT
+  preserved every tab and draft. Never actually discarded or closed owner's tabs.
+- Header AI toggle works; header Settings removed; imports-reference menu removed.
+  Palette finds Settings/LSP without requiring >, supports command-only > mode,
+  and closes on backdrop click. Native LSP Stop/Start from palette passed; current
+  Tsrust service connected. Named row renderer matches existing editor-tab pattern;
+  indexed connection lookup avoids borrowing state across its mutation.
+- AI composer is a Textarea InputGroup with shared controls, minRows2/maxRows8.
+  Native MAT confirmed twelve pasted lines cap at eight visible rows and remain
+  inside its frame. Single state-aware Start/Stop and Send/Cancel controls, Clear
+  and Settings buttons. InputGroup/Addon apply node styles directly; InputGroup
+  avoids duplicate class wrappers. Categorized model-path inputs fit Settings.
 
-Passed local checks: release/distribution tooling24/24 (2.34s); extension discovery4
-and grammar2, compile and VSIX0.2.2 package; site79pages/129HTML outputs, Python3/3,
-rendered links/anchors/assets129pages. Both UI generators --check and diff pass.
-Whole formatter0files/snippets/fingerprints after installing unchanged dependencies.
-Initial worktree setup lacked benchmark TypeScript and cached yazl; dependencies
-now prepared. Native milestone passes: compiler library1541/1549 active registrations,8existing
-ignores,255.02s execution and6m09 build/setup. CLI48/49 initially passed; the one
-failure was a stale Settings wrapper export list. Updated its exact expected6
-exports and asserted both new formatted wrapper functions; focused rerun1/1 passed
-in0.01s (8.58s build), preserving the48 earlier passes. LSP library26/26,.17s and
-binary6/6,.02s pass. Exact CI correctness lint passes (2m14); existing style warnings
-remain and no warning suppression was added. New headless UI catalog suite8/8
-passes through public tsrust test,1.85ms execution,2m49 setup/build including queue. Preserve prior accepted full backend133
-suites/21host evidence and latest UI/byte-view regressions instead of rerunning them.
+Current ONE preview: supervisor42787/PTY72431, app49041, LSP49055 (fresh final reload), log/tmp/studio-ai-chat-dev.log. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42787-1794522964696920000-0/Tsrust Studio.app
+Acceptance ran on prior app45141, then the final EOF-only formatting cleanup
+reloaded successfully:261908ms,check217079.5,emit5690.8,runtimecachehit,
+native+link38213.1. Verified final11clean tabs, connected LSP and footer Check
+Document/Project menu; left that menu visible. Old app45141/model/task are gone.
+Native acceptance build226782ms (check140074.7,emit4939.2,runtimeprepare6122.3,
+runtimebuild/publish51505.1,native+link80787.3). Missing PopupMenu import and source
+ownership errors repaired; this final native build passed. Only benign macOS
+sandbox_extension warning, no pasteboard failure. Final installed SDK pair:
+CLI0b20926bf66a85d4cd99078dc9057865dcccb7fcb4c5e75a1dfaae0a0330d9c5
+LSP61b4a7342a5d64a34b9c215f2316acd11a35b9739ee6e93ba055733896fac1e1.
+Current journal has11tabs, active src/services/ai/actions.tsr, zoom-1, NO drafts.
+Owner saved the historical project-check draft while we worked; do not restore it.
+Theme Alduin/font11 unchanged. Model paths configured through real GUI to the
+verified target/studio-models GGUF/tokenizer artifacts. Chat cleared/stopped.
+CUA phases COMPLETE, summaries “Verified Studio footer CLI controls” and
+“Stopped disposable project check task” and “Verified the reloaded Studio preview.”
+Do not reuse old bundle bindings. Current binding studioFinal refers to the bundle
+above; studioNow belongs to the terminated acceptance window.
 
-Publisher recovery defect proven from live evidence: successful Release41942318885's
-promotion.json pins PR14/head7771cec6, while GitHub now reports PR17/head9bcbfa1c
-in run.pull_requests after stag reuse. This field is mutable, not durable provenance.
-The local repair fetches snapshot.pull directly, validates its repository/branch/
-number/head/base or merged state, and retains all exact run ID/event/head/source
-parents/tree/artifact checks. Added stale/missing-association and already-merged
-publication retry controls; distribution/policy26/26 pass (2.37s). This is a real
-publication-recovery repair, not a test-iteration push. PR#18 must include it before
-promotion; CI repeats for the changed trusted publisher input. Preserve first-run
-passed gates and check all final-head gates again.
+Local model UI resource trial is INCOMPLETE, not accepted generation/8GiB proof:
+- Model reached ready through native UI, private child45397. One prompt submitted,
+  but no assistant text observed before stopping; investigate protocol/rendering
+  after resource pressure settles rather than claiming chat quality works.
+- Baseline global swap4972.44MiB; after startup5083.75; after request5729.94
+  (+757.50MiB), exceeding256MiB stop condition. Stopped via UI immediately and
+  verified child gone. One observed child RSS1043760KiB, not a measured peak.
+- Concurrent manual project CLI task45210 and fresh LSP scan were each near100%CPU;
+  this was an uncontrolled system observation, no causal memory attribution or
+  benchmark. Native UI itself observed~79%CPU. Capture/repair polling/render costs
+  and concurrent analysis before another bounded integrated resource trial.
+- Project-check task45210 was started by MAT; after observing real CLI progress,
+  ended the disposable long check through its terminal controls. Interrupt echoed
+  ^C without prompt exit; killed that task through its trash control and verified
+  process45210 gone. Document check completed successfully. Dev stays running.
+- After removing that task, selecting the remaining document-check row through
+  its label/Pick did not switch the viewport from Format document. Investigate
+  List selection/identity after removals; do not claim this rail behavior accepted.
+  Trial ended with completed formatter visible and three remaining sessions.
+  Final dev reload reset transient terminal/panel state; no trial task is running.
+- Pruned22 obsolete locked Studio runtime cache variants; retained current UI key
+  002821e114b92b68 and current affected test runtime08918c74fc9926a3. No source or
+  user state removed. Git source tree was clean after the implementation commit.
+- Next actions: repair terminal selection after removal; inspect empty AI response
+  rendering/protocol and idle UI polling with bounded witnesses, then profile the
+  integrated model under recorded pressure stops. No model replay under pressure.
+- Current model transport is private stdio, no HTTP/TCP server. If localhost hosting
+  is later added, fresh per-start session-only API key is mandatory.
 
-IMPORTANT publisher compatibility: main8efaaee2 still requires four archives,
-while accepted stag/candidate intentionally dropped Intel macOS and requires3.
-Do not weaken artifact validation or restore unsupported Intel builds. After the
-new PR->stag CI and promotion Release gate pass, normal main merge of the tested
-promotion can update the trusted publisher. Resume publication against that new
-trusted main using the existing successful Release artifacts (rerun only its gate
-if necessary to emit a new workflow_run event), checking exact tree/source/asset
-provenance. No tag/release before checks. Record any recovery result precisely.
+Final locale/generator checks passed2catalogs/423keys and generated226components.
+Whole-project formatter completed:0source files,0documentation snippets and0
+fingerprint updates. Final log/tmp/studio-format-project.log. No full regression/unchanged executable/model replay.
+Full goal remains active: actual AI tool execution/proposal review, useful coding
+quality, packaging companion discovery and complete8GiB qualification remain open.
 
-Raw active logs /tmp/tsrust-release-*.log are disposable. Local checks completed.
-Monitor remote CI before merging PR#18, then promotion PR#17. All prior local
-sessions completed. Compiler CLI repair18343 and lint94150
-completed successfully. Baseline managed installation completed via65802; first
-attempt only needed its missing parent directory created. The baseline install
-uses the existing0.1.2 CLI into new ~/.local/share/tsrust/toolchain, preserving
-~/.cargo/bin. Baseline commands report compiler0.1.2/LSP0.2.2 and public check
-returns managed=true/updateAvailable=false/latestStableVersion=0.1.2. After
-public0.2.0, exercise actual check/update, verify installed pair,
-VSIX and editor behavior, docs deployment and hashes. Do not call this complete
-until main/tag/assets/deployment/local installed update all pass.
+Current editor AI host section — in progress, based onfcf1a192. Previous turn was
+progress: streaming/native and real Tsrust coordinator checkpoint accepted. Current
+worktree changes are ours; no checkpoint yet. Owner draft remains protected.
 
-### Tsrust Studio planning — 2026-11-10
+Moved the accepted engine package/worker into apps/studio/model-host with its own
+ordinary tsrust.config.json and pinned checked binding/lock. Shared protocol and
+Qwen conversation template live in parent src/lib/ai. experiments/studio-ai now
+imports actual app worker/template/binding rather than retaining copies. Host
+build output /repo/target/studio-model-host succeeds with shared root Cargo target,
+incremental-off/jobs1, CMake jobs1/static llama. It reads/writes bounded128KiB JSON
+lines on private stdio; Tsrust owns workers, console framing, lifecycle and requests.
+Native model code remains compiler stdlib ai/llama_admission.rs unchanged.
 
-Owner selected Studio inside this repo, an ordinary Tsrust project with all
-application/agent/evaluation/training orchestration in .tsr/.tsrx. Native engines
-must be Tsrust-managed dependencies exposed through bindings/stdlib, with no
-separate model-server or Python setup. Minimum complete offline target is verified
-Apple M3/8GiB; owner's future Windows reference is32GB RAM/RTX4090 (not inspected).
-Mac first, Windows next, Linux deferred. Full feature acceptance precedes signing/
-packaging; no reduced early MVP. Local specialization includes baseline research,
-fine-tuning and qualified model distribution. Cloud APIs and external agents are
-also required later. Agents always propose diffs; no competing live-workspace writes.
+Important discovered boundary: runtime_build.rs explicitly rejects GPUI+checked
+Rust packages. Initial in-process UI-thread spawn also hit early completion opaque
+error discovery in the large UI graph (isolated host case checks fine). Temporary
+TSRUST_TRACE_CARRIERS probe confirmed UnknownError, Void, explicit[String],opaque.
+Probe removed from source; no guard relaxed. One temporary repo CLI build still
+contains that failure-only probe, but installed pair is the earlier source build.
+Chose separate native child process, appropriate for model fault/deadline isolation;
+UI does not import native binding/worker. Do not reintroduce @engine into UI graph.
 
-Draft plan: [Tsrust Studio](plans/tsrust-studio.md), with requirements, native-only
-worker proposal, public Tsrust capability gaps, document/task coordination,
-full feature inventory, model/training/evaluation phases and minimum-memory proof.
-Candle and mistral.rs Rust SDK are research candidates, not selected/verified
-integrations. Differentiation primitives and quantized inference do not prove a
-usable adapter-training pipeline. Exact model/backend, quality/resource thresholds
-and training budget remain research gates. No model downloads, inference/training,
-application scaffolding, source/dependency changes or releases were performed.
-This plan is for owner review; it does not start an autonomous implementation goal
-or override unrelated v0.2.0 acceptance. Next action: review the draft, then begin
-its bounded capability audit/local-AI proof when implementation is requested.
+UI modelService uses existing std:process/std:futures: bounded JSON-line pipes,
+independent stdout/stderr draining and command forwarding; stderr not retained,
+128KiB frames,5s writes,180s absolute startup/generation deadline, cleanup kill/wait.
+Stop works during load and kills isolated process. Internal settled messages track
+completion without resetting deadlines. Model executable is private dev override
+TSRUST_STUDIO_MODEL_HOST or sibling tsrust-studio-model-host beside currentExe.
+For current preview set dev env to /repo/target/studio-model-host. Packaging still
+needs bundling that sibling executable; no separate installed runtime/server.
+
+New shared invokeModelTool/state controller routes UI start/stop/send/cancel/clear
+through host grants. Explicit IDs, monotonic sequence, stale responses/cancel
+rejection, bounded queues and failed-enqueue state preservation; no model tools or
+file mutations. AI pane uses Kit MessageScroller/Message/Markdown, shared text zoom,
+compact header icons, input/send/cancel and clear experimental32-token/no-tools label.
+Persistent aiModelPath/aiTokenizerPath defaults blank; Settings AI page has explicit
+apply controls, existing save/conflict boundary. Real conversation history is
+Qwen templated, input budget remains2048. Settings formatConfig initially omitted
+new paths; focused test caught it, now fixed and affected test rerunning.
+
+Accepted this section so far: actual native child pipe protocol test1/1,336.98ms
+execution,5552.3ms setup; verifies failed load, retry and EOF cleanup (no model read).
+Controller suite initial2/3 pass (permissions/stale/history; queue rollback), one
+persistence failure fixed in serializer; current handle/test15135 exited, final
+rerun handle see active tool state/log /tmp/studio-ai-actions-test-final.log. Setup
+initial43461.6ms(check7911.9,emit761.0,native/link34454.1), tests0.77ms. Earlier
+ownership fixes: ReadOnly→Mutable async receive; separate Signal.handle() owners
+for contexts; owned Markdown text snapshots; spread Node[] children. Whole formatter
+changed9files; final idempotence/format-behavior acceptance pending. Locale check
+passes2catalogs/405keys, including previously missing language-service translations.
+
+Installed SDK pair atomic/hash verified before UI changes:
+CLI82023a2418ad4d1becbdf285147e834712dad31f00048e1df59046951bde87fe;
+LSPa3dfbfdffe08cb125ebf6e62ec12263e85fd0bbd2745090b81c24a45183b663c.
+Build2m47s. Repo CLI trace-only build after that2m25s; avoid redundant SDK rebuild
+unless needed. Generic resource source unchanged since accepted checkpoint.
+
+Preview still historical supervisor6369/app6790/LSP7437; it embeds old compiler,
+keeps previous working app on failures, and watches current source. Logs
+/tmp/studio-signature-diagnostics-dev.log. Manual outdated check26306/handle11544
+was sampled (normal continuation/UI calls,100%CPU,170MiBRSS) then explicitly TERM'd
+because source snapshot obsolete; postprocessor JSONDecodeError is from intentional
+cancel, not a new compiler bug. Next manual check39924 exited callback-access;
+owned Markdown snapshot fixed it. Do not duplicate full root checks alongside dev.
+Use supervisor build as final whole UI check, plus focused test repairs. Need restart
+supervisor after final coherent formatter with current SDK/native-capable elevated
+launch, TSRUST_STUDIO_MODEL_HOST set, preserve journal and one preview. No new UI
+MAT yet. Restart only after safe source/build readiness, no extra owner permission.
+Current owner journal last verified10tabs/image-actions active/zoom-1, original
+project-check draft hashbc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17;
+re-read before restart. CUA must start await cua.rewriteDocumentation(); then bind
+only final live app, never old bundles (getApp can relaunch). Preserve owner state.
+
+Latest controller suite fixed3/3 passes,0.76ms tests;20109.3ms setup
+(check7696.9,emit734.7,native/link11307.0), log/tmp/studio-ai-actions-test-final.log.
+Final formatter0changes after prior9files; native host rebuilt from formatted
+source, /repo/target/studio-model-host. SDK public source unchanged.
+
+Old supervisor6369/PTY5193 gracefully stopped (old app6790/LSP7437 exited). Replacement
+native-capable supervisor31210/PTY56426 with log/tmp/studio-ai-chat-dev.log uses
+TSRUST_STUDIO_MODEL_HOST=/repo/target/studio-model-host; only it was confirmed live.
+Initial formatted UI build caught unsettled-job: main started existing workers
+before fallible model executable discovery. Fixed by moving discovery before task
+start and adding modelService to existing studioWorkers all-group, preserving one
+coordinator/cancel-and-await owner. Automatic dev retry now building; no duplicate
+root checks. No new preview visible yet until build succeeds. Keep this session
+alive; do not restart merely for observation timeout. Owner journal immediately
+before restart still10tabs/image-actions/zoom-1/original draft SHA above.
+
+CUA documentation refreshed successfully via rewriteDocumentation; no app selected
+or UI actions yet. After new live app discover exact bundle and bind only that;
+old app bindings can relaunch duplicates. Need actual UI MAT, focused pipeline
+success/cancel/stop and resource observations, then evidence/checkpoint. No new
+model loaded during this section so far. Model compiler/program ordinary protocol
+case passed without real artifacts. GUI presets remain empty for model/tokenizer
+until explicit configuration through Settings; do not silently write owner config.
+
+Next executable actions: collect fixed controller test; fix remaining actual UI
+compiler diagnostics from dev log, finish/verify transport/deadline/proposal grants;
+format once coherent, restart/build one preview with host env, inspect actual chat/
+Settings and bounded one real generation/cancel/stop lifecycle. Record actual model
+memory under prior256MiB swap/critical pressure/180s execution stops. No unchanged
+full model suite or broad regression. Tool executor/agent, useful coding quality,
+packaged companion and full8GiB acceptance remain open. Full goal active.
+
+Current streaming/worker section — accepted focused section, based on3a0aa298.
+Previous goal turn made progress: opaque resource1dc742c6 and resident model3a0aa298
+checkpoints; source tree clean before current work. Full product goal remains active.
+
+QwenStream moves the model into one native evaluation thread and returns it at
+finish: no unsafe/self-referential context, model registry/Arc sharing, native
+agent scheduler or extra app runtime. A one-prefix queue bounds output; producers
+check cancellation under backpressure, readers wait up to10ms. Drop disconnects,
+cancels and joins, unloading abandoned models. Finish returns the model even on
+cancellation/request errors; thread spawn/panic failure drops it. UTF-8 prefixes
+omit incomplete code points. Prefix detokenization is explicitly quadratic at the
+existing32-token admission limit; replace it before increasing budgets.
+
+Actual Tsrust coordinator experiments/studio-ai/model-worker.tsr uses existing
+std:threads blocking channels: idle receive sleeps, request IDs identify updates,
+stale control targets reject, targeted cancel/invalid requests preserve the model,
+shutdown and caller-owned cancellation/join settle the worker. No tools/files/
+workspace selection/permission grants run here. Move narrowed Option payload via
+a local before its fields; use mutually exclusive branches after moving text.
+
+Ordinary std:testing suite compiles together,5distinct affected cases all passed
+assertions across preserved/resumed runs. First full attempt compiled4825.3ms
+and passed invalid limits0.14ms plus changed one-shot arithmetic1802.45ms. Supervisor
+stopped group on531.06MiB global swapgrowth at7.257s total/~2.077s observed execution,
+owned-treeRSS657195008B. This stopped batch is NOT a whole resource pass. Six normal-
+pressure samples over25s showed swap5712.12→5696.12MiB with no growth. Only unrun
+filters resumed, under same180s execution/1200s setup/256MiB swap/critical-pressure
+stops; no repeated already passed cases.
+
+Streaming-only1/1:2547.66ms case/2548.49ms tests,4200.7ms setup; supervisor exit0,
+stopnull,total7.211s,swapdelta2.82MiB,sampled owned-treeRSS1277165568B. Exact5/7,
+prefix/final equality, targeted cancellation/model recovery, invalid request,
+abandoned-stream join and backend reload hold. Actual Tsrust worker1/1:2158.56ms
+case/2159.53ms tests,488.0ms setup; exit0,stopnull,total3.081s,swapdelta0MiB,
+owned-treeRSS1329283072B. IDs, stale cancel rejection, targeted cancellation,
+invalid request, next exact7, normal shutdown and blocked-idle cancellation hold.
+Remaining changed resident-only1/1:1684.54ms case/1685.47ms tests; exit0,stopnull,
+total3.083s,swapdelta0MiB,owned-treeRSS770981888B. These are bounded observations,
+not speed comparisons, complete GPU allocations or full8GiB qualification.
+
+Initial whole formatter changed2files; final0source/doc/fingerprints proves
+idempotence and no source changes after proof. git diff --check passes. Native
+adapter SHA2564498c55401f87d780c9ea28a6babbfdbe1f4cfc7d2144411488d6c9810756c49;
+worker698f4c51d22a5afda77febf00478ee1e63fc93bca819cd13193c1c1f6dc354db;
+suitef5969a0382f9c4f86099244d4bce6ee4bf1a3747db3b2252bb28620107de3e3d.
+Supervisor script/tmp/studio-stream-proof.py with disposable log/result siblings.
+Model/tokenizer/dependency pins unchanged. No SDK install/Studio restart here;
+installed pair still43029d77, repository CLI has new resource support.
+
+Next: checkpoint then actual editor host via shared typed commands, explicit
+start/stop, model-artifact configuration, streamed chat and owned lifecycle. Keep
+experimental32-token/2048-input admission limits clearly distinct from final coding
+quality/context requirements. Unicode-specific model output, active UI-close /
+blocked-decode cancellation timing, actual agent/tools and full8GiB acceptance stay
+open. Current Studio6369/app6790/LSP7437 and original draft must remain protected;
+latest independent inspection confirms same live processes and no proof process.
+Owner now has10tabs, active src/services/image-actions.tsr, zoom-1, original
+project-check draft SHA256bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Preserve this newer owner state, not historical12tabs/main. Obsolete source/runtime
+cache variants pruned under nonblocking namespace locks,3recent entries each kept.
+Revalidate live processes/journal before UI integration. Refresh SDK pair before
+loading app code that depends on checked resources; supervisor restart authorized.
+
+Current resident-model section — focused native acceptance, based on1dc742c6. Generic resource
+boundary checkpoint accepted. qwen_load returns an opaque QwenModel; exclusive
+qwen_generate_loaded borrow reuses model/tokenizer/backend but creates a fresh
+context per request. Field order drops model before backend. Pinned SDK warns
+concurrent context creation is unsound, so no shared generation borrow is exposed.
+Old one-shot path shares validation/generation and retains cheap invalid-limit
+rejection before artifact access. Tsrust suite adds two distinct arithmetic
+requests with an invalid request between them; source check passed. Native resident primitive proof passed; streaming/editor integration remain open. Limits remain input2048/output32,
+65536bytes, Metal/mmap/tokenizer equality. Planned proof runs existing changed
+one-shot coverage plus resident two-request case serially, no queued work. Same
+256MiB swap-growth and sustained-critical-pressure stops;180s total execution
+ceiling,1200s separate setup cap. Supervision uses disposable /tmp/studio-resident-proof.py,
+log/result siblings; it only terminates its owned process group. Model/tokenizer
+SHA256 freshly verified against previous artifacts:
+cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046;
+c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539.
+First native attempt exited1 in2.07s before execution: locked native-support
+manifest gained stdlib ignore but the old binding lock lacked ignore/globset/bstr.
+Supported resolve also failed because existing locks are intentionally retained.
+Used Cargo's offline precise update to the unchanged llama0.1.161 pin on the
+materialized manifest, then proved all previously resolved package entries byte-
+equivalent as parsed TOML (apart from root dependencies); only ignore0.4.28,
+globset0.4.21,bstr1.13.1 added. Published that repaired project lock; supported
+bindings resolve --offline now succeeds. No dependency upgrade/removal or source
+fetch. Initial failed setup had0swapgrowth/104202240B sampled ownedRSS. It is not
+an inference failure or model measurement. Rerun now uses the corrected lock.
+Corrected native run compiled and started: one-shot invalid limits and actual
+arithmetic oracle passed (actual2128.54ms). Supervisor then stopped owned group
+on809.06MiB global swapgrowth at11.325s total/~2.078s observed execution;
+owned-treeRSS sample519241728B. Resident case not completed; no resident acceptance.
+Do not rerun completed one-shot cases. Six samples over25s now show normal pressure(level1), swap5573.12→5557.12MiB
+without growth. Resume only unrun resident filter under unchanged resource ceilings. Global swap
+cannot be attributed entirely to this process from these samples.
+Resumed only resident filter passed1/1:1707.46ms case/1708.07ms tests; setup463.5ms
+(check105.5,emit26.8,backend181.4,native cachehit66.2). Exact answers5and7/EOS,
+output limits and intervening invalid-request rejection hold in one loaded owner.
+Supervisor exit0,stopnull,total3.076s,peak swapdelta0MiB, sampled owned-treeRSS
+1043054592B. No speed comparison/complete GPU allocation/whole-machine acceptance.
+Completed changed one-shot cases2/2 from prior run remain retained; combined run
+was stopped, never report that whole run passed. Resident execution log shows two
+fresh63MiB KV caches for its two sequential contexts. No native inference compile
+error and no model/tokenizer reopen between calls. This is persistent model reuse,
+not streaming/session KV reuse, useful coding quality or editor agent acceptance.
+Whole formatter1file then repeat0files/0doc/0fingerprints: idempotent; formatted
+source used by passing resident proof. Source identities: native adapter SHA256
+18b736100b02c55e1c5e09f1c9c2b8f13ec1e684613ae4deae45e6dfa24bd1c5;
+suite86ebe7899c4190a9a8318f30e4a5c024b463b63bfc91fb51878472fdab230d86;
+repaired bindinglock3fd58f2f984a301e18d3acc5ad5ca559b3f5e1b7d87d7af69f54f3fdd65f5d91.
+Next: local checkpoint, then Tsrust request-worker lifecycle/stream primitives and
+actual editor host. No giant default dependency addition before startup/disposal
+and request cancellation are ready. Native build cleanup retained3latest useful
+workspaces and removed obsolete/failed variants under nonblocking locks. Cache
+cleanup retains3recent source/runtime entries under namespace locks. Current
+Studio supervisor6369/app6790/LSP7437 independently live; no model process remains.
+Owner draft was not touched; installed pair still43029d77. No UI/source changes
+require preview restart for this section.
+No unchanged model replay, model/server install or Studio restart. Resident test
+will also require a second sequential backend init after one-shot unload.
+
+Current AI prerequisite — accepted focused section, based on43029d77. Previous goal turn was
+progress (diagnostic reuse, shared popup border, focused checks/native MAT/checkpoint).
+Existing inference admission is buffered and reloads its model each call. Audit
+correctly identified plain-data-only checked Rust bindings as blocker to resident
+model owners; no model/server/AI UI acceptance is claimed by this section.
+
+Implemented generic explicit #[tsrust_resource] public concrete Rust structs:
+compiler-linked NativeTypeId::RustResource{module,declaration}, standard opaque
+capability/clone/thread guards, hidden private fields, owned moves and &/&mut input
+borrows. Native emission aliases the actual Rust owner, preserving Drop without
+integer handles, global resource registries, serialization or reconstruction.
+Marker stripped after validation, source spans retained. Unmarked Drop data stays
+rejected; source-discovery generation still requires explicit resource adapters.
+Resource declarations use a private diverging seed that is never executed: an
+initial throw seed incorrectly polluted native constructor effects and produced
+three Rust type mismatches. Replaced it with while(true){}; actual public runtime
+suite then passed4/4. Final public suite with array ownership passed5/5,0.45ms
+total tests at /tmp/studio-rust-resource-final-runtime.log. Exact native Drop
+counts hold for scope exit, moves, Option/Result/Vec, worker failure/cancellation.
+
+Final checker guard case1/1 passed0.05s,2.57s setup:
+/tmp/studio-rust-resource-final-guards.log. It first accepts real borrow/move calls,
+then rejects construction, cloning, private fields, moved use, cross-module casts,
+overlapping borrows, cross-thread transfer, JSON/reflection and record erasure.
+Earlier same case passed0.02/0.03s before added guards; do not count as extra cases.
+Stable native fixture under tests/fixtures/rust-resources uses one std:testing suite,
+with test-only atomic lifetime observations, including worker failure/cancellation.
+New compiler host target rust_resources registered in tools/host-tests.py (22total
+host targets); public suite is auto-discovered once tracked. New LSP rust_bridge
+case checks borrow help, source definitions and private-field completions; passed1/1
+in0.04s,21.08s setup (compiler rust_bridge filter selects0cases). Source files changed: project/rust{,_data,_generation}.rs,project/link.rs,
+native/signatures.rs/types.rs,emit/mod.rs/rust_bridge.rs, tests/docs/registration.
+
+Current CLI for proof is repository target/debug/tsrust (cargo integration builds
+its executable); installed pair unchanged from accepted43029d77. Do not run cargo
+build separately between each focused test: dev-dependency feature differences
+caused redundant compiler rebuilds earlier. Current production source frozen since
+seed fix. Resource malformed-marker/concrete/source-discovery and legacy Drop
+checks passed2/2,0.01s tests,3m40s build/setup (--lib authored_drop_owner_tests).
+Whole formatter passed1source/0doc changes,0fingerprints; repeat0changes proves
+idempotence. Formatter validates token preservation. Formatted native suite5/5,
+0.41ms total tests,1633.8ms setup(check82.7,emit14.4,backend128.3,native/link1337.3).
+Next: local checkpoint; then resident model.
+No broad matrix or unchanged model executable replay.
+
+Studio stays on app6790/supervisor6369/PTY5193, same bundle/log as section below.
+Current tsrust-lsp7437 is live (older6824 was replaced; inspect current state rather
+than relying on historical PID). No Studio restart/source change in this section.
+Owner draft/tabs remain protected; latest journal draft SHA256 still
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Supervisor6369/app6790/LSP7437 independently live; no duplicate preview observed.
+No CUA needed for generic binding source. Installed pair remains43029d77; new
+resource APIs are not used by the live Studio yet. Use repository CLI for next
+model proof; refresh consumers when actual users start depending on new APIs.
+After boundary acceptance, adapt pinned llama0.1.161 native wrapper to a real opaque
+model owner and separate generation primitive, with Tsrust worker/scheduling code.
+Preserve old bounded inference proof and resource ceilings; do not claim persistent
+streaming, useful model quality or full8GiB acceptance until independently proved.
+
+Current diagnostic/signature section — accepted local section, based on44514254. Previous goal
+turn was progress: body stops implemented, focused check passed, live native MAT,
+LSP-only restart and local checkpoint. Tree initially observed in Files, retain
+that view rather than assuming prior content search. Owner state is12tabs/main/
+zoom-1, original project-check draft only; protect it.
+
+Native call-signature MAT on existing tests/editor-language-mat.tsr passed explicit
+Cmd+Shift+Space at count, active count:int; moving into first argument shows name:
+string, moving outside that nested call shows outer Ok(value:T). Syntax colors
+and font match editor. Signature popup lacked hover border; moved common border
+into shared Popover, preserving diagnostic-specific overrides and hover behavior.
+Fixture closed cleanly via Cmd+W, tests collapsed and main reactivated. Preliminary
+CUA phase found missing border; final new app6790 MAT confirms one clear outer
+border, highlighted function signature/count:int and editor-sized text. No source
+changes needed after that observation. Final CUA phase: Verified bordered signature help.
+
+Profiling/source review found foreground result discarded by workspace scan cache,
+so same unchanged entry is checked again. Cache.remember now shares completed
+foreground errors/warnings and successful module coverage with worker-local scan
+cache; no analysis graph retained. Existing revision/disk/config guards still
+control reuse. DocumentJob only enables this for scanner-covered files; standalone
+sessions do not accumulate a new cache. Successful scan warnings previously dropped
+are now retained too. New focused case compares seeded/unseeded buckets, zero repeat
+checks, preserved warnings, dependency edit invalidation and failed-result reuse.
+Initial integration test compilation rejected private WorkspaceSnapshot.fresh;
+replaced test-only calls with public workspace.snapshot. Focused workspace_scan
+suite passed9/9 in0.02s,2m55s setup. Imported-intelligence protocol priority witness
+passed1/1 in0.01s,7.46s setup. Logs/tmp/studio-shared-diagnostics-tests-fixed.log and
+/tmp/studio-shared-diagnostics-priority.log. Whole formatter passed0source/doc changes
+and git diff --check passed. Do not rerun unchanged evidence or broad suites.
+
+Final SDK build12.87s, atomic install/hash independently verified:
+CLI1edc82f7537f2db6359c49978e14c2135f06d22506ee0be00c163f0766568f38;
+LSP8992aae8003c26241f3bda2f13ff8b8f0afa5062597a81a5e59955d966825411.
+Old98383/app236/LSP2569 gracefully stopped. New native-capable supervisor6369/PTY5193 has log/tmp/studio-signature-diagnostics-dev.log.
+Final app6790/LSP6824 is live; only supervisor6369/PTY5193 remains, independently
+confirmed. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-6369-1794512040120557000-0/Tsrust Studio.app.
+Final dev build362127ms(check107918.6,emit4316.7,runtime publish223256.9,native+link249037.5).
+Long wait was confirmed active native gpui-component compilation, not a deadlock;
+no timeout restart. Owner journal independently verified12tabs/main active/zoom-1,
+original project-check draft hash unchanged. Current view is Files, tests collapsed,
+panel closed. No MAT edits in owner files. signatureStudio binds final app; old
+languageStudio/studio bind dead236 and must not be used. Final cache pruning retained
+3latest source/runtime entries and2complete build artifacts using nonblocking locks.
+
+Whole-project formatter passed0source/doc changes and git diff --check passed.
+Next: checkpoint this accepted section, then qualify automatic parameter-help triggers,
+continued native completion/snippet usage and bounded real-workspace resource behavior.
+Preserve completed checks; avoid repeating full regressions. Integrated AI hosting
+remains a required next product slice before Git/debugger/extensions; read its current
+plan/evidence before choosing implementation. No performance-speedup or memory-stability
+claim here; checked-entry count proves exact reuse only. Full Studio goal remains active.
+
+Current intelligence continuation — November12, based ond3fc7c11 (previous goal
+turn was progress: accepted search dialog, local checkpoint and one live preview).
+Native MAT now confirms keyboard ShowHover on const count:int displays highlighted
+const/int, editor-sized text and one outer border without language badge/inner boxes.
+Explicit gre completion appeared within the same native interaction observation,
+Tab inserted greet and one undo restored gre; this is responsiveness evidence,
+not a measured latency distribution. A Result.match follow-up found its completion
+provided only $0, so Tab after writing the body correctly became indentation rather
+than navigating another body. Added $1/$2 body stops plus final $0, comma between arms
+and inline completion documentation for Tab/Shift+Tab. Native engine unchanged.
+
+Focused result_snippets_keep_document_indentation passed1/1 in0.03s,29.84s setup,
+covering space/tab layouts and compiler-checking the substituted bodies. Existing
+AI language reads/proposal planner receive the same LSP completion, no separate
+implementation. LSP-only binary build0.37s and atomic/hash-verified install:
+780bb47aad05e346ae7d039288ddb50fe0620e924cebf1345ea6c0777299238d.
+CLI remains1bf7b682e31da0ebcf321e13bdcd965ceaa6031108ccbaf346a37ed8a3339788.
+Loaded via actual Language services > tsrust > Restart, without replacing Studio.
+Live MAT confirms typing distinct comments into Ok and Err via Tab, then Tab places
+caret after match. Four undos restored original fixture. Cmd+W closed the temporary
+tab, tree tests collapsed and main active/content Channel results restored. CUA
+phase completed: Verified both snippet body stops. Journal independently reverified:12tabs,main active,zoom-1,original draft hash intact;
+never save protected owner draft. Ordinary AX tab-close clicks on offscreen controls
+were ineffective; use visible native controls or Cmd+W after checking active file.
+
+Bounded resource observation of previous LSP270: one-second sample showed protocol
+thread waiting while diagnostic worker ran check_graph_diagnostics/expression checks;
+no single UI-thread claim. Sample at2m33 reported308.6MiB footprint,309.9MiB peak.
+Later footprint snapshot before restart:295584752B current,497861568B peak,
+185974784B swapped/compressed, system30%free. This short session does not demonstrate
+a leak or qualify stability. Initial body diagnostics still occupy a core for several
+minutes across restored project documents; next inspect redundant graph work and
+prioritize interactive requests without dropping diagnostic coverage. Stop/restart
+only on actual need, never an observation timeout. Studio236/supervisor98383 remain
+live with LSP2569, replacing270. Whole formatter passed0source/doc changes and
+git diff --check passed. No broad regressions were run.
+
+Search dialog and content-search correction — accepted local section, November12,
+based on5f77ff0e. Full Studio goal remains active. Title bar opens a Kit Command
+dialog; Cmd+P searches files, > / Cmd+Shift+P filters fourteen real existing Shortcut
+commands. Content search uses one Enter/button/toggle submit path, a separate
+summary below a fixed-height input, no zero-skipped text and no result path tooltip.
+Rail/shortcut focus its input. Modal mounts outside the sidebar; file selection
+leaves sidebar mode intact. Refresh Explorer Shortcut also mounts globally.
+
+Owner MAT exposed rows retaining .gitignore after filtering main. Root cause:
+reactive rows ignored snapshot-bound values when retaining same-shape positional
+rows. CommandItem values now supply row identity, preserving each filename/command's
+captured label and action. Focused native filtered_command_rows passed1/1 in0.00s,
+setup4.15s. Title-bar entry is max320px/high24px with12px horizontal padding/gap8.
+Live MAT on final app236 verified title-bar click, main.tsrx filter/Enter navigation,
+Cmd+Shift+P preserving > while typing terminal, real terminal toggle once, dialog
+closing, panel closing, Cmd+Shift+F and Channel Enter search. Screenshot confirms
+compact padded title entry and114matching-lines summary below input with highlighted,
+divided result rows and no zero-skipped text. Owner's12tabs/main/zoom-1 restored;
+only original project-check draft remains, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Never Cmd+S (saves all), discard or overwrite this draft.
+
+Registered list_editor_commands/show_command_palette/close_command_palette adapters
+share read/presentation actions; model execution retains individual guarded action
+routes, no generic privileged dispatch tool. Root/read/nav/modal grants and forged
+payload denial passed the focused explorer action case1/1,29.09ms,total29.85ms,
+setup28098.9ms(check7629.7,emit763.6,native/link19343.7), along with Unicode/ignore
+search, retained drafts and deleted-file errors. Earlier same-case result46.84ms
+is not additional distinct coverage. Native modal wrapper handles TsrustCommand
+because its focus path is outside the normal root; live terminal command passed.
+
+Keyboard ShowHover native action is also bundled, via context menu and Cmd+K Cmd+I,
+with immediate readonly caret request and Escape/caret/edit cancellation. Three
+focused native hover cases passed3/3 in0.01s,setup36.99s with base test-support.
+Pointer delay stays150ms. Native visual hover/scalar-color acceptance remains next;
+no long-running LSP memory qualification or full regression run in this section.
+
+Final SDK build3m02s and atomic install independently hash verified:
+CLI1bf7b682e31da0ebcf321e13bdcd965ceaa6031108ccbaf346a37ed8a3339788;
+LSP57e62c0898c2b379d310625afc9a92ff382724ec37abeaa8ef85aac1753e5a55.
+Whole-project formatter passed with0source/doc changes, Kit generator --check,
+308-key en/pt-BR parity and git diff --check passed. No source edits after these
+checks. Native cache cleanup used nonblocking locks, retaining3latest source/runtime
+entries and2complete build artifacts; active/locked paths preserved.
+
+Only supervisor98383/PTY99131 and app236 remain. Log
+/tmp/studio-command-row-native-dev.log; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-98383-1794510657632376000-0/Tsrust Studio.app.
+Final dev build197900ms(check112623.5,emit4351.6,runtime publish53016.9,native+link79982.4),
+not a benchmark. Old71062/app71348 and90530/app97687 exited. First replacement98056
+built185483ms but restricted-shell app98333 could not reach macOS XPC/NSPasteboard
+and panicked. Stopped it and launched final supervisor in approved desktop-capable
+context; final app starts and works. Native launch requirement is now in Studio
+AGENTS.md to prevent recurrence; no speculative plist permission added. Apple docs
+separately describe clipboard privacy/user-initiated paste at
+https://developer.apple.com/documentation/appkit/nspasteboard/accessbehavior-swift.enum .
+CUA phase completed: Verified compact search and commands. Bindingstudio points to
+final bundle. Use fresh AX before another UI action; never bind old bundles, which
+can relaunch them. Next: checkpoint this accepted section, then resume keyboard
+hover/scalar styling MAT and native completion/snippet latency/memory work, preserving
+owner state and one running dev preview.
+
+Filename Command palette and shared actions — accepted section, November12,
+based on340c2213. Previous goal turn was progress (completion transaction and
+filename focus checkpoints); this section adds native keyboard navigation and
+executable AI adapters, with visual acceptance. Full goal remains active.
+
+Current supervisor71062/PTY85407 runs app71348 from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71062-1794506066973853000-0/Tsrust Studio.app.
+Log/tmp/studio-file-search-font-dev.log. Final build352387ms: check102219.6ms,
+emit4228.5ms,runtime miss/build+publish219637.1ms,native/link245016.4ms.
+Only this supervisor/window remains;62409/68754 and52077/55965 were gracefully
+retired after replacements visibly recovered owner state. Do not call their old
+CUA bindings, which can relaunch stale apps. sizedFilenameApp targets71348.
+
+Studio uses Kit Command for filename filtering, arrows, Enter, first-Escape clear
+and second-Escape return to Files/editor. Cmd+P and native File > Find project file
+share showFileSearch; confirmed rows use openFileSearchResult. Each UI handler
+constructs its trusted context from direct Signal parameters; signals/resource
+contexts cannot be clone()d. Borrowed row data is copied into owned labels/paths
+before JSX. Discovery refreshes when explicitly opening search, including newly
+created files. Registered search_files (read), show_file_search and
+open_file_search_result share discovery/navigation and validate explicit workspace
+roots and host read/navigation grants. Presentation/opening require bound state;
+headless reads do not change view/focus; host controls focus. Opening retains
+existing drafts and returns specific missing/stale/scope errors without saving.
+shortcut: discovery remains synchronous for the deliberately small Studio package;
+reuse the explorer worker before expanding to large workspaces. Default ignored-file
+policy is retained; broader filename policy/configuration remains a follow-up.
+
+Kit Command inputId addresses its existing search field through controlInput and
+readInput. Generated props/IntelliSense, initial controlled query and native routing
+are complete. Command now forwards class styles directly; explicit text size
+reaches its query Input, rows and headings. Native defaults remain when omitted.
+Existing text-style invalidation refreshes measured row sizes after zoom changes.
+
+Focused action test1/1 passed15.03ms (total15.79ms), setup15458.5ms:
+check7908.5ms,emit757.6ms,native/link6488.2ms. Command:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=<root>/target tsrust test
+ tests/explorer.test.tsr --filter 'filename search shares' --profile --color=never
+from apps/studio. Includes Unicode/ignore matching, explicit grants/root forgery,
+preserved query/draft, rejected deleted result and specific errors. Earlier
+versions passed21.24ms/18.81ms; count one distinct case, not repeated coverage.
+An added removeFile import was repaired after an initial compile failure. Generator
+check226components and matching locale catalogs300keys passed. No full regression.
+Initial native checks repaired optional capture, callback annotation/ownership,
+TextBinding and resource-context cloning. Native functional candidate68754 built
+in475776ms (runtime miss); final style-only changes reused its passed keyboard
+acceptance rather than rerunning unchanged tests.
+
+Native MAT68754 passed immediate/repeated Cmd+P, Down/Up highlight, Enter into
+existing recovery/check-panel tabs, no-match Enter safety, both Escape stages and
+native File menu routing. It exposed oversized native-default palette text.
+Final71348 visually passed matching query/result/editor sizes at configured base11,
+zoom-1 (effective10), shared Cmd+= enlargement to11 and Cmd+- restoration to10.
+Both functional and visual CUA phases completed exactly once. Last summary:
+Verified palette sizing and shared zoom. Restored Files/src expanded/main selected,
+services/tests collapsed, panel closed,12tabs/main.tsrx active and original zoom-1.
+Only protected project-check draft remains, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+No file edits or saves occurred during MAT; never save/reset that draft.
+
+Final installed consumers were atomically replaced and independently hash-verified:
+CLI029e55ecf51ff4eeb296453032030373ba8ea30c048a5167dbf8c93b45bc0050;
+LSP9a04e85e34eb3a7c0ad3c9ba53a29ad7b21480cbf052c149b734d6e60efa3427.
+Final SDK build2m55s; earlier style-only candidate3m03s was superseded before
+installation. No benchmark speed claim or long-run memory qualification. Actual
+built-in agent-host integration remains open; executable adapters are accepted
+separately. Whole formatter0/0/0 and diff-check passed. Pruned obsolete native variants under
+nonblocking locks, retaining three linked variants and two completed runtime
+payloads. Next: local checkpoint, then accessible keyboard hover and scalar-hover visual confirmation before Git/debugger/extensions.
+Keep one current dev preview and the full goal active.
+
+Quick filename focus — native UI verified, November 12, based on ac7415b7.
+Cmd+P and the empty-editor Open a file control address the existing filename input
+by stable ID, then use existing deferred controlInput focus/selectAll commands.
+Repeated Cmd+P replaces the previous query. Native MAT on app 55965 typed
+main.tsrx immediately after Cmd+P, then recovery.tsr immediately after a second
+Cmd+P; both filtered the right paths without a click or editing the active file.
+Restored empty search and Files view. 12 tabs/main.tsrx active, panel closed and
+only original project-check draft retained. Shared std:ui control API unchanged;
+legacy filename-search view has no dedicated registered AI presentation action
+or keyboard result confirmation yet, so those parity/navigation gaps remain open.
+Dev supervisor 52077/PTY6050 now runs app55965 from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-52077-1794503415372351000-0/Tsrust Studio.app.
+Log remains /tmp/studio-auto-import-repaired-dev.log. Build140493ms:
+check107069.4ms,emit4237.2ms,runtime hit,native/link28395.0ms.
+A one-second sample confirmed compiler checking, not a blocked watcher. No speed
+claim or extra full regressions. Whole formatter0/0/0. CUA phase completed:
+Verified immediate filename search focus. Binding quickOpenApp targets55965;
+all older bindings are stale. Next: filename-search keyboard confirmation and
+shared registered presentation, then accessible keyboard hover/scalar visual MAT.
+Keep goal active, preview running and the protected draft intact.
+
+Completion imports and native intelligence — accepted section, November 12, based on `649d0907`.
+Current supervisor is 52077 / PTY 6050; app 52646 is running from
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-52077-1794502962017429000-0/Tsrust Studio.app.
+Import organization triggered a final benign rebuild in 150749 ms (runtime hit);
+the original owner draft and active file were retained. Whole formatter completed
+0 source files/0 snippets/0 fingerprints; diff-check passed. Obsolete native cache
+variants were pruned under nonblocking locks; retained the latest three linked
+variants and two completed runtime payloads.
+Log: /tmp/studio-auto-import-repaired-dev.log. This supersedes all older preview
+identities below. Final native build passed in 350644 ms: check 100410.6 ms,
+emit 4211.2 ms, runtime miss/build+publish 220138.7 ms, native/link 245272.6 ms.
+
+Live MAT found that completing Go `fm` inserted `fmt` without its import. Native
+completion now applies the primary edit and all additionalTextEdits together,
+with strict range/overlap validation and one Atomic undo transaction. Cursor and
+snippet offsets account for imports inserted earlier in the document. The planner
+and numeric snippet implementation have one canonical source in
+crates/tsrust-ui/src/editor_completion.rs; the compiler embeds it into GPUIbase at
+src/input/editor/completion_edit.rs, and the local patched file includes that source.
+The old snippets module reexports it. Native bridge UTF-16 conversion stays intact.
+Server commands and opaque completion data do not execute.
+
+New pure std:ui completionText uses the same planner through the runtime's
+completion_proposal_json export. API/native binding/emission/runtime inlining and
+IntelliSense documentation are complete. Registered language_completion_proposal
+requires a retained matching completion read, explicit root/session/revision,
+read grant, candidate index and fallback byte offsets. It returns an isolated
+ProposedEdit without changing files, focus or draft. Poll before consuming
+language_read_result; normal review/conflict handling owns application.
+
+The first native race guard caused a Tab crash by reading an editor entity during
+its existing keyboard update. Repaired by capturing document revision/selection
+when the menu synchronizes, then comparing inside the deferred editor update.
+This avoids whole-buffer snapshot copies and rejects edits even if text/cursor are
+restored between dispatch and execution. The native Tab witness now deliberately
+runs while the editor is being updated. Failed app 50533 and old supervisors 50197
+and 33494 are gone; recovery preserved both the owner draft and our temporary Go
+buffer through the crash. Do not relaunch their stale CUA bundle bindings.
+
+Focused evidence (11 distinct cases, not a full regression):
+- Shared host completion 5/5 passed in 0.00 s, setup 2.32 s: Unicode/surrogates,
+  CRLF/import-adjusted stops, overlap rejection and preserved numeric snippets.
+- Isolated AI proposal 1/1 passed in 0.77 ms; combined public setup 38.753 s
+  (check 13.391 s, emit 1.313 s, native/link 23.698 s). Asserts complete proposed
+  text, unchanged live draft/revision, denied read grant and stale identity.
+- Real gopls integration 1/1 passed in 595.54 ms, total tests 596.93 ms, including
+  actual additionalTextEdits and the resulting import. Its initial sandboxed run
+  failed before completion because normal Go cache writes were denied. `go list`
+  confirmed operation-not-permitted; no cache was cleared or assertion weakened.
+  Only this affected case was rerun unsandboxed. Setup 214.451 s includes Cargo
+  wait behind native app compilation; check 14.463 s, emit 1.369 s,
+  native/link 198.338 s. Do not call that wait a compiler timing regression.
+- Native completion-menu family 4/4 passed in 0.02 s, setup 40.61 s: Tab inside
+  editor.update, stale revision, old-menu replacement and highlight bounds. The
+  stale case was then tightened to restore the same cursor/text; its affected
+  rerun passed 1/1 in 0.02 s. Count four distinct menu cases, not five.
+  Correct command: cargo test --offline --manifest-path
+  crates/tsrust-compiler/patched-dependencies/gpui-component/Cargo.toml
+  --config 'patch.crates-io.gpui-base.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/gpui-base"'
+  --lib input::popovers::completion_menu::tests -- --nocapture.
+  Use the shared root target, CARGO_INCREMENTAL=0/CARGO_BUILD_JOBS=1. Framework
+  test dependencies are now warm. Restored the tracked upstream Cargo.lock after
+  the test-only path override; no dependency update belongs to this feature.
+- Tsrust manual fixture check passed; generated Kit 226-component check passed.
+
+Final native MAT on 52323 passed: recovered Go `fm` completion adds import plus
+`fmt`; one Cmd+Z removes both; Cmd+Shift+Z restores both; typing a dot after redo
+lands at the correct cursor and shows real fmt members. Tsrust fixture passed
+Ctrl+Space/Tab function completion, editor-sized syntax-colored signature help
+with active count:int, and Ok match-arm snippet expansion, selected default,
+replacement with a longer name, Tab to body and correct indentation. Both fixtures
+were restored through the UI without saving and their added tabs closed. Added
+stable tests/editor-language-mat.tsr and documented its purpose in tests/README.md.
+CUA phase completed: Verified completion imports snippets and undo.
+Current binding repairedCompletionApp targets 52323; all older bindings are stale.
+
+Owner state restored and independently checked: 12 tabs, main.tsrx active, Files
+view, src expanded, tests/services collapsed, panel closed; only original
+project-check draft remains with SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Current installed CLI/LSP were atomically replaced and independently hash verified:
+CLI 53251080d568a70041650aa893ead7dbd3ddfc1d918dd4e8f6fdb1e3c9377350;
+LSP d92427720ef40efefb8540c2204f8553b1a638b6d47cf1224e65111f8c88cc47.
+SDK build 2m34s. Only a regression-test assertion changed afterward; runtime code
+is unchanged. Earlier generated bridge failures (embedded module root and JSON
+encoding in the application instead of runtime) were repaired before public
+acceptance; their logs under /tmp/studio-auto-import-* are disposable.
+
+Prework one-second sample of old LSP 39367 found full check_graph_diagnostics CPU;
+physical footprint 479708048 bytes, compressed/swapped 146980864 bytes. This is one
+observation, not leak/stability qualification. No benchmark speed claim, full
+compiler/LSP matrix or complete 8 GiB editor-plus-AI qualification. Complex snippet
+variables/choices/transforms and scalar-hover visual confirmation remain open.
+Next: local checkpoint, then quick-open autofocus
+(found missing during MAT), accessible hover presentation and remaining language
+features/AI host work before Git/debugger/extensions. Keep the full goal active
+and one current dev preview running. Preserve the protected owner draft.
+
+File/import references — accepted section, November12, based on727965a7.
+New compiler module_imports reads tolerant complete import declarations. LSP custom
+`tsrust/fileReferences` scans initialized workspace Tsrust importers with existing
+ignore discovery, aliases/path resolver and exact UTF-16 import token spans. Open
+buffers are authoritative, including ignored/new files. Target must be inside a
+workspace folder; nonfile URIs reject. One dedicated bounded cancellable worker
+keeps this I/O separate from hover/completion/body checking. Cancellation/folder
+changes/shutdown interrupt scans; changed observed inputs/workspace revision reject
+publication. No cached whole-project AST/index added. Partial resolution/read
+errors return issues alongside matches. Existing tolerant parser skips unfinished
+import declarations; this is complete direct imports, not arbitrary text/dynamic
+references or external-language incoming imports.
+
+Studio Project menu/shortcut, explicit File imports query label, scan-count/partial
+warning, shared row navigation and Clear route through shared service/controller.
+Registered language_file_references uses host read/root/document identity grants;
+read/present/open/clear remain separate actions. File targets use Tsrust server
+without a fake Tsrust didOpen for JSON/images/etc. UI clear/query replacement cancels
+or drains its own pending/results; unrelated agent reads remain independent.
+Polling only reads snapshots when UI work is pending, avoiding recurring copies of
+completed reference arrays. Source query remains fixed while changing active tabs.
+
+Checks: LSP scanner1/1 passed0.01s (setup2m33s); actual stdio1/1 passed0.44s
+(setup2.64s), including unopened JSON target, incomplete body and invalid URI.
+UI/AI public runtime1/1 passed0.73ms, total tests1.61ms, build34.090s (check12.070s,
+emit1.204s,native/link20.557s). Initial compile failures repaired in witness ownership,
+optional ID borrow and Rust pattern guard; no passing full-matrix claim. Both
+locale catalogs294 matching keys. Whole formatter last0/0/0; diff-check passed.
+Installed SDK atomically/hash verified: CLI
+05a4ed06eec5e294984277e19a5a7be2bfe09e34738273d921f56ccb0157f7b6;
+LSP2bc59ac05066a0fcddc1d269741bccbaf37fdeb00c86a4b3c2ba4ea91069e864.
+SDK build13.48s after focused test compilation. Current supervisor33494/PTY93275
+and app39361 remain running, log/tmp/studio-file-references-dev.log. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-33494-1794498477104912000-0/Tsrust Studio.app.
+Final successful reload173558ms: check120328.5ms,emit4862.6ms,runtime hit,
+native/link36646.9ms. Earlier accepted candidate135585ms; final UI follow-up moved
+Shortcut/Ticker outside the conditional panel after native MAT exposed unavailable
+menu handling while closed. ReferenceControls is prebuilt before root JSX, like
+other workbench nodes. Superseded worker work delayed reload; a one-second sample
+showed UI expression/wrapper checking and508.5MiB compiler footprint, not I/O.
+No speedup/leak conclusion. Extra supervisor39299 was stopped with INT once the
+original watcher finished current sources first; only33494 remains. Earlier17527
+was retired after the SDK refresh. Do not bind old CUA bundles, which can relaunch.
+
+Native MAT passed current Project menu with panel closed, pending/results state,
+File imports26/source recovery.tsr/86files scanned, row navigation to existing
+editor.tsrx, exact import path highlighting, stable query source while navigating,
+source return (candidate35168), Clear/removal/disabled Clear, and no refill while
+restoring main.tsrx. Final39361 passed closed-panel command and row/Clear again.
+No tab additions, edits or saves. Owner state restored:12tabs/main.tsrx active,
+Services collapsed, panel closed; protected project-check draft hash remains
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA phase completed: Verified labelled clearable reference queries.
+Current binding finalReferencesApp targets39361. Earlier fileReferencesApp targets
+obsolete35168. Three focused new cases passed; retain prior22symbol-reference
+cases as prior evidence, not rerun coverage. Native partial-error UI, keyboard
+file-query shortcut, cross-language imports, long-run LSP memory and complete8GiB
+editor-plus-AI qualification remain unverified. Whole formatter/diff check and
+lock-safe native cache cleanup precede this section's local checkpoint.
+Next: resume native completion/snippet/hover acceptance and bounded LSP profiling,
+then remaining intelligence/AI work before Git/debugger/extensions. Keep full
+Studio goal active and one current preview running; no full regression or push.
+
+References and owner UI corrections — accepted section, November12, based ond92228e1.
+Current dev supervisor17527 / PTY21946 and app27135 remain running. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-17527-1794495773310299000-0/Tsrust Studio.app.
+Log /tmp/studio-references-final-dev.log. Latest build passed274437ms including
+superseded-source capture retry; final check103576.1ms,emit4154.7ms,runtime hit,
+native/link29745.3ms. Final SDK/expiry identities and original section evidence below.
+
+Owner clarified symbol/file scope and requested sizing, query label and Clear.
+Rows and source caption now bind shared explicit font sizing. Native request stores
+ReferenceQuery{path,position,symbol} from the exact text/UTF-16 position before
+presentation. Heading identifies the symbol plus clickable source path/position.
+Nonempty AI presentation requires explicit provenance; invalid query paths/positions
+are rejected. A selected result does not silently change the query's origin.
+Clear uses registered clear_language_references with host navigation/root grants,
+preserves files/focus/panel and removes query identity. Late native delivery after
+Clear is ignored by source/query guard. Empty state explains right-click/Shift+F12.
+AI reads do not present UI; presentation and clear are separate explicit actions.
+No automatic whole-file search. Incoming imports/file references is the next
+owner-requested feature, to be offered as an explicit separate scope/mode, not
+placeholder tabs or a silent active-file replacement for the symbol query.
+
+Focused owner correction checks: navigation4/search3 combined7/7 passed47.08ms
+(build20.918s:check3.153s,emit0.485s,native16.797s). New native origin/request/cancel
+witness1/1 passed2.30ms (setup37.702s:check13.087s,emit1.259s,native22.966s).
+Retain earlier11service+3host evidence. Distinct accepted total19public runtime+
+3host=22; not a full regression run. Both locale catalogs have identical290keys.
+Whole-project formatter last0files/0snippets/0fingerprints; diff-check passed.
+
+Native MAT app27135 passed Shift+F12 and context-menu Find References on Workspace,
+pending state,107 real project references, row text matching editor size, stable
+References to Workspace/source caption while navigating to editor.tsrx, exact
+Workspace selection at23:10, clickable origin return to image-actions.tsr:8:25,
+Clear/disabled Clear/empty guidance, and no refill after returning to main.tsrx.
+No source edits/saves. Observed latest owner state was main.tsrx active and Services
+collapsed,12tabs; preserved it rather than stale image-actions target. Protected
+project-check draft still SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+References left open but cleared, with guidance rather than the agent's unexplained
+query. CUA phase completed: Verified reference sizing query and clear.
+referencesOwner binding targets current27135. Source/style changes are now loaded.
+External-language references, forced-stall UI timeout, full zoom matrix and long-run
+memory/resource qualification remain unverified; no global completion claim.
+Next: cache cleanup/local checkpoint, then explicit file/import references action
+with source/scope labelling and shared AI route. Preserve current dev and owner draft.
+
+Find References implementation evidence — qualified by the current section above.
+Base/Kit ReferencesProvider, show_references handler and FindReferences action are
+exported through both native facades; context menu capability and Shift+F12 share
+that action. New references.rs is registered in the compiler-owned bundled payload.
+Native replies reject changed text/cursor/blur; controller/session preserve explicit
+document revision/generation/cancellation and includeDeclaration(defaulttrue).
+Reference target ranges remain UTF-16. Registered language_references returns reads
+without presentation; present/clear/open-location have separate trusted UI grants.
+
+Original service11/search3 acceptance retained from combined run. Original native
+bridge3/3 passed0.00s; affected deadline/drop/stale case rerun1/1 passed0.00s after
+fixing both provider timer and Requests deadline sweep to report reference timeout
+errors. That is3distinct host cases, not4. Ordinary hover/cancel/unmount retains
+its prior null result. Initial native envelope MAT exposed error:null rejection;
+NativeReferences now explicitly decodes string|null and normalizes null to undefined.
+Actual-envelope witness preserves locations, failure strings and nullable success.
+
+A two-second sample of an obsolete active build at~327MiB RSS/one core identified
+UI expression/wrapper checking, not an I/O wait. Inspection found references.get()
+inside every result row, copying the full list per row. Cached scalar root/count/
+error bindings remove quadratic snapshot copying. No measured speedup or leak claim.
+Initial corrected native app built300831ms (check95566.2,emit3991.7,runtime miss,
+runtime prepare5190.1,runtime-build+publish176495.8,native/link200423.1). Later nullable/
+expiry native build passed228308ms (check122987.0,emit4673.3,runtime prepare5923.9,
+runtime-build+publish65175.9,native/link99728.0). Current UI reload is recorded above.
+
+Current installed/hash-verified SDK: CLI
+6efeb2444cbcc0cb6ac91fe5d94cd4fb83663fe90e2d092b01b165e686f132f2;
+LSPc67df02ea53d52a6393fc35aa8b6e8d7f4330f8eb07a728fea0745079a29f41b.
+Final SDK build finished3m14s including Cargo wait. Generated Kit check passed.
+No full compiler/LSP matrix, statistically timed benchmark, long-run memory or
+8GiB editor-plus-AI resource qualification claimed. Logs /tmp/studio-references-*.log
+and sample are disposable. The current live process/owner recovery state at the top
+supersedes all earlier preview identities below.
+
+Go to Definition — checkpointd92228e1, November12, based on07ed204c.
+Native Kit already has definition context-menu/keyboard/Cmd-hover behavior. Added
+its provider to the existing EditorLanguageProvider and F12 binding, normalized
+Location/Location[]/LocationLink[]/null responses, and converted only origin ranges
+to native scalar positions. Target ranges retain UTF-16 for the target document.
+New generated CodeEditor.onLanguageNavigate receives ShowDocumentParams; native
+fallback is always consumed so an unhandled server URI cannot launch a browser
+or incorrectly move within the source buffer. Tsrust navigation validates the
+explicit workspace root, uses openFile's canonical containment/symlink checks,
+and selects exact ranges against current drafts without saving. Invalid ranges,
+non-file URIs, unsupported targets or ungranted navigation leave workspace unchanged.
+UI callback and registered open_language_location share openLanguageLocation;
+registered language_definition uses the same correlated session/controller reads,
+with existing generation/revision/cancellation guards and host read grants.
+Definition initialization advertises linkSupport. Multiple definitions currently
+follow Kit's first-target behavior; a picker and virtual stdlib-document hosting
+remain open feature work. This does not qualify References/Rename or the AI host.
+
+Host bridge3/3 passed0.00s (normalization, UTF-16 boundary conversion, current-text
+receipts/cancellation/timeout/unmount). Added stable public navigation witness for
+Unicode/CRLF/current drafts and denied/invalid targets, real-session definition
+query, shared controller/registered AI definition cancellation, and updated search
+catalog count. Public runtime acceptance passed15/15 across navigation, language-service and
+search suites in536.16ms; setup/build47.316s (check10.956s,emit1.108s,native34.943s).
+Fixed explicit InputActionOptions construction, optional-query assertion and
+owned context/optional-view lifetimes revealed by initial compilation. Superseded
+multi-entry check stopped; its old snapshot is not a pass. Replacement app build
+provides application acceptance rather than repeating that multi-entry check.
+SDK final build passed2m33s; CLI installed/independently hash-verified
+ d20749321d95742bab7d7cc8d4d5e7826ad86e84d88a36e0d903ed64b75c33c0.
+LSP rebuilt18.22s for new embedded CodeEditor API/docs and installed/hash-verified
+ c72f90c1eb3b9be9c44419542c27339cb084c1c77e0d40081cb165822d69317b.
+Generated Kit consistency check passed. Final full formatter passed0files/0snippets/
+0fingerprints after source repairs; no full compiler/LSP matrix or latency claim.
+Replacement dev supervisor2258 / PTY10949 and native app2368 are running.
+Build passed168530ms: check91492.7ms,emit3894.7ms,runtime-prepare5040.0ms,
+runtime-build+publish48810.3ms,native/link72343.0ms. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-2258-1794491556425311000-0/Tsrust Studio.app.
+Old94903 stopped with authorized SIGINT after new2368 started. Native MAT passed
+F12 from ImageViewContext's Workspace type in image-actions.tsr to workspace.tsr;
+context menu Go to Definition also opened that file and visibly selected exactly
+Workspace at its declaration on line21. Temporary workspace.tsr tab closed;
+owner12tabs/image-actions.tsr active restored. No edits/saves. Recovery confirmed
+sole protected draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA phase completed (Verified native definition navigation); definitionPreview
+binds new2368. Cmd-click/external-language navigation and scalar-hover popup color
+are not visually accepted yet. Native motion-only hover is unavailable in CUA;
+scroll/click can cancel hover. Do not repeat unchanged attempts.
+Next implement References/result picking through the same shared language reads
+and guarded locations; retain actual integrated AI host as an open requirement.
+
+Logs /tmp/studio-definition-{sdk-build,bridge-test,check,format}.log.
+
+Scalar hover coloring — checkpoint07ed204c, November12, based on61a0e0f5.
+Owner reports plain Tsrust scalar hovers while Go works. Native inspection in
+app88099 reproduced plain `revision: int` on documents.test.tsr, whereas
+`const document: Document` colored correctly. CUA can trigger hover without edits:
+scroll at a symbol by0.001pages (0 is rejected), then getAXStateAndScreenshot.
+Coordinates are screenshot pixels. In the current2240x1562 window revision is
+around[970,645] and document around[790,550]; tiny scrolling shifts these slightly.
+No buffers edited. Owner state later changed to12tabs/active image-actions.tsr;
+that latest state and the protected draft are preserved. Do not use undocumented
+mouse APIs.
+
+Cause: normalizing tsrust/tsrx fences and editors to TypeScript/TSX loses language
+identity; that grammar does not color native scalar int in these fragments. UI kit
+now preserves native identity (tsr canonicalizes to tsrust); Syntect resolves native
+aliases to its existing TypeScript/TSX syntax but supplements only code-token roles
+with native int/number/string/boolean/void type captures. Per-scope disjoint scanning
+uses one cached regex and preserves sorted UTF-8 ranges, background parsing, strings,
+comments, member/call names and JSX attributes/text. Ordinary TypeScript is unchanged.
+Rule follows editors/vscode/syntaxes/tsrust.tmLanguage.json's native primitive rule.
+
+Passed: focused native scalar/alias/fragment/Unicode/protected-context case1/1 in0.31s
+(final component setup1m49s); UI Markdown identity/payload witnesses3/3 in0.00s;
+LSP scalar producer fence/type witness for both extensions1/1 in0.00s (setup7.54s);
+existing background edit/obsolete-text witness1/1 in0.17s.6distinct accepted cases.
+An intermediate JSX assertion accidentally counted the legitimate View component
+type; repaired to inspect the actual attribute/text spans, with final case passing.
+No full matrix or memory/latency claim. Component test Cargo.lock's temporary local
+gpui-base substitution restored exactly; neither patched lockfile has a diff.
+Logs /tmp/studio-scalar-hover-{qualified-capture,markdown,lsp,background}-test.log.
+Final formatter passed0files/0snippets/0fingerprints; diff-check passed.
+
+SDK CLI builds passed2m30s; final built/installed hash independently matches
+0b50487994348cfeed48fb5eaba3b7ac81389b0bf1b23113d385f746ad81eb5f.
+LSP remains577bd0db414187789b473a05ee25da2b27681b87cac06d4de63afe02ae6a5576.
+Replacement dev supervisor94903 / PTY93018 and app96280 remain running.
+Log /tmp/studio-scalar-hover-dev.log; native build passed358219ms (check94019.2,
+emit3867.0,runtime-prepare5057.1,runtime-build+publish232721.2,native/link259525.6).
+Bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-94903-1794490024983438000-0/Tsrust Studio.app.
+Old supervisor69762 stopped with authorized SIGINT after replacement started.
+Native view confirms the new scalar source colors. Post-replacement hover MAT is
+UNVERIFIED: positive tiny scroll/click/raise at revision and document did not show
+any popup; do not call the rendered hover visually accepted. Avoid repeating the
+same automation attempts. CUA phase completed; active image-actions.tsr restored.
+Latest recovery has12tabs and sole project-check.tsr draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+independently confirmed after inspection. Never save/reset this protected draft.
+Next: human/native hover confirmation on revision:int, then resume language
+navigation and AI parity; retain running supervisor, no broad regression rerun.
+
+Per-server Start/Stop/Restart submenus — November12, based onc0612664.
+Owner explicitly requested separate lifecycle controls in each LSP submenu. Uses
+existing std:ui Submenu/MenuItem, localized Start/Stop/Restart and state-dependent
+disabled entries. Callbacks resolve current explicit server/generation and invoke
+shared requestLanguageControl. Stop is session-local: it stays off with files open;
+relaunching Studio uses configured enabled servers. No extra placeholder commands.
+
+Worker now returns explicit ready/restart/stop outcomes from initialization/session,
+settles/kills the old child before stopped acknowledgement, drains obsolete traffic
+while stopped/failed and resumes only on exact-generation Start/Restart. Controller
+clears only that server's documents/pending reads/diagnostics; requested=true keeps
+open-file polling from auto-starting stopped servers. Transition gating rejects
+queued old ready/query replies. Queue failure leaves state untouched. Added registered
+start_language_service/stop_language_service routes through the same command, with
+explicit server/current generation and a trusted allowControl grant. Legacy restart
+grant preserved; model arguments cannot grant control or choose executables. Actual
+integrated model host remains a separate open goal item, not qualified here.
+
+Focused public language-service suite11/11 passed465.45ms, including real Tsrust
+stop/start/resynchronization/hover, stale controls, open-file stop behavior, queue
+failure, grants and prior routing cases. Affected control case rerun after final
+Start status label passed1/1; final extension directly invokes registered AI Stop
+as well as Start, passed1/1 in1.63ms total.11distinct cases retained, not13. Logs
+/tmp/studio-language-controls-{test,final-test,ai-test}.log. Narrow submenu source
+check passed; no full compiler/LSP regression matrix or unchanged executable retest.
+Final whole formatter1file/0snippets/0fingerprints; diff-check passed. Both locale
+catalogs have identical280keys. No SDK/compiler/LSP binary rebuild/install needed.
+
+Native app88099 built/reloaded in245298ms (check89911.0,emit3833.2,runtime-prepare8321.3,
+runtime hit,native/link27272.9). Supervisor69762 / PTY64634 remains running;
+current bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794487041734633000-0/Tsrust Studio.app.
+Native MAT passed visible nested controls/icons and disabled Start while connected,
+Go Stop88116->absent with its document still open, stopped submenu/Start availability,
+Start->88409 and diagnostics restored, Restart->88432 and diagnostics restored.
+Tsrust88101 stayed running throughout the Go controls. No editor typing or saves.
+Owner added tests/go.mod and documents.test.tsr tabs:13tabs, active documents.test.tsr.
+Preserve these owner changes; do NOT restore older11tab/active-main targets. Sole
+protected project-check draft remains SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completionPreview targets app88099; phase completed: Verified per-server lifecycle
+submenus. Latest test-only source change may cause an unchanged-app watcher check;
+keep existing preview, do not restart solely for observation timeouts. Next resume
+native language-navigation features/AI parity; typing/snippet MAT needs an idle
+window, and long-running resource qualification remains open.
+
+Owner fixture organization, November12 — supersedes temporary Go cleanup notes.
+Owner explicitly permits other-language editor examples under tests/ and prohibits
+mixing them into application files. Moved the unchanged Go module manifest from
+apps/studio/go.mod to apps/studio/tests/go.mod. Existing tests/editor-language-mat.go
+stays open at the same path and is now a retained, intentional editor fixture;
+do NOT delete it under older exclusive-fixture cleanup instructions. tests/README.md
+explains its intentional type error. Added the owner rule to apps/studio/AGENTS.md.
+No foreign-language source/manifests remain outside tests/ (generated target excluded).
+Whole formatter passed0files/0snippets/0fingerprints; no regression tests for relocation.
+Native Refresh Explorer removed root go.mod. Restarted only Go75300->84396 to load
+its test-only module; diagnostic count returned1. Tsrust82720/app75287/supervisor69762
+unchanged.11tabs/owner-active main.tsrx/sole protected draft hash unchanged. CUA phase
+completed: Isolated other-language fixtures under tests. Keep dev running.
+
+Native-only bundled linking reuse — November12, based onb6c0e755.
+Previous goal turn made progress by deferring reference tables and qualifying exact
+reference/snapshot behavior. This section addresses the measured~200ms std:ui native
+import-link cost. Existing finite bundled cache now retains native imports, aliases
+and finish_imports results too. Eligibility requires exact compiler-owned bytes,
+no data/Rust adapter, and EVERY import native with no project target. All workspace
+or project-dependent linking stays fresh. Shared link_native_import preserves the
+original native path; returned SourceIndex copies retain graph-local isolation.
+Cache mode/declaration-source invalidation and one-pair-per-bundle bounds unchanged.
+
+Extended reuse witness rejects even a known bundle ID with a project dependency.
+Declaration cases2/2 passed0.09s (setup17.67s), inherited alias/Signal cases2/2 passed
+1.88s.4distinct cases; no full regression matrix. Build18.06s; whole formatter
+0files/0snippets/0fingerprints and diff-check passed. Logs
+/tmp/studio-native-bundle-{declaration-tests,alias-tests,build,format}.log.
+Same real-source probe: all24response hashes matched. Hover first request for
+revisions1–4 before999.13/286.47/289.30/303.22ms, after976.91/100.18/100.34/105.01ms.
+Trace after: header load36–38ms, warm declaration build57–60ms; cold std:ui875ms.
+Peak187.1MiB in the short probe is not a leak or controlled memory benchmark.
+Logs /tmp/studio-native-bundle-{before,after}.log; current disposable JSON remains
+target/lsp-studio-probe.json. No new SQLite benchmark speed claims.
+
+Built/probed/installed LSP hash independently matches
+577bd0db414187789b473a05ee25da2b27681b87cac06d4de63afe02ae6a5576.
+Native menu restart80798->82720 reconnected; Go75300, app75287 and supervisor69762 /
+PTY64634 unchanged. Same bundle as preceding sections. Owner changed active tab to
+main.tsrx; preserve this selection rather than restoring image-actions.11tabs, sole
+project-check draft SHA256bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17
+unchanged. No native editor typing/saves or scratch changes: owner activity is evident.
+CUA completionPreview remains bound; phase completed: Loaded native bundle linking reuse.
+Native typing/snippet MAT remains pending an idle window; long-running memory and
+full8GiB editor-plus-AI qualification remain open. Stop speculative optimization now:
+return to native language-navigation/completion features and AI action parity,
+inspect the existing provider/action APIs first. Profile further only for a measured
+remaining interaction issue; do not substitute short protocol probes for native MAT.
+
+On-demand reference indexing — November12, based on2c220bd3.
+Previous turn made progress with finite bundled parse reuse and native service
+reload. Added opt-in TSRUST_LSP_TRACE_TIMINGS spans for foreground header loading
+and declaration build, and lowered verbose per-module trace threshold to50ms.
+Real-source trace identified35–40ms loading,250–254ms declaration build (std:ui
+~195–199ms) and294–299ms eager reference-table construction on every edit.
+Live previous LSP78772 at2m06s was100%CPU/353MB footprint during analysis; not an
+idle/matched observation or evidence of a leak. Disposable footprint trace under
+/tmp/studio-bundled-index-live-footprint.txt.
+
+Replaced the eagerly populated ProjectIndex reference map with an immutable-snapshot
+OnceLock. Hover/definition/completion no longer build it. First actual References
+lookup builds the same typed Location map; subsequent lookups reuse it. Checked
+and preliminary indexes both use this path. No references omitted, filters weakened,
+or compiler diagnostics deferred by this change. First reference lookup now pays
+the build cost; broader asynchronous reference-request scheduling remains open.
+
+Extended compact-location regression verifies lazy initialization after hover and
+definition, exact Unicode/alias references, declaration inclusion filtering and old
+snapshot identity:1/1 passed0.01s (final setup17.78s). Existing checked alias/shadow
+case1/1 passed0.01s (setup21.53s). Logs /tmp/studio-lazy-references-{final,checked}-test.log.
+No full regression rerun. Whole formatter0files/0snippets/0fingerprints; diff-check
+passed. Phase-probe build19.54s; optimized LSP build18.01s.
+
+All24real-source response hashes matched. Hover first request for revisions1–4:
+before1251.04/588.42/595.84/594.20ms; after982.23/301.19/300.58/316.37ms. Warm requests
+remain a few milliseconds. Opt-in trace after:load35–40ms, build258–273ms with
+std:ui native/import linking198–210ms. Peak201.1MiB over4.53s in the short probe is
+not a leak test or controlled benchmark; no SQLite speed claims. Logs
+/tmp/studio-declaration-phase-probe.log and /tmp/studio-lazy-references-after.log.
+Current disposable structured observation target/lsp-studio-probe.json.
+
+Probed/built/installed LSP hash independently matches
+6e155a35be34b2acd7809cb8219a79c6d711c5ef7008ef6828161848d28a09be.
+Native menu restarted only Tsrust78772->80798 and showed connected; Go75300,
+app75287 and supervisor69762 / PTY64634 unchanged. Same bundle as preceding section.
+11tabs, owner-active image-actions and sole protected project-check draft hash
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17 preserved.
+CUA completionPreview remains bound; phase completed: Loaded deferred reference indexing.
+No editor typing/saves. Native typing/snippet MAT and long-running editor-plus-AI
+memory qualification remain open. Next target: measured~200ms repeated std:ui native
+import linking; reuse fully linked compiler-only bundles only when every import is
+native, never cache project-dependent alias links. Then native intelligence MAT.
+
+Bundled declaration parse reuse — November12, based on75d4e493.
+Previous goal turn made concrete progress by removing protocol-thread compiler
+repair from preliminary completion and fixing native service-menu generation state.
+This section reuses the immutable base SourceIndex pair for compiler-owned bundled
+modules before per-project alias/native/import linking. SourceIndex/LineIndex now
+derive Clone. Cache eligibility requires exact bundled bytes; only the finite bundle
+IDs can enter it. Each ID retains one pair, replaced if declaration text or entry-help
+mode differs. Workspace overrides bypass caching, and graph mutations affect copies.
+
+Focused acceptance: declaration-only cases2/2 passed0.05s (setup17.67s), inherited
+alias/Signal help cases2/2 passed3.20s;4distinct cases. Final reuse witness rerun passed
+1/1 in0.07s after making restoration assertion tolerate another test thread warming
+the original cache. Witness proves no second parse, isolated mutations, mode/source
+invalidation, restored declarations and uncached workspace substitutions. Logs
+/tmp/studio-bundled-index-{tests,alias-tests,final-test}.log. Build19.05s/final18.61s;
+whole formatter0files/0snippets/0fingerprints and diff-check passed.
+
+Same bounded real-source probe, all24response hashes matched. First-hover observations
+before:1273.25/1229.92/1209.95/1215.96ms for revisions1–4; after:
+1297.13/616.84/610.53/598.61ms. Cold initialization still pays the parse; warm document
+requests remain around2ms. After footprint peaked210.0MiB in5.79s, not a matched memory
+benchmark or long-running leak acceptance. Logs /tmp/studio-bundled-index-{before,after}.log;
+target/lsp-studio-probe.json has the current disposable structured observation.
+No new benchmark/SQLite speed claims, full regression matrix or native typing MAT.
+
+Installed/probe LSP hashes independently match:
+1854e3b6a2e4c4e793893454bbc87a5fb68cb65c61409b2f8d3156a7fc36d65f.
+Native menu restart75343->78772 reconnected, Go75300 stayed running, app75287 and
+supervisor69762 / PTY64634 unchanged. Current bundle remains
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794484683288229000-0/Tsrust Studio.app.
+11tabs, owner-active image-actions and sole protected project-check draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17 preserved.
+CUA completionPreview remains bound; phase completed: Loaded faster bundled declaration
+service. No native documents edited/saved. Keep Go probe fixture open during owner MAT.
+Next profile remaining~600ms declaration build/import-link/reference phases on edits;
+consider native-only bundled linking reuse only if measured, preserving graph-local
+imports, immutable snapshot identity and checked recovery. Native typing/snippet/hover
+MAT and long-running editor-plus-AI memory qualification remain open.
+
+Interactive declaration completion — current section, November12.
+Previous goal turn made progress: built/checkpointed hover border4af5317a and left
+supervisor69762 / PTY64634 running. Bounded2s sample of live LSP69968 at~64s age
+found protocol thread waiting in select, analysis worker checking bodies and
+declaration worker idle; footprint212.7MiB/peak213.1MiB. This is a startup observation,
+not evidence of leak elimination. Traces /tmp/studio-language-continuation-*.
+
+Added --studio to the existing tools/lsp-memory-probe.mjs. It initializes a separate
+real stdio server on apps/studio, reads controller.tsr, issues hover/completion/
+signature requests across4private whitespace revisions, records source/response
+hashes, request costs and process counters, and closes/exits/cleans temporary data.
+Never writes the actual project or owner buffers. Existing120s/1GiB footprint/
+512MiB growth/256MiB swapped/20%free stops retained; --studio and --soak exclusive.
+
+Found a concrete protocol-thread cost: ProjectIndex::declarations avoided its own
+project repair, but called SourceIndex::request, which still attempted checked
+single-document member repair on every completion. Added explicit declaration
+request path that bypasses that repair. Ordinary unchecked/checked recovery stays
+intact; declaration completion remains isIncomplete:true. Extended existing
+declaration witness with a test-only thread-local attempt counter to prove no
+repair is entered there and ordinary requests still enter it.
+
+Passed declaration witness1/1 in0.03s (setup16.51s), blocked-analysis foreground
+protocol witness1/1 in0.01s (setup21.01s). Logs /tmp/studio-declaration-{repair,foreground}-test.log.
+Repeated real-source probe before/after: all24response hashes identical. Observed
+warm completion380.66–394.66ms before,1.70–2.01ms after; warm hover1.72–2.04ms before,
+1.71–1.97ms after. Four private revisions only; diagnostic observations, not a quiet-
+machine benchmark or end-to-end native latency claim. First hover after edits still
+~1.2s; timing trace attributes825–856ms to rebuilding std:ui SourceIndex declarations.
+After-probe peak213.1MiB over7.38s is not long-running memory qualification. Logs
+/tmp/studio-language-output-{before,after}.log; current disposable structured result
+target/lsp-studio-probe.json. Independent exact-hash comparison passed24/24.
+
+LSP build19.11s, final refresh3.48s, atomically installed/hash-verified
+725bb47c3ee099562782be890b31f4c7cbd71026f634182f1f00c49410013e17.
+CLI remains fc348fd5a250a1a0745f43aa071b1ca3a4892ce1d6286c261889fd978799ad6f.
+Native status-menu inspection found another bug: label remained starting/idle while
+tooltip showed connected, and captured generation0 would reject restart. Fixed
+per-server labels with computed current state and resolve generation at click time;
+AI restart still requires explicit exact generation. Native rebuild passed184727ms
+(check96744.4ms,emit3972.7ms,runtime-prepare8598.5ms,runtime hit,native/link29451.7ms).
+Current app75287, supervisor69762 / PTY64634 stays running; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794484683288229000-0/Tsrust Studio.app.
+Native MAT passed both menu entries showing connected, Tsrust restart75297->75343
+while Go75300 stayed running,11tabs/owner-active image-actions/sole protected draft
+hash unchanged. No document editing or saves. CUA completionPreview targets app75287;
+phase completed: Verified isolated language service restart. Native typing/snippet
+acceptance remains unrun. Final whole formatter passed0files/0snippets/0fingerprints;
+node --check and diff-check passed. No broader regressions or benchmark matrix.
+Before checkpoint, lock-safe cleanup removed6obsolete native cache payloads,
+retaining3latest-used programs/runtimes and2complete runtime build payloads.
+Shared Cargo target and active Go fixture remain intact.
+Next investigate immutable bundled std:ui declaration-index reuse, preserving current
+graph import linking/freshness and checked recovery; no arbitrary cache/memory cap.
+
+Owner hover refinement, November12: HoverPopover now explicitly draws a1px
+theme.border outline. Applied only to symbol hover; diagnostic severity outlines
+are unchanged. The existing popover_style supplies a translucent shadow ring,
+not a border, and the hover's shadow_md overrides that ring. Full formatter
+passed0files/0snippets/0fingerprints; diff-check passed. CLI build passed2m30s,
+atomically installed and independently hash-verified:
+fc348fd5a250a1a0745f43aa071b1ca3a4892ce1d6286c261889fd978799ad6f.
+Authorized supervisor57441 stopped; new supervisor69762 / PTY64634 remains running,
+log /tmp/studio-hover-border-dev.log. Native build passed335331ms, including
+runtime-build+publish217691.7ms, check89628.9ms and emit3770.4ms. App69964 started
+from /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-69762-1794483787742101000-0/Tsrust Studio.app.
+Popup visual acceptance remains pending owner MAT; no automated focus changes.
+Protected project-check draft hash remains
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+11tabs and owner-active image-actions preserved before restart. No new tests for
+this border-only presentation change; native build validates changed Rust code.
+
+Owner status-bar refinement, November12: replaced the persistent LSP connection
+text with a compact Language services icon. Connection detail remains in its
+tooltip; diagnostics and per-server start/restart actions remain in the same menu.
+Whole-project formatter passed with0files/0snippets/0fingerprints changed;
+diff-check passed. No new tests for this presentation-only change. Dev rebuilt
+successfully in120239ms and started app67936; supervisor57441 remains running.
+Current bundle is /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794483382816047000-0/Tsrust Studio.app.
+Native visual inspection is pending; preserve owner-active tabs and drafts.
+
+
+Source checkpoint1e43dab2: current source formatter passed1file,0snippets,
+0fingerprints after the .tsrx regression witness; diff-check passed. Cache cleanup
+under nonblocking namespace/entry locks removed27obsolete program/runtime/build
+payloads, retaining3latest-used program entries,3runtime entries and2complete build
+payloads. Studio native cache5.4GiB ->1.5GiB. Shared Cargo target/model qualification
+artifacts untouched; no rebuild merely to repopulate them. Open native Go fixture
+and owner-added tabs are deliberately preserved during owner MAT and excluded from
+Git; cleanup is still pending. This source checkpoint qualifies configured routing,
+Settings/Problems and the weak state API, not unrun native completion/snippet paths.
+
+Owner hover feedback update, November12 — supersedes earlier cleanup targets.
+Owner is actively using the app. CUA user-change guards were legitimate activity;
+do not automate editing/focus changes while the owner is testing. Owner opened
+src/services/image-actions.tsr; recovery now has11tabs (original9 plus Go fixture
+and owner-opened image-actions), active image-actions. Preserve the new owner tab;
+DO NOT restore the old9tab count blindly. Sole protected project-check draft still
+has original SHA256. Native Go probe remains unmodified on disk and open; root
+apps/studio/go.mod and tests/editor-language-mat.go are owned exclusive fixtures,
+NOT committed source. Do not delete the open probe while the owner is using it.
+
+Native app62165 successfully loaded configured Go lazily on first .go open:
+no gopls before the file, then gopls63750/telemetry63751. Actual Go type error reached
+Problems with path/line and lsp:go/IncompatibleAssign; language status switched to
+Go connected. Owner explicitly reports Go hover popups. Native completion/Tab/
+snippet/signature MAT remains unrun; attempted selection failed because the editor
+has no settable AX selected-text range, and subsequent writes were blocked by owner
+activity. NO source editing actions took place. CUA phase completed: Observed Go
+diagnostics in Studio. File quick-open uses a startup snapshot and misses new
+files; Project menu Refresh Explorer updated the tree and opened the fixture.
+Cmd+Option+R did not refresh while quick-open had focus; keep these separate issues.
+
+Owner reports missing Tsrust hover. Confirmed a regression introduced by this
+slice: tsrustServer mapped .tsrx to wire languageId tsrx, but main.rs accepts tsrust.
+An actual Studio service regression extended the existing test with a catalog-
+routed .tsrx document; FAILED with null hover in470.83ms (setup34664.3ms), log
+/tmp/studio-tsrx-hover-regression.log. Fixed the shared descriptor: one canonical
+language ID tsrust for both .tsr and .tsrx, preserving extension-based editor syntax
+and status. Same affected real service case then PASSED1/1 in471.58ms, setup20507.7ms;
+log /tmp/studio-tsrx-hover-fixed.log. Earlier19distinct accepted cases retained.
+No LSP/core/SDK rebuild required for this data correction.
+
+Dev automatically replaced preview with app64202, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794482108901447000-0/Tsrust Studio.app.
+Supervisor57441 / PTY38630 stays running. Latest build138434ms: check103682.8,
+emit3940.1, runtime-prepare8606.1, native/link30049.7; runtime hit. Intermediate
+113563ms rebuild reported unchanged application and preserved its state.
+CUA readonly binding hoverFixPreview confirmed new app connected on owner-active
+image-actions.tsr,11tabs,1draft. Phase completed: Confirmed reloaded Studio workspace.
+No native Tsrust popup is claimed observed after the fix. Async question is pending
+whether owner's missing hovers were .tsrx, .tsr or both; do not mistake the mapping
+fix for proof that any additional .tsr issue is resolved.
+
+The prior w-56/External servers/aria adjustment DID pass native default-width
+inspection in app62165: Apply is visible/clickable at900px Settings width, Go on
+and executable path persisted. Settings is closed in latest app. Last CUA bindings
+refer to64202; after replacement rebind exact bundle; after compaction rewrite docs.
+
+Configured editor language services — IN PROGRESS, November12, based onb665a589.
+Previous goal turn was progress: independent lazy registry checkpointf454659d.
+Source checkpoint1e43dab2 contains this slice with accepted focused checks and a
+running native preview. Full goal stays active. DO NOT repeat completed checks.
+
+Implemented: declarative extension/language/server routes (no extension if-chain),
+validated conflicts/IDs/argv, backward-compatible persisted languageServers in global
+StudioConfig, one startup config snapshot shared by UI and workers. Per-server
+connection/generation/readiness/status replaces the single global lifecycle; reads,
+queries, diagnostics, closes, cancellation and restarts are scoped. Starting Tsrust
+cannot clear Go state. Future/wrong-server replies reject. Foreign processes start
+only after a matching open file or explicit action. Native status follows active
+file and lists registered services. UI and AI share requestLanguageRestart; AI has
+explicit generation/host-process grants. Initial launch config changes currently
+require Studio restart; GUI says so. Live registry reconfiguration remains open.
+
+New Language services Settings page uses Kit Settings/SettingsGroup/SettingItem,
+preset Go/Rust/TypeScript-JavaScript toggles and executable InputGroup with explicit
+Apply. Presets are typed lib/language/presets.tsr (not imported JSON type adapters).
+Custom definitions/files/argv remain available through validated JSON. Server
+programs must be installed; no installs performed. Rust/TS are NOT qualified here.
+Canonical primary references checked: go.dev/gopls/command-line,
+https://github.com/typescript-language-server/typescript-language-server (--stdio),
+https://rust-analyzer.github.io/book/other_editors.html (rust-analyzer).
+
+Reusable Settings rows exposed a real missing public weak-signal capability.
+Signal.handle() now exposes existing native Signal.handle, without a new runtime,
+new clone allowance or strong owner retention. Compiler/native method dispatch,
+receiver type hints, LSP result typing, catalog signature/docs/example and API
+comment are updated. Internal handle returns Signal directly, so method lowering
+must skip the get/set Result unwrap. Only Signal gains this method, not Computed.
+settingsSessionHandles creates independent weak context records. Native tests
+prove updates through stored records, reusable map calls, documented output2 and
+owner disposal; creating another handle after disposal remains nonthrowing while
+get throws. Nested Signal payload/thread/clone restrictions remain intact.
+
+Registered AI configuration read/proposal tools reuse the same preset catalog and
+parseConfig/formatConfig as Settings. Separate trusted settings-read/proposal grants
+and bound global path are required; model grants/paths/programs cannot grant access
+or run anything. Proposals return exact before/after plus file presence; absent
+settings return defaults without creating a file. Tests prove unchanged files/no
+process messages and existing saveConfig CAS rejection after external change.
+There is NO model apply/approve tool. Actual integrated host/review application,
+including atomic absence checks for first creation, remains open. This is an
+executable proposal adapter, not full model-host parity acceptance.
+
+Accepted on current logic:
+- Studio language-service/settings/weak-signal combined17/17 passed1440.98ms
+  execution, setup83514.9ms (check9675.9,emit1026.6,native/link72447.4ms; includes
+  shared-target/contention costs). Log /tmp/studio-handle-routing-test.log.
+  Earlier15/15 routing/settings passed952.56ms before the weak API and last shared
+  restart/cancel extension; final17 supersedes it. Final native weak cases0.35/0.02ms.
+- New language-settings-tools2/2 passed1.86ms, setup25716.9ms; log
+  /tmp/studio-language-settings-tools-test.log.19distinct accepted Studio cases.
+- LSP completion_matrix selected UI data signal methods, handle chaining and
+  snapshot fields:1harness passed22.22s, all4standard phases (settled, immediate,
+  80ms typing, syntax error elsewhere). Log /tmp/studio-handle-matrix.log.
+- checker_agreement Signal<string[]> receiver passed1/1 in434.89s. Existing
+  exhaustive candidate checks unchanged; log /tmp/studio-handle-agreement.log.
+- editor_consistency data_signal_help_keeps_snapshot_types_and_ownership_across_server_phases
+  passed1/1 in7.55s, including new handle payload/docs. Log
+  /tmp/studio-handle-consistency.log. No full other-language/compiler matrix.
+  LSP no-run setup2m32s; artifacts from /tmp/studio-handle-lsp-build.json.
+- New settings/status leaf UI source checks passed with the new compiler. Full
+  native build then found two real caller ownership errors: reused controlsSession
+  (now dedicated languageSession) and program consumed before state setup (move
+  languageState creation before WorkflowControls). No cloning to hide transfers.
+
+SDK build2m44s; final refresh13.19s after dependency tests, both atomically installed
+and independently hash-verified. CLI
+cfd6df234ef9f0b9cbd6cde2a42b2ac196fe8ebac9ae253a678bd29f927cd8d2;
+LSP c9868aa968e63a4aa2eb0dcb86f33ff359c451fbf908d9e905ceab6205982754.
+Old supervisor42993/PTY86030 stopped with authorized Ctrl+C; child draft retained.
+Current live supervisor57441 / PTY38630, app60558 (server PID discover via ps), bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-57441-1794480719831206000-0/Tsrust Studio.app.
+Log /tmp/studio-language-dev.log. Native successful build119622ms: check89025.5,
+emit3734.2,runtime-prepare8100.8,native/link26050.8; runtime HIT/program miss.
+Do not restart again solely for observation timeouts. Source minor UI fix below
+is now rebuilding automatically; discover its replacement app before rebinding CUA.
+
+Native Settings MAT passed page navigation, Go enable/disable/re-enable, executable
+row removal/recreation, editing and saving the path, closing/reopening Settings,
+persisted Go on/path and unchanged other preferences. CUA completed phase:
+Verified persistent Go server settings. Current binding studioLanguageApp targets
+app60558; reset/getApp exact replacement bundle after dev reload. Settings is closed,
+active owner project-check restored. No Go editor fixture yet, no Go native editor
+or native registry restart acceptance claimed.
+Actual UI caught w-80 executable group clipping Apply at default900px window;
+zooming Settings exposed it and allowed save. Source now uses w-56 and label
+External servers (previous Installed servers falsely implied templates installed),
+plus localized executable aria suffix. These STATIC changes await native default-
+width verification on the next dev reload; no extra automated tests needed.
+
+Global ~/.tsrust/studio/tsrust_studio.config.json now intentionally has Go enabled,
+program=/Users/seancotter/go/bin/gopls, argv=['serve'], Go association. Saved through
+native Settings, independently read from disk. Rust/TS remain off; font11/Alduin/
+localeen and all other owner prefs preserved. Current app60558 started BEFORE this
+Go setting was enabled; next automatic replacement will read it and register Go.
+No gopls editor process yet. Keep Go configured for actual installed service unless
+owner changes direction; do not overwrite unrelated prefs or restore whole config.
+
+Protected draft: original active src/services/project-check.tsr,9tabs, sole draft
+SHA256 bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17,
+independently rechecked after supervisor restart. Do NOT save it; Cmd+S saves ALL.
+Recovery journal
+/Users/seancotter/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+No probe files/drafts made yet. Planned native Go MAT may exclusively create
+apps/studio/go.mod and tests/editor-language-mat.go ONLY if absent; close clean probe
+tab and delete owned fixtures afterward. Never open entire tsrust workspace.
+
+Whole-project formatter has passed after each coherent fix; most recent0files/
+0snippets/0fingerprints before minor w-56/label/aria change, whose formatter is
+PTY80256 (check its completion/log /tmp/studio-language-final-format.log). Existing
+accepted tests retain token preservation. Git diff-check clean so far. Source checkpoint1e43dab2 records the accepted configuration/routing/weak-state
+slice; remaining native Go workflows and owned fixture cleanup are still pending. No push/release/new benchmark claim.
+
+NEXT: wait on confirmed live dev PTY38630 for replacement, inspect new process/bundle,
+verify Apply visible at default Settings width and Go persistence. Then actual Go
+file open/lazy startup, diagnostics -> Problems, completion/Tab/snippet and signature
+hints/Unicode, native per-server restart while Tsrust remains usable. Restore owner
+active tab/9tabs/sole draft. Go-only fixtures must be exclusive and removed. Native
+hover lacks a documented CUA move action; inspect existing GPUI input bindings for
+an actual keyboard route or use observed pointer events, do not invent a shortcut.
+Then qualify idle process/resources, prune obsolete native caches under existing
+namespace/entry locks (never in-use outputs), update plan status and checkpoint.
+Full integrated AI host, other external servers and complete8GiB qualification remain
+open, so the goal cannot be marked complete.
+
+
+Lazy multi-server registry prerequisite — 2026-11-12, based oncce05eda.
+Previous goal turn was progress: generic transport/source checkpointd7fb0494 and
+real gopls acceptance. This turn adds actual process/inbox routing, not merely a
+server table. New services/lsp/registry.tsr owns one independent session task and
+bounded protocol inbox per registered descriptor, routes typed messages by server
+ID and settles every task through existing std:futures all cancellation. Only
+Tsrust starts immediately; foreign processes wait for explicit generation-zero
+start. Descriptors reject duplicate server IDs before constructing jobs. Unknown
+server requests produce scoped failed updates and leave registered services alive.
+No external executable can be selected through a protocol message. Standard
+Sender.share creates the independently owned endpoint required across await; no
+resource cloning workaround. workers.tsr now uses this registry for existing Tsrust.
+Studio config and document-controller multi-server routing are still NOT wired.
+
+Focused real registry witness passed392.41ms (suite3/3,394.16ms execution;
+setup9569.7ms). One temporary root held actual Tsrust and Go files/configs; both
+installed servers ran simultaneously. Go unsaved/corrected diagnostics, hover,
+completion, Unicode signatures and restart passed; then a Tsrust hover still used
+its original generation. An unused descriptor deliberately points at a nonexistent
+executable: eager launch would fail the witness. An unknown target was rejected
+before a subsequent valid Tsrust read. Parent cancellation/await settles children;
+no fixture files retained. Existing actual Studio service entrypoint witness passed
+1/1 in469.13ms execution, setup17002.0ms, through the new registry. Changed duplicate
+ID validation witness then passed1/1 in1.43ms execution, setup5832.7ms. Other accepted
+transport/AI/controller tests are preserved from prior checkpoint; no whole matrix.
+Logs /tmp/studio-registry-{test,primary-test,definition-test}.log are disposable.
+Initial preflight caught moving optional server identity before sending the whole
+record (now clone that owned ID), and indexed Sender's borrowed async temporary
+(now named independent share). These were ownership repairs, no compiler change.
+
+Whole-project formatter passed3files,0documentation snippets,0fingerprints changed;
+diff-check passed. No SDK rebuild/install, new dependencies, push or release.
+Live supervisor42993 / PTY86030 confirmed alive via write_stdin this turn. Final
+process inspection finds exactly one preview, now app49373/LSP49378, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42993-1794477578225468000-0/Tsrust Studio.app.
+Earlier app43189/LSP43190 has exited through automatic dev replacement. Latest
+registry source rebuild remains pending; no native registry acceptance claimed.
+Dev reported source changed during dependency capture and retry after formatting,
+not app failure. No test gopls or test tsrust-lsp child remains. Refresh CUA bindings
+to the exact new bundle before the next native check.
+No Go UI/native registry acceptance claimed, and no new latency/memory measurement.
+NEXT concrete work: use the registry from trusted global settings and per-server
+controller states, associate documents declaratively, route native and guarded AI
+reads/cancel/restart/status, and verify two languages in native Studio. Preserve
+owner draft, current workspace, server generations and stale document guards.
+
+
+External-server transport prerequisite — 2026-11-12, based on8f155582.
+This is backend acceptance, NOT Studio Go UI or full external-language acceptance.
+Added validated LanguageServer descriptor (stable source ID, display name, program,
+argv and explicit language IDs); existing workers use tsrustServer without changing
+Tsrust process selection. Generic framed session launches that descriptor, checks
+opened document languages, emits server identities and source-labels diagnostics.
+No shell interpolation, install, workspace executable override or new analysis pool.
+Mixed numeric/string diagnostic codes normalize through checked raw JSON fields;
+public diagnostics remain strings. Exact version/URI/document-session checks,
+UTF16 negotiation, query cancellation, explicit restart after failure and child
+kill/wait cleanup remain. An optional document language preserves existing callers.
+
+Focused combined std:testing acceptance12/12 passed in1201.62ms execution;
+setup/build28615.0ms (check7900.5,emit837.8,native/link19666.3).
+Command selected tests/external-language-service.test.tsr and existing
+language-service.test.tsr once together with shared target/nonincremental/jobs1,
+GOPLS=/Users/seancotter/go/bin/gopls, TSRUST=current installed CLI,90s body timeout.
+Actual gopls v0.23.0 via argv['serve'] passed731.28ms: Go unsaved type error and
+corrected diagnostics with lsp:go source/version, hover, completion, signature active
+parameter after supplementary Unicode, restart identity/generation and cleanup.
+Two pure descriptor/code-normalization witnesses passed; existing9Tsrust/AI/framing/
+controller cases passed unchanged. No full matrix or timed performance claim.
+Initial checks found required owned copies and unsupported typed mixed-shape union;
+wire JsonRaw normalization fixes that boundary without changing the compiler.
+Initial sandboxed gopls run returned a workspace warning because Go could not
+create its normal build cache. Final process check ran with authorized cache access.
+Fixture also now waits beyond an initial legitimate empty diagnostics publication.
+Log /tmp/studio-external-acceptance.log is disposable; no fixture roots/processes remain.
+
+Current dev supervisor42993 remains running with original app43189/LSP43190 while
+its latest source rebuild completes; earlier invalid intermediate source correctly
+left last-good app intact. No native external-language UI MAT claimed. Owner draft
+has not been edited/saved by this section. Installed CLI/LSP identities unchanged.
+Checkpointd7fb0494; whole-project formatter passed2files,0documentation snippets,
+0fingerprints; diff-check clean. Independent recovery read still finds original
+active project-check, nine tabs and sole draft SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Bounded1s supervisor sample /tmp/studio-dev-current-sample.txt confirms current
+CPU is dev-frontend project checking/error_effects traversal, not a native Cargo
+build or idle filesystem spin. Supervisor footprint291.0MiB/peak443.7MiB at sample;
+not a matched memory benchmark. Keep live last-good app; final source rebuild is
+still pending. Do not launch another full check merely to duplicate that work.
+NEXT: actual trusted global language-server settings, lazy per-server lifecycle,
+controller/AI routing scoped by server generation and native multi-language MAT.
+Do not mark a descriptor or passing transport test as complete extension support.
+Keep Tsrust and external servers simultaneous; do not replace the Tsrust service
+on each foreign-language tab. Existing150ms polling remains unchanged.
+
+
+Background syntax highlighting — accepted section, 2026-11-12, based onb4406b01.
+This checkpoint contains the source and acceptance below. Previous goal turn made
+progress through source, focused test and CLI build; this turn completed native
+verification, a bounded after-profile and cleanup. Full Studio goal remains active.
+
+Changed only patched gpui-component/src/highlighter/syntect_backend.rs plus docs.
+A single initialized flag preserves immediate initial small-document colors; empty
+setup does not consume that initialization. Subsequent edits of EVERY document
+size reuse the existing shifted-highlight/background parser path. No new dependency,
+provider or public API. Existing150ms debounce/task replacement, eventual token
+mapping and fold callback remain intact. Initial loading and Markdown code-block
+highlighting are not claimed to be background-only.
+
+Focused GPUI witness edits_defer_small_document_parses_and_discard_superseded_text
+passed1/1 in0.14s, setup1m45s. It covers initial colors, deferred small-file edits,
+cancellation of a pending superseded parse, Unicode byte-boundary ranges, exact
+eventual token runs and folds. First preflight caught Rope lacking is_empty (use
+len()!=0) and TestAppContext borrowing while its VisualTestContext remained live
+(use window.run_until_parked/executor). Narrow repairs; no source workaround, new
+API, full matrix or repeat of prior accepted suites. Log
+/tmp/studio-highlight-background-test.log. Direct component command used --features
+syntect, working-tree gpui-base override, shared target/nonincremental/jobs1/debug0/
+opt1/wildcard package opt2. Self-generated two-line component Cargo.lock rewrite
+restored; both patched lockfiles have no diff. All check/build jobs completed.
+
+CLI build2m27s, atomic installed hash independently matches built executable:
+70d1d40ae1dbd25bd4e0a84d4b4212f2ed0e30ea7e4e87e25b960193f50b432d.
+LSP remains acceptedca5312e2, installed hash
+7cb435cd0b859baa8f6e0abd2b6fc11258282814c9afc5632e6f8271eb543924.
+Current ONLY preview: supervisor42993 / PTY86030, app43189 / LSP43190, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-42993-1794475793745060000-0/Tsrust Studio.app.
+Log /tmp/studio-highlight-dev.log. Old37203/PTY95503 stopped AFTER replacement
+visibly ready; process check confirmed no old preview/server. Keep this dev session
+running; legitimate future restarts remain authorized. Native build317590ms:
+check79799.4,emit3482.1,runtime211491.4,native/link233527.5ms; cache misses.
+
+Native MAT passed initial colors, editing the existing146line recovery.tsr buffer,
+automatic imported readTextFile completion, Tab acceptance and eventual colors.
+Three Undo actions removed the entire UNSAVED append; nothing saved. Original
+active project-check, nine tabs and sole owner draft independently verified:
+SHA256 bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completed: Verified background highlighting while typing. Current binding
+highlightApp targets the full current bundle. After compaction rewriteDocumentation;
+after any future process replacement reset/getApp exact new bundle.
+
+Bounded15s follow-up captured the same reversible paste/character/Tab/Undo workflow
+as /tmp/studio-app-typing-sample.txt. The before sample showed SyntectInputHighlighter
+update -> parse beneath UI insertion on the main thread. Follow-up
+/tmp/studio-app-typing-after-sample.txt shows parse on concurrent default-qos queues;
+main-thread samples include result delivery/styles, not whole-document parsing in
+the edit path. This is evidence of work location, NOT a latency/speedup benchmark.
+Footprint321.3MiB/peak321.4MiB is an unmatched process-age/workload observation;
+no memory-regression, long-running leak or full8GiB editor+AI qualification claim.
+LSP at3m30s was still doing background analysis,99.7%CPU/RSS253824KiB; RSS is not
+footprint. UI tree/list reconstruction/cloning remains a profiling lead; do not
+invent a reactive framework or lower LSP polling intervals blindly.
+
+Pruned3obsolete program/runtime entries/build payload under namespace/entry locks,
+retaining3latest program/runtime artifacts and2latest complete build payloads.
+Cache4.5GiB after cleanup. Shared Cargo target and model qualification artifacts
+untouched. Empty build lock/identity shells retained. Whole-project formatter passed
+0files/0snippets/0fingerprints changed; git diff --check passed before checkpoint.
+No push/release or new benchmark/SQLite records.
+Next return to native language-service feature work: bounded audit of external
+server registration/configuration and available local servers, then a coherent
+extension-ready language-service slice. Preserve the existing Tsrust request guards,
+fast declaration path, draft safety and AI action parity. Git/debugger UI stays later.
+Bounded local inventory: /Users/seancotter/go/bin/gopls runs and reportsv0.23.0;
+/usr/local/go/bin/go is on PATH. rust-analyzer resolves only to the Rustup proxy;
+--version reports Unknown binary in current1.99.1 toolchain (component list omits
+it). typescript-language-server and VS Code JSON/HTML server commands are not on
+PATH. No installs performed. Current services/workers.tsr derives exactly one
+sibling tsrust-lsp executable, and controller restricts documents to .tsr/.tsrx;
+there is no external-server registration in settings. Next concrete slice should
+reuse generic framed session transport, add a lazy/configured registry and scoped
+per-server lifecycle/diagnostics, then exercise available gopls as an actual foreign
+server without replacing the owner's Studio package workspace. Do not merely add
+an unused language/path table or claim unavailable server acceptance.
+
+Signature help / completion responsiveness — accepted section, 2026-11-12.
+LSP responsiveness source checkpointca5312e2 is accepted; this Studio UI checkpoint
+contains the signature/Tab slice and this evidence. Full Studio goal remains active.
+Previous goal turn made progress: live LSP/Tab fixes and native MAT. Current turn
+finished focused harness checks, sampled actual typing, and pruned native caches.
+
+Accepted signature section preview (now superseded): supervisor37203 / PTY95503,
+app38977 / LSP38978. Bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-37203-1794473624608740000-0/Tsrust Studio.app.
+Log /tmp/studio-completion-dev.log. Old19390/PTY56431 was stopped after replacement
+visibly ready; process check confirmed no duplicate preview/server. Keep this dev
+session running. Legitimate restarts remain authorized. Current installed SDK,
+independently matching built hashes:
+CLI ac7ed0f8e2671d0c721edcb76094fa5cfbf8772856d70f0e0f41bca632af01d4;
+LSP7cb435cd0b859baa8f6e0abd2b6fc11258282814c9afc5632e6f8271eb543924.
+Native build346562ms: check89707.6,emit3602.3,runtime228765.2,native/link252406.4;
+runtime/program misses. CLI build3m54s included shared-target lock wait. Earlier
+signature and polish builds are superseded; no more rebuild required for this source.
+
+Native signature help now connects Studio controller/session capabilities, guarded
+language_signature_help AI read/result/cancel action, shared native provider and
+GPUI Kit popup. Exact document/revision/cursor matching,75ms coalescing, automatic
+parenthesis/comma triggers, Escape/blur/reset cancellation, no idle re-queries.
+The popup reuses matching-font highlighted Markdown, UTF16 parameter-label ranges,
+signature active-parameter overrides, parameter docs with signature-doc fallback.
+Shared Popover uses input_bounds for vertical space, avoiding tab coverage at first
+line. macOS Cmd+Shift+Space explicitly requests hints (Ctrl+Shift+Space elsewhere).
+No contextSupport advertised; overload cycling/context forwarding remain open.
+AI action is executable/guarded but full integrated model-host parity is not accepted.
+
+Tab previously dismissed the completion list without inserting its selected item.
+Shared indent action now routes to the active menu before snippet navigation or
+indentation; completion menus accept it like Enter and the base closes the accepted
+overlay. When no menu handles it, ordinary indentation/snippet behavior remains.
+
+Owner reported VERY slow typing/Tab completion. A bounded1s sample of old LSP20118
+found protocol thread idle while tsrust-analysis spent CPU in full project checking/
+error-effect traversal. Source queued declaration refreshes behind that same pass
+and deferred reads up to3s. Checkpointca5312e2 adds ONE bounded header-only worker
+for deferred current intelligence. It uses existing request order/cancellation;
+attempt flags prevent repeat spinning, obsolete snapshots reject, and current
+indices cannot be downgraded. Existing diagnostic analysis/coverage remains intact.
+It is not a second full-analysis pool. Installed LSP restarted through native menu;
+connected verified. Its predecessor settled idle by13m; latest startup still had
+analysis CPU at4m. These ages/workloads are unmatched, not a memory regression claim.
+
+Accepted checks, no whole regression matrix:
+- Studio runtime language suite:8/9 initially passed; new real-server fixture
+  requested UTF16 position28 before its comma while expecting parameter1. Fixed
+  only position to30, affected case passed1/1, execution477.43ms (case476.45ms).
+  Preserve unchanged8cases:9distinct current accepted cases.
+- UI docs-normalization host1/1 passed0.00s; setup2m35s included target lock wait.
+- Component signature UTF16/doc-format witness1/1 passed0.00s, setup12m08s cold
+  standalone manifest/profile. Component actual Tab insertion witness1/1 passed
+ 0.01s, setup3m00s using its same prepared profile.
+- Base signature cursor/no-idle-request/pending-Escape witness1/1 passed0.01s,
+  setup1m46s after enabling required test-support feature. An initial harness
+  attempt failed2preexisting cfg-gated test_support imports, no tests executed;
+  no source workaround. Same built harness ran tab_routes_completion_before_indentation
+ 1/1 in0.10s, no rebuild, proving menu priority and indentation fallback.
+- LSP imported completion/hover/signatures while the full checker is deliberately
+  HELD blocked passed1/1 in0.01s, setup6.03s after repairing Snapshot thread-boundary
+  clone. Existing stale edit/close/reopen witness1/1 passed0.03s, setup3.32s.
+  LSP executable build4.41s. No new timed benchmark/SQLite record or speedup claim.
+
+Focused GPUI manifests use the shared root target, nonincremental/jobs1, debug0,
+dev/test opt1 with wildcard package opt2. Base requires --features test-support;
+component requires explicit --config patch.crates-io.gpui-base.path pointing to
+working-tree base. Component setup rewrites two Cargo.lock source/checksum lines;
+restored exact HEAD afterward. Both patched lockfiles have no diff. All acceptance
+jobs completed; do NOT restart them. Logs /tmp/studio-{signature,tab, lsp-priority}*
+are disposable. Base harness target/debug/deps/gpui_base-5f907694a26fe79a exists.
+
+Native MAT passed imported automatic readTextFile suggestion, real Tab insertion,
+parameter changes root -> program, outer call selection, automatic parenthesis/
+comma triggers, Escape, Cmd+Shift+Space, highlighted matching-font text and correct
+first-line placement below code. All temporary UNSAVED recovery.tsr edits were
+undone; no file saved. Original active project-check, nine tabs and sole owner draft
+independently verified after MAT/profiling, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+No temporary filesystem fixtures. Existing Find found1/1 but did not visibly scroll
+to its far-away match; retain separate navigation issue.
+CUA last completed phase: Profiled reversible typing and acceptance. Binding
+completionApp targets current bundle. After compaction rewriteDocumentation; after
+future app replacement reset/getApp exact new bundle to avoid stale-process guards.
+
+Bounded profiles: old LSP322.3MiB/peak483.7MiB; fresh app3s sample295.1/297.6MiB
+mostly idle and did NOT capture edit cost. Follow-up15s sample DID include paste,
+character, Tab and Undo, footprint296.3MiB/peak298.0MiB. It shows reactive list/tree
+construction/cloning and synchronous Syntect parsing in insertion paths; sample
+counts are not latencies and nested counts must not be summed. CUA round-trip times
+include automation/AX work; no end-to-end latency or long-running leak acceptance.
+Sources /tmp/studio-app-typing-sample.txt and /tmp/studio-signature-lsp-sample.txt.
+Source evidence: SyntectInputHighlighter.update reparses whole documents <=64KiB
+on the UI thread even for edits, although it already has shifted highlights,
+background parsing and stale-task replacement for larger documents.
+NEXT executable optimization: reuse that existing background path for edits in
+small documents as well; preserve initial highlighting, stale-response rejection,
+fold candidates and color accuracy. Add focused witness and native typing MAT.
+Then investigate repeated explorer row construction (each refresh rebuilds rows;
+per-row computed labels read whole workspace snapshots), if profiling still warrants.
+Do not add a speculative reactive framework or lower polling intervals blindly.
+UI150ms LSP polling and synchronous member-repair fallback remain possible costs.
+
+Pruned8obsolete program/runtime variants or build payloads under namespace/entry
+locks, preserving3latest program/runtime entries and2latest COMPLETE build payloads;
+removed one canceled partial build. Cache7.4GiB ->4.5GiB. Shared Cargo target/model
+qualification artifacts untouched. Empty lock/identity shells retained. Full8GiB
+editor+AI qualification, external language servers and integrated AI host remain
+open. No push/release. Final whole-project formatter passed0files/0snippets/
+0fingerprints changed; git diff --check passed before checkpoint.
+
+Explorer visibility/refresh section — 2026-11-12, based on7956ab5a; checkpoint
+contains this entry. Tree and content/file search now use the same checked walkDir
+policy. Tree snapshot construction groups one traversal by parent with a local
+path/index Map, then returns plain serializable directory/entry arrays and child
+indices. The Map is not retained in Signal state. Root contents remain the first
+rows, with directories sorted before files. Existing workspace.entries remains a
+compatibility helper, not the active tree/search discovery route.
+
+Persisted treeIncludeIgnored defaults true (older configuration migration), with
+General -> Explorer -> Show ignored files in categorized Settings. Live policy
+changes rebuild the tree. Project -> Refresh Explorer / Cmd+Option+R invokes the
+same guarded revision request as registered refresh_explorer. Explicit root/read
+grants are required; unavailable host bindings and wrong roots reject. This is an
+executable queued-action adapter, not full integrated-agent acceptance: scan
+completion/error observation and model-host integration remain open. The 150ms
+controller tick compares scalar request/policy state; it does not scan the filesystem
+when unchanged. Failed scans retain the last successful snapshot and display a
+local error in the configured tree text size. OS watching, background/cancellable
+Studio scans and larger-workspace resource qualification remain open.
+
+Native MAT caught a shared runtime defect: reactive lists keyed only semantic IDs/
+DockPanel values, treating TreeItem bound IDs/labels/icons as reusable live values.
+Insertion produced stale/duplicated labels; nested replacements with unchanged
+counts could retain old children. Fixed crates/tsrust-ui/src/branch.rs: TreeItem id
+is a row key and TreeItem snapshot props stay structural, including nested data.
+Other editor/input live props retain their existing state behavior. Duplicate-row
+message is now generic distinct IDs; updated its preexisting assertion. Do not
+work around this with per-row rebuild keys or readDir copies. Computed remains
+scalar-only; snapshot arrays use Signal and ordinary reactive child expressions.
+
+Acceptance: first combined explorer/search/settings runtime suite9/9 passed605.70ms
+(setup7546.9ms). After snapshot/controller restructuring, affected explorer3/3
+passed2.75ms (setup6577.5ms); preserve unchanged search3/settings4, for10distinct
+current runtime cases. Coverage: prefix siblings, Unicode/hidden files, single
+snapshot grouping, persisted policy, root/read guards, no idle rescans, explicit
+refresh, and last-good snapshot after errors. Focused UI runtime tests: tree-bound
+identity/nested data and existing controlled-editor rows passed2cases; the existing
+identified-input-row case failed only its renamed-message assertion, then passed1/1
+in0.00s after repair. Three accepted UI runtime cases total; setups3.67s/3.29s.
+No whole compiler/LSP/UI matrix rerun.
+
+Repaired native MAT passed root insertion/removal, nested insertion and same-count
+rename, correct new row -> actual Markdown file contents, live ignored README
+hide/show, persistence across Settings reopen, unchanged expansion/selection,
+original active project-check, nine tabs, one draft and no duplicate rows. Opened
+only a clean temporary Markdown fixture, then closed it and restored project-check.
+Removed the exclusive .ignore and two Markdown fixtures; disk preferences restored
+treeIncludeIgnored=true/searchIncludeIgnored=false. Owner draft SHA256 still
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+CUA completed: Verified live explorer visibility and refresh. Reset CUA/getApp at
+new full bundle after process replacement; after compaction rewriteDocumentation.
+
+Current only preview: supervisor11208 / PTY83123, app11284, LSP11561 after native
+status-menu restart; bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-11208-1794468747970271000-0/Tsrust Studio.app.
+Log /tmp/studio-tree-repaired-dev.log. Old2111/PTY58391/app10691 stopped after
+replacement became visible. Repaired build160219ms (check82814.2ms,emit3495.6ms,
+runtime51086.5ms,native/link73127.3ms; runtime/program misses). Earlier frontend
+build192199ms hit runtime, then MAT exposed the shared defect; it is superseded.
+SDK atomic independent hash matches: CLI
+0abe0bf6c0f17e6deaf6dc365bde36043606dc4fe36ad744b17dcd5a5dab2f3f;
+LSP da7f9889a9b39d7badcc76c205decfef266f4dc1c6de37097a42612c4ee3945d.
+Updated DirEntry/FsError help distinguishes readDir spelling/order/symlinks from
+walkDir canonical sorted/ignored results and its discovery failures. LSP build19.19s;
+CLI build2m21s. Legitimate dev restarts remain authorized.
+
+Bounded non-comparative observations after MAT: app age10m15s,5.8%CPU,
+footprint323.5MiB/peak387.0MiB; new LSP age2m03s,99.3%CPU while checking,
+footprint201.3MiB/peak270.3MiB. Earlier prototype CPU17% occurred during different
+work/build activity; do not treat these as matched benchmarks. Long-running leak,
+full editor-plus-AI8GiB and traversal performance acceptance remain open. Later
+LSP observation at15m55s settled at0%CPU: footprint231.9MiB/peak467.2MiB.
+This extends the observation, not long-running leak qualification.
+Whole-project final formatting passed0files/0snippets/0fingerprints changed and
+git diff --check passed. Pruned5obsolete native entries/workspace payloads under
+namespace/build locks, preserving3latest runtime/program artifacts and2latest
+actual build payloads; cache4.7GiB ->3.7GiB. Shared Cargo target/model artifacts
+were untouched. Old2111/app10691/LSP10692 are gone; only11208/app11284/LSP11561
+remain. Empty build lock/identity shells remain; filter actual payloads when pruning.
+Source checkpoint contains the completed UI slice and this exact evidence.
+Next prioritize signature-help/native intelligence and latency, per owner. Checked
+OS watching/background cancellation and refreshed portable benchmark sources remain
+required before larger-workspace discovery qualification; they do not block the
+existing small-package intelligence workflow. No push/release.
+
+Accepted checked discovery/content-search slice — 2026-11-12, source checkpoint
+contains this entry, based on9f8fbf3f.
+Compiler and generated std:fs.walkDir now embed one shared serial traversal source.
+walkDir returns sorted owned regular-file/directory snapshots with canonical paths,
+workspace-local ignore policy, hidden entries, no symlinks, generated-directory
+pruning, explicit optional entry bounds and no partial success. Source/compiler
+selection remains unchanged. The dependency is selected only by the file-discovery
+runtime feature, with backend/native/GPUI manifests and locks updated. Complete
+signature/parameter/help/example documentation is in builtins.json and files.md.
+Initial public run exposed a missing FsError effect registration; fixed centrally,
+including read-only leaf classification, instead of weakening catches/callbacks.
+
+Studio projectFiles now uses the checked snapshot; content search persists
+searchIncludeIgnored (defaultfalse, older configs migrate) through the categorized
+Settings GUI and formatted settings JSON. English/Portuguese labels supplied.
+UI and registered search_content action call the same implementation. Host context
+must grant read access to the exact current canonical root; payloads cannot grant
+read/navigation or widen the root by requesting ignored files. Full model hosting
+and action parity remain pending. Tree currently keeps its existing visibility
+policy; tree-setting/watcher integration is not accepted by this slice.
+
+Passed: public std:testing discovery suite1/1, execution5.43ms (case4.93ms),
+setup/build5579.8ms; Studio search/settings7/7, execution500.85ms,
+setup/build22497.1ms (check2081.7ms,emit383.6ms,native/link19761.4ms).
+Coverage includes nested rules/negation, Unicode/hidden entries, rule edits without
+restart, ignored inclusion, sorted snapshots, exact/invalid bounds, non-directory
+root, persisted preference, host read/root/navigation guards and stale search hits.
+A preexisting stale editorTools count expected2 although the catalog already had3;
+updated the assertion to3. Ownership checker also caught record-construction/test
+uses of a moved workspace signal; compute allowedRoot before transfer, then use
+context.workspace. No signal aliases or blanket clones were introduced.
+
+Matched benchmark support native_directory_walk now includes Tsrust/TypeScript
+sources, deterministic nested fixture, independent75entry/67file/8directory oracle,
+source guards/fingerprints, driver registration and report category. Focused Node
+control/source-contract check1/1 passed (347.88ms); the new TypeScript source also
+passes the benchmark's strict compiler options. Native --verify with native,node-tsc stopped
+at the new lockfile's unprepared portable source pack. No native benchmark acceptance,
+new timing, SQLite record or speedup claim. Prepare portable cached sources before
+that verification; this is setup, not missing workload implementation.
+
+Installed SDK atomically, independent hash matches:
+CLI b98545029e672a61a2a42d988ed5e466d27a948df078af609cef97a140d4d4ca;
+LSP4d3a846feff84abd6270ca380a244de093b8e04a8e5b11a8dfcb58ff49f5953d.
+Current only preview: supervisor2111 / PTY58391, app2332 / LSP2333;
+bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-2111-1794465488243489000-0/Tsrust Studio.app.
+Log /tmp/studio-walkdir-dev.log. Full native build335594ms (check82750.4ms,
+emit3508.1ms,runtime227130.5ms,native/link248553.4ms; runtime/program misses).
+Old81803/app82069/LSP96369 stopped through PTY55205 after replacement was visibly
+ready. Process inspection confirmed old processes gone and new app/service live.
+Legitimate restarts remain authorized. Owner's one
+project-check draft was verified before reload: four extra spaces, SHA256
+bc3567c709b73a5a6657cb98af0aadc78e87278a216e99beeb245171f8bbff17.
+Full standalone Studio check passed; no repeat is needed. Native MAT created
+only an exclusive temporary .ignore containing README.md: query returned0hits,
+Settings toggle on returned README.md:8, reopening Settings retained on, restoring
+off returned0hits, and removing the temporary rule returned1hit without restart.
+Cleared the query, closed Settings and restored Files with src/services expanded,
+active project-check, nine tabs and one unsaved draft. SHA256 still matches before
+reload; no probe buffers were created/saved. Temporary .ignore removed and disk
+settings independently verified searchIncludeIgnored=false. CUA completed:
+Verified persisted ignore-aware Studio search. Settings' existing typography remains
+visually larger than the editor despite shared preference plumbing; retain that
+UI polish issue, rather than claiming complete sizing acceptance.
+
+Whole-project final formatting passed0files/0snippets/0fingerprints changed;
+git diff --check passed. Earlier formatting normalized5authored files and the new
+benchmark (1source fingerprint), proving tokens/idempotence through the formatter.
+Pruned5obsolete native cache entries/workspace payloads under namespace/build locks,
+keeping3latest runtime/program variants and2latest actual build payloads. Native
+cache4.7GiB ->3.7GiB; shared Cargo target/model artifacts untouched. Empty build
+lock/identity shells retained; filter actual payloads before future pruning.
+Focused compiler host checks passed3/3 in0.01s after3m36s setup/build: extracted
+discovery, observer classification and existing regex Result classification.
+The same built test consumer passed the lexical native-effect audit1/1 in0.00s
+without recompilation or rerunning passed cases. New benchmark Tsrust source also passes
+CLI checking; strict TypeScript source checking passed independently.
+No full regression matrix, measured benchmark, push or release. Next executable
+section: configurable tree visibility, shared watcher/index policy and cancellable background
+Studio scanning, then return
+to signature help and language-service latency/external-server work. Portable source
+setup/native benchmark verification remains a separate pending measurement task.
+
+Current discovery section — 2026-11-12, based on local checkpointdb488fe0.
+Pinned ignore0.4.28 (new lock entries ignore/globset/bstr), replaced the shared
+serial source-discovery worklist with WalkBuilder, and preserved existing compiler/
+dev source extensions, explicit-file selection, canonical sorted/deduplicated output,
+no-follow symlinks and .git/node_modules/target directory pruning. Compiler/dev and
+LSP diagnostics deliberately include ignored inputs. The cancellable Rust API also
+supports workspace-local .ignore/.gitignore filtering for forthcoming editor callers;
+ancestor/global ignore files and implicit hidden-file exclusion are disabled.
+Cancellation returns None, never an empty diagnostic publication. LSP discovery
+now invokes the same interruption callback as analysis. No parallel analysis pool.
+
+Focused traversal witness including extended .ignore coverage passed1/1 in0.01s;
+Cargo reported7m23s setup/build including shared-target lock wait. Initial witness
+before that extension also passed1/1 in0.01s after3m26s setup/build. Workspace-scan
+acceptance passed8/8 in0.01s; Cargo reported3m41s setup/build. This is9distinct
+accepted cases, not10. No full compiler/LSP matrix or timed performance benchmark.
+Whole-project formatting passed with0files/0snippets/0fingerprints changed;
+git diff --check passed. Logs /tmp/studio-ignore-{discovery-final,workspace}-test.log
+are disposable. Source checkpoint contains this entry; no push/release. Existing interruption witness now uses
+observed loaded source state rather than brittle callback counts, and separately
+checks pre-discovery cancellation. The unopened-error fixture now has a .gitignore
+that excludes *.tsr, proving diagnostic coverage is preserved. Do not claim the
+entire shared discovery slice accepted: checked Tsrust APIs, Studio tree/search
+settings and real guarded AI route, watcher refresh and comparable performance
+measurements remain open. Installed LSP now includes this source-discovery change, atomically copied from
+target/debug with independent SHA256 match:
+9bacd0196b4aa2df2c43b4dcdd4becbcdf7e81211dae9ad19840e313bd860b47.
+Native status-menu restart visibly went starting -> connected. Current service96369
+replaces89244; app82069 and supervisor81803/PTY55205 remain unchanged. No native
+app rebuild or CLI replacement was required; nine tabs, active project-check and
+one owner draft remain. CUA completed: Loaded cancellable discovery in Studio.
+Recovery file inspection independently confirms only project-check's four spaces.
+
+Live bounded vmmap observation ofLSP89244 later in this turn: footprint221.0MiB,
+peak576.1MiB. Earlier process check confirmed supervisor81803/app82069/LSP89244
+live (LSP age~29min); later snapshot happened during a compiler build, not a matched
+quiet-machine comparison. No new heap attribution or leak qualification claimed.
+Owner's sole project-check four-space draft remains protected. Next executable action:
+expose the shared walker/matcher through checked Tsrust filesystem bindings, then
+route Studio tree/search settings and guarded AI discovery through it. Keep explicit
+compiler inputs, diagnostic coverage, cancellation and workspace grants intact.
+
+Latest accepted memory section — 2026-11-12, source checkpoint contains this
+entry, based on2d7300c4. Navigation/nominal/foreign definitions now retain typed Location
+values; reference maps use Location keys and lazy iteration instead of per-location
+JSON trees, serialized string keys and an eager temporary vector. Wire responses
+still serialize at the protocol boundary. Exact URI identity, order, aliases,
+Unicode/UTF-16 ranges and immutable snapshot behavior are preserved.
+
+Focused acceptance: compact-location Unicode/alias/snapshot witness1/1 (0.01s),
+project definition cases7/7 (0.05s), navigation7passed (0.03s) plus repaired stale
+witness1/1 (0.05s), alias/shadow reference case1/1, inherited-help cases2/2 (3.84s):
+19accepted cases. The stale navigation assertion expected line5; both the previous
+installed LSP and current formatted source put the binding on line6. Its replacement
+computes the full expected range independently from the fixture text. Passed cases
+were preserved; no full regression matrix or statistical benchmark was repeated.
+
+Actual same-window manual completion/snippet workflow, idle before/after:
+previous LSP PID82075 at~14m28s: footprint616.7MiB, peak907.5MiB,
+2,159,088live malloc nodes /421,341,280live bytes. New LSP PID89244 at~15m15s:
+footprint264.1MiB, peak576.1MiB,908,264nodes /151,319,440bytes. Both idle
+snapshots had0%CPU before/after heap inspection. The640-byte allocation group fell
+from434,392nodes to14,153nodes; allocator size alone does not prove every allocation's
+origin. Earlier active new-service snapshot576.0MiB at98.8%CPU is not an idle
+comparison. This supports the location-memory change, not a universal leak fix or
+full8GiB editor-plus-AI qualification. Disposable traces are under
+/tmp/studio-compact-locations-*. Native MAT repeated real completion, Ok snippet
+placeholder replacement, Tab/body insertion and exact151-character probe removal.
+Only the owner's project-check.tsr four-space draft remains; never save/reset it.
+
+SDK LSP atomically installed with independent hash match:
+b6b8058caa61d3c9ae6e11acd6a5cd85f8373cc9460557198beb3715fb5693ce.
+CLI remains fda077eb5701cdfcdb88bf42288ba103fdea7459ed65b898f8b51d7745452c2c.
+Restarted only language service through its native status menu; app82069 and
+supervisor81803/PTY55205 remain the current preview. Older process/hash/resource
+notes below are historical. No native app rebuild was needed. Last CUA phase
+completed: Verified language-service reload and editing. Nine tabs, zoom-1,
+explorer expansion and owner's draft preserved. Whole-project formatter passed:0files,0documentation snippets and0fingerprints
+changed; git diff --check passed. No broader checks are needed for this checkpoint.
+
+Next executable section: shared workspace discovery/ignore policy in the Studio
+plan, ahead of expanded indexing/search and Git/debugger/extensions. Dependency
+not added yet; preserve compiler input semantics and explicit ignored imports.
+Continue intelligence/signature/external-server work and bounded live monitoring;
+long-running leak/resource qualification remains open.
+
+Latest accepted native interaction — 2026-11-12, source checkpoint10777c1f.
+Final checkpoint/cleanup:10777c1f contains the complete native help/snippet section
+and focused evidence. Worktree was clean after that commit. Final MAT verified
+single-line ellipsized completion details, syntax-colored editor-sized documentation,
+correct snippet body/closing indentation, placeholder replacement/Tab navigation and
+preserved src/services expansion through dirty/clean transitions. Only the owner's
+original project-check draft remains; no probe was saved. Source identity is10777c1f;
+this handoff update records the following cleanup, not another implementation gate.
+Pruned20obsolete Studio native cache entries/build-workspace payloads under namespace
+and per-workspace locks, preserving three latest runtime/program artifacts, two latest
+build payloads and all build lock/identity files. Studio cache12.3GiB ->4.5GiB; shared
+root Cargo target and model qualification artifacts untouched. Removed the closed
+manual preview bundle and temporary numeric-snippet test executable. Future build
+pruning must filter for actual native-support/artifacts/target payloads before sorting;
+empty lock/identity shells deliberately remain and their directory mtimes changed.
+Current dev supervisor81803/PTY55205, app82069/LSP82075 confirmed alive at~6min;
+LSP idle0%CPU,RSS259024KiB (RSS is NOT the footprint/peak). Latest CUA phase completed;
+no permission needed for legitimate dev restart. Continue with bounded retained
+location/reference-memory investigation rather than another broad regression run.
+
+The preceding goal turn made progress: native build/MAT completed; three observed UI
+bugs repaired, built and verified without broader regressions. Native popup docs now
+use editor-sized syntax-highlighted examples with no inner border or language badge.
+Completion rows constrain primary/detail labels, flatten detail newlines and ellipsize
+instead of overlapping. Numeric snippet Ok default selection/replacement, Tab to body,
+body insertion and corrected indentation all worked in the actual app. Targeted LSP
+space/tab indentation1/1 passed0.04s; SDK pair build2m44s. Native Tree refresh now
+preserves expansion and selected ID, honoring explicit controlled expanded props;
+real dirty/clean transitions kept src/services expanded and selection intact. No new
+public Tree API or application-host Rust introduced.
+
+CURRENT ONLY PREVIEW supersedes process details below: supervisor81803 / PTY55205,
+app82069, LSP82075, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-81803-1794460353665739000-0/Tsrust Studio.app.
+Old78662 / PTY36743 stopped after replacement GUI was confirmed. New supervisor has
+explicit shared CARGO_TARGET_DIR, jobs1/incremental0, TSRUST=~/.cargo/bin/tsrust,
+NO_COLOR/CODEX_TOOL_CALL_ID cleared, elevated macOS desktop access. Native build
+322241ms: check72863.0ms,emit3312.7ms,runtime222432.4ms,native/link245292.6ms,
+runtime/program misses. Log /tmp/studio-editor-language-polish-dev.log. Installed
+CLI fda077eb5701cdfcdb88bf42288ba103fdea7459ed65b898f8b51d7745452c2c,
+LSP cf8bc15c3a22a8f413c5861d84c669d21cf535dcc8401f6588a21066871c872e,
+atomic installation and independent hash matches. All earlier passed evidence below
+remains valid; no full compiler/LSP rerun, push or release.
+
+CUA refresh issue was stale control state after replacing processes, NOT proven owner
+activity: js_reset + first-call getApp(full current bundle) fixed it. Repeat this on
+replacement; after compaction first rewriteDocumentation. Last CUA phase completed
+with completion_summary Verified repaired snippets and explorer. Two probes were
+ONLY unsaved appended recovery.tsr text; first143chars/second151chars removed exactly
+from EOF after verifying prefix matched savedText. Never saved them. Remaining sole
+owner draft is still project-check.tsr4spaces on its blank line. Owner tabs9/zoom-1/
+active project-check preserved; src/services expanded and original tree selection
+restored. Do not erase/save the owner draft during cleanup.
+
+Memory remains unresolved. After real completions, snippet edit and143backspaces,
+previous LSP79444 settled617.9MiB/peak947.7MiB at12min,0%CPU, vs initial418.6MiB
+active at2min. This does NOT qualify a leak fix or formal improvement over old
+708.2MiB idle/1.0GiB peak. Trace /tmp/studio-editor-language-memory-after-mat.txt.
+Sharing eliminates proven duplicated catalogs, but large retained storage persists.
+Next evidence-led target: ProjectIndex.references stores a serde_json::Value location
+for every reference token; SourceIndex.foreign_definitions and nominal_definitions
+also store nested JSON locations. reference_locations eagerly clones/materializes
+both definition and reference JSON. The old heap's497,836640-byte nodes may include
+these JSON B-trees (inference, not allocation-stack proof). Inspect/count retained
+locations, consider compact typed locations with JSON generated only for replies,
+and verify navigation/reference equivalence plus repeated real-use memory. Do not
+cap caches or weaken diagnostics to hide growth. Full intelligence, signature/
+keyboard-hover UI, external servers, integrated AI hosting and8GiB qualification
+remain open. Planned ignore traversal follows current intelligence/memory slice.
+
+Native language help, snippets and memory — active uncommitted section after95b491c8.
+Previous goal turn made progress: real native bridge, guarded AI reads, sender sharing,
+presentation fixes, staged cancellation, immutable completion-catalog sharing and
+focused validation; ignore discovery added to the plan at owner's request. Full
+Studio goal remains active, one writer/no agents. No push/release/full matrix.
+
+Implementation: CodeEditor onLanguageRequest/onLanguageCancel + answerEditorLanguage;
+existing HoverProvider/CompletionProvider with Ctrl-Space, window-owned pending
+requests/5s timeout/drop cancellation/process-wide unique native IDs, UTF-16/scalar
+range conversion, unchanged opaque completion data, and stale text/revision guards.
+Tsrust session/controller synchronizes exact document identities and versions,
+correlates/cancels reads; LanguageState is App-owned and shared with editors/status.
+Registered language_hover/completion/read_result/cancel_read use invokeLanguageTool
+and trusted host allowRead/root + explicit target identity. No model hosting or
+full editor action parity claim. New registry is sourcepacked through stdlib/ui.
+
+Required Sender.share creates another owned channel endpoint with independent close.
+Future-native emission now honors access wrapping for temporary returned sender/token
+values; this fixed actual native Studio E0308. Complete builtin docs/example and
+matched Tsrust/TypeScript/Rust async_channel_share_try workload/oracle/driver/manifest/
+contract support are ready, UNMEASURED. No SQLite timing claim.
+
+Native popovers now read the editor's DisplayMap font; hover/completion/diagnostic
+Markdown code has no inner border/radius or language badge. Presentation-only Tsrust
+fences use existing Kit TypeScript/TSX grammar mapping; MarkedString language values
+render as fenced code. Gutter removes code-editor left padding, trailing line-number
+margin and fold-icon inset. Native numeric snippets expand stops/defaults, select
+mirrored occurrences, support Tab/Shift-Tab, adjust offsets on edits, cancel on
+undo/reset/Escape. Variables/transforms/nested defaults remain unsupported and are
+rejected before insertion. Signatures/external servers/full snippet scope still open.
+
+Memory work: obsolete document/workspace snapshots set the existing worker interrupt
+flag. Skip later recovery/index/action stages, including between repaired graph checks;
+an already-running compiler pass stays synchronous. Immutable native import completion
+catalog JSON uses Arc<Vec<Value>> shared across source indices; project export catalogs
+share per dependency within a graph. Clone selected response items before per-document
+text edits. Unknown empty module catalogs are not retained. No arbitrary cache cap or
+reduced checking/inference coverage.
+
+Passed focused checks (preserve, do not rerun unchanged): native registry2/2 (0.00s);
+public Studio language-service9/9 (802.90ms), real worker hover/completion/restart,
+stale/identity/grants/no focus or edits, Sender.share and readonly temporary witnesses;
+existing async task suites15/15 (8.71ms); benchmark contracts4/4 (257ms). Direct services
+and workspace-view checks passed. New numeric snippet source witness1/1 (0.00s);
+Markdown mapping/isolation1/1 (filter also ran one existing i18n case, total2/2,0.00s);
+cancellable recovery + existing array capability/generic prefix3/3 (0.14s);
+protocol stale edit/close/reopen1/1 (0.00s); native catalog storage/reply isolation1/1
+(0.04s); existing imported inherited help/Signal alias2/2 (4.70s). Native Studio builds
+passed. Whole-project formatter latest0files/0snippets/0fingerprints; diff check passed.
+
+Installed CLI8099246bf55af8fbdda6049faaf7948d4fc9aa8c26462fdf0128cf8de85ef4c3,
+LSP21e249aa47c153dde406ccfa4f26f1636d44892ed221991ba41a7d9a6b695b42, atomic copies
+and independent hashes matched. Final pair build2m49s; LSP-only sharing refresh18.10s.
+First native candidate built850398ms (runtime746434.6ms) but sandbox launch failed
+NSPasteboard generalPasteboard NULL; supervisor69130 / PTY24597 stopped. It omitted
+CARGO_TARGET_DIR. Corrected elevated dev launch explicitly sets shared root target:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target.
+It built324464ms: check71328.4ms,emit3309.7ms,runtime220936.1ms,native/link248967.7ms,
+runtime/program misses. No need another pre-build or repeat tests of the executable.
+
+CURRENT ONLY PREVIEW: supervisor78662 / PTY36743, app79412, LSP79444, bundle
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-78662-1794459016898094000-0/Tsrust Studio.app.
+Log /tmp/studio-editor-language-desktop-current.log. One benign mac sandbox_extension
+warning after successful GUI launch. Old58964 / PTY52232 stopped after replacement.
+Brief cached-binary preview /private/tmp/studio-language-preview-vuy7vups was closed
+(PTY84407); no duplicate apps/LSPs remain. That temporary bundle can be removed.
+
+Live acceptance: BEFORE latest styling/snippet edits Ctrl-Space showed real declarations
+and Channel docs, automatic console completion log/error appeared, accepting filtered
+log replaced l and cleared diagnostic. Probe removed exactly, no saved file changes.
+Owner later observed actual hover but reported old oversized/unhighlighted/badged style.
+LATEST app screenshot confirms compact gutter, connected service,0errors/0warnings,
+9owner tabs/zoom-1/active project-check and1owner draft restored. CUA actions on the new
+window repeatedly reject with 'user changed ... re-query'; full AX refresh did not
+resolve it. Do not force edits while owner is interacting. Latest CUA phase completed
+with completion_summary Loaded updated Studio preview. New popup styling/snippet tab
+stops still need interaction MAT; not accepted from compilation or source alone.
+Next CUA action may reset a stale control session after multiple app replacements,
+then first call exactly getApp(full CURRENT path); after compaction rewriteDocumentation.
+
+OWNER DRAFT: project-check.tsr has4indent spaces on blank line103, appeared AFTER
+our old completion probe was fully removed/0drafts verified. Preserve it. Recovery
+~/.tsrust/studio/recovery/0623928fcb7d7c52bea51167921ccac51f064395e1d1b9efc6df8004bb8ee2cf.json.
+Do not treat it as our scratch text or save/reset it. Any next snippet probe must
+use a different clean tab and restore only its exact appended content, leaving this
+owner draft intact and returning active selection afterward.
+
+Old LSP59142: active footprint1107592608bytes (~1056.3MiB),~98–100%CPU;3s sample
+showed with_diagnostics -> recover_project_member_receivers -> whole-graph compiler
+check. Eventually idle708.2MiB,1.0GiB peak. Bounded heap inspection succeeded:2,517,558
+malloc nodes,483,601,312live bytes;497,836640-byte nodes account for318,615,040bytes.
+vmmap~461.2MiB allocated +243.1MiB fragmentation. JSON B-tree attribution is an
+INFERENCE without allocation stacks, but repeated catalogs are proven by source/test.
+NEW LSP79444 at~2min:418.6MiB footprint/peak,100%CPU,RSS382736KiB.3s sample now in
+ordinary project check_graph_diagnostics/analyze_recursive_with_proofs, protocol
+main parked. This is a DIFFERENT PHASE/workload, not a comparable improvement or
+leak qualification. Logs /tmp/studio-editor-language-memory-current.txt and
+/tmp/studio-editor-language-sample-current.txt; older heap/memory traces under same
+prefix are disposable. Continue repeated-use/settled-memory observation on current
+process; no restart-savings claim or quiet-machine benchmark claim.
+
+Owner ignore0.4.28 follow-up: documented in docs/plans/tsrust-studio.md section
+Shared workspace discovery and ignore rules. After active native intelligence/memory
+section, before broader workspace index/search expansion and Git/debug/extensions.
+Shared caller policy, explicit imports/compiler inputs preserved, configurable hidden/
+ignored visibility, deterministic results, symlink/errors/cancellation/AI grants.
+Dependency NOT added/traversal NOT changed/performance NOT measured. Primary docs
+verified at https://docs.rs/ignore/0.4.28/ignore/.
+
+Next: finish native popup/snippet MAT when control is stable, measure current LSP
+settled/repeated-use memory, final format/local checkpoint with exact remaining limits,
+then remaining fast intelligence/signature/keyboard hover and prioritized discovery.
+Prune obsolete native variants under namespace/per-directory locks, keeping current
+and two recent/shared target. Root target is~82GiB (debug~62GiB); preserve model
+qualification artifacts and unrelated work, do not indiscriminately clean everything.
+Full goal, external servers, integrated AI host and8GiB whole-app qualification remain
+open. No broad compiler/LSP matrix or release authorization inferred.
+
+Early declaration help and stale-result release — 2026-11-11, follows9d7fc272.
+Previous goal turn made progress: verified panel inset and local checkpoint.
+Owner now requests6px instead of12px on both Close and terminal trash. Applied
+pr-1.5 to shared panel action group and terminal SessionItem, preserving left
+row padding. Live screenshot confirms same action column; no extra borders.
+
+LSP analysis worker now publishes ProjectIndex::declarations from current module
+headers before full body checking. This path skips compiler-based recovery;
+preliminary completions use CompletionList isIncomplete:true. Checked and existing
+recovery constructors remain unchanged and still replace the preliminary index.
+Intermediate declaration messages retain busy/in_flight ownership; current document
+and full workspace snapshot guard publication. Protocol witness proves imported
+hover arrives BEFORE body diagnostics, including when body checking fails. This is
+not a universal low-latency guarantee: queued work/cold scans, local fallback
+SourceIndex::new and later compiler-based member repair remain concerns. Native
+Studio hover/completion provider bridge is STILL MISSING; no UI intelligence
+acceptance claimed. Next executable section is that bridge plus correlated,
+cancellable Tsrust-authored read requests and guarded AI read actions.
+
+ProjectSession now releases invalid indices/actions on edits, open/close, watched
+changes and result insertion; dependency registrations and diagnostic contributions
+remain for rescheduling/publication. No arbitrary cache cap or reduced checks.
+Repeated20dependency edits prove old observation Arc destruction and preserve an
+unrelated current project; watched invalidation/close covered. First witness failed
+because its own unrelated local input retained all open buffers; dropped that input,
+then witness PASS0.02s. Declarations hover/signature/incomplete completion witness
+PASS0.04s despite broken bodies. Public stdio ordering witness1/1PASS0.45s,
+/tmp/studio-lsp-declarations-protocol.log. Existing session4/4PASS0.02s and server
+lifecycle6/6PASS0.02s, /tmp/studio-lsp-declarations-lifecycle.log. No full matrices.
+
+LSP-only build17.27s, /tmp/studio-lsp-declarations-build.log; atomically installed
+and independently hash-matched853f67ff17b1cc1ef30aa8fa2527e8d80d99bfe71467d3304424cdae55b81942.
+Compiler unchanged; no paired compiler rebuild needed. Real status-menu restart
+replaced child37371 with42232; same app37370/supervisor30396/PTY88187 remained.
+LSP connected,0errors/0warnings. Owner selected project-check.tsr and expanded
+services tree; preserve that newer selection. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-30396-1794450506353980000-0/Tsrust Studio.app.
+Native spacing rebuild97608ms (check67994.1ms,emit3244.6ms,backend175.3ms,
+native/link25668.5ms,runtimehit). CUA ended "Verified margins and LSP reload".
+Required formatter0files/0snippets/0fingerprints and diff check PASS.
+
+Bounded live memory observation before installing this LSP: old37371 active100%CPU,
+footprint811041896bytes (773.5MiB),635224064compressed/swapped; Malloc Small
+770703360bytes,Large33112064,Metadata3670016. /tmp/studio-lsp-footprint-before.txt.
+No heap ownership trace or repeat-use growth qualification yet. The stale-cache
+witness proves a specific release, NOT that it accounts for this footprint or that
+the overall memory issue is fixed. Fresh child numbers are not comparable savings.
+Keep profiling alongside actual hover/completion use; avoid broad compiler speed
+experiments or delaying native intelligence behind full-check optimization.
+
+Panel-header inset — 2026-11-11: shared Panels TabsSuffix action group now
+uses pr-3 (12px), matching terminal ListItem px-3. Applies to Close in every
+panel and keeps New Terminal/Copy Problems together; no semantic/action changes.
+Required whole-project formatter0files/0snippets/0fingerprints; diff check passed.
+No new automated test for this spacing-only change. Live screenshot confirms
+Close moved12logical pixels inward, matching the terminal trash action column;
+Close hides panel and terminal toggle restores it. CUA ended "Verified inset panel
+close control". Automatic dev rebuild99981ms, app35512 under supervisor30396/
+PTY88187; current bundle tsrust-30396-1794450270616835000-0/Tsrust Studio.app
+under the same temporary parent. Keep running; LSP connected,0errors/0warnings.
+
+Argument wrapping and asset imports — accepted, follows 4e7cfa23.
+Shared CLI/LSP format.argumentWrapThreshold defaults to5 (0 disables,0–100).
+Wraps function/callback parameters and call arguments above the direct-item limit;
+nested commas/generic types are excluded. Import groups are std:, code paths,
+then asset/data paths, separated by blank lines and sorted within groups. Bare
+side-effect imports remain ordering barriers. Studio global/project overrides,
+pretty config, native Settings number input and en/pt-BR strings use existing
+formatting policy and guarded format_document routes. Applied to Studio itself.
+
+Focused formatter family4/4PASS3.97s, including639lexable fixtures and86standalone
+contracts for token preservation/idempotence. Public Studio runtime6/6PASS25.96ms,
+including actual CLI/guarded proposal, override threshold, disk unchanged and
+invalid permission grants rejected. Logs /tmp/studio-argument-format-{tests,runtime}.log.
+No full compiler/LSP matrix. Whole-project formatter15files/1documentation snippet/
+5fingerprints; explicit Studio organization21files; final idempotence0/0/0.
+Other source changes are required token-preserving formatting. Diff check passed.
+Final SDK build2m54s, /tmp/studio-argument-format-sdk-final.log; atomically installed
+and hashes independently matched CLI f9f8acbac1dabb2209bc5c1d973a16f0a2dc90347012b4d35755002b983b39fb,
+LSP c9b2ad74d293a301f782822a47435ed15beeec074d9fa5e158a187612d1cb62e.
+Native final build102900ms (check70605.4ms,emit3209.9ms,backend191ms,
+native/link28291.1ms,runtimehit). Setup observations, not benchmarks.
+Live native Settings5→6→5 persisted correctly; Main App signature multiline and
+assets last. Final preview LSP connected,0errors/0warnings,9clean tabs,zoom-1.
+CUA ended "Verified the running Studio preview". Supervisor30396/PTY88187/app30480,
+LSP30483; leave running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-30396-1794449456062244000-0/Tsrust Studio.app.
+Old22770/19783/app26971 stopped only after replacement started; one preview.
+
+Owner asked about544MB LSP. Idle old child26972 measured with footprint --swapped:
+physical570754152bytes (544.3MiB),peak813270120 (775.6MiB),compressed/swapped
+569868288; Malloc Small548061184. RSS1360KiB alone was misleading. One sample,
+not proof of leak or acceptable8GiB qualification. Final reload legitimately
+restarted LSP; lower fresh-process use MUST NOT be presented as a memory fix.
+Read-only hypothesis: ProjectSession retains per-root ProjectIndex values owning
+whole graph/source/token/symbol maps; overlapping retention is unmeasured. Next
+bounded investigation needs cache counts/ownership and repeated-edit growth,
+without delaying usable hover behind full checks. No heap dump/growth test yet.
+Actual integrated agent hosting remains pending; existing guarded formatter action
+is executable, not a claim that model hosting or all intelligence features work.
+
+Quiet timer redraws — accepted, follows c94cefc9.
+Owner steering2026-11-11: prioritize lightning-fast hover and interactive LSP
+feedback; full compiler checks are secondary. Do not continue general compiler
+optimization before wiring usable intelligence. Scope of this checkpoint is only
+idle timer painting; no new LSP intelligence feature is claimed.
+
+Root::emit uses non-forced settlement for timer ticks only. Bindings still refresh;
+changed bindings/global signal revisions/queued commands/locale changes request
+rendering. Other input events retain forced redraws. commands::has_pending and
+i18n::has_changed are private, non-consuming checks.150UI library tests PASS0.05s,
+3.36s setup, /tmp/studio-timer-tests.log: command owner isolation, locale pending
+state and real timer callbacks with ordinary mutable bindings/shared state/commands.
+Initial test compile needed missing imports fixed before the passed run. Timer
+witness moved from dock_layout_tests to general kit tests afterward, code unchanged;
+final targeted witness1/1PASS0.00s/3.63s setup, /tmp/studio-timer-final-witness.log.
+No public API/config/builtins change and no AI action semantics change.
+
+A separate error-effect fixed-point reuse experiment passed49internal tests1.07s
+(3m28s setup), but Studio CLI observations were64.93s before/65.14s after
+(64.53/63.90s user), complete stdout identical. NOT a meaningful speedup. Removed
+experimental code/tests/counter, restoring error_effects/mod.rs exactly from
+c94cefc9. Logs /tmp/studio-effects-before.log, /tmp/studio-effects-after.log and
+/tmp/studio-effects-tests.log are disposable observations, not benchmarks. Do not
+repeat that rejected cache or present it as an accepted compiler optimization.
+
+Final UI-only SDK pair PASS2m49s, /tmp/studio-performance-sdk.log. Installed
+atomically and independently matched CLI64884661489e9fe02a8d352ccf9d5aa825232f06ff6026305ccffedd96c0156b;
+LSP90a333c9bff90bc00b241d46711ef47645af5b6b458be4b92412a07c963b4aba.
+Native build PASS141.859s:check65.6638s,emit3.184s,backend178.9ms,
+runtime-prepare4.6324s/runtime-build50.4769s,native/link72.2472s. Setup observation,
+not a benchmark. Current supervisor22770/PTY19783/app22879; keep running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-22770-1794445953601229000-0/Tsrust Studio.app.
+Old15484/PTY94187/app17336 stopped only after replacement started. One preview.
+
+Idle CPU single5s observations: before app17336used0.20CPU-seconds/5.016s wall
+(3.99%of one core); after app22879used0.09/5.012s (1.80%). Point observations, NOT
+statistical benchmarks/leak acceptance. Live UI shows LSP connected,0errors/
+0warnings. Status-menu restart replaced real child22882with23095 and reconnected.
+Main tab active,9clean tabs,zoom-1,recovery drafts[]; panel hidden. Current owner
+selection differs from earlier terminal-panel baseline; preserve main selection.
+CUA ended "Verified quiet timers and reconnect". No new unsaved diagnostic probe
+this section; prior live Problems/navigation evidence retained. No full compiler/
+LSP matrices. Required formatter0files/0snippets/0fingerprints; diff check passed.
+Pruned1obsolete Studio program and1runtime variant under cache locks, keeping
+current/previous variants and the shared Cargo target; no cold rebuild afterward.
+
+NEXT implement actual native hover, completion/signatures/snippets and fast
+feedback. Useful localization already read: GPUI Base InputBaseState has an existing
+HoverProvider in patched-dependencies/gpui-base/src/input/editor/lsp/hover.rs;
+provider is missing from std:ui CodeEditor integration. Native hover waits150ms
+before querying; keep cancellation/stale-document safeguards. Existing LSP main.rs
+has ANSWER_WITHIN=3seconds and defers imported-document queries without a current
+project index. Documents::index (src/lib.rs) calls SourceIndex::new; that constructor
+synchronously calls cache_checked_views/compiler check, unsuitable for an always-
+fast request path. SourceIndex::for_project already builds without that local
+check. Build/use a current-version lightweight header/symbol index for fast answers,
+while full checking continues independently. Do not invent ownership/flow facts or
+serve stale replies. Reuse the native hover Markdown/popover, not a custom website
+popup. Studio's Tsrust service currently transports diagnostics only; add correlated
+read requests/results and checked native provider hooks, with shared executable AI
+action routes and host grants. Integrated agent hosting remains pending separately.
+Keep native Tree expansion on edits as a UI follow-up. Full goal remains active.
+
+Real LSP diagnostics — connection/Problems slice accepted, follows2081e21f.
+Studio now has a Tsrust-authored stdio client (services/lsp), independent bounded
+pipe reader/writer tasks, UTF-8 Content-Length framing, initialize/open/full-change/
+close lifecycle, monotonic document versions and connection generations. Problems
+uses lsp:tsrust independently of manual checks. UTF-16 positions convert to scalar
+columns. Stale/session-mismatched/closed-file or unversioned reports are discarded;
+edits and closes clear previous reports. Status menu exposes real state, Problems
+and a restart action. No background selection/focus changes. Server applyEdit is
+rejected for review; unknown requests receive MethodNotFound. Inputs are bounded
+(8 KiB headers,16 MiB incoming,128 MiB outgoing/queued,128 queued writes); writes
+have15s timeout, initialization15s. The paired SDK sibling tsrust-lsp is used;
+programs from project configuration are never executed. Root launch args now
+canonicalize before services start. Standard-library process/io/futures only;
+no new native adapter, installed dependency or SDK change.
+
+Focused public tests5/5PASS447.99ms, /tmp/studio-lsp-tests.log: real server unsaved
+error/correction/restart, Unicode/version filtering, framing rejection/EOF,
+controller stale-edit/close behavior, executable action grant/root/generation
+checks. The AI status/restart adapter shares the UI action, but integrated model
+hosting/registration remains pending; this is not full AI parity acceptance.
+Services run as independent jobs, joined by one managed owner for cancellation
+and settlement. Inputs are cloned before lazy task construction, preventing the
+legitimate unused-task warning on a later fallible argument evaluation. Controller
+is separate from the small status component. The real-server test exercises this
+exact three-service startup/cleanup, not only an isolated LSP worker.
+
+Native acceptance PASS after repairing a startup stack overflow. Initial inline
+all([worker tasks]) composed large unoptimized futures and aborted a Tokio worker;
+The macOS crash report Tsrust Studio-2026-11-11-193422.ips identifies task startup.
+Starting workers independently before joining their Jobs fixes it without changing
+thread-stack limits or the SDK. Affected startup witness added to the same public
+suite. Final native build PASS130.604s:check63.9152s,emit3.1418s,backend30.8ms,
+native/link25.1845s,runtimehit (runtime prepare8.6586s); wall includes queued work,
+not a benchmark. Initial runtime miss build140.197s/setup50.5433s was NOT accepted
+because its program crashed. No full compiler/LSP matrices or broad benchmarks.
+
+Old supervisor97262/PTY44811 was checking an obsolete snapshot; replacement queued
+before it stopped. CURRENT supervisor15484/PTY94187, app17336; keep it running.
+Bundle /var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-15484-1794443929169414000-0/Tsrust Studio.app.
+Live MAT: LSP connected; unsaved syntax probe in terminal-panel.tsrx produced a
+source-labelled Problems row; clicking it highlighted the offending line. Undo
+restored the exact clean buffer and cleared the old report, without disk writes.
+Status-menu restart replaced server17340with17521 and reconnected. Restored panel
+hidden, original terminal-panel tab active,9clean tabs/zoom-1/recovery drafts[].
+CUA ended "Verified live LSP diagnostics". Tree expansion collapsed during editing;
+track native Tree state preservation separately. Existing image resize acceptance
+retained; this section did not repeat unchanged image or formatter matrices.
+
+Performance acceptance remains PENDING. Initial Studio workspace analysis used one
+LSP core (343952KiB RSS observed); live diagnostics were delayed during that scan.
+After restart, LSP17521was still scanning at100%CPU/146384KiB RSS after35s; app
+17336was5.9%CPU/74192KiB RSS. These are point observations, not leak/idle benchmarks.
+Brief1s sampling of the old frontend showed repeated error-effect annotation,
+220.2MiB footprint/465.9MiB peak. Before broad intelligence work, investigate this
+real-source latency and timer polling cost; do not claim the tiny fixture proves
+interactive Studio analysis. Whole formatter0files/0snippets/0fingerprints and
+diff check passed before checkpoint. Pruned11obsolete Studio program variants,
+3runtime variants and1old build workspace under nonblocking cache/build locks;
+kept the current app/test/runtime variants and shared Cargo target. No cold build
+after cleanup. NEXT compiler/LSP hot-path investigation,
+then hover/completion/snippets and generic server registrations/settings. Native
+squiggles, unversioned/project report policy, graceful LSP shutdown and full agent
+hosting/registration remain required. No push.
+
+Image resize flicker — accepted 2026-11-11, follows32082607.
+Two defects fixed. Reactive row shape compared live zoom/aggregate paragraph text,
+remounting the whole preview as its percentage changed. Shape now compares static
+text scaffolding, binding markers and child structure, retaining live text nodes.
+Native ImageViewport also loaded the resource again for painting and treated
+pending decode/zero-size setup as errors. Private ImageAsset retains one decoded
+Arc per mounted preview; painting uses ImageSource::Render. Source changes/unmount
+release owned refs. Pending/setup stays blank; genuine load errors still show alt
+text. No artificial resize delay or public API/AI action change.
+
+Evidence: initial lifecycle reproduction FAILED (preview identity6instead3),
+/tmp/studio-image-lifecycle-repro.log. Fixed affected branch lifecycle8/8PASS0.01s,
+3.81s setup, /tmp/studio-image-lifecycle-tests.log (existing row/tab/local-state
+lifecycle cases included). Conditional import corrected its non-GPUI unused-import
+warning before the final SDK build. Native cache1/1PASS0.00s,1m31s setup,
+/tmp/studio-image-resize-test.log:128repeat resolves never invoke loader again;
+pending/errors distinct; source changes/unmount release owned refs. First isolated
+native test build accidentally used debug symbols; canceled after42s before test
+execution, reran with documented DEV/TEST_DEBUG=0. No full compiler/LSP matrices.
+
+SDK pair PASS2m35s, /tmp/studio-image-resize-sdk.log; atomically installed and
+matched target hashes: CLI884f9efce2aebec3fd27eed325d1529ef45e1aaa931f868aa3b5a05d8a35a3b1;
+LSP444368cec9e4c00a60017e1129292cce9e2ea0dfee1ee77b806c24252f732de8. Dev
+replacement queued before old71128/PTY31480 stopped, with empty recovery drafts.
+New native app build PASS119.678s:check47.410s,emit2.8684s,backend163ms,
+native/link68.6824s (runtime rebuild48.7827s); dev observation, not benchmark.
+CURRENT supervisor97262/PTY44811, app98817; keep one preview running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-97262-1794440871066896000-0/Tsrust Studio.app.
+
+Live PNG MAT: four successive split-divider drags changed Fit40→25→54→20→40%;
+image visible in inspected frames, no fallback/error text observed. Actual100%
+rendering and Fit40% both worked afterward. Original split position restored;
+icon.png left/problempanel source right,10clean tabs,0errors/0warnings. CUA ended
+"Verified stable images across resizing". No per-frame recording or non-PNG/web
+resize acceptance claimed. Cache is one decoded image per open/mounted preview;
+global GPU-cache lifetime/resource budgets remain part of later resource acceptance.
+Required formatter/idempotence0files/0snippets/0fingerprints; diff check passed.
+Pruned1old program and1old runtime variant under cache locks, keeping current
+preview/recent caches and the shared target. No cold rebuild after cleanup.
+NEXT real LSP/hover/completion/snippets, known DialogFooter slot and dense-layout
+minimum-width follow-ups. No push.
+
+Floating image controls — accepted 2026-11-11, follows70148fc1.
+ImagePreview now renders the image first across the full relative pane, followed
+by compact absolute top-right controls. Removed full-width row height/padding and
+bottom border. No backplate/frame introduced. Existing zoom/fit/accessibility/
+guarded AI view actions unchanged; no SDK/native runtime changes.
+
+Live PNG MAT PASS: toolbar is floating with no full-width separator/reserved row;
+Zoom in changed40%Fit→50%, Fit restored40%; controls stayed clickable. Left icon.png
+active in the first editor split, existing Problems source in the second. All10tabs
+clean,0errors/0warnings; terminal/chat still hidden, original docking settings
+preserved. CUA ended "Floated image controls without borders".
+Auto dev build PASS122.024s:check45.893s,emit2.8492s,backend180.2ms,native/link23.7084s,
+runtimehit; wall includes queued work, not a benchmark. CURRENT supervisor71128/
+PTY31480, app94501; one preview, no supervisor restart. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794439679671329000-0/Tsrust Studio.app.
+Required whole formatter1file/0snippets/0fingerprints; final idempotence0/0/0 and
+diff check passed. Pruned2obsolete program-cache variants, keeping current ones. No automated regressions for this style-only change; prior image behavior
+acceptance retained. NEXT real LSP/hover/completion/snippets, plus known DialogFooter
+slot and dense-layout minimum-width follow-ups. No push.
+
+Single workbench dividers — accepted 2026-11-11, follows1c67f8c2.
+Native Resizable handles already paint the divider for their axis/display order.
+Removed extra Region left/right/top wrapper borders, activity-bar left/right
+borders and terminal session-rail left border. Native Dock split frames already
+have no extra borders. Three Studio style files only; no runtime/SDK/API changes,
+no action/AI semantics changed. Native divider remains the resizable hit target.
+
+Live placement MAT passed for single boundaries:
+A navigation/activity left, terminal bottom, chat right;
+B navigation/activity right, terminal left, chat bottom;
+C navigation left/activity right, terminal right, chat left.
+Editor splits and terminal session-rail divider also inspected. Restored persisted
+owner settings left/left/bottom/right and original terminal/chat hidden state;
+all10tabs clean,0errors/0warnings, recovery drafts[]. CUA ended "Verified single
+dividers across placements". Dense C layout exposed an existing nested minimum-
+width overflow/squeezed editor with every panel open; broad tiny-window layout
+acceptance is not claimed. Keep this as a layout follow-up, not a border regression.
+A shell startup pyenv rehash warning was visible; no owner environment changes.
+
+Auto dev build PASS107.769s:check45.834s,emit2.8572s,backend153.3ms,native/link23.0319s,
+runtimehit. Wall includes queued preparation; not a benchmark. CURRENT supervisor
+71128/PTY31480, app89605; one preview, no supervisor restart. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794439161195846000-0/Tsrust Studio.app.
+Whole formatter0files/0snippets/0fingerprints, diff check passed. No automated
+regression for this reversible styling-only change. NEXT real LSP/hover/completion/
+snippets and known DialogFooter slot follow-up; no push.
+
+Import formatting rules — accepted 2026-11-11, followsc0046c0c.
+Owner requested std: imports first, one blank line before other imports, path
+sorting, and wrapping >5 bindings. Shared compiler formatter organizes consecutive
+import declarations as whole source slices. Binding order, aliases, literal paths
+and attached comments remain intact; bare side-effect imports are order barriers.
+Lists above5named bindings wrap one binding per line, including inline comments.
+organizeImports defaults true; importWrapThreshold defaults5, accepts0–100,0off.
+Studio global/project models, GUI/settings persistence and existing formatting/
+CLI-task/guarded AI adapters share both fields. Actual AI hosting and Studio LSP
+transport remain unimplemented; this change does not claim either acceptance.
+
+Focused evidence (no full regression/performance run):
+- Internal grouping/sorting/wrapping/token-multiset/options/barrier/idempotence
+  witness1/1PASS0.01s,3m58s setup, /tmp/studio-import-rules-test.log. Initial test
+  compile used an incorrect crate self-reference; corrected before execution.
+- Existing formatter entrypoints/options/stdin3/3PASS0.79s,2m25s setup,
+  /tmp/studio-import-existing-format-tests.log. Inline-comment wrapping then
+  tightened; affected public witness1/1PASS0.00s,2m24s setup,
+  /tmp/studio-import-comment-test.log. Unchanged passed checks not replayed.
+- LSP stdio grouping/wrapping/idempotence1/1PASS0.40s,1.39s setup,
+  /tmp/studio-import-lsp-test.log. First fixture incorrectly used languageId tsrx;
+  existing registered LSP ID is tsrust for the .tsrx path; fixture corrected.
+- Public std:testing settings persistence/partial project overrides1/1PASS2.22ms
+  test execution (setup not instrumented), /tmp/studio-import-settings-test.log.
+- Installed CLI custom organize=false/threshold2 via stdin:PASS plus idempotence,
+  no files written. Locale258keys/2catalogsPASS. Diff checkPASS.
+
+Studio57files intentionally organized. Required whole formatter356files/192doc
+snippets/64benchmark fingerprints; repeated pass0/0/0. Checkpoint tool explicitly
+sets organizeImports=false to preserve benchmark import-evaluation order/token
+identities; wrapping stays on. Extra diff review proved tokens/comments identical
+for410format-only sources, allowing only header import-declaration reordering in
+Studio. Four Studio settings/test implementation files reviewed separately.
+Final normal SDK build2m57s after embedded stdlib/docs whitespace updates;
+/tmp/studio-import-final-sdk.log. Pair atomically installed and independently
+matched target hashes: CLI308e0cba820750051fbb318c601b27bf8b9e3661bb00cd541c1b0ff9deac5d83;
+LSPe4fd6544c161a6c8cd499d6927b67afd4f7de877a92b802fae21486e28d721d3.
+
+Live MAT PASS: split check-panel/problems-panel show std-first/path-sorted imports,
+group gap and wrapped lists. Settings controls on/5; increment6,restore5,toggle
+off/on,Reload retained on/5; independently read persisted values. Settings window
+left on Formatting rules. CUA ended "Verified import rules and preferences".
+Owner's format/check on-save preferences remain on. Recovery drafts[]; all10tabs
+clean,0errors/0warnings after automatic reload. An earlier transient7Problems
+state disappeared on reload; no claim about unrelated persisted diagnostics.
+CURRENT supervisor71128/PTY31480, app79429; keep one preview. No supervisor restart
+needed for formatter-only compiler changes; normal dev source reload succeeded.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794438364788629000-0/Tsrust Studio.app.
+Last auto reload85.887s:check49.7471s,emit2.9708s,backend60.2ms,native/link32.5896s,
+runtimehit. Development observation, not a benchmark. Pruned50obsolete native cache
+variants under nonblocking cache/build locks, retaining current app/test programs,
+their two recent runtimes/workspaces and the shared Cargo target. Studio private
+cache13GiB→2GiB (rounded du observations). No cold rebuild after cleanup.
+NEXT real LSP/diagnostics/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native footer-slot follow-up remains below. No push.
+
+Panel tab underline — accepted 2026-11-11, follows191e9a0b.
+Owner wants the active underline across the entire padded tab, flush with the
+panel's left border. Removed Studio's spacer-only TabsPrefix. Shared Underline
+variant now uses normal per-size inner label padding and zero inter-tab gap,
+instead of unpadded labels with external gaps. Indicator tracks full tab bounds.
+Live macOS MAT PASS: Terminal underline starts exactly at panel content edge and
+extends beyond both sides of its label; selecting Problems moves the full padded
+underline to that tab. Text padding preserved; actions/copy/close stay at right.
+CUA phase ended "Extended underlines across padded tabs". Problems selected at end.
+No command/state/AI semantics changed. No automated suite for style-only change.
+
+SDK pair build PASS2m44s, /tmp/studio-tab-underline-sdk.log; atomically installed.
+Dev build PASS286.528s:check46.6555s,emit2.8551s,backend173.9ms,native/link236.278s,
+runtime rebuild216.2542s. Native dependency recompilation, not test time/benchmark.
+CURRENT supervisor71128/PTY31480, app71315; one preview, GUI launch with -u NO_COLOR.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-71128-1794436930520486000-0/Tsrust Studio.app.
+Old64691/PTY94719 stopped. All10tabs clean,0errors/0warnings, recovery drafts[].
+Whole formatter:0files/0snippets/0fingerprints; diff check passed. Keep dev running.
+NEXT remains real LSP/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native slot follow-up remains below. No push.
+
+Settings TSRX terminology — 2026-11-11 (after6453782e).
+Owner corrected the visible “Parenthesize JSX returns” wording to TSRX and noted
+future per-language rules. Settings title/accessibility name and both locale
+catalogs now say “Parenthesize TSRX returns”. Existing jsxReturnParentheses config
+key remains compatible; no formatter behavior/schema migration. Language-specific
+format/lint overrides recorded as planned in Studio plan, not implemented here.
+Locale coverage PASS2catalogs/253keys. Dev94719 watches the UI change; no SDK rebuild
+or automated regression needed for label-only correction. NEXT whole formatter,
+local checkpoint; preserve current preview and pending LSP priority.
+
+Terminal session row alignment — accepted 2026-11-11, follows80a40f04.
+Owner wants action buttons anchored right and long labels ellipsized. Shared native
+ListItem content now uses flex_1/min_w_0 and a nonshrinking suffix; std:ui content
+row fills the constrained width. Existing Studio min-w-0/truncate label gets the
+remaining space. No command semantics/AI action changes. Live MAT compared Terminal1
+and Check project rows at120pt/180pt/270pt rail widths: both ellipsis/trash columns
+stay aligned at the right edge, long labels ellipsize, full labels return when
+widened. Left the rail wider for inspection. CUA phase ended "Aligned terminal row
+action buttons". Check project was started through its real status command as the
+second row; still running when layout MAT finished, do not claim its result.
+
+SDK pair build PASS2m39s, /tmp/studio-terminal-alignment-sdk.log; atomically installed.
+Dev build PASS289.433s:check46.9594s,emit2.8636s,backend174.6ms,native/link238.8796s,
+runtime rebuild218.8535s. This included native dependency recompilation, not tests
+or a benchmark. No automated regression rerun for this style-only change.
+CURRENT supervisor64691/PTY94719, app64958; one preview, GUI launch with -u NO_COLOR.
+Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-64691-1794436254281332000-0/Tsrust Studio.app.
+Old58640/PTY9543 stopped. All10tabs remain clean; recovery journal drafts[].
+Whole formatter:0files/0snippets/0fingerprints; diff check passed. Keep dev running.
+NEXT remains real LSP/hover/completion/snippets before Git/debugger/extensions;
+known DialogFooter native slot follow-up remains below. No push.
+
+Terminal color correction — accepted 2026-11-11, source checkpoint follows815d4989.
+Owner reported CLI colors missing. Live native terminal probe proved ANSI red/green
+rendering already worked; TERM=xterm-256color,COLORTERM=truecolor, but NO_COLOR=1
+was inherited from the Codex launch. No owner shell profile sets it. Fix automation
+launch with env -u CODEX_TOOL_CALL_ID -u NO_COLOR, not a global PTY override:
+deliberate user terminal preferences still apply. README documents this launch.
+
+CLI project-check success and formatter batch summaries/progress also ignored
+--color=always. Existing stream color policy now styles progress cyan, success
+green, needs-format yellow and partial-failure summaries red. JSON and raw source
+remain ANSI-free. Focused host CLI test1/1PASS1.18s execution,2m32s setup,
+/tmp/studio-cli-color-test.log; one existing TempDirectory fixture/public commands,
+no native programs per case. No full regression. Normal CLI/LSP build PASS14.23s,
+/tmp/studio-cli-color-sdk.log. Both atomically installed; SHA256 CLI
+8f05b6d062655faf5487f3607014d7b738717cb8bf5403d9718b033e125b78e8,
+LSP ad9b6cb09f1ec0cbf6b1456f2217d4896e0dd74ba5aac95d33752fc4373673bd.
+
+CURRENT supervisor58640/PTY9543, app60228. One preview, launched require_escalated
+with -u NO_COLOR. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-58640-1794435805963737000-0/Tsrust Studio.app.
+Dev build PASS122.269s:check46.9036s,emit2.8711s,backend149.5ms,native/link71.7837s,
+runtime cache miss/runtime build50.9825s; development observation, not benchmark.
+Live fresh shell showed NO_COLOR=unset, cyan automatic tsrust --help headings and
+cyan read-only format --check src/lib/workspace/zoom.tsr --progress output.
+CUA phase ended "Verified automatic CLI terminal colors". All10tabs clean,
+0errors/0warnings; recovery journal drafts[]. Keep this preview running. Old
+supervisor44454/PTY91897 stopped. No terminal parser/palette changes needed.
+Whole formatter/idempotence:0files/0snippets/0fingerprints; git diff check passed.
+
+NEXT: real LSP connection/diagnostics/hover/completion/snippets before Git/debugger/
+extensions, per owner. Shared DialogFooter slot placement remains a known bounded
+layout follow-up: custom footer is appended inside dialog.content instead of native
+Dialog.footer, allowing save-conflict action clipping in small windows. Owner's
+four obsolete drafts were explicitly reconciled; all files saved. Do not restore
+those old drafts. Keep one current dev preview; restart permission is standing.
+
+Latest accepted image/Save All section — 2026-11-11, 16:48.
+Source checkpoint followsc87c2019; current section ready for local commit, no push. Last UI-only
+localization correction translates the100% label (2catalogs/253keys). Its dev reload
+PASS129.011s:check48.2769s,emit2.887s,backend178.3ms,native/link25.743s,runtimehit;
+wall time includes queued work, not a quiet benchmark. All buffers were clean before
+this automatic reload; journal remains drafts[].
+CURRENT dev supervisor44454 / PTY91897, latest app53634; keep it running. Bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-44454-1794434802879116000-0/Tsrust Studio.app.
+Launched require_escalated: the sandboxed launch built but NSPasteboard returned
+NULL/macOS XPC access failed. Normal GUI launch works. Standing restart permission
+applies; queue replacement before stopping old. Waiting with old supervisor active
+did not avoid a blank interval; do not assume concurrent preparation is available.
+
+ImagePreview is extracted from editor.tsrx. Default Fit never enlarges, follows
+pane bounds; controls offer zoom,100% natural size and Fit. Cmd+=/-/0 route to image
+zoom/Fit while an image is active; otherwise normal persisted text zoom remains.
+New optional std:ui Image.zoom (0Fit or1–3200%),scrollTo JSON{x,y,request} and
+onZoomChange use the GPUI asset cache, measured viewport and one ScrollHandle for
+native wheel/scrollbars and programmatic pan. Canvas cannot flex-shrink; scrollbar
+overlay belongs to the fixed outer viewport. Initial MAT caught horizontal shrink
+and floating bars; final native layout fixes are now built and visually accepted.
+services/image-actions.tsr exposes guarded executable set_image_zoom/pan_image
+with explicit path/session; no selection, document revision or file changes.
+
+File→Save All/Cmd+S queues every dirty text file, including JSON/non-active tabs,
+through services/save-actions.tsr. save_files uses the same executable queue with
+host-only live-save permission and explicit path/session/revision targets. Per-file
+format/proposal/CAS/recovery remain intact; stale targets reject without retargeting.
+One conflict does not stop later saves; per-file errors remain in Problems. One
+check-on-save runs after queued saves and any earlier check finish. saveTarget
+replaces saveActive. New image state is ephemeral OpenFile view state, not file data.
+
+Focused runtime2/2PASS24.31ms (image actions + Save All temp-file conflict/later JSON
+save/stale target/denied grants), /tmp/studio-image-save-tests.log. Geometry and
+invalid Image prop guard1/1PASS0.00s execution/3.74s setup,
+/tmp/studio-image-geometry.log. No unchanged suite replay/full matrix. Final SDK
+normal pair PASS2m45s /tmp/studio-image-scroll-layout-sdk.log, atomically installed:
+CLIe0c1d71b0b2c77a74c6ae1eb1d4f2da0d8a25cfe6c78fa59e325f96af15ad395 /
+LSPad9b6cb09f1ec0cbf6b1456f2217d4896e0dd74ba5aac95d33752fc4373673bd.
+Dev native gate PASS122.561s:check48.9842s,emit2.8864s,backend172.1ms,
+native/link69.9555s including runtimebuild49.283s/cachemiss. Operational observation,
+not a comparable benchmark/speedup claim. Do not repeat a standalone tsrust build
+for this section; its earlier pass did not warm the dev runtime variant.
+
+Live PNG MAT PASS: owner10open files/4dirty drafts recovered. Whole-image Fit64%,
+Actual100%, keyboard125%/100%/Fit, vertical wheel pan, horizontal scrollbar thumb
+pan and fixed right/bottom bars. Opening Terminal shrank pane and Fit became48%
+with full image still visible; closed panel afterward. File menu shows Save All.
+Owner exercised Save All, producing4protected conflicts. Owner then explicitly
+asked the agent to decide what to keep and save the actual files. Compared every
+recovery draft against its saved baseline:3formatting-only changes; editor.tsrx had
+formatting plus one // test marker. Formatting both variants with the public CLI
+proved equivalence after excluding that marker. Kept newer disk implementations
+(ImagePreview/Problems/check/terminal updates) and used Discard draft and reload
+for all4reviewed conflicts. Native counters reached0errors/no unsaved menu, no dirty
+tab markers; recovery journal independently confirms drafts[]. No newer source was
+overwritten. The last2dialogs had clipped footer buttons at normal height, so the
+window was temporarily zoomed to reach them. A restore-window action was rejected
+because the user changed the app; re-queried and left their current window state.
+Final fresh AX confirms10clean tabs,0errors/0warnings and no remaining dialogs;
+CUA final phase ended "Verified all tabs are saved". All10tabs remain open.
+The save-all witness was strengthened to ensure clearing one file's formatter
+error preserves another:1/1PASS27.55ms /tmp/studio-save-all-problems-test.log.
+ CUA horizontal wheel injection produced no
+visible movement; hardware trackpad horizontal gesture not claimed verified.
+Scrollbar pan works. An accidental sidebar drag during MAT was restored to its
+original592physical-pixel boundary. Left icon.png at Fit64%, all4drafts preserved during that earlier image MAT, then reconciled as above.
+Other image decoders and web viewport behavior not separately checked. CUA phase
+ENDED "Verified image zoom and panning"; reacquire actual .app path after reload.
+
+Whole formatter + idempotence PASS0files/0snippets/0fingerprints,
+/tmp/studio-image-save-checkpoint-format.log; generator--check,2locales/253keys,
+diff-check pass. README updated. Removed superseded standalone validation output
+apps/studio/target/studio (16:16 build, predates final layout); active dev
+bundle/shared caches retained. NEXT: local checkpoint, then real LSP connection/diagnostics/
+hover/completion/snippets before Git/debugger/extensions, followed by integrated AI.
+Known narrow UI follow-up: std:ui custom DialogFooter is currently appended inside
+Dialog.content in gpui_kit.rs instead of using the native Dialog.footer slot. This
+lets long conflict content clip its actions at shorter window heights. Fix that
+shared composition rather than shrinking each caller's Diff with arbitrary vh
+values; existing GPUI dialog footer-bounds tests cover the native slot. Data is
+already reconciled; do not recreate conflicts on real files just to test layout.
+No LSP transport yet. Existing executable AI adapters are plumbing; built-in agent
+hosting/action registration acceptance remains open. Never mark full goal complete.
+
+Latest small owner correction: .tsrx file icons now share .tsr's #CE7045 tint;
+their distinct glyphs remain. Existing file-icon suite2/2PASS0.33ms execution;
+whole formatter0files/0snippets/0fingerprints and diff-check pass. Dev supervisor
+23759/PTY74802 remains running and watches the catalog change. Visual reload not
+separately inspected for this two-line catalog/assertion edit. Previous full
+save/diff/status section checkpoint is f1b158da; LSP remains next feature priority.
+
+Latest owner-feedback acceptance — 2026-11-11, 15:42.
+The apparent double titlebar was SaveConflicts' empty normal-flow View placed
+before Chrome. Its overlay host is now absolute/size-0; native creation options
+are unchanged. Live screenshot confirms a single36px custom row, sidebar/settings
+aligned with the traffic-light area. Terminal/Format/Check share one gap-1 row
+and equal size-5 frames. Errors, warnings and unsaved counts have explicit icon
+spacing; errors/warnings independently display truthful zeros. Warning counter
+clicks open the same Problems surface. Structured compiler warning preservation
+1/1PASS0.87ms execution, /tmp/studio-warning-report-test.log. No full regressions.
+Whole formatter PASS2files then idempotence0files/0snippets/0fingerprints;
+generator--check, locale2catalogs/235keys and diff-check pass. Live MAT retained
+all8open files/4dirty drafts/zoom-1. Supervisor23759/PTY74802 remains running;
+app30137, bundletsrust-23759-1794429655350340000-0/Tsrust Studio.app. Dev build
+123.261s (check45.7174s,emit2.8833s,backend226.7ms,native/link24.5143s,runtimehit),
+an observation under concurrent SDK work, not a comparable benchmark claim.
+CUA phase ended "Fixed title-bar row and spacing". No owner drafts discarded.
+An exploratory native titlebar-options edit was reverted after finding the actual
+layout cause. Final-source normal CLI/LSP pair build PASS2m42s,
+/tmp/studio-chrome-sdk-final.log. Both rebuilt binaries exactly match the installed
+verified01b1b68b4fcc436cd59bb96912c51030a39728d5f4d9b45dc8de0127db98c778 /
+f1f33fff1c4caa80744f8f599cb8040f84e749091f711597708bd72a309f18a8 pair; no
+installed refresh/restart or unchanged-suite replay needed. Source is ready for
+the local save/unsaved/diff/feedback checkpoint followingfa0d3634. LSP/hover/
+completion/snippets remains next implementation priority; no transport implemented
+yet. Keep the current single preview running; do not discard owner drafts.
+
+Latest live acceptance — 2026-11-11, 15:24. Current save-conflict/unsaved/diff/
+status section is implemented and native-MAT verified, still UNCOMMITTED after
+fa0d3634. No LSP transport implementation has begun yet; that remains the immediate
+next priority before Git/debugger/extensions, followed by built-in AI.
+
+SDK final normal pair PASS2m46s, /tmp/studio-comparison-sdk-final.log. Installed CLI
+01b1b68b4fcc436cd59bb96912c51030a39728d5f4d9b45dc8de0127db98c778,
+LSPf1f33fff1c4caa80744f8f599cb8040f84e749091f711597708bd72a309f18a8.
+Native app build PASS, /tmp/studio-comparison-native.log. Queued replacement BEFORE
+stopping17056. CURRENT supervisor23759 / PTY74802; last observed app23896. Live
+bundle (rediscover before any CUA after reload):
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-23759-1794428404528944000-0/Tsrust Studio.app.
+Dev build68.039s, check42.5274s, emit2.7493s, backend0.1493s,
+native/link21.9589s, runtime cache hit. This is an observation, not a comparable
+benchmark/speedup claim. Keep one current preview running. After MAT a tiny source
+change explicitly hides the native List's duplicate empty illustration in Problems
+(ListEmpty/View, same pattern already verified in Terminal). Dev may auto-reload;
+rediscover PID/path instead of using old CUA binding.
+
+Live MAT PASS:8open files/4dirty drafts/zoom-1 recovered. The owner enabled format
+on save, so Cmd+S first ran async formatter, then CAS correctly opened conflict
+comparison rather than overwriting changed disk. Shared split Diff visibly shows
+red/green line backgrounds and inline word emphasis, compact numbers, accessible
+Original/Modified line metadata, expandable unchanged context and syntax coloring.
+Clicked ONLY Keep editing, never overwrite/reload on owner files. Formatting may
+have adjusted whitespace in that draft; its semantic changes remain protected.
+Unsaved-file popup now has editor-sized text and appears on left with Problems,
+LSP and current-file state. Terminal/format/check controls on right. Copy All
+Problems verified adjacent to Close in panel header. Clipboard byte-copy itself
+not read back in MAT; executable action/denied-host-grant model check passed below.
+CUA phase ended "Verified diff highlighting and status layout"; no active CUA phase.
+
+Focused native snapshot comparison1/1PASS0.00s execution,3m20s setup,
+/tmp/studio-text-comparison-test.log; no full GPUI/compiler/LSP matrix. Test checks
+real changed-line counts/retained context, Unicode and quoted/control-character
+paths, equal snapshots, empty files and missing-newline changes. Compact final
+Diff gutter arithmetic and doc-comment cleanup followed this pass; native app
+compilation and live visual MAT cover that style-only delta. The tracked component
+Cargo.lock's2temporary local-patch substitutions were restored to HEAD after test;
+no dependency addition/network, no lockfile change to checkpoint. Prior wording
+calling this lock ignored was wrong. Runtime6formatting,4storage,1document-action
+passes retained below; no rerun of unchanged executables.
+
+Latest whole formatter PASS0files/0doc snippets/0fingerprints, generator--check,
+2catalog/233locale keys and diff-check PASS before the tiny ListEmpty source edit.
+Run the mandatory formatter + source idempotence after that edit, update final
+handoff/checkpoint identity, then local commit. No push/release. Reuse passed tests.
+Review/prune exact obsolete native outputs while retaining current runtime/apps;
+prior scoped cleanup reclaimed15GiB. Do not blindly clear shared Cargo target.
+
+Latest continuation — 2026-11-11, 15:05. Uncommitted section expanded by owner
+live feedback: unsaved-file menu should be left with diagnostics; actions including
+terminal toggle on right. Popup text must follow font/zoom. Comparison must actually
+highlight changes; previous two read-only CodeEditors had no diff highlighting.
+Line numbers/gutter looked too large throughout app.
+
+Prior direct feedback source checks PASSED; native dev reloads now confirmed.
+Supervisor8979 eventually finished its pending build before restart (check44.4088s,
+emit2.7423s, native/link23.9146s,total116.662s). One-second sample caught checker
+work, but this is NOT proof of a stuck/infinite cache or root-cause diagnosis.
+Fresh supervisor17056/PTY11398 built in45.554s, check41.9279s, emit2.7321s,
+cachehit137.8ms/no native link. App17091, bundle historical reference:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-17056-1794426374251758000-0/Tsrust Studio.app.
+Keep it running, but new SDK must replace supervisor to support new Diff/Menu props.
+
+Live MAT PASS on this app:8open/4drafts retained; filled-circle dirty marker in
+Tree and tabs; Unsaved files4 status popup lists4relative paths. Real File menu
+now separate from macOS app menu. Cmd+S on protected owner editor.tsrx draft opened
+plain-English conflict Dialog showing disk/draft and Keep editing / Discard draft
+and reload / Overwrite with my draft. Clicked ONLY Keep editing: no owner draft or
+disk discarded/overwritten. CUA phase ended "Verified conflict choices preserve
+drafts". User then requested true diff emphasis, compact gutters, smaller popup
+text, left diagnostics/right actions. Do not reuse CUA handles after replacement.
+
+Current source implements that feedback: shared GPUI DiffFile::compare_texts uses
+existing similar2.7 Patience/1s deadline/full context, quoted paths and parser;
+DiffState compares on background executor with generation guard/cancellation,
+loading spinner/errors. New std:ui Diff originalText/modifiedText/filePath/fontSize
+props (patch is alternative, cross-field guards in native install); native renderer
+tracks input identity and uses shared comparison. Diff code/gutter font can follow
+Studio zoom instead of fixed theme size. Conflict Dialog now uses actual split
+Diff with word-level/background emphasis and expandable unchanged context.
+DropdownMenu/ContextMenu fontSize8..40 new capability; PopupMenu respects size and
+scales row height. Source status diagnostics/dirty menu/file state left, actions/
+terminal right; unsaved menu passes font.get(). Editor line numbers use85% of code
+size and reserve2rather than3digits for small files; folding hitbox retained.
+
+Normal SDK pair after these new capabilities PASS2m45s,
+/tmp/studio-comparison-sdk.log (PTY1621complete). NOT YET installed or loaded.
+Current installed pair still8c54844d.../75286aaa... from older section below.
+Focused shared Diff unit test is RUNNING PTY16063,
+/tmp/studio-text-comparison-test.log. It compiles the component's existing focused
+workspace offline, shares root target and disables incremental/debug symbols.
+Command: cargo test --offline --manifest-path
+crates/tsrust-compiler/patched-dependencies/gpui-component/Cargo.toml
+--config 'patch.crates-io.gpui-base.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/gpui-base"'
+--config 'patch.crates-io.url.path="/Users/seancotter/Desktop/dev/learning/tsrust/crates/tsrust-compiler/patched-dependencies/url"'
+--config 'profile.dev.package.gpui-pre.opt-level=3'
+--config 'profile.dev.package.gpui-component.opt-level=3'
+--lib text_comparison_tests -- --test-threads=1.
+Only2local patched packages were temporarily substituted in the tracked focused-test lockfile; restored afterward. no network or
+new dependency. Earlier attempts root-manifest -pcomponent failed because optional
+package not selected, then --locked correctly refused local-patch lock refresh.
+Do not repeat those invocations. Test verifies changed-line counts, context/path
+Unicode/control quoting, equal text and missing-newline changes. Runtime/native
+Root bridge must still compile and real split-diff/zoom MAT is still required.
+
+Next: inspect focused test output, repair narrow compile/errors if any; final
+whole formatter/catalog/locales/diff checks; installed pair refresh; queue new dev
+supervisor BEFORE Ctrl+C17056/PTY11398. Source-only current-app build may fail on
+unknown fontSize until supervisor embeds new SDK; don't mistake that for sourcebug.
+Use existing runtime cache/shared target. Then verify actual colored diff, compact
+gutter, popup font/left-right status alignment, Copy All Problems. Preserve4drafts.
+After acceptance local checkpoint, resume real LSP/hover/completion/snippets and
+integrated AI priority. Full goal active; no pushes/releases/full matrix.
+
+Latest owner steering and active correction — 2026-11-11, 14:44.
+Checkpoint fa0d3634 committed the prior formatter/CLI-task/Problems section,
+including mandatory whole-project formatting (1679files). New UNCOMMITTED section
+fixes confusing save conflicts, project formatting requiring saves, Copy All
+Problems, and more visible unsaved markers/status menu. Owner clarified ordinary
+edits should save: CAS compares current disk to originally loaded disk baseline,
+not to draft. Another process (including our self-hosted source changes) changed
+these files, so explicit conflict choices are needed; never silently overwrite.
+
+Implemented source: Document.saveConflict captures path/session/revision/diskText;
+storage.resolveSaveConflict rejects stale drafts/unapproved actions/second external
+disk edits; CAS overwrite and explicit reload preserve safety. Existing normal
+save semantics retained. Kit Dialog comparison shows disk and draft side by side,
+plain English explanation, Keep editing / Discard draft and reload / Overwrite
+with my draft. services/document-actions registered executable list_unsaved_files,
+inspect_save_conflict, resolve_save_conflict shares UI resolver and host grants.
+services/problem-actions list/copy uses same live collector and guarded clipboard
+operation; Copy All icon next to Problems Close. Collector moved into lib/problems.
+Filled-circle markers in tabs AND Tree, status dirty-file count/relative-path menu.
+New Application menu with Settings retains a separate File menu on macOS (previous
+first File menu was renamed by the OS). Real UI/MAT for this new section pending.
+
+Project Format no longer refuses dirty buffers. Shared QueuedFormatting captures
+explicit session/revision targets for all open Tsrust buffers; on-focus uses same
+queue with mode focus. Disk task receives explicit unopened source paths only,
+with --write; canonical root/path checks prevent symlink escape and aliases to
+open files. Open buffers remain unsaved proposals; none are disk-formatted.
+AI format_project returns corresponding open-buffer proposals plus approved
+unopened-file task output. No shell interpolation, no new CLI option/SDK rebuild.
+
+Acceptance retained: storage4/4PASS53.32ms (including explicit overwrite/reload,
+denied host grant and second external disk change), log
+/tmp/studio-save-conflicts-tests.log. Last batch formatting+document-actions7/7
+PASS34.50ms, /tmp/studio-conflict-actions-tests.log. Follow-up formatting6/6
+PASS25.02ms after corrected fixture explicitly edits its open buffer and canonical
+path exclusion hardening, /tmp/studio-project-format-drafts-tests.log. Public
+project format initially hit dynamic push spread arity error; implementation now
+uses ordinary loops. Regression witness passes; compiler push-spread defect itself
+not repaired. Earlier temporary-path fixture mistakes were fixed to use canonical
+workspace identities. These are execution times, setup not measured separately.
+Locale2catalogs233keys pass; final whole formatter currently running
+/tmp/studio-save-conflicts-format.log. Final root idempotence/diff check pending.
+
+Dev worker SLOWDOWN diagnosis: supervisor8979/PTY46813 with old app9078 still
+alive, but 100%CPU/~310MiB frontend kept analyzing an older snapshot for minutes.
+One-second stack sample /tmp/studio-save-conflicts-sample.txt is in checker
+continuation/effects/recursive-view-shape analysis, not Rust native compilation.
+FRESH current-source read-only check PASS41.89s,
+/tmp/studio-save-conflicts-fresh-check.log. Do not launch duplicate broad tests.
+Restart queued supervisor before stopping8979 to load current source. Standing
+restart permission applies. Need investigate persistent ProjectSession stale/cancel
+behavior later; fresh check passing is not proof that slowdown is fixed. Current
+SDK installed pair remains 8c54844d.../75286aaa... below (no SDK changes this section).
+
+Owner priority still: after this direct feedback correction, real configurable
+LSP + Problems, hover/completion/snippets, then built-in AI before Git/debugger/
+extension management. No LSP connection or agent transport implemented yet.
+
+Latest live acceptance, 14:19 — corrected JSON argument encoding is loaded.
+SDK normal pair PASS2m39s; installed CLI
+8c54844d081591fc355105664b08f57522299d1972d771817b154567be731454,
+LSP75286aaa017dcb2685efbdd755ac9a203e409eb244264c120bf6cce9a7589e85.
+Queued replacement BEFORE stopping8139. CURRENT supervisor8979 / PTY46813,
+app9078, live bundle (rediscover before CUA after any reload):
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-8979-1794424644569030000-0/Tsrust Studio.app.
+Dev build62.724s: check37.4627s, emit2.5012s, backend0.1724s,
+native/link22.0661s, runtime cache hit. Keep this session running.
+
+Live MAT PASS: recovered8open files,4drafts,zoom-1; active terminal-panel.tsrx.
+Check Project status button starts named direct CLI terminal, visible
+"Checking51 source files…" and running spinner. Manual check still running at
+handoff; do not claim whole-project check passed until its exit is observed.
+Independent Terminal1 retained while check task ran. Printed
+src/components/tasks/terminal-panel.tsrx:4:1 in shell; Cmd-click selected existing
+editor and visibly highlighted line4 through line end, without changing draft.
+No giant raw error strip. CUA phase ended with completion summary
+"Verified task terminals and navigation". CUA bindings MUST be reacquired after
+reload. Existing settings/focus GUI interactions and long-running Check completion
+still need live acceptance; model/config/safety6/6 evidence below remains passed.
+
+Earlier live task crash was args string[] encoded via display-list join. Fixed
+catalog json:true; generated wrapper uses JSON.stringify for static/reactive args,
+then SDK rebuilt/installed/restarted and actual click verified. Native grid index
+fix first-1usize also native-build passed. Task shells cannot bypass project-format
+dirty checks via generic Restart Shell item: that item disabled for task sessions;
+rerun explicit task through Project commands. No full compiler/LSP matrix replay.
+
+Pruned85 obsolete Studio native cache entries with nonblocking locks. Studio
+target18GiB→2.8GiB, preserving current runtime/current app outputs. Root shared
+Cargo target still79GiB; no blind clean. Mandatory final whole formatter currently
+PTY (see active tool handle), /tmp/studio-workflows-format.log. Final source
+idempotence, generated catalog/locales and diff check then local checkpoint remain.
+No checkpoint yet; all source uncommitted after79474f87. Immediate next product
+section: real configurable LSP, then hover/completion/snippets and built-in AI,
+before Git/debugger/extensions. Do not lose owner drafts during further reloads.
+
+Active section — formatter/workflows/Problems/CLI task terminals (2026-11-11),
+uncommitted after79474f87. Owner's next priority is real LSP (configurable Tsrust,
+Rust/TypeScript/Go/external servers), hover/completion/snippets, then built-in AI
+before Git/debugger/extension UI. See immediate-priority section of Studio plan.
+Full goal stays active. Do not restart full compiler/LSP matrices.
+
+Compiler FormatOptions implements indentWidth1..8, JSX return parentheses,
+separate JSX children and blank lines around control blocks; canonical token,
+JSX text and exact-comment guard; raw quoted attrs and callback comment trivia
+preserved. Latest argument-layout fix prevents openWindow(<View/>,...) drift.
+CLI format --stdin-filepath path --options JSON takes <=16MiB stdin and never
+writes source; nearest project format fields overlay global defaults. CLI check
+and format accept --progress for visible tasks. project_config accepts format and
+four editor trigger flags. LSP formatter shares these rules and client tabSize.
+
+Studio global/project rules and GUI support independent format/check on save and
+editor focus loss (manual when both disabled, both when enabled). Focus formatting
+keeps draft/disk distinction; explicit path/session/revision guards survive tab
+switches. Focus-loss paths queue through shared Signal<string[]> and the workflow
+controller's own sender endpoints, avoiding escaped borrowed channels. Save uses
+existing atomic conflict/recovery boundary. AI format_document returns isolated
+proposal; check_project and format_project have executable host-grant adapters.
+No actual integrated AI transport claimed. Manual Project menu/status checks and
+project formatting now launch named native task terminals via direct program/args,
+with running/exit icons and retained output. Project format refuses dirty buffers;
+a successful task reloads only clean open text buffers. Background checks remain
+structured worker tasks and do not steal focus/panels. Output has cancellation,
+no duplicate manual Play action.
+
+Problems receives source-labeled structured check/formatter errors and Studio/
+terminal operation errors; raw giant red strips are removed. No fake LSP link.
+Problems navigation and terminal Cmd-click file links share guarded openProblem,
+workspace canonicalization, Unicode scalar columns to UTF8 selection and highlight
+through line end. Native terminal links handle soft-wrapped paths and emit bounded
+JSON onOpenLink. Open_problem is an executable registered editor tool. Array-valued
+computed is unsupported: collectProblems is pure, called from JSX/scalar count;
+never restore computed<Problem[]> or a factory alias state constructor.
+
+Latest retained acceptance: focused Rust formatting3/3PASS0.67s, setup2m37s,
+/tmp/studio-formatting-final.log (includes JSX-argument idempotence, raw quotes,
+Unicode attrs, comments, option toggles, stdin/project override/no write).
+Earlier corpus639 lexable fixtures+86 callable contracts PASS2.35s, setup3m26s,
+/tmp/studio-formatting-corpus.log; do not replay it after native-only edits.
+Pure terminal file parser1/1PASS0.00s, setup4.98s,
+/tmp/studio-terminal-links.log. Public affected suites together6/6PASS26.22ms,
+/tmp/studio-workflows-models.log: explicit/stale/unauthorized format requests,
+legacy/global/project config, save conflicts, actual CLI proposal/no disk writes,
+forged project-write denial, focus draft/selection behavior, task grant/dirty guards,
+Unicode byte selection, structured check diagnostics. No full regression matrix.
+
+Whole formatter already ran1648 files+254 doc snippets+1002 fingerprints, then
+latest pass39 files and one follow-up file; docs0left/fingerprints0changed.
+/tmp/studio-formatting-whole.log and /tmp/studio-workflows-format.log. Expect huge
+~1678-file mechanical style diff; required owner whole-project formatting, not
+permission to revert. All new files git add -N. Full source idempotence exit0,
+/tmp/studio-workflows-idempotence.log (before last1-file serialization formatting).
+Generated226-component Kit catalog check and2locale/211key coverage PASS.
+Need final formatter/idempotence/diff check after source settles. Diff-check's only
+extra EOF blank in formatting/jsx.rs has been removed.
+
+Final native/consumer status is in the latest live acceptance at the top. Earlier
+intermediate failures were repaired; do not restart the obsolete supervisors or
+reuse their CUA handles. The current supervisor is8979/PTY46813. Retain the owner’s
+four drafts; save conflicts remain intentional protection, not permission to
+replace external disk edits. Root Cargo target cleanup beyond the scoped Studio
+cache cleanup has not been performed.
+
+LSP investigation: existing GPUI base EditorState has lsp_mut hover/completion/
+definition/code-action providers and diagnostics_mut. Reuse these native surfaces;
+Studio's process/stdio/document lifecycle should remain Tsrust. Installed external
+commands found rust-analyzer and gopls; typescript-language-server absent from PATH.
+No external server or new LSP integration was started/implemented yet. Owner explicitly
+wants hover, completion and snippets before Git/debugger/extensions and integrated
+AI next. Future AI review/diffs/debug actions must share guarded UI command paths.
+
+Current continuation: right terminal session rail and shared tab typography are
+implemented and running in supervisor91447/PTY74141/app91525. Current bundle:
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-91447-1794416983704481000-0/Tsrust Studio.app.
+Reacquire this exact live bundle from ps before CUA; never reuse a handle after
+replacement. Owner's single editor pane and five files remain intact, active
+editor.tsrx, no edits made by MAT. Zoom was increased once and restored to -1.
+
+Rail uses existing List/Resizable/DropdownMenu, stable semantic session ids,
+independent retained Terminal views, trash/actions on the right and New Terminal
+beside Close in the panel header. No extra sparse controls row. Owner clarified
+that contrasting colors are fine; remove viewport padding, retain header spacing.
+Viewport is flush, header has an8px native TabsPrefix inset and one bottom line.
+New Terminal button in that header created/focused shell2PID88596; shell1 remains.
+Pure model and executable guarded session adapter added;
+public terminal-sessions.test.tsr2/2PASS0.67ms execution, build18.064s
+(check1.790s, emit0.302s, native/link15.629s). Both tab types now receive explicit
+font sizing; vendor Tab preserves that size after its defaults and expands height
+for larger text. Dock refreshes its groups when the shared size changes. Panel
+Close lives in TabsSuffix with one native bottom border. SDK pair PASS2m41s;
+native Studio build PASS, then current dev load56.116s. Installed normal pair
+refreshed after density fix: CLI93b7b4ec8099f9d6cc3373fd04f9a50a33d3e0222e73962af9bce1e681cb9cf7,
+LSP71ee69204c8caa634c8a0e6fee2ad91a1ad15ec49fda663a58183a9bd7485503.
+Whole formatter0files/0snippets/0fingerprints, locales2catalogs163keys,
+generator --check and diff check PASS. New native Tab geometry test is written
+but UNRUN; do not count it as passed or launch the full UI matrix.
+
+Live MAT: configured10px visibly reaches editor and panel tabs, both change with
+Cmd+= alongside tree/editor/terminal, Cmd+- restores owner zoom. One panel bottom
+line extends through Close. Shell1PID77143 and shell2PID78266 were distinct;
+New focused shell2, selecting shell1 retained its output/PID. Inactive shell2 trash
+removed only that session and process (ps confirmed); shell1 remained. Invalid
+trash-2 icon caught visually and replaced with admitted trash. List row controls
+are clickable, but nested buttons are flattened in AX; direct secondary action
+Kill terminal was rejected, coordinate click worked. Accessibility remains pending.
+
+MAT found chained native replies require another UI event: Interrupt queued after
+readTerminal but sleep79429 remained at26s, then next menu event delivered Ctrl+C
+before its120s deadline. Shared Root.reply now defers an extra notify until after
+the current frame, so reply-created commands can run without another event.
+SDK pair PASS2m47s, /tmp/studio-terminal-reply-sdk.log; native dev load98.914s
+(runtime compile/publish45.483s, check32.570s, emit2.233s). Header source rebuild
+72.941s (runtime hit, check32.041s, emit2.229s, native/link19.112s); source timings
+are build observations, not comparable benchmarks. Fixed-reply MAT: shell84332
+started sleep85471 with120s deadline; ps confirmed it live at15s. Menu Interrupt
+then showed Ctrl+C/prompt immediately, ps confirmed sleep gone and shell retained,
+without another UI event. Earlier shells77143/78266/job79429 were also gone after
+restart. Final header inset/flush viewport/new button observed in app87441, two
+shells left available. Installed pair refreshed, formatter0/0/0 and diff check pass.
+No full regressions. Native Tab test,
+shell restart/active removal/rail resize, SIGTERM/HUP-ignoring-job cleanup and
+actual integrated AI transport remain pending. Full Studio goal stays active.
+
+Final owner density followup: ListItem wrapper had ignored row utility styles.
+It now refines the native row style; terminal rows use py-0, a square edge and a
+subtle bottom divider. Native MAT app91525 shows two compact rows, separators and
+unclipped controls. New Terminal still creates/selects the second shell. Native
+header inset, flush viewport and same-row plus/close all remain visible. No more
+source edits after that MAT. Normal SDK pair PASS2m47s; dev native build PASS97.621s
+(runtime45.259s, check32.051s, emit2.159s, native/link62.779s includes runtime).
+Whole formatter0/0/0. Installed CLI/LSP match the above normal pair. No full suites.
+
+The following first-integration notes are retained evidence; current identities
+and the session-rail implementation above supersede their live-state references.
+
+Current terminal continuation — first native integration, before the owner's new
+multi-session rail and typography requests. Full Studio goal active. New std:ui
+Terminal wraps alacritty_terminal0.26.0 through compiler-owned native modules;
+checked controlTerminal/readTerminal, opt-in marker/runtime feature, catalog/docs,
+HTML unsupported output, generation guards, typed guarded terminalTools catalog
+and callable adapter are implemented. Studio's initial single-session panel is
+running. The extra terminal controls header is explicitly superseded by owner
+feedback: replace it with a VS Code-style right session rail supporting multiple
+shells, selection/new/close; remove that extra full-width row. Owner also reports
+panel and editor tab labels ignore configured font size, and the panel header has
+a duplicate bottom line. Address all tab typography in shared rendering.
+
+Evidence for this first integration: public terminal-actions.test.tsr2/2PASS0.87ms
+execution/setup20.967s (check1.282s, emit0.259s, native/link19.203s); actual registered
+adapter denies forged input/terminate grants, malformed/unregistered requests;
+command definitions generate tool schemas and validate targets/generations/bounds.
+Core PTY2/2PASS0.05s after completion/palette support; UI model1/1PASS0s/setup2.69s
+(font/id bounds, HTML never spawns a shell); compiler facade1/1PASS2.99s/setup2m34s
+(typed commands, invalid action rejection and no Terminal dependency marker when
+only its facade is used). No full compiler/LSP/UI matrix. Whole formatter passed,
+last run2files changed; locales2catalogs/150keys and diff checks pass.
+
+SDK normal pair built after four coherent native source iterations; each build
+about2m34–2m37s. Native compilation first found five GPUI API mismatches (focus
+needs cx, danger color, Stateful accessibility id), then one entity read-borrow
+held across painting. Fixed by copying frame content under a short read, then
+painting without the entity borrow. Wide-character backgrounds now precede all
+glyphs; fixed cell advance supplied to shaping. GPUI startup stays on main thread.
+The first native dependency compile rebuilt GPUI after optional dependency feature
+changes; later runtime repairs reused it. These are build observations, not timing
+benchmarks. Installed CLI/LSP have NOT yet been refreshed for this public checkpoint;
+the focused compiler test may have replaced target/debug/tsrust with its test-profile
+variant. Restore normal pair before atomic installed refresh and project-check MAT.
+
+LIVE supervisor62791/PTY11755/app65759, one preview; current bundle is
+/var/folders/yr/ylgbj3r132gb01sm8q41z92c0000gn/T/tsrust-62791-1794412820045355000-0/Tsrust Studio.app.
+First load50.238s; formatter-triggered rebuild53.806s. Owner journal retained five
+open paths, active src/components/editor/editor.tsrx, single pane, drafts0, zoom-1.
+Owner was actively navigating; preserve their current state rather than older
+left/right splits. Native Terminal first mount verified pwd=apps/studio, stty8x136,
+Unicode/CJK/emoji/combining text and red ANSI foreground. Screenshot confirms full
+wide glyphs and shared text scale in the terminal itself. Initial shell64584 was
+replaced by formatter reload; current shell65845 (parent65844), app65759. The
+interrupt button was clicked during /bin/sleep30, but its timing/outcome is NOT
+proved; do not count it as a cancellation pass. Need repeat with a long identifiable
+job and inspect prompt/child state after the UI/tool route. Copy, select, hide/show,
+resize, zoom, restart and quit cleanup MAT remain pending.
+
+Two Finder missing-file alerts were caused by CUA using stale App objects after
+dev replaced/deleted its temporary bundle. Tool errors name the obsolete .app,
+not an edited document. Reacquire using the current live bundle path from ps after
+reload; never reuse a native App binding across replacement. Bundle-ID resolution
+can retain a deleted path. Finder had no alert in its AX tree; CoreServicesUIAgent
+is running (com.apple.coreservices.uiagent) but CUA could not inspect it (timeouts).
+Do not claim the alert was dismissed. CUA phase closed with Identified stale preview
+launch warning. Future inspections must use the live bundle path and avoid racing
+rebuilds. User's two screenshots correspond to these tooling failures.
+
+Important lifecycle gap found by source inspection: Unix dev Process.stop only
+kills the app process group. PTY shells create another session/group. Native normal
+quit closes/reaps through GPUI hooks and a completion-only App-global ledger
+(no resource-handle registry), but forced dev SIGTERM can bypass those hooks.
+Default-shell HUP likely exits; HUP-ignoring foreground jobs are NOT proved cleaned
+by dev shutdown. Add a real witness, then a graceful termination bridge or managed
+cleanup fix before claiming complete dev terminal lifecycle. No speculative pass.
+
+Public terminal limitations: current OSC override queries report themed defaults,
+though override colors draw; Windows/IME/middle/right mouse and broader resource
+acceptance remain unverified. Raw local selection, scroll, paste, F keys, mouse and
+focus modes are implemented but need native witnesses. Programmatic tools require
+trusted host permissions and observed session generation; live AI transport is
+still unconnected. Agent live-shell execution remains denied absent host grant.
+
+Next immediate owner-priority work: shared Tab text-size override (native Kit Tab
+currently overwrites custom font with text_sm), pass Studio font into panel Tabs and
+Dock labels, use TabsSuffix for close control to keep one underline, and replace
+TerminalPanel with a right-hand multiple-session rail. Reactive rows must have
+semantic View ids; hidden nodes retain PTY state, actual removal drops it. Reuse
+std:ui Sidebar/List/Resizable components. Then build once, load and perform native
+MAT using fresh current-path CUA handles. Keep full scope and all above evidence.
+
+
+
+Latest owner feedback: Save belongs in the native File menu (Save, Save As and
+related file commands), not the workspace title bar. Removed that standalone
+button from components/workbench/chrome.tsrx; existing Cmd/Ctrl+S still invokes
+saveActive through its unchanged Shortcut. Recorded placement direction in
+apps/studio/AGENTS.md. File menus/Save As remain pending, not newly implemented.
+Whole-project formatter0changes; diff check passed. Automatic dev rebuild passed
+in47.525s (runtime cache hit); native AX confirms only Settings remains in the
+right title-bar actions and the Save button is absent. Existing project-check/
+chrome editor panes and open tabs remain. Did not trigger saving owner files or
+rerun unchanged tests. CUA completion: Removed title bar Save button.
+
+
+
+Current continuation after search checkpoint0b6f35d5: search request is implemented
+and visible. Re-inspected app52643: three separated, padded result rows, file paths,
+line numbers and themed match backgrounds. No new app/source edits or restart for
+this inspection. One preview remains supervisor37767/PTY50581/app52643; owner tabs,
+splits, query and zoom preserved. CUA completion: Confirmed separated highlighted
+search results. Previous search3/3 and exact-match activation evidence below reused.
+
+Active next feature is the real terminal. Native prerequisite now in
+crates/tsrust-compiler/src/stdlib/ui/terminal.rs (SHA256
+0fea7700d63772dcbe8841726c079ec004b1f5edae689944ce2fde74ba048720).
+Alacritty terminal0.26.0 Apache2 provides the VT grid and native PTY/event loop;
+async-channel2.5.0 was already present transitively. Added direct optional managed
+GPUI dependencies and internal terminal/gpui-terminal features; backend manifests
+and lockfiles untouched. Eight new locked packages, no existing package upgrades;
+restored bindgen's existing valid itertools0.11 edge after Cargo selected0.13.
+Primary library source/API: https://docs.rs/alacritty_terminal/0.26.0/ and its
+exact downloaded registry source, inspected read-only. No Kit0.9 Terminal exists.
+
+Session owns PTY/VT state, coalesced one-slot redraw notifications, bounded latest
+title/status, input, dimensions and force-close/reaper lifecycle. Native parser owns
+Unicode, ANSI colors and alternate screen. OSC52 clipboard access is disabled;
+terminal output never opens URLs. No polling redraw loop. Resize releases its
+metadata lock before acquiring the terminal lock, avoiding parser size-query lock
+inversion. Unix force-close targets the controlling terminal foreground process
+group and owned shell group; it is not graceful command cancellation. Hiding must
+retain the mounted session. UI must distinguish hide from force-close and expose
+effects through trusted host grants, not allow agent writes to the live user shell.
+
+Focused real-process boundary tests live beside that source and are included by
+the isolated GPUI dependency package's cfg(test) module. Command: CARGO_INCREMENTAL=0
+CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target cargo test
+--locked --offline --manifest-path crates/tsrust-compiler/gpui-dependencies/Cargo.toml
+--features terminal --lib terminal::tests -- --test-threads=1.
+Final2/2PASS0.03s execution/1.93s setup: actual TTY detection, Unicode/red VT cells,
+100x30 resize via stty, input/exit7, coalesced wakes, exited-input/invalid-size errors,
+and force-close/reaping of a shell ignoring HUP. First run selected GPUI and debug
+symbols unnecessarily; stopped that build and narrowed to the internal PTY feature.
+First completed1/2 run exposed a fixture Rust NUL escape, corrected; then2/2PASS0.04s,
+followed by the final affected run after lock-order correction. No compiler/LSP/full
+regression run and no installed-binary rebuild needed for this unexposed prerequisite.
+Whole-project formatter0changes; diff check passed. Target79GiB, disk114GiB free.
+One idle observation: app40,464KiB/0.0% CPU, supervisor3,296KiB/0.1%; not leak proof.
+
+NOT terminal feature acceptance: renderer, checked Terminal catalog/API, public
+command/reply hooks, AI routes, Studio panel and native terminal MAT are pending.
+Color-query replies need the renderer's themed palette; shutdown completion must
+be awaited from GPUI on_app_quit before process exit. Windows cleanup, detached
+jobs, IME/selection/clipboard, keyboard/mouse modes and scrollback resource profiling
+remain unverified. Next: embed this module under gpui-terminal, add opt-in runtime
+selection, implement native grid/input renderer using real font metrics, checked
+control/read APIs plus catalog docs, then .tsrx panel/shared guarded UI/AI actions.
+Keep application orchestration in .tsr/.tsrx and retain the live preview during builds.
+Full Studio goal stays active; no push/release or completion claim.
+
+
+Full persistent Studio goal remains active, not an MVP or delivery claim. Owner
+approved real implementation and compiler prerequisites, one writer/no delegation,
+local checkpoints only. No pushes/model publication/signing/tags/releases. Full
+requirements: [Studio plan](plans/tsrust-studio.md). Exact proofs, model identities,
+failed resource attempts and historical dev profiling: [audit](plans/tsrust-studio-audit.md).
+Attachment: /Users/seancotter/.codex/attachments/59d3ec78-9ac4-4015-8b60-f6fc29fb58a3/pasted-text-1.txt.
+
+Initial workspace remains **apps/studio only**. The November 11 owner request
+supersedes the former no-placeholder/status-bar direction: restore useful status,
+terminal toggle and clearly labeled planned panels. Standing authorization:
+**restart the dev supervisor whenever needed without asking again**, then leave
+one preview running. Editable drafts must survive those restarts.
+
+Latest accepted checkpoint127104c6: shared native fast-divider fix.
+Managed gpui-base0.9.0 path patch applies the final release position and returns on
+unchanged size before syncing stale painted bounds. Source from published .crate
+SHA256cff6377e30f0c857681662e7edc7286bf30f5606033390401b0706d7bd930833;
+registry untouched. Generic exact-byte/path/restore guards now handle URL+GPUI;
+legacy URL alias and backend cache identity preserved. GPUI app/runtime/support
+keys include lock+patch bytes. Production locked/offline gpui metadata selects
+path source; lock only removes gpui-base registry source/hash. Roster221files.
+
+Checks: patch safety3/3PASS0.17s exec/6m42s setup incl lock wait; CLI cache2/2PASS
+0s+0.17s, support restoration2/2PASS0.03s, URL binding relocation1/1PASS0.04s.
+Initial GPUI setup omitted test-support; no test ran. First complete resize run
+12/13PASS0.04s exposed stale no-op sizes; corrected worker passed13/13 in0.04s,
+setup2m45s incl lock wait. Final CLI/LSP buildPASS3m14s incl lock wait. Formatter,
+UI generator,2locales/89messages and diff checks PASS. Full matrices not replayed.
+
+Native app96611: fast body drag horizontal412/412 to472/352; vertical360.5/360.5
+to421/300; sidebar248to288logicalpx, then restored248. Three panes main top-left,
+zoom bottom-left,chrome right. Warm restart app98589 restored exact nested layout,
+open paths and owner-updated zoom-3 (11px/base14). No drafts or file text changed.
+Global active path was main before restart and chrome afterward; whether caused by
+initial Dock notifications or concurrent owner use remains unproven. Do not claim
+focused-group restoration accepted. CUA completion: Verified native resize and
+restoration. Temporary mouse tracer/padding experiments gone from source and live
+image. User changed zoom during checks; preserve their latest value, not historical2.
+
+At127104c6 dev was PTY31628/supervisor96902/app98589 (superseded below).
+Standard launch below. Initial patched native build236748ms:check14043.6,emit1103.1,
+backend175.4,runtime prep3037.9,build+publish206695.9,native+link220781.9ms. Warm
+restart16222ms:check14249.3,emit1079.7,backend127.8,app hit112.3,native+link0ms.
+Single launch observations, not benchmarks. Current caches appe8f9c034f19d55dc,
+runtime6c110a65bedc33e5. Removed6proven trace/padding caches under locks:
+2,063,201,456apparent bytes, plus diagnostic target/studio56,644,840bytes.
+Installed/target CLIc17e15a1bd76fcf987a28d676fc8d7e438193542891a1c431e158cef9eeb0848,
+LSP2f60607825455025a1e10bf15ba1fa2060a551674a15022b1db82ca509821ef5.
+
+Accepted checkpoint0bfaf967: detailed syntax capture/theme fix.
+Owner Gruvbox screenshot and Zed request traced to active Syntect import=>preproc,
+theme schema dropping unknown detailed names, and JSON inner strings hiding outer
+meta.mapping.key.json. Community catalog104names/65detailed. Pinned GPUI component
+patch preserves extra style names in both backends, exact then nearest-parent
+fallback; imports/from/export=>keyword.import, parameters=>variable.parameter,
+JSON keys=>property.json_key, true/false=>boolean, null=>constant, escapes retained.
+Existing Syntect language coverage/palettes retained, no Tree-sitter product switch.
+References https://zed.dev/docs/extensions/languages#syntax-highlighting and
+https://github.com/zed-industries/zed/pull/47435 ; no copied GPL source.
+
+Published component0.9.0 archive SHA25645bbfdba0efa392190f2fd446ec311325302eb047d5ce45dc1bcf189cb18f5eb.
+Managed291files:285original +note +4pinned omitted test fixtures +Lucide license.
+Fixture exact commit7591a35eced761e3613c01e71ff04c10129dae1a, hashes/paths in note;
+5test-only include paths adjusted, assertions retained, fifth uses active sibling
+GPUI base source. Registry unchanged. GPUI lock only removes component registry/
+hash; all versions retained. Generic patch manager third payload, composite/path/
+independent identity tests; existing keys already incorporate patch bytes.
+
+Checks: highlighter8/8PASS2.01s execution/21.78s setup; other backend theme1/1PASS
+0s/58.32s setup; managed patch3/3PASS0.35s/3m56s incl lock wait. Earlier failures:
+offline missing optional metadata, then published missing fixtures (no tests),
+7/8PASS1.98s JSON failure, temporary scope-only failure2.11s identifying enclosing
+key scope. TEMP TRACE REMOVED. Final CLI/LSP buildPASS5m04s incl lock wait; public
+native Studio buildPASS before preview restart. Roster/fixture hashes/diff pass;
+whole formatter0changes before checks, repeat before checkpoint after docs edits.
+No broad compiler/LSP matrix replay. Detailed audit appended.
+
+Native app8224: Studio Dark blue keys/salmon values; Gruvbox orange import/from vs
+light symbols, light keys/green strings; Catppuccin Latte purple imports, red
+parameters, blue keys/green values. Reload restored saved Studio Dark without Save.
+Closed only added clean JSON tab. Original3files, nested layout, owner zoom-3/base14,
+drafts0 exactly match pre-check fields; settings bytes exactly preserved. CUA
+completion: Verified detailed syntax theme colors. Full catalog contrast, semantic
+LSP coloring and focused-group/cursor/scroll restoration remain unaccepted.
+
+At0bfaf967, live app8224 used PTY73753/supervisor8045; superseded by the feature session below.
+Launch same env -u CODEX_TOOL_CALL_ID/shared target/jobs1/incremental0. New dev
+31840ms:check14006.9,emit1060.4,backend152.1,runtime prepare5940.4,runtime hit,
+native+link15945.2,app miss0.1ms. Current runtime4c12f8cdc8fbbb9e,
+public app0416073655ad5cc1/dev app5b682d0a7d42a547. Installed+target refreshed AFTER
+all host/native checks: CLI3cbf37e3a88278d72858a80dcdd43a8be80f862c3f434848c068dbcbb2143333;
+LSP0b55e2ea5d604b1affb6cdbdb7c8d70c8a33ed37f0cd6bd69c38c7cf317834f9.
+Public target/studio SHA25662155c1cfb4c102fb5fc9fc37ffbc231d12d76d7618d423847387af9a8c5b34a.
+
+Next executable action: whole formatter/diff, inspect status and local checkpoint
+for this accepted section; no more source tests without changed inputs. Then resume
+complete editor scope, prioritizing active/focused-pane cursor/scroll retention,
+tree moves and real terminal/task/LSP services, with existing Kit/native APIs.
+Keep one writer/no agents, one preview; protect owner changes. Do not claim full
+Studio/AI goal complete. No pushes/releases/signing/model publication.
+
+
+Accepted feature checkpoint90bd6a8d: GUI-first native Settings.
+Owner now prioritizes feature throughput and human manual acceptance over frequent
+narrow automation; NO full regressions ran this turn. Updated apps/studio/AGENTS.md
+with exact direction. Use VS Code/Xcode/Zed patterns and Kit components. Remaining
+priorities include custom file-type icons and connected terminal/task/LSP services.
+
+Settings now uses std:ui Settings/Page/Group/SettingItem: searchable General and
+Workbench pages; theme/font/locale and four region placement controls. GUI edits
+save immediately. Custom draggable chrome with GUI/JSON/reload actions; optional
+formatted JSON editor fills remaining window height, explicit Save/Cmd+S. Reuse
+contextual save-file command name to avoid overwriting the app's global key binding
+with a separate Settings command. Error window also has a drag region. Actions/model
+separated in settings-actions.tsr/settings.tsr. Records with opaque Signal fields
+cannot be cloned; each callback gets an independent context constructed with shared
+signal handles and its own cloned path. Earlier ownership/numeric typing errors
+fixed without compiler changes. No callback-clone workaround or framework added.
+
+saveConfig accepts optional exact expected bytes. GUI tracks baseline/presence and
+refuses unreadable-file saves until Reload; existing external edits produce conflict.
+Initial creation retains one-writer shortcut documented in source. formatConfig is
+an explicit typed settings serializer with scalar JSON escaping (generic JSON
+pretty printing is not currently in stdlib). Existing invalid JSON stays visible
+for repair. Tree/editor both explicitly use font-mono; removed top terminal button,
+leaving status-bar toggle and existing shortcut.112messages/2locales pass audit.
+
+Native app12683 verified Settings categories/custom titlebar/layout controls, GUI
+font14to15 persisted on disk immediately, formatted full-height JSON font15, then
+GUI restored14. Home config now pretty with explicit layout defaults, all original
+values restored; owner zoom-3 retained, drafts0. CUA: Built categorized native
+Settings controls. Focused settings.test.tsr4/4PASS527.01ms execution (includes
+existing schema/placement/locale cases and new formatting/stale-write witness),
+setup not separately timed. No full matrix replay. Whole formatter ran; final
+source auto-rebuilt after contextual-save and formatting updates to app14694.
+**KEEP DEV RUNNING: supervisor8045/PTY73753,app14694**,one preview. CLI/LSP still0bfaf967 installed
+pair3cbf37e3/0b55e2ea (no compiler change). Latest auto rebuild50215ms:check15983.2,
+emit1227,backend188.2,native+link20253.1,runtime hit. Single observation, not benchmark.
+
+Next: final whole formatter/diff/local GUI-feature checkpoint, then custom file
+icons. Found existing editors/vscode/icons/tsrust.svg. Kit Icon supports inline SVG,
+but TreeItem exposes only named icons; extend its existing shared renderer/catalog
+with SVG/tint support, not a custom tree. Prefer data-driven icon mappings and
+existing/pinned standard language glyphs, with resource provenance. After that,
+real terminal/task/LSP integration remains required. Keep one preview and preserve
+owner feedback; no full suite unless meaningful family milestone requires it.
+
+Latest search-results section — November 11, after ab9c975d.
+Result rows now have two lines, full-width padded click targets (minimum height
+3*font+16px), dividers, muted file paths, visible line numbers, monospace snippets
+and theme-colored match highlights. Snippets crop around the first match with
+UTF-8-safe boundaries and a bounded display window; original source/ranges remain
+available. One result and first highlighted occurrence per matching line.
+
+Shared search-actions.tsr now backs UI searches and result activation. Navigation
+opens the exact match and checks current source bytes before publishing workspace
+state; host context controls navigation/focus. Numeric bounds are checked before
+arithmetic to reject overflowing offsets and interior UTF-8 ranges safely.
+services/editor-tools.tsr provides two cataloged/callable routes, search_content
+and open_search_result, using those same actions. Registered routes were exercised
+against real host-owned Signal state; model transport and a full editor command
+catalog are NOT connected. Schemas currently mirror typed records (explicit source
+shortcut); generate them before expanding the catalog. Host identity/grants never
+come from model JSON. Input parsing has explicit byte/depth/entry/node bounds.
+
+Focused search.test.tsr3/3PASS20.35ms execution/setup5.380s: retained search/draft/
+regex behavior; Unicode/cropped/zero-width/long-match previews; registered tool
+search/open, denied grants including forged permission fields, stale data, invalid
+args/names, maximum-int offsets and invalid UTF-8 endpoints. Earlier runs stopped
+at unsupported native-range JSON/byte accessor and ownership diagnostics, fixed
+without compiler changes. First runtime2/3FAIL28.92ms was a fixture's /var vs
+/private/var expected path; corrected to canonicalize. Native RegexMatch is now
+copied into an ordinary SearchRange DTO, retaining correct byte endpoints.
+Whole formatter passed; locale coverage124keys/two catalogs and diff checks pass.
+No full matrix or compiler rebuild. SDK/installed pair unchanged at c2f44df5/1aa17d7a.
+
+Native MAT app47740: projectCheckWorker produced three separated rows, readable
+paths/line numbers and colored matches. Clicking line151 opened existing main.tsrx,
+scrolled to line151 and visibly selected projectCheckWorker exactly. Restored left
+settings/rightchrome via Open tabs/focus; no file text edited. Owner had opened
+recovery.tsr during work; retained it. Journal active chrome, zoom-1, drafts0.
+CUA: Verified spaced highlighted search results, then Displayed readable highlighted
+search results. Final accessible names include file:line and bounded preview; three
+results left visible in app52643. Final source rebuilt successfully in47.295s.
+LIVE supervisor37767/PTY50581/app52643, one preview. Earlier native runtime miss41.521s;
+app build83.963s, then runtime-hit rebuild51.539s and unchanged-app check32.327s.
+These are observations, not benchmark or leak acceptance. Formatter, locales, diff
+and two tool-schema JSON admission checks passed. Next: local checkpoint, then
+continue real editor/AI/service features. Keep
+current owner state and prior acceptance. Full goal active, no push/release.
+
+Owner update — every feature must have a direct integrated-AI action hookup.
+Recorded in apps/studio/AGENTS.md and the Studio plan's required action-parity
+section. UI/AI must share typed command implementations, trusted host identity,
+capability checks, explicit document targets, revision guards and job lifecycle.
+Preserve isolated agent proposals/review; no self-approval or terminal/tool bypass.
+Existing UI acceptance is retained, but current exported helpers are not AI wiring.
+The plan inventories current search/documents/editor/Dock/settings/check/viewer
+hooks and missing routes. Next feature section is the shared dispatcher/executable
+AI adapter for existing services, with native undo/redo/Dock hooks and guarded
+mutation routes following. No agent transport or new runtime behavior is claimed
+by this requirement checkpoint. Dev37767/PTY50581/app39551 remains current; no
+restart needed for documentation. Full Studio goal remains active.
+
+Latest accepted fix — content-search InputGroup and typography, November 11.
+The screenshot request is implemented with existing InputGroup/Addon/Button:
+inline case-sensitive, regex and search icons, tooltips and accessible names.
+ContentSearch receives the shared font Signal; field, summary, errors and result
+rows follow it. Filename-search input also binds the same size. Empty errors no
+longer reserve a blank line. No new component framework or settings field.
+
+The shared native input macro now applies explicit node typography to the actual
+Input/Textarea, after Kit's control-size defaults; the former outer frame style
+could not override the native field. InputGroupButton also receives its node style.
+Compact text labels have their own Kit size, so the search toggles use the standard
+CaseSensitive/Regex icons rather than text labels. No vendored dependency edit.
+
+CLI/LSP build passed (2m41s); public native build passed. Whole-project formatter
+passed with zero changes; locale coverage119keys/two catalogs and diff checks pass.
+No full regression or unchanged executable test was run. Native MAT app37898:
+projectCheckWorker query produced three matching lines/one skipped file. Cmd+= twice
+scaled field, summary and results from10to12px, with query retained; case/regex
+buttons still worked. Cmd+- twice restored owner zoom-1/base11. Settings unchanged
+(Alduin, fileIcons:true), drafts0. Final app39551 visually confirms the icon group.
+CUA completion: Verified grouped search and zoom.
+
+CURRENT LIVE supervisor37767/PTY50581/app39551, one preview, superseding older
+process markers below. Final source auto-rebuilt in45,660ms; native runtime hit.
+Installed/target CLIc2f44df5a51101b64c603f11fd2b28cffe3a82c9fca7a8eb8555857c984d8287;
+LSP1aa17d7abef5ed53269091ad96412f5ba9883668b7f37845ceb6b7a5faf7f07c;
+both refreshed atomically and SHA-verified after native acceptance. Next: local
+checkpoint, then resume real editor/service features. Keep existing acceptance,
+one writer, no agents, one current preview; no push/release/signing. Full goal active.
+
+CURRENT ACCEPTED SECTION — native source organization and project checks.
+Local source checkpoints:0f5ef449 icons,ff925577 evidence restoration,ca66fae4
+TSRX distinction/check draft,57e2a1cb35source moves; current compiler/service fixes
+pending final local checkpoint. src/components groupedworkbench/explorer/editor/
+settings/tasks; lib groupedworkspace/settings/explorer pluslocalization; services
+owns .tsr workers; assets holdsicons/themes/locales. main/configentry unchanged.
+Relative imports/tests and recursive locale auditupdated. Preserve originalevidence
+below; old LIVE process markers are superseded by this paragraph.
+
+LIVE **supervisor32953/PTY22133/app35512**, one current preview. Main-thread fix nativeaccepted: asyncUI startup nowstaysOSmain;
+CLI/test8MiB helper unchanged. Focusedui_authoring hosttest1/1PASS1.14s execution,
+setup2m32s. Final CLI/LSPbuildPASS2m36s; publicnativebuildPASS. Installed/target
+CLIfe37a0e2a8c8c01bfda4db72becd93766497f9fb9c53e851f9892ccbcbb8cacd;
+LSP09e980d2c6a1027c31edbceed73681aea6e451972ca08a56b7e17c78b5271721.
+Cargo test temporarily selected differentCLI profile235b21d7; guardedrefresh refused
+mismatch beforecopy. Normalpairbuild0.36s restoredexactfe37/09e9, thenatomicrefresh
+SHAverified both. No activeexternalLSP process found; StudioLSP stillunconnected.
+
+Native MAT: categorizedfoldersvisible, TSRXpurplebrackets vsTSRcoralTr. Migrated
+currentopen/Dock/draftpaths atomically onlyafterold19300exited,beforereplacement;
+0drafts,zoom-1 andallcurrentopenpathsexist. OwnerAlduin/base11 retained. Ownerhad
+closedzoom pane duringwork, so currenttwo-pane layout isintentional; do notrestore
+oldthree-panecontrols. Savedsettings/currenttabsremainownerstate.
+
+Check toolbarlaunchedrealCLIchild33338 underapp33172; Stop displayedCheckcancelled
+andreapedchild(psabsent). MATcaughtshortcutinsidehiddenpanel; movedglobalShortcut
+toAppwithsharedrunning/outputsignals. App33677 CmdShiftB fromclosedpanelopenedOutput,
+launchedchild33837, finishedwithvisibleCheckpassed.; noleftovercompilerchild.
+Outputread-only/selectable andsamefont. Checks usepublicstructuredJSON onsaved
+workspacefiles,cwdroot,PATH/TSRUSTexe,5min/4MiBexplicitbounds,noShell. Onejobatonce,
+latecancelmessagesignored. Worker .tsr main-owned Job/cancel/await. No fakeLSP/PTy.
+CUAcompletion: Verified organized workspace and checks. Final formatterPASS1file;
+formatted-source auto rebuildPASS44166ms and startedapp35512. lastrebuild44026mscheck24136,emit1382.2,backend73.6,native+link18086.3,
+runtimehit. Single observation, no comparablebenchmark/leakclaim. Appidle47872KiB
+onesample; supervisorduringanalysis171600KiB99.7%; notleakqualification.
+
+Passedrelatedproofs preserved: mapping/reportbatch3/3PASS0.90ms/setup5.361s;
+changedfutureadaptertaskbatch15/15PASS13.19ms/setup4.718s; hostregistrationcargo
+checkPASS9.59s; uientry1/1above; wholeformatter/generator119keys2locales/diffPASS.
+NO fullregressions. Standaloneappquit whilecheckrunning remainsunverified: GPUI
+exitsprocess, whereasdevsupervisorprocess-groupcleanup isexistingacceptedbehavior.
+Removed1obsoletegeneratedlongtype diagnostic (511bytes). Formatter/generator/locale/
+diff checks pass. Next: localcheckpoint, then actualPTY/LSP/Git/editorfeatures;
+useexisting .tsr worker/channel/processpattern andnativeKit whereavailable. Keep
+onepreviewrunning,onewriter/noagents,nopush/release/signing/modelpublication.
+FullStudio/localAIgoal remainsactive; noMVP/fullcompletionclaim.
+
+Latest runtime prerequisite: typed enum adapter replaces dynFuture erasure for
+literal race/allSettled, preserving inferred Send/borrow lifetimes. New stable
+literal-combinators.test.tsr registered in existing task host runner alongside13
+cases. Public batch15/15PASS13.19ms execution/setup4.718s. Initial fixture indexed
+owned Result rejection fixed with clone, no production ownership change. CLI/LSP
+buildPASS2m36s; target hashes4cd0eae6/326a2328. Host registration cargo checkPASS9.59s.
+Native public Studio buildPASS after adapter. Source organization35moves and current
+relative imports resolve; root config still src/main.tsrx. Prior evidence retained.
+
+Restart review initially rejected CtrlC99098 because original wrapper mentionedold
+8045; read-only ps proved actual19300/app23352 onttys002 and queued30887 onttys001
+waiting19300. Same matching CtrlC retry passed after evidence, no bypass. Migration
+ran after oldsupervisor exited and preserved0drafts/zoom-1/openpaths/Dockstrings.
+Owner active chrome path nowcomponents/workbench/chrome.tsrx; allopenpathsexist.
+
+**LIVE SUPERVISOR30887/PTY63728, APP CURRENTLY EXITED101**: async main uses compiler
+8MiB helperthread, violating GPUI OSmain requirement. Fix now in emit/mod.rs:
+UI entry adapter gets OSmain BEFORE async helper branch; nonthrowing async UI
+threaded flag likewise excludes UI. CLI/test workers retain8MiB unchanged. Focused
+host regression in ui_authoring.rs contrasts UI vs CLI emitted entry. Build CLI/LSP
+currentlyPTY16795, /tmp/studio-ui-entry-build.log. Next finish it, run only new host
+regression, buildpublic native and queue exact30887 replacement (wrapperwaits30887,
+no secondpathmigration), then CtrlC63728. Keep one currentpreviewafterfix.
+Project-check service remains nativeunaccepted; complete UI play/stop/result/MAT,
+confirm no leftovercheckprocesses, consumerrefresh, finalformatter/localcheckpoint.
+No fullmatrix. Lastuserrequest sourceorganization nowimplemented checkpoint57e2a1cb.
+
+Source organization now moved35files into components/{workbench,explorer,editor,
+settings,tasks}, lib/{workspace,settings,explorer}, services and assets/{themes,
+icons,locales}. main remains src/main.tsrx; config unchanged. All33relative-source/
+test module references resolve; locale audit recurses now119keys/2catalogsPASS.
+README reflects paths/features. Whole formatterPASS0changes after moved imports.
+Path migration prepared /tmp/studio-migrate-source-paths.py and
+/tmp/studio-source-moves.json, NOT RUN. Run only after stopping current supervisor,
+before replacement. Preserve freshest drafts/open paths/Dock selection/zoom.
+
+**Supervisor19300/PTY99098 currently SIGSTOP**,oldapp23352 stays open; paused reload
+loop prevents loading reorganized paths before migration. Native public build
+PTY18100 exited1, /tmp/studio-check-service-build.log. Root actualE0277: literal
+race erases borrowed futures to dynFuture WITHOUTSend inside a started owned worker.
+Existing emitter future_owned equates borrow lifetime with thread safety; literal
+all already avoids this with typed pinned futures. Fix shared literal race/settled
+adapter to preserve inferred Send without rejecting local borrowed cases. No UI
+fake success and no unnecessary async architecture. Restart by queued replacement
+first, CONT19300 then CtrlC99098 exact; migrate paths in waiting replacement before
+newdevlaunch. Owner restart permission standing, no question needed. Native project
+check service not yet accepted; initial preview still old. Current source checkpoint
+before compiler prerequisite, no full regressions.
+
+Current section after0f5ef449/ff925577: distinct TSRX glyph plus real project-check
+service IN PROGRESS. TSR coral Tr vs TSRX purple component brackets, original own
+SVG provenance updated. New .tsr worker uses std:futures channels and std:process
+run --json; main owns/cancels/awaits worker around native UI. Check runs saved
+project files in workspace cwd, bounded5min/4MiB, no shell. race cancellation drops
+check task/reaps compiler; no Cargo/native children. Kit Output editor, play/stop,
+CmdShiftB,100ms completion ticker active only while running. Live still old app23352
+under19300/PTY99098 while changed-source builds occur. Native service unverified.
+Model+icon selected batch3/3PASS0.90ms execution/setup5.361s; structured report
+file/Unicode/location/failure/malformed guards. Race/stop added after this pure
+format witness, so actual lifecycle acceptance still pending. No full regressions.
+119localized messages (rerun checker final); formatter before checkpoint pending.
+
+Owner additionally requests source organization: categorize lib/components/subdirs.
+Next: checkpoint current feature draft, move code by area, rewrite all relative
+imports/tests/assets, preserve current journal open/draft/Dock paths via a one-time
+atomic path migration AFTER stopping old supervisor/BEFORE queued replacement.
+Journal currently drafts0 but read freshest bytes at migration, do not discard
+later owner drafts. Current source open:main/chrome/settings/config. Main stays
+src/main.tsrx. Keep one writer and preview. No push/release.
+
+Accepted file-icon section (checkpoint pending): existing std:ui TreeItem now
+has documented iconSvg/iconColor props and generated wrappers/LSP help, using Kit
+Icon.data/tint. Decorations excluded from structural fingerprint so toggles keep
+selection/expansion. Data-driven14associations; own Tr alpha cutout and11Simple
+Icons glyphs from official16.0.0 commit28241d80f8422eaed317ef968ad1e40b6d0d9163.
+LICENSE/DISCLAIMER plus original/packaged hashes in src/icons/sources.json retained.
+No new dependency, remote assets or custom explorer. XML/hash admission passed.
+
+fileIcons defaults true, GUI Switch and formatted JSON persist it. Tiny stable
+file-icons.test.tsr2/2PASS0.29ms execution; settings4/4 from90bd6a8d retained.
+Generator,114messages/2locales and diff checks PASS. CLI/LSP buildPASS2m28s;
+public native buildPASS. First native launch caught Computed UI value is disposed:
+loop-owned computeds were not retained by a returned node. Moved each decorated
+row to FileTreeItem component so its computed lifetimes follow that node; native
+rebuildPASS34770ms(check16425.3,emit1218.1,backend50.8,native+link16445.8,runtimehit).
+Initial malformed sibling SettingsSession declaration repaired before native build.
+No full regression replay. Whole formatter passed including final helper.
+
+LIVE **supervisor19300/PTY99098/app21033**. Owner changed theme/font/open files during
+work: preserve Alduin/base11 and current journal, not earlier StudioDark/base14.
+Native screenshot verified Tr/Markdown/JSON/Git/image glyphs. GUI togglefalse then
+true persisted and painted immediately; exact selected settings.tsr, expanded src,
+three panes/open tabs remained. No drafts edited. Current settings normalized with
+fileIcons:true, other owner values retained. CUA: Verified configurable native file
+icons. CLI SHAaf342ff25a0e31aabb7491ae552baf6565602661e942b6073860f441b4aa3cd2;
+LSP SHA5ec7890a51babce6f2af1a6e4c2458c053f96052ff8d39e5807588322661d98b.
+Installed pair atomically refreshed and SHA-verified; no replay of unchanged executables.
+
+Next: final formatter/local checkpoint/consumer refresh, then real services. Found
+std:process subprocesses/pipes but no terminal/PTY component. UI callbacks are sync;
+trace existing task/channel/worker contracts before adding an asynchronous bridge.
+Keep orchestration in .tsr/.tsrx and native facilities behind checked stdlib APIs.
+No shell-command textbox disguised as a terminal. One writer/no agents, one preview;
+no push/release/signing. Full Studio/AI goal remains active.
+
+Current section follows7d192232 (open-file restoration) and36fe5ddc
+(localization). Native Dock now exposes initialLayout/onLayoutChange/onLayoutError
+through the generated std:ui facade and LSP documentation. It reuses Kit's own
+versioned serialization, restoring keyed live panels with a DockLayout builder;
+missing values skip and new children append. Shared validation rejects malformed
+shape/version/axis/sizes/duplicate values and excessive input before builders.
+Invalid state falls back with a technical diagnostic; Studio retains the bad
+snapshot rather than overwriting it. Native malformed-fallback UI remains untested.
+Editor composition moved into workspace-view.tsrx; no new dependency.
+
+Owner additionally reported zoom loss. Zoom now persists per workspace as a
+bounded offset from Settings.fontSize, in the existing journal. Startup and Settings
+Save/Reload apply base+offset within8–48px; Cmd+0 resets offset to0 and configured
+base, not hardcoded14. Shortcut changes do not write or normalize the user's
+settings JSON. Legacy journal defaults remain empty Dock layout/zoom0. Document
+sessions regenerate; dirty/external-file/journal write protections remain.
+
+At b8aedbde dev was PTY16049/supervisor39042/app39391, superseded by the live session above. Two clean source
+panes: main.tsrx left,chrome.tsrx right; zoomLevel2/base14 (16px text), drafts0.
+Current launch from apps/studio, login=false,tty=true, desktop access:
+env -u CODEX_TOOL_CALL_ID CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1
+CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
+/Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
+Keep one preview; do not restart merely to replay checks. Queue replacement first,
+print exact target/current PID evidence, then send Ctrl+C to the matching old PTY.
+Review initially rejected81403 despite queued57452; ps proved12055/app13849 on
+81403's tty and replacement26620 explicitly awaiting12055. The same retry passed.
+Subsequent queued restarts passed without permission questions. No refusal bypass.
+
+Passed focused checks: CLI/LSP build2m32s setup; core Dock validator1/1PASS0s
+execution/2m35s setup including Cargo lock wait; compiler Dock contracts1/1PASS
+2.42s execution/2m30s setup (2positive/4negative format-round-trip cases). Project
+check passed before zoom addition; latest main/Settings/zoom compiled and ran under
+dev after it. Public native Dock buildPASS (build has no --verbose option).
+Final formatted recovery+zoom batch3/3PASS75.05ms execution; setup not separately
+timed. Covers opaque layout+dirty/clean/legacy recovery, persistence of zoom,
+clamp/no-op bounds, nondefault base reset and invalid retained zoom. Initial fixture
+integer Math.min use and consumed path were corrected without compiler changes.
+Formatter/generator/catalog/diff checks pass. No broad matrix replay.
+
+Native app29756: right/down buttons built three nested panes; actual drag reordered
+documents.tsr ahead of main.tsrx. Journal recorded axes0/1, sizes412/412 and360.5/
+360.5, correct order and selected tabs. App31412 after restart restored all three
+visible editors and exact JSON structural equality. Both horizontal/vertical
+divider drag attempts produced no size changes: interaction defect remains open.
+App38249 automatically replaced after zoom source edits, retaining Dock layout;
+closed only the two added clean test tabs, returning to owner's original source
+pair. Cmd+= twice recorded2, Cmd+0 recorded0, then2 again; Settings Reload left
+zoom intact. App39391 restart retained the same two panes and16px tree/editor
+text. CUA completions: Verified restored Dock layout; Verified zoom survives restart.
+
+Latest warm launch15,656ms:check13718.0ms,emit1049.3ms,backend170.0ms,app hit120.8ms,
+native+link0ms. Zoom automatic rebuild40,281ms included runtime hit/native+link
+19595.3ms. First new runtime71,193ms included runtime miss41469.0ms. Single
+observations, not benchmarks. App RSS67104KiB/0% and supervisor5584KiB/0.1%, one
+sample, not leak acceptance. Current dev runtime5d3257ac6b383b7b/appd336bcffd08df53a;
+latest tests runtimeb317663627d28ec1/app5b81102062a7469a. Under namespace locks,
+removed13obsolete cache directories/3,064,615,625apparent bytes; current dev,
+public, test caches and prior full-suite control retained. No cache guard weakened.
+
+Installed/target CLI SHA25687633e1999a55788244ce3c59e32274ca30b0a250931b058e9dac794dff3a648;
+LSPc79c86fa516533be93cb10c9b95fb48502ecaee1fe7a7058bf7d6e02d05da80e match.
+Exact source hashes and original settings/.gitignore/config identities in audit.
+Home settings still exact {"schemaVersion":1,"theme":"Studio Dark","fontSize":14};
+no source test drafts saved. Localization36fe5ddc's89messages,4/4runtime and native
+language/Undo/startup proofs remain preserved, not replayed.
+
+Next: diagnose native divider dragging from the real pinned gpui-base resize handle
+and current scene; then shared worker/task/terminal/LSP services. Actual compiled
+source is registry gpui-base0.9.0 (target/debug/deps/gpui_base-967f9078c9669a36.d),
+not an unknown stale copy. Never edit registry files. Also pending: cursor/scroll/
+focus recovery, duplicate/focused-group views, AX selected-range/unnamed popup rows,
+IME, tree moves, JSON key scopes, broader locale/RTL and full editor/AI requirements.
+No full goal completion claim; keep one normalized dev process running.
+
+Previous checkpointbd88e292 added separate persistent Settings, 38 named themes,
+content regex/case search, image routing, Markdown source/preview, status/panel
+controls, workspace launch arguments, editable buffers/Cmd+S, atomic saves and
+workspace recovery. Full goal remains active; drag/drop, splits, selected-tab
+reveal, JSON key colors, docking/i18n configuration and native workflows remain
+required. No completion claim. The per-item table in the Studio plan distinguishes
+observed behavior from implementation.
+
+The current live session is identified above. Command from
+apps/studio, desktop access, login=false, tty=true:
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR=/Users/seancotter/Desktop/dev/learning/tsrust/target
+/Users/seancotter/Desktop/dev/learning/tsrust/target/debug/tsrust dev --verbose --color=always.
+Previous app31675 was read-only. The current supervisor loads the shared Kit
+bound-prop identity fix required for editable row/preview state retention.
+
+Historical bd88e292 installed consumer identities (superseded above):
+CLI SHA256280dbb8fbd9954946e94378ce4730da61cca4f132bd962a3125fe0e9baaefd08;
+LSP SHA2561392874ec607b81a3b05620bc3bf34508b8beda37979797c8c9af7ff066e602f.
+No active VSCode document/server at previous observation; do not open the entire
+checkout to force a server restart.
+
+Retained bd88e292 evidence:
+- Combined Studio model/storage/recovery/search/settings/workspace suite18/18PASS,
+  90.14ms test execution. Setup timing was not captured for that run.
+- Expanded 38-theme settings round-trip1/1PASS291.02ms execution,
+  2728.9ms build/setup. Unknown themes and invalid fields reject before writing.
+- Shared native branch/list regressions6/6PASS0.00s execution,1m05s setup
+  (included shared Cargo lock wait). New controlled CodeEditor row keeps identity
+  after bound value change; static prop differences remain structural changes.
+- Explicit Studio main check passed after editable/recovery wiring and theme
+  registration. Latest native dev rebuild also checks/emits/links the final picker
+  synchronization/error-handling repair and starts successfully.
+- Whole-project formatter PASS:10files,0documentation snippets,0fingerprints;
+  stable second pass0files/0snippets/0fingerprints. Formatted suite18/18PASS
+  329.44ms execution,4356.4ms setup. Final settings UI repair formatted1file;
+  Studio format--check passes. Latest native dev rebuild checks/emits/links it.
+- CUA before editable renderer refresh observed actual PNG decode, separate
+  Settings window, active-tab contrast, status/footer and terminal placeholder.
+  Markdown preview click reverted immediately: row rebuild reset local state.
+  Shared bound-prop fingerprint fix passes native recheck: Markdown preview stays
+  open and survives switching away/back.
+- Native tree now uses monospace at shared font size. Screenshot appeared matched
+  to editor; full zoom/resize/overflow and accessibility acceptance remain open.
+- Upstream36community themes are vendored with source revision/hash manifest and
+  Apache license; plus2Studio themes. Live Catppuccin Latte preview/Save/Reload
+  and shared font16 configuration were observed; restored Studio Dark/font14.
+  Full catalog contrast/rendering remains required. Failed first fetch used nonexistent LICENSE name; corrected to
+  LICENSE-APACHE and retained its original bytes.
+
+
+Native acceptance completed in app42379 and app46011:
+Unicode paste creates a dirty tab; Cmd+S writes exact UTF-8 bytes; the dirty dot
+clears. Undo/redo survive a switch to Markdown preview and back. Unsaved recovery
+survives a real supervisor stop/start; disk remains unchanged. The temporary
+.gitignore comments were removed through the app and Cmd+S; original SHA256
+ad8ebeaeb880ec8c2388bbdf361e28d59d1ed0d7ae34a5c0a0e8ba60b7265483 verified,
+and journal drafts are empty. No user draft remains from these checks. Content
+search opens storage.tsr with the cursor at line4; uppercase anchored regex finds
+it case-insensitively and disappears with Aa enabled. Own Settings window saves
+actual ~/.tsrust/studio/tsrust_studio.config.json and Reload restores persisted
+values. Final app49918 verifies picker selection follows direct JSON edits.
+
+Latest native dev rebuild44,434ms: runtime hit,prepare7350.2ms,check11229.2ms,
+emit911.0ms,backend172.8ms,native+link19406.8ms. Earlier fresh supervisor startup
+65,687ms included runtime miss40,370.7ms. These are observations, not comparable
+benchmarks. A bounded1second sample of earlier build supervisor39406 reported
+537.6MiB physical footprint/537.7MiB peak; sample showed runtime unpack/build wait.
+No leak or steady-state memory acceptance claim. Whole-environment native cache
+identity can differ across supervisors; inspect before changing that contract.
+Pruned14,100,780,330bytes of obsolete Studio cache variants plus old staging;
+apps/studio/target/tsrust-native is now about2.0GiB. Keep active runtime1ff49c6f253063ac
+and test runtime366be1fa48a2a0fc; retained current application/test caches.
+
+Next executable section: implement native tab reorder/selected-tab reveal and
+resizable editor splits using Kit facilities; fix JSON key scopes in a reusable
+managed upstream integration. Complete file moves, configuration/docking/i18n,
+close/discard UX, async search and recovery limitations. Do not retest unchanged
+save executables or repeat the whole compiler matrix for routine UI edits.
+
+Recovery limitations remain explicit: synchronous bounded journal writes per
+change; one writer per workspace (first creation not coordinated); missing-file
+recovery fails visibly and preserves the journal. Corrupt/outside-root journals
+must never be overwritten. Saving rejects external changes. The app still needs
+native editing/undo/IME/restart acceptance, close/discard UX and richer recovery.
+
+Historical pre-bd88e292 evidence below (superseded UI behavior; retain passed checks).
+
+CUA completed: Opened Studio package in tabs; Verified package tabs and status;
+Verified native tree without clutter.
+Observed actual main.tsrx, tsrust.config.json and workspace.tsr tabs; source folder
+expansion remains open across file selection. Latest native Tree folder clicks
+and Right-key expansion work; file selection opens real tabs, with no root wrapper
+or button bar. Cmd+F opens native search. Both themes passed on the earlier viewer;
+the current layout starts dark and has no theme button. Full-height layouts work. Binary icon.png reports UTF-8 error without replacing current file. Explicit
+computed<string> status follows selected file/error. Find targets active config;
+initial CUA typeText again lost the first character, while Raise + select-all/type
+produced exact schemaVersion. Focus/first-key attribution and unnamed Kit search
+AX controls remain gaps. A read-only typing attempt left source unchanged; this
+is not full editable, IME, selection or keyboard acceptance.
+
+**Native tab scroll/selection/Find retention now passes in the running app.**
+Checkpoint76713c16 fixes sync_inputs/sync_kit disposal using all mounted identities,
+while creation/synchronization remain visible-only. Hidden AppMenuBar ownership
+still removes its external menus and reinstalls on reveal. Actual scroll position
+(line34 at the top), keyboard selection of the final brace (native Cmd+F adopted
+it), and independent setTheme/schemaVersion Find queries survive tab switches.
+Undo/redo with editable buffers and full AX/focus remain unverified.
+TabsContent's current native
+layout only gave the editor intrinsic height, so Studio composes Kit's real tab
+bar with full-height hidden document panels instead. browser.tsrx constructs its
+child Nodes once outside reactive JSX spread expressions; merely passing Signal
+inside those expressions previously recreated folders and reset expansion.
+
+Typed data prerequisite is checkpointed at791d4d43: signal admission in
+analysis/ui.rs, owned snapshots in emit/ui.rs, facade docs, LSP method help/native
+alias identity and opt-level1 debug LSP profile. The current checkpoint adds
+apps/studio workspace/browser/UI and these acceptance records.
+No JSON-encoded state or handwritten Rust editor code. Generic native Signal
+already supported Clone payloads. Scalars, nullable values, plain records/arrays
+are admitted; nested native resources/views/callbacks reject. The nullable union
+emitter uses existing tsr_owned conversion. Direct record/array-field JSX text is
+still a construction-time snapshot under scalar_text's current form recognition;
+use explicit computed<T> for live scalar text projections. Inference of computed
+from this data projection needed explicit <string>. These reusable language gaps
+must remain visible in acceptance rather than being called fully general reactivity.
+
+Passed checks to preserve; do not replay unchanged executables:
+- Compiler UI authoring: six existing cases passed in the earlier17.36s run;
+  corrected new data/resource rejection case passes1/1 in1.21s (149s setup).
+- Native gpui-starter composition/navigation/data snapshots:12/12PASS,3.30ms
+  execution,163,863.8ms build/setup. Deep constructor/get/set copies, nullable,
+  Unicode/CRLF, empty record arrays and scalar arrays are covered.
+- Studio workspace suite3/3PASS,3.93ms execution,2,953.0ms build/setup. Canonical
+  de-duplication, exact text/language, sorted filtered listing, outside/missing
+  errors preserving tabs. Earlier document proposal4/4 retained unchanged.
+- Native alias unit1/1PASS0.63s; full header/checked graph alias unit1/1PASS12.98s
+  before debug LSP optimization. Debug LSP now uses opt-level1 with debug checks,
+  matching existing compiler optimization. Actual server had exceeded existing
+  3-second deadline with UI indexing; deadline was not raised.
+- New completion matrix2rows x4modesPASS21.47s and editor consistency4modesPASS11.22s,
+  including typed signatures/hover/docs and zero stale/empty/non-member counters.
+- Initial selected Signal checker-agreement run finished418.10s with one false
+  oracle disagreement: Signal.length actually rejects with a specific temporary-
+  receiver error. Oracle had mistaken any diagnostic different from unknown-field
+  for field acceptance. Shared predicate now rejects that diagnostic; actual-
+  compiler regression preserves ordinary array.length and passes0.53s.
+- Corrected full selected Signal agreement rerun PASS1/1,413.88s. Exact binary
+  target/debug/deps/checker_agreement-0e7ca4f34a237d39, environment
+  TSRUST_LSP_AGREEMENT_TYPE='Signal<string[]>'. Session10828 is terminal. The
+  complete candidate scan was preserved; no member or receiver was excluded.
+
+Historical accepted tool pair before subsequent renderer/API updates: CLI SHA256
+0f14ca6e610ae4366a995dab150a275d2c1aca2841ef6c2a3115b71984752bd7;
+LSP SHA2564d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688.
+Installed PATH pair was refreshed with staged copies and atomic replacements,
+matching those SHA256 values; CLI0.2.0/LSP0.3.0. At that earlier refresh, no active tsrust-lsp or VS Code
+process was found. Existing VS Code settings point to repository
+target/debug pair. Constructor hover now explicitly documents computed<T> for
+live data-field text; getter/setter documentation and their passed tests are unchanged.
+
+Current cold elevated dev47,677ms; warm source rebuilds14,767/14,566/14,624ms,
+runtime preparation5,324.4/5,609.7/5,023.4ms, all warm runtime hits. Development
+observations only. The retained supervisor now includes bounded streaming cache
+checksums/extraction from65665fb6 (legacy checksum protocol and corruption guards
+passed11native-cache +2bundle tests). Historical appPID19889 read-only vmmap session25690 completed: supervisor physical footprint49.3M,
+peak408.0M; app258.6M, peak317.0M, with3open file tabs and main active. Units are
+reported verbatim from vmmap; these are not comparable benchmark runs. A subsequent restricted leaks scan reports420leaks/20,336bytes from523,615
+allocated nodes/192,915KB. Allocation contents were not saved; macOS marks the
+process not debuggable, and attribution/growth remain unproven. The earlier
+scratch scan was a different PID and is not a controlled comparison.
+No AI executable was rerun during this editor section.
+
+Prior accepted checkpoints: 3c59b679 initial app/proposals/scalar training;
+e28b8d1f macOS dev identity and live failed-build recovery;65665fb6 bounded cache
+buffers;acb92c73 dev identity ignores release-only options;02de4640 bounded Metal
+inference proof; e09f8fcd initial package scope. Audit retains exact results.
+Candle scalar training3/3 proves only scalar SGD orchestration, not model training.
+Three Candle CPU Qwen attempts stopped without answers on resource limits. Pinned
+llama-cpp0.1.161/Metal/mmap with the same official Qwen1.5B Q4/tokenizer passes2/2
+buffered inference tests (exact5/EOS,31,970.943958ms execution,163,195.539917ms setup,
+zero observed swap-usage growth, sampled treeRSS1,251,000,320B). No full8GiB coding
+quality, streaming, cancellation, training/specialization or distribution acceptance.
+Model artifacts remain ignored under target/studio-models. No unchanged replay.
+
+Latest native Tree/root-removal rebuild13,356ms passed, with runtime preparation
+4,419.3ms. No unchanged acceptance executables were replayed for this layout change.
+
+Native retention checkpoint76713c16: new lifecycle regression1/1PASS,0.00s execution,
+3.66s setup. Compiler build after final menu safeguardPASS2m41s. Final backend
+all-target compilationPASS3m26s; final workspace/all-target compilationPASS1m28s.
+Warnings are in unchanged test helpers; no node/renderer warning. Native Studio
+buildPASS. No unchanged runtime suite or AI executable was replayed.
+
+Owner answered “Restart once and verify tab state.” Old session51314/supervisor15826/
+app29484 stopped normally, and one replacement is live: session6863/supervisor41326/
+app41377. Startup45,087ms, check2,069.4ms, emit312.5ms, native+link42,310.5ms,
+runtime preparation1,498.0ms and runtime build/publish36,864.4ms (cache miss).
+Development observations only, not comparable performance measurements. Exactly
+one Studio preview remains, and the new supervisor must stay running. CUA phase
+“Verified retained editor tab state” completed. Initial config Find typing still
+lost its first character; select-all/retyping gave the exact query. Native AX
+selected-text range is unavailable; keyboard selection was observed and then
+verified by Find inheriting it after a tab round trip. Missing search AX names
+and full focus/IME/editable acceptance remain open.
+
+Repository/running/installed CLI SHA256 is now
+ebf586f90a92b181001b1a8d0012c6e7a415517453fd197063be1d6146f6c899.
+Installed CLI was staged and atomically replaced after native acceptance. LSP
+remains on the prior accepted4d55f9d43dcabaf843210256fe81ab7aaecd47beb1cc1584a5b567777e7bc688;
+no language-service signatures changed in this renderer fix.
+
+Fresh vmmap baseline after native acceptance (two tabs): supervisor384.5M/peak384.5M;
+app253.1M/peak253.1M, units verbatim. Not a controlled comparison or leak proof.
+
+Current document section: workspace OpenFile owns the shared Document (path,
+session, revision, text, savedText). OS-random std:uuid IDs isolate reopened sessions;
+proposals now match session too. Dirty state compares saved text; clean reload
+updates baseline/revision, dirty reload preserves drafts. closeFile model refuses
+dirty close unless explicitly discarded and preserves/selects the remaining tab.
+openFile reuses live sessions and rejects non-regular paths before reading.
+
+Final formatted tests10/10PASS4.31ms execution,3,039.5ms build/setup, using
+`tsrust test tests --profile` from apps/studio. Earlier10/10PASS4.21ms; expanded
+workspace4/4PASS3.57ms; preserved old assertions, added identical-byte session
+reopen, baseline/dirty reload, no-op revision, discard/close and actual reopen.
+First mixed string/FsError catch failed checking; fixed by explicitly matching
+createDocument Result, without changing compiler contracts. Dev retained the
+working app during failure. Formatter changed3files and final native tests passed.
+
+Latest appPID48203, same supervisor41326/session6863. Normal rebuild after format
+12,184ms, runtime preparation5,072.4ms cache hit. Earlier new UUID runtime build
+51,764ms cache miss. CUA “Verified workspace document session integration” completed:
+actual documents.tsr opens in a native tab through the integrated document record.
+No native save/close control is exposed; app remains read-only.
+
+UI alignment checkpoint acbcb8ed: chrome.tsrx, navigation.tsrx,
+editor.tsrx and themes/studio.json now separate the shell. Native custom header
+uses View.windowDragRegion and reserves the macOS traffic-light leading area.
+Settings/search use icon triggers with tooltips. Explicit rail dividers and a
+two-surface palette replace mixed grays. Filename results align left and truncate;
+Input has explicit available-width constraints. Sidebar collapse and actual divider
+resize are verified. Tree text sizing/ellipsis and stable keyed rows are in the
+new renderer awaiting a live load. No Git/extension/terminal/chat filler controls.
+
+Removed workspace.language and its hardcoded extension map. editor.tsrx passes
+the extension to std:ui/Kit, reusing existing tsr/tsrx aliases and syntax lookup.
+The active Syntect backend maps imports to preproc; Studio theme now assigns it
+the keyword color. Actual TSX/TSR imports are visibly distinct. Initial unrelated
+Tree-sitter hypothesis was discarded. Its host build ran0tests after4m43s setup
+and proves nothing; no grammar/backend/dependency change remains. An obsolete
+compiler build was stopped. Do not rerun that experiment.
+
+Native close testing found a stale parent tab click could reselect a removed path
+and blank the editor. selectFile rejects closed paths; native close now restores
+main.tsrx without another click. Full model suite11/11PASS6.47ms execution,
+120,031.5ms setup; final affected workspace5/5PASS4.23ms,93,605.9ms setup includes
+stale selection. Six document cases retained unchanged after that affected rerun.
+
+Shared Node.each uses distinct nonempty document IDs as stable row identities;
+unlabelled rows keep positional semantics. Mixed insertion cannot consume keyed
+rows. Duplicate IDs fail before old ownership is discarded. Dynamic class values
+do not reset row identity. Final new regression1/1PASS0.00s,3.53s setup; existing
+list control1/1PASS0.01s on the final test binary. Tree forwards text size to its
+ListItem and uses ellipsis. Shortcut/Ticker are now absolute/zero-size: ordinary
+empty flex children had created80px trailing action-row gaps. Commands also sit
+outside the visual action row.
+
+Workspace/all-target checkPASS1m31s and separate backend compiler/LSP all-target
+checkPASS1m20s before the final mixed-row/native-only repair. Warnings are confined
+to unchanged test helpers, including unused/dead code and fetch_update deprecation.
+Final repaired Node code passes its test/control; compiler buildPASS2m16s.
+Candidate CLI SHA25642db19302c4f46245262af62e6e2351c6044e6d4cb7e22957d323b1171a88519.
+Final native buildPASS (session28153 terminal); retained dev6863/supervisor41326 still
+uses ebf586f9 renderer. Installed CLI/LSP remain prior accepted images. No live
+supervisor restart is authorized for this new renderer yet.
+
+CUA phase “Verified compact editor shell controls” completed: header/no app label,
+rail divider, left-aligned exact workspace filename filtering/open, tab close
+restoration, collapse/full editor width, actual divider resize (image coordinates
+588,500 to788,500), settings font actions and separate Cmd+=/Cmd+- editor zoom.
+Right action inset is corrected. Light appearance, Tree zoom/ellipsis, native state
+across moves, drag reorder, full AX/IME and layout persistence are still unverified.
+Live appPID76014 after normal source rebuild (child changes on source saves).
+
+Owner explicitly requires configurable locale/i18n, appearance/text sizes, navigation
+and activity-rail sides, terminal and AI-chat docking. These are required scope
+in the plan/AGENTS, not implemented by the current temporary settings menu. Defaults:
+rail/tree left, terminal in a resizable bottom panel under editor, chat right.
+Use existing std:ui locale, Dock/Resizable/Settings and one validated persisted
+settings model. Do not make one-off side toggles or empty panel placeholders.
+
+A one-time supervisor restart question is pending through request_user_input_async;
+no reply yet. Keep session6863 running. Prior goal turn made progress with local
+checkpoint acbcb8ed and removal of the redundant language lookup.
+
+Lifecycle checkpoint79c37206 suppresses unchanged dev replacements before editable buffers.
+Running now owns its complete native cache input identity and, on macOS, the
+generated Info.plist bytes. A successful rebuild retains the child only when
+those exact inputs match and try_wait confirms it is alive. This uses full input
+bytes, not the hash directory name. Exited children still relaunch on the next
+edit; failed builds retain the previous app. Candidate directories drop on the
+unchanged path. No arbitrary memory cap or source/watch exclusion was added.
+
+Identity unit passes1/1 in0.00s. Initial Cargo invocation accidentally used an
+unqualified exact filter and ran0tests (2m12s build); direct final test-binary
+invocation used the qualified path and ran the intended witness. Extended existing
+process lifecycle test covers test-only edit/PID retention, actual dependency edit,
+failed build, exited-child relaunch and interrupt cleanup. Its final run passes1/1 in3.22s execution,12.51s build/setup
+(session48574 terminal). Backend compiler/LSP all-target compilation passes1m19s
+(session27102 terminal); warnings remain in unchanged host test helpers and
+reference controls (unused/dead code and existing fetch_update deprecation). No
+changed dev/cache source warning. Repository CLI SHA256 is now
+074d80e8c16f828d279e44d00c9df866d3baf8b1fd3e7c8f61693ac7b7a5b426.
+Installed consumers and the retained supervisor still use prior images. No live supervisor replacement yet. Settings/save work is
+still pending; this fixes a concrete draft-loss prerequisite.
+
+Current section: std:fs.writeTextFileAtomic for storage, recovery and settings.
+Implemented bindings/registry/bridge, separately selected native module, full
+IntelliSense docs/example, public std:testing suite, compiler selection/type
+witnesses and affected LSP rows/help. Native implementation stages in the same
+directory, syncs file and parent, rejects symlinks/read-only/multiple links, checks
+optional exact baseline plus observed inode/metadata revisions, and preserves
+macOS metadata with fcopyfile (explicit ownership/mode verification). New files
+are private. committed-not-durable means bytes changed despite Err and must be
+handled explicitly by Studio. A final rename can still race an uncooperative
+external writer; no cross-process CAS or filesystem sandbox claim. Windows is
+explicitly unsupported before mutation for now; that remains required later.
+Other Unix metadata preservation is mode-only; Linux product delivery is deferred.
+
+No app save/edit action is enabled yet. Recovery and model integration must handle
+commit/durability outcomes before editable buffers. Atomic backend host witnesses
+cover deterministic staging failure, concurrent changed/identical-byte replaced
+files, post-commit sync failure, ACL/xattr/mode/owner preservation and unsafe
+paths. Public suite covers UTF-8/BOM/CRLF, chunk boundaries, first-class/optional
+calls, empty files, missing parents/targets and conflicts. Whole formatter changed
+one fixture and one doc snippet, with token/idempotence/fingerprint checks passing.
+Atomic backend host units pass3/3 in0.03s (3m17s setup, session20685 terminal).
+Selected runtime extraction/isolation witness passes1/1 in0.23s (2m14s setup,
+session29648 terminal); type-rejection/ownership control passes1/1 in0.02s
+(0.95s setup, session30780 terminal). Initial public generated suites fail before
+execution: new operation was missing from the closed audited native-effect list,
+so direct/first-class calls propagated an opaque contract into std:testing. Added
+the audited Result-only contract without weakening unknown-call rejection, plus
+a mutating-observer exclusion witness. Original direct/alias cases stay intact.
+Corrected effect/audit witness passes1/1 in0.01s (3m16s setup, session79824
+terminal); mutating-observer exclusion control passes1/1 in0.00s on that binary.
+The repaired public suite and generated example compile together in one program.
+Their disposable working directory was /private/tmp/tsrust-atomic-suite.FrjHFj
+(now removed). No native execution pass is claimed for either failed source check. Corrected public suite and actual
+catalog example pass3/3 together in63.47ms execution,1,561.3ms build/setup
+(session45044 terminal). CLI/LSP pair build passes2m28s (session20261 terminal).
+Affected completion matrix2rows x4modes passes2.37s; filesystem consistency8cases
+x4modes including new callable hover/parameter help passes8.78s; catalog contract
+help passes1/1 in0.03s. No new receiver type; existing FsError agreement is retained.
+
+Final macOS metadata strengthening verifies copied BSD flags before publication;
+extended host witness also proves UF_HIDDEN retention and fresh modification time.
+That affected witness passes1/1 in0.03s (3m17s setup, session85303 terminal). Other
+backend/effect/editor witnesses are unchanged and retained. Final pair rebuild
+passes2m27s (session35496 terminal). Final public native suite
+and generated example pass3/3 in45.58ms execution,1,874.7ms build/setup (session57991
+terminal). Backend compiler/LSP all-target compilation passes1m18s (session52425
+terminal), with only unchanged host helper/reference unused/dead code, HTTP import
+and fetch_update deprecation warnings. No changed source warning. Installed CLI
+and LSP were atomically refreshed and SHA256-verified independently:
+CLI f5e31107f51340b11e6a512c63a50551cfb858e6e43a1861ab88612a001fa292;
+LSP 6d55dbde9e6143242f57132cb8067c9cf6f47169b1a2b00cc9f67c38a011963a.
+Repository overrides point at the same new target/debug pair. VS Code is running
+but has an empty editor and no tsrust-lsp process; CUA “Verified no active editor
+documents” completed. No server restart or open-document diagnostic claim is needed.
+Studio supervisor41326/app76014/session6863 remains running on the earlier image;
+latest live poll confirms the PTY remains active. Pending restart question has no
+reply. No Studio restart occurred. Removed the disposable generated catalog tree,
+empty private test cwd, obsolete pre-flags native application cache variant, and
+171,774,617B of obsolete test executables/dependency files. Kept current tools,
+final compiler unit binary, current native cache and the pending Studio preview.
+The macOS storage primitive has focused acceptance. The live Studio app does not
+yet use it; Studio saving/recovery remain unaccepted until their integration and
+workflow checks pass. This is not full application or Windows acceptance.
+
+Next: implement Studio
+save/recovery orchestration in .tsr using exact disk baselines, explicit handling
+of committed-not-durable, and retained drafts before enabling editable buffers.
+While the restart reply is pending, continue that independent storage/settings
+work. Load the renderer only if the pending restart is approved, and verify
+Tree zoom/ellipsis and editor state during close/reorder. Keep6863 running until
+replacement is authorized. Continue validated settings/i18n/docking alongside
+safe file-save/recovery primitives and revisioned editing. Test-only replacement
+is fixed in79c37206 but awaits loading into the retained supervisor. Draft
+preservation across legitimate dev reloads remains required before editable buffers. Full saving, recovery, PTY and chat are
+not implemented; model guards alone do not prove file safety.
+Native checked resource/streaming/session ownership, held-out AI work,
+all editor workflows, cloud/external agents and Windows remain required. Use the
+actual apps/studio package for visible acceptance as implementation proceeds.
 
 ### Balanced global search spacing — 2026-11-10 (accepted with this checkpoint)
 

@@ -1,0 +1,241 @@
+import {
+  createTempDir,
+  mkdirAll,
+  readLink,
+  readTextFile,
+  removeDirAll,
+  removeFile,
+  writeTextFile
+} from 'std:fs';
+import { platform } from 'std:os';
+import { run } from 'std:process';
+import { strictEqual, test } from 'std:testing';
+import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
+import { apply, edit, propose } from '../src/lib/workspace/documents.tsr';
+import { openWorkspace, openFile, selectFile } from '../src/lib/workspace/workspace.tsr';
+
+test('explorer create, rename and move retain open drafts; delete requires clean descendants', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'src'));
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'lib'));
+    unwrap(changeExplorerEntry(ws, 'New file', root + '/src', 'a.tsr'));
+    unwrap(openFile(ws, root + '/src/a.tsr'));
+    edit(ws.files[0].document, 'draft');
+    ws.sourceBreakpoints = [{
+      path: root + '/src/a.tsr', line: 1
+    }];
+    unwrap(changeExplorerEntry(ws, 'New file', root + '/lib', 'a.tsr'));
+
+    match (changeExplorerEntry(ws, 'Move', root + '/src/a.tsr', root + '/lib')) {
+      Ok(_) => {
+        throw 'Move replaced an existing file';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'A file or folder already exists at the destination.');
+      }
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/lib/a.tsr', 32)), '');
+    unwrap(changeExplorerEntry(ws, 'Rename', root + '/src/a.tsr', 'b.tsr'));
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/src', root + '/lib'));
+    strictEqual(ws.active, root + '/lib/src/b.tsr');
+    strictEqual(ws.files[0].document.text, 'draft');
+    strictEqual((clone(ws.sourceBreakpoints) ?? [])[0].path, ws.active);
+    strictEqual(unwrap(readTextFile(ws.active, 32)), '');
+
+    for (const result of [changeExplorerEntry(ws, 'Delete', root + '/lib', ''), changeExplorerEntry(ws, 'Move', root + '/lib', root + '/lib/src'), changeExplorerEntry(ws, 'New file', root, '../outside'), changeExplorerEntry(ws, 'New file', root + '/lib/src', 'b.tsr'), changeExplorerEntry(ws, 'Delete', root, '')]) {
+      match (result) {
+        Ok(_) => {
+          throw 'Unexpected filesystem mutation';
+        },
+        Err(_) => {}
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/lib/src', root));
+    strictEqual(ws.active, root + '/src/b.tsr');
+    strictEqual((clone(ws.sourceBreakpoints) ?? [])[0].path, ws.active);
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/src/b.tsr', root));
+    strictEqual(ws.active, root + '/b.tsr');
+    strictEqual(ws.files[0].document.text, 'draft');
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/b.tsr', root + '/lib'));
+    edit(ws.files[0].document, '');
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/lib', ''));
+    strictEqual(ws.files.length, 0);
+    strictEqual(ws.active, '');
+    strictEqual((clone(ws.sourceBreakpoints) ?? []).length, 0);
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('renaming a clean open file switches image and text viewers while a draft stays editable', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-rename-viewer-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const text = ws.root + '/icon.txt';
+    const image = ws.root + '/icon.svg';
+    unwrap(writeTextFile(text, '<svg/>'));
+    unwrap(openFile(ws, text));
+    unwrap(changeExplorerEntry(ws, 'Rename', text, 'icon.svg'));
+    strictEqual(ws.files[0].kind, 'image');
+    strictEqual(ws.active, image);
+    unwrap(changeExplorerEntry(ws, 'Rename', image, 'icon.txt'));
+    strictEqual(ws.files[0].kind, 'text');
+    strictEqual(ws.files[0].document.text, '<svg/>');
+    edit(ws.files[0].document, '<svg>draft</svg>');
+    unwrap(changeExplorerEntry(ws, 'Rename', text, 'icon.svg'));
+    strictEqual(ws.files[0].kind, 'text');
+    strictEqual(ws.files[0].document.text, '<svg>draft</svg>');
+    strictEqual(unwrap(readTextFile(image)), '<svg/>');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+if (platform() !== 'win32') test('explorer moves directory links and deletes their containing folder without changing the linked files', async () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-links-'));
+
+  try {
+    unwrap(mkdirAll(temp + '/project/dest'));
+    unwrap(mkdirAll(temp + '/outside'));
+    unwrap(writeTextFile(temp + '/outside/sentinel', 'keep'));
+    const ws = unwrap(openWorkspace(temp + '/project'));
+    const root = clone(ws.root);
+    const outside = temp + '/outside';
+    strictEqual(unwrap(await run('ln', ['-s', clone(outside), 'link'], {
+      cwd: clone(root)
+    })).status.success, true);
+
+    match (changeExplorerEntry(ws, 'Delete', root + '/link/sentinel', '')) {
+      Ok(_) => {
+        throw 'Deleted a file outside the open project';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'This file is outside the open project directory.');
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'Rename', root + '/link', 'alias'));
+    unwrap(changeExplorerEntry(ws, 'Move', root + '/alias', root + '/dest'));
+    strictEqual(unwrap(readLink(root + '/dest/alias')), outside);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/dest', ''));
+    strictEqual(unwrap(readTextFile(outside + '/sentinel', 32)), 'keep');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('deleting a folder selects the next surviving editor and preserves unrelated selection', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-tabs-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    unwrap(mkdirAll(root + '/nested'));
+
+    for (const name of ['left', 'nested/a', 'nested/b', 'next', 'last']) {
+      const path = root + '/' + name;
+      unwrap(writeTextFile(path, name));
+      unwrap(openFile(ws, path));
+    }
+
+    strictEqual(selectFile(ws, root + '/nested/a'), true);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/nested', ''));
+    strictEqual(ws.active, root + '/next');
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/left', ''));
+    strictEqual(ws.active, root + '/next');
+    strictEqual(selectFile(ws, root + '/last'), true);
+    unwrap(changeExplorerEntry(ws, 'Delete', root + '/last', ''));
+    strictEqual(ws.active, root + '/next');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('a missing destination with an open draft keeps its identity during explorer mutations', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-draft-'));
+
+  try {
+    unwrap(mkdirAll(temp + '/repo/project/dest'));
+    const ws = unwrap(openWorkspace(temp + '/repo/project'));
+    const root = clone(ws.root);
+    const dest = root + '/dest';
+    const path = dest + '/a.tsr';
+    unwrap(writeTextFile(path, 'original'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[0].document, 'keep draft');
+    unwrap(removeFile(path));
+    unwrap(writeTextFile(root + '/a.tsr', 'moving'));
+
+    for (const result of [changeExplorerEntry(ws, 'Move', root + '/a.tsr', dest), changeExplorerEntry(ws, 'New file', dest, 'a.tsr')]) {
+      match (result) {
+        Ok(_) => {
+          throw 'Reused an open draft path';
+        },
+        Err(reason) => {
+          strictEqual(reason, 'An open editor uses this destination. Close the affected editor before continuing.');
+        }
+      }
+    }
+
+    unwrap(removeDirAll(dest));
+    unwrap(mkdirAll(root + '/src'));
+
+    match (changeExplorerEntry(ws, 'Rename', root + '/src', 'dest')) {
+      Ok(_) => {
+        throw 'Replaced an open draft parent';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'An open editor uses this destination. Close the affected editor before continuing.');
+      }
+    }
+
+    unwrap(changeExplorerEntry(ws, 'New folder', root, 'dest'));
+    strictEqual(ws.active, path);
+    strictEqual(ws.files[0].document.text, 'keep draft');
+    strictEqual(unwrap(readTextFile(root + '/a.tsr', 32)), 'moving');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});
+
+
+test('an edit proposal cannot cross a folder rename or apply to a replacement at the old path', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-explorer-proposal-'));
+
+  try {
+    const ws = unwrap(openWorkspace(temp));
+    const root = clone(ws.root);
+    const folder = root + '/src';
+    const path = folder + '/rate.tsr';
+    unwrap(mkdirAll(folder));
+    unwrap(writeTextFile(path, 'base'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[0].document, 'draft');
+    const proposal = propose(ws.files[0].document, 'changed');
+    unwrap(changeExplorerEntry(ws, 'Rename', folder, 'renamed'));
+    strictEqual(apply(ws.files[0].document, proposal), false);
+    strictEqual(ws.files[0].document.text, 'draft');
+
+    unwrap(mkdirAll(folder));
+    unwrap(writeTextFile(path, 'base'));
+    unwrap(openFile(ws, path));
+    edit(ws.files[1].document, 'draft');
+    strictEqual(ws.files[1].document.revision, proposal.revision);
+    strictEqual(apply(ws.files[1].document, proposal), false);
+    strictEqual(ws.files[1].document.text, 'draft');
+    strictEqual(unwrap(readTextFile(root + '/renamed/rate.tsr', 32)), 'base');
+    strictEqual(unwrap(readTextFile(path, 32)), 'base');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});

@@ -1,4 +1,11 @@
-import { App, Client, Request, Response, request, text } from 'std:http';
+import {
+  App,
+  Client,
+  Request,
+  Response,
+  request,
+  text
+} from 'std:http';
 import { allSettled } from 'std:futures';
 import { Pool, connect } from 'std:sql';
 import { strictEqual } from 'std:testing';
@@ -28,8 +35,10 @@ async function main(): Task<void> {
   const server = await app.listen('127.0.0.1:0');
   const base = 'http://' + server.address();
   const replies = await allSettled([read(clone(base)).start(), read(base).start()]);
+
   while (replies.length > 0) {
     const reply = replies.pop();
+
     if (reply !== undefined) {
       strictEqual(unwrap(reply), '42');
     }

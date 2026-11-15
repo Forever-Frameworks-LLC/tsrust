@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "studio-ai-admission",
+  "build": {
+    "entry": "inference.tsr",
+    "output": "target/inference"
+  },
+  "paths": {
+    "@engine": "../../apps/studio/model-host/llama.bindings.json"
+  }
+}

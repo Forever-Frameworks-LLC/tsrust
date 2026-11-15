@@ -1,0 +1,58 @@
+import { canonicalize, walkDir } from 'std:fs';
+import { dirname } from 'std:path';
+
+import { Entry } from '../workspace/workspace.tsr';
+
+export interface TreeEntry extends Entry {
+  directoryIndex: int;
+}
+
+export interface DirectoryListing {
+  path: string;
+  children: TreeEntry[];
+}
+
+export interface DirectoryTree {
+  root: string;
+  directories: DirectoryListing[];
+}
+
+export function scanTree(root: string, includeIgnored: boolean): Result<DirectoryTree, string> {
+  try {
+    const path = unwrap(canonicalize(root));
+    const entries = unwrap(walkDir(path, includeIgnored));
+    const positions = new Map<string, int>();
+    const directories: DirectoryListing[] = [{
+      path: clone(path), children: []
+    }];
+    positions.set(clone(path), 0);
+
+    for (const entry of entries) {
+      if (entry.isDirectory) {
+        positions.set(clone(entry.path), directories.length);
+        directories.push({
+          path: clone(entry.path), children: []
+        });
+      }
+    }
+
+    for (const entry of entries) {
+      const parent = positions.get(dirname(entry.path));
+
+      if (parent === undefined) return Err('The project directory changed during discovery. Refresh the explorer.');
+      directories[parent].children.push({
+        path: clone(entry.path), name: clone(entry.name), directory: entry.isDirectory, directoryIndex: entry.isDirectory ? (positions.get(entry.path) ?? -1) : -1
+      });
+    }
+
+    for (let index = 0; index < directories.length; index += 1) {
+      directories[index].children.sort((a, b) => a.directory !== b.directory ? (a.directory ? -1 : 1) : (a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)));
+    }
+
+    return Ok({
+      root: path, directories
+    });
+  } catch (error) {
+    return Err(clone(error.message));
+  }
+}

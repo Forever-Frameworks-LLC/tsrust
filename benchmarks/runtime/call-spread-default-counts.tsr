@@ -12,6 +12,7 @@ function values(trace: Trace, count: int): int[] {
   trace.calls = trace.calls + 1;
   const result: int[] = [];
   let at = 0;
+
   while (at < count) {
     result.push(at + 3);
     at = at + 1;

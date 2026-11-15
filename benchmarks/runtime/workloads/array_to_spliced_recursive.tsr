@@ -7,9 +7,11 @@ type Node = {
 function workload(n: int, seed: int, input: string): Node[][] {
   const output: Node[][] = [];
   let i = 0;
+
   while (i < n) {
     const values: Node[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
     const mode = (i + seed) % 10;
+
     if (mode === 0) {
       const result = values.toSpliced();
       output.push(result);
@@ -62,6 +64,7 @@ function item(base: int, input: string): Node {
 
 function start(i: int, seed: int): int {
   const c = (i * 3 + seed) % 8;
+
   if (c === 0) {
     return -9;
   }

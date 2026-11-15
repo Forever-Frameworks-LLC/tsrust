@@ -6,6 +6,7 @@ function batch(): int {
   const price = unwrap(parseDecimal('19.99'));
   const fee = unwrap(parseDecimal('0.01'));
   const hundred = fromInt(100);
+
   for (let i = 0; i < 256; i += 1) {
     const total = unwrap(multiply(price, fromInt(i)));
     const adjusted = unwrap(add(total, fee));

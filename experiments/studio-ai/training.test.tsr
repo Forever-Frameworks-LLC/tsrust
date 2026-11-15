@@ -1,0 +1,37 @@
+import { test, strictEqual } from 'std:testing';
+import { scalar_step } from './training.bindings.json';
+
+test('Candle autodiff and SGD agree with an independent derivative', () => {
+  const step = unwrap(scalar_step(0.0, 3.0, 0.125));
+  strictEqual(step.loss, 9.0);
+  strictEqual(step.weight, 0.75);
+});
+
+test('Tsrust owns repeated optimizer orchestration and resumes scalar state', () => {
+  let weight = 0.0;
+
+  for (let index = 0; index < 32; index += 1) {
+    const step = unwrap(scalar_step(weight, 3.0, 0.125));
+    weight = step.weight;
+  }
+
+  const resumed = unwrap(scalar_step(weight, 3.0, 0.125));
+  strictEqual(resumed.loss < 0.000001, true);
+  strictEqual(resumed.weight > weight, true);
+  strictEqual(resumed.weight < 3.0, true);
+});
+
+test('invalid optimizer inputs fail rather than passing a loss comparison', () => {
+  for (const rate of [0.0, -1.0]) {
+    let rejected = false;
+
+    match (scalar_step(0.0, 3.0, rate)) {
+      Ok(_) => {},
+      Err(_) => {
+        rejected = true;
+      }
+    }
+
+    strictEqual(rejected, true);
+  }
+});

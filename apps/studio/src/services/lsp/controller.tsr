@@ -1,0 +1,535 @@
+import { Channel, Sender } from 'std:futures';
+import { Signal, answerEditorLanguage } from 'std:ui';
+
+import { LanguageIdentity, LanguageDocument, DiagnosticPosition, languageIdentity } from '../../lib/language/diagnostics.tsr';
+import { LanguageReferences, referenceSymbol } from '../../lib/language/references.tsr';
+import { LanguageServer, languageRoute, tsrustServer } from '../../lib/language/servers.tsr';
+import { Problem, replaceProblems, operationProblem } from '../../lib/workspace/problems.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageMessage, LanguageUpdate, LanguageQuery } from './session.tsr';
+
+export interface LanguageReadResult {
+  query: LanguageQuery;
+  result: string;
+  error: string;
+}
+
+export interface LanguageConnection {
+  server: string;
+  requested: boolean;
+  generation: int;
+  ready: boolean;
+  status: string;
+  detail: string;
+  transitioning?: boolean;
+}
+
+export interface LanguageState {
+  servers: LanguageServer[];
+  connections: LanguageConnection[];
+  documents: LanguageIdentity[];
+  version: int;
+  queries: LanguageQuery[];
+  readResults: LanguageReadResult[];
+}
+
+
+export function createLanguageState(servers: LanguageServer[] = [tsrustServer('tsrust-lsp')]): LanguageState {
+  return {
+    connections: servers.map((server): LanguageConnection => ({
+      server: clone(server.id), requested: server.id === 'tsrust', generation: 0, ready: false, status: server.id === 'tsrust' ? 'LSP: starting' : 'LSP: idle', detail: clone(server.name)
+    })), servers, documents: [], version: 0, queries: [], readResults: []
+  };
+}
+
+export function identityServer(document: ReadOnly<LanguageIdentity>): string {
+  return clone(document.server) ?? 'tsrust';
+}
+
+export function connectionFor(state: ReadOnly<LanguageState>, server: ReadOnly<string>): LanguageConnection | undefined {
+  const connection = state.connections.find((entry) => entry.server === server);
+  return clone(connection);
+}
+
+export function pollLanguage(
+  workspace: Signal<Workspace>,
+  problems: Signal<Problem[]>,
+  state: Signal<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  updates: Mutable<Channel<LanguageUpdate>>,
+  prepareChatOutline: boolean = false
+): void {
+  const next = state.get();
+  let current = problems.get();
+  let stateChanged = false;
+  let problemsChanged = false;
+  const model = workspace.get();
+  const activePath = clone(model.active);
+  const files = model.files;
+
+  for (let count = 0; count < 8; count += 1) {
+    match (updates.tryReceive()) {
+      Err(_) => {
+        break;
+      },
+      Ok(update) => {
+        const server = clone(update.server) ?? 'tsrust';
+        const index = next.connections.findIndex((entry) => entry.server === server);
+
+        if (index < 0) continue;
+        const connection = clone(next.connections[index]);
+        const source = 'lsp:' + server;
+
+        if (update.generation < connection.generation) continue;
+
+        if (update.kind !== 'starting' && update.kind !== 'failed' && update.generation !== connection.generation) continue;
+
+        if (connection.transitioning === true && update.kind !== 'starting' && update.kind !== 'failed' && update.kind !== 'stopped') continue;
+
+        if (connection.transitioning === true && update.kind === 'starting' && update.generation <= connection.generation) continue;
+
+        if (update.kind === 'ready' && connection.status !== 'LSP: starting') continue;
+
+        if (update.kind === 'starting' || update.kind === 'failed' || update.kind === 'stopped') {
+          stateChanged = true;
+          problemsChanged = true;
+          connection.generation = update.generation;
+          connection.ready = false;
+          connection.status = update.kind === 'stopped' ? 'LSP: stopped' : update.kind === 'failed' ? 'LSP: failed' : 'LSP: starting';
+          connection.transitioning = false;
+          connection.detail = clone(update.message);
+          connection.requested = true;
+          next.documents = next.documents.filter((entry) => identityServer(entry) !== server);
+
+          for (const pending of next.queries.filter((query) => identityServer(query.document) === server)) {
+            if (pending.nativeRequest !== undefined) answerEditorLanguage(pending.nativeRequest, 'null', (_delivery) => {});
+          }
+
+          next.queries = next.queries.filter((query) => identityServer(query.document) !== server);
+          next.readResults = next.readResults.filter((result) => identityServer(result.query.document) !== server);
+          current = replaceProblems(current, clone(source), []);
+
+          if (update.kind === 'failed') current.push(operationProblem(clone(source), '', clone(update.message)));
+        }
+
+        if (update.kind === 'ready') {
+          stateChanged = true;
+          connection.generation = update.generation;
+          connection.ready = true;
+          connection.status = 'LSP: connected';
+          connection.detail = clone(update.message);
+        }
+
+        if (update.kind === 'query' && connection.ready) {
+          const query = update.query;
+
+          if (query !== undefined) {
+            const queryId = clone(query.id);
+            const index = next.queries.findIndex((entry) => entry.id === queryId && identityServer(entry.document) === server);
+            stateChanged = true;
+
+            if (index >= 0) {
+              const pending = clone(next.queries[index]);
+              next.queries = next.queries.filter((entry) => entry.id !== queryId);
+              const target = clone(pending.document);
+              const matches = files.some((file) => file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision);
+
+              if (pending.nativeRequest !== undefined) {
+                const result = pending.method === 'textDocument/references' && update.message !== '' ? JSON.stringify({
+                  error: clone(update.message)
+                }) : update.result ?? 'null';
+                answerEditorLanguage(pending.nativeRequest, matches ? result : 'null', (_delivery) => {});
+              } else {
+                const results = next.readResults;
+                results.push({
+                  query: clone(pending), result: matches ? update.result ?? 'null' : 'null', error: matches ? clone(update.message) : 'Language document changed.'
+                });
+                next.readResults = results;
+              }
+            }
+          }
+        }
+
+        if (update.kind === 'unversioned' && connection.ready && !current.some((row) => row.source === source && row.path === '' && row.code === 'unversioned-diagnostics')) {
+          const notice = operationProblem(clone(source), '', clone(update.message));
+          notice.code = 'unversioned-diagnostics';
+          notice.severity = 'information';
+          current = replaceProblems(current, clone(source), [notice], '');
+          problemsChanged = true;
+        }
+
+        if ((update.kind === 'diagnostics' || update.kind === 'unversioned') && connection.ready) {
+          const document = update.document;
+
+          if (document === undefined) continue;
+          const path = clone(document.path);
+          const file = files.find((file) => file.document.path === path);
+          const sent = next.documents.findIndex((entry) => entry.path === path && identityServer(entry) === server);
+
+          if (file !== undefined && sent >= 0 && file.document.session === document.session && file.document.revision === document.revision && next.documents[sent].version === document.version) {
+            if (update.kind === 'unversioned' && next.documents[sent].verifiedDiagnostics === true) continue;
+
+            if (update.kind === 'diagnostics') {
+              next.documents[sent].verifiedDiagnostics = true;
+              stateChanged = true;
+            }
+
+            const reported = clone(update.problems ?? []);
+
+            for (let row = 0; row < reported.length; row += 1) {
+              reported[row].session = clone(document.session);
+              reported[row].revision = document.revision;
+            }
+
+            current = replaceProblems(current, clone(source), reported, clone(document.path));
+            problemsChanged = true;
+          }
+        }
+
+        next.connections[index] = connection;
+      }
+    }
+  }
+
+  for (const pending of clone(next.queries)) {
+    const target = clone(pending.document);
+
+    if (files.some((file) => file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision)) continue;
+    const id = clone(pending.id);
+
+    match (messages.trySend({
+      server: identityServer(target), kind: 'cancel', generation: connectionFor(next, identityServer(target))?.generation ?? 0, queryId: clone(id)
+    })) {
+      Ok(_) => {},
+      Err(_) => {}
+    }
+
+    next.queries = next.queries.filter((query) => query.id !== id);
+
+    if (pending.nativeRequest !== undefined) answerEditorLanguage(pending.nativeRequest, 'null', (_delivery) => {});
+    stateChanged = true;
+  }
+
+  const resultCount = next.readResults.length;
+  const retained = next.readResults.filter((result) => files.some((file) => file.document.path === result.query.document.path && file.document.session === result.query.document.session && file.document.revision === result.query.document.revision));
+
+  if (retained.length !== resultCount) {
+    next.readResults = retained;
+    stateChanged = true;
+  }
+
+  for (const previous of clone(next.documents)) {
+    if (files.some((file) => file.document.path === previous.path && file.document.session === previous.session)) continue;
+    const server = identityServer(previous);
+    const connection = connectionFor(next, server);
+
+    if (connection === undefined || !connection.ready) continue;
+
+    match (messages.trySend({
+      server: clone(server), kind: 'close', generation: connection.generation, path: clone(previous.path)
+    })) {
+      Ok(_) => {
+        stateChanged = true;
+        problemsChanged = true;
+        next.documents = next.documents.filter((entry) => entry.path !== previous.path);
+        current = replaceProblems(current, 'lsp:' + server, [], clone(previous.path));
+      },
+      Err(_) => {}
+    }
+  }
+
+  for (const file of files) {
+    if (file.kind !== 'text') continue;
+    const route = languageRoute(next.servers, file.document.path);
+
+    if (route === undefined) continue;
+    const server = clone(route.server);
+    const index = next.connections.findIndex((entry) => entry.server === server);
+
+    if (index < 0) continue;
+    const connection = clone(next.connections[index]);
+
+    if (!connection.requested) {
+      match (messages.trySend({
+        server: clone(server), kind: 'start', generation: 0
+      })) {
+        Ok(_) => {
+          connection.requested = true;
+          connection.status = 'LSP: starting';
+          next.connections[index] = connection;
+          stateChanged = true;
+        },
+        Err(_) => {}
+      }
+
+      continue;
+    }
+
+    if (!connection.ready) continue;
+
+    if (next.documents.some((entry) => entry.path === file.document.path && entry.session === file.document.session && entry.revision === file.document.revision)) continue;
+    const version = next.version + 1;
+    const document: LanguageDocument = {
+      server: clone(server), languageId: clone(route.language), path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision, version, text: clone(file.document.text)
+    };
+
+    match (messages.trySend({
+      server: clone(server), kind: 'document', generation: connection.generation, document: clone(document)
+    })) {
+      Ok(_) => {
+        stateChanged = true;
+        problemsChanged = true;
+        next.version = version;
+        next.documents = next.documents.filter((entry) => entry.path !== file.document.path);
+        next.documents.push(languageIdentity(document));
+        current = replaceProblems(current, 'lsp:' + server, [], clone(file.document.path));
+      },
+      Err(_) => {
+        break;
+      }
+    }
+  }
+
+  if (prepareChatOutline) {
+    const active = files.find((file) => file.document.path === activePath && file.kind === 'text');
+
+    if (next.readResults.some((result) => result.query.id === 'chat:outline' && result.query.document.path !== activePath)) {
+      next.readResults = next.readResults.filter((result) => result.query.id !== 'chat:outline');
+      stateChanged = true;
+    }
+
+    if (active !== undefined && (active.document.path.endsWith('.tsr') || active.document.path.endsWith('.tsrx')) && !next.queries.some((query) => query.id === 'chat:outline') && !next.readResults.some((result) => result.query.id === 'chat:outline')) {
+      match (queueLanguageRead(
+        workspace.get(),
+        next,
+        messages,
+        'chat:outline',
+        {
+          path: clone(active.document.path), session: clone(active.document.session), revision: active.document.revision, method: 'textDocument/documentSymbol', position: {
+            line: 0, character: 0
+          }
+        },
+        undefined
+      )) {
+        Ok(_) => {
+          stateChanged = true;
+        },
+        Err(_) => {}
+      }
+    }
+  }
+
+  for (let row = current.length - 1; row >= 0; row -= 1) {
+    {
+      const problem = current[row];
+
+      if (problem.session === undefined || files.some((file) => file.document.path === problem.path && file.document.session === problem.session && file.document.revision === problem.revision)) continue;
+    }
+
+    current.splice(row, 1);
+    problemsChanged = true;
+  }
+
+  if (problemsChanged) problems.set(current);
+
+  if (stateChanged) state.set(next);
+}
+
+interface NativeLanguageRequest {
+  id: int;
+  method: string;
+  params: NativeLanguageParams;
+  text: string;
+}
+
+interface NativeLanguageParams {
+  position: DiagnosticPosition;
+}
+
+export interface LanguageRead {
+  includeDeclaration?: boolean;
+  path: string;
+  session: string;
+  revision: int;
+  method: string;
+  position: DiagnosticPosition;
+}
+
+export function queueLanguageRead(
+  workspace: ReadOnly<Workspace>,
+  state: Mutable<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  id: string,
+  request: ReadOnly<LanguageRead>,
+  nativeRequest: int | undefined
+): Result<void, string> {
+  const fileReferences = request.method === 'tsrust/fileReferences';
+  const route = fileReferences ? {
+    server: 'tsrust', language: 'tsrust'
+  }
+
+  : languageRoute(state.servers, request.path);
+
+  if (route === undefined) return Err('No language server is registered for this file.');
+  const connection = connectionFor(state, route.server);
+
+  if (connection === undefined || !connection.ready) return Err('Language service is not connected.');
+
+  if (request.method !== 'textDocument/hover' && request.method !== 'textDocument/completion' && request.method !== 'textDocument/signatureHelp' && request.method !== 'textDocument/definition' && request.method !== 'textDocument/references' && request.method !== 'textDocument/documentSymbol' && !fileReferences) return Err('Unsupported language read.');
+
+  if (request.position.line < 0 || request.position.character < 0) return Err('Invalid language position.');
+  const file = workspace.files.find((file) => file.document.path === request.path && file.document.session === request.session && file.document.revision === request.revision);
+
+  if (file === undefined || (!fileReferences && file.kind !== 'text')) return Err('Language document changed.');
+
+  const pending = clone(state.queries);
+
+  if (pending.length + state.readResults.length >= 32 || pending.some((query) => query.id === id) || state.readResults.some((result) => result.query.id === id)) return Err('Language request queue is full or its identity is already in use.');
+
+  if (fileReferences) {
+    const query: LanguageQuery = {
+      id, method: clone(request.method), position: clone(request.position), document: {
+        server: 'tsrust', path: clone(request.path), session: clone(request.session), revision: request.revision, version: 0
+      }
+    };
+
+    match (messages.trySend({
+      server: 'tsrust', kind: 'query', generation: connection.generation, query: clone(query)
+    })) {
+      Err(_) => {
+        return Err('Could not queue language request.');
+      },
+      Ok(_) => {}
+    }
+
+    pending.push(query);
+    state.queries = pending;
+    return Ok();
+  }
+
+  let version = state.version + 1;
+  let synchronize = true;
+  {
+    const sent = state.documents.find((entry) => entry.path === request.path && entry.session === request.session && entry.revision === request.revision);
+
+    if (sent !== undefined) {
+      version = sent.version;
+      synchronize = false;
+    }
+  }
+
+  const document: LanguageDocument = {
+    server: clone(route.server), languageId: clone(route.language), path: clone(request.path), session: clone(request.session), revision: request.revision, version, text: clone(file.document.text)
+  };
+  const query: LanguageQuery = {
+    id, method: clone(request.method), position: clone(request.position), document: languageIdentity(document), includeDeclaration: request.includeDeclaration, nativeRequest
+  };
+
+  match (messages.trySend({
+    server: clone(route.server), kind: 'query', generation: connection.generation, query: clone(query), document: synchronize ? clone(document) : undefined
+  })) {
+    Err(_) => {
+      return Err('Could not queue language request.');
+    },
+    Ok(_) => {}
+  }
+
+  if (synchronize) {
+    state.version = version;
+    state.documents = state.documents.filter((entry) => entry.path !== request.path);
+    state.documents.push(languageIdentity(document));
+  }
+
+  pending.push(query);
+  state.queries = pending;
+  return Ok();
+}
+
+export function requestNativeLanguage(
+  workspace: Signal<Workspace>,
+  state: Signal<LanguageState>,
+  messages: ReadOnly<Sender<LanguageMessage>>,
+  path: ReadOnly<string>,
+  payload: ReadOnly<string>,
+  panel: Signal<string> | undefined = undefined,
+  references: Signal<LanguageReferences> | undefined = undefined
+): void {
+  try {
+    const request = JSON.parse<NativeLanguageRequest>(payload, {
+      maxBytes: 16 * 1024 * 1024, maxDepth: 12, maxEntries: 64, maxNodes: 256
+    });
+    const current = workspace.get();
+    const file = current.files.find((file) => file.document.path === path && file.document.text === request.text);
+
+    if (file === undefined) {
+      answerEditorLanguage(request.id, 'null', (_delivery) => {});
+      return;
+    }
+
+    const next = state.get();
+
+    match (queueLanguageRead(
+      current,
+      next,
+      messages,
+      'editor:' + request.id.toString(),
+      {
+        path: clone(path), session: clone(file.document.session), revision: file.document.revision, method: clone(request.method), position: clone(request.params.position)
+      },
+      request.id
+    )) {
+      Ok(_) => {
+        state.set(next);
+
+        if (request.method === 'textDocument/references') {
+          if (references !== undefined) references.set({
+            root: clone(current.root), locations: [], query: {
+              path: clone(path), session: clone(file.document.session), revision: file.document.revision, position: clone(request.params.position), symbol: referenceSymbol(request.text, request.params.position)
+            }
+          });
+
+          if (panel !== undefined) panel.set('references');
+        }
+      },
+      Err(_) => {
+        answerEditorLanguage(request.id, 'null', (_delivery) => {});
+      }
+    }
+  } catch (_) {}
+}
+
+export function cancelLanguageRead(state: Mutable<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, id: ReadOnly<string>): Result<void, string> {
+  {
+    const query = state.queries.find((entry) => entry.id === id);
+
+    if (query !== undefined) {
+      const server = identityServer(query.document);
+      const generation = connectionFor(state, server)?.generation ?? 0;
+
+      match (messages.trySend({
+        server, kind: 'cancel', generation, queryId: clone(id)
+      })) {
+        Err(_) => {
+          return Err('Could not cancel language request.');
+        },
+        Ok(_) => {}
+      }
+    }
+
+  }
+
+  state.queries = state.queries.filter((query) => query.id !== id);
+  state.readResults = state.readResults.filter((result) => result.query.id !== id);
+  return Ok();
+}
+
+export function cancelNativeLanguage(state: Signal<LanguageState>, messages: ReadOnly<Sender<LanguageMessage>>, request: int): void {
+  const next = state.get();
+
+  match (cancelLanguageRead(next, messages, 'editor:' + request.toString())) {
+    Ok(_) => {
+      state.set(next);
+    },
+    Err(_) => {}
+  }
+}

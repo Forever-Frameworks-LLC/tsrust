@@ -13,6 +13,7 @@ export async function run(): Task<void> {
   const listener = unwrap(await listenTcp(unwrap(parseAddress('127.0.0.1:0'))));
   const endpoint = unwrap(listener.localAddress());
   const worker = server(listener).start();
+
   try {
     const client = unwrap(await connectTcp(endpoint));
     const input = reader(unwrap(fromUtf8('copy bytes')));
@@ -22,6 +23,7 @@ export async function run(): Task<void> {
     client.close();
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}

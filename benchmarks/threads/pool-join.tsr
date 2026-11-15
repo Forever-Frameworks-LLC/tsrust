@@ -4,6 +4,7 @@ import { monotonicNow } from 'std:time';
 
 function batch(pool: ReadOnly<ThreadPool>): int {
   let checksum = 0;
+
   for (let index = 0; index < 8; index += 2) {
     const left = index;
     const right = index + 1;
@@ -21,6 +22,7 @@ function main() {
   const pool = new ThreadPool({
     workers: 2, capacity: 16
   });
+
   for (let warmup = 0; warmup < 8; warmup += 1) {
     batch(pool);
   }

@@ -1,0 +1,656 @@
+import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
+import { fromUtf8, length, toUtf8 } from 'std:bytes';
+import { Channel, Sender } from 'std:futures';
+import { isAbsolute, separator } from 'std:path';
+import { createTempDir, lstat, removeDirAll } from 'std:fs';
+import { toInt } from 'std:numeric';
+import { compile } from 'std:regex';
+import { run } from 'std:process';
+
+function gitOutputBytes(): int {
+  return 2 * 1024 * 1024;
+}
+
+function workspaceFile(path: ReadOnly<string>): boolean {
+  const parts = separator() === '/' ? path.split('/') : path.replaceAll(separator(), '/').split('/');
+  return path !== '' && !isAbsolute(path) && !parts.some((part) => part === '' || part === '.' || part === '..');
+}
+
+// Git no-index treats links to directories as directories when paired with /dev/null.
+async function previewUntrackedLink(root: string, file: string, args: string[]): Task<Result<string, string>> {
+  match (createTempDir(undefined, 'studio-link-index-')) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(folder) => {
+      const index = folder + separator() + 'index';
+
+      try {
+        match (await runGit(
+          clone(root),
+          ['--literal-pathspecs', 'add', '--intent-to-add', '--', clone(file)],
+          '',
+          false,
+          false,
+          clone(index)
+        ).start()) {
+          Err(reason) => {
+            return Err(reason);
+          },
+          Ok(_) => {}
+        }
+
+        args.push('--');
+        args.push(file);
+        return await runGit(
+          root,
+          args,
+          '',
+          false,
+          false,
+          index
+        ).start();
+      } finally {
+        unwrap(removeDirAll(folder));
+      }
+    }
+  }
+}
+
+export async function readGitView(root: ReadOnly<string>, mode: ReadOnly<string>, file: string = ''): Task<Result<string, string>> {
+  if (file !== '' && (!workspaceFile(file) || !['working', 'staged', 'conflicts'].includes(mode))) return Err('Choose a file inside the workspace.');
+  const args = ['--literal-pathspecs', '--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false'];
+
+  if (mode === 'status') {
+    for (const arg of ['-c', 'status.relativePaths=true', 'status', '--short', '--branch', '--untracked-files=all']) args.push(clone(arg));
+  } else if (mode === 'conflicts') {
+    if (file !== '') {
+      match (await conflictSections(clone(root), clone(file)).start()) {
+        Ok(sections) => {
+          return Ok(formatConflict(sections, file));
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
+    for (const arg of ['diff', '--relative', '--name-only', '--diff-filter=U', '--no-ext-diff']) args.push(clone(arg));
+  } else if (mode === 'history') {
+    for (const arg of ['log', '--ignore-missing', '--no-decorate', '--no-show-signature', '--format=%h  %as  %s', 'HEAD']) args.push(clone(arg));
+  } else if (mode === 'working' || mode === 'staged') {
+    for (const arg of ['diff', '--relative', '--no-ext-diff', '--no-textconv', '--unified=3', '--no-renames', '--src-prefix=a/', '--dst-prefix=b/']) args.push(clone(arg));
+
+    if (mode === 'working' && file !== '') {
+      match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--others', '--exclude-standard', '-z', '--', clone(file)])) {
+        Ok(names) => {
+          if (names === file + '\0') {
+            match (lstat(root + separator() + file)) {
+              Ok(info) => {
+                if (info.isSymlink) return await previewUntrackedLink(clone(root), clone(file), args).start();
+
+                if (!info.isFile) return Err('Choose a regular file.');
+              },
+              Err(error) => {
+                return Err(clone(error.message));
+              }
+            }
+            // Git's no-index diff uses /dev/null for the absent side and exits 1 for differences.
+            args.push('--no-index');
+            args.push('--');
+            args.push('/dev/null');
+            args.push(file === '-' ? './-' : clone(file));
+            return await gitOutput(root, args, '', true);
+          }
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
+    if (mode === 'staged') args.push('--cached');
+  } else return Err('Unknown source control view.');
+  args.push('--');
+  args.push(file === '' ? '.' : file);
+
+  return await gitOutput(root, args);
+}
+
+function formatConflict(sections: ReadOnly<Map<string, string>>, file: ReadOnly<string>): string {
+  if (sections.size === 0) return '';
+  return ['1', '2', '3'].map((stage) => ':' + stage + ':' + file + '\n' + (clone(sections.get(stage)) ?? '(absent)')).join('\n\n');
+}
+
+async function conflictSections(root: string, file: string): Task<Result<Map<string, string>, string>> {
+  if (!workspaceFile(file)) return Err('Choose a file inside the workspace.');
+  const sections = new Map<string, string>();
+
+  match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(file)])) {
+    Err(reason) => {
+      return Err(reason);
+    },
+    Ok(entries) => {
+      if (entries !== '') sections.set('index', clone(entries));
+
+      for (const entry of entries.split('\0')) {
+        const tab = entry.indexOf('\t');
+
+        if (tab < 0 || entry.slice(tab + 1) !== file) continue;
+        const fields = entry.slice(0, tab).split(' ');
+
+
+        if (fields[0] === '160000') {
+          sections.set(clone(fields[2]), 'Subproject commit ' + fields[1]);
+          continue;
+        }
+
+        match (await gitOutput(root, ['cat-file', '-s', clone(fields[1])])) {
+          Ok(result) => {
+            const size = result.trim();
+
+            if (Number(size) > Number(gitOutputBytes())) {
+              sections.set(clone(fields[2]), 'Preview omitted (' + size + ' bytes)');
+              continue;
+            }
+          },
+          Err(reason) => {
+            return Err(reason);
+          }
+        }
+
+        match (await gitOutput(root, ['cat-file', 'blob', clone(fields[1])], '', false, true)) {
+          Ok(content) => {
+            sections.set(clone(fields[2]), content);
+          },
+          Err(reason) => {
+            return Err(reason);
+          }
+        }
+      }
+    }
+  }
+
+  return Ok(sections);
+}
+
+// NUL-delimited names preserve whitespace and Git pathspec punctuation.
+export async function changedFiles(root: ReadOnly<string>): Task<Result<string[], string>> {
+  const names = new Set<string>();
+
+  for (const args of [['ls-files', '-z', '--modified', '--others', '--exclude-standard', '--', '.'], ['diff', '--cached', '--relative', '--name-only', '--no-renames', '-z', '--', '.']]) {
+    match (await gitOutput(root, clone(args))) {
+      Ok(text) => {
+        for (const path of text.split('\0')) if (path !== '') names.add(clone(path));
+      },
+      Err(error) => {
+        return Err(error);
+      }
+    }
+  }
+
+  const paths = Array.from(names);
+  paths.sort();
+  return Ok(paths);
+}
+
+export interface DiffHunk {
+  originalLine: int;
+  modifiedLine: int;
+  label: string;
+  header: string;
+  start: int;
+  end: int;
+}
+
+export function gitPatch(output: ReadOnly<string>): string {
+  if (output.startsWith('diff --git ')) return clone(output);
+  const header = output.indexOf('\ndiff --git ');
+  return header < 0 ? '' : output.slice(header + 1);
+}
+
+export function diffHunks(diff: ReadOnly<string>): DiffHunk[] {
+  const hunks: DiffHunk[] = [];
+  let file = '';
+  let header = '';
+  let offset = 0;
+  let active = false;
+
+  for (const line of diff.split('\n')) {
+    if (line.startsWith('diff ')) {
+      if (active) hunks[hunks.length - 1].end = offset;
+      file = line.startsWith('diff --git ') ? line.slice(11) : '';
+      header = '';
+      active = false;
+    } else if (!active && file !== '' && (line.startsWith('new file mode ') || line.startsWith('deleted file mode '))) {
+      // Creating an index entry needs its original Git mode, including on reverse apply.
+      header = 'diff --git ' + file + '\n' + line + '\n';
+    } else if (!active && line.startsWith('--- ')) {
+      header += line + '\n';
+    } else if (!active && header !== '' && line.startsWith('+++ ')) {
+      header += line + '\n';
+    } else if (file !== '' && line.startsWith('@@ ')) {
+      if (active) hunks[hunks.length - 1].end = offset;
+      const ranges = line.split(' ');
+      const before = ranges[1].slice(1).split(',');
+      const after = ranges[2].slice(1).split(',');
+      const originalLine = before.length > 1 && before[1] === '0' ? 0 : unwrap(toInt(Number(before[0])));
+      const modifiedLine = after.length > 1 && after[1] === '0' ? 0 : unwrap(toInt(Number(after[0])));
+      hunks.push({
+        originalLine, modifiedLine, label: file + '  ' + line, header: clone(header), start: offset, end: diff.length
+      });
+      active = true;
+    }
+
+    offset += line.length + 1;
+  }
+
+  return hunks;
+}
+
+export interface GitRequest {
+  conflictIndex?: string;
+  save?: FormattingTarget;
+  mode: string;
+  action?: string;
+  path?: string;
+  hunk?: string;
+  patch?: string;
+  viewFile?: string;
+  commit?: string;
+  message?: string;
+}
+
+export async function gitRequest(root: ReadOnly<string>, request: ReadOnly<GitRequest>): Task<Result<string, string>> {
+  const action = request.action;
+
+  if (action === 'commit-staged') {
+    const message = request.message ?? '';
+
+    if (message.trim() === '') return Err('Enter a commit message.');
+
+    match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+      Err(error) => {
+        return Err(error);
+      },
+      Ok(value) => {
+        const prefix = value.slice(0, -1);
+
+        if (prefix !== '') {
+          match (await gitOutput(root, ['diff', '--cached', '--no-relative', '--no-renames', '--name-only', '-z', '--', ':/'])) {
+            Err(error) => {
+              return Err(error);
+            },
+            Ok(names) => {
+              if (names.split('\0').some((name) => name !== '' && !name.startsWith(prefix))) return Err('Open the repository root to commit staged files outside this workspace.');
+            }
+          }
+        }
+      }
+    }
+
+    return await gitOutput(root, ['commit', '-m', clone(message)]);
+  }
+
+  if (request.mode === 'commit') {
+    const id = request.commit ?? '';
+
+    if (action !== undefined || !unwrap(compile('^[0-9a-f]{4,64}$')).isMatch(id)) return Err('Choose a commit from history.');
+    return await gitOutput(root, ['--no-optional-locks', '-c', 'core.quotePath=false', '-c', 'color.ui=false', 'show', '--diff-merges=first-parent', '--src-prefix=a/', '--dst-prefix=b/', '--relative', '--no-ext-diff', '--no-textconv', '--no-show-signature', '--format=fuller', '--patch', id + '^{commit}', '--', '.']);
+  }
+
+  const viewFile = clone(request.viewFile) ?? '';
+
+  if (viewFile !== '' && (!workspaceFile(viewFile) || !['working', 'staged', 'conflicts'].includes(request.mode))) return Err('Choose a file inside the workspace.');
+
+  if (action === undefined) return await readGitView(root, request.mode, clone(viewFile));
+
+  if (action === 'stage-hunk' || action === 'unstage-hunk') {
+    const reverse = action === 'unstage-hunk';
+
+    if (request.mode !== (reverse ? 'staged' : 'working')) return Err('Unknown source control action.');
+    let diff = '';
+
+    match (await readGitView(root, request.mode, clone(viewFile))) {
+      Ok(text) => {
+        diff = text;
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    const label = request.hunk ?? '';
+    const hunk = diffHunks(diff).find((entry: ReadOnly<DiffHunk>) => entry.label === label);
+
+    if (hunk === undefined || hunk.header === '') return Err('The hunk changed. Refresh the diff.');
+    const patch = hunk.header + diff.slice(hunk.start, hunk.end);
+
+    if (patch !== (request.patch ?? '')) return Err('The hunk changed. Refresh the diff.');
+    let top = '';
+    let prefix = '';
+
+    match (await gitOutput(root, ['rev-parse', '--show-toplevel'])) {
+      Ok(text) => {
+        top = text.slice(0, -1);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+      Ok(text) => {
+        prefix = text.slice(0, -1);
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+
+    const args = ['apply', '--cached', '--whitespace=nowarn', '-p1'];
+
+    if (prefix !== '') args.push('--directory=' + prefix.slice(0, -1));
+
+    if (reverse) args.push('--reverse');
+
+    // Git searches from the destination line. Earlier, omitted hunks did not shift this index.
+    const body = diff.slice(hunk.start, hunk.end);
+    const boundary = body.indexOf(' @@');
+    const ranges = body.slice(3, boundary).split(' ');
+    const before = ranges[0].slice(1).split(',');
+    const after = ranges[1].slice(1).split(',');
+    let indexedPatch = patch;
+
+    if (before[0] !== '0' && after[0] !== '0') {
+      const start = reverse ? clone(after[0]) : clone(before[0]);
+      before[0] = clone(start);
+      after[0] = clone(start);
+      indexedPatch = hunk.header + '@@ -' + before.join(',') + ' +' + after.join(',') + body.slice(boundary);
+    }
+
+    match (await gitOutput(top, args, indexedPatch)) {
+      Ok(_) => {
+        return await readGitView(root, request.mode, clone(viewFile));
+      },
+      Err(reason) => {
+        return Err(reason);
+      }
+    }
+  }
+
+  if (action !== 'stage' && action !== 'unstage' && action !== 'check-resolution') return Err('Unknown source control action.');
+  const path = request.path ?? '';
+
+  if (!workspaceFile(path)) return Err('Choose a file inside the workspace.');
+
+  if (action === 'check-resolution' || request.conflictIndex !== undefined) {
+    match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--unmerged', '-z', '--', clone(path)])) {
+      Err(reason) => {
+        return Err(reason);
+      },
+      Ok(entries) => {
+        if (entries === '' || entries !== request.conflictIndex) return Err('The conflict changed. Refresh Source Control.');
+      }
+    }
+
+    if (action === 'check-resolution') return Ok('');
+  }
+
+  match (lstat(root + separator() + path)) {
+    Ok(info) => {
+      if (info.isDirectory) {
+        match (await gitOutput(root, ['--literal-pathspecs', 'ls-files', '--stage', '-z', '--', clone(path)])) {
+          Err(reason) => {
+            return Err(reason);
+          },
+          Ok(entries) => {
+            const rows = entries.split('\0').filter((row) => row !== '');
+
+            if (rows.length === 0 || !rows.every((row) => row.startsWith('160000 ') && row.slice(row.indexOf('\t') + 1) === path)) return Err('Choose a regular file.');
+          }
+        }
+
+        if (action === 'stage') {
+          // An uninitialized submodule directory resolves Git commands against its parent.
+          match (await gitOutput(root, ['-C', clone(path), 'rev-parse', '--show-prefix'])) {
+            Err(reason) => {
+              return Err(reason);
+            },
+            Ok(prefix) => {
+              if (prefix !== '\n') return Err('Choose a regular file.');
+            }
+          }
+        }
+      } else if (!info.isFile && !info.isSymlink) return Err('Choose a regular file.');
+    },
+    Err(error) => {
+      if (error.code !== 'not-found') return Err(clone(error.message));
+
+      match (await changedFiles(root)) {
+        Ok(paths) => {
+          if (!paths.includes(path) || paths.some((other) => other.startsWith(path + '/'))) return Err('Choose a file inside the workspace.');
+        },
+        Err(reason) => {
+          return Err(reason);
+        }
+      }
+    }
+  }
+
+  const args = ['--literal-pathspecs', action === 'stage' ? 'add' : 'reset', '--', clone(path)];
+
+  match (await gitOutput(root, args)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(_) => {
+      return await readGitView(root, request.mode, clone(viewFile));
+    }
+  }
+}
+
+async function gitOutput(root: ReadOnly<string>, args: string[], input: string = '', diffExit: boolean = false, blob: boolean = false): Task<Result<string, string>> {
+  // Poll subprocess I/O outside the nested source-control request stack.
+  return await runGit(clone(root), args, input, diffExit, blob).start();
+}
+
+async function runGit(
+  root: string,
+  args: string[],
+  input: string,
+  diffExit: boolean,
+  blob: boolean,
+  index: string = ''
+): Task<Result<string, string>> {
+  match (await run('git', args, {
+    env: index === '' ? [] : [{
+      name: 'GIT_INDEX_FILE', value: clone(index)
+    }], cwd: clone(root), input: unwrap(fromUtf8(input)), deadlineMs: 30000, maxOutputBytes: gitOutputBytes()
+  })) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(output) => {
+      try {
+        if (!output.status.success && !(diffExit && output.status.code === 1 && length(output.stderr) === 0)) return Err(unwrap(toUtf8(output.stderr)).trim());
+
+        if (blob) {
+          match (toUtf8(output.stdout)) {
+            Ok(text) => {
+              if (!text.includes('\0')) return Ok(text);
+            },
+            Err(_) => {}
+          }
+
+          return Ok('Binary blob (' + length(output.stdout).toString() + ' bytes)');
+        }
+
+        return Ok(unwrap(toUtf8(output.stdout)));
+      } catch (_) {
+        return Err('Git output is not valid UTF-8.');
+      }
+    }
+  }
+}
+
+export interface GitChange {
+  conflictIndex?: string;
+  markerWidth?: int;
+  path: string;
+  mode: string;
+  status: string;
+}
+
+async function repositoryChanges(root: string): Task<Result<GitChange[], string>> {
+  let prefix = '';
+
+  match (await gitOutput(root, ['rev-parse', '--show-prefix'])) {
+    Ok(text) => {
+      prefix = text.slice(0, -1);
+    },
+    Err(error) => {
+      return Err(error);
+    }
+  }
+
+  const changes: GitChange[] = [];
+
+  match (await gitOutput(root, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all', '--', '.'])) {
+    Ok(text) => {
+      for (const row of text.split('\0')) {
+        if (row.length < 4 || !row.slice(3).startsWith(prefix)) continue;
+        const xy = row.slice(0, 2);
+        const path = row.slice(3 + prefix.length);
+
+        if (['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(xy)) changes.push({
+          path, mode: 'conflicts', status: xy
+        });
+        else {
+          if (xy !== '??' && xy.slice(0, 1) !== ' ') changes.push({
+            path: clone(path), mode: 'staged', status: xy.slice(0, 1)
+          });
+
+          if (xy.slice(1) !== ' ') changes.push({
+            path, mode: 'working', status: xy.slice(1)
+          });
+        }
+      }
+    },
+    Err(error) => {
+      return Err(error);
+    }
+  }
+
+  const conflicts = changes.filter((row) => row.mode === 'conflicts').map((row) => clone(row.path));
+
+  if (conflicts.length > 0) match (await gitOutput(root, ['check-attr', '-z', '--stdin', 'conflict-marker-size'], conflicts.join('\0') + '\0')) {
+    Err(reason) => {
+      return Err(reason);
+    },
+    Ok(text) => {
+      const fields = text.split('\0');
+      const widths = new Map<string, int>();
+
+      for (let i = 0; i + 2 < fields.length; i += 3) {
+        match (toInt(Number(fields[i + 2]))) {
+          Ok(width) => {
+            if (width > 0) widths.set(clone(fields[i]), width);
+          },
+          Err(_) => {}
+        }
+      }
+
+      for (let i = 0; i < changes.length; i += 1) {
+        if (changes[i].mode === 'conflicts') changes[i].markerWidth = widths.get(changes[i].path) ?? 7;
+      }
+    }
+  }
+
+  return Ok(changes);
+}
+
+export interface GitReply {
+  conflictIndex?: string;
+  mode: string;
+  text: string;
+  failed: boolean;
+  files?: string[];
+  changes?: GitChange[];
+  ours?: string;
+  theirs?: string;
+}
+
+export async function gitWorker(root: string, requests: Channel<GitRequest>, replies: Sender<GitReply>): Task<void> {
+  while (true) {
+    const request = await requests.receive();
+    const mode = clone(request.mode);
+
+    const conflictFile = clone(request.viewFile) ?? '';
+
+    if (mode === 'conflicts' && conflictFile !== '' && request.action === undefined) {
+      match (await conflictSections(clone(root), clone(conflictFile)).start()) {
+        Ok(sections) => {
+          await replies.send({
+            mode, conflictIndex: clone(sections.get('index')), failed: false, text: formatConflict(sections, conflictFile), ours: clone(sections.get('2')), theirs: clone(sections.get('3'))
+          });
+        },
+        Err(error) => {
+          await replies.send({
+            mode, failed: true, text: error
+          });
+        }
+      }
+
+      continue;
+    }
+
+    match (await gitRequest(root, request)) {
+      Ok(text) => {
+        let files: string[] = [];
+        let changes: GitChange[] = [];
+
+        if (mode === 'conflicts') {
+          match (await gitOutput(root, ['diff', '--relative', '--name-only', '--diff-filter=U', '-z', '--', '.'])) {
+            Ok(names) => {
+              files = names.split('\0').filter((path) => path !== '');
+            },
+            Err(error) => {
+              await replies.send({
+                mode, text: error, failed: true
+              });
+              continue;
+            }
+          }
+        }
+
+        if (mode === 'status') {
+          match (await repositoryChanges(clone(root)).start()) {
+            Ok(rows) => {
+              changes = rows;
+              const unique = new Set<string>();
+
+              for (const row of changes) unique.add(clone(row.path));
+              files = Array.from(unique);
+            },
+            Err(error) => {
+              await replies.send({
+                mode, text: error, failed: true
+              });
+              continue;
+            }
+          }
+        }
+
+        await replies.send({
+          mode, text, failed: false, files, changes
+        });
+      },
+      Err(error) => {
+        await replies.send({
+          mode, text: error, failed: true
+        });
+      }
+    }
+  }
+}

@@ -1,10 +1,32 @@
-//! Whitespace-only formatting; token spelling and comment trivia remain intact.
+//! Token-preserving layout, with checked grouping of direct JSX return values.
 use crate::syntax::TokenKind;
 use crate::{Diagnostic, Span};
+mod imports;
+mod arguments;
 mod types;
 mod match_layout;
+mod options;
+mod jsx;
+mod trivia;
+pub use options::FormatOptions;
 
 pub fn format(source: &str) -> Result<String, Diagnostic> {
+    format_with_options(source, &FormatOptions::default())
+}
+
+pub fn format_with_options(source: &str, options: &FormatOptions) -> Result<String, Diagnostic> {
+    options.validate().map_err(|error| Diagnostic::new("format", error, Span::new(0, 0)))?;
+    let organized = imports::organize(source, options)?;
+    let formatted = format_core(&organized, options)?;
+    let laid_out = jsx::layout(&formatted, options)?;
+    let result = format_core(&laid_out, options)?;
+    jsx::verify(&organized, &result)?;
+    let wrapped = imports::wrap(&result, options)?;
+    jsx::verify(&result, &wrapped)?;
+    Ok(wrapped)
+}
+
+fn format_core(source: &str, options: &FormatOptions) -> Result<String, Diagnostic> {
     let tokens = types::normalized_tokens(source)?;
     let real = &tokens[..tokens.len().saturating_sub(1)];
     // Prefix chains do not end an operand. Postfix chains inherit the operand
@@ -25,6 +47,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
     let ends_operand = |index: usize| operand_ends[index];
     let (match_headers, match_commas) = match_layout::layout(real);
     let generic_spans = types::generic_spans(&tokens);
+    let (argument_breaks,argument_indent)=arguments::layout(real,&generic_spans,options);
     let generic = |at: usize| types::contains(&generic_spans, at);
     if real.is_empty() {
         return Ok(source.to_owned());
@@ -263,6 +286,11 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
     let mut offset = 0;
     for (i, token) in real.iter().enumerate() {
         let gap = &source[offset..token.span.start];
+        let separated;
+        let leading=gap.len()-gap.trim_start().len();
+        let gap=if argument_breaks[i] && !gap.trim().is_empty() && !gap[..leading].contains('\n') && !gap.trim_start().starts_with("//") {
+            separated=format!("\n{gap}");separated.as_str()
+        }else{gap};
         let previous = i.checked_sub(1).map(|i| &real[i]);
         let symbol = token.kind == TokenKind::Symbol;
         if depth == 0 && token.kind == TokenKind::Name && token.text == "import" {
@@ -277,7 +305,10 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
         }
         // Comments are source trivia, not lexer tokens; retain their exact content.
         if !gap.chars().all(char::is_whitespace) {
-            output.push_str(gap);
+            let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
+            let code_depth = depth + argument_indent[i] + clauses.saturating_sub(usize::from(label_start[i]));
+            let comment_depth = depth + argument_indent[i] + clauses + usize::from(symbol && token.text == "}" && !pattern[i]);
+            output.push_str(&trivia::reindent_gap(gap, options.indent_width * comment_depth, options.indent_width * code_depth)?);
         } else if i == 0 {
             output.push_str(&"\n".repeat(gap.bytes().filter(|&byte| byte == b'\n').count()));
         } else if let Some(previous) = previous {
@@ -288,9 +319,9 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let existing_newlines = gap.bytes().filter(|&byte| byte == b'\n').count();
             let exception_handler = previous_symbol && prev == "}" && matches!(current,"catch"|"finally");
             let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
-            let jsx_open=prev=="(" && token.kind==TokenKind::String && current.starts_with('<') && current.contains('\n');
-            let jsx_close=current==")" && previous.kind==TokenKind::String && prev.starts_with('<') && prev.contains('\n');
-            let newline = if jsx_open || jsx_close {true} else if empty_pair || pattern[i - 1] {
+            let jsx_open=prev=="(" && token.kind==TokenKind::String && source.as_bytes().get(token.span.start)==Some(&b'<');
+            let jsx_close=current==")" && previous.kind==TokenKind::String && source.as_bytes().get(previous.span.start)==Some(&b'<');
+            let newline = if argument_breaks[i] || jsx_open || jsx_close {true} else if empty_pair || pattern[i - 1] {
                 false
             } else if label_colon[i - 1] || interface_field_comma[i - 1] || match_commas[i - 1] {
                 true
@@ -303,19 +334,23 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                         && prev == "}"
                         && !matches!(current, ";" | "," | ")" | "]" | "." | "else" | "catch" | "finally" | "(" | "as" | "satisfies"))
             };
-            let separate_blocks =
-                !import && previous_symbol && prev == "}" && newline && current != "}";
+            let after_block = !import && previous_symbol && prev == "}" && newline && current != "}";
+            let before_control = !import
+                && token.kind == TokenKind::Name && matches!(current, "if" | "for" | "while" | "switch" | "try" | "do" | "match")
+                && previous_symbol && matches!(prev, ";" | "}")
+                && parentheses == block_parentheses.last().copied().unwrap_or(0);
             let separate_declarations = previous_symbol
                 && prev == ";"
                 && depth == 0
                 && matches!(current, "function" | "type" | "export");
             if newline || (!empty_pair && !exception_handler && !type_continuation && existing_newlines > 1 && (!import || prev == ";")) {
-                let required = if separate_blocks || separate_declarations {
+                let block_boundary = after_block || before_control;
+                let required = if separate_declarations || options.blank_lines_around_blocks && block_boundary {
                     2
                 } else {
                     1
                 };
-                let count = if import && prev != ";" {
+                let count = if import && prev != ";" || block_boundary && !options.blank_lines_around_blocks {
                     required
                 } else {
                     existing_newlines.max(required)
@@ -323,7 +358,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 output.push_str(&"\n".repeat(count));
                 // Inside a switch body, everything except a label sits one level deeper.
                 let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
-                output.push_str(&"  ".repeat(depth + usize::from(jsx_open) + clauses.saturating_sub(usize::from(label_start[i]))));
+                output.push_str(&" ".repeat(options.indent_width * (depth + argument_indent[i] + usize::from(jsx_open) + clauses.saturating_sub(usize::from(label_start[i])))));
             } else {
                 let postfix_assertion = symbol && current == "!" && ends_operand(i - 1);
                 // Signs after postfix operators are binary; signs after prefixes

@@ -1,4 +1,13 @@
-import { parseInt as exact, parseNumber, checkedAdd, checkedSubtract, checkedMultiply, checkedDivide, checkedRemainder, NumericError } from 'std:numeric';
+import {
+  parseInt as exact,
+  parseNumber,
+  checkedAdd,
+  checkedSubtract,
+  checkedMultiply,
+  checkedDivide,
+  checkedRemainder,
+  NumericError
+} from 'std:numeric';
 import { strictEqual } from 'std:testing';
 
 function code(value: Result<int, NumericError>): string {
@@ -41,6 +50,7 @@ function main() {
   strictEqual(isNaN(unwrap(parseNumber('NaN'))), true);
   strictEqual(Object.is(unwrap(parseNumber('-1e-999')), -0.0), true);
   strictEqual(Object.is(unwrap(parseNumber('-0')), -0.0), true);
+
   for (const text of ['', ' 1', '1 ', '1x', '0x10', '1_0']) {
     strictEqual(match (parseNumber(text)) {
       Ok(_) => 'Ok',

@@ -4,9 +4,11 @@ function workload(n: int, seed: int): int[][] {
   let visits = 0;
   let i = 0;
   const output: int[][] = [];
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

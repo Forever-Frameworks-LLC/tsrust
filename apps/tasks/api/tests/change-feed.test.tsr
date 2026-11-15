@@ -1,0 +1,37 @@
+import { get } from 'std:env';
+import { connect } from 'std:sql';
+import { test, strictEqual } from 'std:testing';
+
+test('database changes retain versions and tombstones and roll back atomically', async () => {
+  const url = unwrap(get('DATABASE_URL'));
+
+  if (url === undefined) throw 'Set DATABASE_URL to the Worklist test database.';
+  const pool = await connect(url, 2);
+  await pool.migrate('migrations');
+  const transaction = await pool.begin();
+
+  try {
+    await transaction.execute("INSERT INTO tasks(id, title) VALUES ('change-feed-test', 'Before')");
+    const created = await transaction.query("SELECT version FROM tasks WHERE id = 'change-feed-test'");
+    strictEqual(unwrap(created[0].int('version')), 1);
+    await transaction.execute("UPDATE tasks SET title = 'After' WHERE id = 'change-feed-test'");
+    const updated = await transaction.query("SELECT version FROM tasks WHERE id = 'change-feed-test'");
+    strictEqual(unwrap(updated[0].int('version')), 2);
+    await transaction.execute("DELETE FROM tasks WHERE id = 'change-feed-test'");
+    const changes = await transaction.query("SELECT operation, payload->>'title' AS title, payload->>'id' AS id FROM task_changes WHERE task_id = 'change-feed-test' ORDER BY sequence");
+    strictEqual(changes.length, 3);
+    strictEqual(unwrap(changes[0].text('operation')), 'upsert');
+    strictEqual(unwrap(changes[0].text('title')), 'Before');
+    strictEqual(unwrap(changes[1].text('title')), 'After');
+    strictEqual(unwrap(changes[2].text('operation')), 'delete');
+    strictEqual(unwrap(changes[2].text('id')), 'change-feed-test');
+  } finally {
+    await transaction.rollback();
+  }
+
+  const missing = await pool.query("SELECT id FROM tasks WHERE id = 'change-feed-test'");
+  const changes = await pool.query("SELECT task_id FROM task_changes WHERE task_id = 'change-feed-test'");
+  strictEqual(missing.length, 0);
+  strictEqual(changes.length, 0);
+  await pool.close();
+});

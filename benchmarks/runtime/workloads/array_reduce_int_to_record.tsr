@@ -14,9 +14,11 @@ function workload(n: int, seed: int): Row {
   let last: Row = {
     total: 0, text: "initial", rows: [], trace: 0, visits: 0
   };
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {

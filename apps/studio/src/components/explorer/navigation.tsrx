@@ -1,0 +1,238 @@
+import { Sender } from 'std:futures';
+import {
+  Icon,
+  View,
+  Text,
+  Dialog,
+  DialogContent,
+  Command,
+  CommandItem,
+  CommandEmpty,
+  Node,
+  Signal,
+  computed,
+  t,
+  translate
+} from 'std:ui';
+
+import {
+  FileSearchState,
+  SearchActionContext,
+  fileMatches,
+  fileSearchLabel,
+  showFileSearch,
+  updateFileQuery,
+  closeFileSearch,
+  openFileSearchResult
+} from '../../lib/explorer/search-actions.tsr';
+import { fileDecoration } from '../../lib/explorer/file-icons.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { message } from '../../lib/localization.tsr';
+import { PaletteCommand, paletteCommands } from '../../lib/workspace/commands.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, Entry } from '../../lib/workspace/workspace.tsr';
+import { languageControlAvailable, requestLanguageControl } from '../../services/lsp/actions.tsr';
+import { LanguageState } from '../../services/lsp/controller.tsr';
+import { LanguageMessage } from '../../services/lsp/session.tsr';
+
+export function openPalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, search: Signal<FileSearchState>, commands: boolean = false): void {
+  const context: SearchActionContext = {
+    workspace, recovery, fileSearch: search, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, allowModal: true, focusEditor: true
+  };
+
+  match (showFileSearch(context, workspace.get().root, commands ? '>' : undefined)) {
+    Ok(_) => {},
+    Err(error) => {
+      const next = workspace.get();
+      next.error = error;
+      workspace.set(next);
+    }
+  }
+}
+
+function closePalette(workspace: Signal<Workspace>, recovery: Signal<Recovery>, search: Signal<FileSearchState>): void {
+  const context: SearchActionContext = {
+    workspace, recovery, fileSearch: search, allowedRoot: clone(workspace.get().root), allowNavigation: true, focusEditor: false
+  };
+
+  match (closeFileSearch(context, workspace.get().root)) {
+    Ok(_) => {},
+    Err(error) => {
+      const next = workspace.get();
+      next.error = error;
+      workspace.set(next);
+    }
+  }
+}
+
+function FileSearchItem(file: ReadOnly<Entry>, root: ReadOnly<string>, fileIcons: boolean): Node {
+  const path = clone(file.path);
+  const label = fileSearchLabel(root, file.path);
+
+  if (!fileIcons) return (
+    <CommandItem value={path} label={label} icon="file" />
+  );
+  const glyph = fileDecoration(file.name, file.directory);
+
+  if (glyph.svg === '' && glyph.icon === '') return (
+    <CommandItem value={path} label={label} icon="file" />
+  );
+  return (
+    <CommandItem value={path} label={clone(label)}>
+      <Icon name={glyph.icon} svg={glyph.svg} size="sm" className={glyph.color === '' ? '' : 'text-[' + glyph.color + ']'} />
+      <Text className="min-w-0 truncate">
+        {label}
+      </Text>
+    </CommandItem>
+  );
+}
+
+function CommandItemRow(command: ReadOnly<PaletteCommand>): Node {
+  const id = clone(command.id);
+  const value = 'command:' + command.id;
+  const label = clone(command.label);
+  const disabled = command.disabled;
+  return (
+    <CommandItem value={value} command={id} label={label} disabled={disabled} icon="command" />
+  );
+}
+
+interface LanguagePaletteAction {
+  server: string;
+  action: string;
+  label: string;
+  disabled: boolean;
+}
+
+function LanguageCommand(command: ReadOnly<LanguagePaletteAction>, state: Signal<LanguageState>, messages: Sender<LanguageMessage>): Node {
+  const server = clone(command.server);
+  const action = clone(command.action);
+  return (
+    <CommandItem
+      value={'command:lsp:' + server + ':' + action}
+      label={clone(command.label)}
+      disabled={command.disabled}
+      icon="languages"
+      onSelect={() => {
+        const next = state.get();
+        const index = next.connections.findIndex((entry) => entry.server === server);
+
+        if (index < 0) return;
+
+        const generation = next.connections[index].generation;
+
+        match (requestLanguageControl(next, messages, clone(server), generation, clone(action))) {
+          Ok(_) => {
+            state.set(next);
+          },
+          Err(_) => {}
+        }
+      }}
+    />
+  );
+}
+
+function languageCommands(state: ReadOnly<LanguageState>, query: ReadOnly<string>): LanguagePaletteAction[] {
+  const rows: LanguagePaletteAction[] = [];
+  const filter = (query.startsWith('>') ? query.slice(1) : query).trim().toLowerCase();
+
+  for (const connection of state.connections) {
+    for (const action of ['start', 'stop', 'restart']) {
+      const label = 'LSP: ' + translate(action === 'start' ? 'Start' : action === 'stop' ? 'Stop' : 'Restart') + ' — ' + connection.server;
+
+      if (label.toLowerCase().includes(filter)) rows.push({
+        server: clone(connection.server), action: clone(action), label, disabled: !languageControlAvailable(connection, action)
+      });
+    }
+  }
+
+  return rows;
+}
+
+export function FileSearch(
+  workspace: Signal<Workspace>,
+  recovery: Signal<Recovery>,
+  search: Signal<FileSearchState>,
+  font: Signal<int>,
+  settings: Signal<StudioConfig>,
+  language: Signal<LanguageState>,
+  messages: Sender<LanguageMessage>
+): Node {
+  const renderLanguage = (command: ReadOnly<LanguagePaletteAction>): Node => LanguageCommand(command, language, messages.share());
+  const textClass = computed<string>(() => 'w-full min-h-0 text-[' + font.get().toString() + 'px]');
+  return (
+    <Dialog
+      open={search.get().open ?? false}
+      width={640}
+      maxWidth={720}
+      marginTop={64}
+      closeButton={false}
+      overlay={true}
+      overlayClosable={true}
+      onOpenChange={(open) => {
+        if (!open) closePalette(workspace, recovery, search);
+      }}
+    >
+      <DialogContent className="p-0">
+        <View hidden={!(search.get().open ?? false)} className="w-full min-h-0">
+          <Command
+            inputId="file-search"
+            className={textClass.get()}
+            maxHeight={360}
+            bordered={false}
+            filterable={false}
+            query={search.get().query}
+            placeholder={message("Search files or type > for commands")}
+            onQuery={(query) => {
+              const next = search.get();
+
+              if (next.open !== true || next.root !== workspace.get().root) return;
+
+              match (updateFileQuery(next, clone(query))) {
+                Ok(_) => {},
+                Err(error) => {
+                  const current = workspace.get();
+                  current.error = error;
+                  workspace.set(current);
+                }
+              }
+
+              search.set(next);
+            }}
+            onSelect={(path) => {
+              if (path.startsWith('command:')) {
+                closePalette(workspace, recovery, search);
+                return;
+              }
+
+              const context: SearchActionContext = {
+                workspace, recovery, fileSearch: search, allowedRoot: clone(workspace.get().root), allowRead: true, allowNavigation: true, focusEditor: true
+              };
+
+              match (openFileSearchResult(context, search.get().root, path)) {
+                Ok(_) => {},
+                Err(error) => {
+                  const next = workspace.get();
+                  next.error = error;
+                  workspace.set(next);
+                }
+              }
+            }}
+            onCancel={() => {
+              closePalette(workspace, recovery, search);
+            }}
+          >
+            {...fileMatches(search.get()).map((file: ReadOnly<Entry>) => FileSearchItem(file, search.get().root, settings.get().fileIcons))}
+            {...paletteCommands(workspace.get(), search.get().query).map((command: ReadOnly<PaletteCommand>) => CommandItemRow(command))}
+            {...languageCommands(language.get(), search.get().query).map(renderLanguage)}
+            <CommandEmpty>
+              <Text>
+                {t('No matching files or commands.')}
+              </Text>
+            </CommandEmpty>
+          </Command>
+        </View>
+      </DialogContent>
+    </Dialog>
+  );
+}

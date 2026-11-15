@@ -9,6 +9,7 @@ pub(crate) fn bridge(program: &CheckedProgram, binding: &NativeBinding) -> Strin
     if binding.name=="useId"{return result_bridge(program,binding,String::new(),"tsrust_native_ui::use_id().map(String::Owned)".into());}
     if binding.name=="createLocation" {return result_bridge(program,binding,"initial:&String".into(),"tsrust_native_ui::navigation::create_location(initial.as_ref(),|value|String::Owned(value),|value:&String|value.as_ref().to_owned())".into());}
     if binding.name=="routeParam" {return result_bridge(program,binding,"path:&String,pattern:&String,name:&String".into(),"tsrust_native_ui::navigation::route_parameter(path.as_ref(),pattern.as_ref(),name.as_ref()).map(String::Owned)".into());}
+    if binding.name=="completionProposal" {let NativeBackend::Bundled {symbol}=binding.backend; return format!("fn {symbol}(text:&String,item:&String,start:i64,end:i64)->String{{String::Owned(tsrust_native_ui::completion_proposal_json(text.as_ref(),item.as_ref(),start,end))}}\n");}
     let node = program
         .records
         .iter()

@@ -4,6 +4,12 @@ use std::io::{BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{Receiver, channel};
 use std::time::{Duration, Instant};
+fn document_uri(name: &str) -> String {
+    let path = std::env::temp_dir().join(format!("tsrust-stdio-{}-{name}", std::process::id()));
+    tsrust_lsp::project_diagnostics::file_uri(
+        &tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned()),
+    ).unwrap().to_string()
+}
 struct Server {
     child: Child,
     stdin: Option<ChildStdin>,
@@ -11,7 +17,10 @@ struct Server {
 }
 impl Server {
     fn start() -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_tsrust-lsp"))
+        Self::from_command(Command::new(env!("CARGO_BIN_EXE_tsrust-lsp")))
+    }
+    fn from_command(mut command: Command) -> Self {
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -85,6 +94,25 @@ impl Drop for Server {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+    }
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn allocator_startup_preserves_stdio_and_explicit_policy() {
+    for policy in [None, Some("0")] {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_tsrust-lsp"));
+        command.env_remove("MallocSpaceEfficient");
+        if let Some(value) = policy { command.env("MallocSpaceEfficient", value); }
+        let mut server = Server::from_command(command);
+        server.request(1, "initialize", json!({"capabilities":{}}));
+        assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+        let environment = Command::new("/bin/ps").args(["eww", "-p", &server.child.id().to_string(), "-o", "command="]).output().unwrap();
+        assert!(environment.status.success());
+        let expected = format!("MallocSpaceEfficient={}", policy.unwrap_or("1"));
+        assert!(String::from_utf8(environment.stdout).unwrap().split_whitespace().any(|field| field == expected), "allocator policy must be effective before protocol initialization");
+        server.request(2, "shutdown", Value::Null);
+        assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+        server.finish(0);
     }
 }
 #[test]
@@ -190,7 +218,7 @@ fn formatting_readonly_tuple_generics_returns_tight_idempotent_edit() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.notify("initialized", json!({}));
     let source = "function names(pair: ReadOnly < [string, string] >): int { const [left, right] = pair; return left.length + right.length; } function main() {}";
-    let uri = "file:///formatter-generics.tsr";
+    let uri = document_uri("formatter-generics.tsr");
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
     let Message::Response(response) = server.response() else { panic!("format response"); };
@@ -214,7 +242,7 @@ fn formatting_exception_handlers_returns_joined_idempotent_edit() {
     server.request(1,"initialize",json!({"capabilities":{}}));
     assert!(matches!(server.response(),Message::Response(r) if r.error.is_none()));
     server.notify("initialized",json!({}));
-    let uri="file:///formatter-exceptions.tsr";
+    let uri=document_uri("formatter-exceptions.tsr");
     let source="function main(){try{try{throw 1;}\n\nfinally{}}\n\ncatch(error){}\n\nfinally{}}";
     server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -239,7 +267,7 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.notify("initialized", json!({}));
     let source = "interface Box < T > { value: T, label?: string } function main() { const values = new Map < string, int >(); }";
-    let uri = "file:///formatter-generics.tsr";
+    let uri = document_uri("formatter-generics.tsr");
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
     let Message::Response(response) = server.response() else { panic!("format response"); };
@@ -247,7 +275,7 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     let edits = response.result.unwrap();
     let formatted = edits[0]["newText"].as_str().unwrap();
     assert!(formatted.contains("interface Box<T>"), "{formatted}");
-    assert!(formatted.contains("value: T,\n  label?: string"), "{formatted}");
+    assert!(formatted.contains("    value: T,\n    label?: string"), "{formatted}");
     assert!(formatted.contains("new Map<string, int>()"), "{formatted}");
     assert!(tsrust_compiler::check(formatted).is_ok());
     server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
@@ -304,7 +332,7 @@ fn formatting_assertions_and_generic_calls_returns_a_stable_edit() {
     let mut server=Server::start();
     server.request(1,"initialize",json!({"capabilities":{}}));
     server.response();
-    let uri="file:///format-types.tsr";
+    let uri=document_uri("format-types.tsr");
     let source="interface Box<T>{value:T;}function identity<T>(value:T):T{return value;}function main(){const boxed={value:9}\n\nas Box < int >;const callback=((x:int):int=>x+1) satisfies(value:int)=>int;console.log(callback(identity < int >(boxed.value)));}";
     server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -327,7 +355,7 @@ fn formatting_logical_not_chains_returns_a_stable_edit() {
     server.request(1, "initialize", json!({"capabilities":{}}));
     assert!(matches!(server.response(), Message::Response(response) if response.error.is_none()));
     server.notify("initialized", json!({}));
-    let uri = "file:///format-logical-not.tsr";
+    let uri = document_uri("format-logical-not.tsr");
     let source = "function main(){const text='hi';console.log(!! text,! ! ! text);}";
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -381,6 +409,37 @@ fn imported_unopened_file_publishes_multiple_syntax_errors_and_repairs() {
 }
 
 #[test]
+fn startup_open_buffer_diagnostics_precede_the_closed_file_scan() {
+    let root = std::env::temp_dir().join(format!("tsrust-startup-priority-{}", std::process::id()));
+    std::fs::create_dir(&root).unwrap();
+    let root = root.canonicalize().unwrap();
+    let uri = |name: &str| tsrust_lsp::project_diagnostics::file_uri(
+        &tsrust_compiler::project::SourceId(root.join(name).to_string_lossy().into_owned())
+    ).unwrap().to_string();
+    std::fs::write(root.join("open.tsr"), "export function value(): int { return true; }").unwrap();
+    std::fs::write(root.join("closed.tsr"), "function broken() { const a: int = false; }").unwrap();
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"rootUri":uri(""), "initializationOptions":{"debounceMs":500}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    assert!(server.messages.recv_timeout(Duration::from_millis(50)).is_err());
+    server.notify("textDocument/didOpen", json!({"textDocument":{
+        "uri":uri("open.tsr"), "languageId":"tsrust", "version":1,
+        "text":"export function value(): int { return 1; }"
+    }}));
+    assert!(matches!(server.receive(), Message::Notification(n)
+        if n.method == "textDocument/publishDiagnostics" && n.params["uri"] == uri("open.tsr")
+        && n.params["version"] == 1 && n.params["diagnostics"] == json!([])));
+    assert!(matches!(server.receive(), Message::Notification(n)
+        if n.method == "textDocument/publishDiagnostics" && n.params["uri"] == uri("closed.tsr")
+        && n.params["diagnostics"].as_array().unwrap().len() == 1));
+    server.request(2, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repairs() {
     let directory=std::env::temp_dir().join(format!("tsrust-workspace-scan-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
     std::fs::create_dir(&directory).unwrap();
@@ -425,4 +484,74 @@ fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repa
     assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
     server.finish(0);
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn formatting_import_rules_returns_grouped_wrapped_idempotent_edit() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    let uri = document_uri("formatter-import-rules.tsrx");
+    let source = "import { Local } from './local.tsr'; import { A, B, C, D, E, F } from 'std:ui'; function main() {}";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    let Message::Response(response) = server.response() else { panic!("format response"); };
+    assert!(response.error.is_none(), "{:?}", response.error);
+    let edits = response.result.unwrap();
+    let formatted = edits[0]["newText"].as_str().unwrap();
+    assert!(formatted.starts_with("import {\n    A,\n    B,\n    C,\n    D,\n    E,\n    F\n} from 'std:ui';\n\nimport { Local } from './local.tsr';"), "{formatted}");
+    server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
+    server.request(3, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none() && r.result == Some(json!([]))));
+    server.request(4, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+}
+
+#[test]
+fn declared_import_help_arrives_before_body_diagnostics() {
+    let mut server = Server::start();
+    server.request(1, "initialize", json!({"capabilities":{},"initializationOptions":{"debounceMs":2000}}));
+    assert!(matches!(server.receive(), Message::Response(r) if r.error.is_none()));
+    server.notify("initialized", json!({}));
+    let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-declared-hover.tsr");
+    let uri = tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(root.to_string_lossy().into_owned())).unwrap().to_string();
+    let source = "import {join} from 'std:path';function main(){join('a','b');const n:int='bad';}";
+    server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
+    server.request(2, "textDocument/hover", json!({"textDocument":{"uri":uri},"position":{"line":0,"character":source.rfind("join(").unwrap()+1}}));
+    // No full-check publication may precede this current declaration response.
+    let response = server.receive();
+    assert!(matches!(&response, Message::Response(r) if r.id == RequestId::from(2) && r.error.is_none() && r.result.as_ref().is_some_and(|value|value.to_string().contains("join"))), "{response:?}");
+    loop {
+        if let Message::Notification(notification) = server.receive() {
+            if notification.method == "textDocument/publishDiagnostics" && notification.params["version"] == 1 {
+                assert!(!notification.params["diagnostics"].as_array().unwrap().is_empty());
+                break;
+            }
+        }
+    }
+    server.request(3, "shutdown", Value::Null);
+    assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+    server.finish(0);
+}
+
+#[test]
+fn file_references_scan_direct_imports_without_opening_target_or_body_checking() {
+    let directory=std::env::temp_dir().join(format!("tsrust-file-ref-protocol-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    std::fs::create_dir(&directory).unwrap();
+    struct Cleanup(std::path::PathBuf);impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+    let _cleanup=Cleanup(directory.clone());let directory=directory.canonicalize().unwrap();
+    let uri=|name:&str|tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(directory.join(name).to_string_lossy().into_owned())).unwrap().to_string();
+    std::fs::write(directory.join("data.json"),"{\"ok\":true}").unwrap();
+    std::fs::write(directory.join("main.tsr"),"import data from './data.json';function main(){ unfinished ! }").unwrap();
+    let mut server=Server::start();
+    server.request(1,"initialize",json!({"rootUri":uri(""),"capabilities":{}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.result.as_ref().unwrap()["capabilities"]["experimental"]["fileReferences"]==true));
+    server.notify("initialized",json!({}));
+    server.request(2,"tsrust/fileReferences",json!({"textDocument":{"uri":uri("data.json")}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.id==RequestId::from(2) && response.result.as_ref().is_some_and(|result|result["locations"].as_array().unwrap().len()==1 && result["scanned"]==1)));
+    server.request(3,"tsrust/fileReferences",json!({"textDocument":{"uri":"https://example.com/data.json"}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_some()));
+    server.request(4,"shutdown",Value::Null);server.response();server.finish(0);
 }

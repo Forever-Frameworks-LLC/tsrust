@@ -11,6 +11,7 @@ function main() {
     while (!task.cancellationRequested()) {}
   }));
   listener.cancel();
+
   match (listener.join()) {
     Ok(_) => {},
     Err(error) => console.log(error.code),

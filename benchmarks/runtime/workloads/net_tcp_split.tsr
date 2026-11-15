@@ -1,4 +1,11 @@
-import { parseAddress, listenTcp, connectTcp, bindUdp, TcpListener, UdpSocket } from 'std:net';
+import {
+  parseAddress,
+  listenTcp,
+  connectTcp,
+  bindUdp,
+  TcpListener,
+  UdpSocket
+} from 'std:net';
 import { readExact, writeAll, close } from 'std:io';
 import { alloc, set, at, length } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {
@@ -7,9 +14,11 @@ async function workload(n: int, seed: int): Task<int> {
   const endpoint = unwrap(listener.localAddress());
   const worker = serve(listener, n).start();
   let sum: int = 0;
+
   try {
     const client = unwrap(await connectTcp(endpoint));
     const payload = unwrap(alloc(16384));
+
     for (let j: int = 0; j < 16384; j++) {
       unwrap(set(payload, j, (seed + j) % 251));
     }
@@ -20,6 +29,7 @@ async function workload(n: int, seed: int): Task<int> {
     for (let i: int = 0; i < n; i++) {
       unwrap(await writeAll(output, payload));
       unwrap(await readExact(input, destination));
+
       for (let j: int = 0; j < 16384; j++) {
         sum = (sum * 131 + unwrap(at(destination, j))) % 1000000007;
       }
@@ -29,6 +39,7 @@ async function workload(n: int, seed: int): Task<int> {
     unwrap(await close(input));
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}
@@ -45,6 +56,7 @@ async function serve(listener: Owned<TcpListener>, n: int): Task<void> {
   listener.close();
   const [input, output] = peer.split();
   const bytes = unwrap(alloc(16384));
+
   for (let i: int = 0; i < n; i++) {
     unwrap(await readExact(input, bytes));
     unwrap(await writeAll(output, bytes));

@@ -21,6 +21,7 @@ function workload(n: int, seed: int, input: string): int[][] {
   const length = size;
   const choose = offset;
   let i = 0;
+
   while (i < n) {
     const base = i % 5 + seed % 5 + 1;
     const numberResult = action(base);

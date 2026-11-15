@@ -1,0 +1,221 @@
+import { fromUtf8, length, at, view, toUtf8 } from 'std:bytes';
+import { canonicalize, stat, readTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { separator } from 'std:path';
+import { compile, escape } from 'std:regex';
+
+import { Workspace, projectFiles } from '../workspace/workspace.tsr';
+
+export interface SearchRange {
+  start: int;
+  end: int;
+}
+
+export interface SearchHit {
+  path: string;
+  line: int;
+  offset: int;
+  preview: string;
+  matches: SearchRange[];
+}
+
+// Keep native row construction bounded while retaining every match for navigation.
+export function searchPageCount(count: int): int {
+  if (count <= 0) return 0;
+  return 1 + (count - 1) / 50;
+}
+
+export function searchPage(hits: ReadOnly<SearchHit[]>, page: int): SearchHit[] {
+  if (page < 1 || page > searchPageCount(hits.length)) return [];
+  const start = (page - 1) * 50;
+  return hits.slice(start, start + 50);
+}
+
+export interface SearchResults {
+  hits: SearchHit[];
+  skipped: int;
+}
+
+export interface SearchDraft {
+  path: string;
+  kind: string;
+  text: string;
+}
+
+export interface SearchSnapshot {
+  root: string;
+  files: SearchDraft[];
+}
+
+export function searchSnapshot(workspace: ReadOnly<Workspace>): SearchSnapshot {
+  return {
+    root: clone(workspace.root), files: workspace.files.map((file): SearchDraft => ({
+      path: clone(file.document.path), kind: clone(file.kind), text: clone(file.document.text)
+    }))
+  };
+}
+
+export function searchContents(workspace: ReadOnly<Workspace>, query: string, regex: boolean, caseSensitive: boolean, includeIgnored: boolean = false): Result<SearchResults, string> {
+  return searchSnapshotContents(searchSnapshot(workspace), query, regex, caseSensitive, includeIgnored);
+}
+
+function cancelled(channel: Mutable<Channel<int>>, generation: int): boolean {
+  while (true) {
+    match (channel.tryReceive()) {
+      Ok(value) => {
+        if (value === generation) return true;
+      },
+      Err(error) => {
+        return error.code !== 'empty';
+      }
+    }
+  }
+}
+
+export function searchSnapshotContents(
+  workspace: ReadOnly<SearchSnapshot>,
+  query: string,
+  regex: boolean,
+  caseSensitive: boolean,
+  includeIgnored: boolean,
+  cancellations?: Mutable<Channel<int>>,
+  generation: int = 0
+): Result<SearchResults, string> {
+  const hits: SearchHit[] = [];
+  let skipped = 0;
+
+  if (cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
+
+  if (query === '') return Ok({
+    hits, skipped
+  });
+  const prefix = workspace.root.endsWith(separator()) ? clone(workspace.root) : workspace.root + separator();
+  const expression = (caseSensitive ? '' : '(?i)') + (regex ? clone(query) : escape(query));
+
+  match (compile(expression)) {
+    Err(error) => {
+      return Err(clone(error.message));
+    },
+    Ok(pattern) => {
+      match (projectFiles(workspace.root, includeIgnored)) {
+        Err(error) => {
+          return Err(error);
+        },
+        Ok(files) => {
+          for (const file of files) {
+            if (cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
+            let text = '';
+            const opened = workspace.files.find((entry) => entry.path === file.path);
+
+            if (opened !== undefined) {
+              if (opened.kind !== 'text') continue;
+              text = clone(opened.text);
+            } else {
+              try {
+                const resolved = unwrap(canonicalize(file.path));
+
+                if (!resolved.startsWith(prefix) || !unwrap(stat(resolved)).isFile) {
+                  skipped += 1;
+                  continue;
+                }
+              } catch (_) {
+                skipped += 1;
+                continue;
+              }
+
+              match (readTextFile(file.path, 4 * 1024 * 1024)) {
+                Ok(value) => {
+                  if (value.includes('\0')) {
+                    skipped += 1;
+                    continue;
+                  }
+
+                  text = value;
+                },
+                Err(_) => {
+                  skipped += 1;
+                  continue;
+                }
+              }
+            }
+
+            let offset = 0;
+            let line = 1;
+
+            while (true) {
+              if (line % 128 === 0 && cancellations !== undefined && cancelled(cancellations, generation)) return Err('Search cancelled.');
+              const newline = text.indexOf('\n', offset);
+              const preview = text.slice(offset, newline < 0 ? text.length : newline);
+              const found = pattern.find(preview);
+
+              if (found !== undefined) hits.push({
+                path: clone(file.path), line, offset, preview, matches: [{
+                  start: found.start, end: found.end
+                }]
+              });
+
+              if (newline < 0) break;
+              offset = newline + 1;
+              line += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Ok({
+    hits, skipped
+  });
+}
+
+
+export interface SearchPart {
+  text: string;
+  matched: boolean;
+}
+
+// One hit/highlight per matching line; crop display context without changing its UTF-8 ranges.
+export function searchPreview(hit: ReadOnly<SearchHit>): SearchPart[] {
+  const parts: SearchPart[] = [];
+
+  if (hit.matches.length === 0) return parts;
+  const bytes = unwrap(fromUtf8(hit.preview));
+  const count = length(bytes);
+  const first = hit.matches[0];
+  let start = first.start > 24 ? first.start - 24 : 0;
+  let end = first.end + 96 < count ? first.end + 96 : count;
+
+  if (end > first.start + 160) end = first.start + 160;
+
+  while (start > 0 && unwrap(at(bytes, start)) >= 128 && unwrap(at(bytes, start)) < 192) start -= 1;
+
+  while (end < count && unwrap(at(bytes, end)) >= 128 && unwrap(at(bytes, end)) < 192) end += 1;
+
+  if (start > 0) parts.push({
+    text: '…', matched: false
+  });
+  let cursor = start;
+
+  for (const found of hit.matches) {
+    if (found.start >= end) break;
+
+    if (found.start > cursor) parts.push({
+      text: unwrap(toUtf8(unwrap(view(bytes, cursor, found.start)))), matched: false
+    });
+    const limit = found.end < end ? found.end : end;
+    parts.push({
+      text: unwrap(toUtf8(unwrap(view(bytes, found.start, limit)))), matched: true
+    });
+    cursor = limit;
+  }
+
+  if (cursor < end) parts.push({
+    text: unwrap(toUtf8(unwrap(view(bytes, cursor, end)))), matched: false
+  });
+
+  if (end < count) parts.push({
+    text: '…', matched: false
+  });
+  return parts;
+}

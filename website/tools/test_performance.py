@@ -36,7 +36,11 @@ class CpuExampleTest(unittest.TestCase):
         self.assertEqual((workload['iterations'], manifest['seed']), (pin['iterations'], pin['seed']))
         source = (root / ('benchmarks/runtime/workloads/' + pin['workload'] + '.tsr')).read_text()
         counterpart = (root / ('benchmarks/runtime/workloads/' + pin['workload'] + '.ts')).read_text()
-        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), pin['sourceSha256'])
+        actual = hashlib.sha256(source.encode()).hexdigest()
+        proofs = json.loads((root / 'benchmarks/runtime/format-source-identities.json').read_text())['proofs']
+        self.assertTrue(actual == pin['sourceSha256'] or any(
+            proof['originalSha256'] == pin['sourceSha256'] and proof['formattedSha256'] == actual
+            for proof in proofs))
         self.assertEqual(hashlib.sha256(counterpart.encode()).hexdigest(), pin['counterpartSha256'])
         page = (root / 'website/src/content/docs/project/performance.md').read_text()
         self.assertIn(source.split('\nfunction main()')[0].strip(), page)

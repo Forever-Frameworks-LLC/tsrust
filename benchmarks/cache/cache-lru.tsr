@@ -4,9 +4,11 @@ import { monotonicNow } from 'std:time';
 function batch(): int {
   let checksum = 0;
   const cache = new LruCache<int, int>(16);
+
   for (let i = 0; i < 256; i += 1) {
     unwrap(cache.set(i, i * 3));
     const found = cache.get(i);
+
     if (found !== undefined) {
       checksum += found;
     }

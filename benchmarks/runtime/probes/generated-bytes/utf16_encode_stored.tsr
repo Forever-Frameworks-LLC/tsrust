@@ -2,6 +2,7 @@ import { fromUtf16, toUtf16, length, at } from "std:bytes";
 
 function workload(n: int, seed: int, input: string): int {
   let size = 32;
+
   if (input.endsWith("4k")) {
     size = 4096;
   }
@@ -16,6 +17,7 @@ function workload(n: int, seed: int, input: string): int {
   const savedDecode = toUtf16;
   let checksum = 0;
   let i = 0;
+
   while (i < n) {
     const result = unwrap(savedEncode(text, order));
     checksum += length(result) + unwrap(at(result, 0)) + unwrap(at(result, length(result) - 1));

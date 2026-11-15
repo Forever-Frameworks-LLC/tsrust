@@ -35,6 +35,15 @@ Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
 [test runner and profiling guide](/tsrust/tools/testing/). Releases before v0.2.0
 do not include these APIs.
 
+## Compiler and editor maintenance
+
+The v0.2.1 patch improves repeated compiler analysis, ownership-flow allocation,
+development watcher scheduling and native-runtime cache reuse. It includes LSP
+0.3.1, Zed syntax support and corrected API/performance documentation. Recorded
+benchmark measurements are preserved; these improvements do not establish a
+universal overhead bound relative to Rust. Large-workspace analysis can still
+temporarily exceed 1 GB, and multi-hour memory behavior is not fully verified.
+
 ## Compatibility
 
 Source files use `.tsr`; UI source uses `.tsrx`. Familiar syntax does not
@@ -54,8 +63,9 @@ prebuilt compiler/LSP availability.
 
 The [UI reference](/tsrust/reference/library/ui/) lists the current editor catalog.
 The [source guides](https://github.com/Forever-Frameworks-LLC/tsrust/tree/main/docs/guides/ui)
-cover the supported authoring and native styling contracts. Studio is a planning
-project, not an editor application included in this release.
+cover the supported authoring and native styling contracts. Studio and Worklist
+are local platform-validation experiments, not supported applications delivered
+with the toolchain.
 
 ## Adoption
 

@@ -19,6 +19,7 @@ function main() {
   };
   const short = new Set<int>([7]);
   let seen = 0;
+
   try {
     fixed(counter, ...short);
   } catch (error) {
@@ -32,6 +33,7 @@ function main() {
   strictEqual(counter.value, 10);
   strictEqual(short.size, 1);
   const one = String("x");
+
   try {
     plain(...one);
   } catch (error) {
@@ -45,6 +47,7 @@ function main() {
   strictEqual(counter.value, 20);
   strictEqual(one, "x");
   const items: int[] = [1];
+
   try {
     fixed(counter, ...items);
   } catch (error) {

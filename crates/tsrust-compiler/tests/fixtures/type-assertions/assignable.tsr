@@ -39,6 +39,7 @@ function main() {
   const widened = input as number;
   strictEqual(widened + 0.5, 1.5);
   const union: number | string = input as number;
+
   if (typeof union === "number") {
     strictEqual(union + 0.5, 1.5);
   }
@@ -46,6 +47,7 @@ function main() {
   const checked = 3 satisfies number;
   strictEqual(integer(checked), 3);
   const text = 'yes' as string | int;
+
   if (typeof text === 'string') {
     strictEqual(text, 'yes');
   }

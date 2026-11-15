@@ -1,0 +1,140 @@
+import { JsonLimits } from 'std:json';
+import { ProposedEdit, EditPassage } from '../workspace/documents.tsr';
+
+interface Replacement {
+  file?: int;
+  before: string;
+  after: string;
+}
+
+function selectedText(source: ReadOnly<string>, passages: ReadOnly<EditPassage[]>): string {
+  const parts: string[] = [];
+  let end = 0;
+
+  for (const passage of passages) {
+    if (!passage.included) continue;
+    parts.push(source.slice(end, passage.start));
+    parts.push(clone(passage.after));
+    end = passage.end;
+  }
+
+  parts.push(source.slice(end));
+  return parts.join('');
+}
+
+export function togglePassage(edit: Mutable<ProposedEdit>, index: int): void {
+  const passages = clone(edit.passages);
+
+  if (passages === undefined || index < 0 || index >= passages.length) return;
+  passages[index].included = !passages[index].included;
+  edit.after = selectedText(edit.before, passages);
+  edit.passages = passages;
+}
+
+// The model supplies text only. Studio owns the target, revision and original buffer.
+export function replacementProposal(snapshot: ReadOnly<ProposedEdit>, response: ReadOnly<string>): Result<ProposedEdit, string> {
+  try {
+    let body = response.trim();
+
+    if (body.startsWith('```json\n') && body.endsWith('\n```')) body = body.slice(8, -4);
+    const limits: JsonLimits = {
+      maxBytes: body.length, maxDepth: 4, maxEntries: body.length, maxNodes: body.length
+    };
+    const changes = body.startsWith('[') ? JSON.parse<Replacement[]>(body, limits) : [JSON.parse<Replacement>(body, limits)];
+
+    if (changes.length === 0 || changes.some((change) => change.file !== undefined && change.file !== 0)) return Err('The model did not return a valid edit proposal.');
+    const edits: EditPassage[] = [];
+
+    for (const change of changes) {
+      const start = snapshot.before.indexOf(change.before);
+
+      if ((change.before === '' && snapshot.before !== '') || start < 0 || snapshot.before.lastIndexOf(change.before) !== start) return Err('The proposed change did not match one unique passage in the original file.');
+
+      if (change.before === change.after) continue;
+      edits.push({
+        start, end: start + change.before.length, after: clone(change.after), included: true
+      });
+    }
+
+    if (edits.length === 0) return Err('The model did not return a valid edit proposal.');
+    edits.sort((a, b) => a.start - b.start);
+    let end = 0;
+    let previous = -1;
+
+    for (const item of edits) {
+      if (item.start < end || item.start === previous) return Err('The proposed changes overlap in the original file.');
+      previous = item.start;
+      end = item.end;
+    }
+
+    const result = clone(snapshot);
+    result.after = selectedText(snapshot.before, edits);
+    result.passages = edits;
+    return Ok(result);
+  } catch (_) {
+    return Err('The model did not return a valid edit proposal.');
+  }
+}
+
+export interface EditBatch {
+  request?: string;
+  stale?: boolean;
+  files: ProposedEdit[];
+}
+
+interface FileReplacement {
+  file: int;
+  before: string;
+  after: string;
+}
+
+export function batchProposal(target: ReadOnly<EditBatch>, response: ReadOnly<string>): Result<EditBatch, string> {
+  const files: ProposedEdit[] = [];
+
+  if (target.files.length === 1) {
+    match (replacementProposal(target.files[0], response)) {
+      Ok(edit) => {
+        files.push(edit);
+      },
+      Err(error) => {
+        return Err(clone(error));
+      }
+    }
+  } else try {
+    let body = response.trim();
+
+    if (body.startsWith('```json\n') && body.endsWith('\n```')) body = body.slice(8, -4);
+    const changes = JSON.parse<FileReplacement[]>(body, {
+      maxBytes: body.length, maxEntries: body.length, maxNodes: body.length, maxDepth: 4
+    });
+
+    if (changes.length === 0 || changes.some((change) => change.file < 0 || change.file >= target.files.length)) return Err('The model did not return a valid edit proposal.');
+
+    for (let index = 0; index < target.files.length; index += 1) {
+      const replacements: Replacement[] = [];
+
+      for (const change of changes) {
+        if (change.file === index) replacements.push({
+          before: clone(change.before), after: clone(change.after)
+        });
+      }
+
+      if (replacements.length === 0) continue;
+
+      match (replacementProposal(target.files[index], JSON.stringify(replacements))) {
+        Ok(edit) => {
+          files.push(edit);
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+  } catch (_) {
+    return Err('The model did not return a valid edit proposal.');
+  }
+
+  return Ok({
+    files
+  });
+}

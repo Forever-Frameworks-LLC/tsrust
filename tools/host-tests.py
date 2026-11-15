@@ -17,7 +17,7 @@ COMPILER = [
     "acceptance", "project_commands", "formatting", "package_management", "toolchain_installation",
     "shared_sources", "native_dependency_bundle", "api_project", "api_rust_client", "router_contract",
     "service_sections", "process", "native_package_export", "rust_bridge", "rust_adapter_generation",
-    "rust_data_boundaries", "testing_async", "test_reporter", "program_scoped_test_registry",
+    "rust_data_boundaries", "rust_resources", "testing_async", "test_reporter", "program_scoped_test_registry",
 ]
 LSP = ["stdio", "api_project"]
 

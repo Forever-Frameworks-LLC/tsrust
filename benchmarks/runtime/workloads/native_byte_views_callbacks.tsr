@@ -1,4 +1,11 @@
-import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromArray,
+  view,
+  at,
+  length
+} from "std:bytes";
 
 type Picker = {
   pick: Once<Function<ByteView, [Owned<ByteView>]>>;
@@ -30,6 +37,7 @@ function make(captured: ByteView, expected: int): Picker {
   return {
     pick: (other: Owned<ByteView>) => {
       const kept = captured;
+
       if (first(kept) !== expected) {
         throw "capture mismatch";
       }
@@ -47,6 +55,7 @@ function makeOwner(captured: ByteView, expected: int): OwnerPicker {
   return {
     pick: (other: ReadOnly<Bytes>) => {
       const kept = captured;
+
       if (first(kept) !== expected) {
         throw "capture mismatch";
       }
@@ -66,9 +75,11 @@ function makeOwner(captured: ByteView, expected: int): OwnerPicker {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const byte = (i + seed) % 256;
     const next = (byte + 1) % 256;
+
     match (fromArray([byte, next, 255])) {
       Ok(owner) => {
         const picker = make(window(owner, 0, 1), byte);

@@ -3,6 +3,7 @@ import { borrowRaw } from 'std:json';
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     match (borrowRaw(input)) {
       Ok(raw) => {

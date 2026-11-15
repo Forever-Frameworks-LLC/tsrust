@@ -7,11 +7,13 @@ function workload(n: int, seed: int, input: string): string[] {
   const output: string[] = [];
   const sizes: int[] = [0, 1, 4, 5, 17];
   let i = 0;
+
   while (i < n) {
     const count = sizes[(i + seed) % 5];
     const arity = (i * 7 + seed) % 3;
     const values: UnshiftRecord[] = [];
     let j = 0;
+
     while (j < count) {
       values.push({
         id: seed + j, label: input.concat(":", String(j))
@@ -20,6 +22,7 @@ function workload(n: int, seed: int, input: string): string[] {
     }
 
     let newLength = 0;
+
     if (arity === 0) {
       newLength = values.unshift();
     } else if (arity === 1) {
@@ -39,6 +42,7 @@ function workload(n: int, seed: int, input: string): string[] {
     output.push(String(newLength));
     output.push(String(values.length));
     let at = 0;
+
     while (at < values.length) {
       output.push(describe(values[at]));
       at = at + 1;

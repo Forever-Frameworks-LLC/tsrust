@@ -1,0 +1,19 @@
+import { get } from 'std:env';
+import { connect } from 'std:sql';
+
+import { routes } from './application.tsr';
+
+async function main(): Task<void> {
+  const url = unwrap(get('DATABASE_URL'));
+
+  if (url === undefined) throw 'Set DATABASE_URL to the Worklist database.';
+  const pool = await connect(url, 4);
+  await pool.migrate('migrations');
+  const app = routes(pool);
+  const address = unwrap(get('WORKLIST_ADDRESS')) ?? '127.0.0.1:4317';
+
+  if (!address.startsWith('127.0.0.1:') && !address.startsWith('[::1]:')) throw 'Worklist development API must bind loopback.';
+  const server = await app.listen(address);
+  console.log('Worklist API listening at http://' + server.address());
+  await server.wait();
+}

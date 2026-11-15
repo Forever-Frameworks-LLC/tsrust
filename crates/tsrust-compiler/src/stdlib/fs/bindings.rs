@@ -119,6 +119,14 @@ pub const READ_DIR: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_read_dir" }, features: &["fs"],
 };
 
+pub const WALK_DIR: NativeBinding = NativeBinding {
+    name: "walkDir", parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "includeIgnored", ty: NativeType::Boolean, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "maxEntries", ty: NativeType::Int, access: Mode::Copy, optional: true, rest: false },
+    ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_walk_dir" }, ..READ_DIR
+};
+
 pub const MKDIR: NativeBinding = NativeBinding {
     module: "std:fs", name: "mkdir", returned_borrow: None,
     parameters: &[
@@ -172,6 +180,16 @@ pub const RENAME: NativeBinding = NativeBinding {
     ],
     result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_rename" }, features: &["fs"],
+};
+
+pub const RENAME_NEW: NativeBinding = NativeBinding {
+    module: "std:fs", name: "renameNew", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "destination", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_rename_new" }, features: &["fs"],
 };
 
 pub const COPY_FILE: NativeBinding = NativeBinding {
@@ -240,6 +258,17 @@ pub const WRITE_TEXT_FILE: NativeBinding = NativeBinding {
     ],
     result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_text_file" }, features: &["fs"],
+};
+
+pub const WRITE_TEXT_FILE_ATOMIC: NativeBinding = NativeBinding {
+    module: "std:fs", name: "writeTextFileAtomic", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "text", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "expectedText", ty: NativeType::String, access: Mode::Read, optional: true, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_text_file_atomic" }, features: &["fs", "temporary-files"],
 };
 
 pub const TRUNCATE: NativeBinding = NativeBinding {

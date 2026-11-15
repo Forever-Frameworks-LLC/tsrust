@@ -27,6 +27,7 @@ fn moved(ty:&Type,value:&str,to_foreign:bool,crate_name:&str,types:&BTreeMap<Str
   Type::Option(inner,_)=>format!("({value}).map(|item|{})",moved(inner,"item",to_foreign,crate_name,types)),
   Type::Result(ok,err)=>format!("({value}).map(|item|{}).map_err(|error|{})",moved(ok,"item",to_foreign,crate_name,types),moved(err,"error",to_foreign,crate_name,types)),
   Type::Named(name)=>{let target=if to_foreign{format!("{crate_name}::{name}")}else{name.clone()};let from=if to_foreign{name.clone()}else{format!("{crate_name}::{name}")};match &types[name]{
+   Data::Resource=>unreachable!("opaque resources require an explicit native adapter"),
    Data::Struct(fields)=>format!("{{let native={value};{target}{{{}}}}}",fields.iter().map(|(name,ty)|format!("{name}:{}",moved(ty,&format!("native.{name}"),to_foreign,crate_name,types))).collect::<Vec<_>>().join(",")),
    Data::Enum(variants)=>{let arms=variants.iter().map(|variant|{let names=variant.fields.iter().enumerate().map(|(index,_)|format!("item{index}")).collect::<Vec<_>>();let source=if variant.tuple{format!("({})",names.join(","))}else if variant.named{format!("{{{}}}",variant.fields.iter().zip(&names).map(|((field,_),name)|format!("{field}:{name}")).collect::<Vec<_>>().join(","))}else{String::new()};let values=variant.fields.iter().zip(&names).map(|((field,ty),name)|{let value=moved(ty,name,to_foreign,crate_name,types);if variant.named{format!("{field}:{value}")}else{value}}).collect::<Vec<_>>().join(",");let output=if variant.tuple{format!("({values})")}else if variant.named{format!("{{{values}}}")}else{String::new()};format!("{from}::{}{source}=>{target}::{}{output}",variant.name,variant.name)}).collect::<Vec<_>>().join(",");format!("match {value}{{{arms}}}")}
   }},_=>value.into()
@@ -41,6 +42,7 @@ fn function(source:&str,file:&syn::File,function:&syn::ItemFn,crate_name:&str)->
  let mut records=BTreeMap::new();while let Some(name)=pending.pop(){if records.contains_key(&name){continue;}
   let mut matches=file.items.iter().filter(|item|match item{syn::Item::Struct(item)=>item.ident==name,syn::Item::Enum(item)=>item.ident==name,_=>false});
   let item=matches.next().ok_or_else(||format!("Type {name} is not a concrete public root record or enum; write an explicit adapter."))?;
+  if matches!(item,syn::Item::Struct(item) if item.attrs.iter().any(|attr|attr.path().is_ident("tsrust_resource"))){return Err("Opaque Rust resources require an explicit adapter; source discovery cannot project their private state.".into());}
   if matches.next().is_some(){return Err(format!("Conditional or duplicate type {name} needs an explicit adapter."));}
   if file.items.iter().any(|item|matches!(item,syn::Item::Impl(item)if foreign_owner(item).as_deref()==Some(name.as_str()))){return Err(format!("Trait-implemented foreign data {name} needs an explicit adapter; source discovery cannot prove absence of an aliased Drop implementation."));}
   let fields=match item{syn::Item::Struct(item)=>item.fields.iter().collect::<Vec<_>>(),syn::Item::Enum(item)=>item.variants.iter().flat_map(|variant|variant.fields.iter()).collect(),_=>unreachable!()};
@@ -100,6 +102,16 @@ pub fn source(crate_name:&str,source:&str,selected:&[String])->Result<Generated,
 
 #[cfg(test)]mod authored_drop_owner_tests{
  use super::*;
+ #[test]fn opaque_resource_markers_require_explicit_concrete_adapters(){
+  let owner="#[tsrust_resource]pub struct Session{state:String}impl Drop for Session{fn drop(&mut self){}}pub fn selected(value:Session)->Session{value}";
+  assert!(module(SourceFile{id:SourceId("resource.rs".into()),text:owner.into()}).is_ok());
+  let discovered=source("example",owner,&["selected".into()]).unwrap();
+  assert!(discovered.selected.is_empty());
+  assert!(discovered.skipped[0].reason.contains("explicit adapter"));
+  for declaration in ["#[tsrust_resource()]pub struct Session{state:String}","#[tsrust_resource]#[tsrust_resource]pub struct Session{state:String}","#[tsrust_resource]pub struct Session<T>{state:T}","#[tsrust_resource]pub enum Session{Ready}","pub struct Session{state:String}"]{
+   assert!(module(SourceFile{id:SourceId("bad.rs".into()),text:declaration.into()}).is_err(),"accepted {declaration}");
+  }
+ }
  #[test]fn authored_boundary_drop_resolves_local_owners_without_foreign_name_aliasing(){
   let plain="pub struct Row{pub words:Vec<String>}pub fn echo(value:Row)->Row{value}";
   for implementation in ["impl Drop for Row{fn drop(&mut self){}}","impl std::ops::Drop for self::Row{fn drop(&mut self){}}","impl core::ops::Drop for crate::Row{fn drop(&mut self){}}","use std::ops::Drop as D;impl D for Row{fn drop(&mut self){}}","use core::ops::{Drop as D};impl D for self::Row{fn drop(&mut self){}}","use std::{ops as operations};impl operations::Drop for Row{fn drop(&mut self){}}"]{

@@ -65,6 +65,7 @@ export async function list(pool: ReadOnly<Pool>, input: ListInput): Task<Page | 
 
   const rows = await pool.query('SELECT id, title, completed FROM tasks WHERE id > ? ORDER BY id LIMIT ?', [input.after, input.limit]);
   const items: Item[] = [];
+
   for (const row of rows) {
     items.push(item(row));
   }
@@ -76,6 +77,7 @@ export async function list(pool: ReadOnly<Pool>, input: ListInput): Task<Page | 
 
 export async function create(pool: ReadOnly<Pool>, input: CreateInput): Task<Item | Failure> {
   const title = input.title.trim();
+
   if (title.length < 1 || title.length > 200) {
     return failure('invalid-input', 'Task title must contain 1 to 200 UTF-8 bytes after trimming');
   }
@@ -86,11 +88,13 @@ export async function create(pool: ReadOnly<Pool>, input: CreateInput): Task<Ite
 
 export async function update(pool: ReadOnly<Pool>, input: UpdateInput): Task<Item | Failure> {
   const title = input.title.trim();
+
   if (!validId(input.id) || title.length < 1 || title.length > 200) {
     return failure('invalid-input', 'Expected a positive safe id and a title from 1 to 200 UTF-8 bytes');
   }
 
   const rows = await pool.query('UPDATE tasks SET title = ?, completed = ? WHERE id = ? RETURNING id, title, completed', [title, input.completed ? 1 : 0, input.id]);
+
   if (rows.length === 0) {
     return failure('not-found', 'Task does not exist');
   }
@@ -104,6 +108,7 @@ export async function remove(pool: ReadOnly<Pool>, input: DeleteInput): Task<Del
   }
 
   const rows = await pool.query('DELETE FROM tasks WHERE id = ? RETURNING id', [input.id]);
+
   if (rows.length === 0) {
     return failure('not-found', 'Task does not exist');
   }

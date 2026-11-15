@@ -5,6 +5,7 @@ import { readFile, writeFile } from 'std:fs';
 import { length, at } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {
   const directory = unwrap(get('TSRUST_COMPRESSION_INPUT_DIR'));
+
   if (directory === undefined) {
     throw 'missing corpus';
   }
@@ -14,8 +15,10 @@ async function workload(n: int, seed: int): Task<int> {
     workers: 1, capacity: 1
   });
   let sum: int = 0;
+
   if (n === -1) {
     const path = unwrap(get('TSRUST_COMPRESSION_PROBE_OUTPUT'));
+
     if (path === undefined) {
       throw 'missing probe path';
     }
@@ -29,6 +32,7 @@ async function workload(n: int, seed: int): Task<int> {
 
   for (let i: int = 0; i < n; i++) {
     const output = unwrap(await inflateRaw(pool, clone(payload)));
+
     if (length(output) !== 16384) {
       throw 'wrong decoded size';
     }

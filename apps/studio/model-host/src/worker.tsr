@@ -1,0 +1,360 @@
+import { Channel, Sender, TaskContext, cancellationRequested } from 'std:threads';
+
+import {
+  chatPrompt,
+  conversationPrompt,
+  ChatMessage,
+  recallTerms,
+  turnMentions,
+  excerptTurn,
+  withoutEarlierWorkspace,
+  replaceWorkspace,
+  excerptWorkspace
+} from '../../src/lib/ai/prompts.tsr';
+import { ModelRequest, ModelUpdate, failedModelBackend } from '../../src/lib/ai/protocol.tsr';
+import {
+  QwenModel,
+  qwen_load,
+  qwen_prompt_fits,
+  qwen_stream_start,
+  qwen_stream_next,
+  qwen_stream_cancel,
+  qwen_stream_finish
+} from '@engine';
+
+type RequestOutcome = {
+  model: QwenModel;
+  stopping: boolean;
+};
+
+function publish(
+  updates: ReadOnly<Sender<ModelUpdate>>,
+  kind: string,
+  id: string,
+  text: string = '',
+  error: string = '',
+  stop: string = ''
+): void {
+  unwrap(updates.send({
+    kind, id, text, error, stop
+  }));
+}
+
+function completionPrompt(prefix: ReadOnly<string>, suffix: ReadOnly<string>): string {
+  return '<|fim_prefix|>' + prefix + '<|fim_suffix|>' + suffix + '<|fim_middle|>';
+}
+
+// Discard the distant half of the larger side at a line boundary when possible.
+// A single long line falls back to a Unicode character boundary.
+function nearCursor(source: ReadOnly<string>, before: boolean): string {
+  const lines = source.split('\n');
+
+  if (lines.length > 1) {
+    const keep = (lines.length + 1) / 2;
+    return before ? lines.slice(lines.length - keep).join('\n') : lines.slice(0, keep).join('\n');
+  }
+
+  const characters = Array.from(source);
+  const keep = characters.length / 2;
+  return before ? characters.slice(characters.length - keep).join('') : characters.slice(0, keep).join('');
+}
+
+// A generated copy of the suffix belongs to the buffer already. Match through
+// a complete line of code so a semicolon or a closing brace cannot end a request.
+function suffixAnchor(suffix: ReadOnly<string>): string {
+  let end = suffix.indexOf('\n');
+
+  while (end >= 0) {
+    const next = suffix.indexOf('\n', end + 1);
+
+    if (next < 0) break;
+    const line = suffix.slice(end + 1, next);
+
+    if (Array.from(line).some((ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_')) return suffix.slice(0, next + 1);
+    end = next;
+  }
+
+  return '';
+}
+
+function generate(model: QwenModel, request: ModelRequest, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): RequestOutcome {
+  const completion = request.kind === 'complete-code';
+  const transcript = completion ? undefined : request.messages;
+  let prompt = completion ? completionPrompt(request.prompt, request.suffix ?? '') : transcript === undefined ? chatPrompt(request.prompt) : conversationPrompt(transcript);
+
+  if (completion && !unwrap(qwen_prompt_fits(model, prompt))) {
+    let before = clone(request.prompt);
+    let after = clone(request.suffix) ?? '';
+
+    while (before !== '' || after !== '') {
+      if (before.length >= after.length) before = nearCursor(before, true);
+      else after = nearCursor(after, false);
+      prompt = completionPrompt(before, after);
+
+      if (unwrap(qwen_prompt_fits(model, prompt))) break;
+    }
+
+    publish(updates, 'compacted', clone(request.id));
+  }
+
+  if (transcript !== undefined && !unwrap(qwen_prompt_fits(model, prompt))) {
+    let messages: ChatMessage[] = transcript;
+    const starts: int[] = [];
+
+    for (let index = 0; index < messages.length; index += 1) {
+      if (messages[index].role === 'user') starts.push(index);
+    }
+
+    let low = 1;
+    const latest = starts.length === 0 ? -1 : starts[starts.length - 1];
+    const boundary = request.workspaceStart;
+
+    if ((boundary !== undefined || request.workspaceEnd !== undefined) && latest === messages.length - 1 && latest >= 0 && !unwrap(qwen_prompt_fits(model, conversationPrompt(messages.slice(latest))))) {
+      const terms = recallTerms(request.prompt);
+      let shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, true, request.workspaceEnd);
+
+      if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) {
+        shorter = excerptWorkspace(messages[latest].content, boundary ?? 0, terms, false, request.workspaceEnd);
+
+        if (shorter !== '' && !unwrap(qwen_prompt_fits(model, chatPrompt(shorter)))) shorter = '';
+      }
+
+      if (shorter === '') shorter = replaceWorkspace(messages[latest].content, boundary ?? 0, request.workspaceEnd, '[Automatic workspace context omitted]');
+
+      if (shorter !== '') {
+        messages[latest].content = shorter;
+        prompt = conversationPrompt(messages);
+
+        if (unwrap(qwen_prompt_fits(model, prompt))) low = 0;
+      }
+    }
+
+    if (low !== 0) {
+      const terms = recallTerms(request.prompt);
+      let compact = withoutEarlierWorkspace(messages, terms);
+
+      if (compact.length > 0) {
+        // Keep extracted definitions available when an unrelated turn must also be dropped.
+        if (unwrap(qwen_prompt_fits(model, conversationPrompt(compact)))) low = 0;
+        else if (latest >= 0 && messages[latest].workspaceEnd === undefined && terms.size > 0) {
+          const dialogue = withoutEarlierWorkspace(messages);
+
+          if (unwrap(qwen_prompt_fits(model, conversationPrompt(dialogue)))) {
+            compact = dialogue;
+            low = 0;
+          }
+        }
+
+        messages = compact;
+      }
+    }
+
+    // Find the longest whole-turn suffix that leaves room for output.
+    let high = low === 0 ? 0 : starts.length;
+
+    while (low < high) {
+      const middle = low + (high - low) / 2;
+      const candidate = conversationPrompt(messages.slice(starts[middle]));
+
+      if (unwrap(qwen_prompt_fits(model, candidate))) high = middle;
+      else low = middle + 1;
+    }
+
+    if (low < starts.length) {
+      let retained = messages.slice(starts[low]);
+      prompt = conversationPrompt(retained);
+      const question = request.prompt === '' ? clone(messages[starts[starts.length - 1]].content) : clone(request.prompt);
+      const terms = recallTerms(question);
+      // Restore relevant complete exchanges across gaps, newest first and in chronological order.
+      if (terms.size > 0) for (let index = low - 1; index >= 0; index -= 1) {
+        if (!turnMentions(messages, starts[index], starts[index + 1], terms)) continue;
+        const candidate = messages.slice(starts[index], starts[index + 1]).concat(retained);
+        const rendered = conversationPrompt(candidate);
+
+        if (unwrap(qwen_prompt_fits(model, rendered))) {
+          retained = candidate;
+          prompt = rendered;
+        } else {
+          const fragments = excerptTurn(messages, starts[index], starts[index + 1], terms);
+          // An answer can supply the value without repeating the identifier in the question.
+          if (fragments.length === 2 && fragments[0].content !== '[Omitted]' && fragments[1].role === 'assistant') {
+            const exchange = [clone(fragments[0]), clone(messages[starts[index] + 1])].concat(retained);
+            const withAnswer = conversationPrompt(exchange);
+
+            if (unwrap(qwen_prompt_fits(model, withAnswer))) {
+              retained = exchange;
+              prompt = withAnswer;
+              continue;
+            }
+          }
+
+          const excerpt = fragments.concat(retained);
+          const shorter = conversationPrompt(excerpt);
+
+          if (unwrap(qwen_prompt_fits(model, shorter))) {
+            retained = excerpt;
+            prompt = shorter;
+          }
+        }
+      }
+
+      // A follow-up can depend on the last answer even when its source-heavy question has fallen out.
+      if (terms.size === 0 && latest === messages.length - 1 && low === starts.length - 1 && low > 0 && starts[low] - starts[low - 1] === 2 && messages[starts[low] - 1].role === 'assistant') {
+        const earlier = messages[starts[low - 1]];
+        const end = earlier.workspaceEnd;
+        const question = end !== undefined && end > 0 && earlier.content.startsWith('\n\n', end) ? earlier.content.slice(end + 2) : clone(earlier.content);
+        const previous: ChatMessage = {
+          role: 'user', content: question === '' ? '[Earlier question omitted]' : question
+        };
+        const exchange = [previous, clone(messages[latest - 1])].concat(retained);
+        let withAnswer = conversationPrompt(exchange);
+
+        if (exchange[0].content !== '[Earlier question omitted]' && !unwrap(qwen_prompt_fits(model, withAnswer))) {
+          exchange[0].content = '[Earlier question omitted]';
+          withAnswer = conversationPrompt(exchange);
+        }
+
+        if (unwrap(qwen_prompt_fits(model, withAnswer))) prompt = withAnswer;
+      }
+
+      publish(updates, 'compacted', clone(request.id));
+    }
+  }
+
+  const stream = unwrap(qwen_stream_start(model, prompt, request.maxTokens));
+  let stopping = false;
+  let cancelled = false;
+  let insertion: string | undefined = undefined;
+  const anchor = completion ? suffixAnchor(request.suffix ?? '') : '';
+
+  const lineStart = anchor.slice(0, -1).lastIndexOf('\n') + 1;
+  const spacedAnchor = anchor.slice(0, lineStart) + '\n' + anchor.slice(lineStart);
+
+  while (true) {
+    if (cancellationRequested()) {
+      cancelled = true;
+      qwen_stream_cancel(stream);
+    }
+
+    match (requests.tryReceive()) {
+      Ok(control) => {
+        if (control.kind === 'shutdown') {
+          stopping = true;
+          cancelled = true;
+          qwen_stream_cancel(stream);
+        } else if (control.kind === 'cancel' && control.id === request.id) {
+          cancelled = true;
+          qwen_stream_cancel(stream);
+        } else {
+          publish(updates, 'rejected', control.id, '', 'Another request is running or the cancellation target is stale.');
+        }
+      },
+      Err(error) => {
+        if (error.code !== 'empty') {
+          stopping = true;
+          cancelled = true;
+          qwen_stream_cancel(stream);
+        }
+      }
+    }
+
+    const update = qwen_stream_next(stream);
+
+    if (completion && update.changed && insertion === undefined && anchor !== '') {
+      let echoed = update.text.indexOf(anchor);
+
+      if (echoed < 0) echoed = update.text.indexOf(spacedAnchor);
+
+      if (echoed >= 0) {
+        insertion = update.text.slice(0, echoed);
+        qwen_stream_cancel(stream);
+      }
+    }
+
+    if (!completion && update.changed) publish(updates, 'prefix', clone(request.id), update.text);
+
+    if (update.finished) break;
+  }
+
+  const finished = unwrap(qwen_stream_finish(stream));
+
+  const result = finished.generation;
+
+  if (!cancelled && insertion !== undefined && (result.kind === 'some' || finished.error === 'cancelled')) {
+    publish(
+      updates,
+      'complete',
+      request.id,
+      insertion,
+      '',
+      'suffix'
+    );
+  } else if (result.kind === 'some') {
+    const some = result;
+    const generation = some.value;
+    publish(
+      updates,
+      'complete',
+      request.id,
+      generation.text,
+      '',
+      generation.stop
+    );
+  } else {
+    if (failedModelBackend(finished.error)) stopping = true;
+    publish(updates, finished.error === 'cancelled' ? 'cancelled' : 'error', request.id, '', finished.error);
+  }
+
+  return {
+    model: finished.model, stopping
+  };
+}
+
+// The caller owns this worker, its bounded channels and its cancellation/join lifecycle.
+// No tools, filesystem mutations, workspace selection or model-granted permissions run here.
+export function modelWorker(task: ReadOnly<TaskContext>, modelPath: string, tokenizerPath: string, requests: ReadOnly<Channel<ModelRequest>>, updates: ReadOnly<Sender<ModelUpdate>>): void {
+  let model = unwrap(qwen_load(task, modelPath, tokenizerPath));
+  publish(updates, 'ready', '');
+
+  while (!cancellationRequested()) {
+    const request = unwrap(requests.receive());
+
+    if (request.kind === 'shutdown') return;
+
+    if (request.kind === 'complete-code' && (request.suffix === undefined || request.messages !== undefined)) {
+      publish(updates, 'rejected', request.id, '', 'Code completion requires a suffix and no chat history.');
+      continue;
+    }
+
+    if (!['generate', 'complete-code'].includes(request.kind) || request.id === '') {
+      publish(updates, 'rejected', request.id, '', 'Expected a generation request with a nonempty identity.');
+      continue;
+    }
+
+    const outcome = generate(model, request, requests, updates);
+    model = outcome.model;
+
+    if (outcome.stopping) return;
+  }
+}
+
+// Studio owns one dormant worker. Loading is explicit and stop returns to this idle loop.
+export function modelHost(task: ReadOnly<TaskContext>, requests: Channel<ModelRequest>, updates: Sender<ModelUpdate>): void {
+  while (!cancellationRequested()) {
+    const request = unwrap(requests.receive());
+
+    if (request.kind !== 'start') {
+      publish(updates, 'rejected', request.id, '', 'Start the local model before sending a request.');
+      continue;
+    }
+
+    try {
+      modelWorker(task, request.modelPath ?? '', request.tokenizerPath ?? '', requests, updates);
+    } catch (error) {
+      if (cancellationRequested()) return;
+      publish(updates, 'error', '', '', JSON.stringify(error));
+    }
+
+    publish(updates, 'stopped', '');
+  }
+}

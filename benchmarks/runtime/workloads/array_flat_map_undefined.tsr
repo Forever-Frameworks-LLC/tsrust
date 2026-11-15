@@ -2,10 +2,12 @@ function workload(n: int, seed: int): string[][] {
   const output: string[][] = [];
   const sizes: int[] = [0, 1, 4, 5, 17];
   let i = 0;
+
   while (i < n) {
     const count = sizes[(i + seed) % 5];
     const source: undefined[] = [];
     let j = 0;
+
     while (j < count) {
       const ordinal = j;
       source.push(undefined);
@@ -31,6 +33,7 @@ function mapPiece(value: undefined, index: int, source: undefined[]): undefined[
 function describe(values: undefined[]): string[] {
   const result: string[] = [];
   let at = 0;
+
   while (at < values.length) {
     result.push(String(values[at]));
     at = at + 1;

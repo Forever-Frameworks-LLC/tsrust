@@ -203,3 +203,20 @@ async function main():Task<void>{
 "#;
  let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("run").arg(path).current_dir(&dir.0),300);support::success(&output);assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
 }
+
+#[test]
+fn inline_sql_parameter_temporaries_release_pool_loans_on_exception_exits() {
+    use tsrust_compiler::project::{check_graph, load_project, FileSourceProvider};
+    let prefix = "import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);const value='fixture';";
+    for cleanup in ["finally{await db.close();}", "catch(_){}await db.close();"] {
+        let source = format!("{prefix}try{{await db.execute('SELECT ?', [clone(value)]);}}{cleanup}}}");
+        let source = support::format_round_trip(&source);
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&source);
+        check_graph(load_project(&FileSourceProvider, path.to_str().unwrap()).unwrap()).unwrap_or_else(|error| panic!("{error:?}"));
+    }
+    let source = format!("{prefix}const pending=db.execute('SELECT ?', [clone(value)]);try{{console.log('pending');}}finally{{await db.close();}}await pending;}}");
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(&source));
+    assert_eq!(check_graph(load_project(&FileSourceProvider, path.to_str().unwrap()).unwrap()).err().expect("pending operation must retain the pool").code, "capture-conflict");
+}

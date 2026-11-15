@@ -175,7 +175,7 @@ impl SourceIndex {
                         let range = LineIndex::new(source)
                             .range(source, declaration.span)
                             .ok()?;
-                        let location = json!({"uri":uri,"range":range});
+                        let location = Location::new(uri.clone(),range);
                         let visible = self
                             .symbols
                             .iter()
@@ -272,7 +272,7 @@ impl SourceIndex {
             if location.source!=*current && let Ok(uri)=crate::project_diagnostics::file_uri(&location.source){
                 let source=graph.modules[&location.source].checked_source();
                 // Inherited checked spans identify the extends clause, not the field declaration.
-                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.entry(id).or_insert_with(||json!({"uri":uri,"range":range}));}
+                if let Ok(range)=LineIndex::new(source).range(source,location.span){self.foreign_definitions.entry(id).or_insert_with(||Location::new(uri,range));}
             }
         }
         for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}
@@ -514,9 +514,15 @@ impl SourceIndex {
         self.apply_project_generic_facts(&analysis.graph,id,&calls,&partial,dependencies);
     }
 
+    #[cfg(test)]
     pub(crate) fn recover_project_member_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
+        self.recover_project_member_receivers_cancellable(graph,id,&||false);
+    }
+    pub(crate) fn recover_project_member_receivers_cancellable(&mut self,graph:&ProjectGraph,id:&SourceId,cancelled:&impl Fn()->bool) {
+        if cancelled() { return; }
         let Some((probe,start,added,original_end))=self.receiver_probe().or_else(||self.unfinished_member_probe()) else{return};
         let check = |probe: String| {
+            if cancelled() { return None; }
             let mut graph=graph.clone();let module=graph.modules.get_mut(id)?;
             // Keep import masking and source positions from this snapshot.
             module.declaration_source=format!("{}{}",&module.declaration_source[..start],&probe[start..]);
@@ -536,6 +542,7 @@ impl SourceIndex {
             check(prefix)
         });
         let Some(analysis)=analysis else{return};
+        if cancelled() { return; }
         let facts=analysis.checked_type_facts();
         // Only use facts preceding the edit: their source positions and complete
         // declarations are unchanged. Do not expose invented probe expressions.
@@ -567,6 +574,25 @@ impl SourceIndex {
 #[cfg(test)]
 mod array_capability_recovery_tests {
     use super::*;
+
+    #[test]
+    fn cancelled_recovery_never_publishes_a_partial_index() {
+        use tsrust_compiler::project::{SourceId, load_project_headers};
+        use crate::project_intelligence::ProjectIndex;
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-cancelled-recovery");
+        let entry=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let mut workspace=crate::workspace::Workspace::default();
+        workspace.open(entry.clone(),1,"function main(){const value=1;}".into());
+        let graph=load_project_headers(&workspace.snapshot(),&entry.0).unwrap();
+        for stop in 1..=3 {
+            let calls=std::cell::Cell::new(0);
+            let result=ProjectIndex::with_diagnostics_cancellable(&graph,&[],|| {
+                calls.set(calls.get()+1); calls.get()>=stop
+            });
+            assert!(result.is_none(),"cancelled at stage {stop}");
+        }
+        assert!(ProjectIndex::with_diagnostics_cancellable(&graph,&[],||false).is_some());
+    }
 
     #[test]
     fn recovery_retains_original_array_receiver_capability_spans() {

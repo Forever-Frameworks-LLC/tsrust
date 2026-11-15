@@ -31,8 +31,8 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
     let result = (|| -> Result<(), String> {
         fs::create_dir(root.join("src")).map_err(|e|e.to_string())?;
         fs::create_dir(root.join(".cargo")).map_err(|e|e.to_string())?;
-        fs::write(root.join("Cargo.toml"), tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-        tsrust_compiler::native_url_patch::install(root,manifest).map_err(|e|e.to_string())?;
+        fs::write(root.join("Cargo.toml"), tsrust_compiler::native_dependency_patches::normalize_manifest(manifest).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+        tsrust_compiler::native_dependency_patches::install(root,manifest).map_err(|e|e.to_string())?;
         fs::write(root.join("Cargo.lock"), lock).map_err(|e|e.to_string())?;
         fs::write(root.join("src/lib.rs"), include_str!("../../backend-dependencies/src/lib.rs")).map_err(|e|e.to_string())?;
         fs::write(root.join(".cargo/config.toml"), "[net]\noffline = true\n").map_err(|e|e.to_string())?;
@@ -46,7 +46,7 @@ pub(crate) fn materialize_with(root: &Path, manifest: &str, lock: &str) -> Resul
 /// preserve the directory while omitting generated source/configuration files.
 pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),String>{
     let directories=[root.to_owned(),root.join("src"),root.join(".cargo")];
-    let normalized=tsrust_compiler::native_url_patch::normalize_manifest(manifest).map_err(|e|e.to_string())?;
+    let normalized=tsrust_compiler::native_dependency_patches::normalize_manifest(manifest).map_err(|e|e.to_string())?;
     let files=[("Cargo.toml",normalized.as_bytes(),false),("Cargo.lock",lock.as_bytes(),true),
         ("src/lib.rs",include_bytes!("../../backend-dependencies/src/lib.rs").as_slice(),false),
         (".cargo/config.toml",b"[net]\noffline = true\n".as_slice(),true)];
@@ -72,7 +72,7 @@ pub(crate) fn restore_missing(root:&Path,manifest:&str,lock:&str)->Result<(),Str
     for path in &directories[1..]{match fs::create_dir(path){Ok(())=>{},Err(e) if e.kind()==std::io::ErrorKind::AlreadyExists=>{},Err(e)=>return Err(format!("Cannot restore shared backend directory {}: {e}",path.display()))}}
     for (path,bytes) in missing{use std::io::Write;fs::OpenOptions::new().write(true).create_new(true).open(&path)
         .and_then(|mut file|file.write_all(bytes)).map_err(|e|format!("Cannot restore shared backend support {}: {e}",path.display()))?;}
-    tsrust_compiler::native_url_patch::restore_missing(root,manifest).map_err(|e|format!("Cannot restore shared backend URL patch in {}: {e}",root.display()))
+    tsrust_compiler::native_dependency_patches::restore_missing(root,manifest).map_err(|e|format!("Cannot restore shared backend dependency patch in {}: {e}",root.display()))
 }
 
 pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), String> {
@@ -85,19 +85,24 @@ pub(crate) fn validate(root: &Path, manifest:&str, lock: &str) -> Result<(), Str
         || fs::read_to_string(root.join(".cargo/config.toml")).map_err(|e|e.to_string())? != "[net]\noffline = true\n" {
         return Err("Shared backend support metadata was modified; preserved it. Remove the affected private runtime workspace before retrying.".into());
     }
-    tsrust_compiler::native_url_patch::visit(root,manifest,|_,_|Ok(())).map_err(|e|e.to_string())?;
+    tsrust_compiler::native_dependency_patches::visit(root,manifest,|_,_|Ok(())).map_err(|e|e.to_string())?;
     Ok(())
 }
 
 fn part(hash: &mut Sha256, bytes: &[u8]) {hash.update((bytes.len() as u64).to_le_bytes());hash.update(bytes);}
 
 /// Only the digest is persisted. Config contents and environment credentials are
-/// never written into cache identity files. Include all environment inputs because
-/// upstream build scripts can declare arbitrary environment dependencies.
-pub(crate) fn identity(root: &Path) -> Result<String, String> {
+/// never written into cache identity files. Include inherited environment inputs because upstream build scripts can
+/// declare arbitrary environment dependencies.
+pub(crate) fn identity(root: &Path, runtime: bool) -> Result<String, String> {
     let mut hash = Sha256::new();part(&mut hash, dependency_identity().as_bytes());
     let environment = std::env::vars_os().collect::<std::collections::BTreeMap<_,_>>();
-    for (name,value) in environment {part(&mut hash,name.as_encoded_bytes());part(&mut hash,value.as_encoded_bytes());}
+    for (name,value) in environment {
+        // Cargo gets a fixed incremental setting and no caller profile/flag overrides.
+        // CARGO_TARGET_DIR still selects an explicit command-line target directory.
+        if runtime && name.to_str().is_some_and(|key| key=="CARGO_INCREMENTAL" || (key!="CARGO_TARGET_DIR" && crate::runtime_build::artifact_override(key))) {continue;}
+        part(&mut hash,name.as_encoded_bytes());part(&mut hash,value.as_encoded_bytes());
+    }
     let root = super::absolute(root)?;
     let home = cargo_home()?;
     part(&mut hash,home.as_os_str().as_encoded_bytes());
@@ -148,17 +153,17 @@ pub(crate) fn identity(root: &Path) -> Result<String, String> {
     Ok(hash.finalize().iter().map(|byte|format!("{byte:02x}")).collect())
 }
 
-pub(crate) fn unchanged(expected: Option<&str>, root: &Path) -> bool {
-    expected.is_none_or(|expected|identity(root).is_ok_and(|actual|actual==expected))
+pub(crate) fn unchanged(expected: Option<&str>, root: &Path, runtime: bool) -> bool {
+    expected.is_none_or(|expected|identity(root,runtime).is_ok_and(|actual|actual==expected))
 }
 
 pub(crate) fn application_identity(source: &str, root: &Path) -> Result<Option<String>, String> {
-    if tsrust_compiler::native_runtime::requires_dependencies(source) {Ok(Some(identity(root)?))} else {Ok(None)}
+    if tsrust_compiler::native_runtime::requires_dependencies(source) {Ok(Some(identity(root,false)?))} else {Ok(None)}
 }
 
 pub(crate) fn dependency_identity()-> &'static str {
  static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
- VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
+ VALUE.get_or_init(||tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY)).as_str()
 }
 
 #[cfg(test)] mod restoration_tests {

@@ -12,6 +12,7 @@ function failing<T>(value: T, base: int): int {
 
 function attempt(flag: boolean, base: int): int {
   let action = first;
+
   if (flag) {
     action = failing;
   }
@@ -37,6 +38,7 @@ function secondDefault<T>(value: T, offset: int = 7): int {
 
 function defaulted(flag: boolean): int {
   let action = firstDefault;
+
   if (flag) {
     action = secondDefault;
   }
@@ -54,6 +56,7 @@ function ownedTail<T>(value: T, ...tail: T[]): T {
 
 function selectedText(flag: boolean): string {
   let action = ownedHead;
+
   if (flag) {
     action = ownedTail;
   }
@@ -71,6 +74,7 @@ function nullableTake<T>(value: T): T {
 
 function nullableLength(flag: boolean, value: Owned<string | undefined>): int {
   let action = nullableRead;
+
   if (flag) {
     action = nullableTake;
   }
@@ -89,6 +93,7 @@ function callbackSecond<T>(value: T, callback: ReadOnly<Function<int>>): int {
 
 function callbackResult(flag: boolean, fail: boolean, base: int): int {
   let action = callbackFirst;
+
   if (flag) {
     action = callbackSecond;
   }
@@ -100,6 +105,7 @@ function callbackResult(flag: boolean, fail: boolean, base: int): int {
 
     return base;
   };
+
   try {
     return action<int>(base, callback);
   } catch (error) {
@@ -129,6 +135,7 @@ function capturedResult(flag: boolean, fail: boolean, base: int): int {
   let action = capturedFirst;
   const saved = action;
   action = capturedFirst;
+
   if (flag) {
     action = capturedSecond;
   }
@@ -152,6 +159,7 @@ function stateFactory<A>(initial: A) {
   let action = initial;
   return (restore: boolean) => {
     const previous = action;
+
     if (restore) {
       action = stateFirst;
     } else {
@@ -174,6 +182,7 @@ function stateResult(base: int): int[] {
 
 function poolResult(base: int): int[] {
   const instances = [stateFactory(stateFirst)];
+
   for (let index = 0; index < 2; index += 1) {
     instances.push(stateFactory(stateFirst));
   }
@@ -196,6 +205,7 @@ function nestedFactory<A>(initial: A) {
 
 function nestedPoolResult(base: int): int[] {
   const nestedInstances = [nestedFactory(stateFirst)];
+
   for (let index = 0; index < 2; index += 1) {
     nestedInstances.push(nestedFactory(stateFirst));
   }
@@ -211,12 +221,14 @@ function nestedPoolResult(base: int): int[] {
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i += 1) {
     const base = i % 5 + seed % 5 + 1;
     const flag = (i + seed) % 2 === 1;
     let action = first;
     const saved = action;
     action = first;
+
     if (flag) {
       action = second;
     }

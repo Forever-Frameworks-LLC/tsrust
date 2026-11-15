@@ -2,6 +2,7 @@ function workload(n: int, seed: int): int {
   const action = step;
   let trace = seed;
   let i = 0;
+
   while (i < n) {
     const first = action(seed + i);
     const second = action(first);

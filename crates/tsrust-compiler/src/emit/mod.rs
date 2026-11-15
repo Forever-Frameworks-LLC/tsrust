@@ -220,6 +220,8 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         restored_slots:restored_capture_slots::Index::new(program),
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
+        debug_source: None,
+        debug_lines: RefCell::default(),
         source_segments: &[],
         source_graph: None,
         fields,
@@ -265,7 +267,7 @@ pub(crate) fn needs_exception_transport(program:&CheckedProgram)->bool {
         std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))))
         .filter(|function|!function.template)
         .any(|function|crate::analysis::has_exception_syntax(&function.body)
-            || crate::error_effects::checked_expressions(function).iter().any(|expression|(matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) || matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:cache" && crate::native_bindings::BINDINGS[id].name=="__create"))))
+            || crate::error_effects::checked_expressions(function).any(|expression|(matches!(expression.target,Some(CallTarget::ResultUnwrap(_))) || matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:cache" && crate::native_bindings::BINDINGS[id].name=="__create"))))
 }
 
 pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),crate::Diagnostic> {
@@ -273,11 +275,12 @@ pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),cra
 }
 
 pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str)->(String,Vec<&'static str>) {
-    emit_with_source_segments(program,entry_setup,&[],None)
+    emit_with_source_segments(program,entry_setup,&[],None,None)
 }
 
-pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>)->(String,Vec<&'static str>) {
+pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
+    emitter.debug_source=debug_source;
     emitter.source_segments=segments;
     emitter.source_graph=graph;
     let declarations=if needs_exception_transport(program) {emitter.prepare_result_declarations().expect("checked source exception transports")}else{String::new()};
@@ -332,6 +335,8 @@ struct Emitter<'a> {
     restored_slots:restored_capture_slots::Index,
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
+    debug_source: Option<(&'a str, &'a str)>,
+    debug_lines: RefCell<HashMap<&'a str, Vec<usize>>>,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     source_graph: Option<&'a crate::project::ProjectGraph>,
     fields: Vec<HashMap<&'a str, usize>>,
@@ -2498,9 +2503,9 @@ impl Emitter<'_> {
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
         let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
-        if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
-        // GPUI requires the process's own main thread for its event loop.
-        else if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
+        // GPUI requires the process's own main thread even with an async entrypoint.
+        if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
+        else if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
         // Synchronous throwing entrypoints, including test runners, use the same
         // 8 MiB main-thread stack as async ones: Windows gives the main thread 1 MiB.
         else {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(tsrust_entry_main).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}\n")}
@@ -2596,6 +2601,12 @@ impl Emitter<'_> {
             }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if let Some(crate::native_signatures::NativeTypeId::RustResource{module,declaration})=record.native_type {
+                let graph=self.source_graph.expect("linked Rust resource");
+                let rust=graph.modules[&graph.order[module]].rust.as_ref().expect("Rust resource module");
+                let name=rust.types.keys().nth(declaration).expect("Rust resource declaration");
+                let _=writeln!(output,"type Record{index}=tsr_rust{module}::{name};");continue;
+            }
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::Locale)=>Some("Locale"),Some(crate::native_signatures::NativeTypeId::Collator)=>Some("Collator"),Some(crate::native_signatures::NativeTypeId::Segmenter)=>Some("Segmenter"),Some(crate::native_signatures::NativeTypeId::NumberFormat)=>Some("NumberFormat"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_locale::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::TcpListener)=>Some("Listener"),Some(crate::native_signatures::NativeTypeId::TcpStream)=>Some("Stream"),Some(crate::native_signatures::NativeTypeId::UdpSocket)=>Some("Udp"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net_transport::{name};");continue;}
             if let Some(name)=match record.native_type{Some(crate::native_signatures::NativeTypeId::IpAddress)=>Some("IpAddress"),Some(crate::native_signatures::NativeTypeId::SocketAddress)=>Some("SocketAddress"),_=>None}{let _=writeln!(output,"type Record{index}=tsrust_native_net::{name};");continue;}
@@ -3212,7 +3223,7 @@ impl Emitter<'_> {
             }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let async_entry=Self::async_entry(fun);
-            let threaded=name == "main" && async_entry;
+            let threaded=name == "main" && async_entry && !self.ui_window();
             let _ = writeln!(output,"fn {}{generics}({params}) -> {native_result}{replacement_where} {{",if threaded {"tsrust_entry_main"} else {&name});
             if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
             if name == "main" {
@@ -3966,7 +3977,7 @@ impl Emitter<'_> {
         let _controls=self.control_targets.callable_boundary();
         let pending=self.completion_body_frame(fun,body,id,error_name,contract,runtime,true);
         let normal=if fun.result==Type::Void {"Ok(())"}else{"unreachable!(\"checked non-void callable cannot fall through\")"};
-        let suite_scope=crate::error_effects::checked_expressions(fun).iter().any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"invokeSuite"|"beginSuite"|"beginFile")));
+        let suite_scope=crate::error_effects::checked_expressions(fun).any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"invokeSuite"|"beginSuite"|"beginFile")));
         let result = format!("{{ match {pending} {{ TsrCompletion::Normal(())=>{normal}, TsrCompletion::Return(value)=>Ok(value), TsrCompletion::Throw(error)=>Err(error), TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"checked control cannot escape its callable\") }} }}");
         // A program owner initializes its registry inside this body. Only
         // borrowed invocation inputs exist before the body starts and can be
@@ -4066,6 +4077,34 @@ impl Emitter<'_> {
                 },
                 Work::Statement(stmt, body, visible, depth, label) => (stmt, body, visible, depth, label),
             };
+            if let Some((entry, text)) = self.debug_source {
+                let span = stmt.span;
+                let location = match self.source_graph {
+                    None => Some((entry, text, span.start, span.end, None)),
+                    Some(graph) => self.source_segments.partition_point(|(_, base, _)| *base <= span.start)
+                        .checked_sub(1).and_then(|index| {
+                            let (id, base, _) = &self.source_segments[index];
+                            let module = &graph.modules[id];
+                            (module.rust.is_none() && module.data.is_none() && span.end <= base + module.source.text.len())
+                                .then(|| (id.0.as_str(), module.source.text.as_str(), span.start - base, span.end - base, Some(index)))
+                        }),
+                };
+                if let Some((path, text, start, end, module)) = location.filter(|(_, text, start, end, _)| start < end && *end <= text.len() && text.is_char_boundary(*start)) {
+                    let mut files = self.debug_lines.borrow_mut();
+                    let lines = files.entry(path).or_insert_with(|| std::iter::once(0)
+                        .chain(text.match_indices('\n').map(|(offset, _)| offset + 1)).collect());
+                    let line = lines.partition_point(|offset| *offset <= start);
+                    let column = text[lines[line-1]..start].encode_utf16().count() + 1;
+                    let names = fun.bindings.iter().take(fun.parameter_count)
+                        .map(|binding| binding.name.as_str()).collect::<Vec<_>>();
+                    let parameters = serde_json::to_string(&names).expect("parameter names serialize");
+                    let name = fun.name.strip_prefix("local#").and_then(|s| s.split_once('#')).map_or(fun.name.as_str(), |(_, name)| name);
+                    let name = module.and_then(|i| name.strip_prefix(&format!("{}{i}_", crate::type_aliases::LINKED_PREFIX))).unwrap_or(name);
+                    let function = crate::json_string(name);
+                    let _ = write!(output, "\n// tsrust-position {{\"path\":{},\"line\":{line},\"column\":{column},\"parameters\":{parameters},\"functionName\":{function}}}", crate::json_string(path));
+                    let _ = writeln!(output, "\n// tsrust-source [{},{start},{end}]", crate::json_string(path));
+                }
+            }
             let declarations = Declarations::Visible(&visible);
 
             for epoch in fun.storage_exits.array_epochs(stmt.span).iter().filter(|epoch| epoch.before) {
@@ -9492,7 +9531,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                     if let Some(call)=self.sql_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.sqlite_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.http_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
-                    if let Some(call) = self.future_native(fun, expr, id, args) { return call; }
+                    if let Some(call) = self.future_native(fun, expr, id, args) { return Self::access_wrapped(expr, mode, call); }
                     if let Some(call)=self.ui_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call)=self.cache_native(fun,expr,id,args){return Self::access_wrapped(expr,mode,call);}
                     if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }

@@ -7,6 +7,7 @@ function workload(n: int, seed: int, input: string): int {
   const decimal = unwrap(parseDecimal(input));
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     checksum += value.format(decimal).length;
     i++;

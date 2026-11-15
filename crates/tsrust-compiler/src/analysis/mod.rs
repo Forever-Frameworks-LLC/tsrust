@@ -821,6 +821,24 @@ mod exception_escape_tests {
     }
 }
 
+// Mutable access may change an existing record shape without changing its ID.
+struct AnalysisProgram {
+    source: Program,
+    revision: u64,
+}
+
+impl std::ops::Deref for AnalysisProgram {
+    type Target = Program;
+    fn deref(&self) -> &Program { &self.source }
+}
+
+impl std::ops::DerefMut for AnalysisProgram {
+    fn deref_mut(&mut self) -> &mut Program {
+        self.revision += 1;
+        &mut self.source
+    }
+}
+
 struct Analyzer {
     program_access: BTreeMap<usize, Mode>,
     program_callback_sites: BTreeMap<usize, CallbackKind>,
@@ -836,7 +854,7 @@ struct Analyzer {
     threads_enabled: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
-    program: Program,
+    program: AnalysisProgram,
     // Retained source specialization state for the checked-inference handoff.
     generic_functions: crate::generic_functions::Cache,
     generic_records: crate::generic_records::Cache,
@@ -1714,7 +1732,7 @@ impl Analyzer {
             specialization_depths: HashMap::new(),
             closure_depths: HashMap::new(),
             original_count: count,
-            program,
+            program: AnalysisProgram { source: program, revision: 0 },
             record_names,
             function_names,
             fields,
@@ -2903,9 +2921,10 @@ impl Analyzer {
         if !self.effects_only {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
+        let program = self.program.source;
         let checked = CheckedProgram {
             program_callback_sites: self.program_callback_sites,
-            module_owner_bindings: self.program.module_owner_bindings,
+            module_owner_bindings: program.module_owner_bindings,
             schema_choices: self.schema_choices,
             schema_pipelines: self.schema_pipelines,
             schema_factories: self.schema_factories,
@@ -2920,15 +2939,13 @@ impl Analyzer {
             scoped_records: self.scoped_records,
             named_capture_layouts: Vec::new(),
             named_capture_access: self.named_captures.summaries(&self.checked),
-            local_capture_plans: self.program.local_capture_plans,
-            local_declarations: self.program.local_declarations,
+            local_capture_plans: program.local_capture_plans,
+            local_declarations: program.local_declarations,
             function_specializations:self.specializations.iter().map(|((origin,_),instance)|(*instance,*origin)).collect(),
             error_effects: Default::default(),
             stored_contracts: self.callables.storage,
             callable_shapes: self.callables.shapes,
-            generic_parameter_types: self
-                .program
-                .functions
+            generic_parameter_types: program.functions
                 .iter()
                 .enumerate()
                 .filter_map(|(id, function)| {
@@ -2940,9 +2957,7 @@ impl Analyzer {
             deferred_generic_nominals,
             deferred_generic_values: self.deferred_generic_values.keys().copied().collect(),
             deferred_generic_sources: self.deferred_generic_values.iter().map(|(origin, source)| (*origin, self.generic_functions.template(&source.declaration).expect("deferred generic source template").name.clone())).collect(),
-            generic_declarations: self
-                .program
-                .functions
+            generic_declarations: program.functions
                 .iter()
                 .enumerate()
                 .filter_map(|(id, function)| {
@@ -2953,7 +2968,7 @@ impl Analyzer {
                 })
                 .collect(),
             unions: self.unions.snapshot(),
-            records: self.program.records,
+            records: program.records,
             task_origins: self.task_origins,
             closures: self.closures,
             callback_contracts: self.callables.callbacks,
@@ -3323,8 +3338,7 @@ impl Analyzer {
     fn prepare_discovery_exception(&mut self,context:&Context,region:&ExceptionRegion,result:Type,runtime:Option<Type>)->Result<ExceptionRegion,Diagnostic> {
         let mut checked_body=region.body.clone();
         let mut inner=context.clone();
-        let preliminary=self.discovery_error_effects();
-        self.with_exception_environment_mode(&mut inner,&preliminary,runtime,true,true,|analyzer,context|
+        self.with_exception_environment_mode(&mut inner,&Default::default(),runtime,true,true,|analyzer,context|
             analyzer.check_region_body(context,&mut checked_body,result))?;
         let effects=self.discovery_error_effects();
         let incoming=crate::error_effects::annotate_region_body(&mut checked_body,&effects);
@@ -3968,7 +3982,7 @@ impl Analyzer {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
         self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
-            self.region_caller_error_effects(context,body,result)
+            self.region_caller_error_effects(context,body)
         }else{self.region_error_effects(context)?};
         let contract=crate::error_effects::annotate_region_body(body,&effects);
         let points=crate::error_effects::OperationEffects::for_body(body);
@@ -3977,14 +3991,13 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
+    fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt])->crate::error_effects::ErrorEffects {
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&caller,&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
+        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
     }
 
     #[inline(never)]
@@ -6019,7 +6032,7 @@ impl Analyzer {
             if !scalar {
                 return Err(Diagnostic::new(
                     "type",
-                    "Template interpolation requires string, int, number, or boolean.",
+                    "Template interpolation requires string, int, number, boolean, null, or undefined.",
                     part.span,
                 ));
             }

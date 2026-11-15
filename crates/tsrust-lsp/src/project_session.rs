@@ -25,6 +25,11 @@ pub struct ProjectSession {
     sequence: u64,
 }
 impl ProjectSession {
+    // Invalid results cannot answer requests; release their graphs before a replacement check.
+    fn release_stale(&mut self) {
+        self.indices.retain(|_, (input, _)| self.workspace.current(input));
+        self.actions.retain(|_, (input, _)| self.workspace.current(input));
+    }
     pub fn publication(&self, id: &SourceId, version: Option<i32>, diagnostics: Vec<Diagnostic>) -> Option<Publication> {
         let uri=self.uris.get(id).cloned().or_else(||file_uri(id).ok().map(|uri|uri.to_string()))?;
         Some(Publication {uri,version,diagnostics})
@@ -38,6 +43,7 @@ impl ProjectSession {
         let Ok(id) = source_id(uri) else {
             return;
         };
+        self.release_stale();
         self.actions.remove(&id);
         if self.workspace.current(input)
             && let Some(actions) = actions
@@ -89,6 +95,7 @@ impl ProjectSession {
         let Ok(id) = source_id(uri) else {
             return;
         };
+        self.release_stale();
         self.indices.remove(&id);
         if self.workspace.current(input)
             && let Some(mut index) = index
@@ -170,6 +177,7 @@ impl ProjectSession {
             self.workspace.invalidate_file(&id);
             affected.extend(self.affected(&id));
         }
+        self.release_stale();
         affected.into_iter().collect()
     }
     pub fn forget_project(&mut self, uri: &str) -> Vec<Publication> {
@@ -194,6 +202,7 @@ impl ProjectSession {
         );
         self.workspace
             .open(id.clone(), snapshot.version, snapshot.text.clone());
+        self.release_stale();
         self.affected(&id)
     }
     pub fn change(&mut self, snapshot: &Snapshot) -> Vec<String> {
@@ -213,6 +222,7 @@ impl ProjectSession {
         // Versions belong to URI buffers, not to the shared canonical file identity.
         self.workspace
             .open(id.clone(), snapshot.version, snapshot.text.clone());
+        self.release_stale();
         self.affected(&id)
     }
     pub fn close(&mut self, uri: &str) -> (Vec<String>, Vec<Publication>) {
@@ -228,6 +238,7 @@ impl ProjectSession {
             self.uris.insert(id.clone(), snapshot.uri.clone());
             self.workspace
                 .open(id.clone(), snapshot.version, snapshot.text.clone());
+            self.release_stale();
             return (self.affected(&id), vec![]);
         }
         self.workspace.close(&id);
@@ -236,6 +247,7 @@ impl ProjectSession {
         self.indices.remove(&id);
         let old = self.contributions.remove(&id).unwrap_or_default();
         self.actions.remove(&id);
+        self.release_stale();
         (
             self.affected(&id),
             self.publications(old.keys().cloned().collect()),
@@ -300,5 +312,70 @@ impl ProjectSession {
                 })
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod retention_tests {
+    use super::*;
+    use crate::{project_actions::ProjectActions, project_intelligence::ProjectIndex};
+    use tsrust_compiler::project::load_project_headers;
+
+    #[test]
+    fn invalidation_releases_old_graphs_and_actions_without_evicting_current_projects() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-session-retention");
+        let make = |name: &str, text: &str| Snapshot {
+            uri: file_uri(&SourceId(root.join(name).to_string_lossy().into_owned())).unwrap().to_string(),
+            version: 1, generation: 1, text: text.into(),
+        };
+        let mut session = ProjectSession::default();
+        let mut dep = make("dep.tsr", "export function value():int{return 1;}");
+        let mut entry = make("entry.tsr", "import {value} from './dep.tsr';function main(){console.log(value());}");
+        let other = make("other.tsr", "export function other():int{return 2;}");
+        for document in [&dep, &entry, &other] { session.open(document); }
+        let other_id = source_id(&other.uri).unwrap();
+        let input = session.workspace.snapshot();
+        let graph = load_project_headers(&input, &other_id.0).unwrap();
+        session.cache_index(&other.uri, &input, Some(ProjectIndex::new(&graph)));
+        drop(input);
+        let id = source_id(&entry.uri).unwrap();
+        let dep_id = source_id(&dep.uri).unwrap();
+        for version in 2..22 {
+            let old_text = {
+                let input = session.prepare(&entry).unwrap();
+                let graph = load_project_headers(&input, &id.0).unwrap();
+                let old_text = std::sync::Arc::downgrade(&input.sources()[&dep_id]);
+                // A diagnostic with no fix candidates still owns its observation snapshot.
+                let error = tsrust_compiler::project::ProjectDiagnostic {
+                    code: "test", message: "retention witness".into(),
+                    location: tsrust_compiler::project::SourceLocation { source: id.clone(), span: tsrust_compiler::Span::new(0, 1) },
+                    related: vec![], fixes: Box::new([]),
+                };
+                let actions = ProjectActions::build(&input, &id, &error).unwrap();
+                session.cache_index(&entry.uri, &input, Some(ProjectIndex::new(&graph)));
+                session.cache_actions(&entry.uri, &input, Some(actions));
+                assert_eq!(session.indices.len(), 2);
+                assert_eq!(session.actions.len(), 1);
+                old_text
+            };
+            assert!(old_text.upgrade().is_some());
+            dep.version = version;
+            dep.text = format!("export function value():int{{return {version};}}");
+            session.change(&dep);
+            assert_eq!(session.indices.len(), 1);
+            assert!(session.indices.contains_key(&other_id));
+            assert!(session.actions.is_empty());
+            assert!(old_text.upgrade().is_none(), "old dependency snapshot survives edit {version}");
+        }
+        // A watched-file change must release the same caches before analysis finishes.
+        let input = session.prepare(&entry).unwrap();
+        let graph = load_project_headers(&input, &id.0).unwrap();
+        session.cache_index(&entry.uri, &input, Some(ProjectIndex::new(&graph)));
+        session.changed_file(&dep.uri);
+        assert_eq!(session.indices.len(), 1);
+        entry.version += 1;
+        session.change(&entry);
+        session.close(&other.uri);
+        assert!(session.indices.is_empty());
     }
 }

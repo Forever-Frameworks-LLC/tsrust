@@ -3,8 +3,10 @@ import { parse } from 'std:path';
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = parse(input);
+
     if (value.root !== '' || value.dir !== 'reports' || value.base !== 'file.tar.gz' || value.ext !== '.gz' || value.name !== 'file.tar') {
       throw 'path parts';
     }

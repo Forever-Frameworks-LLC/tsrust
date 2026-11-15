@@ -1,54 +1,86 @@
 //! Heap continuations retain regional failure contracts without a source-depth cutoff.
 use super::*;
 
+#[cfg(test)]
 pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> FailureSet {
+    expression_effect_with(root,&propagation::Reader::new(effects))
+}
+pub(super) fn expression_effect_with(root: &mut Expr, effects: &propagation::Reader<'_>) -> FailureSet {
     enum Work<'a> {
         Visit(&'a mut Expr),
         Finish { may_fail: &'a mut bool, own: FailureSet, start: usize, reverse: bool },
     }
-    let mut pending = vec![Work::Visit(root)];
+    let mut pending = Vec::new();
+    let mut current = Some(Work::Visit(root));
     let mut results: Vec<FailureSet> = Vec::new();
-    while let Some(work) = pending.pop() {
+    while let Some(work) = current.take().or_else(|| pending.pop()) {
         match work {
             Work::Finish { may_fail, mut own, start, reverse } => {
                 // List folds historically prepend each child's alternatives. Preserve
                 // that payload order as well as left-to-right point annotation.
-                if reverse { for child in results.drain(start..).rev() { own |= child; } }
-                else { for child in results.drain(start..) { own |= child; } }
+                if start < results.len() {
+                    if reverse { for child in results.drain(start..).rev() { own |= child; } }
+                    else { for child in results.drain(start..) { own |= child; } }
+                }
                 *may_fail = own.may_fail();
-                results.push(own);
+                if pending.is_empty() { return own; }
+                // Parents only union child failures. An infallible child needs no result slot.
+                if *may_fail { results.push(own); }
             }
             Work::Visit(value) => {
-                let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect(body, effects) } else { own_expression_effect(value, effects) };
+                let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect_with(body, effects) } else { own_expression_effect(value, effects) };
                 value.own_may_fail = own.may_fail();
                 value.effects_checked = true;
                 let reverse = matches!(&value.kind, ExprKind::SpreadCall(_) | ExprKind::Array(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..) | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Template(_) | ExprKind::Sequence(_) | ExprKind::Record(_));
-                pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
-                let children = pending.len();
                 match &mut value.kind {
-                    ExprKind::SpreadCall(plan) => pending.extend(plan.expressions_mut().map(Work::Visit)),
-                    ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value) | ExprKind::Unary { value, .. } | ExprKind::Inject { value, .. } | ExprKind::Project { value, .. } | ExprKind::Update { target: value, .. } | ExprKind::Field(value, _) => pending.push(Work::Visit(value)),
-                    ExprKind::Optional { base, body, branch, .. } => {
-                        pending.push(Work::Visit(base));
-                        if *branch != NullishBranch::Absent { pending.push(Work::Visit(body)); }
+                    ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {
+                        value.may_fail = value.own_may_fail;
+                        if pending.is_empty() { return own; }
+                        if value.may_fail { results.push(own); }
                     }
-                    ExprKind::Index(base, index) | ExprKind::Binary { left: base, right: index, .. } => pending.extend([Work::Visit(base), Work::Visit(index)]),
-                    ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. } | ExprKind::CoalesceAssign { target, value, .. } | ExprKind::LogicalAssign { target, value, .. } => pending.extend([Work::Visit(target), Work::Visit(value)]),
-                    ExprKind::Conditional { predicate, consequent, alternate } => pending.extend([Work::Visit(predicate), Work::Visit(consequent), Work::Visit(alternate)]),
-                    ExprKind::Call(callee, args) => { pending.push(Work::Visit(callee)); pending.extend(args.iter_mut().map(Work::Visit)); }
-                    ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().map(Work::Visit)),
-                    ExprKind::Record(fields) => pending.extend(fields.iter_mut().map(|(_, value)| Work::Visit(value))),
-                    // Creating a closure does not execute its source body.
-                    ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {}
+                    kind => {
+                        pending.push(Work::Finish { may_fail: &mut value.may_fail, own, start: results.len(), reverse });
+                        // Schedule in reverse so children execute left to right without moving queued frames.
+                        match kind {
+                            ExprKind::SpreadCall(plan) => pending.extend(plan.expressions_mut().rev().map(Work::Visit)),
+                            ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value) | ExprKind::Unary { value, .. } | ExprKind::Inject { value, .. } | ExprKind::Project { value, .. } | ExprKind::Update { target: value, .. } | ExprKind::Field(value, _) => current = Some(Work::Visit(value)),
+                            ExprKind::Optional { base, body, branch, .. } => {
+                                if *branch != NullishBranch::Absent { pending.push(Work::Visit(body)); }
+                                current = Some(Work::Visit(base));
+                            }
+                            ExprKind::Index(base, index) | ExprKind::Binary { left: base, right: index, .. } => {
+                                pending.push(Work::Visit(index));
+                                current = Some(Work::Visit(base));
+                            }
+                            ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. } | ExprKind::CoalesceAssign { target, value, .. } | ExprKind::LogicalAssign { target, value, .. } => {
+                                pending.push(Work::Visit(value));
+                                current = Some(Work::Visit(target));
+                            }
+                            ExprKind::Conditional { predicate, consequent, alternate } => {
+                                pending.extend([Work::Visit(alternate), Work::Visit(consequent)]);
+                                current = Some(Work::Visit(predicate));
+                            }
+                            ExprKind::Call(callee, args) => {
+                                pending.extend(args.iter_mut().rev().map(Work::Visit));
+                                current = Some(Work::Visit(callee));
+                            }
+                            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().rev().map(Work::Visit)),
+                            ExprKind::Record(fields) => pending.extend(fields.iter_mut().rev().map(|(_, value)| Work::Visit(value))),
+                            _ => unreachable!("leaf expression handled above"),
+                        }
+                    }
                 }
-                pending[children..].reverse();
             }
         }
     }
-    results.pop().expect("root expression effect")
+    unreachable!("root expression finishes before its work stack empties")
 }
 
 pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureSet {
+    body_effect_with(root,&propagation::Reader::new(effects))
+}
+pub(super) fn body_effect_with(root: &mut [Stmt], effects: &propagation::Reader<'_>) -> FailureSet {
+    if root.is_empty() { return FailureSet::default(); }
     enum Work<'a> {
         Body(&'a mut [Stmt]),
         Statement(&'a mut Stmt),
@@ -67,7 +99,7 @@ pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureS
                 pending.push(Work::Join(body.len()));
                 pending.extend(body.iter_mut().rev().map(Work::Statement));
             }
-            Work::Expression(value) => results.push(expression_effect(value, effects)),
+            Work::Expression(value) => results.push(expression_effect_with(value, effects)),
             Work::Join(count) => {
                 let mut found = FailureSet::default();
                 for child in results.drain(results.len() - count..) { found |= child; }
@@ -102,14 +134,14 @@ pub(super) fn body_effect(root: &mut [Stmt], effects: &ErrorEffects) -> FailureS
                 let operation_failure = statement_operation_effect(statement).is_some_and(|(_, fails)| fails);
                 match &mut statement.kind {
                     StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                    StmtKind::Throw(value) => results.push(expression_effect(value, effects) | FailureSet::thrown(value.ty)),
+                    StmtKind::Throw(value) => results.push(expression_effect_with(value, effects) | FailureSet::thrown(value.ty)),
                     StmtKind::Try(region) => {
                         pending.push(Work::AfterTry(region.catch.as_mut(), region.finally.as_mut()));
                         pending.push(Work::Body(&mut region.body));
                     }
                     StmtKind::Let { value, .. } | StmtKind::Expr(value) => pending.push(Work::Expression(value)),
-                    StmtKind::Return(value) => results.push(value.as_mut().map(|value| expression_effect(value, effects)).unwrap_or_default()),
-                    StmtKind::Assign { target, value, .. } => results.push((if operation_failure { FailureSet::runtime() } else { FailureSet::default() }) | expression_effect(target, effects) | expression_effect(value, effects)),
+                    StmtKind::Return(value) => results.push(value.as_mut().map(|value| expression_effect_with(value, effects)).unwrap_or_default()),
+                    StmtKind::Assign { target, value, .. } => results.push((if operation_failure { FailureSet::runtime() } else { FailureSet::default() }) | expression_effect_with(target, effects) | expression_effect_with(value, effects)),
                     StmtKind::Block(body) => pending.push(Work::Body(body)),
                     StmtKind::If { condition, then_body, else_body } => {
                         pending.extend([Work::Join(3), Work::Body(else_body), Work::Body(then_body), Work::Expression(condition)]);
@@ -159,6 +191,24 @@ mod tests {
             } else { assert!(current.own_may_fail); break; }
         }
         assert_eq!(count, 16_384);
+    }
+
+    #[test]
+    fn infallible_siblings_do_not_consume_an_earlier_failure() {
+        let span = crate::Span::new(11, 19);
+        let literal = || Expr::checked(ExprKind::Boolean(true), span, Some(Type::Boolean));
+        let mut throwing = literal();
+        throwing.target = Some(CallTarget::Function(0));
+        let quiet = Expr::checked(ExprKind::Sequence(vec![literal(), literal()]), span, Some(Type::Boolean));
+        let mut root = Expr::checked(ExprKind::Sequence(vec![throwing, quiet]), span, Some(Type::Boolean));
+        let effects = ErrorEffects { function_errors: vec![FailureSet::runtime()], ..Default::default() };
+        assert_eq!(expression_effect(&mut root, &effects), FailureSet::runtime());
+        let ExprKind::Sequence(children) = &root.kind else { unreachable!() };
+        assert!(children[0].may_fail);
+        assert!(children[1].effects_checked && !children[1].may_fail);
+        let repaired = ErrorEffects { function_errors: vec![FailureSet::default()], ..Default::default() };
+        assert_eq!(expression_effect(&mut root, &repaired), FailureSet::default());
+        assert!(!root.may_fail);
     }
 
     #[test]

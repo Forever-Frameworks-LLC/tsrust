@@ -10,6 +10,7 @@ type NarrowingOrderHolder = {
 function main() {
   const trace: int[] = [];
   const value: string | null | undefined = fresh(trace);
+
   if (value !== null && value !== undefined) {
     console.log(value.concat("!"));
   }
@@ -20,6 +21,7 @@ function main() {
       tag: 7, text: "é😀".repeat(1)
     }
   };
+
   if (holder.item !== null && holder.item !== undefined) {
     console.log(holder.item.tag);
     console.log(holder.item.text.concat("!"));

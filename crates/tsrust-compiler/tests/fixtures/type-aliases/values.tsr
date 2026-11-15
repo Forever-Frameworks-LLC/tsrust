@@ -45,6 +45,7 @@ function first(ids: Ids): Maybe {
 
 function total(points: Points): Count {
   let sum: Count = 0;
+
   for (const point of points) {
     sum += point.x + point.y;
   }

@@ -2,6 +2,7 @@ function workload(n: int, seed: int, input: string, coordinates: int): int {
   const width = coordinates;
   const values: string[] = [];
   let j = 0;
+
   while (j < 129) {
     values.push(input.charAt((j * 37 + seed) % width));
     j = j + 1;
@@ -9,9 +10,11 @@ function workload(n: int, seed: int, input: string, coordinates: int): int {
 
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     const from = (i * 13 + seed) % 387 - 193;
     const choice = (i + seed) % 4;
+
     if (choice === 0) {
       if (values.includes("A", from)) {
         sum = sum + 1;

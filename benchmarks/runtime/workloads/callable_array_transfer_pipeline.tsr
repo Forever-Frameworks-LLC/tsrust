@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const base = i + seed;
     const actions: (() => int)[] = [(): int => {

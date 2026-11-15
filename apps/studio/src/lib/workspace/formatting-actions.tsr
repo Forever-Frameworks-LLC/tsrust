@@ -1,0 +1,110 @@
+import { extname } from 'std:path';
+
+import { FormattingOptions, EditorPolicy } from '../settings/formatting.tsr';
+import { ProposedEdit, propose, apply } from './documents.tsr';
+import { saveDocument, saveError } from './storage.tsr';
+import { Workspace } from './workspace.tsr';
+
+export interface FormattingTarget {
+  path: string;
+  session: string;
+  revision: int;
+}
+
+export interface QueuedFormatting {
+  target: FormattingTarget;
+  mode: string;
+}
+
+export function enqueueFormatting(queue: Mutable<QueuedFormatting[]>, workspace: ReadOnly<Workspace>, path: ReadOnly<string>, mode: string): void {
+  const file = workspace.files.find((file) => file.document.path === path);
+
+  if (file === undefined || file.kind !== 'text' || (mode !== 'save' && !canFormat(path))) return;
+
+  if (queue.some((entry) => entry.target.path === path && entry.mode === mode)) return;
+  queue.push({
+    target: {
+      path: clone(path), session: clone(file.document.session), revision: file.document.revision
+    }, mode
+  });
+}
+
+export interface FormattingAuthority {
+  allowPropose: boolean;
+  allowApply: boolean;
+  allowSave: boolean;
+}
+
+export interface FormattingRequest {
+  root: string;
+  document: ProposedEdit;
+  options: FormattingOptions;
+  mode: string;
+  checkOnSave: boolean;
+}
+
+export interface FormattingTerminalTask {
+  program: string;
+  args: string[];
+  completion: string;
+}
+
+export interface FormattingResult {
+  request: FormattingRequest;
+  task?: FormattingTerminalTask;
+  text: string;
+  error: string;
+}
+
+export function canFormat(path: ReadOnly<string>): boolean {
+  const extension = extname(path).toLowerCase();
+  return extension === '.tsr' || extension === '.tsrx';
+}
+
+export function activeSourceDocument(workspace: ReadOnly<Workspace>): boolean {
+  return canFormat(workspace.active) && workspace.files.some((file) => file.document.path === workspace.active && file.kind === 'text');
+}
+
+// The host grants effects; the explicit document identity survives tab switches.
+export function prepareFormatting(workspace: ReadOnly<Workspace>, policy: ReadOnly<EditorPolicy>, authority: ReadOnly<FormattingAuthority>, target: ReadOnly<FormattingTarget>, mode: string): Result<FormattingRequest, string> {
+  if (!authority.allowPropose || (mode !== 'proposal' && !authority.allowApply) || (mode === 'save' && !authority.allowSave)) return Err('Formatting is not permitted by the host.');
+
+  if (!['proposal', 'format', 'project-format', 'save', 'focus'].includes(mode)) return Err('Unknown formatting action.');
+  const index = workspace.files.findIndex((file) => file.document.path === target.path);
+
+  if (index < 0) return Err('Formatting target is not open in this workspace.');
+  const file = workspace.files[index];
+
+  if (file.document.session !== target.session || file.document.revision !== target.revision) return Err('Formatting target has changed.');
+
+  if (file.kind !== 'text' || !canFormat(file.document.path)) return Err('Formatting supports .tsr and .tsrx documents.');
+  return Ok({
+    root: clone(workspace.root), document: propose(file.document, ''), options: clone(policy.format), mode: clone(mode), checkOnSave: mode === 'focus' ? policy.checkOnFocusChange : policy.checkOnSave
+  });
+}
+
+// Stale replies never replace newer edits, save another tab, or change selection.
+export function applyFormatting(workspace: Mutable<Workspace>, result: ReadOnly<FormattingResult>): Result<boolean, string> {
+  if (result.error !== '') return Err(clone(result.error));
+  const request = result.request;
+
+  if (request.root !== workspace.root || !['format', 'project-format', 'save', 'focus'].includes(request.mode)) return Err('Formatting reply is outside its apply scope.');
+  const index = workspace.files.findIndex((file) => file.document.path === request.document.path);
+
+  if (index < 0) return Err('The formatted document was closed.');
+  const proposal = clone(request.document);
+  proposal.after = clone(result.text);
+
+  if (!apply(workspace.files[index].document, proposal)) return Err('The document changed while formatting. Retry to format its latest contents.');
+
+  if (request.mode === 'save') {
+    match (saveDocument(workspace.files[index].document)) {
+      Ok(_) => {},
+      Err(error) => {
+        return Err(saveError(workspace.files[index].document, error));
+      }
+    }
+  }
+
+  return Ok((request.mode === 'save' || request.mode === 'focus') && request.checkOnSave);
+}

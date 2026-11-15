@@ -32,6 +32,7 @@ function person(value: int): User | Guest {
 
 function batch(): int {
   let checksum = 0;
+
   for (let i = 0; i < 2048; i += 1) {
     const value = match (result(i)) {
       Ok(value) => value,

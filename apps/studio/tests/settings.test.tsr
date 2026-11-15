@@ -1,0 +1,230 @@
+import { createTempDir, readTextFile, removeDirAll } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
+import {
+  defaultConfig,
+  parseConfig,
+  loadConfig,
+  saveConfig,
+  formatConfig,
+  themes
+} from '../src/lib/settings/settings.tsr';
+
+test('settings validate before persistence and round trip their named theme and shared text size', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-settings-'));
+
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    strictEqual(unwrap(loadConfig(path)).fontSize, defaultConfig().fontSize);
+    const text = '{"schemaVersion":1,"theme":"Studio Light","fontSize":18}';
+    const discovery = defaultConfig();
+    strictEqual(discovery.searchIncludeIgnored, false);
+    strictEqual(discovery.treeIncludeIgnored, true);
+    discovery.searchIncludeIgnored = true;
+    discovery.treeIncludeIgnored = false;
+    unwrap(saveConfig(path, formatConfig(discovery)));
+    strictEqual(unwrap(loadConfig(path)).searchIncludeIgnored, true);
+    strictEqual(unwrap(loadConfig(path)).treeIncludeIgnored, false);
+    unwrap(saveConfig(path, text));
+    strictEqual(unwrap(loadConfig(path)).theme, 'Studio Light');
+    strictEqual(unwrap(loadConfig(path)).fontSize, 18);
+    strictEqual(themes().length >= 38, true);
+
+    for (const theme of themes()) {
+      const config = defaultConfig();
+      config.theme = clone(theme);
+      unwrap(saveConfig(path, JSON.stringify(config)));
+      strictEqual(unwrap(loadConfig(path)).theme, theme);
+    }
+
+    unwrap(saveConfig(path, text));
+
+    for (const invalid of ['{}', 'not json', '{"schemaVersion":1,"theme":"missing theme","fontSize":14}', '{"schemaVersion":2,"theme":"Studio Dark","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":7}', '{"schemaVersion":1,"theme":"","fontSize":14}', '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14.5}']) {
+      match (parseConfig(invalid)) {
+        Ok(_) => {
+          throw 'invalid settings accepted';
+        },
+        Err(_) => {}
+      }
+
+      match (saveConfig(path, invalid)) {
+        Ok(_) => {
+          throw 'invalid settings saved';
+        },
+        Err(_) => {}
+      }
+
+      strictEqual(unwrap(readTextFile(path)), text);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('layout defaults migrate existing settings and every supported placement round trips', () => {
+  const legacy = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}'));
+  strictEqual(legacy.navigationSide, 'left');
+  strictEqual(legacy.activityBarSide, 'left');
+  strictEqual(legacy.panelPosition, 'bottom');
+  strictEqual(legacy.chatPosition, 'right');
+  const root = unwrap(createTempDir(undefined, 'studio-layout-'));
+
+  try {
+    const path = root + '/tsrust_studio.config.json';
+
+    for (const navigation of ['left', 'right']) {
+      for (const activity of ['left', 'right']) {
+        for (const panel of ['left', 'right', 'bottom']) {
+          for (const chat of ['left', 'right', 'bottom']) {
+            const config = defaultConfig();
+            config.navigationSide = clone(navigation);
+            config.activityBarSide = clone(activity);
+            config.panelPosition = clone(panel);
+            config.chatPosition = clone(chat);
+            const text = JSON.stringify(config);
+            unwrap(saveConfig(path, text));
+            const loaded = unwrap(loadConfig(path));
+            strictEqual(loaded.navigationSide, navigation);
+            strictEqual(loaded.activityBarSide, activity);
+            strictEqual(loaded.panelPosition, panel);
+            strictEqual(loaded.chatPosition, chat);
+          }
+        }
+      }
+    }
+
+    const baseline = unwrap(readTextFile(path));
+
+    for (const field of ['navigationSide', 'activityBarSide', 'panelPosition', 'chatPosition']) {
+      const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"' + field + '":"top"}';
+
+      match (saveConfig(path, invalid)) {
+        Ok(_) => {
+          throw 'invalid placement saved';
+        },
+        Err(_) => {}
+      }
+
+      strictEqual(unwrap(readTextFile(path)), baseline);
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('locale preferences round trip and legacy settings stay English', () => {
+  strictEqual(unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14}')).locale, 'en');
+  const root = unwrap(createTempDir(undefined, 'studio-locale-'));
+
+  try {
+    const path = root + '/tsrust_studio.config.json';
+
+    for (const locale of ['en', 'pt-BR']) {
+      const config = defaultConfig();
+      config.locale = clone(locale);
+      unwrap(saveConfig(path, JSON.stringify(config)));
+      strictEqual(unwrap(loadConfig(path)).locale, locale);
+    }
+
+    const baseline = unwrap(readTextFile(path));
+    const invalid = '{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"locale":"missing"}';
+
+    match (saveConfig(path, invalid)) {
+      Ok(_) => {
+        throw 'unsupported locale saved';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), baseline);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('GUI settings formatting and stale writes preserve configuration data', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-settings-edit-'));
+
+  try {
+    const path = root + '/tsrust_studio.config.json';
+    const config = defaultConfig();
+    const formatted = formatConfig(config);
+    strictEqual(formatted.includes('\n  "theme": '), true);
+    strictEqual(JSON.stringify(unwrap(parseConfig(formatted))), JSON.stringify(config));
+    unwrap(saveConfig(path, formatted));
+    const external = clone(config);
+    external.fontSize = 19;
+    const changed = formatConfig(external);
+    unwrap(saveConfig(path, changed, formatted));
+
+    match (saveConfig(path, formatted, formatted)) {
+      Ok(_) => {
+        throw 'stale settings overwrote an external edit';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(path)), changed);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('language servers persist explicit file associations and reject conflicting or invalid launch definitions', () => {
+  const config = defaultConfig();
+  strictEqual(unwrap(parseConfig(formatConfig(config))).languageServers.length, 0);
+  config.languageServers = [{
+    id: 'go', name: 'Go', program: '/tools/gopls', arguments: ['serve'], languages: ['go'], files: [{
+      extension: 'go', language: 'go'
+    }]
+  }];
+  const restored = unwrap(parseConfig(formatConfig(config)));
+  strictEqual(restored.languageServers[0].program, '/tools/gopls');
+  strictEqual(restored.languageServers[0].files?.length, 1);
+  config.languageServers[0].files = [{
+    extension: 'tsr', language: 'go'
+  }];
+  let conflict = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      conflict = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(conflict, true);
+  config.languageServers[0].files = [{
+    extension: 'go', language: 'rust'
+  }];
+  let language = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      language = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(language, true);
+  config.languageServers[0].files = [];
+  let empty = false;
+
+  match (parseConfig(formatConfig(config))) {
+    Err(_) => {
+      empty = true;
+    },
+    Ok(_) => {}
+  }
+
+  strictEqual(empty, true);
+});
+
+
+test('legacy response budgets no longer constrain Studio chat', () => {
+  const config = unwrap(parseConfig('{"schemaVersion":1,"theme":"Studio Dark","fontSize":14,"aiResponseTokens":32}'));
+  strictEqual(formatConfig(config).includes('aiResponseTokens'), false);
+});

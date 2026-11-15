@@ -75,31 +75,76 @@ pub(crate) fn pack(library:&Path,dependencies:&Path,destination:&Path)->io::Resu
     Ok(())
 }
 pub(crate) fn unpack(source:&Path,destination:&Path)->io::Result<()> {
-    let bytes=fs::read(source)?;
+    use std::io::{Read,Seek,SeekFrom};
+    let mut file=fs::File::open(source)?;
+    let size=file.metadata()?.len();
     let invalid=||io::Error::other("invalid native dependency artifact bundle");
-    if bytes.len()>1024*1024*1024 || !(bytes.starts_with(b"TSRLIB2\0") || bytes.starts_with(b"TSRLIB3\0")) {return Err(invalid());}
-    let mut remaining=&bytes[8..];let mut files=std::collections::BTreeMap::new();
-    while !remaining.is_empty() {
-        if remaining.len()<16 || files.len()>=512 {return Err(invalid());}
-        let name_len=usize::try_from(u64::from_le_bytes(remaining[..8].try_into().unwrap())).map_err(|_|invalid())?;
-        let length=usize::try_from(u64::from_le_bytes(remaining[8..16].try_into().unwrap())).map_err(|_|invalid())?;
-        remaining=&remaining[16..];
+    if !(8..=1024*1024*1024).contains(&size) {return Err(invalid());}
+    let mut header=[0;8];file.read_exact(&mut header)?;
+    if &header!=b"TSRLIB2\0" && &header!=b"TSRLIB3\0" {return Err(invalid());}
+    let mut position=8;let mut files=std::collections::BTreeMap::new();
+    while position<size {
+        if size-position<16 || files.len()>=512 {return Err(invalid());}
+        let mut entry=[0;16];file.read_exact(&mut entry)?;position+=16;
+        let name_len=u64::from_le_bytes(entry[..8].try_into().unwrap());
+        let length=u64::from_le_bytes(entry[8..].try_into().unwrap());
         let total=name_len.checked_add(length).ok_or_else(invalid)?;
-        if total>remaining.len(){return Err(invalid());}
-        let name=std::str::from_utf8(&remaining[..name_len]).map_err(|_|invalid())?;
-        if !(name.ends_with(".rlib") || (bytes.starts_with(b"TSRLIB3\0") && name.ends_with(".lib")) || name.ends_with(&format!(".{}",std::env::consts::DLL_EXTENSION))) || !name.bytes().all(|c|c.is_ascii_alphanumeric() || b"_-.".contains(&c)) || name.starts_with('.') {return Err(invalid());}
-        if files.insert(name,&remaining[name_len..total]).is_some(){return Err(invalid());}
-        remaining=&remaining[total..];
+        // Artifact names are ASCII filesystem leaf names, at most 255 bytes.
+        if total>size-position || name_len>255 {return Err(invalid());}
+        let mut name=vec![0;name_len as usize];file.read_exact(&mut name)?;position+=name_len;
+        let name=String::from_utf8(name).map_err(|_|invalid())?;
+        if !(name.ends_with(".rlib") || (&header==b"TSRLIB3\0" && name.ends_with(".lib")) || name.ends_with(&format!(".{}",std::env::consts::DLL_EXTENSION))) || !name.bytes().all(|c|c.is_ascii_alphanumeric() || b"_-.".contains(&c)) || name.starts_with('.') {return Err(invalid());}
+        if files.insert(name,(position,length)).is_some(){return Err(invalid());}
+        position+=length;file.seek(SeekFrom::Start(position))?;
     }
     if !files.contains_key("libtsrust_runtime.rlib") {return Err(invalid());}
     fs::create_dir(destination)?;
-    for (name,content) in files {fs::write(destination.join(name),content)?;}
+    for (name,(offset,length)) in files {
+        file.seek(SeekFrom::Start(offset))?;
+        let mut output=fs::File::create(destination.join(name))?;
+        if io::copy(&mut Read::by_ref(&mut file).take(length),&mut output)?!=length {return Err(invalid());}
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod artifact_tests {
     use super::*;
+    #[test]
+    fn streamed_bundle_validation_rejects_malformed_tail_before_creating_outputs(){
+        use std::io::Write;
+        let directory=std::env::temp_dir().join(format!("tsrust-bundle-validation-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        fs::create_dir(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup{fn drop(&mut self){let _=fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());
+        fn entry(bytes:&mut Vec<u8>,name:&[u8],body:&[u8]){
+            bytes.extend_from_slice(&(name.len()as u64).to_le_bytes());bytes.extend_from_slice(&(body.len()as u64).to_le_bytes());
+            bytes.extend_from_slice(name);bytes.extend_from_slice(body);
+        }
+        let mut valid=b"TSRLIB3\0".to_vec();entry(&mut valid,b"libtsrust_runtime.rlib",b"runtime");
+        let mut malformed=Vec::new();
+        for name in [b"../escape.rlib".as_slice(),b".hidden.rlib",b"libtsrust_runtime.rlib",b"ignored.txt",b"bad\xff.rlib"]{
+            let mut bytes=valid.clone();entry(&mut bytes,name,b"payload");malformed.push(bytes);
+        }
+        let mut trailing=valid.clone();trailing.push(1);malformed.push(trailing);
+        let mut overflow=valid.clone();overflow.extend_from_slice(&u64::MAX.to_le_bytes());overflow.extend_from_slice(&1u64.to_le_bytes());malformed.push(overflow);
+        let mut legacy=valid.clone();legacy[..8].copy_from_slice(b"TSRLIB2\0");entry(&mut legacy,b"native.lib",b"import");malformed.push(legacy);
+        let mut too_long=valid.clone();let mut name=vec![b'a';251];name.extend_from_slice(b".rlib");entry(&mut too_long,&name,b"payload");malformed.push(too_long);
+        malformed.push(b"TSRLIB3\0".to_vec());
+        let input=directory.join("bundle");
+        for (index,bytes) in malformed.iter().enumerate(){
+            fs::write(&input,bytes).unwrap();let output=directory.join(format!("invalid-{index}"));
+            assert!(unpack(&input,&output).is_err());assert!(!output.exists(),"malformed input created partial outputs");
+        }
+        let oversized=fs::File::create(&input).unwrap();oversized.set_len(1024*1024*1024+1).unwrap();drop(oversized);
+        let output=directory.join("oversized");assert!(unpack(&input,&output).is_err());assert!(!output.exists());
+        fs::File::create(&input).unwrap().write_all(&valid).unwrap();let output=directory.join("valid");unpack(&input,&output).unwrap();
+        assert_eq!(fs::read(output.join("libtsrust_runtime.rlib")).unwrap(),b"runtime");
+        let mut name=vec![b'a';250];name.extend_from_slice(b".rlib");entry(&mut valid,&name,b"boundary");
+        fs::write(&input,&valid).unwrap();let output=directory.join("long-valid");unpack(&input,&output).unwrap();
+        assert_eq!(fs::read(output.join(String::from_utf8(name).unwrap())).unwrap(),b"boundary");
+    }
     #[cfg(all(windows,target_env="msvc"))]
     #[test]
     fn windows_imports_restore_exactly_after_artifact_round_trip_and_preserve_unexpected_bytes(){
@@ -151,11 +196,11 @@ mod artifact_tests {
         assert!(BASE_IDENTITY.starts_with("native-dependencies-1\n"));
         assert!(BASE_IDENTITY.contains(sources::MANIFEST));
         assert!(BASE_IDENTITY.contains(sources::LOCK));
-        assert_eq!(dependency_identity(),tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY));
+        assert_eq!(dependency_identity(),tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY));
     }
 }
 
 pub(crate) fn dependency_identity()-> &'static str {
  static VALUE:std::sync::OnceLock<String>=std::sync::OnceLock::new();
- VALUE.get_or_init(||tsrust_compiler::native_url_patch::cache_identity(BASE_IDENTITY)).as_str()
+ VALUE.get_or_init(||tsrust_compiler::native_dependency_patches::cache_identity(BASE_IDENTITY)).as_str()
 }

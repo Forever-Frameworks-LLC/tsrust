@@ -3,9 +3,11 @@ function workload(n: int, seed: int, input: string): int {
   let trace: int = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {
@@ -17,6 +19,7 @@ function workload(n: int, seed: int, input: string): int {
     const selected = base.slice(0, count);
     selected.forEach((value: string[], index: int, source: string[][]): void => {
       let weight = 0;
+
       for (const item of value) {
         weight = weight + stringWeight(item, input);
       }
@@ -32,6 +35,7 @@ function workload(n: int, seed: int, input: string): int {
 
 function stringWeight(value: string, input: string): int {
   let w = 1;
+
   if (value === input) {
     w = w + 3;
   }

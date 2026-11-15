@@ -1,0 +1,41 @@
+import { Signal } from 'std:ui';
+
+import { StudioConfig } from '../settings/settings.tsr';
+import { Workspace } from '../workspace/workspace.tsr';
+import { DirectoryTree, scanTree } from './tree.tsr';
+
+export interface TreeSession {
+  root: string;
+  workspace: Signal<Workspace>;
+  settings: Signal<StudioConfig>;
+  revision: Signal<int>;
+  appliedRevision: Signal<int>;
+  appliedPolicy: Signal<boolean>;
+  snapshot: Signal<DirectoryTree>;
+  error: Signal<string>;
+}
+
+export function refreshTree(session: ReadOnly<TreeSession>): void {
+  const policy = session.settings.get().treeIncludeIgnored;
+  session.appliedRevision.set(session.revision.get());
+  session.appliedPolicy.set(policy);
+
+  if (session.root !== session.workspace.get().root) {
+    session.error.set('Explorer access is not permitted for this workspace.');
+    return;
+  }
+
+  match (scanTree(clone(session.root), policy)) {
+    Ok(tree) => {
+      session.snapshot.set(tree);
+      session.error.set('');
+    },
+    Err(error) => {
+      session.error.set(error);
+    }
+  }
+}
+
+export function pollTree(session: ReadOnly<TreeSession>): void {
+  if (session.revision.get() !== session.appliedRevision.get() || session.settings.get().treeIncludeIgnored !== session.appliedPolicy.get()) refreshTree(session);
+}

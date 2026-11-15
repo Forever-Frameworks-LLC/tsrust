@@ -6,6 +6,7 @@ function main() {
   strictEqual(unwrap(cache.set('a', 'one')) === undefined, true);
   unwrap(cache.set('b', 'two'));
   const read = cache.get('a');
+
   if (read !== undefined) {
     strictEqual(read, 'one');
   } else {
@@ -16,6 +17,7 @@ function main() {
   strictEqual(evicted.key, 'b');
   strictEqual(evicted.value, 'two');
   const peeked = cache.peek('a');
+
   if (peeked !== undefined) {
     strictEqual(peeked, 'one');
   } else {
@@ -25,6 +27,7 @@ function main() {
   const replaced = unwrap(cache.set('a', 'updated'))!;
   strictEqual(replaced.value, 'one');
   const updated = cache.get('a');
+
   if (updated !== undefined) {
     const saved = clone(updated);
     cache.clear();
@@ -34,6 +37,7 @@ function main() {
   }
 
   strictEqual(cache.size(), 0);
+
   match (cache.set('bad', 'original', 0)) {
     Ok(_) => {
       throw 'invalid TTL accepted';
@@ -76,6 +80,7 @@ function main() {
 
   strictEqual(releaseCount(rejectedId), 1);
   const retained = resources.get(2);
+
   if (retained !== undefined) {
     strictEqual(resourceId(retained), secondId);
   } else {
@@ -92,6 +97,7 @@ function main() {
   const numbers = new LruCache<number, int>(2);
   unwrap(numbers.set(NaN, 4));
   const hit = numbers.get(NaN);
+
   if (hit !== undefined) {
     strictEqual(hit, 4);
   } else {

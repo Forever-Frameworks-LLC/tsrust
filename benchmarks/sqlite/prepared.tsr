@@ -7,6 +7,7 @@ function batch(db: Mutable<Connection>): int {
     const clear = unwrap(tx.prepare('DELETE FROM items'));
     unwrap(clear.execute());
     const insert = unwrap(tx.prepare('INSERT INTO items VALUES (?1, ?2)'));
+
     for (let index = 0; index < 128; index++) {
       unwrap(insert.execute([index, index * 2]));
     }

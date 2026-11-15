@@ -18,7 +18,7 @@ pub struct ProjectActions {
 type ClosedInput = (SourceId, Arc<String>);
 struct Overlay<'a> {
     snapshot: &'a WorkspaceSnapshot,
-    sources: BTreeMap<SourceId, String>,
+    sources: BTreeMap<SourceId, Arc<String>>,
 }
 impl SourceProvider for Overlay<'_> {
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
@@ -27,7 +27,7 @@ impl SourceProvider for Overlay<'_> {
     fn read(&self, id: &SourceId) -> Result<String, String> {
         self.sources
             .get(id)
-            .cloned()
+            .map(|text| text.as_ref().clone())
             .ok_or_else(|| format!("Unpinned source {}", id.0))
     }
 }
@@ -69,10 +69,7 @@ impl ProjectActions {
                 });
                 let mut overlay = Overlay {
                     snapshot,
-                    sources: sources
-                        .iter()
-                        .map(|(id, text)| (id.clone(), text.as_ref().clone()))
-                        .collect(),
+                    sources: sources.clone(),
                 };
                 let mut valid = true;
                 for fix in fixes.iter().rev() {
@@ -85,7 +82,7 @@ impl ProjectActions {
                         valid = false;
                         break;
                     }
-                    text.replace_range(span.start..span.end, &fix.replacement);
+                    Arc::make_mut(text).replace_range(span.start..span.end, &fix.replacement);
                 }
                 if !valid {
                     break false;

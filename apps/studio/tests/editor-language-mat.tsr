@@ -1,0 +1,18 @@
+// Manual editor fixture: complete greet, inspect count, and expand match arms.
+function greet(name: string, count: int): string {
+  return name + count.toString();
+}
+
+function main(): void {
+  const count: int = 2;
+  const result: Result<string, string> = Ok(greet('hello', count));
+
+  match (result) {
+    Ok(value) => {
+      console.log(value);
+    },
+    Err(error) => {
+      console.log(error);
+    }
+  }
+}

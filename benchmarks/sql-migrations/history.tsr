@@ -12,12 +12,14 @@ async function batch(pool: ReadOnly<Pool>): Task<int> {
 
 async function main(): Task<void> {
   const url = unwrap(get('DATABASE_URL'));
+
   if (url === undefined) {
     throw 'DATABASE_URL required';
   }
 
   const pool = await connect(url, 1);
   await pool.migrate('examples/sql-migrations/migrations');
+
   for (let warmup = 0; warmup < 8; warmup++) {
     await batch(pool);
   }

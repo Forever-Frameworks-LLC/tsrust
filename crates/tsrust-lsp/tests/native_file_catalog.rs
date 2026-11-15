@@ -14,7 +14,7 @@ fn every_file_catalog_example_checks_and_executes() {
     std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:fs"].as_array().unwrap();
-    assert_eq!(entries.len(), 44);
+    assert_eq!(entries.len(), 45);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
@@ -37,7 +37,8 @@ fn every_file_catalog_example_checks_and_executes() {
                 assert!(compiled.status.success(), "{}: {}", entry["name"], String::from_utf8_lossy(&compiled.stderr));
                 let output = std::process::Command::new(&binary).current_dir(&directory.0).output().unwrap();
                 assert!(output.status.success(), "{} O{level}: {}\nstdout: {}\nstderr: {}", entry["name"], output.status, String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
-                assert_eq!(String::from_utf8(output.stdout).unwrap(), example["output"].as_str().unwrap(), "{} O{level}", entry["name"]);
+                let expected=if cfg!(windows){example.get("windowsOutput").unwrap_or(&example["output"])}else{&example["output"]};
+                assert_eq!(String::from_utf8(output.stdout).unwrap(), expected.as_str().unwrap(), "{} O{level}", entry["name"]);
             }
         }
     }
@@ -57,4 +58,9 @@ fn file_help_retains_optional_bounds_and_platform_close_contract() {
     assert!(read["parameters"][1]["documentation"].as_str().unwrap().contains("Invalid explicit limits fail before opening"));
     let close=entries.iter().find(|entry|entry["name"]=="close").unwrap();
     assert!(close["documentation"].as_str().unwrap().contains("does not expose OS close failures"));
+    let atomic=entries.iter().find(|entry|entry["name"]=="writeTextFileAtomic").unwrap();
+    for required in ["committed-not-durable","0600","ACLs","Windows currently returns unsupported","uncooperative writer","Ownership:"] {
+        assert!(atomic["documentation"].as_str().unwrap().contains(required),"missing atomic-write contract: {required}");
+    }
+    assert!(atomic["parameters"][2]["documentation"].as_str().unwrap().contains("conflict"));
 }

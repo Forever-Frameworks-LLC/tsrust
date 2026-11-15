@@ -1,4 +1,11 @@
-import { Bytes, ByteView, fromUtf8, view, toUtf8, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromUtf8,
+  view,
+  toUtf8,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function bytes(text: string): Bytes {
@@ -53,6 +60,7 @@ export function main() {
     strictEqual(values.size, 2, "map size after replacement");
     strictEqual(values.keys().join(","), "2,1", "replacement preserves insertion order");
     let seen = "";
+
     for (const [key, value] of values) {
       seen += String(key) + text(value) + "|";
     }
@@ -95,6 +103,7 @@ export function main() {
   const copied = clone(owned);
   owned.clear();
   const selected = copied.get(1);
+
   if (selected !== undefined) {
     strictEqual(selected[1], 5, "deep clone retains owned array");
   } else {

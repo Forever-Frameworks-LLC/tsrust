@@ -1,0 +1,54 @@
+import { Channel, Sender } from 'std:futures';
+
+import { SearchSnapshot, SearchResults, searchSnapshotContents } from '../lib/explorer/search.tsr';
+
+export interface ContentSearchRequest {
+  generation: int;
+  workspace: SearchSnapshot;
+  query: string;
+  regex: boolean;
+  sensitive: boolean;
+  includeIgnored: boolean;
+}
+
+export interface ContentSearchReply {
+  generation: int;
+  result: SearchResults;
+  error: string;
+}
+
+function runSearch(request: ReadOnly<ContentSearchRequest>, cancellations: Mutable<Channel<int>>): ContentSearchReply {
+  match (searchSnapshotContents(
+    request.workspace,
+    clone(request.query),
+    request.regex,
+    request.sensitive,
+    request.includeIgnored,
+    cancellations,
+    request.generation
+  )) {
+    Ok(result) => {
+      return {
+        generation: request.generation, result, error: ''
+      };
+    },
+    Err(error) => {
+      return {
+        generation: request.generation, result: {
+          hits: [], skipped: 0
+        }, error
+      };
+    }
+  }
+}
+
+export async function contentSearchWorker(requests: Channel<ContentSearchRequest>, replies: Sender<ContentSearchReply>, cancellations: Channel<int>): Task<void> {
+  while (true) {
+    try {
+      const request = await requests.receive();
+      await replies.send(runSearch(request, cancellations));
+    } catch (_) {
+      return;
+    }
+  }
+}

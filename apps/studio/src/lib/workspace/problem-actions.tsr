@@ -1,0 +1,77 @@
+import { isAbsolute, join } from 'std:path';
+import { controlInput } from 'std:ui';
+
+import { SearchActionContext } from '../explorer/search-actions.tsr';
+import { publishWorkspace } from './document-actions.tsr';
+import { openFile } from './workspace.tsr';
+
+export interface ProblemLocation {
+  path: string;
+  line: int;
+  column: int;
+}
+
+export interface ProblemSelection {
+  start: int;
+  end: int;
+}
+
+// Location columns are Unicode scalars; native selection offsets are UTF-8 bytes.
+export function problemSelection(text: ReadOnly<string>, line: int, column: int): Result<ProblemSelection, string> {
+  if (line < 1 || column < 1) return Err('Invalid problem location.');
+  let offset = 0;
+
+  for (let row = 1; row < line; row += 1) {
+    const newline = text.indexOf('\n', offset);
+
+    if (newline < 0) return Err('Problem location is no longer present in this document.');
+    offset = newline + 1;
+  }
+
+  const newline = text.indexOf('\n', offset);
+  const end = newline < 0 ? text.length : newline;
+  const scalars = Array.from(text.slice(offset, end));
+
+  if (column - 1 > scalars.length) return Err('Problem location is no longer present in this document.');
+  return Ok({
+    start: offset + scalars.slice(0, column - 1).join('').length, end
+  });
+}
+
+export function openProblem(context: ReadOnly<SearchActionContext>, location: ReadOnly<ProblemLocation>): Result<void, string> {
+  if (!context.allowNavigation) return Err('Problem navigation is not permitted by the host.');
+
+  if (location.path === '' || location.path.length > 8192 || location.line < 1 || location.column < 1) return Err('Invalid problem location.');
+  const next = context.workspace.get();
+  const path = isAbsolute(location.path) ? clone(location.path) : join(next.root, location.path);
+
+  match (openFile(next, path)) {
+    Err(error) => {
+      return Err(clone(error));
+    },
+    Ok(_) => {}
+  }
+
+  const index = next.files.findIndex((file) => file.document.path === next.active);
+
+  if (index < 0 || next.files[index].kind !== 'text') return Err('Problem location is not a text document.');
+
+  match (problemSelection(next.files[index].document.text, location.line, location.column)) {
+    Err(error) => {
+      return Err(error);
+    },
+    Ok(selected) => {
+      const target = clone(next.active);
+      publishWorkspace(next, context.workspace, context.recovery);
+
+      if (context.focusEditor) {
+        controlInput(clone(target), 'setSelection', {
+          start: selected.start, end: selected.end
+        });
+        controlInput(target, 'focus');
+      }
+    }
+  }
+
+  return Ok();
+}

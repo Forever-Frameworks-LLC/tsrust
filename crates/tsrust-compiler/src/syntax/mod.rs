@@ -1206,7 +1206,7 @@ impl CheckedSpreadCall {
             .chain(std::iter::once(self.call.as_ref()))
             .chain(self.variants.iter().map(|variant| variant.call.as_ref()))
     }
-    pub fn expressions_mut(&mut self) -> impl Iterator<Item = &mut Expr> {
+    pub fn expressions_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Expr> {
         self.callee.iter_mut().map(|callee| callee.value.as_mut())
             .chain(self.segments.iter_mut().map(|segment| segment.value.as_mut()))
             .chain(std::iter::once(self.call.as_mut()))

@@ -5,6 +5,7 @@ function take(text: string): string {
 function main() {
   let count = 0;
   let text: string = "Pat";
+
   while (count < 3) {
     console.log(take(text));
     text = "Sam";

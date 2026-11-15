@@ -1,0 +1,74 @@
+import { get } from 'std:env';
+import { randomBytes } from 'std:crypto';
+import { toHex } from 'std:bytes';
+import { Channel } from 'std:futures';
+import { connect } from 'std:sql';
+import { test, strictEqual } from 'std:testing';
+import { routes } from '../../api/src/application.tsr';
+import { TaskCommand, TaskUpdate, taskService } from '../src/service.tsr';
+import { emptyDraft } from '../src/model.tsr';
+
+async function reply(updates: ReadOnly<Channel<TaskUpdate>>, requestId: int): Task<TaskUpdate> {
+  while (true) {
+    const value = await updates.receive();
+
+    if (value.requestId === requestId && (requestId !== 0 || value.connected)) return value;
+  }
+}
+
+test('desktop worker synchronizes, saves, reports conflicts and deletes over its real channel boundary', async () => {
+  const configured = unwrap(get('DATABASE_URL'));
+
+  if (configured === undefined) throw 'Set DATABASE_URL.';
+  const database: string = configured;
+  const external = await connect(clone(database), 2);
+  const app = routes(await connect(database, 3));
+  const server = await app.listen('127.0.0.1:0');
+  const base = 'http://' + server.address();
+  const id = 'worker-' + unwrap(toHex(unwrap(randomBytes(16)))) + '/ ?%é#';
+  const commands = new Channel<TaskCommand>(8);
+  const updates = new Channel<TaskUpdate>(8);
+  const sender = commands.sender();
+  const worker = taskService(base, 'sqlite::memory:', commands, updates.sender()).start();
+
+  try {
+    const initial = await reply(updates, 0);
+    strictEqual(initial.ready, true);
+    const draft = emptyDraft();
+    draft.title = 'Through the worker';
+    await sender.send({
+      kind: 'save', requestId: 1, id: clone(id), value: clone(draft)
+    });
+    const saved = await reply(updates, 1);
+    strictEqual(saved.outcome === 'saved', true);
+    strictEqual(saved.snapshot.tasks.some((task) => task.id === id && task.title === 'Through the worker'), true);
+    await external.execute('UPDATE tasks SET title = $2 WHERE id = $1', [clone(id), 'External edit']);
+    draft.expectedVersion = 1;
+    draft.title = 'Stale local draft';
+    await sender.send({
+      kind: 'save', requestId: 2, id: clone(id), value: draft
+    });
+    const conflict = await reply(updates, 2);
+    strictEqual(conflict.outcome === 'conflict', true);
+
+    if (conflict.current === null) throw 'Missing current task in conflict response.';
+    strictEqual(conflict.current.title, 'External edit');
+    strictEqual(conflict.current.version, 2);
+    await sender.send({
+      kind: 'delete', requestId: 3, id: clone(id), expectedVersion: 2
+    });
+    const deleted = await reply(updates, 3);
+    strictEqual(deleted.outcome === 'deleted', true);
+    strictEqual(deleted.snapshot.tasks.some((task) => task.id === id), false);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    await server.shutdown();
+    await external.execute('DELETE FROM tasks WHERE id = $1', [id]);
+    await external.close();
+  }
+});

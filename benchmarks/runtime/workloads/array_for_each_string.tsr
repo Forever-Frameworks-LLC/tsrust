@@ -3,9 +3,11 @@ function workload(n: int, seed: int, input: string): int {
   let trace: int = seed;
   let visits = 0;
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 5;
     let count = 5;
+
     if (mode === 0) {
       count = 0;
     } else if (mode === 1) {
@@ -27,6 +29,7 @@ function workload(n: int, seed: int, input: string): int {
 
 function stringWeight(value: string, input: string): int {
   let w = 1;
+
   if (value === input) {
     w = w + 3;
   }

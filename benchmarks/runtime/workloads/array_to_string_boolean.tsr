@@ -2,6 +2,7 @@ function workload(n: int, seed: int): string[] {
   const values: boolean[] = [true, false, seed % 2 === 0, false, true, false];
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 7;
     let joined: string = "";

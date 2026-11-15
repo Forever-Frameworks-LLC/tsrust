@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): int {
   const values: int[] = [];
   let j = 0;
+
   while (j < 129) {
     values.push((j * 37 + seed) % 101);
     j = j + 1;
@@ -8,6 +9,7 @@ function workload(n: int, seed: int): int {
 
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     const needle = (i * 17 + seed) % 137;
     const from = (i * 13 + seed) % 387 - 193;

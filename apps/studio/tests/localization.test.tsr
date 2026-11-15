@@ -1,0 +1,50 @@
+import { test, strictEqual } from 'std:testing';
+import { setLocale, translate, translateWith } from 'std:ui';
+
+import { initializeTranslations, message, accessibleName, localizeError } from '../src/lib/localization.tsr';
+
+test('catalogs translate live props, plurals and errors while preserving paths and fallback', () => {
+  initializeTranslations();
+
+  try {
+    const label = message('Files');
+    setLocale('en');
+    strictEqual(label.evaluate(), 'Files');
+    setLocale('pt-BR');
+    strictEqual(label.evaluate(), 'Arquivos');
+    const name = accessibleName('Files');
+    const value = name.evaluate();
+
+    if (value === undefined) throw 'translated accessible name missing';
+    strictEqual(value, 'Arquivos');
+    strictEqual(translate('Settings'), 'Configurações');
+    strictEqual(translateWith('matchingLines', {
+      count: 0
+    }), 'Nenhuma linha correspondente');
+    strictEqual(translateWith('matchingLines', {
+      count: 1
+    }), '1 linha correspondente');
+    strictEqual(translateWith('matchingLines', {
+      count: 3
+    }), '3 linhas correspondentes');
+    strictEqual(translateWith('skippedFiles', {
+      count: 2
+    }), '2 arquivos ignorados');
+    strictEqual(localizeError('Save or discard the unsaved changes before closing.'), 'Salve ou descarte as alterações não salvas antes de fechar.');
+    strictEqual(localizeError('Draft recovery could not be read. Its file was preserved: /tmp/λ.json'), 'Não foi possível ler a recuperação de rascunhos. O arquivo foi preservado: /tmp/λ.json');
+    strictEqual(translateWith('Close {name}', {
+      name: 'λ.tsr'
+    }), 'Fechar λ.tsr');
+    strictEqual(translate('External diagnostic λ'), 'External diagnostic λ');
+    setLocale('en-US');
+    strictEqual(label.evaluate(), 'Files');
+    strictEqual(translateWith('matchingLines', {
+      count: 1
+    }), '1 matching line');
+    strictEqual(translateWith('matchingLines', {
+      count: 4
+    }), '4 matching lines');
+  } finally {
+    setLocale('en');
+  }
+});

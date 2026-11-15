@@ -11,4 +11,5 @@ pub mod signatures;
 pub mod type_resolution;
 pub mod types;
 
+pub mod dependency_patches;
 pub mod url_patch;

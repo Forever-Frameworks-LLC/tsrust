@@ -1,0 +1,26 @@
+import { test, strictEqual } from 'std:testing';
+
+function inspect(value: string | null): string {
+  return String(value);
+}
+
+function render(value: ReadOnly<string | null | undefined>): string {
+  return `${value}`;
+}
+
+test('inferred readonly nullable parameters borrow concrete owned strings', () => {
+  let value = 'kept'.repeat(1);
+  const stored = inspect;
+  strictEqual(inspect(value), 'kept');
+  strictEqual(stored(value), 'kept');
+  strictEqual(value, 'kept');
+  value = 'changed';
+  strictEqual(inspect(value), 'changed');
+  strictEqual(inspect(null), 'null');
+});
+
+test('scalar nullable templates retain their string null and undefined values', () => {
+  strictEqual(render('café'), 'café');
+  strictEqual(render(null), 'null');
+  strictEqual(render(undefined), 'undefined');
+});

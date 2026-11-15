@@ -39,6 +39,7 @@ export async function run(): Task<void> {
   const unit: Result<void, AsyncSendError<int>> = Err({
     code: 'closed', value: 8
   });
+
   match (clone(unit)) {
     Ok(_) => {
       throw 'unexpected success';
@@ -49,6 +50,7 @@ export async function run(): Task<void> {
   }
 
   const settled = await allSettled([rejected().start()]);
+
   match (clone(settled[0])) {
     Ok(_) => {
       throw 'unexpected success';
@@ -60,6 +62,7 @@ export async function run(): Task<void> {
   }
 
   const payloads = await allSettled([rejectedValue().start()]);
+
   match (clone(payloads[0])) {
     Ok(_) => {
       throw 'unexpected success';

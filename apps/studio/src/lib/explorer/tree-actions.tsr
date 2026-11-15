@@ -1,0 +1,8 @@
+import { Signal } from 'std:ui';
+
+export function requestTreeRefresh(revision: ReadOnly<Signal<int>>, targetRoot: string, allowedRoot: string, activeRoot: string, allowRead: boolean): Result<int, string> {
+  if (!allowRead || targetRoot !== allowedRoot || targetRoot !== activeRoot) return Err('Explorer access is not permitted for this workspace.');
+  const next = revision.get() + 1;
+  revision.set(next);
+  return Ok(next);
+}

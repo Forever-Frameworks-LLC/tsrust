@@ -1,0 +1,79 @@
+import { JsonLimits } from 'std:json';
+import { Signal } from 'std:ui';
+
+import { dirty } from '../lib/workspace/documents.tsr';
+import { FormattingTarget, QueuedFormatting } from '../lib/workspace/formatting-actions.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+export interface SaveActionContext {
+  workspace: Signal<Workspace>;
+  queue: Signal<QueuedFormatting[]>;
+  allowSave: boolean;
+}
+
+interface SaveArguments {
+  targets: FormattingTarget[];
+}
+
+export function unsavedTargets(workspace: ReadOnly<Workspace>, activeOnly: boolean = false): FormattingTarget[] {
+  const targets: FormattingTarget[] = [];
+
+  for (const file of workspace.files) if ((!activeOnly || file.document.path === workspace.active) && file.kind === 'text' && dirty(file.document)) targets.push({
+    path: clone(file.document.path), session: clone(file.document.session), revision: file.document.revision
+  });
+  return targets;
+}
+
+export function queueSaves(context: ReadOnly<SaveActionContext>, targets: ReadOnly<FormattingTarget[]>): Result<int, string> {
+  if (!context.allowSave) return Err('Saving files is not permitted by the host.');
+  const workspace = context.workspace.get();
+
+  for (const target of targets) {
+    if (!workspace.files.some((file) => file.kind === 'text' && file.document.path === target.path && file.document.session === target.session && file.document.revision === target.revision)) return Err('A save target changed or is no longer open. Request its latest revision before saving.');
+  }
+
+  const queue = context.queue.get().filter((entry) => !targets.some((target) => target.path === entry.target.path && (entry.mode === 'save' || entry.mode === 'focus')));
+  let count = 0;
+
+  for (const target of targets) {
+    if (queue.some((entry) => entry.mode === 'save' && entry.target.path === target.path)) continue;
+    queue.push({
+      target: clone(target), mode: 'save'
+    });
+    count += 1;
+  }
+
+  context.queue.set(queue);
+  return Ok(count);
+}
+
+export function saveTools(): EditorTool[] {
+  return [{
+    name: 'save_files', description: 'Queue explicit open text-file path/session/revision targets through the same Save All workflow as File → Save and Cmd+S. Requires a host live-save grant or an isolated workspace. Applies configured format-on-save and check-on-save, preserves recovery and disk conflict checks, and never changes selection. Completion is asynchronous; inspect unsaved files/problems for outcomes.', inputSchema: '{"type":"object","properties":{"targets":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string"},"session":{"type":"string"},"revision":{"type":"integer","minimum":0}},"required":["path","session","revision"]}}},"required":["targets"]}'
+  }];
+}
+
+export function invokeSaveTool(context: ReadOnly<SaveActionContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (name !== 'save_files') return Err('Unknown save action.');
+  const limits: JsonLimits = {
+    maxBytes: 1024 * 1024, maxDepth: 5, maxEntries: 8192, maxNodes: 32768
+  };
+
+  try {
+    const args = JSON.parse<SaveArguments>(payload, limits);
+
+    match (queueSaves(context, args.targets)) {
+      Ok(count) => {
+        return Ok(JSON.stringify({
+          queued: count
+        }));
+      },
+      Err(error) => {
+        return Err(clone(error));
+      }
+    }
+  } catch (_) {
+    return Err('Invalid save action arguments.');
+  }
+}

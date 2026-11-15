@@ -19,7 +19,9 @@ run offline from the locked crate sets it downloads. `new --ui` creates a deskto
 app from the GPUI starter. Programs that use `CodeEditor` or `Markdown` get syntax highlighting automatically. Programs that use
 `SpeechButton` likewise get system speech recognition; packaged macOS apps carry
 the microphone and speech-recognition usage descriptions it needs. `tsrust dev` rebuilds and
-restarts the window whenever a source or locale file changes. `tsrust ui list`
+restarts the window after changed application inputs build successfully. Unrelated
+test edits retain the running window when application inputs and macOS app metadata
+are unchanged; failed builds also preserve the last working app. `tsrust ui list`
 shows the GPUI Kit components; `tsrust ui add Settings DataTable` copies editable
 wrappers into `src/components/` (`--all` adds every component, `--force`
 replaces existing files).
@@ -55,6 +57,15 @@ has a matching `package` key (`name`, `id`, `version`, `icon`, `repo`, `out`,
 and `out` paths are relative to the project root; CLI paths are relative to the
 current directory. Keep signing credentials in the system keychain; `notarize`
 names its profile.
+
+For a macOS folder-based app, set `package.opensFolders` to `true` to
+advertise folder support in the development and release bundles. Pass
+`opensFolders: true` in the main window’s `run` options to handle folder-open
+events. A cold launch with only folder documents uses the first canonical folder
+as its workspace. Additional folders open separately. An existing workspace or
+one supplied explicitly on the command line stays open. Each folder instance
+receives its directory as its first argument and working directory.
+Both settings default to false.
 
 | Option | Meaning |
 | --- | --- |

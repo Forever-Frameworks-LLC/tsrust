@@ -3,8 +3,10 @@ import { asBoolean, asInt, asNumber, takeString } from 'std:json';
 function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = JSON.parse(input);
+
     match (asInt(value)) {
       Ok(value) => {
         checksum += value;

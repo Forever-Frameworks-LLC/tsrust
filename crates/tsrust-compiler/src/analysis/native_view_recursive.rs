@@ -5,6 +5,8 @@ use crate::native_return_borrows::BorrowAccess;
 
 pub(super) struct Shapes {
     pub(super) recursive: crate::recursive_view_shapes::Index,
+    program_revision: std::cell::Cell<u64>,
+    union_revision: u64,
     native_types: Vec<Option<crate::native_signatures::NativeTypeId>>,
     incomplete: Vec<bool>,
     scoped_families: Vec<(usize,crate::native_view_callable_storage::Family)>,
@@ -17,6 +19,8 @@ pub(super) struct Shapes {
 impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
         Self {
+            program_revision: std::cell::Cell::new(analyzer.program.revision),
+            union_revision: analyzer.unions.member_revision(),
             native_types:analyzer.program.records.iter().map(|record|record.native_type).collect(),
             incomplete:analyzer.program.records.iter().map(|record|record.fields.iter().any(|field|field.ty.is_none())).collect(),
             scoped_families:analyzer.callables.storage.scoped_native_families().map(|(id,family)|(id,family.clone())).collect(),
@@ -32,16 +36,22 @@ impl Shapes {
 
     fn matches(&self, analyzer:&Analyzer)->bool {
         self.fields.len()==analyzer.program.records.len()
-            && analyzer.unions.matches_members(&self.unions)
+            && analyzer.unions.member_revision() == self.union_revision
             && self.scoped_families.len()==analyzer.callables.storage.scoped_native_families().count()
             && self.scoped_families.iter().all(|(id,family)|analyzer.callables.storage.scoped_native_family(*id)==Some(family))
-            && analyzer.program.records.iter().enumerate().all(|(id,record)|
+            && (self.program_revision.get() == analyzer.program.revision || self.matches_records(analyzer))
+    }
+
+    fn matches_records(&self, analyzer: &Analyzer) -> bool {
+        let unchanged = analyzer.program.records.iter().enumerate().all(|(id,record)|
                 self.native_types[id]==record.native_type
                 && self.native_elements[id]==record.native_element()
                 && self.map_values[id]==record.map_definition.as_ref().map(|map|map.value)
                 && self.incomplete[id]==record.fields.iter().any(|field|field.ty.is_none())
                 && self.fields[id].iter().map(|(name,ty)|(name.as_str(),*ty))
-                    .eq(record.fields.iter().filter_map(|field|field.ty.map(|ty|(field.name.text.as_str(),ty)))))
+                    .eq(record.fields.iter().filter_map(|field|field.ty.map(|ty|(field.name.text.as_str(),ty)))));
+        if unchanged { self.program_revision.set(analyzer.program.revision); }
+        unchanged
     }
 
     fn normalize(&self, root: Type, loan: &mut Loan) {

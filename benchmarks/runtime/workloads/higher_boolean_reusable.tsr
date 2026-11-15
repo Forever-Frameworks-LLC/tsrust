@@ -4,8 +4,10 @@ function workload(n: int, seed: int): boolean {
   };
   let parity = false;
   let i = 0;
+
   while (i < n) {
     const value = consumer(invert, (seed + i) % 3 === 0);
+
     if (value) {
       parity = !parity;
     }

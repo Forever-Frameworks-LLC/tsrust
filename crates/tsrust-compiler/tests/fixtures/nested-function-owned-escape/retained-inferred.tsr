@@ -59,6 +59,7 @@ function main() {
   strictEqual(second(4), 8);
   const fail = failing("expected");
   let caught = false;
+
   try {
     fail();
   } catch (error) {

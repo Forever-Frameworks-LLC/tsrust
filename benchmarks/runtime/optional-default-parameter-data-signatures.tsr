@@ -133,6 +133,7 @@ function defaultStrings2(values: string[][] = [["é", ""], []]): string {
 
 function showRecords1(values: Item[]): string {
   let result = "";
+
   for (const item of values) {
     result = result.concat(String(item.id), ":", item.label, ";");
   }
@@ -158,6 +159,7 @@ function defaultRecords1(values: Item[] = [{
 
 function showRecords2(values: Item[][]): string {
   let result = "";
+
   for (const group of values) {
     for (const item of group) {
       result = result.concat(String(item.id), ":", item.label, ";");

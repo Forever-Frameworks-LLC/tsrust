@@ -46,7 +46,7 @@ impl SourceIndex {
         symbol.name = local.into(); symbol.span = span; symbol.extent = span;
         symbol.ty = remap_imported_type(&symbol.ty, &types).unwrap_or_default();
         symbol.signature = declaration.signature.replacen(&format!(" {}", declaration.name), &format!(" {local}"), 1);
-        self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
+        self.foreign_definitions.insert(self.symbols.len(), imported_location(uri,dependency.range(declaration.span)));
         self.symbols.push(symbol);
         true
     }

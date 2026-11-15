@@ -45,6 +45,7 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
  out.push_str(" class=\"ui ");escape(&node.class_name,out);
  out.push_str(&format!("\" data-tsrust-node=\"{id}\" style=\""));escape(&scope(node,theme,mode),out);out.push_str("\">");
  if node.kind==Kind::Input {return;}
+ if node.kit.as_deref().is_some_and(|kit| kit.name=="Terminal") {out.push_str("Native terminal is unavailable in HTML output.");}
  escape(&node.text,out);for child in &node.children {element(child,out,theme,mode);}
  out.push_str("</");out.push_str(tag);out.push('>');
 }

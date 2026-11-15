@@ -2,8 +2,10 @@ function workload(n: int, seed: int, input: string): string[] {
   const boundaries: int[] = [0];
   let position = 0;
   let bytes = 0;
+
   while (true) {
     const scalar = input.charAt(position);
+
     if (scalar.length === 0) {
       break;
     }
@@ -17,6 +19,7 @@ function workload(n: int, seed: int, input: string): string[] {
   const totalBytes = input.length;
   const results: string[] = [];
   let i = 0;
+
   while (i < n) {
     const start = byteCoordinate(boundaries, totalBytes, width, (i * 13 + seed) % (width * 3 + 1) - width);
     const end = byteCoordinate(boundaries, totalBytes, width, (i * 7 + seed) % (width * 3 + 1) - width);
@@ -30,6 +33,7 @@ function workload(n: int, seed: int, input: string): string[] {
 function byteCoordinate(boundaries: int[], totalBytes: int, width: int, ordinal: int): int {
   if (ordinal < 0) {
     const index = width + ordinal;
+
     if (index < 0) {
       return -totalBytes;
     }

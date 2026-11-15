@@ -1,4 +1,12 @@
-import { Router, Context, ContextNext, Client, Response, text, request } from 'std:http';
+import {
+  Router,
+  Context,
+  ContextNext,
+  Client,
+  Response,
+  text,
+  request
+} from 'std:http';
 import { monotonicNow } from 'std:time';
 
 type Config = {
@@ -10,6 +18,7 @@ type Variables = {
 };
 async function handle(c: Mutable<Context<Config, Variables>>): Task<Response> {
   const body = c.get('body');
+
   if (body === undefined) {
     throw 'Missing request variable';
   }
@@ -36,8 +45,10 @@ function routes(config: Owned<Config>): Router<Config, Variables> {
 
 async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int> {
   let sum = 0;
+
   for (let index = 0; index < 128; index++) {
     const response = await client.send(request('GET', url, ''));
+
     if (response.status() !== 200) {
       throw 'Unexpected status';
     }
@@ -47,6 +58,7 @@ async function batch(client: ReadOnly<Client>, url: ReadOnly<string>): Task<int>
     }
 
     const body = await response.text();
+
     if (body !== '42') {
       throw 'Unexpected body';
     }
@@ -65,6 +77,7 @@ async function main(): Task<void> {
   const server = await app.listen('127.0.0.1:0');
   const client = new Client();
   const url = 'http://' + server.address() + '/';
+
   for (let warmup = 0; warmup < 8; warmup++) {
     await batch(client, url);
   }

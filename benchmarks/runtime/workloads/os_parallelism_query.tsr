@@ -3,8 +3,10 @@ import { availableParallelism } from 'std:os';
 function workload(n: int, seed: int): int {
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = unwrap(availableParallelism());
+
     if (value < 1) {
       throw 'parallelism';
     }

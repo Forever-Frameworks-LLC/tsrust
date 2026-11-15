@@ -6,9 +6,11 @@ type Tree = {
 function workload(n: int, seed: int): int[][] {
   const roots: Tree[] = [];
   let i = 0;
+
   while (i < n) {
     const children: Tree[] = [];
     let j = 0;
+
     while (j < (i + seed) % 5) {
       children.push({
         value: (3 * i + j + seed) % 1009, children: []
@@ -20,6 +22,7 @@ function workload(n: int, seed: int): int[][] {
       value: i % 1009, children: children
     };
     let depth = 0;
+
     while (depth < (i + seed) % 4) {
       tree = {
         value: (i + depth + seed) % 1009, children: [tree]
@@ -33,8 +36,10 @@ function workload(n: int, seed: int): int[][] {
 
   const copied = clone(roots);
   let index = 0;
+
   while (index < n) {
     roots[index].value = index + 2000;
+
     if (roots[index].children.length > 0) {
       roots[index].children[0].value = seed + 3000;
     }
@@ -43,6 +48,7 @@ function workload(n: int, seed: int): int[][] {
   }
 
   const output: int[][] = [];
+
   for (const tree of copied) {
     const row: int[] = [];
     project(tree, row);
@@ -60,6 +66,7 @@ function workload(n: int, seed: int): int[][] {
 
 function project(tree: Tree, row: int[]) {
   row.push(tree.value);
+
   for (const child of tree.children) {
     project(child, row);
   }

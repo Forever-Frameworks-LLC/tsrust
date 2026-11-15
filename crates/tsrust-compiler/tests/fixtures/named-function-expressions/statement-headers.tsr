@@ -19,6 +19,7 @@ function main() {
     return false;
   })()) total += 100;
   else total += 2;
+
   while ((function more(limit: int): boolean {
     return total < limit;
   })(6)) {
@@ -26,6 +27,7 @@ function main() {
   }
 
   strictEqual(total, 6);
+
   for (const item of (function items(): int[] {
     return [1, 2];
   })()) {
@@ -33,6 +35,7 @@ function main() {
   }
 
   strictEqual(total, 9);
+
   for (let i = (function start(): int {
     return 0;
   })(); (function below(value: int): boolean {
@@ -44,6 +47,7 @@ function main() {
   }
 
   strictEqual(total, 29);
+
   switch ((function pick(): int {
     return 2;
   })()) {

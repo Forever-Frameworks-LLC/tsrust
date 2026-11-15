@@ -344,6 +344,21 @@ pub fn completion_tokens(prefix:&str)->Vec<String> {
   let values=resolved("bg-primary/25",&theme,"light");let Utility::Background(color)=values[0].1 else{panic!("background expected")};assert!((color.alpha()-128./255.*0.25).abs()<0.0000001);
   assert!(css("ring-1 ring-foreground/10",&theme,"light",1,"").contains("box-shadow:"));
  }
+ #[test] fn button_typography_preserves_native_presentation_and_custom_surfaces_remain_custom() {
+  let theme=Theme::default();
+  for classes in ["","shrink-0 text-[20px] font-bold","text-foreground hover:text-primary disabled:text-muted-foreground","font-mono leading-relaxed"] {
+   assert!(native_button_presentation(&resolved(classes,&theme,"light")),"{classes}");
+  }
+  for classes in ["flex-col p-3 gap-2 text-[20px]","bg-primary text-primary-foreground","rounded border px-3 py-2"] {
+   assert!(!native_button_presentation(&resolved(classes,&theme,"light")),"{classes}");
+  }
+ }
+}
+
+/// Typography must not discard a button's native variant, states or hit target.
+#[cfg_attr(not(feature="gpui"),allow(dead_code))]
+pub(crate) fn native_button_presentation(rules:&[(State,Utility)])->bool {
+ rules.iter().all(|(_,rule)|matches!(rule,Utility::Tracking(_)|Utility::Balance(_)|Utility::WhiteSpace(_)|Utility::Underline(_)|Utility::UnderlineOffset(_)|Utility::FontSize(_)|Utility::Weight(_)|Utility::DefaultLeading(_)|Utility::Leading(_)|Utility::FontFamily(_)|Utility::Foreground(_)|Utility::Italic(_)|Utility::LineThrough(_)|Utility::TextTransform(_)|Utility::TextOverflow(_)|Utility::LineClamp(_)|Utility::Shrink(_)))
 }
 
 /// Inline text has typography, not independent layout boxes on either renderer.

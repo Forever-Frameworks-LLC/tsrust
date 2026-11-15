@@ -5,6 +5,7 @@ type Node = {
 
 function total(node: Node): int {
   let sum = node.value;
+
   for (const child of node.children) {
     sum = sum + total(child);
   }
@@ -15,6 +16,7 @@ function total(node: Node): int {
 function increment(node: Node) {
   node.value = node.value + 1;
   let i = 0;
+
   while (i < node.children.length) {
     increment(node.children[i]);
     i = i + 1;

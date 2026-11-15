@@ -1,0 +1,706 @@
+import { fromHex, toUtf8 } from 'std:bytes';
+import {
+  createTempDir,
+  mkdirAll,
+  removeFile,
+  removeDirAll,
+  writeFile,
+  writeTextFile
+} from 'std:fs';
+import { Channel } from 'std:futures';
+import { hasConflictStart, resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
+import { platform } from 'std:os';
+import { run } from 'std:process';
+import { strictEqual, test } from 'std:testing';
+import {
+  GitReply,
+  GitRequest,
+  gitWorker,
+  diffHunks,
+  gitPatch,
+  changedFiles,
+  gitRequest,
+  readGitView
+} from '../src/services/git.tsr';
+
+test('merge choices preserve surrounding lines and resolve only the first block', () => {
+  const block = '<<<<<<< HEAD\r\nours\r\n||||||| base\r\nbase\r\n=======\r\ntheirs\r\n>>>>>>> topic\r\n';
+  strictEqual(hasConflictStart('<<<<<<<literal'), false);
+  strictEqual(hasConflictStart('<<<<<<<< custom width'), true);
+  strictEqual(unwrap(resolveFirstConflict('<<<<<<< HEAD\n<<<<<<<literal\n=======\nb\n>>>>>>> topic\n', 'current')), '<<<<<<<literal\n');
+  const wide = '<<<<<<<<<<<< HEAD\n' + block + '============\nincoming\n>>>>>>>>>>>> main\n';
+  strictEqual(unwrap(resolveFirstConflict(wide, 'current', 12)), block);
+  strictEqual(hasConflictStart(block, 12), false);
+  strictEqual(unwrap(resolveFirstConflict('<<< HEAD\na\n===\nb\n>>> main\n', 'incoming', 3)), 'b\n');
+  const draft = 'prefix\r\n' + block + 'gap\r\n' + block;
+
+  for (const choice of ['current', 'incoming', 'both']) {
+    const expected = choice === 'current' ? 'ours' : choice === 'incoming' ? 'theirs' : 'ours\r\ntheirs';
+    strictEqual(unwrap(resolveFirstConflict(draft, choice)), 'prefix\r\n' + expected + '\r\ngap\r\n' + block);
+  }
+});
+
+test('opening source control reads status on the Studio worker', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-worker-'));
+
+  try {
+    strictEqual(unwrap(await run('git', ['init', '-q'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(root + '/pending.tsr', ''));
+    const requests = new Channel<GitRequest>(1);
+    const sender = requests.sender();
+    const replies = new Channel<GitReply>(1);
+    const worker = gitWorker(clone(root), requests, replies.sender()).start();
+
+    try {
+      await sender.send({
+        mode: 'status'
+      });
+      const reply = await replies.receive().timeout(10000);
+      strictEqual(reply.failed, false);
+      strictEqual((reply.files ?? []).includes('pending.tsr'), true);
+      strictEqual((reply.changes ?? [])[0].mode, 'working');
+      await sender.send({
+        mode: 'working', viewFile: 'pending.tsr'
+      });
+      strictEqual((await replies.receive().timeout(10000)).failed, false);
+      await sender.send({
+        mode: 'staged', path: 'pending.tsr', action: 'stage'
+      });
+      strictEqual((await replies.receive().timeout(10000)).failed, false);
+      await sender.send({
+        mode: 'status'
+      });
+      strictEqual((await replies.receive().timeout(10000)).text.includes('A  pending.tsr'), true);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('sidebar commit uses the staged snapshot and protects staged sibling files', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-sidebar-commit-'));
+
+  try {
+    const sub = root + '/app';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    strictEqual(await repoGit(root, ['config', 'user.name', 'Studio test']), true);
+    strictEqual(await repoGit(root, ['config', 'user.email', 'studio@example.invalid']), true);
+    unwrap(writeTextFile(sub + '/inside', 'index'));
+    unwrap(writeTextFile(root + '/outside', 'sibling'));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'commit-staged', message: 'only app'
+    })) {
+      Ok(_) => {
+        throw 'Committed a sibling file';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('outside'), true);
+      }
+    }
+
+    strictEqual(await repoGit(root, ['rm', '--cached', 'outside']), true);
+    unwrap(writeTextFile(sub + '/inside', 'draft'));
+    unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'commit-staged', message: 'only app'
+    }));
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', ['show', 'HEAD:app/inside'], {
+      cwd: clone(root)
+    })).stdout)), 'index');
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('source control reads status and separate staged and working diffs scoped to the Studio workspace', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+
+    match (await readGitView(sub, 'status')) {
+      Ok(_) => {
+        throw 'Expected non-repository error';
+      },
+      Err(error) => {
+        strictEqual(error !== '', true);
+      }
+    }
+
+    strictEqual(unwrap(await run('git', ['init', '-q'], {
+      cwd: clone(root)
+    })).status.success, true);
+    strictEqual(unwrap(await readGitView(sub, 'history')), '');
+    unwrap(writeTextFile(sub + '/ré view.txt', 'staged line\n'));
+    unwrap(writeTextFile(root + '/outside.txt', 'outside workspace'));
+    strictEqual(unwrap(await run('git', ['add', '--', '.'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(sub + '/ré view.txt', 'working line\n'));
+    unwrap(writeTextFile(sub + '/new.txt', 'untracked'));
+    const status = unwrap(await readGitView(sub, 'status'));
+    strictEqual(status.includes('AM '), true);
+    strictEqual(status.includes('ré view.txt'), true);
+    strictEqual(status.includes('?? new.txt'), true);
+    strictEqual(status.includes('outside.txt'), false);
+    const staged = unwrap(await readGitView(sub, 'staged'));
+    strictEqual(staged.includes('+staged line'), true);
+    strictEqual(staged.includes('working line') || staged.includes('outside.txt'), false);
+    const working = unwrap(await readGitView(sub, 'working'));
+    strictEqual(working.includes('-staged line'), true);
+    strictEqual(working.includes('+working line'), true);
+    const literal = '[x].txt';
+    unwrap(writeTextFile(sub + '/' + literal, 'one file'));
+    unwrap(writeTextFile(sub + '/x.txt', 'another file'));
+    unwrap(writeTextFile(sub + '/.gitignore', 'hidden.txt\n'));
+    unwrap(writeTextFile(sub + '/hidden.txt', 'ignored content'));
+    strictEqual(unwrap(await readGitView(sub, 'working', 'hidden.txt')), '');
+    unwrap(writeTextFile(sub + '/-', 'literal dash'));
+    strictEqual(unwrap(await readGitView(sub, 'working', '-')).includes('+literal dash'), true);
+    const preview = unwrap(await readGitView(sub, 'working', clone(literal)));
+    strictEqual(preview.includes('new file mode') && preview.includes('+one file'), true);
+    strictEqual(preview.includes('another file'), false);
+    strictEqual(unwrap(await readGitView(sub, 'staged', clone(literal))), '');
+    const addition = diffHunks(preview)[0];
+    strictEqual(addition.originalLine, 0);
+    strictEqual(addition.modifiedLine, 1);
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'working', action: 'stage-hunk', viewFile: clone(literal), hunk: clone(addition.label), patch: addition.header + preview.slice(addition.start, addition.end)
+    })), '');
+    const afterStage = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: clone(literal)
+    }));
+    strictEqual(afterStage.includes('A  [x].txt'), true);
+    strictEqual(afterStage.includes('?? x.txt'), true);
+    const filtered = unwrap(await gitRequest(sub, {
+      mode: 'staged', viewFile: clone(literal)
+    }));
+    strictEqual(filtered.includes('+one file'), true);
+    strictEqual(filtered.includes('ré view.txt'), false);
+    const afterUndo = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'unstage', path: literal
+    }));
+    strictEqual(afterUndo.includes('?? [x].txt'), true);
+    strictEqual(afterUndo.includes('AM '), true);
+
+    for (const path of ['.', '../outside.txt', clone(root)]) {
+      match (await gitRequest(sub, {
+        mode: 'status', action: 'stage', path: clone(path)
+      })) {
+        Ok(_) => {
+          throw 'Invalid staging target accepted';
+        },
+        Err(error) => {
+          strictEqual(error !== '', true);
+        }
+      }
+    }
+
+    strictEqual(unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'baseline'], {
+      cwd: clone(root)
+    })).status.success, true);
+    unwrap(writeTextFile(root + '/outside.txt', 'changed outside'));
+    strictEqual(unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'outside only', '--', 'outside.txt'], {
+      cwd: clone(root)
+    })).status.success, true);
+    const history = unwrap(await readGitView(sub, 'history'));
+    strictEqual(history.includes('baseline'), true);
+    strictEqual(history.includes('outside only'), false);
+    const detail = unwrap(await gitRequest(sub, {
+      mode: 'commit', commit: history.split(' ')[0]
+    }));
+    strictEqual(detail.includes('baseline') && detail.includes('+staged line'), true);
+    strictEqual(detail.includes('outside.txt') || detail.includes('working line'), false);
+
+    match (await gitRequest(sub, {
+      mode: 'commit', commit: '--all'
+    })) {
+      Ok(_) => {
+        throw 'Invalid commit accepted';
+      },
+      Err(reason) => {
+        strictEqual(reason !== '', true);
+      }
+    }
+
+    unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'ré view.txt'
+    }));
+    const reset = unwrap(await gitRequest(sub, {
+      mode: 'working', action: 'unstage', path: 'ré view.txt'
+    }));
+    strictEqual(reset.includes('-staged line') && reset.includes('+working line'), true);
+    const odd = 'tab\tand\nnewline.txt';
+    unwrap(writeTextFile(sub + '/' + odd, 'untracked'));
+    unwrap(removeFile(sub + '/ré view.txt'));
+    const paths = unwrap(await changedFiles(sub));
+    strictEqual(paths.includes(odd), true);
+    strictEqual(paths.includes('ré view.txt'), true);
+    strictEqual(paths.includes('outside.txt'), false);
+    const removed = unwrap(await gitRequest(sub, {
+      mode: 'staged', action: 'stage', path: 'ré view.txt'
+    }));
+    strictEqual(removed.includes('deleted file mode'), true);
+    const deleted = unwrap(await readGitView(sub, 'staged', 'ré view.txt'));
+    strictEqual(deleted.includes('deleted file mode'), true);
+
+    match (await readGitView(sub, 'working', '../outside.txt')) {
+      Ok(_) => {
+        throw 'Outside diff target accepted';
+      },
+      Err(error) => {
+        strictEqual(error !== '', true);
+      }
+    }
+
+    strictEqual(unwrap(await changedFiles(sub)).includes('ré view.txt'), true);
+    const restored = unwrap(await gitRequest(sub, {
+      mode: 'status', action: 'unstage', path: 'ré view.txt'
+    }));
+    strictEqual(restored.includes(' D '), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+async function repoGit(root: ReadOnly<string>, args: string[]): Task<boolean> {
+  return unwrap(await run('git', ['-c', 'user.name=Studio', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgSign=false'].concat(args), {
+    cwd: clone(root)
+  })).status.success;
+}
+
+if (platform() !== 'win32') test('source control previews and stages directory and dangling links as link objects', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-links-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub + '/folder'));
+    unwrap(mkdirAll(root + '/sibling'));
+    unwrap(writeTextFile(root + '/sibling/sentinel', 'outside content'));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+
+    for (const target of ['../sibling', '../missing']) {
+      const file = 'ré view';
+      strictEqual(unwrap(await run('ln', ['-s', clone(target), clone(file)], {
+        cwd: clone(sub)
+      })).status.success, true);
+      strictEqual(unwrap(await changedFiles(sub)).includes(file), true);
+      const preview = unwrap(await readGitView(sub, 'working', clone(file)));
+      strictEqual(preview.includes('new file mode 120000') && preview.includes('+' + target), true);
+      const untouched = unwrap(await run('git', ['ls-files', '--stage'], {
+        cwd: clone(root)
+      }));
+      strictEqual(unwrap(toUtf8(untouched.stdout)), '');
+      unwrap(await gitRequest(sub, {
+        mode: 'status', action: 'stage', path: clone(file)
+      }));
+      const index = unwrap(await readGitView(sub, 'staged', clone(file)));
+      strictEqual(index.includes('new file mode 120000') && index.includes('+' + target), true);
+      const blob = unwrap(await run('git', ['show', ':project/' + file], {
+        cwd: clone(root)
+      }));
+      strictEqual(unwrap(toUtf8(blob.stdout)), target);
+      unwrap(await gitRequest(sub, {
+        mode: 'status', action: 'unstage', path: clone(file)
+      }));
+      strictEqual(unwrap(await readGitView(sub, 'staged')), '');
+      unwrap(removeFile(sub + '/' + file));
+    }
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'folder'
+    })) {
+      Ok(_) => {
+        throw 'Accepted a directory';
+      },
+      Err(error) => {
+        strictEqual(error, 'Choose a regular file.');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('conflicts list only unresolved workspace paths until the saved resolution is staged', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-git-conflicts-'));
+
+  try {
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main']), true);
+    unwrap(writeTextFile(sub + '/.gitattributes', '*.txt conflict-marker-size=12\n'));
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+      unwrap(writeTextFile(sub + '/ré view.txt', branch + '\n'));
+      unwrap(writeTextFile(root + '/outside.txt', branch + '\n'));
+      strictEqual(await repoGit(root, ['add', '--', '.']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
+    const requests = new Channel<GitRequest>(1);
+    const replies = new Channel<GitReply>(1);
+    const sender = requests.sender();
+    const worker = gitWorker(clone(sub), requests, replies.sender()).start();
+    let conflictIndex = '';
+
+    try {
+      await sender.send({
+        mode: 'status'
+      });
+      const status = await replies.receive().timeout(10000);
+      const rows = status.changes ?? [];
+      strictEqual(rows.length, 1);
+      strictEqual(rows[0].path, 'ré view.txt');
+      strictEqual(rows[0].markerWidth, 12);
+      strictEqual(rows[0].mode, 'conflicts');
+      await sender.send({
+        mode: 'conflicts', viewFile: clone(rows[0].path)
+      });
+      const reply = await replies.receive().timeout(10000);
+      strictEqual(reply.failed, false);
+      conflictIndex = reply.conflictIndex ?? '';
+      strictEqual(conflictIndex !== '', true);
+      strictEqual(unwrap(await gitRequest(sub, {
+        mode: 'check-resolution', action: 'check-resolution', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
+      })), '');
+      strictEqual(reply.ours, 'main\n');
+      strictEqual(reply.theirs, 'topic\n');
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+
+    const stages = unwrap(await gitRequest(sub, {
+      mode: 'conflicts', viewFile: 'ré view.txt'
+    }));
+    strictEqual(stages.includes(':1:ré view.txt\nbase\n'), true);
+    strictEqual(stages.includes(':2:ré view.txt\nmain\n'), true);
+    strictEqual(stages.includes(':3:ré view.txt\ntopic\n'), true);
+    strictEqual(stages.includes('outside.txt'), false);
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'ré view.txt\n');
+    unwrap(writeTextFile(sub + '/ré view.txt', 'resolved\n'));
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'conflicts', action: 'stage', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
+    })), '');
+
+    match (await gitRequest(sub, {
+      mode: 'status', action: 'stage', path: 'ré view.txt', conflictIndex: clone(conflictIndex)
+    })) {
+      Ok(_) => {
+        strictEqual(true, false);
+      },
+      Err(reason) => {
+        strictEqual(reason, 'The conflict changed. Refresh Source Control.');
+      }
+    }
+
+    strictEqual(unwrap(await readGitView(root, 'conflicts')), 'outside.txt\n');
+    unwrap(writeTextFile(root + '/outside.txt', 'outside resolution\n'));
+    strictEqual(await repoGit(root, ['add', 'outside.txt']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'resolved merge']), true);
+    const history = unwrap(await readGitView(sub, 'history'));
+    strictEqual(history.split('\n')[0].includes('resolved merge'), true);
+    const patch = unwrap(await gitRequest(sub, {
+      mode: 'commit', commit: history.split(' ')[0]
+    }));
+    strictEqual(patch.includes('diff --git a/ré view.txt b/ré view.txt'), true);
+    strictEqual(patch.includes('\n-main\n+resolved\n'), true);
+    strictEqual(patch.includes('outside.txt'), false);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('submodule conflicts show both commit pointers without fetching objects or changing the index', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-submodule-conflict-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main', '--object-format=sha1']), true);
+    const sub = root + '/project';
+    unwrap(mkdirAll(sub));
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+      const id = (branch === 'base' ? '1' : branch === 'topic' ? '2' : '3').repeat(40);
+      strictEqual(await repoGit(root, ['update-index', '--add', '--cacheinfo', '160000,' + id + ',project/library']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    const indexArgs = ['ls-files', '--unmerged', '-z'];
+    const before = unwrap(toUtf8(unwrap(await run('git', clone(indexArgs), {
+      cwd: clone(root)
+    })).stdout));
+    strictEqual(unwrap(await readGitView(sub, 'conflicts')), 'library\n');
+    const preview = unwrap(await readGitView(sub, 'conflicts', 'library'));
+    strictEqual(preview, ':1:library\nSubproject commit ' + '1'.repeat(40) + '\n\n:2:library\nSubproject commit ' + '3'.repeat(40) + '\n\n:3:library\nSubproject commit ' + '2'.repeat(40));
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', indexArgs, {
+      cwd: clone(root)
+    })).stdout)), before);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('stage the checked-out submodule commit without recursively staging files', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-submodule-stage-'));
+
+  try {
+    const library = root + '/library';
+    unwrap(mkdirAll(library));
+    strictEqual(await repoGit(root, ['init', '-qb', 'main']), true);
+    strictEqual(await repoGit(library, ['init', '-qb', 'main']), true);
+    strictEqual(await repoGit(library, ['commit', '--allow-empty', '-qm', 'base']), true);
+    strictEqual(await repoGit(root, ['add', 'library']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'base pointer']), true);
+    strictEqual(await repoGit(library, ['commit', '--allow-empty', '-qm', 'selected pointer']), true);
+    const id = unwrap(toUtf8(unwrap(await run('git', ['rev-parse', 'HEAD'], {
+      cwd: clone(library)
+    })).stdout)).trim();
+    unwrap(writeTextFile(library + '/unstaged.txt', 'local edit'));
+    unwrap(await gitRequest(root, {
+      mode: 'status', action: 'stage', path: 'library'
+    }));
+    const index = unwrap(toUtf8(unwrap(await run('git', ['ls-files', '--stage'], {
+      cwd: clone(root)
+    })).stdout));
+    strictEqual(index, '160000 ' + id + ' 0\tlibrary\n');
+    unwrap(await gitRequest(root, {
+      mode: 'status', action: 'unstage', path: 'library'
+    }));
+    strictEqual(unwrap(await readGitView(root, 'staged')), '');
+    unwrap(mkdirAll(root + '/ordinary'));
+    unwrap(writeTextFile(root + '/ordinary/sentinel', 'keep'));
+
+    match (await gitRequest(root, {
+      mode: 'status', action: 'stage', path: 'ordinary'
+    })) {
+      Ok(_) => {
+        throw 'Staged directory recursively';
+      },
+      Err(reason) => {
+        strictEqual(reason, 'Choose a regular file.');
+      }
+    }
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('inspect binary modify/delete conflicts on either side without altering the index', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-binary-conflict-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q', '-b', 'main']), true);
+
+    for (const branch of ['base', 'topic', 'main']) {
+      if (branch === 'topic') strictEqual(await repoGit(root, ['checkout', '-qb', 'topic']), true);
+
+      if (branch === 'main') strictEqual(await repoGit(root, ['checkout', '-q', 'main']), true);
+
+      for (const file of ['topic', 'main']) {
+        const path = root + '/' + file;
+
+        if (branch === file) unwrap(removeFile(path));
+        else if (file === 'main' && branch === 'topic') unwrap(writeTextFile(path, '\0'.repeat(2097153)));
+        else unwrap(writeFile(path, unwrap(fromHex(branch === 'base' ? '0041' : 'ffab12'))));
+      }
+
+      strictEqual(await repoGit(root, ['add', '-A']), true);
+      strictEqual(await repoGit(root, ['commit', '-qm', clone(branch)]), true);
+    }
+
+    strictEqual(await repoGit(root, ['merge', '--no-edit', 'topic']), false);
+    const indexArgs = ['ls-files', '--stage', '-z'];
+    const before = unwrap(toUtf8(unwrap(await run('git', clone(indexArgs), {
+      cwd: clone(root)
+    })).stdout));
+
+    for (const file of ['topic', 'main']) {
+      const preview = unwrap(await readGitView(root, 'conflicts', clone(file)));
+      const missing = file === 'main' ? '2' : '3';
+      const surviving = file === 'main' ? '3' : '2';
+      strictEqual(preview.includes(':1:' + file + '\nBinary blob (2 bytes)'), true);
+      strictEqual(preview.includes(':' + missing + ':' + file + '\n(absent)'), true);
+      strictEqual(preview.includes(':' + surviving + ':' + file + (file === 'main' ? '\nPreview omitted (2097153 bytes)' : '\nBinary blob (3 bytes)')), true);
+    }
+
+    strictEqual(unwrap(toUtf8(unwrap(await run('git', indexArgs, {
+      cwd: clone(root)
+    })).stdout)), before);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('commit messages mentioning a Git patch cannot create a file section', () => {
+  const message = 'commit abc\n\n    diff --git a/fiction b/fiction\n';
+  const patch = 'diff --git a/réel b/réel\n--- a/réel\n+++ b/réel\n@@ -1 +1 @@\n-old\n+new\n';
+  strictEqual(gitPatch(message), '');
+  strictEqual(gitPatch(message + '\n' + patch), patch);
+  strictEqual(gitPatch(patch), patch);
+});
+
+test('diff hunk navigation preserves exact text and stops at the next file', () => {
+  const first = '@@ -1 +1 @@\n-old\n+🦀\n';
+  const second = '@@ -20 +20 @@ tail\n-déjà\n+after\n';
+  const diff = 'diff --git a/café b/café\n--- a/café\n+++ b/café\n' + first + second + 'diff --cc conflict\n@@@ combined @@@\n' + 'diff --git a/next b/next\n' + first.trimEnd();
+  const hunks = diffHunks(diff);
+  strictEqual(hunks.length, 3);
+  strictEqual(diff.slice(hunks[0].start, hunks[0].end), first);
+  strictEqual(diff.slice(hunks[1].start, hunks[1].end), second);
+  strictEqual(diff.slice(hunks[2].start, hunks[2].end), first.trimEnd());
+  strictEqual(hunks[0].label === hunks[2].label, false);
+});
+
+test('stage and unstage one reviewed hunk in a nested workspace', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-'));
+
+  try {
+    const sub = root + '/sub folder';
+    unwrap(mkdirAll(sub));
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const original = 'first\n' + 'middle\n'.repeat(14) + 'last\n';
+    const file = sub + '/file.txt';
+    unwrap(writeTextFile(file, original));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'baseline']), true);
+    const edited = original.replace('first', 'FIRST').replace('last', 'LAST');
+    unwrap(writeTextFile(file, edited));
+    const working = unwrap(await readGitView(sub, 'working'));
+    const choices = diffHunks(working);
+    strictEqual(choices.length, 2);
+    const last = choices[1];
+    const request: GitRequest = {
+      mode: 'working', action: 'stage-hunk', viewFile: 'file.txt', hunk: clone(last.label), patch: last.header + working.slice(last.start, last.end)
+    };
+    unwrap(mkdirAll(sub + '/another'));
+    unwrap(writeTextFile(sub + '/another/file.txt', edited));
+
+    match (await gitRequest(sub, {
+      mode: 'working', action: 'stage-hunk', viewFile: 'another/file.txt', hunk: clone(last.label), patch: clone(request.patch)
+    })) {
+      Ok(_) => {
+        throw 'Applied reviewed hunk to a different same-named file';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('Refresh'), true);
+      }
+    }
+
+    unwrap(writeTextFile(file, edited.replace('LAST', 'changed again')));
+
+    match (await gitRequest(sub, request)) {
+      Ok(_) => {
+        throw 'Stale hunk accepted';
+      },
+      Err(reason) => {
+        strictEqual(reason.includes('Refresh'), true);
+      }
+    }
+
+    strictEqual(unwrap(await readGitView(sub, 'staged')), '');
+    unwrap(writeTextFile(file, edited));
+    const remaining = unwrap(await gitRequest(sub, request));
+    strictEqual(remaining.includes('+FIRST') && !remaining.includes('+LAST'), true);
+    const staged = unwrap(await readGitView(sub, 'staged'));
+    const only = diffHunks(staged)[0];
+    strictEqual(staged.includes('+LAST') && !staged.includes('+FIRST'), true);
+    strictEqual(unwrap(await gitRequest(sub, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(only.label), patch: only.header + staged.slice(only.start, only.end)
+    })), '');
+    strictEqual(unwrap(await readGitView(sub, 'working')), working);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('partial staging targets the reviewed occurrence after earlier line insertions', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-offset-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const block = 'a\nb\nc\nvalue\nd\ne\nf\ng\n';
+    const source = 'head\n' + 'gap\n'.repeat(12) + block.repeat(4) + 'end\n';
+    const changed = source.replace(block, block.replace('value', 'updated'));
+    const insertion = 'new\n'.repeat(8);
+    unwrap(writeTextFile(root + '/sample', source));
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'base']), true);
+    unwrap(writeTextFile(root + '/sample', insertion + changed));
+    const diff = unwrap(await readGitView(root, 'working'));
+    const hunks = diffHunks(diff);
+    strictEqual(hunks.length, 2);
+    const selected = hunks[1];
+    unwrap(await gitRequest(root, {
+      mode: 'working', action: 'stage-hunk', hunk: clone(selected.label), patch: selected.header + diff.slice(selected.start, selected.end)
+    }));
+    const index = unwrap(await run('git', ['show', ':sample'], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(index.stdout)), changed);
+    strictEqual(await repoGit(root, ['add', '.']), true);
+    const staged = unwrap(await readGitView(root, 'staged'));
+    const undo = diffHunks(staged)[1];
+    unwrap(await gitRequest(root, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(undo.label), patch: undo.header + staged.slice(undo.start, undo.end)
+    }));
+    const restored = unwrap(await run('git', ['show', ':sample'], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(restored.stdout)), insertion + source);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('unstaging a deleted executable restores its original index mode', async () => {
+  const root = unwrap(createTempDir(undefined, 'studio-hunk-mode-'));
+
+  try {
+    strictEqual(await repoGit(root, ['init', '-q']), true);
+    const file = 'run tool';
+    unwrap(writeTextFile(root + '/' + file, 'echo ready\n'));
+    strictEqual(await repoGit(root, ['add', '--', clone(file)]), true);
+    strictEqual(await repoGit(root, ['update-index', '--chmod=+x', '--', clone(file)]), true);
+    strictEqual(await repoGit(root, ['commit', '-qm', 'executable']), true);
+    strictEqual(await repoGit(root, ['rm', '-f', '--', clone(file)]), true);
+    const diff = unwrap(await readGitView(root, 'staged'));
+    const hunk = diffHunks(diff)[0];
+    strictEqual(hunk.originalLine, 1);
+    strictEqual(hunk.modifiedLine, 0);
+    const remaining = unwrap(await gitRequest(root, {
+      mode: 'staged', action: 'unstage-hunk', hunk: clone(hunk.label), patch: hunk.header + diff.slice(hunk.start, hunk.end)
+    }));
+    strictEqual(remaining, '');
+    const index = unwrap(await run('git', ['ls-files', '--stage', '--', clone(file)], {
+      cwd: clone(root)
+    }));
+    strictEqual(unwrap(toUtf8(index.stdout)).startsWith('100755 '), true);
+    strictEqual(unwrap(await readGitView(root, 'working')).includes('deleted file mode 100755'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

@@ -1,4 +1,4 @@
-//! Scalar state is emitted per checked payload; public component code sees no handles.
+//! State snapshots are emitted per checked payload; public component code sees no handles.
 use super::*;
 const VALUE_BINDING:&str="Box<dyn FnMut()->Result<std::string::String,std::string::String>>";
 const CHANGE_HANDLER:&str="Box<dyn FnMut(&str,&str,&str)->Result<(),std::string::String>>";
@@ -8,7 +8,7 @@ impl Emitter<'_> {
   if binding.module!="std:ui-runtime" || !matches!(binding.name,"bindSemantics"|"bindClass"|"bindVariant"|"bindPath"|"visibility"|"computed"|"computedGet"|"signal"|"handle"|"get"|"set"|"ownState"|"input"|"inputChange"|"bindText"|"branch"|"each"|"route"|"kitPredicate"|"kitStep"|"kitOn"|"kitOnBoolean"|"kitOnInt"|"kitOnNumber"|"kitOnVoid"|"commandReply"|"kitValue"){return None;}
   self.native_bindings.borrow_mut().insert(id);
   let read=|arg:&Expr|self.expr(fun,arg,Mode::Read);
-  let scalar=|arg:&Expr|{let text=read(arg);if arg.ty==Some(Type::String){format!("String::clone({text})")}else{text}};
+  let snapshot=|arg:&Expr|if arg.ty.unwrap().is_copy(){read(arg)}else if matches!(arg.ty,Some(Type::Union(_))){format!("({}).tsr_owned()",read(arg))}else{self.clone_argument(fun,arg)};
   let call=match binding.name {
    "bindSemantics"|"bindClass"|"bindVariant"|"bindPath"=>{let callback=args[1].ty.unwrap();let invoke=self.ui_callback(callback,expr.span,"String");let method=match binding.name{"bindSemantics"=>"with_semantics_binding","bindClass"=>"with_class_binding","bindPath"=>"with_path_binding",_=>"with_variant_binding"};format!("{{let node={};let mut registered_callback={};node.{method}(move||({invoke}).map(|value|value.as_ref().to_owned()))}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume))},
    "kitValue"=>{
@@ -66,10 +66,10 @@ impl Emitter<'_> {
    },
    "input"|"inputChange"=>self.ui_input_constructor(fun,args,binding.name=="inputChange",expr.span),
    "computed"=>{let Type::Record(record)=expr.ty.unwrap() else{unreachable!()};let payload=self.program.records[record].application.as_ref().unwrap().resolved_arguments[0];return Some(self.ui_computed_source(args[0].ty.unwrap(),payload,&self.expr(fun,&args[0],Mode::Consume),expr.span));},
-   "signal"=>return Some(format!("tsrust_native_ui::Signal::new({})",scalar(&args[0]))),
+   "signal"=>return Some(format!("tsrust_native_ui::Signal::new({})",snapshot(&args[0]))),
    "handle"=>return Some(format!("({}).handle()",read(&args[0]))),
    "get"|"computedGet"=>format!("({}).get()",read(&args[0])),
-   "set"=>format!("{{let state={};let next={};state.set(next)}}",read(&args[0]),scalar(&args[1])),
+   "set"=>format!("{{let state={};let next={};state.set(next)}}",read(&args[0]),snapshot(&args[1])),
    "ownState"=>format!("{{let node={};let state={};{}}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume),self.ui_retained_result(args[0].ty.unwrap(),"node")),
    _=>unreachable!(),
   };

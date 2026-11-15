@@ -16,6 +16,7 @@ function main() {
   const first = unwrap(pool.task(calculate(results.sender(), 1)));
   const second = unwrap(pool.task(calculate(results.sender(), 5)));
   let total = 0;
+
   try {
     for (let count = 0; count < 8; count += 1) {
       total += unwrap(results.receive());

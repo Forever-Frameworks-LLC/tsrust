@@ -197,6 +197,8 @@ impl SourceIndex {
 
     /// Answer a member completion from a repaired single document.
     pub(crate) fn repaired_member_completion(&self, offset: usize) -> Option<Value> {
+        #[cfg(test)]
+        MEMBER_REPAIR_ATTEMPTS.with(|count| count.set(count.get() + 1));
         let (separator, prefix_start) = self.member_position(offset)?;
         let prefix = &self.source[prefix_start..offset];
         let replace = self.range(Span::new(prefix_start, offset));

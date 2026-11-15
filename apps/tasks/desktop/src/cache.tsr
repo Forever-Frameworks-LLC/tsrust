@@ -1,0 +1,94 @@
+import { Pool, connect } from 'std:sql';
+
+import { Snapshot, TaskRecord, ChangeBatch } from '../../shared/tasks.tsr';
+
+export interface CachedState {
+  initialized: boolean;
+  snapshot: Snapshot;
+}
+
+export async function openCache(url: string): Task<Pool> {
+  const pool = await connect(url, 1);
+  await pool.execute('CREATE TABLE IF NOT EXISTS cached_tasks(id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
+  await pool.execute('CREATE TABLE IF NOT EXISTS cache_state(id INTEGER PRIMARY KEY CHECK(id = 1), cursor BIGINT NOT NULL, initialized INTEGER NOT NULL)');
+  await pool.execute('INSERT INTO cache_state(id, cursor, initialized) VALUES (1, 0, 0) ON CONFLICT(id) DO NOTHING');
+  return pool;
+}
+
+export async function readCache(pool: ReadOnly<Pool>): Task<CachedState> {
+  const transaction = await pool.begin();
+  const metadata = await transaction.query('SELECT cursor, initialized FROM cache_state WHERE id = 1');
+  const rows = await transaction.query('SELECT payload FROM cached_tasks ORDER BY id');
+  const tasks: TaskRecord[] = [];
+
+  for (const row of rows) tasks.push(JSON.parse<TaskRecord>(unwrap(row.text('payload'))));
+  const state: CachedState = {
+    initialized: unwrap(metadata[0].int('initialized')) !== 0, snapshot: {
+      cursor: unwrap(metadata[0].int('cursor')), tasks
+    }
+  };
+  await transaction.commit();
+  return state;
+}
+
+function validCursor(cursor: int): boolean {
+  return cursor >= 0 && cursor <= 9007199254740991;
+}
+
+export async function replaceSnapshot(pool: ReadOnly<Pool>, snapshot: ReadOnly<Snapshot>): Task<void> {
+  if (!validCursor(snapshot.cursor)) throw 'Invalid snapshot cursor.';
+  const transaction = await pool.begin();
+  await transaction.execute('DELETE FROM cached_tasks');
+
+  for (const task of snapshot.tasks) {
+    if (task.id === '' || task.version < 1) throw 'Invalid snapshot task.';
+    await transaction.execute('INSERT INTO cached_tasks(id, payload) VALUES (?, ?)', [clone(task.id), JSON.stringify(task)]);
+  }
+
+  await transaction.execute('UPDATE cache_state SET cursor = ?, initialized = 1 WHERE id = 1', [snapshot.cursor]);
+  await transaction.commit();
+}
+
+export async function applyChanges(pool: ReadOnly<Pool>, after: int, batch: ReadOnly<ChangeBatch>): Task<boolean> {
+  if (!validCursor(after) || !validCursor(batch.cursor)) throw 'Invalid change cursor.';
+  let previous = after;
+
+  for (const change of batch.changes) {
+    if (change.sequence <= previous || change.sequence > batch.cursor || change.version < 1 || change.id === '') throw 'Invalid change sequence or task.';
+
+    if (change.operation === 'upsert') {
+      if (change.task === null || change.task.id !== change.id || change.task.version !== change.version) throw 'Change payload does not match its task.';
+    } else if (change.task !== null) {
+      throw 'Delete changes must contain a tombstone.';
+    }
+
+    previous = change.sequence;
+  }
+
+  if (previous !== batch.cursor || (batch.changes.length === 0 && batch.hasMore)) throw 'Change cursor does not match the delivered page.';
+  const transaction = await pool.begin();
+  const metadata = await transaction.query('SELECT cursor, initialized FROM cache_state WHERE id = 1');
+  const current = unwrap(metadata[0].int('cursor'));
+
+  if (unwrap(metadata[0].int('initialized')) === 0) throw 'Fetch an initial snapshot before applying changes.';
+
+  if (batch.cursor <= current) {
+    await transaction.rollback();
+    return false;
+  }
+
+  if (current !== after) throw 'Change page belongs to an outdated cache state. Retry from the current cursor.';
+
+  for (const change of batch.changes) {
+    if (change.operation === 'delete') {
+      await transaction.execute('DELETE FROM cached_tasks WHERE id = ?', [clone(change.id)]);
+    } else {
+      if (change.task === null) throw 'Missing changed task.';
+      await transaction.execute('INSERT INTO cached_tasks(id, payload) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET payload = excluded.payload', [clone(change.id), JSON.stringify(change.task)]);
+    }
+  }
+
+  await transaction.execute('UPDATE cache_state SET cursor = ? WHERE id = 1', [batch.cursor]);
+  await transaction.commit();
+  return true;
+}

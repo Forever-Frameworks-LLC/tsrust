@@ -1,6 +1,7 @@
 function hand0() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toFixed());
     i = i + 1;
@@ -10,6 +11,7 @@ function hand0() {
 function hand1() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toFixed(2));
     i = i + 1;
@@ -19,6 +21,7 @@ function hand1() {
 function hand2() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toExponential());
     i = i + 1;
@@ -28,6 +31,7 @@ function hand2() {
 function hand3() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toExponential(2));
     i = i + 1;
@@ -37,6 +41,7 @@ function hand3() {
 function hand4() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toPrecision());
     i = i + 1;
@@ -46,6 +51,7 @@ function hand4() {
 function hand5() {
   const values: number[] = [0.0, -0.0, 1.0, -1.0, 1.234, -1.234, 9.999, -9.999, 12345.678, -12345.678, 1e-7, 1e-6, 9.999e-7, 9.999e-6, 1e20, 1e21, 1.0000123e21, -1e21, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, -1e-7, 5e-324, 1.7976931348623157e308];
   let i = 0;
+
   while (i < values.length) {
     console.log(values[i].toPrecision(5));
     i = i + 1;

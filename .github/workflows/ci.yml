@@ -37,7 +37,7 @@ jobs:
       - name: Project formatting
         run: |
           cargo build --offline --locked -p tsrust-compiler --bin tsrust
-          target/debug/tsrust format . --check --color never
+          target/debug/tsrust format . --check --options '{"organizeImports":false}' --color never
       - name: Release tooling and benchmark storage
         run: |
           node --test tools/tests/distribution.test.mjs tools/tests/release-policy.test.cjs

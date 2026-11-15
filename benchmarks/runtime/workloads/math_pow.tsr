@@ -3,6 +3,7 @@ function workload(n: int, seed: int): number {
   const table1: number[] = [-2.5, -1.75, -1.25, -0.625, 0.375, 0.75, 1.25, 2.5];
   let sum: number = Number(seed);
   let i = 0;
+
   while (i < n) {
     const position = (i * 13 + seed) % 8;
     const jitter = (i * 17 + seed) % 5;

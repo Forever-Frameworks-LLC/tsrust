@@ -9,6 +9,7 @@ async function batch(db: ReadOnly<Pool>): Task<int> {
     }
 
     const job = await claim(db, 0);
+
     if (job === undefined) {
       throw 'Missing job';
     }
@@ -25,6 +26,7 @@ async function batch(db: ReadOnly<Pool>): Task<int> {
 async function main(): Task<void> {
   const db = await connect('sqlite::memory:', 1);
   await initialize(db);
+
   for (let warmup = 0; warmup < 8; warmup++) {
     await db.execute('DELETE FROM jobs');
     await db.execute('DELETE FROM effects');

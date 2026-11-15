@@ -1,4 +1,14 @@
-import { Bytes, ByteView, ByteViewMut, fromUtf8, view, viewMut, at, set, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  ByteViewMut,
+  fromUtf8,
+  view,
+  viewMut,
+  at,
+  set,
+  length
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Reader = {
@@ -78,6 +88,7 @@ function main() {
     const picker = saveRead(slice(first));
     const selected = picker.pick(second);
     strictEqual(length(selected), 2);
+
     match (at(selected, 0)) {
       Ok(value) => {
         strictEqual(value, 100);
@@ -92,6 +103,7 @@ function main() {
   {
     const picker = saveWrite(slice(first));
     const selected = picker.pick(second);
+
     match (set(selected, 0, 88)) {
       Ok(_) => {},
       Err(error) => {

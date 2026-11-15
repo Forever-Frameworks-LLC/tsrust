@@ -1,0 +1,116 @@
+import { test, strictEqual } from 'std:testing';
+import { spawn } from 'std:threads';
+
+import {
+  create,
+  read,
+  append,
+  transfer,
+  optional,
+  checked,
+  drops,
+  wait,
+  ready,
+  many,
+  roundtrip
+} from './owner.rs';
+
+test('opaque native owners borrow and move without losing private state', () => {
+  const before = drops();
+
+  {
+    const session = create('hello');
+    strictEqual(read(session), 'hello');
+    append(session, ' 🦀');
+    const moved = transfer(session);
+    strictEqual(read(moved), 'hello 🦀');
+    strictEqual(drops(), before);
+  }
+
+  strictEqual(drops(), before + 1);
+});
+
+test('opaque native owners survive optional and result carriers', () => {
+  const before = drops();
+
+  {
+    const value = optional('optional');
+
+    if (value.kind === 'some') {
+      strictEqual(read(value.value), 'optional');
+    } else {
+      throw 'missing owner';
+    }
+
+    match (checked('result')) {
+      Ok(session) => {
+        strictEqual(read(session), 'result');
+      },
+      Err(error) => {
+        throw error;
+      }
+    }
+  }
+
+  strictEqual(drops(), before + 2);
+});
+
+test('resource arrays move through native calls and dispose every element', () => {
+  const before = drops();
+
+  {
+    const values = roundtrip(many());
+    strictEqual(values.length, 2);
+    let text = '';
+
+    for (const session of values) {
+      text += read(session);
+    }
+
+    strictEqual(text, 'onetwo');
+  }
+
+  strictEqual(drops(), before + 2);
+});
+
+test('worker failure disposes its local native owner', () => {
+  const before = drops();
+  const worker = unwrap(spawn((): void => {
+    const session = create('worker');
+    strictEqual(read(session), 'worker');
+    throw 'stop';
+  }));
+
+  match (worker.join()) {
+    Ok(_) => {
+      throw 'worker unexpectedly succeeded';
+    },
+    Err(_) => {}
+  }
+
+  strictEqual(drops(), before + 1);
+});
+
+test('cooperative cancellation disposes the worker resource before join returns', () => {
+  const before = drops();
+  const worker = unwrap(spawn((task): void => {
+    const session = create('cancel');
+    wait(task);
+    strictEqual(read(session), 'cancel');
+  }));
+
+  while (!ready()) {}
+
+  worker.cancel();
+
+  match (worker.join()) {
+    Ok(_) => {
+      throw 'cancelled worker unexpectedly succeeded';
+    },
+    Err(error) => {
+      strictEqual(error.code, 'cancelled');
+    }
+  }
+
+  strictEqual(drops(), before + 1);
+});

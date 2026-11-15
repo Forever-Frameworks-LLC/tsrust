@@ -1,0 +1,96 @@
+import { Channel } from 'std:futures';
+import { test, strictEqual } from 'std:testing';
+import { signal, Signal } from 'std:ui';
+
+import {
+  TerminalWorkspace,
+  emptyTerminals,
+  addTerminal,
+  activateTerminal,
+  removeTerminal,
+  terminalExited
+} from '../src/lib/workspace/terminals.tsr';
+import { TerminalToolResult } from '../src/services/terminal-actions.tsr';
+import { TerminalSessionAuthority, terminalSessionTools, invokeTerminalSessionTool } from '../src/services/terminal-sessions.tsr';
+
+test('terminal sessions keep distinct identity and choose an adjacent session when removed', () => {
+  const state = emptyTerminals();
+  unwrap(addTerminal(state, 'first'));
+  unwrap(addTerminal(state, 'second'));
+  unwrap(addTerminal(state, 'third'));
+  unwrap(activateTerminal(state, 'second'));
+  unwrap(removeTerminal(state, 'first'));
+  strictEqual(state.active, 'second');
+  strictEqual(state.sessions[0].ordinal, 2);
+  terminalExited(state, 'third', true);
+  strictEqual(state.sessions[1].exited, true);
+  unwrap(activateTerminal(state, 'third'));
+  unwrap(removeTerminal(state, 'third'));
+  strictEqual(state.active, 'second');
+  unwrap(removeTerminal(state, 'second'));
+  strictEqual(state.active, '');
+  unwrap(addTerminal(state, 'fourth'));
+  strictEqual(state.sessions[0].ordinal, 4);
+  const before = JSON.stringify(state);
+
+  match (addTerminal(state, 'fourth')) {
+    Ok(_) => {
+      throw 'duplicate identity accepted';
+    },
+    Err(_) => {}
+  }
+
+  match (activateTerminal(state, 'missing')) {
+    Ok(_) => {
+      throw 'missing session activated';
+    },
+    Err(_) => {}
+  }
+
+  match (removeTerminal(state, 'missing')) {
+    Ok(_) => {
+      throw 'missing session removed';
+    },
+    Err(_) => {}
+  }
+
+  strictEqual(JSON.stringify(state), before);
+});
+
+function tool(state: Signal<TerminalWorkspace>, authority: ReadOnly<TerminalSessionAuthority>, name: string, payload: string): TerminalToolResult {
+  const replies = new Channel<TerminalToolResult>(1);
+  const sender = replies.sender();
+  invokeTerminalSessionTool(state, authority, name, payload, (result) => {
+    unwrap(sender.trySend(clone(result)));
+  });
+  return unwrap(replies.tryReceive());
+}
+
+test('registered session actions share create/select state and reject model-supplied grants', () => {
+  const state = signal(emptyTerminals());
+  const denied: TerminalSessionAuthority = {
+    allowRead: false, allowCreate: false, allowNavigate: false, allowTerminate: false
+  };
+  strictEqual(tool(state, denied, 'terminal_sessions_create', '{"allowCreate":true,"allowNavigate":true}').ok, false);
+  strictEqual(state.get().sessions.length, 0);
+  const allowed: TerminalSessionAuthority = {
+    allowRead: true, allowCreate: true, allowNavigate: true, allowTerminate: false
+  };
+  strictEqual(tool(state, allowed, 'terminal_sessions_create', '{"focus":false}').ok, true);
+  const first = clone(state.get().active);
+  strictEqual(tool(state, allowed, 'terminal_sessions_create', '{"focus":false}').ok, true);
+  strictEqual(state.get().sessions.length, 2);
+  strictEqual(state.get().active === first, false);
+  strictEqual(tool(state, allowed, 'terminal_sessions_activate', JSON.stringify({
+    id: clone(first), focus: false
+  })).ok, true);
+  strictEqual(state.get().active, first);
+  strictEqual(tool(state, allowed, 'terminal_sessions_list', '{}').ok, true);
+  strictEqual(tool(state, allowed, 'terminal_sessions_remove', JSON.stringify({
+    id: clone(first), generation: 1, allowTerminate: true
+  })).ok, false);
+  strictEqual(tool(state, allowed, 'terminal_sessions_activate', '{"id":"outside"}').ok, false);
+  strictEqual(tool(state, allowed, 'terminal_sessions_create', '{').ok, false);
+  strictEqual(terminalSessionTools().length, 4);
+  strictEqual(state.get().sessions.length, 2);
+});

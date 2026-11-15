@@ -1,0 +1,89 @@
+import { Signal, controlInput } from 'std:ui';
+
+import { SearchActionContext } from '../explorer/search-actions.tsr';
+import { publishWorkspace } from '../workspace/document-actions.tsr';
+import { ProblemSelection } from '../workspace/problem-actions.tsr';
+import { problemOffset } from '../workspace/problems.tsr';
+import { Recovery } from '../workspace/recovery.tsr';
+import { Workspace, openFile } from '../workspace/workspace.tsr';
+import { DiagnosticRange, diagnosticColumn, diagnosticPath } from './diagnostics.tsr';
+
+export interface LanguageLocation {
+  root: string;
+  uri: string;
+  selection?: DiagnosticRange;
+}
+
+export function languageSelection(text: ReadOnly<string>, range: ReadOnly<DiagnosticRange>): ProblemSelection {
+  const lines = text.split('\n');
+
+  if (range.start.line < 0 || range.end.line < range.start.line || range.end.line >= lines.length) throw 'Invalid language location range.';
+  const start = problemOffset(text, range.start.line + 1, diagnosticColumn(lines[range.start.line], range.start.character));
+  const end = problemOffset(text, range.end.line + 1, diagnosticColumn(lines[range.end.line], range.end.character));
+
+  if (end < start) throw 'Invalid language location range.';
+  return {
+    start, end
+  };
+}
+
+export function openLanguageLocation(context: ReadOnly<SearchActionContext>, location: ReadOnly<LanguageLocation>): Result<void, string> {
+  const next = context.workspace.get();
+
+  if (!context.allowNavigation || context.allowedRoot !== next.root || location.root !== next.root) return Err('Language navigation is not permitted for this workspace.');
+
+  try {
+    const path = diagnosticPath(location.uri);
+    unwrap(openFile(next, path));
+    const index = next.files.findIndex((entry) => entry.document.path === next.active);
+
+    if (index < 0 || next.files[index].kind !== 'text') return Err('Language location is not a text document.');
+    const selected = location.selection === undefined ? {
+      start: 0, end: 0
+    }
+
+    : languageSelection(next.files[index].document.text, location.selection);
+    const target = clone(next.active);
+    publishWorkspace(next, context.workspace, context.recovery);
+
+    if (context.focusEditor) {
+      controlInput(clone(target), 'setSelection', {
+        start: selected.start, end: selected.end
+      });
+      controlInput(target, 'focus');
+    }
+
+    return Ok();
+  } catch (_) {
+    return Err('The language location is unavailable or its range is invalid.');
+  }
+}
+
+interface NativeLocation {
+  uri: string;
+  selection?: DiagnosticRange;
+}
+
+export function navigateNativeLanguage(workspace: Signal<Workspace>, recovery: Signal<Recovery>, payload: ReadOnly<string>): void {
+  try {
+    const location = JSON.parse<NativeLocation>(payload, {
+      maxBytes: 16384, maxDepth: 8, maxEntries: 32, maxNodes: 64
+    });
+    const root = clone(workspace.get().root);
+
+    const context: SearchActionContext = {
+      workspace, recovery, allowNavigation: true, allowedRoot: clone(root), focusEditor: true
+    };
+
+    match (openLanguageLocation(context, {
+      root, uri: clone(location.uri), selection: clone(location.selection)
+    })) {
+      Ok(_) => {},
+      Err(error) => {
+        const next = context.workspace.get();
+        next.error = clone(error);
+        context.workspace.set(next);
+      }
+    }
+  } catch (_) {}
+}

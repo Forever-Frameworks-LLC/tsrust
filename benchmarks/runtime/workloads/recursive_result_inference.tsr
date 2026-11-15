@@ -17,11 +17,13 @@ function label(count: int) {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = i % 5 + seed % 5 + 1;
     const steps: int[] = [];
     function depth(count: int) {
       steps.push(count);
+
       if (count === 0) {
         return 0;
       }

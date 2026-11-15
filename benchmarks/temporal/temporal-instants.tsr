@@ -4,6 +4,7 @@ import { monotonicNow } from 'std:time';
 function batch(): int {
   const base = unwrap(parseISO('2024-01-01T00:00:00Z'));
   let checksum = 0;
+
   for (let i = 0; i < 256; i += 1) {
     const shifted = unwrap(addDuration(base, unwrap(durationFromMilliseconds(i))));
     const restored = unwrap(parseISO(formatISO(shifted)));

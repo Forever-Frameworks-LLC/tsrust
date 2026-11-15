@@ -49,6 +49,7 @@ function main() {
   strictEqual(Phase.Done, Phase.Done);
   strictEqual(Label.Short, Label.Short);
   const choice: Phase | string = Phase.Ready;
+
   if (typeof choice === "number") {
     strictEqual(Number(choice), 0.0);
   }
@@ -65,6 +66,7 @@ function main() {
   const mapped = phases.map((phase: Phase): number => Number(phase));
   strictEqual(mapped[2], 5.0);
   let count = 0;
+
   for (const phase of phases) {
     count = count + 1;
   }

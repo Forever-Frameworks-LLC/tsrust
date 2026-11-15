@@ -1,10 +1,12 @@
 function workload(n: int, seed: int): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 4;
     const mode = (i * 7 + seed) % 5;
     const values: undefined[] = [];
+
     if (count > 0) {
       values.push(undefined);
     }
@@ -32,6 +34,7 @@ function workload(n: int, seed: int): string[] {
     output.push(String(visits));
     output.push(String(trace));
     output.push(String(sourceVisits));
+
     if (values.length > 0) {
       output.push(describe(values[0]));
     } else {

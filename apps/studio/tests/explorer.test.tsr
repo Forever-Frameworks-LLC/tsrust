@@ -1,0 +1,266 @@
+import {
+  canonicalize,
+  createTempDir,
+  mkdirAll,
+  removeDirAll,
+  removeFile,
+  readTextFile,
+  writeTextFile
+} from 'std:fs';
+import { separator } from 'std:path';
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { SearchActionContext, FileSearchState, fileSearchLabel, matchingFilePaths, updateFileQuery } from '../src/lib/explorer/search-actions.tsr';
+import { requestTreeRefresh } from '../src/lib/explorer/tree-actions.tsr';
+import { TreeSession, refreshTree, pollTree } from '../src/lib/explorer/tree-controller.tsr';
+import { DirectoryTree, scanTree } from '../src/lib/explorer/tree.tsr';
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { Entry, openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { invokeEditorTool } from '../src/services/editor-tools.tsr';
+
+test('explorer groups a single snapshot by parent without losing prefix siblings or hidden config files', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-tree-'));
+
+  try {
+    unwrap(mkdirAll(root + '/a/nested'));
+    unwrap(writeTextFile(root + '/a/child.txt', ''));
+    unwrap(writeTextFile(root + '/a/nested/é-🦀.md', ''));
+    unwrap(writeTextFile(root + '/a.tsr', ''));
+    unwrap(writeTextFile(root + '/.config.json', '{}'));
+    unwrap(writeTextFile(root + '/ignored.md', ''));
+    unwrap(writeTextFile(root + '/.ignore', 'ignored.md\n'));
+    const tree = unwrap(scanTree(root, false));
+    strictEqual(tree.root, unwrap(canonicalize(root)));
+    const top = tree.directories[0].children;
+    strictEqual(top[0].name, 'a');
+    strictEqual(top.some((entry) => entry.name === 'a.tsr'), true);
+    strictEqual(top.some((entry) => entry.name === '.config.json'), true);
+    strictEqual(top.some((entry) => entry.name === 'ignored.md'), false);
+    const nested = tree.directories[tree.directories.findIndex((directory) => directory.path === tree.root + '/a')].children;
+    strictEqual(nested[0].name, 'nested');
+    strictEqual(nested[1].name, 'child.txt');
+    const included = unwrap(scanTree(root, true));
+    strictEqual(included.directories[0].children.some((entry) => entry.name === 'ignored.md'), true);
+    unwrap(writeTextFile(root + '/added.txt', ''));
+    strictEqual(unwrap(scanTree(root, false)).directories[0].children.some((entry) => entry.name === 'added.txt'), true);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('registered explorer refresh targets the granted root and changes only its refresh revision', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-refresh-'));
+
+  try {
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const allowedRoot = clone(workspace.get().root);
+    const revision = signal(0);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const context: SearchActionContext = {
+      workspace, recovery, allowNavigation: false, focusEditor: false, allowRead: true, allowedRoot, explorerRevision: revision
+    };
+    const payload = JSON.stringify({
+      root: clone(context.workspace.get().root)
+    });
+    strictEqual(unwrap(invokeEditorTool(context, 'refresh_explorer', payload)).includes('"queued":true'), true);
+    strictEqual(context.explorerRevision?.get() ?? -1, 1);
+    strictEqual(context.workspace.get().active, '');
+    strictEqual(context.workspace.get().files.length, 0);
+    context.allowRead = false;
+
+    match (invokeEditorTool(context, 'refresh_explorer', payload)) {
+      Ok(_) => {
+        throw 'ungranted explorer refresh succeeded';
+      },
+      Err(_) => {}
+    }
+
+    context.allowRead = true;
+
+    match (invokeEditorTool(context, 'refresh_explorer', JSON.stringify({
+      root: root + '/other', allowRead: true
+    }))) {
+      Ok(_) => {
+        throw 'refresh escaped its root';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(context.explorerRevision?.get() ?? -1, 1);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('explorer refreshes only on requests or visibility changes and retains its last successful snapshot on errors', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-tree-poll-'));
+
+  try {
+    unwrap(writeTextFile(root + '/before.txt', ''));
+    unwrap(writeTextFile(root + '/ignored.md', ''));
+    unwrap(writeTextFile(root + '/.ignore', 'ignored.md\n'));
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const canonicalRoot = clone(workspace.get().root);
+    const settings = signal(defaultConfig());
+    const revision = signal(0);
+    const appliedRevision = signal(-1);
+    const appliedPolicy = signal(true);
+    const snapshot = signal<DirectoryTree>({
+      root: clone(canonicalRoot), directories: []
+    });
+    const error = signal('');
+    const session: TreeSession = {
+      root: canonicalRoot, workspace, settings, revision, appliedRevision, appliedPolicy, snapshot, error
+    };
+    refreshTree(session);
+    strictEqual(session.error.get(), '');
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'ignored.md'), true);
+    unwrap(writeTextFile(root + '/after.txt', ''));
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'after.txt'), false);
+    unwrap(requestTreeRefresh(session.revision, clone(session.root), clone(session.root), clone(session.workspace.get().root), true));
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'after.txt'), true);
+    const config = session.settings.get();
+    config.treeIncludeIgnored = false;
+    session.settings.set(config);
+    pollTree(session);
+    strictEqual(session.snapshot.get().directories[0].children.some((entry) => entry.name === 'ignored.md'), false);
+    unwrap(removeDirAll(root));
+    const before = session.snapshot.get().directories[0].children.length;
+    unwrap(requestTreeRefresh(session.revision, clone(session.root), clone(session.root), clone(session.workspace.get().root), true));
+    pollTree(session);
+    strictEqual(session.error.get().length > 0, true);
+    strictEqual(session.snapshot.get().directories[0].children.length, before);
+  } finally {
+    removeDirAll(root);
+  }
+});
+
+function deniedFileSearch(context: ReadOnly<SearchActionContext>, name: string, payload: string): void {
+  match (invokeEditorTool(context, name, payload)) {
+    Ok(_) => {
+      throw 'ungranted file search action succeeded';
+    },
+    Err(error) => {
+      strictEqual(error !== 'Invalid editor tool arguments.', true);
+    }
+  }
+}
+
+test('filename search shares explicit read presentation and open actions without changing drafts or bypassing grants', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-file-search-'));
+
+  try {
+    unwrap(mkdirAll(root + '/src'));
+    unwrap(writeTextFile(root + '/src/é main.tsr', 'const count = 8;'));
+    unwrap(writeTextFile(root + '/other.txt', 'saved'));
+    unwrap(writeTextFile(root + '/hidden.txt', 'ignored'));
+    unwrap(writeTextFile(root + '/.ignore', 'hidden.txt\n'));
+    const workspace = signal(unwrap(openWorkspace(root)));
+    const allowedRoot = clone(workspace.get().root);
+    const recovery = signal<Recovery>({
+      path: root + '/journal.json', baseline: '', ready: true
+    });
+    const fileSearch = signal<FileSearchState>({
+      root: clone(allowedRoot), query: '', files: []
+    });
+    const context: SearchActionContext = {
+      workspace, recovery, allowedRoot, allowRead: true, allowNavigation: true, focusEditor: false, fileSearch: fileSearch.handle()
+    };
+    const query = JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), query: 'SRC/É MAIN'
+    });
+    const result = unwrap(invokeEditorTool(context, 'search_files', query));
+    strictEqual(result.includes('é main.tsr'), true);
+    strictEqual(result.includes('other.txt'), false);
+    strictEqual(context.fileSearch?.get().open ?? false, false);
+    strictEqual(context.workspace.get().files.length, 0);
+    deniedFileSearch(context, 'show_file_search', query);
+    deniedFileSearch(context, 'show_command_palette', '{"root":"' + (context.allowedRoot ?? '') + '","allowModal":true}');
+    context.allowModal = true;
+    unwrap(invokeEditorTool(context, 'show_file_search', query));
+    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É MAIN');
+    strictEqual(context.fileSearch?.get().files.some((file) => file.name === 'hidden.txt') ?? true, false);
+    strictEqual(context.fileSearch?.get().open ?? false, true);
+    const target = JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/src/é main.tsr'
+    });
+    const entries: Entry[] = [{
+      name: 'panel.tsr', path: '/parent/work/src/panel.tsr', directory: false
+    }];
+    strictEqual(matchingFilePaths('/parent/work', entries, 'PARENT').length, 0);
+    strictEqual(matchingFilePaths('/parent/work', entries, 'SRC/PANEL').length, 1);
+    const base = 'work' + separator() + 'project';
+    const subpath = 'nested' + separator() + 'panel.tsr';
+    strictEqual(fileSearchLabel(base, base + separator() + subpath), subpath);
+    strictEqual(fileSearchLabel(base + separator(), base + separator() + subpath), subpath);
+    strictEqual(fileSearchLabel(base, base + '-other' + separator() + subpath), base + '-other' + separator() + subpath);
+    strictEqual(fileSearchLabel('', subpath), subpath);
+    strictEqual(fileSearchLabel(separator(), separator() + 'first.tsr'), 'first.tsr');
+    deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'
+    }));
+    context.allowNavigation = false;
+    deniedFileSearch(context, 'open_file_search_result', target);
+    strictEqual(context.workspace.get().files.length, 0);
+    context.allowNavigation = true;
+    deniedFileSearch(context, 'show_file_search', '{"root":"/other","allowNavigation":true}');
+    unwrap(invokeEditorTool(context, 'open_file_search_result', target));
+    strictEqual(context.workspace.get().active.endsWith('/src/é main.tsr'), true);
+    strictEqual(context.fileSearch?.get().open ?? false, false);
+    strictEqual(context.fileSearch?.get().files.length ?? -1, 0);
+    deniedFileSearch(context, 'open_file_search_result', target);
+    const next = context.workspace.get();
+    next.files[0].document.text = 'unsaved draft';
+    next.files[0].document.revision += 1;
+    context.workspace.set(next);
+    unwrap(invokeEditorTool(context, 'show_file_search', JSON.stringify({
+      root: clone(context.allowedRoot ?? '')
+    })));
+    strictEqual(context.fileSearch?.get().query ?? '', 'SRC/É MAIN');
+    unwrap(invokeEditorTool(context, 'open_file_search_result', target));
+    strictEqual(context.workspace.get().files[0].document.text, 'unsaved draft');
+    strictEqual(unwrap(readTextFile((context.allowedRoot ?? '') + '/src/é main.tsr', 100)), 'const count = 8;');
+    const commandQuery = JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), query: 'terminal'
+    });
+    const commands = unwrap(invokeEditorTool(context, 'list_editor_commands', commandQuery));
+    strictEqual(commands.includes('toggle-terminal'), true);
+    strictEqual(commands.includes('save-all'), false);
+    unwrap(invokeEditorTool(context, 'show_command_palette', commandQuery));
+    deniedFileSearch(context, 'open_file_search_result', target);
+    strictEqual(context.fileSearch?.get().query ?? '', '>terminal');
+    const switching = fileSearch.get();
+    strictEqual(switching.files.length, 0);
+    unwrap(writeTextFile(root + '/late.txt', 'new'));
+    unwrap(updateFileQuery(switching, 'late'));
+    strictEqual(switching.files.some((file) => file.name === 'late.txt'), true);
+    unwrap(updateFileQuery(switching, '>'));
+    strictEqual(switching.files.length, 0);
+    strictEqual(context.fileSearch?.get().open ?? false, true);
+    unwrap(invokeEditorTool(context, 'close_command_palette', JSON.stringify({
+      root: clone(context.allowedRoot ?? '')
+    })));
+    strictEqual(context.fileSearch?.get().open ?? true, false);
+    strictEqual(context.fileSearch?.get().files.length ?? -1, 0);
+    unwrap(invokeEditorTool(context, 'show_file_search', JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), query: 'other.txt'
+    })));
+    unwrap(removeFile((context.allowedRoot ?? '') + '/other.txt'));
+    deniedFileSearch(context, 'open_file_search_result', JSON.stringify({
+      root: clone(context.allowedRoot ?? ''), path: (context.allowedRoot ?? '') + '/other.txt'
+    }));
+    strictEqual(context.workspace.get().files[0].document.text, 'unsaved draft');
+    context.allowRead = false;
+    deniedFileSearch(context, 'show_file_search', query);
+    deniedFileSearch(context, 'search_files', query);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});

@@ -62,28 +62,54 @@ mod platform {
     impl Drop for Process {fn drop(&mut self){self.stop();}}
     }
     #[cfg(unix)] use unix::{Process,Signals,STOP};
-    struct Running {process:Process,_files:TempDirectory}
+    struct ApplicationIdentity {
+        native:tsrust_compiler::native_cache::NativeCache,
+        #[cfg(target_os="macos")]
+        bundle:Option<Vec<u8>>,
+    }
+    impl ApplicationIdentity {
+        fn same_application(&self,other:&Self)->bool {
+            if !self.native.same_inputs(&other.native){return false;}
+            #[cfg(target_os="macos")]
+            if self.bundle!=other.bundle{return false;}
+            true
+        }
+    }
+    struct Built {_files:TempDirectory,binary:PathBuf,identity:ApplicationIdentity}
+    struct Running {process:Process,build:Built}
     fn wait_for_build(process:&mut Process,root:&Path,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<std::process::ExitStatus>,String> {
         let mut last_input_check=Instant::now();
         loop {
             if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if &watcher.snapshot(root)!=expected{return Ok(None);}
+                if !watcher.still_current(root,expected){return Ok(None);}
                 last_input_check=Instant::now();
             }
             if let Some(status)=process.child.try_wait().map_err(|e|e.to_string())? {process.stop();return Ok(Some(status));}
             std::thread::sleep(Duration::from_millis(20));
         }
     }
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<Built>,String> {
         use std::sync::mpsc::{self,TrySendError,RecvTimeoutError};
         let inputs=expected.as_ref().map_err(Clone::clone)?;
         let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
         let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
+        report(Status::Info,format_args!("Checking {}…", project.entry.strip_prefix(root).unwrap_or(&project.entry).display()));
+        // Keep the same probe and teardown, but overlap it with frontend work.
+        let files=TempDirectory::new().map_err(|e|e.to_string())?;
+        let backend_started=Instant::now();
+        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
+        let mut command=crate::backend_command();command.arg("--version")
+            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
+            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
+        let probe=Process::spawn(&mut command);
         let (reply,response)=mpsc::channel();
-        let mut request=crate::dev_frontend::Request{entry:project.entry,sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
+        struct CancelCheck(std::sync::Arc<std::sync::atomic::AtomicBool>);
+        impl Drop for CancelCheck {fn drop(&mut self){self.0.store(true,Ordering::Relaxed);}}
+        let cancel=CancelCheck(Default::default());
+        let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply,cancelled:cancel.0.clone()};
         loop {
-            if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
+            if STOP.load(Ordering::Relaxed) || !watcher.still_current(root,expected) {return Ok(None);}
             match worker.requests.try_send(request) {
                 Ok(())=>break,
                 Err(TrySendError::Full(pending))=>request=pending,
@@ -92,28 +118,23 @@ mod platform {
             std::thread::sleep(Duration::from_millis(20));
         }
         let mut last_input_check=Instant::now();
-        let frontend=loop {
+        let (frontend,reused_frontend)=loop {
             if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if &watcher.snapshot(root)!=expected {return Ok(None);}
+                if !watcher.still_current(root,expected) {return Ok(None);}
                 last_input_check=Instant::now();
             }
             match response.recv_timeout(Duration::from_millis(20)) {
                 Ok(Ok(output))=>break output,
-                Ok(Err(error))=>{if &watcher.snapshot(root)!=expected{return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
+                Ok(Err(error))=>{if !watcher.still_current(root,expected){return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
                 Err(RecvTimeoutError::Disconnected)=>return Err("Frontend worker stopped".into()),
                 Err(RecvTimeoutError::Timeout)=>{},
             }
         };
-        if &watcher.snapshot(root)!=expected {return Ok(None);}
-        if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
-        let files=TempDirectory::new().map_err(|e|e.to_string())?;
-        let backend_started=Instant::now();
-        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
-        let mut command=crate::backend_command();command.arg("--version")
-            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
-            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
-        let mut probe=Process::spawn(&mut command)?;
+        if !watcher.still_current(root,expected) {return Ok(None);}
+        if verbose && reused_frontend {eprintln!("[build] Reused checked application.");}
+        else if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
+        let mut probe=probe?;
         let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
         let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
         let backend_elapsed=backend_started.elapsed();
@@ -142,7 +163,7 @@ mod platform {
                 while !prepared.acquire_target(false)? {
                     if STOP.load(Ordering::Relaxed){return Ok(None);}
                     if last_input_check.elapsed()>=Duration::from_millis(100){
-                        if &watcher.snapshot(root)!=expected{return Ok(None);}
+                        if !watcher.still_current(root,expected){return Ok(None);}
                         last_input_check=Instant::now();
                     }
                     std::thread::sleep(Duration::from_millis(20));
@@ -159,6 +180,7 @@ mod platform {
             }
             if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.
+            report(Status::Info,"Compiling and linking the application…");
             let errors=files.0.join("backend.stderr");
             let mut command=crate::backend_command();prepared.link(&mut command)?;
             command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
@@ -166,15 +188,43 @@ mod platform {
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
-            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root){let _=cache.try_publish(&binary);}
+            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root,false){let _=cache.try_publish(&binary);}
         }
-        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
-        Ok(Some((files,binary)))
+        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",if reused_frontend{0.0}else{frontend.check.as_secs_f64()*1000.0},if reused_frontend{0.0}else{frontend.emit.as_secs_f64()*1000.0},backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
+        #[cfg(target_os="macos")]
+        let binary=if frontend.features.contains(&"ui"){crate::app_package_cli::development_bundle(project,&binary)?}else{binary};
+        let identity=ApplicationIdentity {
+            native:cache,
+            #[cfg(target_os="macos")]
+            bundle:if frontend.features.contains(&"ui") {
+                Some(std::fs::read(binary.parent().unwrap().parent().unwrap().join("Info.plist")).map_err(|error|error.to_string())?)
+            }else{None},
+        };
+        Ok(Some(Built{_files:files,binary,identity}))
     }
     #[cfg(all(test,unix))]
     mod tests {
         use super::unix::kill;
         use super::*;
+        #[test]
+        fn application_identity_checks_exact_native_inputs_and_bundle_metadata() {
+            fn identity(input:&[u8])->ApplicationIdentity {
+                ApplicationIdentity {
+                    native:tsrust_compiler::native_cache::NativeCache::new(Path::new("cache"),&[input]),
+                    #[cfg(target_os="macos")]
+                    bundle:Some(b"first app identity".to_vec()),
+                }
+            }
+            let first=identity(b"first");
+            assert!(first.same_application(&identity(b"first")));
+            assert!(!first.same_application(&identity(b"changed")));
+            #[cfg(target_os="macos")]
+            {
+                let mut renamed=identity(b"first");renamed.bundle=Some(b"renamed app identity".to_vec());
+                assert!(!first.same_application(&renamed));
+                renamed.bundle=None;assert!(!first.same_application(&renamed));
+            }
+        }
         #[test]
         fn stopping_a_process_group_reaps_its_shell_and_descendant() {
             use std::io::{BufRead,BufReader};
@@ -224,14 +274,20 @@ mod platform {
                 previous=Some(input.clone());
                 let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
-                    Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
+                    Ok(Some(build)) if !STOP.load(Ordering::Relaxed) && watcher.still_current(&root,&input)=>{
                         report(Status::Success,format_args!("{} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0));built_once=true;
+                        if let Some(active)=&mut running {
+                            if active.build.identity.same_application(&build.identity) && active.process.child.try_wait().map_err(|error|error.to_string())?.is_none() {
+                                report(Status::Info,"Application unchanged; kept running.");
+                                continue;
+                            }
+                        }
                         if let Some(mut old)=running.take(){old.process.stop();}
-                        let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
+                        let mut command=Command::new(&build.binary);command.current_dir(&root).args(&program_args);
                         match Process::spawn(&mut command) {
                             Ok(process)=>{
                                 if verbose {report(Status::Info,format_args!("Started program (pid {}).",process.child.id()));}
-                                running=Some(Running{process,_files:files});
+                                running=Some(Running{process,build});
                             },
                             Err(error)=>report(Status::Error,format_args!("Cannot start program: {error}")),
                         }
@@ -246,7 +302,7 @@ mod platform {
                     running.take();
                 }
             }
-            std::thread::sleep(Duration::from_millis(100));
+            watcher.wait(Duration::from_millis(100));
         }
         drop(running);report(Status::Info,"Stopped.");Ok(0)
     }

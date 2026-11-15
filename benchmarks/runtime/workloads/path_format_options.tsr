@@ -6,8 +6,10 @@ function workload(n: int, seed: int, input: string): int {
   };
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = format(parts);
+
     if (value.length !== 19 || !value.startsWith('reports') || !value.endsWith('file.tar.gz')) {
       throw 'path format';
     }

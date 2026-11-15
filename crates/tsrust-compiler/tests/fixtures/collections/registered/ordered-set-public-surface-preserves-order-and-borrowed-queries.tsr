@@ -3,6 +3,7 @@ import { strictEqual } from 'std:testing';
 
 function total(...values: int[]): int {
   let sum = 0;
+
   for (const value of values) {
     sum += value;
   }
@@ -19,6 +20,7 @@ export function main() {
   values.add(1);
   strictEqual(values.size, 3);
   let ordered = '';
+
   for (const value of values) {
     ordered += String(value);
   }
@@ -45,6 +47,7 @@ export function main() {
   strictEqual(query.length, 2);
   strictEqual(words.delete(query), true);
   strictEqual(query.length, 2);
+
   for (const word of words) {
     strictEqual(word, 'a');
   }

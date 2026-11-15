@@ -2,10 +2,12 @@ function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   const sizes: int[] = [0, 1, 4, 5, 17];
   let i = 0;
+
   while (i < n) {
     const count = sizes[(i + seed) % 5];
     const values: string[] = [];
     let j = 0;
+
     while (j < count) {
       if (j % 4 === 0) {
         values.push(input.repeat(1));

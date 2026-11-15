@@ -1,0 +1,206 @@
+import { compile, escape, Regex } from 'std:regex';
+import { at, fromUtf8, toUtf8, view } from 'std:bytes';
+
+// Matches the pinned Qwen template's no-tools, system/user/assistant branch.
+export function chatPrompt(message: ReadOnly<string>): string {
+  return '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n' + message + '<|im_end|>\n<|im_start|>assistant\n';
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  workspaceEnd?: int;
+}
+
+export function conversationPrompt(messages: ReadOnly<ChatMessage[]>): string {
+  let prompt = '<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n';
+
+  for (const entry of messages) {
+    prompt += '<|im_start|>' + entry.role + '\n' + entry.content + '<|im_end|>\n';
+  }
+
+  return prompt + '<|im_start|>assistant\n';
+}
+
+// Only explicit code identifiers justify pulling an older exchange back into context.
+export function recallTerms(question: ReadOnly<string>): Set<string> {
+  const terms = new Set<string>();
+  const pattern = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const internalCapital = unwrap(compile('.\\p{Lu}'));
+  const bytes = unwrap(fromUtf8(question));
+
+  for (const token of pattern.findAll(question)) {
+    const word = unwrap(toUtf8(unwrap(view(bytes, token.start, token.end))));
+    const quoted = token.start > 0 && unwrap(at(bytes, token.start - 1)) === 96 && question.startsWith('`', token.end);
+
+    if (quoted || question.startsWith('(', token.end) || word.includes('_') || internalCapital.isMatch(word)) terms.add(word);
+  }
+
+  return terms;
+}
+
+export function turnMentions(messages: ReadOnly<ChatMessage[]>, start: int, end: int, terms: ReadOnly<Set<string>>): boolean {
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+
+  for (let index = start; index < end; index += 1) {
+    if (mentions(messages[index].content, terms, identifiers)) return true;
+  }
+
+  return false;
+}
+
+export function excerptTurn(messages: ReadOnly<ChatMessage[]>, start: int, end: int, terms: ReadOnly<Set<string>>): ChatMessage[] {
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const excerpt: ChatMessage[] = [];
+
+  for (let index = start; index < end; index += 1) {
+    const lines: string[] = [];
+
+    for (const line of messages[index].content.split('\n')) {
+      if (mentions(line, terms, identifiers)) lines.push(clone(line));
+    }
+
+    excerpt.push({
+      role: clone(messages[index].role), content: lines.length === 0 ? '[Omitted]' : '[Excerpt]\n' + lines.join('\n')
+    });
+  }
+
+  return excerpt;
+}
+
+function mentions(content: ReadOnly<string>, terms: ReadOnly<Set<string>>, identifiers: ReadOnly<Regex>): boolean {
+  for (const term of terms) {
+    if (!content.includes(term)) continue;
+    const bytes = unwrap(fromUtf8(content));
+
+    for (const token of identifiers.findAll(content)) {
+      if (terms.has(unwrap(toUtf8(unwrap(view(bytes, token.start, token.end)))))) return true;
+    }
+
+    return false;
+  }
+
+  return false;
+}
+
+// Only narrow a simple function when its complete body can be located.
+export function functionExcerpt(source: ReadOnly<string>, exported: ReadOnly<string>, local: boolean = false, topLevelOnly: boolean = false, atStart: boolean = false): string {
+  const bytes = unwrap(fromUtf8(source));
+  const declaration = exported === 'default' ? 'default\\s+(?:async\\s+)?function\\s+[\\p{L}_$][\\p{L}\\p{N}_$]*' : '(?:async\\s+)?function\\s+' + escape(exported);
+  const prefix = local ? '(?:export\\s+)?' : 'export\\s+';
+  const tokens = unwrap(compile("(?s)//[^\\r\\n]*|/\\*.*?\\*/|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`|\\b" + prefix + declaration + "\\s*\\([^(){}]*\\)\\s*(?::\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\[\\])?\\s*)?\\{|[{}]"));
+  let start = -1;
+  let depth = 0;
+
+  for (const token of tokens.findAll(source)) {
+    if (atStart && start < 0 && token.start !== 0) return '';
+    const declarationStart = source.startsWith('export', token.start) || (local && (source.startsWith('function', token.start) || source.startsWith('async', token.start)));
+
+    if (start < 0) {
+      if (topLevelOnly && (source.startsWith('{', token.start) || (declarationStart && depth > 0))) depth += 1;
+      else if (topLevelOnly && source.startsWith('}', token.start) && depth > 0) depth -= 1;
+      else if (declarationStart) {
+        start = token.start;
+        depth = 1;
+      }
+    } else if (declarationStart || source.startsWith('{', token.start)) depth += 1;
+    else if (source.startsWith('}', token.start)) {
+      depth -= 1;
+
+      if (depth === 0) {
+        const end = source.startsWith('\n', token.end) ? token.end + 1 : token.end;
+        return unwrap(toUtf8(unwrap(view(bytes, start, end))));
+      }
+    }
+  }
+
+  return '';
+}
+
+function validWorkspace(content: ReadOnly<string>, start: int, end: int | undefined): boolean {
+  return end === undefined ? start >= 2 && start < content.length && content.startsWith('\n\n', start - 2) : end > 0 && end < content.length && content.startsWith('\n\n', end);
+}
+
+// Retain the user's question and explicit attachments when replacing automatic context.
+export function replaceWorkspace(content: ReadOnly<string>, start: int, end: int | undefined, replacement: ReadOnly<string>): string {
+  if (!validWorkspace(content, start, end)) return '';
+  return end === undefined ? content.slice(0, start) + replacement : replacement + content.slice(end);
+}
+
+// Drop only superseded automatic context. Explicit attachments live after the boundary.
+export function withoutEarlierWorkspace(messages: ReadOnly<ChatMessage[]>, terms?: ReadOnly<Set<string>>): ChatMessage[] {
+  const latest = messages.findLastIndex((message) => message.role === 'user');
+  const compact: ChatMessage[] = [];
+  let changed = false;
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const entry = messages[index];
+    const end = entry.workspaceEnd;
+
+    if (index < latest && entry.role === 'user' && end !== undefined && validWorkspace(entry.content, 0, end)) {
+      const relevant = terms !== undefined && messages[latest].workspaceEnd === undefined ? excerptWorkspace(entry.content, 0, terms, true, end) : '';
+      compact.push({
+        role: 'user', content: relevant === '' ? entry.content.slice(end + 2) : relevant
+      });
+      changed = true;
+    } else compact.push(clone(entry));
+  }
+
+  return changed ? compact : [];
+}
+
+export function excerptWorkspace(content: ReadOnly<string>, start: int, terms: ReadOnly<Set<string>>, includeBodies: boolean = false, end?: int): string {
+  if (terms.size === 0 || !validWorkspace(content, start, end)) return '';
+  const identifiers = unwrap(compile('[\\p{L}_$][\\p{L}\\p{N}_$]*'));
+  const selected: string[] = [];
+  let heading = '';
+
+  const source = end === undefined ? content.slice(start) : content.slice(0, end);
+  const lines = source.split('\n');
+  const fn = unwrap(compile('^(?:export\\s+)?(?:async\\s+)?function\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*)\\s*\\('));
+  let offset = 0;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const lineStart = offset;
+    offset += line.length + 1;
+
+    if (line.startsWith('Active editor file: ') || line.startsWith('Referenced workspace file: ') || line.startsWith('Bundled Tsrust reference: ') || line.startsWith('Last Find References results for ') || line === 'Workspace files:') {
+      heading = clone(line);
+    } else if (mentions(line, terms, identifiers)) {
+      if (heading !== '') selected.push(clone(heading));
+      heading = '';
+
+      if (includeBodies) {
+        const matchLine = fn.captures(line.trim());
+        const capture = matchLine?.groups[0];
+
+        if (capture !== undefined) {
+          const name = unwrap(toUtf8(unwrap(view(unwrap(fromUtf8(line.trim())), capture.start, capture.end))));
+
+          if (terms.has(name)) {
+            const body = functionExcerpt(source.slice(lineStart), name, true).trimEnd();
+
+            if (body !== '' && body.startsWith(line.trim()) && body.includes('\n')) {
+              const count = body.split('\n').length;
+              selected.push(body);
+
+              for (let n = 1; n < count; n += 1) {
+                index += 1;
+                offset += lines[index].length + 1;
+              }
+
+              continue;
+            }
+          }
+        }
+      }
+
+      selected.push(clone(line));
+    }
+  }
+
+  if (selected.length === 0) return '';
+  const excerpt = '[Workspace excerpt]\n' + selected.join('\n');
+  return replaceWorkspace(content, start, end, excerpt);
+}

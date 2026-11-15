@@ -23,6 +23,7 @@ function main() {
   const values = [3, 1, 2];
   values.sort(compare);
   const copied = values.toSorted(compare);
+
   if (copied[0] !== 3) {
     throw 99;
   }

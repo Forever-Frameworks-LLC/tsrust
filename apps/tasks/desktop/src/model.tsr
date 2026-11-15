@@ -1,0 +1,86 @@
+import { TaskRecord, WriteTask, TaskStatus } from '../../shared/tasks.tsr';
+
+export interface TaskQuery {
+  search: string;
+  status: string;
+  assignee: string;
+  sort: string;
+  descending: boolean;
+  page: int;
+  pageSize: int;
+}
+
+export interface TaskPage {
+  items: TaskRecord[];
+  total: int;
+  pages: int;
+  page: int;
+}
+
+export function initialQuery(): TaskQuery {
+  return {
+    search: '', status: 'all', assignee: '', sort: 'updated', descending: true, page: 1, pageSize: 25
+  };
+}
+
+export function headerSort(query: Mutable<TaskQuery>, column: ReadOnly<string>, direction: ReadOnly<string>): void {
+  query.sort = direction === '' ? 'original' : column === '0' ? 'title' : column === '1' ? 'status' : column === '2' ? 'priority' : column === '3' ? 'assignee' : column === '4' ? 'due' : 'updated';
+  query.descending = direction === 'descending';
+  query.page = 1;
+}
+
+function compareText(left: ReadOnly<string>, right: ReadOnly<string>): int {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+export function taskPage(tasks: ReadOnly<TaskRecord[]>, query: ReadOnly<TaskQuery>): TaskPage {
+  const needle = query.search.trim().toLowerCase();
+  const items = tasks.filter((task) => (query.status === 'all' || task.status === query.status) && (query.assignee === '' || task.assignee === query.assignee) && (needle === '' || (task.title + ' ' + task.description + ' ' + task.assignee).toLowerCase().includes(needle)));
+
+  if (query.sort !== 'original') items.sort((left, right) => {
+    let compared: int = 0;
+
+    if (query.sort === 'title') compared = compareText(left.title.toLowerCase(), right.title.toLowerCase());
+    else if (query.sort === 'priority') compared = left.priority - right.priority;
+    else if (query.sort === 'status') compared = compareText(statusLabel(left.status), statusLabel(right.status));
+    else if (query.sort === 'assignee') compared = compareText(left.assignee, right.assignee);
+    else if (query.sort === 'due') compared = compareText(left.due_date ?? '9999-12-31', right.due_date ?? '9999-12-31');
+    else compared = compareText(left.updated_at, right.updated_at);
+
+    if (compared !== 0) return query.descending ? -compared : compared;
+    return compareText(left.id, right.id);
+  });
+  const requested = query.pageSize === 0 ? items.length : query.pageSize;
+  const size = requested < 1 ? 1 : requested;
+  const count = (items.length + size - 1) / size;
+  const pages = count < 1 ? 1 : count;
+  const page = query.page < 1 ? 1 : query.page > pages ? pages : query.page;
+  return {
+    total: items.length, pages, page, items: items.slice((page - 1) * size, page * size)
+  };
+}
+
+export function emptyDraft(): WriteTask {
+  return {
+    title: '', description: '', status: 'todo', priority: 2, assignee: '', due_date: null, expectedVersion: 0
+  };
+}
+
+export function taskDraft(task: ReadOnly<TaskRecord>): WriteTask {
+  return {
+    title: clone(task.title), description: clone(task.description), status: clone(task.status), priority: task.priority, assignee: clone(task.assignee), due_date: clone(task.due_date), expectedVersion: task.version
+  };
+}
+
+export function statusLabel(status: ReadOnly<TaskStatus>): string {
+  return status === 'done' ? 'Done' : status === 'in_progress' ? 'In progress' : 'To do';
+}
+
+export function priorityLabel(priority: int): string {
+  return priority === 0 ? 'P0 · Urgent' : priority === 1 ? 'P1 · High' : priority === 2 ? 'P2 · Normal' : 'P3 · Low';
+}
+
+export function tableRows(page: ReadOnly<TaskPage>): string {
+  const rows: string[][] = page.items.map((task) => [clone(task.title), statusLabel(task.status), priorityLabel(task.priority), task.assignee === '' ? 'Unassigned' : clone(task.assignee), clone(task.due_date ?? '—'), task.updated_at.slice(0, 16).replace('T', ' ')]);
+  return JSON.stringify(rows);
+}

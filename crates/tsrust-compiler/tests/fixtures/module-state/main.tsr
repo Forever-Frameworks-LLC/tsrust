@@ -12,6 +12,7 @@ function main() {
   strictEqual(settings.retries, 5);
   {
     const outcome0 = person.safeParseJson('{"name":"Ada","age":30}');
+
     if (outcome0.success) {
       const value = outcome0.data;
       strictEqual(value.name, 'Ada');

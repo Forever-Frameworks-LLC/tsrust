@@ -5,9 +5,11 @@ function workload(n: int, seed: int, input: string): int {
   const flags = s.array(s.boolean());
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const first = JSON.stringify(text.toJsonSchema());
     const second = JSON.stringify(flags.toJsonSchema());
+
     if (first !== input || second !== '{"$schema":"https://json-schema.org/draft/2020-12/schema","items":{"type":"boolean"},"type":"array"}') {
       throw 'Invalid exported document';
     }

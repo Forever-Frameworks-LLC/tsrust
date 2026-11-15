@@ -42,6 +42,7 @@ function main() {
   strictEqual(choose('other', 1), 'other');
   const fail = reject;
   let caught = false;
+
   try {
     fail(1);
   } catch (error) {

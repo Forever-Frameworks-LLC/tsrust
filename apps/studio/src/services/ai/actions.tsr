@@ -1,0 +1,1014 @@
+import { separator } from 'std:path';
+import { Sender, Channel } from 'std:futures';
+import { Signal, answerEditorLanguage, translate } from 'std:ui';
+
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { knowledgeQuestion, searchKnowledge } from './knowledge.tsr';
+import { fitGeneration } from '../../lib/ai/generation.tsr';
+import {
+  ChatHistory,
+  emptyHistory,
+  createChat,
+  chatIdentity,
+  Conversation,
+  setChatDraft,
+  draftContext,
+  setDraftContext
+} from '../../lib/ai/conversations.tsr';
+import { ModelRequest, ModelUpdate, failedModelBackend } from '../../lib/ai/protocol.tsr';
+import { EditorTool } from '../editor-tools.tsr';
+import { Problem } from '../../lib/workspace/problems.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
+import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
+import { LanguageReferences } from '../../lib/language/references.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import {
+  FileDeclarations,
+  EditorContextResult,
+  editorContext,
+  readContext,
+  referenceContext,
+  referenceLiteral
+} from './context.tsr';
+import { ChatStore, persistChats } from './history.tsr';
+
+import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
+import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
+
+function editInstruction(prompt: ReadOnly<string>): string {
+  let instruction = prompt.trim();
+
+  for (const prefix of ['can you ', 'could you ', 'would you ']) {
+    if (instruction.toLowerCase().startsWith(prefix)) {
+      instruction = instruction.slice(prefix.length);
+      break;
+    }
+  }
+
+  return instruction.toLowerCase().startsWith('please ') ? instruction.slice(7) : instruction;
+}
+
+function requestsEdit(prompt: ReadOnly<string>): boolean {
+  const instruction = editInstruction(prompt).toLowerCase();
+
+  if (instruction.startsWith('not insert that ') && instruction.endsWith('?')) return true;
+  return ['edit ', 'add ', 'insert ', 'replace ', 'remove ', 'rename ', 'change ', 'update ', 'fix ', 'refactor ', 'implement ', 'delete '].some((verb) => instruction.startsWith(verb));
+}
+
+export interface AiState {
+  warmModel?: string;
+  inlineDisabled?: boolean;
+  releaseInline?: boolean;
+  inlineRequest?: int;
+  queuedInline?: InlineRequest;
+  inlineCancel?: string;
+  editTarget?: EditBatch;
+  review?: EditBatch;
+  undoEdit?: EditBatch;
+  phase: string;
+  active: string;
+  targetChat: string;
+  pending?: ModelRequest;
+  history: ChatHistory;
+  view: string;
+  notice: string;
+}
+
+export interface AiContext {
+  state: Signal<AiState>;
+  settings: Signal<StudioConfig>;
+  commands: Sender<ModelRequest>;
+  store?: Signal<ChatStore>;
+  allowRead: boolean;
+  allowControl: boolean;
+  allowInference: boolean;
+  allowDelete?: boolean;
+  workspace?: Signal<Workspace>;
+  references?: Signal<LanguageReferences>;
+  problems?: Signal<Problem[]>;
+  language?: Signal<LanguageState>;
+  declarations?: Signal<FileDeclarations[]>;
+  projectTree?: Signal<DirectoryTree>;
+  allowedContextPaths?: string[];
+}
+
+interface Arguments {
+  prompt?: string;
+  request?: string;
+  chat?: string;
+  revision?: int;
+  path?: string;
+  kind?: string;
+  context?: string;
+}
+
+export function initialAiState(history: ChatHistory = emptyHistory(), notice: string = ''): AiState {
+  return {
+    phase: 'stopped', active: '', targetChat: '', history, view: 'thread', notice
+  };
+}
+
+export function aiContextHandles(context: ReadOnly<AiContext>, allowDelete: boolean = false): AiContext {
+  const references = context.references;
+  const tree = context.projectTree;
+  const declarations = context.declarations;
+  const store = context.store;
+  const workspace = context.workspace;
+  return {
+    problems: context.problems?.handle(), language: context.language?.handle(), declarations: declarations === undefined ? undefined : declarations.handle(), references: references === undefined ? undefined : references.handle(), projectTree: tree === undefined ? undefined : tree.handle(), state: context.state.handle(), settings: context.settings.handle(), commands: context.commands.share(), store: store === undefined ? undefined : store.handle(), workspace: workspace === undefined ? undefined : workspace.handle(), allowedContextPaths: clone(context.allowedContextPaths), allowRead: context.allowRead, allowControl: context.allowControl, allowInference: context.allowInference, allowDelete: allowDelete && (context.allowControl)
+  };
+}
+
+function publish(context: ReadOnly<AiContext>, next: AiState, strict: boolean = false): Result<void, string> {
+  return publishChat(context.state, next, {
+    store: context.store?.handle()
+  }, strict);
+}
+
+export interface ChatPersistence {
+  store?: Signal<ChatStore>;
+}
+
+export function publishChat(state: Signal<AiState>, next: AiState, persistence: ReadOnly<ChatPersistence>, strict: boolean = false): Result<void, string> {
+  const store = persistence.store;
+
+  if (store !== undefined) {
+    const journal = store.get();
+
+    match (persistChats(next.history, journal)) {
+      Ok(_) => {},
+      Err(error) => {
+        if (strict) return Err(clone(error));
+        next.notice = next.notice === '' ? clone(error) : next.notice + '\n' + error;
+      }
+    }
+
+    store.set(journal);
+  }
+
+  state.set(next);
+  return Ok();
+}
+
+export function modelTools(): EditorTool[] {
+  return [{
+    name: 'search_tsrust_knowledge', description: 'Search offline Tsrust examples, runtime tests, language and tooling guides, GPUI guides, and native GPUI Rust examples. Returns ranked source passages with repository paths and lines, including additional matches for requested code identifiers.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"]}'
+  }, {
+    name: 'local_model_read', description: 'Read host-bound model state and conversations, or supply a chat ID to read only its transcript, draft and attached context without selecting it. An empty ID targets the unassigned draft. Requires a host read grant.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}}}'
+  }, {
+    name: 'local_model_send', description: 'Send in the explicit selected conversation. Use Edit: for the active draft, Edit files: for attached workspace text files, or Update ./path: followed by the change requested for a named workspace file. Starts the configured local model automatically when stopped, then generates. No tools or workspace writes. Requires host inference permission and lifecycle permission when loading.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+  }, {
+    name: 'local_model_cancel', description: 'Cancel the explicit active request, including automatic model startup. Rejects stale identities. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{"request":{"type":"string"}},"required":["request"]}'
+  }, {
+    name: 'local_model_start', description: 'Administrative model load using trusted configured paths. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'local_model_stop', description: 'Cancel generation and unload the owned local model. Requires host lifecycle permission.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'chat_set_draft', description: 'Update the explicit selected conversation draft without sending. Requires host control permission.', inputSchema: '{"type":"object","properties":{"prompt":{"type":"string"},"chat":{"type":"string"}},"required":["prompt","chat"]}'
+  }, {
+    name: 'chat_attach_context', description: 'Attach a bounded UTF-8 file or SKILL.md snapshot to the explicit current draft. Reads unsaved open text when available. Requires host read/control grants and a bound workspace; outside paths additionally require a trusted picker grant. Does not change workspace files.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"},"path":{"type":"string"},"kind":{"enum":["file","skill"]}},"required":["chat","path","kind"]}'
+  }, {
+    name: 'chat_detach_context', description: 'Remove an explicit context snapshot from the selected draft without changing any file. Requires host control permission.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"},"context":{"type":"string"}},"required":["chat","context"]}'
+  }, {
+    name: 'chat_new', description: 'Create and select a persistent conversation in this bound workspace. Requires host control permission.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'chat_open', description: 'Select the exact existing conversation. Does not redirect an in-flight reply. Requires host control permission.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"}},"required":["chat"]}'
+  }, {
+    name: 'chat_show_all', description: 'Show the bound workspace conversation list. Requires host control permission.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'chat_delete', description: 'Remove an exact idle conversation from persistent history. Requires separately approved host deletion permission; arguments cannot grant it. Rejects an in-flight target and storage conflicts.', inputSchema: '{"type":"object","properties":{"chat":{"type":"string"},"revision":{"type":"integer","minimum":0}},"required":["chat","revision"]}'
+  }];
+}
+
+function startRequest(context: ReadOnly<AiContext>): Result<ModelRequest, string> {
+  if (!context.allowControl) return Err('The host has not permitted model lifecycle actions.');
+  const config = context.settings.get();
+
+  if (config.aiModelPath === '' || config.aiTokenizerPath === '') return Err('Select a model in Extensions before sending.');
+  return Ok({
+    kind: 'start', id: '', prompt: '', maxTokens: 0, modelPath: clone(config.aiModelPath), tokenizerPath: clone(config.aiTokenizerPath)
+  });
+}
+
+function restorePending(next: Mutable<AiState>, status: string): void {
+  const pending = clone(next.pending);
+
+  if (pending !== undefined) {
+    const index = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
+
+    if (index >= 0) {
+      const requestId = clone(pending.id);
+      const user = next.history.chats[index].messages.findIndex((message) => message.role === 'user' && message.request === requestId);
+
+      if (next.history.chats[index].draft === '' && (next.history.chats[index].context ?? []).length === 0) {
+        next.history.chats[index].draft = clone(pending.prompt);
+
+        if (user >= 0) next.history.chats[index].context = clone(next.history.chats[index].messages[user].context) ?? [];
+        next.history.chats[index].messages = next.history.chats[index].messages.filter((message) => message.request !== requestId);
+      } else {
+        // Keep the original prompt and attachments in history when the composer already holds new work.
+        const reply = next.history.chats[index].messages.findIndex((message) => message.request === requestId && message.role === 'assistant');
+
+        if (user >= 0) next.history.chats[index].messages[user].status = clone(status);
+
+        if (reply >= 0) next.history.chats[index].messages[reply].status = clone(status);
+      }
+
+      next.history.chats[index].revision += 1;
+    }
+  }
+
+  next.pending = undefined;
+  next.active = '';
+  next.targetChat = '';
+}
+
+export function invokeModelTool(context: ReadOnly<AiContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!modelTools().some((tool) => tool.name === name)) return Err('Unknown local model action.');
+  const next = context.state.get();
+
+  try {
+    const args = JSON.parse<Arguments>(payload, {
+      maxBytes: payload.length, maxDepth: 4, maxEntries: 8, maxNodes: 16
+    });
+
+    if (name === 'search_tsrust_knowledge') {
+      if (!context.allowRead) return Err('The host has not permitted reading reference material.');
+      return searchKnowledge(args.prompt ?? '');
+    }
+
+    if (name === 'local_model_read') {
+      if (!context.allowRead) return Err('The host has not permitted reading this conversation.');
+
+      if (args.chat === undefined) return Ok(JSON.stringify(next));
+
+      if (args.chat === '') {
+        const draft: Conversation = {
+          id: '', title: '', revision: 0, draft: clone(next.history.draft), context: clone(next.history.context) ?? [], messages: []
+        };
+        return Ok(JSON.stringify(draft));
+      }
+
+      const chat = next.history.chats.find((item) => item.id === args.chat);
+
+      if (chat === undefined) return Err('This conversation no longer exists.');
+      return Ok(JSON.stringify(chat));
+    }
+
+    next.notice = '';
+
+    if (name.startsWith('chat_')) {
+      if (!context.allowControl) return Err('The host has not permitted changing conversations.');
+
+      if (name === 'chat_attach_context' || name === 'chat_detach_context') {
+        if (args.chat !== next.history.active) return Err('The selected conversation changed before sending.');
+        const fragments = draftContext(next.history);
+
+        if (name === 'chat_attach_context') {
+          if (!context.allowRead) return Err('The host has not permitted reading chat context.');
+          const workspace = context.workspace;
+
+          if (workspace === undefined || workspace.get().root !== next.history.root) return Err('Chat context is not bound to this workspace.');
+
+          match (readContext(workspace.get(), args.path ?? '', args.kind ?? 'file', context.allowedContextPaths ?? [])) {
+            Err(error) => {
+              return Err(clone(error));
+            },
+            Ok(fragment) => {
+              if (!fragments.some((item) => item.path === fragment.path && item.kind === fragment.kind)) fragments.push(clone(fragment));
+            }
+          }
+        } else {
+          const index = fragments.findIndex((fragment) => fragment.id === args.context);
+
+          if (index < 0) return Err('This context attachment is no longer present.');
+          fragments.splice(index, 1);
+        }
+
+        setDraftContext(next.history, fragments);
+      } else if (name === 'chat_set_draft') {
+        if (args.chat !== next.history.active) return Err('The selected conversation changed before sending.');
+
+        setChatDraft(next.history, args.prompt ?? '');
+      } else if (name === 'chat_new') {
+        createChat(next.history);
+        next.view = 'thread';
+      } else if (name === 'chat_show_all') next.view = 'all';
+      else {
+        const index = next.history.chats.findIndex((chat) => chat.id === args.chat);
+
+        if (index < 0) return Err('This conversation no longer exists.');
+
+        if (name === 'chat_delete') {
+          if (context.allowDelete !== true) return Err('Deleting a conversation requires host approval.');
+
+          if (args.revision !== next.history.chats[index].revision) return Err('This conversation changed. Review it before deleting.');
+
+          if (next.targetChat === args.chat && next.active !== '') return Err('Stop this response before deleting its conversation.');
+          next.history.chats.splice(index, 1);
+
+          if (next.history.active === args.chat) next.history.active = '';
+          next.view = 'all';
+        } else {
+          next.history.active = args.chat ?? '';
+          next.view = 'thread';
+        }
+      }
+
+      match (publish(context, next, name === 'chat_delete')) {
+        Err(error) => {
+          return Err(clone(error));
+        },
+        Ok(_) => {
+          return Ok('{"accepted":true}');
+        }
+      }
+    }
+
+    let request: ModelRequest = {
+      kind: '', id: '', prompt: '', maxTokens: 0
+    };
+
+    if (name === 'local_model_send') {
+      if (!context.allowInference) return Err('The host has not permitted inference.');
+
+      if (args.chat !== next.history.active) return Err('The selected conversation changed before sending.');
+
+      if (next.active !== '' || next.pending !== undefined || !['ready', 'stopped', 'starting', 'inline'].includes(next.phase)) return Err('Wait for the current response or stop it before sending another.');
+      const prompt = args.prompt ?? '';
+
+      if (prompt.trim() === '') return Err('Enter a message before sending.');
+
+
+      if (next.history.active === '') createChat(next.history);
+      const index = next.history.chats.findIndex((chat) => chat.id === next.history.active);
+
+      if (index < 0) return Err('This conversation no longer exists.');
+      next.active = chatIdentity();
+      next.targetChat = clone(next.history.active);
+
+      if (next.history.chats[index].title === '') next.history.chats[index].title = Array.from(prompt.trim().split('\n')[0]).slice(0, 80).join('');
+      const workspace = context.workspace;
+      const tree = context.projectTree;
+      const canReadWorkspace = context.allowRead && workspace !== undefined && workspace.get().root === next.history.root;
+      const attachments = draftContext(next.history);
+      const explicitBatch = prompt.toLowerCase().startsWith('edit files: ');
+      const explicitEdit = prompt.toLowerCase().startsWith('edit: ');
+      const editing = explicitBatch || explicitEdit || requestsEdit(prompt);
+
+      let namedTarget = '';
+
+      if (editing && !explicitEdit && !explicitBatch) {
+        const instruction = editInstruction(prompt);
+        const delimiter = instruction.indexOf(':');
+
+        if (delimiter > 0) {
+          let path = instruction.slice(instruction.indexOf(' ') + 1, delimiter).trim();
+
+          for (const quote of ['"', "'", '`']) {
+            if (path.startsWith(quote) && path.endsWith(quote)) path = path.slice(1, -1);
+          }
+
+          if (path.startsWith('./')) {
+            if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
+
+            match (readContext(workspace.get(), path, 'file', [])) {
+              Ok(file) => {
+                namedTarget = clone(file.path);
+                const existing = attachments.findIndex((item) => item.kind === 'file' && item.path === namedTarget);
+
+                if (existing < 0) attachments.push(file);
+                else attachments[existing] = file;
+              },
+              Err(reason) => {
+                return Err(reason);
+              }
+            }
+          }
+        }
+      }
+
+      const batch = explicitBatch || (editing && !explicitEdit && attachments.some((item) => item.kind === 'file'));
+      const task = explicitBatch ? prompt.slice('Edit files: '.length) : explicitEdit ? prompt.slice(6) : clone(prompt);
+      const references = context.references;
+      const snippets = canReadWorkspace && workspace !== undefined && references !== undefined ? referenceContext(workspace.get(), references.get(), prompt) : '';
+      const storeIndex = context.declarations;
+      const declarations = new Map<string, FileDeclarations>();
+
+      if (canReadWorkspace && storeIndex !== undefined) for (const file of storeIndex.get()) declarations.set(clone(file.path), clone(file));
+      let previousQuestion = '';
+      let editedPaths: string[] = [];
+
+      let recentWorkspaceQuestion = false;
+      let hasPreviousAnswer = false;
+
+      if (!editing) {
+        const history = next.history.chats[index].messages;
+
+        if (history.length >= 2) {
+          const previous = history[history.length - 2];
+          const answer = history[history.length - 1];
+
+          if (previous.role === 'user' && answer.role === 'assistant' && previous.request === answer.request && answer.status === 'complete') {
+            hasPreviousAnswer = true;
+            editedPaths = clone(answer.editedPaths) ?? [];
+            recentWorkspaceQuestion = previous.workspaceExcerpt !== undefined;
+
+            if (prompt.toLowerCase().includes('same function')) previousQuestion = clone(previous.functionLookup ?? previous.text);
+          }
+        }
+      }
+
+      let outline: LanguageReadResult | undefined = undefined;
+      const language = context.language;
+
+      if (canReadWorkspace && language !== undefined) outline = clone(language.get().readResults.find((result) => result.query.id === 'chat:outline'));
+      const grounding: EditorContextResult = canReadWorkspace && workspace !== undefined ? editorContext(
+        workspace.get(),
+        tree === undefined ? undefined : tree.get(),
+        attachments,
+        prompt,
+        editing,
+        snippets !== '',
+        declarations,
+        previousQuestion,
+        outline,
+        recentWorkspaceQuestion,
+        hasPreviousAnswer,
+        editedPaths
+      ) : {
+        excerpt: '', candidates: [], unavailable: []
+      };
+
+      if (canReadWorkspace && storeIndex !== undefined) storeIndex.set(Array.from(declarations.values()));
+      let excerpt = grounding.excerpt + snippets;
+
+      const problems = context.problems;
+
+      if (editing && canReadWorkspace && workspace !== undefined && problems !== undefined) {
+        const current = workspace.get();
+        const diagnostics: string[] = [];
+        const prefix = current.root.endsWith(separator()) ? clone(current.root) : current.root + separator();
+        const reported = problems.get();
+
+        for (const file of current.files) {
+          const doc = file.document;
+
+          if (file.kind !== 'text' || !doc.path.startsWith(prefix)) continue;
+
+          if (batch ? !attachments.some((item) => item.kind === 'file' && item.path === doc.path) : doc.path !== current.active) continue;
+
+          for (const problem of reported) {
+            if (problem.path === doc.path && problem.session === doc.session && problem.revision === doc.revision && problem.unversioned !== true && problem.source.startsWith('lsp:')) {
+              diagnostics.push(doc.path.slice(prefix.length) + ':' + problem.line.toString() + ':' + problem.column.toString() + ' [' + problem.severity + ' ' + problem.code + '] ' + problem.message);
+            }
+          }
+        }
+
+        if (diagnostics.length > 0) excerpt += (excerpt === '' ? '' : '\n\n') + 'Current editor diagnostics:\n' + diagnostics.join('\n');
+      }
+
+      if (canReadWorkspace && knowledgeQuestion(prompt) && grounding.candidates.length === 0 && grounding.unavailable.length === 0) {
+        match (searchKnowledge(prompt)) {
+          Ok(passage) => {
+            if (passage !== '') excerpt += (excerpt === '' ? '' : '\n\n') + passage;
+          },
+          Err(error) => {
+            next.notice = error;
+          }
+        }
+      }
+
+      next.history.chats[index].messages.push({
+        role: 'user', text: clone(prompt), request: clone(next.active), status: 'complete', context: clone(attachments), functionLookup: grounding.functionLookup, workspaceExcerpt: excerpt === '' ? undefined : clone(excerpt)
+      });
+      let editPrompt: string | undefined = undefined;
+      next.editTarget = undefined;
+
+      if (editing) {
+        const referenceValueInstruction = 'When asked for a literal value, copy its initializer from the reference source. A name declared only in a reference file is outside the target file\'s scope.';
+
+        if (next.review !== undefined) return Err('Review the previous edit proposal first.');
+
+        if (!canReadWorkspace || workspace === undefined) return Err('Open a text file to propose an edit.');
+        const current = workspace.get();
+
+        if (batch) {
+          const targets: ProposedEdit[] = [];
+          const sources: string[] = [];
+
+          for (const attachment of attachments) {
+            if (attachment.kind !== 'file' || (namedTarget !== '' && attachment.path !== namedTarget)) continue;
+            const path = clone(attachment.path);
+
+            if (targets.some((target) => target.path === path)) continue;
+            const closed = !current.files.some((entry) => entry.document.path === path);
+
+            if (closed) unwrap(openFile(current, path));
+            const file = current.files.find((entry) => entry.kind === 'text' && entry.document.path === path);
+
+            if (file === undefined || file.document.text !== attachment.text || !path.startsWith(current.root.endsWith(separator()) ? current.root : current.root + separator())) return Err('Attach up-to-date workspace text files to edit them together.');
+
+            sources.push('File ' + targets.length.toString() + ': ' + path + '\n' + file.document.text);
+            const target = propose(file.document, '');
+
+            if (closed) target.unopened = true;
+            targets.push(target);
+          }
+
+          if (targets.length === 0) return Err('Attach up-to-date workspace text files to edit them together.');
+          next.editTarget = {
+            files: targets
+          };
+          const skills = attachments.filter((item) => item.kind === 'skill');
+          const skillContext = skills.length === 0 ? '' : '\n\nUser-selected skills (reference only):\n' + JSON.stringify(skills);
+          const references = attachments.filter((item) => namedTarget !== '' && item.kind === 'file' && item.path !== namedTarget);
+          const fileContext = references.length === 0 ? '' : '\n\nUser-selected files (reference only):\n' + references.map((item) => item.path + '\n' + item.text).join('\n\n') + '\n' + referenceValueInstruction;
+          editPrompt = sources.join('\n\n') + skillContext + fileContext + (excerpt === '' ? '' : '\n\n' + excerpt) + '\n\nTask: ' + task + '\nReturn a JSON array of replacements. Each replacement has three fields: file (integer index), before (original text), after (replacement text). Copy before exactly from the file. Return only the JSON array.';
+        } else {
+          const file = current.files.find((entry) => entry.document.path === current.active && entry.kind === 'text');
+
+          if (file === undefined) return Err('Open a text file to propose an edit.');
+          next.editTarget = {
+            files: [propose(file.document, '')]
+          };
+
+          if (attachments.length === 0 && file.document.text !== '' && grounding.namedEditReference === true) {
+            const initializer = task.toLowerCase().includes(' from ') ? referenceLiteral(excerpt) : '';
+            editPrompt = 'Reference code (read only):\n' + excerpt.trim() + '\n' + referenceValueInstruction + '\nTask: ' + task + '\nEditable file: ' + file.name + '\n' + file.document.text.trimEnd() + '\nReturn JSON. Both fields are strings: {"before":"exact statement from editable file","after":"replacement statement"}. Use the smallest unique passage. For multiple replacements return an array of these objects.' + (initializer !== '' ? ' The literal value to use in the target initializer is ' + initializer + '.' : '');
+          } else {
+            const anchor = file.document.text === '' ? 'The file is empty. Set before to the empty string and after to the new file contents.' : 'Copy before exactly from a unique passage in the file. Include the surrounding text needed to identify it.';
+            const delegation = prompt.toLowerCase().includes('delegate to the imported') ? ' Delegate the entire operation to the requested function. Return its result directly.' : '';
+            editPrompt = 'Propose changes to the active file. Return a JSON object with string fields "before" and "after". For multiple replacements, return an array of these objects. Include only changed passages. Match each against the original file. When calling an imported function, match its declared parameter order. ' + anchor + ' No Markdown.\nTask: ' + task + delegation + '\nSource file: ' + file.name + '\n' + file.document.text + (excerpt === '' ? '' : '\n\n' + excerpt) + (attachments.length === 0 ? '' : '\nUser-selected context:\n' + JSON.stringify(attachments));
+          }
+
+        }
+      }
+
+      const generation: ModelRequest = {
+        kind: 'generate', id: clone(next.active), prompt: clone(prompt), maxTokens: 0
+      };
+
+      let reply = '';
+
+      if (grounding.candidates.length > 0) reply = translate('Which file did you mean?') + '\n\n' + grounding.candidates.join('\n\n');
+
+      if (grounding.unavailable.length > 0) reply += (reply === '' ? '' : '\n\n') + translate('Studio could not read text from these files.') + '\n\n' + grounding.unavailable.join('\n\n');
+
+      if (reply === '') reply = clone(grounding.saveStatus) ?? '';
+      next.history.chats[index].messages.push({
+        role: 'assistant', text: clone(reply), request: clone(next.active), status: reply === '' ? 'pending' : 'complete'
+      });
+      const clarifyEdit = editing && grounding.candidates.length > 0;
+      next.history.chats[index].draft = clarifyEdit ? clone(prompt) : '';
+      next.history.chats[index].context = clarifyEdit ? clone(attachments) : [];
+      next.history.chats[index].revision += 1;
+      next.history.draft = '';
+
+      if (reply !== '') {
+        next.editTarget = undefined;
+        next.active = '';
+        next.targetChat = '';
+        unwrap(publish(context, next));
+        return Ok('{"accepted":true}');
+      }
+
+      match (fitGeneration(generation, next.history.chats[index].messages, canReadWorkspace, editPrompt)) {
+        Err(error) => {
+          return Err(error);
+        },
+        Ok(_) => {}
+      }
+
+      if (next.phase === 'starting' || next.phase === 'inline') {
+        next.pending = generation;
+        const queued = next.queuedInline;
+
+        if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+        next.queuedInline = undefined;
+
+        if (next.phase === 'inline' && next.inlineCancel === undefined) {
+          next.inlineCancel = 'pending';
+          sendInlineCancel(next, context.commands);
+        }
+
+        unwrap(publish(context, next));
+        return Ok('{"accepted":true}');
+      }
+
+      if (next.phase === 'stopped') match (startRequest(context)) {
+        Err(error) => {
+          return Err(clone(error));
+        },
+        Ok(start) => {
+          request = start;
+        }
+      }
+
+      if (next.phase === 'stopped') {
+        next.pending = generation;
+        next.phase = 'starting';
+      } else {
+        request = generation;
+        next.phase = 'generating';
+      }
+    } else {
+      if (!context.allowControl) return Err('The host has not permitted model lifecycle actions.');
+
+      if (name === 'local_model_start') {
+        if (next.phase !== 'stopped') return Err('The local model is already starting or running.');
+
+        match (startRequest(context)) {
+          Err(error) => {
+            return Err(clone(error));
+          },
+          Ok(start) => {
+            request = start;
+          }
+        }
+
+        next.phase = 'starting';
+      } else if (name === 'local_model_stop') {
+        if (!['starting', 'ready', 'generating', 'inline'].includes(next.phase)) return Err('The local model is not running.');
+        request.kind = 'shutdown';
+        next.phase = 'stopping';
+      } else {
+        if (next.pending !== undefined && (next.phase !== 'starting' || (context.settings.get().inlineCompletions && next.warmModel === context.settings.get().aiModelPath)) && args.request === next.active && next.active !== '') {
+          restorePending(next, 'cancelled');
+          next.editTarget = undefined;
+          unwrap(publish(context, next));
+          return Ok('{"accepted":true}');
+        }
+
+        if (args.request !== next.active || next.active === '' || !['starting', 'generating'].includes(next.phase)) return Err('The generation request is no longer active.');
+
+        if (next.phase === 'starting') {
+          request.kind = 'shutdown';
+          next.phase = 'stopping';
+        } else {
+          request.kind = 'cancel';
+          request.id = clone(next.active);
+        }
+      }
+    }
+
+    if (request.kind === 'cancel' || request.kind === 'shutdown') next.editTarget = undefined;
+
+    match (context.commands.trySend(request)) {
+      Err(_) => {
+        return Err('The model command queue is full or closed.');
+      },
+      Ok(_) => {}
+    }
+
+    unwrap(publish(context, next));
+    return Ok('{"accepted":true}');
+  } catch (_) {
+    return Err('Could not perform the chat action. Check the model settings and try again.');
+  }
+}
+
+interface InlineRequest {
+  id: int;
+  prefix: string;
+  suffix: string;
+}
+
+export function requestInline(state: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, payload: ReadOnly<string>): void {
+  const request = JSON.parse<InlineRequest>(payload, {
+    maxBytes: payload.length * 4 + 1, maxDepth: 4, maxEntries: 8, maxNodes: 16
+  });
+  const next = state.get();
+
+  if (!next.inlineDisabled && next.pending === undefined && ['stopped', 'ready', 'starting', 'inline'].includes(next.phase)) {
+    const previous = next.queuedInline;
+
+    if (previous !== undefined) answerEditorLanguage(previous.id, 'null', (_delivery) => {});
+    next.queuedInline = clone(request);
+
+    if (next.phase === 'inline') {
+      if (next.inlineCancel === undefined) next.inlineCancel = 'pending';
+      sendInlineCancel(next, commands);
+    } else if (next.phase === 'ready') dispatchInline(next, commands, request);
+
+    state.set(next);
+  } else answerEditorLanguage(request.id, 'null', (_delivery) => {});
+}
+
+function dispatchInline(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>, request: InlineRequest): boolean {
+  match (commands.trySend({
+    kind: 'complete-code', id: 'inline:' + request.id.toString(), prompt: request.prefix, suffix: request.suffix, maxTokens: 0
+  })) {
+    Ok(_) => {
+      next.inlineRequest = request.id;
+      next.phase = 'inline';
+    },
+    Err(error) => {
+      if (error.code === 'full') return false;
+      answerEditorLanguage(request.id, 'null', (_delivery) => {});
+    }
+  }
+
+  next.queuedInline = undefined;
+  return true;
+}
+
+function sendInlineCancel(next: Mutable<AiState>, commands: ReadOnly<Sender<ModelRequest>>): void {
+  const active = next.inlineRequest;
+
+  if (next.inlineCancel === 'pending' && active !== undefined) {
+    match (commands.trySend({
+      kind: 'cancel', id: 'inline:' + active.toString(), prompt: '', maxTokens: 0
+    })) {
+      Ok(_) => {
+        next.inlineCancel = 'sent';
+      },
+      Err(_) => {}
+    }
+  }
+}
+
+export function cancelInline(state: Signal<AiState>, commands: ReadOnly<Sender<ModelRequest>>, id: int): void {
+  const next = state.get();
+
+  if (next.queuedInline?.id === id) {
+    next.queuedInline = undefined;
+  } else if (next.inlineRequest === id && next.inlineCancel === undefined) {
+    next.inlineCancel = 'pending';
+    sendInlineCancel(next, commands);
+  } else return;
+  state.set(next);
+}
+
+export function syncInlinePreference(context: ReadOnly<AiContext>): void {
+  const config = context.settings.get();
+  const next = context.state.get();
+
+  if (!config.inlineCompletions) {
+    if (!next.inlineDisabled) {
+      next.inlineDisabled = true;
+      next.releaseInline = next.warmModel !== undefined || next.phase === 'inline';
+      next.warmModel = undefined;
+      const queued = next.queuedInline;
+
+      if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+      next.queuedInline = undefined;
+
+      if (next.phase === 'inline' && next.inlineCancel === undefined) next.inlineCancel = 'pending';
+      context.state.set(next);
+    }
+
+    if (next.releaseInline && next.active === '' && next.pending === undefined && next.phase === 'ready') {
+      match (context.commands.trySend({
+        kind: 'shutdown', id: '', prompt: '', maxTokens: 0
+      })) {
+        Ok(_) => {
+          next.phase = 'stopping';
+          next.releaseInline = false;
+          context.state.set(next);
+        },
+        Err(_) => {}
+      }
+    }
+
+    return;
+  }
+
+  if (next.inlineDisabled) {
+    next.inlineDisabled = false;
+    next.releaseInline = false;
+    context.state.set(next);
+  }
+
+  if (!context.allowInference || !context.allowControl || config.aiModelPath === '' || next.warmModel === config.aiModelPath || next.phase !== 'stopped') return;
+
+  match (startRequest(context)) {
+    Ok(start) => {
+      match (context.commands.trySend(start)) {
+        Ok(_) => {
+          next.phase = 'starting';
+          next.warmModel = clone(config.aiModelPath);
+          context.state.set(next);
+        },
+        Err(_) => {}
+      }
+    },
+    Err(_) => {}
+  }
+}
+
+export function pollModel(context: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>): void {
+  const next = context.state.get();
+  let changed = false;
+  let save = false;
+
+  for (let count = 0; count < 8; count += 1) {
+    match (updates.tryReceive()) {
+      Err(_) => {
+        break;
+      },
+      Ok(update) => {
+        changed = true;
+
+        if (update.kind === 'error' && failedModelBackend(update.error)) {
+          next.phase = 'stopping';
+          next.notice = modelNotice(update.error);
+        }
+
+        const inline = next.inlineRequest;
+
+        if (inline !== undefined && (update.id === 'inline:' + inline.toString() || update.kind === 'stopped')) {
+          if (update.kind === 'prefix' || update.kind === 'compacted') continue;
+          answerEditorLanguage(inline, update.kind === 'complete' && !next.inlineDisabled && next.inlineCancel === undefined && next.phase === 'inline' ? JSON.stringify(update.text) : 'null', (_delivery) => {});
+          next.inlineRequest = undefined;
+          next.inlineCancel = undefined;
+
+          if (next.phase === 'inline') next.phase = 'ready';
+
+          if (update.kind !== 'stopped') continue;
+        }
+
+        if (update.kind === 'ready') {
+          if (next.phase === 'starting') next.phase = 'ready';
+        } else if (update.kind === 'stopped') {
+          if (next.pending !== undefined) {
+            const status = next.phase === 'stopping' ? 'cancelled' : 'error';
+            restorePending(next, status);
+          } else {
+            const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
+
+            if (chat >= 0) for (let message = 0; message < next.history.chats[chat].messages.length; message += 1) {
+              if (next.history.chats[chat].messages[message].request === next.active && next.history.chats[chat].messages[message].status === 'pending') {
+                next.history.chats[chat].messages[message].status = 'interrupted';
+                next.history.chats[chat].revision += 1;
+              }
+            }
+
+            next.active = '';
+            next.targetChat = '';
+          }
+
+          next.editTarget = undefined;
+          const queued = next.queuedInline;
+
+          if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+          next.queuedInline = undefined;
+          next.phase = 'stopped';
+          save = true;
+        } else if (update.kind === 'compacted' && update.id === next.active && update.id !== '') {
+          next.notice = 'Context was shortened to fit this model request. The full conversation remains in chat.';
+        } else if (update.id === next.active && update.id !== '') {
+          const chat = next.history.chats.findIndex((chat) => chat.id === next.targetChat);
+
+          if (chat >= 0) {
+            const message = next.history.chats[chat].messages.findIndex((message) => message.role === 'assistant' && message.request === update.id);
+
+            if (message >= 0) {
+              next.history.chats[chat].revision += 1;
+
+              if (next.editTarget === undefined && (update.kind === 'prefix' || update.kind === 'complete')) next.history.chats[chat].messages[message].text = clone(update.text);
+
+              if (update.kind === 'complete' && next.editTarget !== undefined) {
+                next.history.chats[chat].messages[message].text = translate('No edit was proposed.');
+
+                if (update.stop !== 'length') match (batchProposal(next.editTarget, update.text)) {
+                  Ok(proposal) => {
+                    proposal.request = clone(update.id);
+                    next.review = proposal;
+                    next.history.chats[chat].messages[message].text = translate('Review the proposed changes.');
+                  },
+                  Err(error) => {
+                    next.history.chats[chat].messages[message].text = translate(error);
+                    next.notice = error;
+                  }
+                }
+              }
+
+              if (update.kind === 'complete') next.history.chats[chat].messages[message].limited = update.stop === 'length';
+
+              if (update.kind === 'rejected') {
+                next.history.chats[chat].messages[message].text = modelNotice(update.error);
+                next.history.chats[chat].messages[message].status = 'rejected';
+              } else if (update.kind === 'complete' || update.kind === 'cancelled' || update.kind === 'error') next.history.chats[chat].messages[message].status = clone(update.kind);
+            }
+          }
+
+          if (['complete', 'cancelled', 'error', 'rejected'].includes(update.kind)) {
+            next.editTarget = undefined;
+
+            if (next.phase !== 'stopping') next.phase = 'ready';
+            next.active = '';
+            next.targetChat = '';
+            save = true;
+          }
+
+          if (update.error !== '') next.notice = modelNotice(update.error);
+        } else if (update.kind === 'error') next.notice = modelNotice(update.error);
+      }
+    }
+  }
+
+  if (next.inlineCancel === 'pending') {
+    sendInlineCancel(next, context.commands);
+    changed = true;
+  }
+
+  let waitingForCapacity = false;
+
+  if (next.phase === 'stopped' && next.queuedInline !== undefined && context.allowInference && next.warmModel !== context.settings.get().aiModelPath) {
+    match (startRequest(context)) {
+      Ok(start) => {
+        match (context.commands.trySend(start)) {
+          Ok(_) => {
+            next.warmModel = clone(context.settings.get().aiModelPath);
+            next.phase = 'starting';
+            changed = true;
+          },
+          Err(error) => {
+            waitingForCapacity = error.code === 'full';
+          }
+        }
+      },
+      Err(_) => {}
+    }
+  }
+
+  if (next.phase === 'ready' && next.queuedInline !== undefined && next.pending === undefined && context.allowInference) {
+    const queued = clone(next.queuedInline);
+
+    if (queued !== undefined && dispatchInline(next, context.commands, queued)) changed = true;
+  } else if (!waitingForCapacity && !['inline', 'starting'].includes(next.phase) && next.queuedInline !== undefined) {
+    const queued = clone(next.queuedInline);
+    next.queuedInline = undefined;
+
+    if (queued !== undefined) answerEditorLanguage(queued.id, 'null', (_delivery) => {});
+
+    changed = true;
+  }
+
+  if (next.phase === 'ready' && next.pending !== undefined) {
+    const pending = clone(next.pending);
+
+    if (pending !== undefined) match (context.commands.trySend(pending)) {
+      Ok(_) => {
+        next.pending = undefined;
+        next.phase = 'generating';
+        changed = true;
+        save = true;
+      },
+      Err(error) => {
+        if (error.code !== 'full') {
+          restorePending(next, 'error');
+          next.notice = 'The model command queue is full or closed.';
+          changed = true;
+          save = true;
+        }
+      }
+    }
+  }
+
+  if (changed) {
+    if (save) publish(context, next);
+    else context.state.set(next);
+  }
+}
+
+// UI adapters surface the same guarded errors returned to programmatic callers.
+export function performModelAction(context: ReadOnly<AiContext>, name: string, payload: string = '{}'): boolean {
+  match (invokeModelTool(context, name, payload)) {
+    Ok(_) => {
+      return true;
+    },
+    Err(error) => {
+      const next = context.state.get();
+      next.notice = error;
+      context.state.set(next);
+      return false;
+    }
+  }
+}
+
+interface ModelFailure {
+  message?: string;
+  cause?: string;
+}
+
+function modelNotice(error: ReadOnly<string>): string {
+  let text = clone(error);
+
+  try {
+    text = JSON.parse<string>(error);
+  } catch (_) {
+    try {
+      const failure = JSON.parse<ModelFailure>(error);
+      text = failure.message ?? failure.cause ?? clone(error);
+    } catch (_) {}
+  }
+
+  if (failedModelBackend(text)) return 'The inference backend failed during generation. Restart the model or select another model.';
+
+  if (text.includes('admission context')) return 'This conversation is too long for the selected model. Start a new chat or remove some context.';
+
+  if (text.includes('prompt exceeds')) return 'The message and context are too large for the selected model. Shorten them and try again.';
+  return text;
+}

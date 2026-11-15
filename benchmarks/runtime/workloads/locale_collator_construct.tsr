@@ -4,6 +4,7 @@ function workload(n: int, seed: int, input: string): int {
   const locale = unwrap(parseLocale('en'));
   let checksum = seed;
   let i = 0;
+
   while (i < n) {
     const value = unwrap(createCollator(locale));
     checksum += value.compare(input, 'e10') + 2;

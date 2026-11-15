@@ -7,9 +7,11 @@ type Node = {
 function workload(n: int, seed: int, input: string): Node[] {
   const output: Node[] = [];
   let i = 0;
+
   while (i < n) {
     const values: Node[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
     const replacement = item(seed + i + 11, input);
+
     if ((i + seed) % 8 === 0) {
       values.fill(replacement);
     } else if ((i + seed) % 8 === 1) {
@@ -30,6 +32,7 @@ function workload(n: int, seed: int, input: string): Node[] {
 
 function start(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 0;
   }
@@ -63,6 +66,7 @@ function start(i: int, seed: int): int {
 
 function ending(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 5;
   }
@@ -96,6 +100,7 @@ function ending(i: int, seed: int): int {
 
 function target(i: int, seed: int): int {
   const c = (i + seed) % 8;
+
   if (c === 0) {
     return 1;
   }

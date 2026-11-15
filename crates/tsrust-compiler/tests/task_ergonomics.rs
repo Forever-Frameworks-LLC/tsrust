@@ -150,7 +150,8 @@ const REGISTERED_TASKS:&[(&str,&str,&str)]=&[
 fn registered_task_runtime_examples_share_one_profiled_runner(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
  let suite=root.join("crates/tsrust-compiler/tests/fixtures/task-ergonomics/runtime.test.tsr");
- let output=support::run(support::cli().current_dir(&root).arg("test").arg(suite).args(["--reporter=json","--profile","--timeout=10000"]),600);support::success(&output);
+ let combinators=root.join("crates/tsrust-compiler/tests/fixtures/task-ergonomics/literal-combinators.test.tsr");
+ let output=support::run(support::cli().current_dir(&root).arg("test").arg(suite).arg(combinators).args(["--reporter=json","--profile","--timeout=10000"]),600);support::success(&output);
  let stderr=String::from_utf8(output.stderr).unwrap();
  if !stderr.is_empty(){
   // The original catalog launcher permitted this task-responsibility warning.
@@ -158,7 +159,7 @@ fn registered_task_runtime_examples_share_one_profiled_runner(){
  }
  let text=String::from_utf8(output.stdout).unwrap();print!("{text}");
  let rows=text.lines().map(|line|serde_json::from_str::<serde_json::Value>(line).unwrap()).collect::<Vec<_>>();
- let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),REGISTERED_TASKS.len());
+ let tests=rows.iter().filter(|row|row["event"]=="test").collect::<Vec<_>>();assert_eq!(tests.len(),REGISTERED_TASKS.len()+2);
  let mut expected=std::collections::BTreeSet::new();
  for(name,_,stdout)in REGISTERED_TASKS {
   let name=format!("task ergonomics > {name}");assert!(expected.insert(name.clone()));
@@ -169,9 +170,13 @@ fn registered_task_runtime_examples_share_one_profiled_runner(){
    let direct=serde_json::json!({"code":"worker","error":"cause"});let wrapped=serde_json::json!({"code":"worker","cause":direct});assert_eq!(actual,vec![direct,wrapped.clone(),wrapped]);
   }else{assert_eq!(actual,*stdout,"{name}");}
  }
+ for name in ["started literal race retains thread safety of internal borrowed futures","started literal settled retains order and internal borrowed futures"] {
+  assert!(expected.insert(name.to_owned()));
+  let case=tests.iter().filter(|row|row["name"]==name).collect::<Vec<_>>();assert_eq!(case.len(),1);assert_eq!(case[0]["status"],"passed");
+ }
  let actual=tests.iter().map(|row|row["name"].as_str().unwrap().to_owned()).collect::<std::collections::BTreeSet<_>>();assert_eq!(actual,expected);
  for row in rows.iter().filter(|row|row["event"]=="output"){assert!(row["name"].as_str().is_some_and(|name|expected.contains(name)),"unattributed output: {row}");assert_eq!(row["stream"],"stdout");}
  let summaries=rows.iter().filter(|row|row["event"]=="summary").collect::<Vec<_>>();assert_eq!(summaries.len(),1);
- for(field,value)in[("passed",13),("failed",0),("skipped",0),("hookFailures",0),("filesPassed",1),("filesFailed",0)]{assert_eq!(summaries[0][field],value);}
- let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],1);
+ for(field,value)in[("passed",15),("failed",0),("skipped",0),("hookFailures",0),("filesPassed",2),("filesFailed",0)]{assert_eq!(summaries[0][field],value);}
+ let builds=rows.iter().filter(|row|row["event"]=="build").collect::<Vec<_>>();assert_eq!(builds.len(),1);assert_eq!(builds[0]["testFiles"],2);
 }

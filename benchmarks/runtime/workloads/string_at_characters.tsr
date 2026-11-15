@@ -1,6 +1,7 @@
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const text = input.repeat(mode);

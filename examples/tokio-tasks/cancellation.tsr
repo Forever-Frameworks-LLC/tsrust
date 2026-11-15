@@ -7,6 +7,7 @@ async function waitForWork(): Task<void> {
 async function main(): Task<void> {
   const job = waitForWork().start();
   job.cancel();
+
   try {
     await job;
   } catch (error) {

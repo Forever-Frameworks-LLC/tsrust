@@ -1,0 +1,31 @@
+import { LanguageServer } from './servers.tsr';
+
+export function languagePresets(): LanguageServer[] {
+  return [{
+    "id": "go", "name": "Go", "program": "gopls", "arguments": ["serve"], "languages": ["go"], "files": [{
+      "extension": "go", "language": "go"
+    }]
+  }, {
+    "id": "rust", "name": "Rust", "program": "rust-analyzer", "arguments": [], "languages": ["rust"], "files": [{
+      "extension": "rs", "language": "rust"
+    }]
+  }, {
+    "id": "typescript", "name": "TypeScript / JavaScript", "program": "typescript-language-server", "arguments": ["--stdio"], "languages": ["typescript", "typescriptreact", "javascript", "javascriptreact"], "files": [{
+      "extension": "ts", "language": "typescript"
+    }, {
+      "extension": "mts", "language": "typescript"
+    }, {
+      "extension": "cts", "language": "typescript"
+    }, {
+      "extension": "tsx", "language": "typescriptreact"
+    }, {
+      "extension": "js", "language": "javascript"
+    }, {
+      "extension": "jsx", "language": "javascriptreact"
+    }, {
+      "extension": "mjs", "language": "javascript"
+    }, {
+      "extension": "cjs", "language": "javascript"
+    }]
+  }];
+}

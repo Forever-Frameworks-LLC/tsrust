@@ -1,11 +1,13 @@
 function workload(n: int, seed: int, input: string): number[][] {
   const output: number[][] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 3;
     const values: number[] = [0.0, -0.0, 2.5];
     const selected: number[] = [];
     let at = 0;
+
     while (at < count) {
       selected.push(values[at]);
       at = at + 1;

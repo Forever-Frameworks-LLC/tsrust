@@ -1,0 +1,39 @@
+import { strictEqual, test, startOutputCapture, finishOutputCapture } from 'std:testing';
+import { Signal, signal } from 'std:ui';
+
+test('signal handles share updates through stored records without transferring their owner', () => {
+  const owner = signal(1);
+  const rows = [1, 2].map((_value) => ({
+    state: owner.handle()
+  }));
+  rows[0].state.set(2);
+  strictEqual(owner.get(), 2);
+  strictEqual(rows[1].state.get(), 2);
+  startOutputCapture();
+  console.log(owner.get());
+  strictEqual(finishOutputCapture(), '2\n');
+  const next = rows[1].state.handle();
+  next.set(3);
+  strictEqual(owner.get(), 3);
+});
+
+test('signal handles do not keep disposed owners alive', () => {
+  const views: Signal<int>[] = [];
+
+  {
+    const owner = signal(9);
+    views.push(owner.handle());
+    strictEqual(views[0].get(), 9);
+  }
+
+  const stale = views[0].handle();
+  let disposed = false;
+
+  try {
+    stale.get();
+  } catch (_) {
+    disposed = true;
+  }
+
+  strictEqual(disposed, true);
+});

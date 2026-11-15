@@ -1,0 +1,54 @@
+import { Signal } from 'std:ui';
+
+import { CloseEditorsPlan, planCloseEditors, closeEditors } from '../lib/workspace/close-editors.tsr';
+import { publishWorkspace } from '../lib/workspace/document-actions.tsr';
+import { Recovery } from '../lib/workspace/recovery.tsr';
+import { Workspace } from '../lib/workspace/workspace.tsr';
+import { EditorTool } from './editor-tools.tsr';
+
+interface CloseEditorsArguments {
+  plan: CloseEditorsPlan;
+  discard?: boolean;
+}
+
+export interface CloseEditorsContext {
+  workspace: Signal<Workspace>;
+  recovery: Signal<Recovery>;
+  allowClose: boolean;
+  allowDiscard: boolean;
+}
+
+export function closeEditorTools(): EditorTool[] {
+  return [{
+    name: 'plan_close_all_editors', description: 'Read the bound workspace editor identities/revisions before closing. Does not close or save files.', inputSchema: '{"type":"object","properties":{}}'
+  }, {
+    name: 'close_all_editors', description: 'Close the exact planned editor sessions/revisions. Requires a host close grant; discarding unsaved buffers also requires a separately approved host discard grant. Never writes files.', inputSchema: '{"type":"object","properties":{"plan":{"type":"object"},"discard":{"type":"boolean"}},"required":["plan"]}'
+  }];
+}
+
+export function invokeCloseEditorTool(context: ReadOnly<CloseEditorsContext>, name: ReadOnly<string>, payload: ReadOnly<string>): Result<string, string> {
+  if (!context.allowClose) return Err('Closing editors is not permitted by the host.');
+
+  if (name === 'plan_close_all_editors') return Ok(JSON.stringify(planCloseEditors(context.workspace.get())));
+
+  if (name !== 'close_all_editors') return Err('Unknown editor close action.');
+
+  try {
+    const args = JSON.parse<CloseEditorsArguments>(payload, {
+      maxBytes: 1024 * 1024, maxDepth: 8, maxEntries: 100000, maxNodes: 100000
+    });
+    const next = context.workspace.get();
+
+    match (closeEditors(next, args.plan, args.discard ?? false, context.allowDiscard)) {
+      Err(error) => {
+        return Err(clone(error));
+      },
+      Ok(_) => {}
+    }
+
+    publishWorkspace(next, context.workspace, context.recovery);
+    return Ok('{"closed":true}');
+  } catch (error) {
+    return Err(JSON.stringify(error));
+  }
+}

@@ -3,10 +3,12 @@ import { strictEqual } from "std:testing";
 
 function check(text: string, expected: int): void {
   const encode = fromUtf8;
+
   match (encode(text)) {
     Ok(bytes) => {
       strictEqual(length(bytes), expected);
       const decode = toUtf8;
+
       match (decode(bytes)) {
         Ok(decoded) => {
           strictEqual(decoded, text);

@@ -1,0 +1,681 @@
+import { toUtf8 } from 'std:bytes';
+import { run } from 'std:process';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { studioServers } from '../src/lib/language/servers.tsr';
+import { LanguageMessage, LanguageUpdate, languageWorker } from '../src/services/lsp/session.tsr';
+import { Document, edit } from '../src/lib/workspace/documents.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { get } from 'std:env';
+import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
+import { strictEqual, test } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { emptyHistory } from '../src/lib/ai/conversations.tsr';
+import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
+import { join } from 'std:path';
+import { modelExtensions, installedModel, modelFolder } from '../src/services/ai/model-extensions.tsr';
+import { StudioConfig, configPath, loadConfig } from '../src/lib/settings/settings.tsr';
+import { reviewChatEdit } from '../src/components/ai/edit-review.tsrx';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { readTextFile } from 'std:fs';
+import { openFile, openWorkspace } from '../src/lib/workspace/workspace.tsr';
+import { AiContext, initialAiState, invokeModelTool, pollModel } from '../src/services/ai/actions.tsr';
+import { modelService } from '../src/services/ai/session.tsr';
+
+function evaluationConfig(): StudioConfig {
+  const config = unwrap(loadConfig(unwrap(configPath())));
+  const name = unwrap(get('TSRUST_STUDIO_EVAL_MODEL'));
+
+  if (name === undefined) return config;
+  const model = modelExtensions().find((entry) => entry.name === name);
+
+  if (model === undefined || !installedModel(model)) throw 'Install the selected evaluation model in Studio Extensions.';
+  config.aiModelPath = join(modelFolder(model), model.filename);
+  config.aiTokenizerPath = join(modelFolder(model), 'tokenizer.json');
+  return config;
+}
+
+async function ask(host: ReadOnly<AiContext>, updates: Mutable<Channel<ModelUpdate>>, prompt: string): Task<string> {
+  unwrap(invokeModelTool(host, 'local_model_send', JSON.stringify({
+    chat: host.state.get().history.active, prompt
+  })));
+
+  if (host.state.get().active === '') {
+    const messages = host.state.get().history.chats[0].messages;
+    return clone(messages[messages.length - 1].text);
+  }
+
+  const delivery = new Channel<ModelUpdate>(1);
+
+  while (true) {
+    const update = await updates.receive().timeout(180000);
+    const kind = clone(update.kind);
+
+    if (kind === 'error' || kind === 'rejected') throw clone(update.error);
+
+    if (kind === 'stopped' || kind === 'cancelled') throw 'Model stopped before answering.';
+    unwrap(delivery.sender().trySend(update));
+    pollModel(host, delivery);
+
+    if (kind === 'complete') {
+      const messages = host.state.get().history.chats[0].messages;
+      return clone(messages[messages.length - 1].text);
+    }
+  }
+}
+
+const workspaceEval = unwrap(get('TSRUST_STUDIO_RUN_MODEL_EVAL')) ?? '';
+
+if (workspaceEval === 'reference-draft' || workspaceEval === 'named-reference') test('local chat uses an unsaved reference value in the requested file', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const folder = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-reference-edit-'))));
+
+  try {
+    const reference = folder + '/defaults.tsr';
+    const target = folder + '/settings.tsr';
+    const original = 'export const timeout: int = 10;';
+    unwrap(writeTextFile(reference, 'export const defaultTimeout: int = 25;'));
+    unwrap(writeTextFile(target, original));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, reference));
+    edit(workspace.files[0].document, 'export const defaultTimeout: int = 47;');
+
+    if (workspaceEval === 'reference-draft') unwrap(openFile(workspace, target));
+    const opened = signal(workspace);
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: opened.handle(), state: signal(initialAiState(emptyHistory(clone(opened.get().root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+        chat: '', path: clone(reference), kind: 'file'
+      })));
+
+      if (workspaceEval === 'reference-draft') unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+        chat: '', path: clone(target), kind: 'file'
+      })));
+      const reply = await ask(host, updates, workspaceEval === 'named-reference' ? 'Update ./settings.tsr: set timeout to the numeric literal assigned to defaultTimeout in the attached defaults.tsr. Preserve all other code.' : 'Edit files: Only change file 1. Set its timeout to the numeric value of defaultTimeout from file 0. Keep the existing declaration. File 0 is reference only.');
+      console.log(reply);
+      const review = host.state.get().review;
+
+      if (review === undefined) throw 'Missing review: ' + host.state.get().notice;
+      strictEqual(review.files.length, 1);
+      strictEqual(review.files[0].path, target);
+      strictEqual(review.files[0].after, original.replace('10', '47'));
+      reviewChatEdit(host.state, opened, signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      }), review, true);
+      strictEqual(opened.get().files[1].document.text, review.files[0].after);
+      strictEqual(opened.get().files[0].document.text, 'export const defaultTimeout: int = 47;');
+      strictEqual(unwrap(readTextFile(reference)), 'export const defaultTimeout: int = 25;');
+      strictEqual(unwrap(readTextFile(target)), original);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+if (['1', 'index', 'helpers', 'imports', 'constant', 'active', 'batch', 'qualified', 'prose', 'named-edit'].includes(workspaceEval)) test(workspaceEval === 'named-edit' ? 'local chat edits a named unopened file with a same-name tab active' : workspaceEval === 'qualified' ? 'local chat uses the qualified file when the active editor has the same name' : workspaceEval === 'batch' ? 'local chat proposes changes to two attached drafts' : workspaceEval !== '1' ? 'local chat applies an indexed function across two turns' : 'configured local chat resolves a filename and proposes an edit for review', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST to the Studio model host executable.';
+  const folder = unwrap(createTempDir(undefined, 'studio-chat-evaluation-'));
+
+  try {
+    unwrap(mkdirAll(folder + '/lib'));
+    unwrap(writeTextFile(folder + '/answer.tsr', 'export function answer(): int { return 51; }'));
+    unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 73; }'));
+    const indexCase = workspaceEval !== '1';
+
+    if (workspaceEval === 'active') {
+      unwrap(writeTextFile(folder + '/quote.tsr', 'export function handlingFee(units: int): int { return units; }'));
+      unwrap(writeTextFile(folder + '/legacy.tsr', 'export function handlingFee(units: int): int { return 999; }'));
+      unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
+    } else if (workspaceEval === 'constant') {
+      unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge; }'));
+      unwrap(writeTextFile(folder + '/lib/rates.tsr', 'const minimum: int = 7;\nexport const baseCharge: int = minimum;\nexport const unrelated: int = 999;'));
+    } else if (workspaceEval === 'imports') {
+      unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'import { baseCharge } from "./rates";\nexport function handlingFee(units: int): int { return units + baseCharge(); }'));
+      unwrap(writeTextFile(folder + '/lib/rates.tsr', 'export function baseCharge(): int { return 7; }\nexport function unrelated(): int { return 999; }'));
+    } else if (workspaceEval === 'helpers') unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + baseCharge(); }\nfunction baseCharge(): int { return 7; }\nfunction unrelated(): int { return 999; }'));
+    else if (indexCase) unwrap(writeTextFile(folder + '/lib/pricing-policy.tsr', 'export function handlingFee(units: int): int { return units + 7; }\nexport function unrelated(): int { return 999; }'));
+    const workspace = unwrap(openWorkspace(folder));
+
+    if (workspaceEval === 'qualified') {
+      unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return base(); }\nfunction base(): int { return fee; }\nconst fee = 73;\nconst unused = 52;\nfunction unrelated(): int { return 420; }'));
+      unwrap(openFile(workspace, folder + '/answer.tsr'));
+    }
+
+    if (workspaceEval === 'named-edit') unwrap(openFile(workspace, folder + '/answer.tsr'));
+
+    if (workspaceEval === 'batch') {
+      unwrap(openFile(workspace, folder + '/answer.tsr'));
+      unwrap(openFile(workspace, folder + '/lib/answer.tsr'));
+    }
+
+    if (workspaceEval === 'active') {
+      unwrap(openFile(workspace, folder + '/quote.tsr'));
+      edit(workspace.files[0].document, 'import { baseCharge as charge } from "./lib/pricing-policy";\nexport function handlingFee(units: int): int { return units + fixedPart(); }\nfunction fixedPart(): int { return charge(); }');
+    }
+
+    const opened = signal(clone(workspace));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      if (workspaceEval === 'named-edit') {
+        await ask(host, updates, 'Update ./lib/answer.tsr: change the return value from 73 to 84.');
+        const review = host.state.get().review;
+
+        if (review === undefined) throw 'Missing review: ' + host.state.get().notice;
+        strictEqual(review.files.length, 1);
+        strictEqual(review.files[0].path, workspace.root + '/lib/answer.tsr');
+        strictEqual(opened.get().files.length, 1);
+        reviewChatEdit(host.state, opened, signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        }), review, true);
+        strictEqual(opened.get().active, workspace.root + '/answer.tsr');
+        strictEqual(opened.get().files[0].document.text, 'export function answer(): int { return 51; }');
+        strictEqual(opened.get().files[1].document.text, 'export function answer(): int { return 84; }');
+        strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), 'export function answer(): int { return 73; }');
+        return;
+      }
+
+      if (workspaceEval === 'batch') {
+        for (const path of ['answer.tsr', 'lib/answer.tsr']) unwrap(invokeModelTool(host, 'chat_attach_context', JSON.stringify({
+          chat: '', path: folder + '/' + path, kind: 'file'
+        })));
+        const reply = await ask(host, updates, 'Edit files: In file 0 change 51 to 52. In file 1 change 73 to 74.');
+        console.log(reply);
+        const batch = host.state.get().review;
+
+        if (batch === undefined) throw 'Missing multi-file proposal: ' + host.state.get().notice;
+        strictEqual(batch.files.length, 2);
+        strictEqual(batch.files[0].after, 'export function answer(): int { return 52; }');
+        strictEqual(batch.files[1].after, 'export function answer(): int { return 74; }');
+        const journal = signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        });
+        reviewChatEdit(host.state, opened, journal, batch, true);
+        strictEqual(opened.get().files[0].document.text, batch.files[0].after);
+        strictEqual(opened.get().files[1].document.text, batch.files[1].after);
+        return;
+      }
+
+      if (workspaceEval === 'qualified') {
+        const answer = await ask(host, updates, 'What does answer() in lib/answer.tsr return? Reply with the integer alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        strictEqual(excerpt.includes('return 51'), false);
+        strictEqual(excerpt.includes('const fee = 73;'), true);
+        strictEqual(excerpt.includes('unused'), false);
+        strictEqual(excerpt.includes('unrelated'), false);
+        strictEqual(excerpt.includes('return base()'), true);
+        strictEqual(answer.trim(), '73');
+        unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 84; }'));
+        const second = await ask(host, updates, 'I updated the file. What does the same function return now? Reply with the integer alone.');
+        const current = host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '';
+        strictEqual(current.includes('return 84'), true);
+        strictEqual(current.includes('return 51'), false);
+        strictEqual(second.trim(), '84');
+        unwrap(writeTextFile(folder + '/lib/answer.tsr', 'export function answer(): int { return 96; }'));
+        const third = await ask(host, updates, 'The same function changed again. Read its current value. Reply with the integer alone.');
+        const latest = host.state.get().history.chats[0].messages[4].workspaceExcerpt ?? '';
+        strictEqual(latest.includes('return 96'), true);
+        strictEqual(latest.includes('return 51'), false);
+        strictEqual(third.trim(), '96');
+        return;
+      }
+
+      if (indexCase) {
+        const first = await ask(host, updates, workspaceEval === 'prose' ? 'In this project, what is the handling fee for 5 units? Reply with the integer alone.' : 'What does handlingFee(5) return in this project? Reply with the integer alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        console.log(first);
+
+        if (workspaceEval === 'prose') strictEqual(host.state.get().history.chats[0].messages[0].functionLookup, './lib/pricing-policy.tsr\n`handlingFee`');
+        strictEqual(excerpt.includes('lib/pricing-policy.tsr'), true);
+
+        if (workspaceEval === 'imports' || workspaceEval === 'constant') strictEqual(excerpt.includes('lib/rates.tsr'), true);
+        strictEqual(excerpt.includes(workspaceEval === 'constant' ? 'export const baseCharge: int = minimum;' : workspaceEval !== 'index' && workspaceEval !== 'prose' ? 'function baseCharge(): int { return 7; }' : 'return units + 7;'), true);
+
+        if (workspaceEval === 'constant') strictEqual(excerpt.includes('const minimum: int = 7;'), true);
+
+        if (workspaceEval === 'active') strictEqual(excerpt.includes('Local name: charge refers to baseCharge.'), true);
+        strictEqual(excerpt.includes('999'), false);
+        const second = await ask(host, updates, 'Pass your previous answer to the same function. What does it return now? Reply with the integer alone.');
+        console.log(second);
+
+        if (workspaceEval === 'active') {
+          const followup = host.state.get().history.chats[0].messages[2].workspaceExcerpt ?? '';
+          strictEqual(followup.includes('export function baseCharge(): int { return 7; }'), true);
+          strictEqual(followup.includes('legacy.tsr'), false);
+        }
+
+        strictEqual(first.trim(), '12');
+        strictEqual(second.trim(), '19');
+        return;
+      }
+
+      const first = await ask(host, updates, 'What number does the function in answer.tsr return?');
+      console.log(first);
+      strictEqual(first.includes('lib/answer.tsr'), true);
+      strictEqual(first.includes('51') || first.includes('73'), false);
+      const second = await ask(host, updates, 'I mean lib/answer.tsr. What number does its function return?');
+      console.log(second);
+      strictEqual(second.includes('73'), true);
+      strictEqual(second.includes('51'), false);
+      const next = opened.get();
+      unwrap(openFile(next, folder + '/lib/answer.tsr'));
+      opened.set(next);
+      await ask(host, updates, 'Edit: Change the returned number from 73 to 84.');
+      const proposal = host.state.get().review;
+
+      if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
+      strictEqual(proposal.files[0].after.includes('return 84;'), true);
+      strictEqual(opened.get().files[0].document.text, proposal.files[0].before);
+      const recovery = signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      });
+      reviewChatEdit(host.state, opened, recovery, proposal, true);
+      strictEqual(opened.get().files[0].document.text, proposal.files[0].after);
+      strictEqual(unwrap(readTextFile(folder + '/lib/answer.tsr')), proposal.files[0].before);
+      unwrap(writeTextFile(folder + '/empty.tsr', ''));
+      const empty = opened.get();
+      unwrap(openFile(empty, folder + '/empty.tsr'));
+      opened.set(empty);
+      await ask(host, updates, 'Edit: Add this exact declaration to the empty file: export const answer = 27;');
+      const insertion = host.state.get().review;
+
+      if (insertion === undefined) throw 'Missing insertion proposal: ' + host.state.get().notice;
+      strictEqual(insertion.files[0].before, '');
+      strictEqual(insertion.files[0].after.trim(), 'export const answer = 27;');
+      strictEqual(unwrap(readTextFile(folder + '/empty.tsr')), '');
+      reviewChatEdit(host.state, opened, recovery, insertion, false);
+      const pairSource = 'export const low = 2;\nexport const fixed = 50;\nexport const high = 8;\n';
+      unwrap(writeTextFile(folder + '/pair.tsr', pairSource));
+      const pair = opened.get();
+      unwrap(openFile(pair, folder + '/pair.tsr'));
+      opened.set(pair);
+      await ask(host, updates, 'Edit: Change low from 2 to 3 and high from 8 to 9. Keep fixed and preserve formatting.');
+      const combined = host.state.get().review;
+
+      if (combined === undefined) throw 'Missing combined proposal: ' + host.state.get().notice;
+      strictEqual(combined.files[0].after, 'export const low = 3;\nexport const fixed = 50;\nexport const high = 9;\n');
+      strictEqual(unwrap(readTextFile(folder + '/pair.tsr')), combined.files[0].before);
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+if (['1', 'pair', 'strings'].includes(unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) ?? '')) test('local chat answers from bundled reference examples', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const folder = unwrap(createTempDir(undefined, 'studio-knowledge-eval-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(folder));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const host: AiContext = {
+      workspace: signal(clone(workspace)), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      if (unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === 'strings') {
+        const first = await ask(host, updates, 'Tsrust strings: choose the right position unit. Which unit does length use? Give the unit alone.');
+        const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+        console.log(first);
+        strictEqual(excerpt.includes('website/src/content/docs/language/strings.md:'), true);
+        const value = 'A😀B';
+        const followUp = await ask(host, updates, 'Using that rule, what is "A😀B".length? Reply with the integer alone.');
+        console.log(followUp);
+        strictEqual(first.toLowerCase().includes('byte'), true);
+        strictEqual(followUp.trim(), value.length.toString());
+        return;
+      }
+
+      const pair = unwrap(get('TSRUST_STUDIO_RUN_KNOWLEDGE_EVAL')) === 'pair';
+      const answer = await ask(host, updates, pair ? 'In the GPUI examples ClearableGroup and MessageScroller, what input ID is focused after Clear and what label jumps to the latest message? Give the two exact strings.' : 'In the bundled SQLite rollback example, how many rows remain after the exception? Reply with just the number.');
+      const excerpt = host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '';
+      console.log(answer);
+
+      if (pair) {
+        strictEqual(excerpt.includes('InputGroup.tsrx:'), true);
+        strictEqual(excerpt.includes('MessageScroller.tsrx:'), true);
+        strictEqual(excerpt.includes('jumpLabel="Latest"'), true);
+        strictEqual(answer.includes('group-search'), true);
+
+        if (!answer.includes('Latest')) {
+          const followUp = await ask(host, updates, 'What is the exact value of the jumpLabel property in that retrieved example? Reply with the value alone.');
+          console.log(followUp);
+          strictEqual(followUp.trim(), 'Latest');
+        }
+      } else {
+        strictEqual(excerpt.includes('examples/sqlite/rollback.tsr:'), true);
+        strictEqual(answer.trim(), '0');
+      }
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+async function callerDiagnostics(root: string, compiler: string, document: ReadOnly<Document>): Task<Problem[]> {
+  const commands = new Channel<LanguageMessage>(4);
+  const requests = commands.sender();
+  const events = new Channel<LanguageUpdate>(8);
+  const servers = studioServers(compiler, []);
+  const worker = languageWorker(root, clone(servers[0]), commands, events.sender()).start();
+
+  try {
+    while (true) {
+      const event = await events.receive().timeout(20000);
+
+      if (event.kind === 'failed') throw event.message;
+
+      if (event.kind === 'ready') await requests.send({
+        kind: 'document', generation: event.generation, document: {
+          path: clone(document.path), text: clone(document.text), session: clone(document.session), revision: document.revision, version: 1
+        }
+      });
+
+      if (event.kind === 'diagnostics') {
+        const identity = event.document;
+
+        if (identity === undefined || identity.path !== document.path || identity.session !== document.session || identity.revision !== document.revision || identity.version !== 1) throw 'Unexpected diagnostic document identity.';
+        const rows = event.problems ?? [];
+
+        for (let index = 0; index < rows.length; index += 1) {
+          rows[index].session = clone(identity.session);
+          rows[index].revision = identity.revision;
+        }
+
+        return rows;
+      }
+    }
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+}
+
+if (['1', 'default', 'combined', 'dataflow', 'feedback', 'reordered', 'usage', 'diagnostic', 'diagnostic-control'].includes(unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '')) test('local model repairs a caller using an unopened policy module and passes native cases', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+  const compiler = unwrap(get('TSRUST'));
+
+  if (program === undefined || compiler === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST and TSRUST.';
+  const folder = unwrap(createTempDir(undefined, 'studio-policy-eval-'));
+  const usage = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'usage';
+  const reordered = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'reordered';
+  const feedback = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'feedback';
+  const dataflow = feedback || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'dataflow';
+  const combined = usage || dataflow || unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'combined';
+  const defaultImport = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) === 'default';
+  const mode = unwrap(get('TSRUST_STUDIO_RUN_WORKSPACE_EVAL')) ?? '';
+  const broken = mode === 'diagnostic' || mode === 'diagnostic-control';
+  const oldBody = broken ? 'return shelfCharge(fragile, shipping);' : 'return units;';
+  const original = "import shelfCharge from './policy';\nexport function quote(units: int, fragile: boolean): int {\n  " + oldBody + "\n}\n";
+  const caller = defaultImport ? clone(original) : original.replace("import shelfCharge from './policy'", combined ? "import { shelfCharge, billableUnits } from './policy.tsr'" : "import { shelfCharge } from './policy.tsr'");
+  const implementation = 'export default function storageFee(fragile: boolean, units: int): int {\n  if (units <= 0) return 0;\n  if (fragile) return 17 + units * 3;\n  return 5 + units * 2;\n}\n';
+
+  const named = implementation.replace('default function storageFee', 'function shelfCharge');
+  const policy = defaultImport ? clone(implementation) : reordered ? named.replace('fragile: boolean, units: int', 'units: int, fragile: boolean') : clone(named);
+
+  try {
+    unwrap(writeTextFile(folder + '/quote.tsr', caller));
+
+    if (usage) unwrap(writeTextFile(folder + '/invoice.tsr', "import { shelfCharge, billableUnits, unrelatedRule as unusedPolicy } from './policy.tsr';\nexport function invoiceTotal(count: int, delicate: boolean, shipping: int): int {\n  return shipping + shelfCharge(delicate, billableUnits(count));\n}\n"));
+    const adjustment = 'export function billableUnits(units: int): int { return units <= 0 ? 0 : units + 2; }';
+    const file = policy + (combined ? adjustment + '\n' : '') + 'export function unrelatedRule(): int { return 999; }\n';
+    unwrap(writeTextFile(folder + '/policy.tsr', file));
+    const workspace = unwrap(openWorkspace(folder));
+    unwrap(openFile(workspace, folder + '/quote.tsr'));
+    const opened = signal(clone(workspace));
+    const requests = new Channel<ModelRequest>(8);
+    const updates = new Channel<ModelUpdate>(16);
+    const reports = broken ? await callerDiagnostics(clone(workspace.root), clone(compiler), workspace.files[0].document) : [];
+    const issue = reports.find((row) => row.message.includes('shipping'));
+
+    if (broken && issue === undefined) throw 'Language service did not diagnose shipping: ' + JSON.stringify(reports);
+    const host: AiContext = {
+      problems: signal<Problem[]>(mode === 'diagnostic' ? clone(reports) : []), workspace: opened.handle(), projectTree: signal(unwrap(scanTree(clone(workspace.root), false))), state: signal(initialAiState(emptyHistory(clone(workspace.root)))), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+    };
+    const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+    try {
+      const answer = await ask(host, updates, broken ? 'Edit: Fix the error in the shelfCharge call in quote. Preserve the public signature and existing pricing behavior.' : usage ? 'Edit: Fix quote to calculate the storage charge using the same policy as invoice.tsr. Exclude shipping. Preserve the public signature and all other code.' : dataflow ? 'Edit: Fix quote. First calculate the billableUnits for the order. Pass that adjusted quantity to shelfCharge with the original fragile flag and return the resulting charge. Preserve the public signature and all other code.' : combined ? 'Edit: Fix quote to price the billableUnits using shelfCharge. Delegate to both imported functions. Preserve the public signature and all other code.' : 'Edit: Fix quote to delegate to the imported shelfCharge function. Preserve the public signature and all other code.');
+      console.log(answer);
+
+      if (issue !== undefined) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(issue.message), mode === 'diagnostic');
+      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(policy), true);
+      strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(usage ? 'function unrelatedRule' : 'unrelatedRule'), false);
+
+      if (usage) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes('shipping + shelfCharge(delicate, billableUnits(count))'), true);
+
+      if (combined) strictEqual((host.state.get().history.chats[0].messages[0].workspaceExcerpt ?? '').includes(adjustment), true);
+      const proposal = host.state.get().review;
+
+      if (proposal === undefined) throw 'Missing reviewable edit: ' + host.state.get().notice;
+      // Run only reviewed, side-effect-free caller bodies. The native cases decide correctness.
+      const reviewed = combined ? ['return shelfCharge(fragile, billableUnits(units));', 'return units * 2;', 'return units - billableUnits(units);', 'return billableUnits(units) + shelfCharge(fragile, units);'] : [reordered ? 'return shelfCharge(units, fragile);' : 'return shelfCharge(fragile, units);'];
+
+      const after = clone(proposal.files[0].after);
+
+      if (!reviewed.some((body) => after === caller.replace(oldBody, body))) throw 'Unreviewed generated caller body.';
+      const recovery = signal<Recovery>({
+        path: folder + '/journal.json', baseline: '', ready: true
+      });
+      reviewChatEdit(host.state, opened, recovery, proposal, true);
+      const changed = opened.get();
+      strictEqual(unwrap(readTextFile(folder + '/quote.tsr')), caller);
+      unwrap(saveDocument(changed.files[0].document));
+      strictEqual(unwrap(readTextFile(folder + '/policy.tsr')), file);
+      // The model cannot retrieve these cases while proposing its edit.
+      const cases = "import { test, strictEqual } from 'std:testing';\nimport { quote } from './quote.tsr';\ntest('quote policy', () => { strictEqual(quote(-2, true), 0); strictEqual(quote(0, false), 0); strictEqual(quote(4, true), 29); strictEqual(quote(4, false), 13); });";
+      unwrap(writeTextFile(folder + '/quote.test.tsr', combined ? cases.replace('29);', '35);').replace('13);', '17);') : cases));
+      let result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+        cwd: clone(folder), env: [{
+          name: 'TSRUST_TEST_REPORTER', value: 'plain'
+        }]
+      }));
+
+      if (feedback && !result.status.success) {
+
+        const answer = await ask(host, updates, 'Edit: The native test failed. For 4 nonfragile units, billableUnits returns 6 and the expected charge is 17. Pass the adjusted units to shelfCharge and return its result.');
+        console.log(answer);
+        const revised = host.state.get().review;
+
+        if (revised === undefined) throw 'Missing correction proposal.';
+        strictEqual(revised.files[0].after, caller.replace('return units;', 'return shelfCharge(fragile, billableUnits(units));'));
+        const recovery = signal<Recovery>({
+          path: folder + '/journal.json', baseline: '', ready: true
+        });
+        reviewChatEdit(host.state, opened, recovery, revised, true);
+        const corrected = opened.get();
+        unwrap(saveDocument(corrected.files[0].document));
+        result = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+          cwd: clone(folder)
+        }));
+
+      }
+
+      if (!result.status.success) throw unwrap(toUtf8(result.stderr)) + unwrap(toUtf8(result.stdout));
+      // Changing the policy after approval distinguishes delegation from copied pricing logic.
+      const revisedPolicy = file.replace('17 + units * 3', '31 + units * 5').replace('5 + units * 2', '11 + units * 4');
+      unwrap(writeTextFile(folder + '/policy.tsr', revisedPolicy));
+      const policyCases = cases.replace('quote(4, true), 29', combined ? 'quote(7, true), 76' : 'quote(7, true), 66').replace('quote(4, false), 13', combined ? 'quote(1, false), 23' : 'quote(1, false), 15');
+      unwrap(writeTextFile(folder + '/quote.test.tsr', policyCases));
+      const delegated = unwrap(await run(compiler, ['test', 'quote.test.tsr'], {
+        cwd: clone(folder)
+      }));
+
+      if (!delegated.status.success) throw unwrap(toUtf8(delegated.stderr)) + unwrap(toUtf8(delegated.stdout));
+    } finally {
+      worker.cancel();
+
+      try {
+        await worker;
+      } catch (_) {}
+    }
+  } finally {
+    unwrap(removeDirAll(folder));
+  }
+});
+
+const recallEval = unwrap(get('TSRUST_STUDIO_RUN_RECALL_EVAL')) ?? '';
+
+if (['1', 'excerpt', 'reply', 'followup', 'historical-source', 'mixed-source'].includes(recallEval)) test('local chat recalls context across oversized history', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const workspace = unwrap(openWorkspace('.'));
+  const history = emptyHistory(clone(workspace.root));
+  const mixed = recallEval === 'mixed-source';
+  const historical = mixed || recallEval === 'historical-source';
+  const reply = recallEval === 'reply';
+  const followup = recallEval === 'followup';
+  history.active = 'recall';
+  history.chats.push({
+    id: 'recall', title: 'Recall', revision: 1, draft: '', messages: [{
+      role: 'user', request: 'one', text: (recallEval === 'excerpt' || reply ? ' preamble'.repeat(35000) + '\n' : '') + (reply ? 'What is the agreed crateFee in this repository?' : 'For this repository the agreed crateFee is 73.')
+    }, {
+      role: 'assistant', request: 'one', text: reply ? 'The agreed value is 73.' : 'Understood.'
+    }, {
+      role: 'user', request: 'two', text: ' unrelated'.repeat(35000)
+    }, {
+      role: 'assistant', request: 'two', text: followup ? 'The result is 41.' : 'Acknowledged.'
+    }]
+  });
+
+  if (historical) {
+    history.chats[0].messages = [{
+      role: 'user', request: 'one', text: 'Acknowledge receipt.', workspaceExcerpt: 'Active editor file: fees.tsr\n' + '// unrelated\n'.repeat(35000) + 'function serviceFee() {\n  return 73;\n}'
+    }, {
+      role: 'assistant', request: 'one', text: 'OK'
+    }];
+
+    if (mixed) {
+      history.chats[0].messages.push({
+        role: 'user', request: 'two', text: ' unrelated'.repeat(35000)
+      });
+      history.chats[0].messages.push({
+        role: 'assistant', request: 'two', text: 'Acknowledged.'
+      });
+    }
+  }
+
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(16);
+  const host: AiContext = {
+    workspace: signal(workspace), state: signal(initialAiState(history)), settings: signal(evaluationConfig()), commands: requests.sender(), allowRead: true, allowControl: true, allowInference: true
+  };
+  const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+  try {
+    const answer = await ask(host, updates, historical ? 'In the earlier file, what did serviceFee() return? Reply with only the number.' : followup ? 'Add one to your last answer. Reply with just the number.' : 'What is the previously agreed value of crateFee? Reply with just the number.');
+    strictEqual(answer.trim(), followup ? '42' : '73');
+    strictEqual(host.state.get().notice.includes('Context was shortened'), true);
+    strictEqual(host.state.get().history.chats[0].messages.length, historical && !mixed ? 4 : 6);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});
+
+if (workspaceEval === 'completion') test('local completion uses suffix context and stops before repeating existing code', async () => {
+  const program = unwrap(get('TSRUST_STUDIO_MODEL_HOST'));
+
+  if (program === undefined) throw 'Set TSRUST_STUDIO_MODEL_HOST.';
+  const config = evaluationConfig();
+  const requests = new Channel<ModelRequest>(8);
+  const updates = new Channel<ModelUpdate>(16);
+  const commands = requests.sender();
+  const worker = modelService(unwrap(canonicalize(program)), requests, updates.sender()).start();
+
+  try {
+    await commands.send({
+      kind: 'start', id: '', prompt: '', maxTokens: 0, modelPath: config.aiModelPath, tokenizerPath: config.aiTokenizerPath
+    });
+    strictEqual((await updates.receive().timeout(180000)).kind, 'ready');
+
+    for (const expected of ['first', 'second']) {
+      const overflow = expected === 'first';
+      let compacted = false;
+      await commands.send({
+        kind: 'complete-code', id: clone(expected), maxTokens: 0, prompt: (overflow ? '// ' + '🦀'.repeat(35000) + '\n' : '') + 'function pick(first: string, second: string): string { return ', suffix: '; }\n// pick returns the ' + expected + ' string.\n'
+      });
+
+      while (true) {
+        const update = await updates.receive().timeout(180000);
+        strictEqual(update.id, expected);
+
+        if (update.kind === 'compacted') {
+          compacted = true;
+          continue;
+        }
+
+        strictEqual(update.kind, 'complete');
+        strictEqual(update.stop, 'eos');
+        strictEqual(update.text, expected);
+        strictEqual(compacted, overflow);
+        break;
+      }
+    }
+
+    const source = unwrap(readTextFile('src/lib/workspace/documents.tsr'));
+    const expected = 'document.durabilityPending';
+    const cursor = source.indexOf(' || ' + expected) + 4;
+    strictEqual(source.slice(cursor, cursor + expected.length), expected);
+    await commands.send({
+      kind: 'complete-code', id: 'dirty', maxTokens: 0, prompt: source.slice(0, cursor), suffix: source.slice(cursor + expected.length)
+    });
+    const filled = await updates.receive().timeout(180000);
+    strictEqual(filled.id, 'dirty');
+    strictEqual(filled.kind, 'complete');
+    strictEqual(filled.text, expected);
+    strictEqual(filled.stop, 'suffix');
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+  }
+});

@@ -5,6 +5,7 @@ type Node = {
 
 function visit(node: Node, action: Mutable<Function<void, [value: int]>>) {
   action(node.value);
+
   for (const child of node.children) {
     visit(child, action);
   }
@@ -20,6 +21,7 @@ function main() {
   };
 
   let sum = 0;
+
   if (true) {
     const add = (value: int): void => {
       sum = sum + value;

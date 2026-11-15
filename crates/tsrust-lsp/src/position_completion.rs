@@ -3,6 +3,12 @@
 use super::*;
 
 impl SourceIndex {
+    pub(super) fn snippet_indent(&self, offset: usize) -> &str {
+        let start=self.source[..offset].rfind('\n').map_or(0,|at|at+1);
+        let prefix=&self.source[start..offset];
+        &prefix[..prefix.find(|ch|!matches!(ch,' '| '\t')).unwrap_or(prefix.len())]
+    }
+
     pub(super) fn jsx_props(&self, offset: usize) -> Option<(usize, Vec<(String,String)>, Vec<String>)> {
         let (span,written)=tsrust_compiler::jsx_attribute_context(&self.source,offset)?;
         let component=self.resolve_name(&self.source[span.start..span.end],span.start)?;
@@ -188,7 +194,7 @@ impl SourceIndex {
             let (pattern, detail) = if ungroup_callable_type(&ty) == "void" { (format!("{variant}(_)"), format!("{variant}()")) } else { (format!("{variant}(${{1:{binding}}})"), format!("{variant}({binding}: {ty})")) };
             items.push(json!({"label": variant, "kind": 20, "detail": detail, "insertTextFormat": 2,
                 "documentation": {"kind": "markdown", "value": format!("Select the `{variant}` alternative and bind its value.")},
-                "textEdit": {"range": replace, "newText": format!("{pattern} => {{\n  $0\n}}")}}));
+                "textEdit": {"range": replace, "newText": format!("{pattern} => {{\n{}  $0\n{}}}",self.snippet_indent(prefix_start),self.snippet_indent(prefix_start))}}));
         }
         Some(json!(items))
     }

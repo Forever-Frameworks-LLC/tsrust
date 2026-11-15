@@ -3,14 +3,18 @@ import { nested } from "./rust-owned-adapter.rs";
 function workload(n: int, seed: int): int {
   let checksum = 0;
   let i = 0;
+
   while (i < n) {
     const result = nested(seed + i);
     let observed = 1;
+
     if (result.kind === "some") {
       const inner = result.value;
       observed = 2;
+
       if (inner.kind === "some") {
         observed = 3;
+
         for (const word of inner.value) {
           observed = observed + word.length;
         }

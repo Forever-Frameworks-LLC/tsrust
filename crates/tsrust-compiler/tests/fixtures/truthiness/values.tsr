@@ -29,6 +29,7 @@ function main() {
   strictEqual(!!text, true);
   let absent: string | undefined = undefined;
   absent ||= "present";
+
   if (absent) strictEqual(absent.length, 7);
   else strictEqual(true, false);
   const values: int[] = [];

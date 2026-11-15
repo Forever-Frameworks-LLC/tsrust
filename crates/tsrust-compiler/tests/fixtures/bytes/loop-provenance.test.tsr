@@ -1,5 +1,12 @@
 import { test, strictEqual } from 'std:testing';
-import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  fromArray,
+  view,
+  at,
+  length
+} from "std:bytes";
 
 type Chunk = {
   read?: Once<Function<ByteView>>;
@@ -55,15 +62,18 @@ function observe(continuing: boolean): int {
   const owner = unwrap(fromArray([7, 255]));
   let root = empty();
   let depth = 0;
+
   while (depth < 4) {
     const parent = depth % 2 === 0 ? node(owner) : alternate(owner);
     parent.next = root;
     root = parent;
     depth++;
+
     if (continuing) continue;
   }
 
   let total = 0;
+
   while (root.next !== undefined) {
     total += first(root.read!());
     root = root.next!;

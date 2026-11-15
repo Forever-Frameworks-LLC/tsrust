@@ -6,6 +6,7 @@ import { reader, writer, close } from 'std:io';
 import { length, at } from 'std:bytes';
 async function workload(n: int, seed: int): Task<int> {
   const directory = unwrap(get('TSRUST_COMPRESSION_INPUT_DIR'));
+
   if (directory === undefined) {
     throw 'missing corpus';
   }
@@ -15,12 +16,15 @@ async function workload(n: int, seed: int): Task<int> {
     workers: 1, capacity: 1
   });
   let sum: int = 0;
+
   for (let i: int = 0; i < (n === -1 ? 1 : n); i++) {
     const transformed = unwrap(decompressReader(pool, reader(clone(payload)), 'gzip'));
     const output = unwrap(await transformed.readAll());
     unwrap(await close(unwrap(await transformed.finish())));
+
     if (n === -1) {
       const path = unwrap(get('TSRUST_COMPRESSION_PROBE_OUTPUT'));
+
       if (path === undefined) {
         throw 'missing probe path';
       }

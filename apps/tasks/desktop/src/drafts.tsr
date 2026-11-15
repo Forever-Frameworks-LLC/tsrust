@@ -1,0 +1,73 @@
+import { readTextFile, writeTextFileAtomic } from 'std:fs';
+
+import { WriteTask } from '../../shared/tasks.tsr';
+
+export interface LocalDraft {
+  id: string;
+  value: WriteTask;
+}
+
+export interface DraftJournal {
+  path: string;
+  baseline: string;
+  ready: boolean;
+}
+
+export interface RecoveredDraft {
+  journal: DraftJournal;
+  draft: LocalDraft | null;
+  error: string;
+}
+
+export function recoverDraft(path: string): RecoveredDraft {
+  const journal: DraftJournal = {
+    path, baseline: '', ready: true
+  };
+
+  match (readTextFile(journal.path)) {
+    Err(error) => {
+      if (error.code !== 'not-found') return {
+        journal: {
+          path: clone(journal.path), baseline: '', ready: false
+        }, draft: null, error: clone(error.message)
+      };
+    },
+    Ok(text) => {
+      journal.baseline = text;
+
+      try {
+        const draft = JSON.parse<LocalDraft | null>(journal.baseline);
+        return {
+          journal, draft, error: ''
+        };
+      } catch (_) {
+        journal.ready = false;
+        return {
+          journal, draft: null, error: 'The saved draft could not be read. Its file has been preserved.'
+        };
+      }
+    }
+  }
+
+  return {
+    journal, draft: null, error: ''
+  };
+}
+
+export function persistDraft(journal: Mutable<DraftJournal>, draft: ReadOnly<LocalDraft | null>): Result<void, string> {
+  if (!journal.ready) return Err('Draft recovery is unavailable. The existing file was preserved.');
+  const text = JSON.stringify(draft);
+
+  if (text === journal.baseline) return Ok();
+  // shortcut: one desktop writer per endpoint; coordinate first creation before supporting duplicate client windows.
+  match (writeTextFileAtomic(journal.path, text, journal.baseline === '' ? undefined : clone(journal.baseline))) {
+    Ok(_) => {
+      journal.baseline = text;
+      return Ok();
+    },
+    Err(error) => {
+      if (error.code === 'committed-not-durable') journal.baseline = text;
+      return Err(clone(error.message));
+    }
+  }
+}

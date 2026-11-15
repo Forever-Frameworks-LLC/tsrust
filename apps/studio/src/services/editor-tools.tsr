@@ -1,0 +1,223 @@
+import { JsonLimits } from 'std:json';
+
+import {
+  SearchActionContext,
+  findFiles,
+  showFileSearch,
+  closeFileSearch,
+  openFileSearchResult,
+  runContentSearch,
+  openSearchResult
+} from '../lib/explorer/search-actions.tsr';
+import { SearchHit } from '../lib/explorer/search.tsr';
+import { requestTreeRefresh } from '../lib/explorer/tree-actions.tsr';
+import { LanguageLocation, openLanguageLocation } from '../lib/language/navigation.tsr';
+import { LanguageReferences } from '../lib/language/references.tsr';
+import { paletteCommands } from '../lib/workspace/commands.tsr';
+import { ProblemLocation, openProblem } from '../lib/workspace/problem-actions.tsr';
+import { presentLanguageReferences, clearLanguageReferences } from './lsp/references.tsr';
+
+export interface EditorTool {
+  name: string;
+  description: string;
+  inputSchema: string;
+}
+
+interface RefreshArguments {
+  root: string;
+}
+
+interface FileSearchArguments {
+  root: string;
+  query?: string;
+  path?: string;
+}
+
+interface SearchArguments {
+  query: string;
+  regex?: boolean;
+  caseSensitive?: boolean;
+  includeIgnored?: boolean;
+}
+
+// Tool catalog and UI-thread adapter for the integrated agent host.
+// shortcut: schemas mirror typed arguments; generate from compiler types before expanding this catalog.
+export function editorTools(): EditorTool[] {
+  return [{
+    name: 'list_editor_commands', description: 'Read matching implemented editor command names and availability for the explicit granted root. Does not execute commands or change focus/views. Execution uses each action-specific guarded tool.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'show_command_palette', description: 'Open the command dialog with > mode. Requires explicit root, host read/navigation/modal-presentation grants and a bound palette. Takes modal focus and presents commands without executing them; search-field selection changes only if the host permits input focus.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'close_command_palette', description: 'Close the palette for the explicit workspace root. Requires a matching host navigation grant and bound palette. Does not execute commands, edit files or change sidebar mode.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'search_files', description: 'Find workspace files by case-insensitive relative name or path. Reads the current ignore-aware directory snapshot without changing focus or views. Requires an explicit root and matching host read grant.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'show_file_search', description: 'Open the file/command dialog for an explicit root without changing the sidebar. Requires host read/navigation/modal-presentation grants and bound palette state. The dialog takes modal focus. An omitted query retains a previous file query; type > for commands. Refreshes the file list; search-field focus and selection change only when the host permits input focus.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"query":{"type":"string","maxLength":4096}},"required":["root"]}'
+  }, {
+    name: 'open_file_search_result', description: 'Open an explicit path from the currently presented file search under the granted root. Requires host navigation permission. Rejects missing results and outside-root/symlink targets. Does not edit or save; search-field focus and selection change only when the host permits input focus.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"path":{"type":"string"}},"required":["root","path"]}'
+  }, {
+    name: 'refresh_explorer', description: 'Request a fresh explorer snapshot for an explicit workspace root. Requires a matching host read grant and bound explorer revision. Does not change focus, selection, files or settings.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'clear_language_references', description: 'Clear the explicit workspace reference query and results without changing files, focus or panel visibility. Invalidates pending native presentation, so late replies cannot refill the cleared pane. Requires a host navigation grant and bound reference state.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"}},"required":["root"]}'
+  }, {
+    name: 'present_language_references', description: 'Show explicit reference locations in the References pane without selecting a file. Nonempty results require query {path, position, symbol, kind?} (kind is symbol or file; file means direct Tsrust imports) so users can identify the search. Requires host navigation permission for the explicit root and a bound results pane. Locations use file URIs and zero-based UTF-16 ranges; opening a row validates its target separately.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"locations":{"type":"array","items":{"type":"object"}},"query":{"type":"object","properties":{"path":{"type":"string"},"symbol":{"type":"string"},"kind":{"type":"string","enum":["symbol","file"]},"position":{"type":"object","properties":{"line":{"type":"integer","minimum":0},"character":{"type":"integer","minimum":0}},"required":["line","character"]}},"required":["path","position","symbol"]}},"required":["root","locations"]}'
+  }, {
+    name: 'open_language_location', description: 'Open a file URI returned by a language service and select its exact zero-based UTF-16 range. Requires an explicit workspace root and host navigation grant for that root. Rejects outside-workspace paths, symlink escapes, non-file URIs and invalid ranges. Does not edit or save.', inputSchema: '{"type":"object","properties":{"root":{"type":"string"},"uri":{"type":"string"},"selection":{"type":"object"}},"required":["root","uri"]}'
+  }, {
+    name: 'open_problem', description: 'Open a workspace file at a one-based Unicode line and column, highlighting the rest of that line. Requires host navigation permission. No files are edited.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"line":{"type":"integer","minimum":1},"column":{"type":"integer","minimum":1}},"required":["path","line","column"]}'
+  }, {
+    name: 'search_content', description: 'Search saved files and unsaved buffers in the current workspace. Returns matching lines with UTF-8 ranges. One hit and first match per line. Requires host read permission for the explicit workspace root. includeIgnored applies only inside that grant.', inputSchema: '{"type":"object","properties":{"query":{"type":"string"},"regex":{"type":"boolean"},"caseSensitive":{"type":"boolean"},"includeIgnored":{"type":"boolean"}},"required":["query"]}'
+  }, {
+    name: 'open_search_result', description: 'Open a returned search hit and select its exact match. Requires host navigation permission; stale or outside-workspace targets are rejected.', inputSchema: '{"type":"object","properties":{"path":{"type":"string"},"line":{"type":"integer","minimum":1},"offset":{"type":"integer","minimum":0},"preview":{"type":"string"},"matches":{"type":"array","minItems":1,"items":{"type":"object","properties":{"start":{"type":"integer","minimum":0},"end":{"type":"integer","minimum":0}},"required":["start","end"]}}},"required":["path","line","offset","preview","matches"]}'
+  }];
+}
+
+// Model arguments cannot supply capabilities or actor identity; the host owns context.
+export function invokeEditorTool(context: ReadOnly<SearchActionContext>, name: string, payload: ReadOnly<string>): Result<string, string> {
+  if (payload.length > 32 * 1024 * 1024) return Err('Invalid editor tool arguments.');
+  const limits: JsonLimits = {
+    maxBytes: 32 * 1024 * 1024, maxDepth: 16, maxEntries: 4096, maxNodes: 8192
+  };
+  const tools = editorTools();
+
+  if (!tools.some((tool) => tool.name === name)) return Err('Unknown editor tool.');
+
+  try {
+    if (name === 'search_files' || name === 'show_file_search' || name === 'open_file_search_result' || name === 'list_editor_commands' || name === 'show_command_palette' || name === 'close_command_palette') {
+      const args = JSON.parse<FileSearchArguments>(payload, limits);
+
+      if (name === 'list_editor_commands') {
+        if (context.allowRead !== true || context.allowedRoot !== args.root || context.workspace.get().root !== args.root) return Err('Workspace search is not permitted for this task.');
+
+        if ((args.query?.length ?? 0) > 4096) return Err('File search query is too long.');
+        return Ok(JSON.stringify(paletteCommands(context.workspace.get(), '>' + (args.query ?? ''))));
+      }
+
+      if (name === 'close_command_palette') {
+        match (closeFileSearch(context, args.root)) {
+          Ok(_) => {
+            return Ok('{"closed":true}');
+          },
+          Err(error) => {
+            return Err(error);
+          }
+        }
+      }
+
+      if (name === 'search_files') {
+        match (findFiles(context, args.root, args.query ?? '')) {
+          Ok(files) => {
+            return Ok(JSON.stringify(files));
+          },
+          Err(error) => {
+            return Err(error);
+          }
+        }
+      }
+
+      if (name === 'show_file_search' || name === 'show_command_palette') {
+        const query = name === 'show_command_palette' ? '>' + (args.query ?? '') : clone(args.query);
+
+        match (showFileSearch(context, args.root, query)) {
+          Ok(_) => {
+            return Ok('{"shown":true}');
+          },
+          Err(error) => {
+            return Err(error);
+          }
+        }
+      }
+
+      const path = args.path;
+
+      if (path === undefined) return Err('Choose an explicit file search result.');
+
+      match (openFileSearchResult(context, args.root, path)) {
+        Ok(_) => {
+          return Ok('{"opened":true}');
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
+    if (name === 'refresh_explorer') {
+      const args = JSON.parse<RefreshArguments>(payload, limits);
+      const revision = context.explorerRevision;
+
+      if (revision === undefined) return Err('Explorer refresh is unavailable in this host.');
+
+      match (requestTreeRefresh(revision, clone(args.root), context.allowedRoot ?? '', clone(context.workspace.get().root), context.allowRead ?? false)) {
+        Ok(generation) => {
+          return Ok(JSON.stringify({
+            queued: true, generation
+          }));
+        },
+        Err(error) => {
+          return Err(error);
+        }
+      }
+    }
+
+    if (name === 'clear_language_references') {
+      const args = JSON.parse<RefreshArguments>(payload, limits);
+      unwrap(clearLanguageReferences(context, args.root));
+      return Ok('{"cleared":true}');
+    }
+
+    if (name === 'present_language_references') {
+      unwrap(presentLanguageReferences(context, JSON.parse<LanguageReferences>(payload, limits)));
+      return Ok('{"presented":true}');
+    }
+
+    if (name === 'open_language_location') {
+      const location = JSON.parse<LanguageLocation>(payload, limits);
+      unwrap(openLanguageLocation(context, location));
+      return Ok('{"opened":true}');
+    }
+
+    if (name === 'open_problem') {
+      const location = JSON.parse<ProblemLocation>(payload, limits);
+
+      match (openProblem(context, location)) {
+        Ok(_) => {
+          return Ok('{"opened":true}');
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    if (name === 'search_content') {
+      const args = JSON.parse<SearchArguments>(payload, limits);
+
+      match (runContentSearch(context, clone(args.query), args.regex ?? false, args.caseSensitive ?? false, args.includeIgnored ?? false)) {
+        Ok(result) => {
+          return Ok(JSON.stringify(result));
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    if (name === 'open_search_result') {
+      const hit = JSON.parse<SearchHit>(payload, limits);
+
+      match (openSearchResult(context, hit)) {
+        Ok(_) => {
+          return Ok('{"opened":true}');
+        },
+        Err(error) => {
+          return Err(clone(error));
+        }
+      }
+    }
+
+    return Err('Unknown editor tool.');
+  } catch (_) {
+    return Err('Invalid editor tool arguments.');
+  }
+}

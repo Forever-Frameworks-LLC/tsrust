@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): int {
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     let state = i;
     const outer = (): int => {

@@ -1,4 +1,11 @@
-import { Bytes, ByteViewMut, alloc, viewMut, length, at } from "std:bytes";
+import {
+  Bytes,
+  ByteViewMut,
+  alloc,
+  viewMut,
+  length,
+  at
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {
@@ -46,6 +53,7 @@ export function run() {
   const holder = build(read(first), read(second));
   replace(holder, read(third));
   const result = holder.read();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 11);

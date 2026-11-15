@@ -2,11 +2,14 @@ function workload(n: int, seed: int, input: string): int {
   const values: string[] = [clone(input), "é".toUpperCase(), "OMEGA".toLowerCase(), "😀".toUpperCase(), "alpha".toUpperCase()];
   let sum = seed;
   let i = 0;
+
   while (i < n) {
     values.reverse();
     let j = 0;
+
     while (j < values.length) {
       let code = 0;
+
       if (values[j] === input) {
         code = 17;
       } else {

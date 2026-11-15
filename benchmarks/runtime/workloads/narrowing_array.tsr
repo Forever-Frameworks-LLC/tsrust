@@ -1,9 +1,11 @@
 function workload(n: int, seed: int): string[] {
   const output: string[] = [];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 3;
     const value: int[] | null | undefined = mode === 0 ? null : mode === 1 ? undefined : [seed, i];
+
     if (value === undefined) {
       output.push("undefined");
       output.push("");

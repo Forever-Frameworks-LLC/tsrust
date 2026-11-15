@@ -24,6 +24,7 @@ function main() {
   strictEqual(values.delete(1), false);
   values.add(1);
   let order = "";
+
   for (const value of values) {
     order = order + String(value);
   }
@@ -47,6 +48,7 @@ function main() {
   strictEqual(words.length, 3);
   strictEqual(names.size, 2);
   let joined = "";
+
   for (const word of names) {
     joined = joined + word;
   }

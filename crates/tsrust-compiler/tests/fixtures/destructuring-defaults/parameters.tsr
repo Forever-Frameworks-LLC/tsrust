@@ -30,6 +30,7 @@ function main() {
   strictEqual(rows.map(({ label = "none", amount = 1 }) => label.repeat(amount)).join("|"), "none|zz");
   const pairs: int[][] = [[], [4]];
   let index = 0;
+
   for (const [first = 5, second = first + 1] of pairs) {
     strictEqual(first, index === 0 ? 5 : 4);
     strictEqual(second, index === 0 ? 6 : 5);

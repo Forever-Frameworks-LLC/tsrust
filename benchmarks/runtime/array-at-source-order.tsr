@@ -8,6 +8,7 @@ function main() {
   const values: string[] = ["a", "é"];
   const selected = values.at(index(trace));
   console.log(typeof selected);
+
   if (selected !== undefined) {
     console.log(selected);
   }

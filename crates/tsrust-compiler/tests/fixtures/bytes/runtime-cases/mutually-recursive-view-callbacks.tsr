@@ -1,5 +1,12 @@
 import { strictEqual } from 'std:testing';
-import { Bytes, ByteView, alloc, view, length, at } from 'std:bytes';
+import {
+  Bytes,
+  ByteView,
+  alloc,
+  view,
+  length,
+  at
+} from 'std:bytes';
 
 type First = {
   read: Once<Function<ByteView>>;

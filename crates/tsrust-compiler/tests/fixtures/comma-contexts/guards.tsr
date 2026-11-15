@@ -34,6 +34,7 @@ function main() {
     value: 3
   };
   let seen = 0;
+
   if (row.value !== (reset(row), null)) {
     strictEqual(row.value === null, true);
     seen = 1;

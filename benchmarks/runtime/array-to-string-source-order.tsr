@@ -1,5 +1,6 @@
 function receiver(trace: int[], empty: boolean): int[] {
   trace.push(1);
+
   if (empty) {
     return [];
   }

@@ -1,0 +1,18 @@
+import { get } from 'std:env';
+import { connect } from 'std:sql';
+
+// Explicit review data only; reruns preserve every existing task and owner edit.
+async function main(): Task<void> {
+  const url = unwrap(get('DATABASE_URL'));
+
+  if (url === undefined) throw 'Set DATABASE_URL to the local Worklist database.';
+  const pool = await connect(url, 1);
+
+  try {
+    await pool.execute("INSERT INTO tasks (id, title, description, status, priority, assignee, due_date) SELECT 'review-' || n, (ARRAY['Review keyboard navigation', 'Verify offline recovery', 'Check dark theme contrast', 'Review task filtering', 'Test version conflict', 'Verify table scrolling', 'Check card layout', 'Review accessible labels', 'Verify draft recovery', 'Check pagination'])[1 + (n - 1) % 10] || ' · sample ' || n, 'Review data for sorting, filtering, pagination and CDC. Safe to edit or delete.', (ARRAY['todo', 'in_progress', 'done'])[1 + (n - 1) % 3], (n - 1) % 4, (ARRAY['Ada', 'Grace', 'Linus', ''])[1 + (n - 1) % 4], CASE WHEN n % 5 = 0 THEN NULL ELSE '2026-11-' || (15 + n % 14)::text END FROM generate_series(1, 300) AS n ON CONFLICT (id) DO NOTHING", []);
+    const rows = await pool.query("SELECT COUNT(*) AS count FROM tasks WHERE id LIKE 'review-%'", []);
+    console.log('Review tasks available:', unwrap(rows[0].int('count')));
+  } finally {
+    await pool.close();
+  }
+}

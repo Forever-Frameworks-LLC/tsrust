@@ -15,6 +15,7 @@ function main() {
   });
   rows[0].label = "changed";
   const first = groups.get(1);
+
   if (first !== undefined) {
     strictEqual(first[0].label, "a");
   } else {

@@ -1,0 +1,118 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, readTextFile, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel, delay } from 'std:futures';
+import { join } from 'std:path';
+import { strictEqual, test } from 'std:testing';
+
+import { DiagnosticRange, LanguageDocument, documentUri, languageIdentity } from '../src/lib/language/diagnostics.tsr';
+import { languagePresets } from '../src/lib/language/presets.tsr';
+import { languageRoute } from '../src/lib/language/servers.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { languageServices } from '../src/services/lsp/registry.tsr';
+import { LanguageMessage, LanguageUpdate } from '../src/services/lsp/session.tsr';
+
+interface DefinitionLink {
+  targetUri: string;
+  targetSelectionRange: DiagnosticRange;
+}
+
+async function nextUpdate(updates: ReadOnly<Channel<LanguageUpdate>>, kind: string): Task<LanguageUpdate> {
+  while (true) {
+    const update = await updates.receive();
+
+    if (update.kind === 'failed') throw update.message;
+
+    if (update.kind === kind) return update;
+  }
+}
+
+async function nextAssignmentError(updates: ReadOnly<Channel<LanguageUpdate>>): Task<Problem> {
+  while (true) {
+    const update = await nextUpdate(updates, 'unversioned');
+    const rows: Problem[] = update.problems ?? [];
+    const issue = rows.find((row) => row.code === '2322');
+
+    if (issue !== undefined) return clone(issue);
+  }
+}
+
+test('TypeScript server resolves a NodeNext module import from an unsaved .mts buffer', async () => {
+  const root = unwrap(canonicalize(unwrap(createTempDir(undefined, 'studio-ts-lsp-'))));
+  const path = join(root, 'main.mts');
+  const library = join(root, 'math.mts');
+  const saved = 'export {};\n';
+  unwrap(writeTextFile(path, saved));
+  unwrap(writeTextFile(library, 'export const answer = 42;\n'));
+  unwrap(writeTextFile(join(root, 'tsconfig.json'), '{"compilerOptions":{"module":"NodeNext","strict":true}}'));
+  const server = languagePresets().find((entry) => entry.id === 'typescript');
+
+  if (server === undefined) throw 'Missing TypeScript preset.';
+  server.program = unwrap(get('TYPESCRIPT_LANGUAGE_SERVER')) ?? 'typescript-language-server';
+  const route = languageRoute([clone(server)], path);
+
+  if (route === undefined) throw 'Missing TypeScript module route.';
+  const messages = new Channel<LanguageMessage>(16);
+  const updates = new Channel<LanguageUpdate>(16);
+  const requests = messages.sender();
+  const worker = languageServices(clone(root), [server], messages, updates.sender()).start();
+
+  try {
+    await requests.send({
+      server: clone(route.server), kind: 'start', generation: 0
+    });
+    const ready = await nextUpdate(updates, 'ready').timeout(20000);
+    const document: LanguageDocument = {
+      server: clone(route.server), languageId: clone(route.language), path: clone(path), session: 'module', version: 1, revision: 1, text: 'export const wrong: number = "bad";\n'
+    };
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    const issue = await nextAssignmentError(updates).timeout(20000);
+    strictEqual(issue.source, 'lsp:typescript');
+    strictEqual(issue.path, path);
+    strictEqual(issue.message.includes('number'), true);
+    strictEqual(issue.unversioned, true);
+    strictEqual(issue.line, 0);
+    strictEqual(issue.column, 0);
+    document.text = 'import { answer } from "./math.mjs";\nexport const local = answer;\n';
+    document.revision += 1;
+    document.version += 1;
+    await requests.send({
+      server: clone(route.server), kind: 'document', generation: ready.generation, document: clone(document)
+    });
+    let locations: DefinitionLink[] = [];
+    // During project loading the syntax server can resolve only the local import alias.
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const id = 'module-definition-' + attempt.toString();
+      await requests.send({
+        server: clone(route.server), kind: 'query', generation: ready.generation, query: {
+          id: clone(id), method: 'textDocument/definition', document: languageIdentity(document), position: {
+            line: 1, character: 23
+          }
+        }
+      });
+      const reply = await nextUpdate(updates, 'query').timeout(20000);
+      strictEqual(reply.message, '');
+      strictEqual(reply.query?.id, id);
+      locations = JSON.parse<DefinitionLink[]>(reply.result ?? '[]');
+
+      if (locations.some((location) => location.targetUri === documentUri(library))) break;
+      await delay(200);
+    }
+
+    strictEqual(locations.length, 1);
+    strictEqual(locations[0].targetUri, documentUri(library));
+    strictEqual(locations[0].targetSelectionRange.start.line, 0);
+    strictEqual(locations[0].targetSelectionRange.start.character, 13);
+    strictEqual(locations[0].targetSelectionRange.end.character, 19);
+    strictEqual(unwrap(readTextFile(path)), saved);
+  } finally {
+    worker.cancel();
+
+    try {
+      await worker;
+    } catch (_) {}
+
+    unwrap(removeDirAll(root));
+  }
+});

@@ -1,0 +1,107 @@
+import { readTextFile } from 'std:fs';
+import { Signal, useTheme, setLocale, setWindowTitle, translate } from 'std:ui';
+
+import { Workspace } from '../workspace/workspace.tsr';
+import { zoomFontSize } from '../workspace/zoom.tsr';
+import { StudioConfig, parseConfig, formatConfig, saveConfig } from './settings.tsr';
+
+function applySettings(config: StudioConfig, font: Signal<int>, settings: Signal<StudioConfig>, workspace: Signal<Workspace>): void {
+  setLocale(config.locale);
+  font.set(zoomFontSize(config.fontSize, workspace.get().zoomLevel));
+  useTheme(clone(config.theme));
+  settings.set(config);
+  setWindowTitle(translate('Tsrust Studio Settings'));
+}
+
+
+export interface SettingsSession {
+  path: string;
+  draft: Signal<StudioConfig>;
+  text: Signal<string>;
+  baseline: Signal<string>;
+  present: Signal<boolean>;
+  ready: Signal<boolean>;
+  notice: Signal<string>;
+  raw: Signal<boolean>;
+  font: Signal<int>;
+  settings: Signal<StudioConfig>;
+  workspace: Signal<Workspace>;
+}
+
+export function settingsSessionHandles(session: ReadOnly<SettingsSession>): SettingsSession {
+  return {
+    path: clone(session.path), draft: session.draft.handle(), text: session.text.handle(), baseline: session.baseline.handle(), present: session.present.handle(), ready: session.ready.handle(), notice: session.notice.handle(), raw: session.raw.handle(), font: session.font.handle(), settings: session.settings.handle(), workspace: session.workspace.handle()
+  };
+}
+
+export function commitSettings(session: ReadOnly<SettingsSession>, config: StudioConfig): void {
+  if (!session.ready.get()) {
+    session.notice.set('Reload the settings file before saving.');
+    return;
+  }
+
+  const formatted = formatConfig(config);
+  // shortcut: initial creation assumes one settings writer; existing files use exact-text conflict checks.
+  const expected = session.present.get() ? session.baseline.get() : undefined;
+
+  match (saveConfig(session.path, formatted, expected)) {
+    Ok(saved) => {
+      session.baseline.set(clone(formatted));
+      session.present.set(true);
+      session.draft.set(clone(saved));
+      session.text.set(formatted);
+      applySettings(saved, session.font, session.settings, session.workspace);
+      session.notice.set('');
+    },
+    Err(error) => {
+      session.notice.set(error);
+    }
+  }
+}
+
+export function saveSettings(session: ReadOnly<SettingsSession>): void {
+  match (parseConfig(session.text.get())) {
+    Ok(config) => {
+      commitSettings(session, config);
+    },
+    Err(error) => {
+      session.notice.set(error);
+    }
+  }
+}
+
+export function reloadSettings(session: ReadOnly<SettingsSession>): void {
+  match (readTextFile(session.path, 1024 * 1024)) {
+    Ok(source) => {
+      match (parseConfig(source)) {
+        Ok(config) => {
+          session.baseline.set(source);
+          session.present.set(true);
+          session.ready.set(true);
+          session.draft.set(clone(config));
+          session.text.set(formatConfig(config));
+          applySettings(config, session.font, session.settings, session.workspace);
+          session.notice.set('');
+        },
+        Err(error) => {
+          session.notice.set(error);
+        }
+      }
+    },
+    Err(error) => {
+      session.notice.set(clone(error.message));
+    }
+  }
+}
+
+export function showSettingsControls(session: ReadOnly<SettingsSession>): void {
+  match (parseConfig(session.text.get())) {
+    Ok(config) => {
+      session.draft.set(config);
+      session.raw.set(false);
+    },
+    Err(error) => {
+      session.notice.set(error);
+    }
+  }
+}

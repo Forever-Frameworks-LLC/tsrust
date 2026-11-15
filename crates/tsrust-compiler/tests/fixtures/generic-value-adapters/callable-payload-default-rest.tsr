@@ -7,6 +7,7 @@ function next(): int {
 
 function sum(value: int = next(), ...tail: int[]): int {
   let result = value;
+
   for (const item of tail) {
     result += item;
   }

@@ -12,6 +12,7 @@ async function main(): Task<void> {
 
   const rows = await db.query('SELECT id, name FROM people ORDER BY id');
   await db.close();
+
   for (const row of rows) {
     console.log(`${unwrap(row.int('id'))}: ${unwrap(row.text('name'))}`);
   }

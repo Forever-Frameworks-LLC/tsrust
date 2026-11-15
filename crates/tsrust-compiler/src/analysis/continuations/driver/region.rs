@@ -19,7 +19,8 @@ pub(super) fn environment(analyzer: &mut Analyzer, mode: Environment, runtime: O
     let (effects, refresh_contracts, partial_contracts) = match mode {
         Environment::Fixed(effects) => (effects, false, false),
         Environment::Current => (analyzer.checked_error_effects()?, true, false),
-        Environment::Partial => (analyzer.discovery_error_effects(), true, true),
+        // Partial contracts are derived from the checked body and its callers in Phase::Body.
+        Environment::Partial => (Default::default(), true, true),
     };
     Ok(std::rc::Rc::new(CheckEnvironment { effects, runtime, refresh_contracts, partial_contracts }))
 }
@@ -218,14 +219,13 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let context = contexts.get(task.context);
                 let result_type = task.result;
                 let refresh = task.environment.refresh_contracts;
-                let mut effects = task.environment.effects.clone();
                 let partial = task.environment.partial_contracts;
                 let initial_runtime = task.environment.runtime;
                 let region = task.region.value();
-                if refresh {
+                let effects = if refresh {
                     analyzer.check_pending_region_functions(&region.body, result_type, false)?;
-                    effects = if partial { analyzer.region_caller_error_effects(context, &region.body, result_type) } else { analyzer.region_error_effects(context)? };
-                }
+                    if partial { analyzer.region_caller_error_effects(context, &region.body) } else { analyzer.region_error_effects(context)? }
+                } else { task.environment.effects.clone() };
                 let incoming = crate::error_effects::annotate_region_body(&mut region.body, &effects);
                 if incoming.opaque && (std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") || cfg!(test) && std::thread::current().name().is_some_and(|name|name.ends_with("iterator_terminal_error_contract_after_prior_catch_diagnostic"))) {
                     eprintln!("ITERATOR_OPAQUE incoming={:?} fields={:?} retained={:?} callbacks={:?} storage={:?}",incoming,crate::error_effects::record_field_origins(&analyzer.unions,&analyzer.program.records,&analyzer.scoped_records),context.caller_error_origins,effects.callback_errors,effects.storage_errors);
@@ -268,11 +268,11 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             Phase::Catch | Phase::Replay => {
                 let context = contexts.get(task.context);
                 let frame = task.frame.as_ref().expect("region phases");
-                let effects = if frame.refresh { analyzer.region_error_effects(context)? } else { frame.effects.clone() };
+                let effects = if frame.refresh { &analyzer.region_error_effects(context)? } else { &frame.effects };
                 let outer = frame.outer;
                 let source = match phase { Phase::Catch => &mut task.region.value().catch.as_mut().expect("catch").body,
                     Phase::Replay => task.region.value().finally.as_mut().expect("finally"), _ => unreachable!() };
-                let contract = crate::error_effects::annotate_region_body(source, &effects);
+                let contract = crate::error_effects::annotate_region_body(source, effects);
                 let points = crate::error_effects::OperationEffects::for_body(source);
                 let (normal, frame, mut errors) = exits;
                 errors.refine(&mut |span| points.get(span));
@@ -294,8 +294,8 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             Phase::Canonical => {
                 let context = contexts.get(task.isolated.expect("canonical context"));
                 let frame = task.frame.as_ref().expect("cleanup region");
-                let effects = if frame.refresh { analyzer.region_error_effects(context)? } else { frame.effects.clone() };
-                crate::error_effects::annotate_region_body(&mut body, &effects);
+                let effects = if frame.refresh { &analyzer.region_error_effects(context)? } else { &frame.effects };
+                crate::error_effects::annotate_region_body(&mut body, effects);
                 let context = contexts.take(task.isolated.take().expect("canonical context"));
                 task.frame.as_mut().unwrap().cleanup.as_mut().unwrap().canonical = Some((body, context.bindings));
             }

@@ -8,6 +8,7 @@ function forward<T>(fail: boolean, value: T, trace: Mutable<int[]>): T {
   let action = identity;
   action = action;
   const saved = action;
+
   try {
     try {
       if (fail) {

@@ -1,4 +1,11 @@
-import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+import {
+  Bytes,
+  ByteView,
+  alloc,
+  view,
+  length,
+  at
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {
@@ -65,6 +72,7 @@ export function run() {
   };
   const callback = takeLink(holder.next!);
   const result = callback();
+
   match (at(result, 0)) {
     Ok(value) => {
       strictEqual(value, 7);

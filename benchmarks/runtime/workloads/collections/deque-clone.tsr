@@ -6,6 +6,7 @@ type Item = {
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
+
   for (let i = 0; i < n; i++) {
     const value = (i + seed) % 256;
     const original = new Deque<Item>();

@@ -2,7 +2,7 @@
 use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,Instant}};
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
-pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>}
+pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<(std::sync::Arc<Output>,bool),String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
 /// request, including imported dependencies outside the ordinary watch tree.
 pub(crate) struct Snapshot {pub root:PathBuf,pub files:crate::dev_watch::Inputs}
@@ -49,14 +49,30 @@ impl SourceProvider for Snapshot {
 pub(crate) struct Worker {pub requests:SyncSender<Request>}
 impl Worker {
  pub fn new()->Result<Self,String> {
-  let (requests,rx)=mpsc::sync_channel::<Request>(1);
+  // Keep the pending snapshot in the watcher, where a newer save can replace it.
+  let (requests,rx)=mpsc::sync_channel::<Request>(0);
   std::thread::Builder::new().name("dev-frontend".into()).spawn(move||run(rx)).map_err(|e|e.to_string())?;
   Ok(Self{requests})
  }
 }
 fn run(requests:Receiver<Request>) {
  let mut session=ProjectSession::default();
- for request in requests {let result=compile(&mut session,&request.entry,&request.sources);let _=request.reply.send(result);}
+ let mut recent:Vec<(crate::dev_watch::Inputs,std::sync::Arc<Output>)>=Vec::new();
+ for request in requests {
+  if let Some(index)=recent.iter().position(|(inputs,_)|request.sources.files.only_unused_sources_changed(inputs)) {
+   let hit=recent.remove(index);
+   let _=request.reply.send(Ok((hit.1.clone(),true)));
+   recent.push(hit);continue;
+  }
+  // Keep the current revision and its predecessor for undo/redo, including across failed checks.
+  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources)).map(|output|{
+   let output=std::sync::Arc::new(output);
+   if recent.len()==2 {recent.remove(0);}
+   recent.push((request.sources.files,output.clone()));
+   (output,false)
+  });
+  let _=request.reply.send(result);
+ }
 }
 fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)->Result<Output,String>{
  let started=Instant::now();
@@ -79,6 +95,21 @@ mod tests {
  use super::*;
  fn write(path:&std::path::Path,text:&str) {
   let formatted=tsrust_compiler::format(text).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);std::fs::write(path,formatted).unwrap();
+ }
+ #[test]
+ fn cancelled_frontend_check_leaves_session_ready_for_the_latest_snapshot(){
+  let directory=crate::TempDirectory::new().unwrap();
+  let root=directory.0.canonicalize().unwrap();let entry=root.join("main.tsr");
+  std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
+  write(&entry,"import {value} from './dep';function main(){console.log(value());}");
+  write(&root.join("dep.tsr"),"export function value():int{return 1;}");
+  let mut watcher=crate::dev_watch::Watcher::default();let mut session=ProjectSession::default();
+  let first=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  let error=tsrust_compiler::project_session::with_cancellation(std::sync::Arc::new(true.into()),||compile(&mut session,&entry,&first)).err().expect("superseded check");
+  assert!(error.contains("check-cancelled"),"{error}");
+  write(&root.join("dep.tsr"),"export function value():int{return 2;}");
+  let latest=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  assert_eq!(compile(&mut session,&entry,&latest).unwrap().rust,compile(&mut ProjectSession::default(),&entry,&latest).unwrap().rust);
  }
  #[test]
  fn external_dependency_edits_keep_old_snapshots_frozen_and_refresh_new_ones(){

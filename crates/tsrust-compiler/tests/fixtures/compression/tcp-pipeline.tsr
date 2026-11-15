@@ -1,7 +1,14 @@
 import { parseAddress, listenTcp, connectTcp, TcpListener } from 'std:net';
 import { compressWriter, decompressReader, gzip, gunzip } from 'std:compression';
 import { ThreadPool } from 'std:threads';
-import { reader, writer, copy, readAll, writeAll, close } from 'std:io';
+import {
+  reader,
+  writer,
+  copy,
+  readAll,
+  writeAll,
+  close
+} from 'std:io';
 import { create, readFile, removeFile } from 'std:fs';
 import { fromUtf8, toUtf8 } from 'std:bytes';
 
@@ -27,6 +34,7 @@ export async function main(): Task<void> {
   const endpoint = unwrap(listener.localAddress());
   const worker = serve(listener).start();
   let response = '';
+
   try {
     const client = unwrap(await connectTcp(endpoint));
     unwrap(await writeAll(client, unwrap(fromUtf8('request'))));
@@ -35,6 +43,7 @@ export async function main(): Task<void> {
     client.close();
   } catch (failure) {
     worker.cancel();
+
     try {
       await worker;
     } catch (cleanupFailure) {}

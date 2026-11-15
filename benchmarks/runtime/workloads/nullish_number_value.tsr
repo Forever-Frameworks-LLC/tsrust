@@ -8,6 +8,7 @@ function workload(n: int, seed: int): number[][] {
     calls: 0
   };
   let i = 0;
+
   while (i < n) {
     const value = i + seed;
     const left: number | null | undefined = makeLeft(value);
@@ -24,6 +25,7 @@ function workload(n: int, seed: int): number[][] {
 
 function makeLeft(value: int): number | null | undefined {
   const tag = value % 5;
+
   if (tag === 0) {
     return null;
   }
@@ -33,6 +35,7 @@ function makeLeft(value: int): number | null | undefined {
   }
 
   const at = value % 8;
+
   if (at === 0) {
     return -0.0;
   }

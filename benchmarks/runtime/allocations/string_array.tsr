@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): string[] {
   const values: string[] = [];
   let i = 0;
+
   while (i < n) {
     values.push("Pat");
     i = i + 1;

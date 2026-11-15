@@ -13,6 +13,7 @@ async function events(sender: Sender<SseEvent>): Task<void> {
 async function echo(socket: Owned<WebSocket>): Task<void> {
   while (true) {
     const message = await socket.receive();
+
     if (message === undefined || message.kind === 'close') {
       break;
     }
@@ -50,6 +51,7 @@ async function main(): Task<void> {
   console.log(JSON.stringify({
     ready: 'ws://' + server.address() + '/ws'
   }));
+
   try {
     await receive(signals);
   } finally {

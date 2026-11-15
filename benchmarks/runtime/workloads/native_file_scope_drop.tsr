@@ -6,6 +6,7 @@ function observe(file: Mutable<File>, count: int): int[] {
     Ok(bytes) => {
       let sum = 0;
       let index = 0;
+
       while (index < length(bytes)) {
         match (at(bytes, index)) {
           Ok(value) => {
@@ -43,6 +44,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
 function workload(n: int, seed: int, input: string): int[][] {
   let output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const count = (i + seed) % 64 + 1;
     output.push(sample(input, count));

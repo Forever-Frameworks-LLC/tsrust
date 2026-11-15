@@ -1,0 +1,13 @@
+{
+  "grammars": [{
+    "name": "tsrust",
+    "scope": "source.tsrust",
+    "path": ".",
+    "file-types": ["tsr", "tsrx"]
+  }],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tsrust grammar extending TSX with match syntax."
+  }
+}

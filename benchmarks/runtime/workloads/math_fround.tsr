@@ -1,6 +1,7 @@
 function workload(n: int, seed: int): number {
   let sum: number = Number(seed);
   let i = 0;
+
   while (i < n) {
     const value: number = 16777216.0 + Number((i * 13 + seed) % 2049 - 1024) * 0.25;
     const value_result: number = Math.fround(value);

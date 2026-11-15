@@ -12,6 +12,7 @@ type Sides = {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     const row: ValueRow = (i + seed) % 2 === 0 ? {
@@ -24,6 +25,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     const values = Object.values(row);
     let text = "";
     let sum = 0;
+
     for (const value of values) {
       if (typeof value === "string") {
         text += value;
@@ -39,6 +41,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     };
     const lengths = Object.values(sides);
     let names = "";
+
     for (const pair of Object.entries(row)) {
       names += pair[0] + "=" + String(pair[1]) + ";";
     }

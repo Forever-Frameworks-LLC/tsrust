@@ -20,6 +20,7 @@ function workload(n: int, seed: int, input: string): int[][] {
   };
   const sizes: int[] = [0, 1, 4, 5, 17];
   let i = 0;
+
   while (i < n) {
     const mode = (i + seed) % 4;
     const value = (i * 13 + seed) % 97;
@@ -28,6 +29,7 @@ function workload(n: int, seed: int, input: string): int[][] {
     const size = sizes[(i * 3 + seed) % 5];
     const supplied: int[] = [];
     let at = 0;
+
     while (at < size) {
       supplied.push(value + at);
       at = at + 1;

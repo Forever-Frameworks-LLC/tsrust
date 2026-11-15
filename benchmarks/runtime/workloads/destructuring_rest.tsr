@@ -7,6 +7,7 @@ type Row = {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     const words = [input.repeat(1), String(base), input.repeat(2)];

@@ -13,6 +13,7 @@ function workload(n: int, seed: int, input: string): int[][] {
   }
 
   let i = 0;
+
   while (i < n) {
     const value = i % 5 + seed % 5 + 1;
     const base = [value, value + 1];

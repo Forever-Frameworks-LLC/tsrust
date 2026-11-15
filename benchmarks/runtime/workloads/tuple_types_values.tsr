@@ -9,6 +9,7 @@ function copyPair(value: ReadOnly<[int, string]>): [int, string] {
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
+
   while (i < n) {
     const base = (i * 13 + seed) % 97;
     const text = input.repeat(base % 3 + 1);

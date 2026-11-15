@@ -24,8 +24,10 @@ function main() {
   };
   catalog.users[0].tags.push("admin");
   append(catalog);
+
   for (const user of catalog.users) {
     console.log(user.name);
+
     for (const tag of user.tags) {
       console.log(tag);
     }

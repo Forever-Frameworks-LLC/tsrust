@@ -103,8 +103,7 @@ pub(super) fn contains(spans: &[Span], at: usize) -> bool {
 /// Comparisons and shifts outside parsed type spans retain exact operator tokens.
 pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagnostic> {
     let mut tokens = crate::syntax::lex(source)?;
-    // Preserve JSX islands byte-for-byte until their dedicated layout rules land.
-    // Surrounding declarations still use the ordinary formatter.
+    // Ordinary layout treats JSX as one operand; its dedicated pass handles children.
     let mut at=0;
     while at<tokens.len() {
         if tokens[at].kind != TokenKind::JsxOpen { at+=1; continue; }
@@ -130,6 +129,20 @@ pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagn
         if matches!(tokens[index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
             && contains(&spans, tokens[index].span.start)
         {
+            crate::type_syntax::split_closer(&mut tokens, index);
+        }
+        index += 1;
+    }
+    Ok(tokens)
+}
+
+pub(super) fn normalized_jsx_tokens(source: &str) -> Result<Vec<Token>, crate::Diagnostic> {
+    let mut tokens = crate::syntax::lex(source)?;
+    let spans = generic_spans(&tokens);
+    let mut index = 0;
+    while index < tokens.len() {
+        if matches!(tokens[index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
+            && contains(&spans, tokens[index].span.start) {
             crate::type_syntax::split_closer(&mut tokens, index);
         }
         index += 1;

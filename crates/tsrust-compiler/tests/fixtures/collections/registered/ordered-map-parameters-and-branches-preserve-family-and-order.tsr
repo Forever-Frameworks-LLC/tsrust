@@ -8,6 +8,7 @@ function build(flag: boolean): OrderedMap<string, int> {
   const right = new OrderedMap<string, int>();
   right.set('d', 4);
   right.set('c', 3);
+
   if (flag) {
     return left;
   }
@@ -21,6 +22,7 @@ function add(values: Mutable<OrderedMap<string, int>>) {
 
 function text(values: ReadOnly<OrderedMap<string, int>>): string {
   let result = '';
+
   for (const entry of values) {
     result += entry[0] + String(entry[1]);
   }

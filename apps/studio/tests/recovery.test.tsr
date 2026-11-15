@@ -1,0 +1,270 @@
+import { fromHex, toHex } from 'std:bytes';
+import {
+  readFile,
+  writeFile,
+  createTempDir,
+  writeTextFile,
+  readTextFile,
+  stat,
+  mkdirAll,
+  rename,
+  removeDirAll,
+  removeFile
+} from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
+import { changeExplorerEntry } from '../src/lib/explorer/file-operations.tsr';
+import { edit, dirty } from '../src/lib/workspace/documents.tsr';
+import { persistRecovery, restoreRecovery } from '../src/lib/workspace/recovery.tsr';
+import { saveDocument } from '../src/lib/workspace/storage.tsr';
+import { openWorkspace, openFile, closeFile, selectFile } from '../src/lib/workspace/workspace.tsr';
+
+test('recovery restores exact drafts with fresh sessions and retains the original disk baseline', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-recovery-'));
+
+  try {
+    unwrap(writeTextFile(root + '/source.tsr', 'disk\r\n'));
+    const workspace = unwrap(openWorkspace(root));
+    const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
+    unwrap(openFile(workspace, root + '/source.tsr'));
+    const session = clone(workspace.files[0].document.session);
+    edit(workspace.files[0].document, '日本語 🦀\r\n');
+    workspace.files[0].caret = 10;
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeTextFile(root + '/source.tsr', 'external edit'));
+    const reopened = unwrap(openWorkspace(root));
+    const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
+    strictEqual(reopened.files.length, 1);
+    strictEqual(reopened.files[0].caret, 10);
+    strictEqual(reopened.files[0].document.text, '日本語 🦀\r\n');
+    strictEqual(reopened.files[0].document.savedText, 'disk\r\n');
+    strictEqual(reopened.files[0].document.session === session, false);
+    strictEqual(dirty(reopened.files[0].document), true);
+
+    match (saveDocument(reopened.files[0].document)) {
+      Ok(_) => {
+        throw 'recovery overwrote external changes';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/source.tsr')), 'external edit');
+    unwrap(writeTextFile(root + '/journal.json', 'external journal edit'));
+
+    match (persistRecovery(reopened, restored)) {
+      Ok(_) => {},
+      Err(_) => {}
+    }
+
+    edit(reopened.files[0].document, 'new draft');
+
+    match (persistRecovery(reopened, restored)) {
+      Ok(_) => {
+        throw 'changed journal was overwritten';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(unwrap(readTextFile(root + '/journal.json')), 'external journal edit');
+    const invalid = unwrap(openWorkspace(root));
+
+    match (restoreRecovery(invalid, root + '/journal.json')) {
+      Ok(_) => {
+        throw 'corrupt journal accepted';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(invalid.files.length, 0);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('workspace recovery retains clean tabs and selection while taking fresh disk contents', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-view-recovery-'));
+
+  try {
+    unwrap(writeTextFile(root + '/a.tsr', 'abcd'));
+    unwrap(writeTextFile(root + '/b.tsr', 'b'));
+    unwrap(writeTextFile(root + '/deleted.tsr', 'deleted'));
+    unwrap(writeTextFile(root + '/renamed.tsr', 'original'));
+    const workspace = unwrap(openWorkspace(root));
+    const recovery = unwrap(restoreRecovery(workspace, root + '/journal.json'));
+
+    for (const file of ['a.tsr', 'b.tsr', 'deleted.tsr', 'renamed.tsr']) unwrap(openFile(workspace, root + '/' + file));
+    const first = clone(workspace.files[0].document.path);
+    const second = clone(workspace.files[1].document.path);
+    const oldSession = clone(workspace.files[0].document.session);
+    strictEqual(selectFile(workspace, first), true);
+    workspace.dockLayout = 'opaque native layout 日本語';
+    workspace.zoomLevel = 3;
+    workspace.files[0].caret = 2;
+    workspace.sourceBreakpoints = [{
+      path: clone(first), line: 2
+    }, {
+      path: clone(workspace.files[2].document.path), line: 1
+    }, {
+      path: clone(workspace.files[3].document.path), line: 1
+    }];
+    edit(workspace.files[1].document, 'draft 日本語 🦀\r\n');
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeTextFile(root + '/a.tsr', '🦀 changed on disk'));
+    unwrap(removeFile(root + '/deleted.tsr'));
+    unwrap(rename(root + '/renamed.tsr', root + '/moved.tsr'));
+    unwrap(mkdirAll(root + '/renamed.tsr'));
+    const reopened = unwrap(openWorkspace(root));
+    const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
+    strictEqual(reopened.files.length, 2);
+    strictEqual(reopened.active, first);
+    strictEqual(reopened.dockLayout, 'opaque native layout 日本語');
+    strictEqual(reopened.zoomLevel, 3);
+    const points = clone(reopened.sourceBreakpoints) ?? [];
+    strictEqual(points.length, 1);
+    strictEqual(points[0].path, first);
+    strictEqual(points[0].line, 2);
+    strictEqual(reopened.files[0].document.text, '🦀 changed on disk');
+    strictEqual(reopened.files[0].caret, 0);
+    strictEqual(dirty(reopened.files[0].document), false);
+    strictEqual(reopened.files[0].document.session === oldSession, false);
+    strictEqual(reopened.files[1].document.path, second);
+    strictEqual(reopened.files[1].document.text, 'draft 日本語 🦀\r\n');
+    strictEqual(reopened.files[1].document.savedText, 'b');
+    strictEqual(dirty(reopened.files[1].document), true);
+    unwrap(closeFile(reopened, first));
+    unwrap(persistRecovery(reopened, restored));
+    const closed = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(closed, root + '/journal.json'));
+    strictEqual(closed.files.length, 1);
+    strictEqual(closed.active, second);
+    strictEqual(closed.files[0].document.text, 'draft 日本語 🦀\r\n');
+    // Old v1 journals still recover drafts without optional view fields.
+    const legacyJournal = {
+      schemaVersion: 1, root: clone(workspace.root), drafts: [{
+        path: clone(first), text: 'legacy', savedText: 'a', durabilityPending: false
+      }]
+    };
+    unwrap(writeTextFile(root + '/legacy.json', JSON.stringify(legacyJournal)));
+    const legacy = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(legacy, root + '/legacy.json'));
+    strictEqual(legacy.files.length, 1);
+    strictEqual(legacy.files[0].document.text, 'legacy');
+    strictEqual(legacy.dockLayout, '');
+    strictEqual(legacy.zoomLevel, 0);
+    strictEqual((clone(legacy.sourceBreakpoints) ?? []).length, 0);
+    // Invalid view state cannot partially restore buffers or replace its journal.
+    const invalidJournal = {
+      schemaVersion: 1, root: clone(workspace.root), drafts: clone(legacyJournal.drafts), opened: [clone(first), root + '-outside/file.tsr'], active: clone(first)
+    };
+    const invalidText = JSON.stringify(invalidJournal);
+    unwrap(writeTextFile(root + '/invalid.json', invalidText));
+    const invalid = unwrap(openWorkspace(root));
+
+    match (restoreRecovery(invalid, root + '/invalid.json')) {
+      Ok(_) => {
+        throw 'outside workspace view was accepted';
+      },
+      Err(_) => {}
+    }
+
+    strictEqual(invalid.files.length, 0);
+    strictEqual(unwrap(readTextFile(root + '/invalid.json')), invalidText);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+test('recovery opens journaled text drafts after disk files become binary, oversized, missing or directories', () => {
+  const root = unwrap(createTempDir(undefined, 'studio-replaced-drafts-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(root));
+    const journal = root + '/journal.json';
+    const recovery = unwrap(restoreRecovery(workspace, clone(journal)));
+    const paths = [root + '/binary.dat', root + '/removed.txt', root + '/large.txt', root + '/folder.txt'];
+
+    for (const path of paths) {
+      unwrap(writeTextFile(path, 'original'));
+      unwrap(openFile(workspace, path));
+      edit(workspace.files[workspace.files.length - 1].document, 'unsaved 日本語');
+    }
+
+    unwrap(persistRecovery(workspace, recovery));
+    unwrap(writeFile(paths[0], unwrap(fromHex('00ff'))));
+    unwrap(writeTextFile(paths[2], 'x'.repeat(4194305)));
+    unwrap(removeFile(paths[1]));
+    unwrap(removeFile(paths[3]));
+    unwrap(mkdirAll(paths[3]));
+    unwrap(writeTextFile(paths[3] + '/keep', 'directory contents'));
+    const restored = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(restored, journal));
+    strictEqual(restored.files.length, 4);
+
+    for (let index = 0; index < restored.files.length; index += 1) {
+      strictEqual(restored.files[index].document.path, workspace.files[index].document.path);
+      strictEqual(restored.files[index].kind, 'text');
+      strictEqual(restored.files[index].document.text, 'unsaved 日本語');
+      strictEqual(restored.files[index].document.savedText, 'original');
+
+      match (saveDocument(restored.files[index].document)) {
+        Ok(_) => {
+          throw 'Recovery replaced external file contents';
+        },
+        Err(error) => {
+          if (index !== 3) strictEqual(error.code, 'conflict');
+        }
+      }
+    }
+
+    match (readFile(paths[1])) {
+      Ok(_) => {
+        throw 'Recovery recreated a deleted file';
+      },
+      Err(error) => {
+        strictEqual(error.code, 'not-found');
+      }
+    }
+
+    strictEqual(unwrap(stat(paths[3])).isDirectory, true);
+    strictEqual(unwrap(readTextFile(paths[3] + '/keep')), 'directory contents');
+    strictEqual(unwrap(toHex(unwrap(readFile(paths[0])))), '00ff');
+    strictEqual(unwrap(readTextFile(paths[2])).length, 4194305);
+  } finally {
+    unwrap(removeDirAll(root));
+  }
+});
+
+
+test('renaming an unsaved text file to SVG preserves the draft and unrelated tabs across restart', () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-svg-draft-'));
+
+  try {
+    const workspace = unwrap(openWorkspace(temp));
+    const root = clone(workspace.root);
+    const journal = root + '/journal.json';
+    const recovery = unwrap(restoreRecovery(workspace, clone(journal)));
+    unwrap(writeTextFile(root + '/notes.txt', 'original notes'));
+    unwrap(openFile(workspace, root + '/notes.txt'));
+    edit(workspace.files[0].document, 'unsaved notes');
+    unwrap(writeTextFile(root + '/drawing.txt', '<svg/>'));
+    unwrap(openFile(workspace, root + '/drawing.txt'));
+    edit(workspace.files[1].document, '<svg><circle r="4"/></svg>');
+    unwrap(changeExplorerEntry(workspace, 'Rename', root + '/drawing.txt', 'drawing.svg'));
+    unwrap(persistRecovery(workspace, recovery));
+    const restored = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(restored, journal));
+    strictEqual(restored.files.length, 2);
+    strictEqual(restored.files[0].document.text, 'unsaved notes');
+    strictEqual(restored.files[1].kind, 'text');
+    strictEqual(restored.active, root + '/drawing.svg');
+    strictEqual(restored.files[1].document.text, '<svg><circle r="4"/></svg>');
+    strictEqual(unwrap(readTextFile(restored.active)), '<svg/>');
+    unwrap(saveDocument(restored.files[1].document));
+    strictEqual(unwrap(readTextFile(restored.active)), restored.files[1].document.text);
+    const clean = unwrap(openWorkspace(root));
+    unwrap(openFile(clean, restored.active));
+    strictEqual(clean.files[0].kind, 'image');
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});

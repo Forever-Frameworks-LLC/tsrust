@@ -1,4 +1,29 @@
-import { Bytes, ByteError, alloc, fromArray, fromHex, toHex, view, viewMut, length, set, concat, copyInto, copyWithin, equals, compare, indexOf, readInt, writeInt, readUint, writeUint, readFloat32, writeFloat32, readFloat64, writeFloat64 } from "std:bytes";
+import {
+  Bytes,
+  ByteError,
+  alloc,
+  fromArray,
+  fromHex,
+  toHex,
+  view,
+  viewMut,
+  length,
+  set,
+  concat,
+  copyInto,
+  copyWithin,
+  equals,
+  compare,
+  indexOf,
+  readInt,
+  writeInt,
+  readUint,
+  writeUint,
+  readFloat32,
+  writeFloat32,
+  readFloat64,
+  writeFloat64
+} from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function code<T>(result: Result<T, ByteError>): string {

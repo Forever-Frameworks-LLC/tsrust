@@ -10,6 +10,7 @@ function workload(n: int, seed: int): number[] {
     predicates: 0, left: 0, right: 0
   };
   let i = 0;
+
   while (i < n) {
     const at: int = (i * 13 + seed * 2) % 8;
     const selected: number = predicate(trace, (i + seed) % 3 === 0) ? leftValue(trace, at) : rightValue(trace, at);

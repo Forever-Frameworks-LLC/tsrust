@@ -1,4 +1,11 @@
-import { Router, Client, request, getCookie, setCookie, deleteCookie } from 'std:http';
+import {
+  Router,
+  Client,
+  request,
+  getCookie,
+  setCookie,
+  deleteCookie
+} from 'std:http';
 import { strictEqual } from 'std:testing';
 
 type Application = {
@@ -25,6 +32,7 @@ function routes(): Router<Application, Variables> {
   app.get('/hello', (c) => {
     strictEqual(getCookie(c, 'theme'), undefined);
     const id = c.get('requestId');
+
     if (id === undefined) {
       return c.text('missing', 500);
     }

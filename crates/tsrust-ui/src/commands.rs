@@ -36,8 +36,8 @@ pub(crate) enum Command {
     Window {node: Box<Node>, title: String, options: String},
 }
 
-const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "write-clipboard", "relaunch", "register-themes", "use-theme", "input", "dismiss-notification", "clear-notifications"];
-const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file", "check-update", "install-update", "read-input", "notify-events"];
+const PLAIN: &[&str] = &["notify", "theme", "set-title", "minimize", "zoom", "fullscreen", "close", "quit", "open-url", "reveal-path", "write-clipboard", "relaunch", "register-themes", "use-theme", "input", "dismiss-notification", "clear-notifications", "editor-language-wake"];
+const REPLIES: &[&str] = &["read-clipboard", "pick-files", "save-file", "check-update", "install-update", "read-input", "notify-events", "terminal", "read-terminal", "editor-language-reply"];
 
 thread_local! {
     static QUEUE: RefCell<Vec<Pending>> = const {RefCell::new(Vec::new())};
@@ -50,6 +50,11 @@ pub fn command(name: &str, payload: &str) -> Result<(), String> {
     if !PLAIN.contains(&name) {return Err(format!("Unknown UI command: {name}"));}
     enqueue(Command::Plain {name: name.to_owned(), payload: payload.to_owned()});
     Ok(())
+}
+
+pub(crate) fn picked_paths_json(selected: &[std::path::PathBuf]) -> String {
+    let paths: Option<Vec<&str>> = selected.iter().map(|path| path.to_str()).collect();
+    serde_json::json!(paths.unwrap_or_default()).to_string()
 }
 
 /// Queue a command whose result (text) is delivered to `reply` later.
@@ -71,6 +76,11 @@ pub fn appearance() -> String {(if DARK.with(Cell::get) {"dark"} else {"light"})
 
 pub(crate) fn set_dark(dark: bool) {DARK.with(|value| value.set(dark));}
 
+pub(crate) fn has_pending(owner:&Owner)->bool {
+    let owner=Rc::downgrade(&owner.0);
+    QUEUE.with(|queue|queue.borrow().iter().any(|pending|pending.owner.as_ref().is_none_or(|target|Weak::ptr_eq(target,&owner))))
+}
+
 pub(crate) fn take(owner:&Owner) -> Vec<Command> {
     let pending=QUEUE.with(|queue|std::mem::take(&mut *queue.borrow_mut()));
     let mut output=Vec::new();let mut remaining=Vec::new();
@@ -89,6 +99,18 @@ pub(crate) fn take(owner:&Owner) -> Vec<Command> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn polling_checks_keep_commands_for_their_own_window_until_rendered() {
+        let first=Owner::new();let second=Owner::new();
+        assert!(!has_pending(&first));
+        {let _scope=first.enter();command("set-title","first").unwrap();}
+        assert!(has_pending(&first));assert!(has_pending(&first));
+        assert!(!has_pending(&second));assert_eq!(take(&first).len(),1);
+        assert!(!has_pending(&first));
+        command("notify","startup").unwrap();
+        assert!(has_pending(&first));assert!(has_pending(&second));
+        assert_eq!(take(&second).len(),1);assert!(!has_pending(&first));
+    }
     #[test]
     fn windows_keep_their_commands_in_order_and_drop_closed_window_replies() {
         let first=Owner::new();let second=Owner::new();
@@ -113,6 +135,20 @@ mod tests {
         drop(first);{let _origin=context();command("close","closed").unwrap();}
         assert!(take(&second).is_empty());
     }
+    #[test]
+    fn picked_paths_preserve_boundaries() {
+        let selected = ["first\nsecond", "quoted\"path"];
+        let paths = selected.map(std::path::PathBuf::from);
+        assert_eq!(serde_json::from_str::<Vec<String>>(&picked_paths_json(&paths)).unwrap(), selected);
+        assert_eq!(picked_paths_json(&[]), "[]");
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            let invalid = std::ffi::OsStr::from_bytes(b"invalid\xff");
+            assert_eq!(picked_paths_json(&[paths[0].clone(), invalid.into()]), "[]");
+        }
+    }
+
     #[test]
     fn commands_queue_in_order_and_reject_unknown_names() {
         let owner=Owner::new();

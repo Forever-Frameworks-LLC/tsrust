@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2,
+  "source": "../../crates/tsrust-compiler/src/stdlib/ai/admission.rs",
+  "dependencies": {
+    "candle-core": { "version": "=0.11.0", "features": [], "defaultFeatures": false },
+    "candle-nn": { "version": "=0.11.0", "features": [], "defaultFeatures": false }
+  }
+}

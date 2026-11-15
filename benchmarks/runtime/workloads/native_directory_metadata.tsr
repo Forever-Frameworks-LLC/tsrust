@@ -5,8 +5,10 @@ function sample(input: ReadOnly<string>, tag: int): int[] {
   let files = 0;
   let bytes = 0;
   let observed = tag;
+
   for (const entry of entries) {
     const metadata = unwrap(stat(entry.path));
+
     if (metadata.isFile !== entry.isFile || metadata.isDirectory !== entry.isDirectory) {
       throw "file kind changed";
     }
@@ -39,6 +41,7 @@ function sample(input: ReadOnly<string>, tag: int): int[] {
 function workload(n: int, seed: int, input: string): int[][] {
   let rows: int[][] = [];
   let i = 0;
+
   while (i < n) {
     rows.push(sample(input, (i + seed) % 17));
     i++;

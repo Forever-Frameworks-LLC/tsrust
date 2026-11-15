@@ -1,5 +1,20 @@
-import { reader as adapt, readInto as fill, readAll, close, stdout, writeAll, IoError } from 'std:io';
-import { fromUtf8, alloc, viewMut, view, set, toUtf8 } from 'std:bytes';
+import {
+  reader as adapt,
+  readInto as fill,
+  readAll,
+  close,
+  stdout,
+  writeAll,
+  IoError
+} from 'std:io';
+import {
+  fromUtf8,
+  alloc,
+  viewMut,
+  view,
+  set,
+  toUtf8
+} from 'std:bytes';
 
 function relay(work: Task<Result<int, IoError>>): Task<Result<int, IoError>> {
   return work;

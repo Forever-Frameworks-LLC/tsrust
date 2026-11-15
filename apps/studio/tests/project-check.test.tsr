@@ -1,0 +1,57 @@
+import { get } from 'std:env';
+import { canonicalize, createTempDir, mkdirAll, removeDirAll, writeTextFile } from 'std:fs';
+import { test, strictEqual } from 'std:testing';
+
+import { checkSavedProject, formatCheckReport } from '../src/services/project-check.tsr';
+
+test('structured compiler reports retain file locations and failures', () => {
+  const clean = formatCheckReport('{"ok":true,"diagnostics":[]}');
+  strictEqual(clean.failed, false);
+  strictEqual(clean.output, 'Check passed.\n');
+  const failure = formatCheckReport('{"ok":false,"diagnostics":[{"file":"/project/界.tsr","code":"type","message":"Expected int","location":{"line":3,"column":7}}]}');
+  const warning = formatCheckReport('{"ok":true,"diagnostics":[{"file":"/project/main.tsr","severity":"warning","code":"unused-task","message":"Await the task"}]}');
+  strictEqual(warning.failed, false);
+  strictEqual(warning.problems[0].severity, 'warning');
+  strictEqual(failure.problems[0].severity, 'error');
+  strictEqual(failure.failed, true);
+  strictEqual(failure.problems.length, 1);
+  strictEqual(failure.problems[0].source, 'check');
+  strictEqual(failure.problems[0].line, 3);
+  strictEqual(failure.problems[0].column, 7);
+  strictEqual(failure.output, '/project/界.tsr:3:7 [type] Expected int\nCheck failed.\n');
+  let rejected = false;
+
+  try {
+    formatCheckReport('{"diagnostics":[]}');
+  } catch (_) {
+    rejected = true;
+  }
+
+  strictEqual(rejected, true);
+});
+
+test('saved project checks stay within the selected folder of a larger project', async () => {
+  const temp = unwrap(createTempDir(undefined, 'studio-nested-check-'));
+
+  try {
+    const parent = unwrap(canonicalize(temp));
+    const root = parent + '/nested';
+    unwrap(mkdirAll(root));
+    unwrap(writeTextFile(parent + '/tsrust.config.json', '{"schemaVersion":1,"name":"parent","build":{"entry":"outside.tsr","output":"target/check"}}'));
+    unwrap(writeTextFile(parent + '/outside.tsr', 'const outside: int = "invalid";'));
+    const path = root + '/inside.tsr';
+    unwrap(writeTextFile(path, 'const inside: int = 1;'));
+    const program = unwrap(get('TSRUST')) ?? 'tsrust';
+    const clean = await checkSavedProject(root, program);
+    strictEqual(clean.failed, false);
+    strictEqual(clean.problems.length, 0);
+    unwrap(writeTextFile(path, 'const inside: int = "invalid";'));
+    const failed = await checkSavedProject(root, program);
+    strictEqual(failed.failed, true);
+    strictEqual(failed.problems.length, 1);
+    strictEqual(failed.problems[0].path.endsWith('/inside.tsr'), true);
+    strictEqual(failed.problems[0].line, 1);
+  } finally {
+    unwrap(removeDirAll(temp));
+  }
+});

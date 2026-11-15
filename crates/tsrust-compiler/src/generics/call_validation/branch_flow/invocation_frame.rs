@@ -36,7 +36,7 @@ impl Frame {
         let owned = slots.iter().filter_map(|binding| binding.identity).collect::<HashSet<_>>();
         let mut state = caller.iter().filter(|binding| !binding.identity.is_some_and(|identity| owned.contains(&identity))).cloned().collect::<Vec<_>>();
         state.extend(slots);
-        Some(Self { state:FlowState {bindings:state,captures:caller.captures.clone()}, caller: caller.clone(), owned })
+        Some(Self { state:FlowState {bindings:state.into(),captures:caller.captures.clone()}, caller: caller.clone(), owned })
     }
     pub(super) fn project(&self, outgoing: &FlowState) -> FlowState {
         let mut updated_by_identity = HashMap::new();

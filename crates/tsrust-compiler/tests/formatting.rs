@@ -1,5 +1,80 @@
 mod support;
 use tsrust_compiler::{check, format};
+
+#[test]
+fn studio_formatting_lays_out_jsx_returns_siblings_and_callback_blocks() {
+    let source = "function Panel(): Node {const n=1;if(n>0){return <View className=\"grow\"><Button label=\"Português\" onPress={()=>{const n=1;if(n>0){console.log(n);}console.log(2);}}/><View><Text value={n}/><Icon/></View></View>;}return <View/>;}";
+    let result = format(source).unwrap();
+    assert!(result.contains("return (\n"), "{result}");
+    assert!(result.contains(";\n\n  if (n > 0)"), "{result}");
+    assert!(result.contains("/>\n"), "{result}");
+    assert!(!result.contains("/><View>"), "{result}");
+    assert!(result.contains("onPress={() => {\n"), "{result}");
+    assert!(result.contains("className=\"grow\""), "{result}");
+    assert!(result.contains("label=\"Português\""), "{result}");
+    assert_eq!(format(&result).unwrap(), result);
+    for source in [
+        "function Panel():Node{return <Text>Hello <Text>world</Text> !</Text>;}",
+        "function Panel():Node{return <View><Text value={`a\n b`}/><Icon/></View>;}",
+        "function Panel():Node{return (<View>{/* retained comment */}<Icon/></View>);}",
+        "function Panel():Node{return <View /* attr comment */ onPress={()=>{/* block\n keep spaces */const n=1; // line\nconsole.log(n);}}><Icon/></View>;}",
+        "function Panel():Node{return <View>{// child comment\n}<Icon/></View>;}",
+        "function Panel():Node{openWindow(<View><Icon/></View>,\"Title\",{});return <View/>;}",
+    ] {
+        let result = format(source).unwrap();
+        assert_eq!(format(&result).unwrap(), result, "{result}");
+        if source.contains("retained comment") { assert!(result.contains("/* retained comment */")); }
+        if source.contains("Hello ") { assert!(result.contains("Hello <Text>world</Text> !")); }
+        if source.contains("`a") { assert!(result.contains("`a\n b`")); }
+        assert!(!result.lines().any(|line| line.ends_with(' ')), "{result}");
+    }
+}
+
+#[test]
+fn studio_formatting_options_validate_and_overlay_only_project_fields() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("tsrust.config.json"), r#"{"format":{"indentWidth":4,"blankLinesAroundBlocks":false}}"#).unwrap();
+    let mut defaults = tsrust_compiler::FormatOptions::default();
+    defaults.jsx_children_on_new_lines = false;
+    let options = tsrust_compiler::FormatOptions::for_path(&directory.0.join("new.tsrx"), &defaults).unwrap();
+    assert_eq!(options.indent_width, 4);
+    assert!(!options.jsx_children_on_new_lines);
+    assert!(!options.blank_lines_around_blocks);
+    let formatted = tsrust_compiler::format_with_options("function main(){const n=1;if(n>0){console.log(n);}}", &options).unwrap();
+    assert!(formatted.contains("\n    if (n > 0)"), "{formatted}");
+    assert!(!formatted.contains(";\n\n"));
+    assert!(check(&formatted).is_ok());
+    let spaced = format("function main(){const n=1;if(n>0){console.log(n);}}").unwrap();
+    assert!(!tsrust_compiler::format_with_options(&spaced, &options).unwrap().contains(";\n\n"));
+    let jsx = format("function Panel():Node{return <View><Icon/><View/></View>;}").unwrap();
+    let mut unwrapped = options.clone();
+    unwrapped.jsx_return_parentheses = false;
+    let plain = tsrust_compiler::format_with_options(&jsx, &unwrapped).unwrap();
+    assert!(plain.contains("return <View>"), "{plain}");
+    assert_eq!(tsrust_compiler::format_with_options(&plain, &unwrapped).unwrap(), plain);
+    for value in [serde_json::json!({"indentWidth":0}), serde_json::json!({"imaginaryRule":true}), serde_json::json!({"jsxReturnParentheses":"yes"})] {
+        assert!(tsrust_compiler::FormatOptions::overlay(&defaults, &value).is_err());
+    }
+}
+
+#[test]
+fn studio_formatting_stdin_keeps_disk_unchanged_and_uses_project_rules() {
+    use std::io::Write;
+    use std::process::Stdio;
+    let directory = support::TempDirectory::new();
+    let path = directory.source("function main() {}");
+    std::fs::write(directory.0.join("tsrust.config.json"), r#"{"format":{"indentWidth":4}}"#).unwrap();
+    let mut child = support::cli().args(["format", "--stdin-filepath"]).arg(&path)
+        .args(["--options", r#"{"indentWidth":2}"#, "--color=never"])
+        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    child.stdin.take().unwrap().write_all(b"function main(){const n=1;if(n>0){console.log(n);}}").unwrap();
+    let output = child.wait_with_output().unwrap();
+    support::success(&output);
+    let formatted = String::from_utf8(output.stdout).unwrap();
+    assert!(formatted.contains(";\n\n    if (n > 0)"), "{formatted}");
+    assert!(check(&formatted).is_ok());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "function main() {}");
+}
 #[test]
 fn exception_handlers_stay_with_their_closing_block() {
     let source="function nestedFinal(trace:int[]):int{try{try{return 4;}\n\nfinally{trace.push(5);}}\n\nfinally{trace.push(6);}}function main(){try{nestedFinal([]);}\n\ncatch(error){throw error;}\n\nfinally{}}";
@@ -83,6 +158,9 @@ fn check_retains_contract_details_and_lint_is_removed() {
     support::success(&checked_text);
     assert!(String::from_utf8_lossy(&checked_text.stdout).contains("Check passed."));
     assert!(checked_text.stderr.is_empty());
+    let concise = support::run(support::cli().arg("check").arg(&path).arg("--diagnostics-only"), 10);
+    support::success(&concise);
+    assert_eq!(concise.stdout, b"Check passed.\n");
     let removed=support::run(support::cli().arg("lint").arg(&path),10);
     assert!(!removed.status.success());
     assert!(String::from_utf8_lossy(&removed.stderr).contains("Unknown command: lint"));
@@ -206,7 +284,7 @@ fn formatting_lays_out_switch_clauses_and_conditional_colons() {
 fn formatting_keeps_declarations_without_initializers() {
     let source = "function main(){let a:int;let b:string,c:int=2;if(c>1){a=1;b=\"x\";}else{a=2;b=\"y\";}console.log(a,b);}";
     let result = format(source).unwrap();
-    let expected = "function main() {\n  let a: int;\n  let b: string, c: int = 2;\n  if (c > 1) {\n    a = 1;\n    b = \"x\";\n  } else {\n    a = 2;\n    b = \"y\";\n  }\n\n  console.log(a, b);\n}\n";
+    let expected = "function main() {\n  let a: int;\n  let b: string, c: int = 2;\n\n  if (c > 1) {\n    a = 1;\n    b = \"x\";\n  } else {\n    a = 2;\n    b = \"y\";\n  }\n\n  console.log(a, b);\n}\n";
     assert_eq!(result, expected);
     assert_eq!(format(&result).unwrap(), result);
     assert_eq!(check(source).unwrap().contracts(), check(&result).unwrap().contracts());
@@ -427,7 +505,7 @@ fn empty_delimiters_stay_tight_without_losing_comments_or_behavior() {
     }
     for source in ["function main(){/* keep */}", "function main(){\n// keep\n}"] {
         let formatted = format(source).unwrap();
-        assert!(formatted.contains(if source.contains("/*") { "{/* keep */}" } else { "{\n// keep\n}" }), "{formatted}");
+        assert!(formatted.contains(if source.contains("/*") { "{/* keep */}" } else { "{\n  // keep\n}" }), "{formatted}");
         assert_eq!(format(&formatted).unwrap(), formatted);
         assert!(check(&formatted).is_ok());
     }
@@ -450,4 +528,36 @@ fn arrow_result_annotations_inside_conditionals_keep_type_colons_tight() {
     assert!(result.contains("flag ? (value: int): Map<string, int> => new Map() : (value: int): Map<string, int> => new Map();"), "{result}");
     assert!(result.contains("flag ? (1) : 2;"), "{result}");
     assert_eq!(format(&result).unwrap(), result);
+}
+
+#[test]
+fn import_comment_wrapping_is_stable() {
+    for source in [
+        "import { A, /* retain */ B, C, D, E, F } from 'std:ui';",
+        "import { A, // retain\n B, C, D, E, F /* final */ } from 'std:ui';",
+        "import { A, B, C, D, E, F, /* final */ } from 'std:ui';",
+    ] {
+        let result = format(source).unwrap();
+        assert!(result.contains("import {\n  A,"), "{result}");
+        if source.contains("/* retain */") { assert!(result.contains("\n  /* retain */ B,"), "{result}"); }
+        if source.contains("final") { assert!(result.contains("/* final */\n}"), "{result}"); }
+        assert_eq!(format(&result).unwrap(), result, "{result}");
+    }
+}
+
+#[test]
+fn bounded_project_format_preserves_binary_and_oversized_sources() {
+    let dir = support::TempDirectory::new();
+    let source = b"const n=1;";
+    let limit = source.len().to_string();
+    // NUL remains a Windows device name even with a file extension.
+    let excluded: &[(&str, &[u8])] = &[("embedded-nul.tsr", b"//\0a"), ("invalid.tsr", &[0xff]), ("large.tsr", b"const nn=1;")];
+    std::fs::write(dir.0.join("main.tsr"), source).unwrap();
+    for (name, bytes) in excluded { std::fs::write(dir.0.join(name), bytes).unwrap(); }
+    let output = support::run(support::cli().args(["format", "--write", "--text-files-up-to", &limit]).arg(&dir.0), 10);
+    support::success(&output);
+    assert_eq!(output.stdout, b"Formatted 1 file.\n");
+    assert_eq!(output.stderr, b"Skipped 3 binary or oversized source files.\n");
+    assert_eq!(std::fs::read(dir.0.join("main.tsr")).unwrap(), b"const n = 1;\n");
+    for (name, bytes) in excluded { assert_eq!(std::fs::read(dir.0.join(name)).unwrap(), *bytes); }
 }

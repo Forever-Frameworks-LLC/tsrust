@@ -8,7 +8,7 @@ pub(super) fn bound(request:&mut Request,declarations:&HashMap<String,Contract>)
             if let Some(elements)=&mut binding.elements {elements.bound(|left,right|expression_flow::merge_element(left,right,declarations));}
         }
     }
-    bindings(&mut request.caller.bindings,declarations);
+    bindings(&mut request.caller,declarations);
     for capture in request.caller.captures.values_mut() {
         if let environment_state::Capture::Live {bindings:captured,..}=capture {bindings(captured,declarations);}
     }

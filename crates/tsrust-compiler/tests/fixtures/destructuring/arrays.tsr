@@ -16,6 +16,7 @@ function main() {
   const [x,, z] = make();
   console.log(x + z, words.length);
   const rows = [["a", "b"], ["c"]];
+
   for (const [head] of rows) {
     console.log(head);
   }

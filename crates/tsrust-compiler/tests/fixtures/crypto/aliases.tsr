@@ -12,6 +12,7 @@ export async function main(): Task<void> {
   const pool = new ThreadPool({
     workers: 1, capacity: 1
   });
+
   try {
     const bytes = unwrap(fromUtf8('module alias'));
     const password = unwrap(view(bytes, 0, 12));

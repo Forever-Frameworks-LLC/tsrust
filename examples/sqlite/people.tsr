@@ -32,6 +32,7 @@ function main(): void {
   {
     const select = unwrap(db.prepare('SELECT id, name FROM people ORDER BY id'));
     const rows = unwrap(select.query());
+
     for (const row of rows) {
       const value = person(row);
       console.log(`${value.id}: ${value.name}`);

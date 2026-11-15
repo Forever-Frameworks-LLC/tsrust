@@ -1,0 +1,27 @@
+import { ChatMessage } from './prompts.tsr';
+
+export type ModelRequest = {
+  kind: string;
+  id: string;
+  prompt: string;
+  maxTokens: int;
+  suffix?: string;
+  modelPath?: string;
+  tokenizerPath?: string;
+  messages?: ChatMessage[];
+  workspaceStart?: int;
+  workspaceEnd?: int;
+};
+
+export type ModelUpdate = {
+  kind: string;
+  id: string;
+  text: string;
+  error: string;
+  stop?: string;
+};
+
+// The pinned llama.cpp wrapper surfaces allocation and compute failures as unknown decode codes.
+export function failedModelBackend(error: ReadOnly<string>): boolean {
+  return error === 'Decode Error -2: unknown' || error === 'Decode Error -3: unknown';
+}

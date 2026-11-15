@@ -35,6 +35,7 @@ function main() {
   strictEqual(Number("0x" + "f".repeat(13) + "8" + "0".repeat(242)), Number.MAX_VALUE);
   strictEqual(Number("0x" + "f".repeat(13) + "c" + "0".repeat(242)), Infinity);
   const invalid = ["inf", "+inf", "infinity", "0x", "-0x1", "+0b1", "0o8", "0b2", "1_0", "1n", "1e", "1e+", ".", "+", "12tail", "\u008512", "12\u0085", "\u200B12", "１２"];
+
   for (const text of invalid) {
     strictEqual(Number.isNaN(Number(text)), true);
     strictEqual(Number.isNaN(+text), true);

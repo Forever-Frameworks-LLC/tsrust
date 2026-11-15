@@ -1,0 +1,72 @@
+import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { createDocument } from '../src/lib/workspace/documents.tsr';
+import { Workspace } from '../src/lib/workspace/workspace.tsr';
+import { ImageViewContext, ImageViewTarget, invokeImageTool, imageZoomStep } from '../src/services/image-actions.tsr';
+
+function rejected<T>(value: Result<T, string>): boolean {
+  match (value) {
+    Ok(_) => {
+      return false;
+    },
+    Err(_) => {
+      return true;
+    }
+  }
+}
+
+test('image zoom uses an explicit open session and host view permission without touching drafts or selection', () => {
+  const document = unwrap(createDocument('/project/image.png', ''));
+  const initial: Workspace = {
+    root: '/project', files: [{
+      document, name: 'image.png', kind: 'image'
+    }], active: '/project/other.tsr', error: '', dockLayout: '', zoomLevel: 0
+  };
+  const workspace = signal(initial);
+  const target: ImageViewTarget = {
+    path: '/project/image.png', session: clone(workspace.get().files[0].document.session)
+  };
+  const context: ImageViewContext = {
+    workspace, allowViewChanges: false
+  };
+  const payload = JSON.stringify({
+    target: clone(target), zoom: 200
+  });
+  strictEqual(rejected(invokeImageTool(context, 'set_image_zoom', payload)), true);
+  context.allowViewChanges = true;
+  unwrap(invokeImageTool(context, 'set_image_zoom', payload));
+  strictEqual<number>(context.workspace.get().files[0].imageZoom ?? -1, 200);
+  strictEqual(context.workspace.get().active, '/project/other.tsr');
+  strictEqual(context.workspace.get().files[0].document.revision, 0);
+  strictEqual(rejected(invokeImageTool(context, 'set_image_zoom', JSON.stringify({
+    target: {
+      path: '/project/image.png', session: 'replaced'
+    }, zoom: 100
+  }))), true);
+  strictEqual(rejected(invokeImageTool(context, 'set_image_zoom', JSON.stringify({
+    target: clone(target), zoom: -1
+  }))), true);
+  strictEqual(rejected(invokeImageTool(context, 'set_image_zoom', JSON.stringify({
+    target: clone(target), zoom: 3201
+  }))), true);
+  unwrap(invokeImageTool(context, 'set_image_zoom', JSON.stringify({
+    target: clone(target), zoom: 0
+  })));
+  strictEqual<number>(context.workspace.get().files[0].imageZoom ?? -1, 0);
+  const pan = JSON.stringify({
+    target: clone(target), x: 120, y: 80
+  });
+  context.allowViewChanges = false;
+  strictEqual(rejected(invokeImageTool(context, 'pan_image', pan)), true);
+  context.allowViewChanges = true;
+  unwrap(invokeImageTool(context, 'pan_image', pan));
+  unwrap(invokeImageTool(context, 'pan_image', pan));
+  strictEqual(context.workspace.get().files[0].imageScroll?.request ?? 0, 2);
+  strictEqual(rejected(invokeImageTool(context, 'pan_image', JSON.stringify({
+    target: clone(target), x: -1, y: 0
+  }))), true);
+  strictEqual<number>(imageZoomStep(25, 1), 31.25);
+  strictEqual<number>(imageZoomStep(1, -1), 1);
+  strictEqual<number>(imageZoomStep(3200, 1), 3200);
+});

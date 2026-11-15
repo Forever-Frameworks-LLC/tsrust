@@ -35,6 +35,7 @@ function singleton(): int[] {
 
 function main() {
   const output = receiver().concat(scalar0(), array0(), scalar1(), empty(), array1());
+
   for (const value of output) {
     console.log(value);
   }
@@ -42,6 +43,7 @@ function main() {
   const zero = empty().concat();
   console.log(zero.length);
   const one = singleton().concat([], scalar0());
+
   for (const value of one) {
     console.log(value);
   }

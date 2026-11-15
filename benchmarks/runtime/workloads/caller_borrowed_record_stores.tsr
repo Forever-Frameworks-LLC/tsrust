@@ -29,6 +29,7 @@ type Box = {
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
   let i = 0;
+
   while (i < n) {
     const value = i % 5 + seed % 5 + 1;
     const base = [value];
@@ -136,6 +137,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         run: (): int => value + 9
       };
       let caught = false;
+
       try {
         installAndFail(holder, action);
       } catch (error) {
@@ -151,6 +153,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         run: (): int => value + 9
       };
       let caught = false;
+
       try {
         failBeforeInstall(holder, action, true);
       } catch (error) {

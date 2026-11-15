@@ -10,6 +10,7 @@ function workload(n: int, seed: int): number[][] {
     predicates: 0, left: 0, right: 0
   };
   let i = 0;
+
   while (i < n) {
     const size: int = (i * 7 + seed * 2) % 4;
     const at: int = (i * 13 + seed * 2) % 8;
@@ -32,6 +33,7 @@ function leftValue(trace: Trace, at: int, size: int): number[] {
   const values: number[] = [];
   const pool: number[] = [0.0, -0.0, 0.5, -0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, 4.0];
   let j = 0;
+
   while (j < size) {
     values.push(pool[(at + j + 0) % 8]);
     j = j + 1;
@@ -45,6 +47,7 @@ function rightValue(trace: Trace, at: int, size: int): number[] {
   const values: number[] = [];
   const pool: number[] = [0.0, -0.0, 0.5, -0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0, 4.0];
   let j = 0;
+
   while (j < size) {
     values.push(pool[(at + j + 3) % 8]);
     j = j + 1;

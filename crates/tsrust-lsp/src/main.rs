@@ -11,9 +11,11 @@ use tsrust_lsp::{Documents, Snapshot, code_actions, diagnostics};
 struct DocumentJob {
     snapshot: Snapshot,
     workspace: Option<tsrust_lsp::workspace::WorkspaceSnapshot>,
+    cache_for_scan: bool,
 }
 
 enum DiagnosticBatch {
+    Interrupted,
     Single(Vec<lsp_types::Diagnostic>),
     Project(
         tsrust_lsp::project_session::Buckets,
@@ -31,7 +33,13 @@ enum Job {
     Document(DocumentJob),
     Workspace(tsrust_lsp::workspace_scan::Job),
 }
+struct DocumentDeclarations {
+    snapshot: Snapshot,
+    workspace: tsrust_lsp::workspace::WorkspaceSnapshot,
+    index: tsrust_lsp::project_intelligence::ProjectIndex,
+}
 enum Checked {
+    Declarations(DocumentDeclarations),
     Document(DocumentChecked),
     Workspace(tsrust_lsp::workspace_scan::Checked),
     WorkspaceInterrupted,
@@ -41,6 +49,7 @@ struct Deferred {
     request: Request,
     uri: String,
     since: Instant,
+    headers_requested: bool,
 }
 
 /// The longest a request waits for a current project analysis. After that it
@@ -99,8 +108,8 @@ fn run(
     let (completed, results) = bounded::<Checked>(1);
     let scan_interrupt=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let worker_interrupt=std::sync::Arc::clone(&scan_interrupt);
-    // Analysis is synchronous. Dropping this thread's handle permits exit without
-    // waiting for an obsolete check. Cooperative interruption is compiler task C3.
+    // Stages skip obsolete work; an individual compiler pass is still synchronous.
+    // Dropping the handle permits exit without waiting for that pass.
     // One analysis worker with the compiler's stack, so deeply nested source
     // checks in the editor as it does on the command line.
     std::thread::Builder::new().name("tsrust-analysis".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
@@ -119,13 +128,28 @@ fn run(
                 }
                 Job::Document(job) => job,
             };
-            let DocumentJob {snapshot, workspace} = job;
+            let DocumentJob {snapshot, workspace, cache_for_scan} = job;
             let result = catch_unwind(AssertUnwindSafe(|| {
+                let cancelled = || worker_interrupt.load(std::sync::atomic::Ordering::Relaxed);
+                if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
                     let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
                     let started = Instant::now();
+                    // Publish declared import help before checking bodies. Requests must not
+                    // wait for a complete compiler pass to see current signatures and docs.
+                    if let Ok(graph) = tsrust_compiler::project::load_project_headers(workspace, &entry.0) {
+                        let index = tsrust_lsp::project_intelligence::ProjectIndex::declarations(&graph);
+                        completed.send(Checked::Declarations(DocumentDeclarations {
+                            snapshot: snapshot.clone(), workspace: workspace.clone(), index,
+                        })).map_err(|_| "protocol loop stopped")?;
+                    }
+                    if trace { eprintln!("[analysis] declarations={}ms", started.elapsed().as_millis()); }
+                    let started = Instant::now();
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     let result = workspace.check_with_diagnostics(&entry);
+                    if cache_for_scan {scan_cache.remember(&entry,workspace,&result);}
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     if trace { eprintln!("[analysis] check={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
                     let index = match &result {
@@ -133,11 +157,12 @@ fn run(
                         Err(errors) => {
                             tsrust_compiler::project::load_project_headers(workspace, &entry.0)
                                 .ok()
-                                .map(|graph| {
-                                    tsrust_lsp::project_intelligence::ProjectIndex::with_diagnostics(&graph, errors)
+                                .and_then(|graph| {
+                                    tsrust_lsp::project_intelligence::ProjectIndex::with_diagnostics_cancellable(&graph, errors, cancelled)
                                 })
                         }
                     };
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     if trace { eprintln!("[analysis] index={}ms", started.elapsed().as_millis()); }
                     let started = Instant::now();
                     let errors = match result {Ok(analysis)=>analysis.warnings(),Err(errors)=>errors};
@@ -149,6 +174,7 @@ fn run(
                             )
                         })
                         .transpose()?;
+                    if cancelled() { return Ok(DiagnosticBatch::Interrupted); }
                     let converted = tsrust_lsp::project_diagnostics::convert_all(workspace, &errors)
                         .map(|buckets| DiagnosticBatch::Project(buckets, index, actions));
                     if trace { eprintln!("[analysis] diagnostics={}ms", started.elapsed().as_millis()); }
@@ -175,18 +201,48 @@ fn run(
             }
         }
     }).map_err(|error|format!("Cannot start analysis worker: {error}"))?;
+    // Declaration reads never queue behind a synchronous full compiler pass.
+    let (header_jobs, header_work) = bounded::<DocumentJob>(1);
+    let (header_completed, header_results) = bounded::<Option<DocumentDeclarations>>(1);
+    std::thread::Builder::new().name("tsrust-declarations".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(move || {
+        while let Ok(DocumentJob {snapshot, workspace, ..}) = header_work.recv() {
+            let result = catch_unwind(AssertUnwindSafe(|| {
+                let workspace = workspace?;
+                let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri).ok()?;
+                let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
+                let started = Instant::now();
+                let graph = tsrust_compiler::project::load_project_headers(&workspace, &entry.0).ok()?;
+                if trace { eprintln!("[declarations] load={}ms", started.elapsed().as_millis()); }
+                let started = Instant::now();
+                let index = tsrust_lsp::project_intelligence::ProjectIndex::declarations(&graph);
+                if trace { eprintln!("[declarations] index={}ms", started.elapsed().as_millis()); }
+                Some(DocumentDeclarations {snapshot, workspace, index})
+            })).unwrap_or(None);
+            if header_completed.send(result).is_err() { break; }
+        }
+    }).map_err(|error| format!("Cannot start declaration worker: {error}"))?;
+    let (file_jobs,file_results)=tsrust_lsp::file_references::worker()?;
+    let mut file_active: Option<(RequestId,std::sync::Arc<std::sync::atomic::AtomicBool>)> = None;
+    let mut header_busy = false;
     let mut documents = Documents::default();
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
     let mut scanner = tsrust_lsp::workspace_scan::Scanner::default();
     let mut busy = false;
     // The document whose analysis the worker is running.
     let mut in_flight: Option<String> = None;
+    let mut in_flight_input: Option<(Snapshot, Option<tsrust_lsp::workspace::WorkspaceSnapshot>)> = None;
     let mut deferred: Vec<Deferred> = Vec::new();
     let mut initialized = false;
     let mut ready = false;
     let mut shutdown = false;
+    let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
     let mut debounce = Duration::from_millis(200);
     loop {
+        if shutdown && let Some((_,cancel))=&file_active {cancel.store(true,std::sync::atomic::Ordering::Relaxed);}
+        if let Some((snapshot, workspace)) = &in_flight_input
+            && (shutdown || !documents.current(snapshot) || workspace.as_ref().is_some_and(|input| !projects.workspace.current(input))) {
+            scan_interrupt.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
         if busy && in_flight.is_none() && (shutdown || documents.pending_count()!=0 || scanner.due_in(Instant::now()).is_some()) {
             scan_interrupt.store(true,std::sync::atomic::Ordering::Relaxed);
         }
@@ -197,7 +253,11 @@ fn run(
         {
             let workspace = projects.prepare(&snapshot);
             in_flight = Some(snapshot.uri.clone());
+            in_flight_input = Some((snapshot.clone(), workspace.clone()));
+            scan_interrupt.store(false, std::sync::atomic::Ordering::Relaxed);
+            if trace { eprintln!("[analysis] foreground {}", snapshot.uri); }
             jobs.send(Job::Document(DocumentJob {
+                cache_for_scan: scanner.covers(&snapshot.uri),
                 snapshot,
                 workspace,
             }))
@@ -207,8 +267,25 @@ fn run(
         if ready && !shutdown && !busy && documents.pending_count()==0
             && let Some(job)=scanner.next(Instant::now(),projects.workspace.snapshot()) {
             scan_interrupt.store(false,std::sync::atomic::Ordering::Relaxed);
+            if trace { eprintln!("[analysis] workspace scan"); }
             jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
             busy=true;
+        }
+        if !header_busy && !shutdown {
+            // Use request order/cancellation already owned by the deferred queue;
+            // never accumulate another queue of obsolete document snapshots.
+            if let Some(job) = deferred.iter().rev().find_map(|entry| {
+                if entry.headers_requested || projects.covers(&entry.uri) { return None; }
+                let snapshot = documents.snapshot(&entry.uri)?;
+                let workspace = projects.prepare(&snapshot)?;
+                Some(DocumentJob {snapshot: snapshot.clone(), workspace: Some(workspace), cache_for_scan: false})
+            }) {
+                for entry in &mut deferred {
+                    if entry.uri == job.snapshot.uri { entry.headers_requested = true; }
+                }
+                header_jobs.send(job).map_err(|_| "declaration worker stopped")?;
+                header_busy = true;
+            }
         }
         // A deferred request is answered when the analysis of its text
         // arrives, when no analysis can still produce one, or at its deadline.
@@ -243,7 +320,7 @@ fn run(
                                     scanner.initialize(&request.params, Instant::now());
                                     initialized = true;
                                     Response::new_ok(request.id, json!({
-                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
+                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "experimental":{"fileReferences":true}, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
                                         "serverInfo": {"name": "tsrust-lsp", "version": env!("CARGO_PKG_VERSION")}
                                     }))
                             }
@@ -253,12 +330,17 @@ fn run(
                             }
                             "textDocument/formatting" if initialized && !shutdown => {
                                 let snapshot = request.params.pointer("/textDocument/uri").and_then(Value::as_str).and_then(|uri| documents.snapshot(uri));
-                                match snapshot.map(|snapshot| tsrust_compiler::format(&snapshot.text).map(|formatted| {
+                                match snapshot.map(|snapshot| -> Result<Value, String> {
+                                    let path = tsrust_lsp::project_diagnostics::source_path_id(&snapshot.uri)?;
+                                    let mut defaults = tsrust_compiler::FormatOptions::default();
+                                    if let Some(width) = request.params.pointer("/options/tabSize").and_then(Value::as_u64) { defaults.indent_width = usize::try_from(width).map_err(|_| "Format tabSize exceeds this platform's supported range.".to_owned())?; }
+                                    let options = tsrust_compiler::FormatOptions::for_path(std::path::Path::new(&path.0), &defaults)?;
+                                    let formatted = tsrust_compiler::format_with_options(&snapshot.text, &options).map_err(|error| error.message)?;
                                     let range = tsrust_lsp::LineIndex::new(&snapshot.text).range(&snapshot.text, tsrust_compiler::Span::new(0, snapshot.text.len())).expect("snapshot boundaries");
-                                    if formatted == snapshot.text { json!([]) } else { json!([{"range":range,"newText":formatted}]) }
-                                })) {
+                                    Ok(if formatted == snapshot.text { json!([]) } else { json!([{"range":range,"newText":formatted}]) })
+                                }) {
                                     Some(Ok(result)) => Response::new_ok(request.id, result),
-                                    Some(Err(error)) => Response::new_err(request.id, ErrorCode::RequestFailed as i32, error.message),
+                                    Some(Err(error)) => Response::new_err(request.id, ErrorCode::RequestFailed as i32, error),
                                     None => Response::new_ok(request.id, json!([])),
                                 }
                             }
@@ -272,6 +354,19 @@ fn run(
                                     Some(Ok(result)) => Response::new_ok(request.id, result),
                                     Some(Err(error)) => Response::new_err(request.id, ErrorCode::InvalidParams as i32, error),
                                     None => Response::new_ok(request.id, json!([])),
+                                }
+                            }
+                            "tsrust/fileReferences" if initialized && ready && !shutdown => {
+                                let target=request.params.pointer("/textDocument/uri").and_then(Value::as_str).ok_or_else(||"A file URI is required.".to_owned()).and_then(tsrust_lsp::project_diagnostics::source_id);
+                                match target {
+                                    Err(error)=>Response::new_err(request.id,ErrorCode::InvalidParams as i32,error),
+                                    Ok(_) if file_active.is_some()=>Response::new_err(request.id,ErrorCode::RequestFailed as i32,"A file reference search is still running. Cancel it before starting another.".into()),
+                                    Ok(target)=>{
+                                        let cancel=std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                                        file_active=Some((request.id.clone(),cancel.clone()));
+                                        file_jobs.send(tsrust_lsp::file_references::Job {id:request.id,roots:scanner.roots(),revision:scanner.revision(),input:projects.workspace.snapshot(),target,cancel}).map_err(|_|"file reference worker stopped")?;
+                                        continue;
+                                    }
                                 }
                             }
                             "tsrust/counters" if initialized => Response::new_ok(request.id, tsrust_lsp::counters::snapshot()),
@@ -288,7 +383,7 @@ fn run(
                                     && (documents.pending(&uri) || in_flight.as_deref() == Some(uri.as_str()))
                                 {
                                     documents.expedite(&uri, Instant::now());
-                                    deferred.push(Deferred { request, uri, since: Instant::now() });
+                                    deferred.push(Deferred { request, uri, since: Instant::now(), headers_requested: false });
                                     continue;
                                 }
                                 intelligence(request, &projects, &mut documents, false)
@@ -302,20 +397,34 @@ fn run(
                     Message::Notification(notification) => {
                         if notification.method == "exit" { return Ok(if shutdown { 0 } else { 1 }); }
                         if notification.method == "$/cancelRequest" {
-                            if let Some(id) = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok())
-                                && let Some(index) = deferred.iter().position(|entry| entry.request.id == id)
-                            {
-                                let entry = deferred.remove(index);
-                                send(&connection, Response::new_err(entry.request.id, ErrorCode::RequestCanceled as i32, "Request was cancelled".into()))?;
+                            if let Some(id) = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok()) {
+                                if let Some((active,cancel))=&file_active && *active==id && !cancel.swap(true,std::sync::atomic::Ordering::Relaxed) {
+                                    send(&connection,Response::new_err(id.clone(),ErrorCode::RequestCanceled as i32,"Request was cancelled".into()))?;
+                                }
+                                if let Some(index) = deferred.iter().position(|entry| entry.request.id == id) {
+                                    let entry = deferred.remove(index);
+                                    send(&connection, Response::new_err(entry.request.id, ErrorCode::RequestCanceled as i32, "Request was cancelled".into()))?;
+                                }
                             }
                             continue;
                         }
                         if !initialized || shutdown { continue; }
                         let now = Instant::now();
                         let handled: Result<(), String> = match notification.method.as_str() {
-                            "initialized" => {ready=true;Ok(())},
+                            "initialized" => {
+                                if !ready {
+                                    // Let startup didOpen notifications arrive before checking the same files from disk.
+                                    scanner.dirty(now, debounce);
+                                    ready = true;
+                                }
+                                Ok(())
+                            },
                             "workspace/didChangeWorkspaceFolders" => {
-                                scanner.change_folders(&notification.params,now);Ok(())
+                                scanner.change_folders(&notification.params,now);
+                                if let Some((id,cancel))=&file_active && !cancel.swap(true,std::sync::atomic::Ordering::Relaxed) {
+                                    send(&connection,Response::new_err(id.clone(),ErrorCode::RequestCanceled as i32,"Workspace folders changed.".into()))?;
+                                }
+                                Ok(())
                             },
                             "workspace/didChangeWatchedFiles" => serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(notification.params).map_err(|e|e.to_string()).map(|params| {
                                 scanner.dirty(now,debounce);
@@ -374,10 +483,44 @@ fn run(
                     Message::Response(_) => {}
                 }
             }
+            recv(file_results) -> result => {
+                let checked=result.map_err(|_|"file reference worker stopped")?;
+                file_active=None;
+                if !shutdown && !checked.job.cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                    let response=if checked.job.revision!=scanner.revision() || !projects.workspace.current(&checked.job.input) {
+                        Response::new_err(checked.job.id,ErrorCode::ContentModified as i32,"Workspace changed during file reference search. Run it again.".into())
+                    } else {match checked.result {
+                        Ok(Some(result))=>Response::new_ok(checked.job.id,result.json()),
+                        Ok(None)=>Response::new_err(checked.job.id,ErrorCode::RequestCanceled as i32,"Request was cancelled".into()),
+                        Err(error)=>Response::new_err(checked.job.id,ErrorCode::RequestFailed as i32,error),
+                    }};
+                    send(&connection,response)?;
+                }
+            }
+            recv(header_results) -> result => {
+                header_busy = false;
+                if let Some(declarations) = result.map_err(|_| "declaration worker stopped")?
+                    && !shutdown && documents.current(&declarations.snapshot)
+                    && projects.workspace.current(&declarations.workspace)
+                    && !projects.covers(&declarations.snapshot.uri)
+                {
+                    projects.cache_index(&declarations.snapshot.uri, &declarations.workspace, Some(declarations.index));
+                }
+            }
             recv(results) -> result => {
+                let result = match result.map_err(|_| "analysis worker stopped")? {
+                    Checked::Declarations(declarations) => {
+                        if !shutdown && documents.current(&declarations.snapshot) && projects.workspace.current(&declarations.workspace) {
+                            projects.cache_index(&declarations.snapshot.uri, &declarations.workspace, Some(declarations.index));
+                        }
+                        continue;
+                    }
+                    result => result,
+                };
                 busy = false;
                 in_flight = None;
-                let checked = match result.map_err(|_| "analysis worker stopped")? {
+                in_flight_input = None;
+                let checked = match result {
                     Checked::WorkspaceInterrupted=>{
                         if !shutdown{scanner.dirty(Instant::now(),debounce);}
                         continue;
@@ -394,10 +537,12 @@ fn run(
                         }
                         continue;
                     }
+                    Checked::Declarations(_) => unreachable!("handled before marking the worker idle"),
                     Checked::Document(checked)=>checked,
                 };
                 if !shutdown && documents.current(&checked.snapshot) && checked.workspace.as_ref().is_none_or(|snapshot| projects.workspace.current(snapshot)) {
                     match checked.result {
+                        Ok(DiagnosticBatch::Interrupted) => { documents.reschedule(&checked.snapshot.uri, Instant::now(), debounce); },
                         Ok(DiagnosticBatch::Single(diagnostics)) => {
                             if scanner.covers(&checked.snapshot.uri) {continue;}
                             for publication in projects.forget_project(&checked.snapshot.uri) { publish_project(&connection, publication)?; }
@@ -451,10 +596,25 @@ fn publish_project(
         Notification::new("textDocument/publishDiagnostics".into(), params),
     )
 }
+#[cfg(target_os = "macos")]
+fn configure_allocator() -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+    if std::env::var_os("MallocSpaceEfficient").is_some() { return Ok(()); }
+    // libmalloc reads this before main; return freed analysis pages instead of caching them.
+    Err(std::process::Command::new(std::env::current_exe()?)
+        .args(std::env::args_os().skip(1))
+        .env("MallocSpaceEfficient", "1")
+        .exec())
+}
 fn main() {
     if std::env::args_os().skip(1).eq([std::ffi::OsString::from("--version")]) {
         println!("tsrust-lsp {}",env!("CARGO_PKG_VERSION"));
         return;
+    }
+    #[cfg(target_os = "macos")]
+    if let Err(error) = configure_allocator() {
+        eprintln!("tsrust-lsp: cannot configure system allocator: {error}");
+        std::process::exit(1);
     }
     let (connection, _io_threads) = Connection::stdio();
     let code = match run(connection, diagnostics) {
@@ -498,6 +658,57 @@ mod tests {
         assert!(matches!(receive(client), Message::Response(response) if response.error.is_none()));
         notify(client,"initialized",json!({}));
     }
+    #[test]
+    fn imported_intelligence_does_not_wait_for_an_unrelated_full_check() {
+        let (server, client) = Connection::memory();
+        let (entered_tx, entered_rx) = bounded(1);
+        let (release_tx, release_rx) = bounded(1);
+        let worker = std::thread::spawn(move || run(server, move |text, uri| {
+            if uri == "file:///tsrust-priority/blocker.tsr" {
+                entered_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+            }
+            diagnostics(text, uri)
+        }));
+        initialize(&client);
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":"file:///tsrust-priority/blocker.tsr", "languageId":"tsrust", "version":1, "text":"function main() {}"
+        }}));
+        entered_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        let uri = "file:///tsrust-priority/main.tsr";
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":"file:///tsrust-priority/dep.tsr", "languageId":"tsrust", "version":1,
+            "text":"export function quick(value: int): int { return value; }"
+        }}));
+        let text = "import {quick} from './dep.tsr'; function main(){quick(1);}";
+        notify(&client, "textDocument/didOpen", json!({"textDocument":{
+            "uri":uri, "languageId":"tsrust", "version":1, "text":text
+        }}));
+        for (id, method, offset) in [
+            (20, "textDocument/completion", text.rfind("quick").unwrap()+3),
+            (21, "textDocument/hover", text.rfind("quick").unwrap()+2),
+            (22, "textDocument/signatureHelp", text.rfind("quick(").unwrap()+6),
+        ] {
+            client.sender.send(Message::Request(Request {
+                id: id.into(), method: method.into(),
+                params: json!({"textDocument":{"uri":uri},"position":{"line":0,"character":offset}}),
+            })).unwrap();
+            let deadline = Instant::now()+Duration::from_secs(2);
+            loop {
+                let message = client.receiver.recv_timeout(deadline.saturating_duration_since(Instant::now())).expect("intelligence must respond while the full checker is still blocked");
+                if let Message::Response(response) = message && response.id == RequestId::from(id) {
+                    assert!(response.error.is_none(), "{response:?}");
+                    let result = response.result.unwrap();
+                    assert!(result.to_string().contains("value: int"), "{method}: {result}");
+                    break;
+                }
+            }
+        }
+        release_tx.send(()).unwrap();
+        notify(&client,"exit",json!(null));
+        assert_eq!(worker.join().unwrap().unwrap(), 1);
+    }
+
     #[test]
     fn slow_check_cannot_publish_after_edit_close_or_reopen() {
         let (server, client) = Connection::memory();

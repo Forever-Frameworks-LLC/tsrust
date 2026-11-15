@@ -9,6 +9,7 @@ function main() {
     throw "callback";
   };
   let caught = 0;
+
   try {
     apply(action);
   } catch (error) {
@@ -22,6 +23,7 @@ function main() {
   const other = (): int => {
     throw "second";
   };
+
   try {
     apply(other);
   } catch (error) {
@@ -36,6 +38,7 @@ function main() {
   const third = (): int => {
     throw "closure";
   };
+
   try {
     invoke(third);
   } catch (error) {
@@ -66,6 +69,7 @@ function main() {
   const failure = (): int => {
     throw "environment";
   };
+
   try {
     captured(failure);
   } catch (error) {
@@ -90,6 +94,7 @@ function main() {
     return 11;
   };
   strictEqual(rest(supplied, undefined), 11);
+
   try {
     rest(supplied);
   } catch (error) {
@@ -104,6 +109,7 @@ function main() {
   const last = (): int => {
     throw "once";
   };
+
   try {
     once(last);
   } catch (error) {

@@ -1,0 +1,85 @@
+import { FormattingTarget } from './formatting-actions.tsr';
+import { ProblemLocation } from './problem-actions.tsr';
+import { Workspace } from './workspace.tsr';
+
+export interface TerminalSession {
+  id: string;
+  ordinal: int;
+  exited: boolean;
+  title?: string;
+  program?: string;
+  args?: string[];
+  task?: string;
+  failed?: boolean;
+  formatCompletion?: string;
+  formatTarget?: FormattingTarget;
+}
+
+export interface TerminalWorkspace {
+  sessions: TerminalSession[];
+  active: string;
+  nextOrdinal: int;
+}
+
+export function emptyTerminals(): TerminalWorkspace {
+  return {
+    sessions: [], active: '', nextOrdinal: 1
+  };
+}
+
+export function addTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  if (id === '' || workspace.sessions.some((session) => session.id === id)) return Err('Terminal session id must be unique.');
+
+  if (workspace.nextOrdinal < 1 || workspace.nextOrdinal === 9223372036854775807) return Err('Terminal session numbering is exhausted.');
+  workspace.sessions.push({
+    id: clone(id), ordinal: workspace.nextOrdinal, exited: false
+  });
+  workspace.nextOrdinal += 1;
+  workspace.active = id;
+  return Ok();
+}
+
+export function activateTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  if (!workspace.sessions.some((session) => session.id === id)) return Err('Terminal session is not in this workspace.');
+  workspace.active = id;
+  return Ok();
+}
+
+export function removeTerminal(workspace: Mutable<TerminalWorkspace>, id: string): Result<void, string> {
+  const index = workspace.sessions.findIndex((session) => session.id === id);
+
+  if (index < 0) return Err('Terminal session is not in this workspace.');
+  workspace.sessions.splice(index, 1);
+
+  if (workspace.active === id) {
+    workspace.active = workspace.sessions.length === 0 ? '' : clone(workspace.sessions[index < workspace.sessions.length ? index : workspace.sessions.length - 1].id);
+  }
+
+  return Ok();
+}
+
+export function terminalExited(workspace: Mutable<TerminalWorkspace>, id: string, exited: boolean): void {
+  for (let index = 0; index < workspace.sessions.length; index += 1) {
+    if (workspace.sessions[index].id === id) {
+      workspace.sessions[index].exited = exited;
+      return;
+    }
+  }
+}
+
+// Only host-owned formatter task metadata can map a private snapshot back to an editor.
+export function terminalLocation(session: ReadOnly<TerminalSession>, workspace: ReadOnly<Workspace>, location: ReadOnly<ProblemLocation>): Result<ProblemLocation, string> {
+  const target = session.formatTarget;
+  const args = session.args;
+
+  if (session.task !== 'format-document' || target === undefined || args === undefined || args.length < 2 || args[1] !== location.path) return Ok(clone(location));
+
+  const path = clone(target.path);
+  const sessionId = clone(target.session);
+  const revision = target.revision;
+
+  if (!workspace.files.some((file) => file.document.path === path && file.document.session === sessionId && file.document.revision === revision)) return Err('The formatted document changed. Run Format again before following this location.');
+  return Ok({
+    path: clone(target.path), line: location.line, column: location.column
+  });
+}

@@ -26,6 +26,18 @@ impl Type {
 pub struct Export {pub name:String,pub parameters:Vec<Type>,pub result:Type,pub declaration:Span,pub native:Span}
 #[derive(Clone, Debug)]
 pub struct Module {pub exports:Vec<Export>,pub context:bool,pub rayon:bool,pub types:BTreeMap<String,Data>,pub source:SourceFile,pub package:Option<dependencies::Package>,pub locations:Vec<(Span,Span)>}
+impl Module {
+    pub(crate) fn runtime_source(&self)->String {
+        let parsed=syn::parse_file(&self.source.text).expect("checked Rust module");
+        let mut spans=parsed.items.iter().filter_map(|item|if let syn::Item::Struct(item)=item{Some(item)}else{None})
+            .flat_map(|item|item.attrs.iter().filter(|attr|attr.path().is_ident("tsrust_resource")).map(|attr|range(&self.source.text,attr.span())))
+            .collect::<Vec<_>>();
+        spans.sort_by_key(|span|std::cmp::Reverse(span.start));
+        let mut source=self.source.text.clone();
+        for span in spans {let blank=source.as_bytes()[span.start..span.end].iter().map(|byte|if matches!(*byte,b'\n'|b'\r'){*byte}else{b' '}).collect::<Vec<_>>();source.replace_range(span.start..span.end,std::str::from_utf8(&blank).unwrap());}
+        source
+    }
+}
 fn range(text:&str,span:proc_macro2::Span)->Span {
     let offset=|position:proc_macro2::LineColumn|text.split_inclusive('\n').take(position.line.saturating_sub(1)).map(str::len).sum::<usize>()+position.column;
     Span::new(offset(span.start()).min(text.len()),offset(span.end()).min(text.len()))
@@ -37,6 +49,7 @@ fn shape(ty:&syn::Type, output:bool,options:&str)->Result<Type,String> {
             let inner=match value.elem.as_ref(){
                 syn::Type::Slice(slice)=>{let item=shape(&slice.elem,true,options)?;if !matches!(item,Type::Int|Type::Number|Type::Boolean){return Err("Borrowed slices require i64, f64 or bool elements; owned nested data must move through Vec.".into());}Type::Array(Box::new(item))},
                 syn::Type::Path(path) if path.path.is_ident("str")&&value.mutability.is_none()=>Type::String,
+                syn::Type::Path(path) if path.qself.is_none() && path.path.segments.len()==1 && matches!(path.path.segments[0].arguments,syn::PathArguments::None)=>Type::Named(path.path.segments[0].ident.to_string()),
                 _=>return Err("Borrowed Rust inputs support &str, primitive slices, mutable primitive slices and &TaskContext.".into()),
             };
             Ok(Type::Borrow(Box::new(inner),value.mutability.is_some()))

@@ -4,20 +4,91 @@ use crate::{
     project_diagnostics::{file_uri, source_id},
 };
 use serde_json::Value;
-use std::collections::BTreeMap;
-use tsrust_compiler::project::{ProjectGraph, SourceId};
+use std::collections::{BTreeMap,HashMap};
+use std::sync::OnceLock;
+use lsp_types::Location;
+use tsrust_compiler::project::{ModuleImport, ModuleSource, ProjectGraph, SourceId};
 
 pub struct ProjectIndex {
+    declarations_only: bool,
     indices: BTreeMap<SourceId, SourceIndex>,
     entry_aliases: BTreeMap<SourceId,SourceId>,
-    references: BTreeMap<String, Vec<(Value, bool)>>,
+    references: OnceLock<HashMap<Location, Vec<(Location, bool)>>>,
     /// The validated module graph of this index, for checks of a repaired module.
     graph: ProjectGraph,
+}
+
+struct BundledIndices {
+    declaration_source: String,
+    entry_help: bool,
+    declaration: SourceIndex,
+    body: SourceIndex,
+}
+
+fn reusable_bundle(module: &ModuleSource) -> bool {
+    tsrust_compiler::project::bundled_source(&module.source.id) == Some(module.source.text.as_str())
+        && module.rust.is_none() && module.data.is_none()
+        && module.imports.iter().all(|import| import.native.is_some() && import.target.is_none())
+}
+
+fn link_native_import(import: &ModuleImport, native: &str, declaration: &mut SourceIndex, index: &mut SourceIndex) {
+    index.import_native_names(import.names, native);
+    for binding in &import.bindings {
+        for index in [&mut *index, &mut *declaration] {
+            index.import_native(native, &binding.exported, &binding.local, binding.span);
+        }
+    }
+}
+
+fn module_indices(module: &ModuleSource, entry_help: bool) -> (SourceIndex, SourceIndex) {
+    let reusable = reusable_bundle(module);
+    let build = || {
+        let mut declaration = SourceIndex::for_project(&module.declaration_source, false);
+        let mut index = SourceIndex::for_project(module.checked_source(), entry_help);
+        if reusable {
+            declaration.inherit_public_record_aliases(&index);
+            for import in &module.imports {
+                if let Some(native) = import.native { link_native_import(import, native, &mut declaration, &mut index); }
+            }
+            declaration.finish_imports();
+            index.finish_imports();
+        }
+        (declaration, index)
+    };
+    // Only compiler bundles with no project dependencies retain linked state.
+    if !reusable {
+        return build();
+    }
+    static BUNDLED: std::sync::OnceLock<std::sync::Mutex<BTreeMap<SourceId, BundledIndices>>> = std::sync::OnceLock::new();
+    let mut bundled = BUNDLED.get_or_init(Default::default).lock().expect("bundled declaration indices");
+    let cached = bundled.entry(module.source.id.clone()).or_insert_with(|| {
+        let (declaration, body) = build();
+        BundledIndices { declaration_source: module.declaration_source.clone(), entry_help, declaration, body }
+    });
+    if cached.declaration_source != module.declaration_source || cached.entry_help != entry_help {
+        let (declaration, body) = build();
+        *cached = BundledIndices { declaration_source: module.declaration_source.clone(), entry_help, declaration, body };
+    }
+    (cached.declaration.clone(), cached.body.clone())
 }
 
 #[cfg(test)]
 mod inherited_help_tests {
     use super::*;
+    #[test]
+    fn signal_operations_survive_bundled_project_alias_linking() {
+        let root=crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-signal-alias-help"));
+        let entry=SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let text="import {Signal as State} from 'std:ui';function inspect(value:State<string[]>){value.get();}function main(){}";
+        let mut workspace=crate::workspace::Workspace::default();workspace.open(entry.clone(),1,text.into());
+        let analysis=workspace.snapshot().check_with_diagnostics(&entry).unwrap();let uri=file_uri(&entry).unwrap();
+        let offset=text.find("value.get").unwrap()+"value.".len();
+        let params=serde_json::json!({"textDocument":{"uri":uri},"position":{"line":0,"character":offset}});
+        for (phase,index) in [("headers",ProjectIndex::new(&analysis.graph)),("checked",ProjectIndex::checked(&analysis))] {
+            let result=index.request("textDocument/completion",&params,uri.as_str()).unwrap().unwrap();
+            assert!(result.to_string().contains("get()")&&result.to_string().contains("set(value:"),"{phase}: {result}");
+        }
+    }
     #[test]
     fn imported_inherited_fields_keep_help_in_header_and_checked_indices() {
         let root = crate::project_diagnostics::canonical_path(&std::env::temp_dir().join("tsrust-inherited-help"));
@@ -84,18 +155,30 @@ impl ProjectIndex {
             if trace && module_started.elapsed().as_millis() >= 500 { eprintln!("[index] apply-module={}ms source={}", module_started.elapsed().as_millis(), id.0); }
         }
         if trace { eprintln!("[index] apply={}ms", started.elapsed().as_millis()); }
+        index
+    }
+    /// Declared symbols from headers only; never repair a body by running the checker.
+    pub fn declarations(graph: &ProjectGraph) -> Self {
+        let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
         let started = std::time::Instant::now();
-        index.refresh_references();
-        if trace { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
+        let mut index = Self::build(graph);
+        if trace { eprintln!("[index] declarations-build={}ms", started.elapsed().as_millis()); }
+        index.declarations_only = true;
         index
     }
     pub fn new(graph: &ProjectGraph) -> Self { Self::with_diagnostics(graph, &[]) }
     pub fn with_diagnostics(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic]) -> Self {
+        Self::with_diagnostics_cancellable(graph, errors, || false).expect("uncancelled index")
+    }
+    pub fn with_diagnostics_cancellable(graph: &ProjectGraph, errors: &[tsrust_compiler::project::ProjectDiagnostic], cancelled: impl Fn() -> bool) -> Option<Self> {
+        if cancelled() { return None; }
         let mut index = Self::build(graph);
         for id in &graph.order {
+            if cancelled() { return None; }
             if graph.modules[id].data.is_some(){continue;}
             let mut source=index.indices.remove(id).expect("indexed project source");
-            source.recover_project_member_receivers(graph,id);
+            source.recover_project_member_receivers_cancellable(graph,id,&cancelled);
+            if cancelled() { return None; }
             if let Some(error)=errors.iter().filter(|error|error.code=="syntax" && error.location.source==*id)
                 .min_by_key(|error|error.location.span.start)
             {
@@ -103,18 +186,19 @@ impl ProjectIndex {
             }
             index.indices.insert(id.clone(),source);
         }
-        index.refresh_references();
-        index
+        if cancelled() { return None; }
+        Some(index)
     }
     fn build(graph: &ProjectGraph) -> Self {
         let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
         let mut indices = BTreeMap::new();
         let mut declarations: BTreeMap<SourceId, SourceIndex> = BTreeMap::new();
+        let mut export_completions = BTreeMap::new();
         for id in &graph.order {
             let started = std::time::Instant::now();
             let module = &graph.modules[id];
             let text_asset=module.data.is_some()&&std::path::Path::new(&id.0).extension().is_some_and(|value|value=="txt");
-            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{(SourceIndex::for_project(&module.declaration_source,false),SourceIndex::for_project(module.checked_source(),id==&graph.entry))};
+            let (mut declaration,mut index)=if text_asset {let schema=module.data.as_ref().unwrap().schema();(SourceIndex::text_asset(&module.source.text,&schema),SourceIndex::text_asset(&module.source.text,&schema))}else{module_indices(module,id==&graph.entry)};
             if let Some(data) = &module.data && !text_asset {
                 let schema = data.schema();
                 declaration = SourceIndex::for_project(&module.source.text, false);
@@ -122,65 +206,61 @@ impl ProjectIndex {
                 index.add_data_schema(&schema);
             }
 
-            // Declaration text blanks export markers; retain public aliases from the original source.
-            declaration.inherit_public_record_aliases(&index);
-            for import in &module.imports {
-                if let Some(native) = import.native {
-                    index.import_native_names(import.names, native);
+            if !reusable_bundle(module) {
+                // Declaration text blanks export markers; retain public aliases from the original source.
+                declaration.inherit_public_record_aliases(&index);
+                for import in &module.imports {
+                    if let Some(native) = import.native {
+                        link_native_import(import, native, &mut declaration, &mut index);
+                        continue;
+                    }
+                    let Some(target) = &import.target else {
+                        continue;
+                    };
+                    let dependency = &graph.modules[target];
+                    let foreign = &declarations[target];
+                    let items=export_completions.entry(target.clone()).or_insert_with(||std::sync::Arc::new(
+                        foreign.export_completions(dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))))
+                    ));
+                    index.import_export_names(import.names,items.clone());
+                    let Ok(uri) = file_uri(target) else {
+                        continue;
+                    };
+                    let types = module
+                        .imports
+                        .iter()
+                        .filter(|other| other.target.as_ref() == Some(target))
+                        .flat_map(|other| other.bindings.iter())
+                        .filter(|binding| foreign.is_record_declaration(&binding.exported))
+                        .map(|binding| (binding.exported.clone(), binding.local.clone()))
+                        .collect::<BTreeMap<_, _>>();
                     for binding in &import.bindings {
-                        for index in [&mut index, &mut declaration] {
-                            index.import_native(
-                                native,
-                                &binding.exported,
-                                &binding.local,
-                                binding.span,
-                            );
-                        }
-                    }
-                    continue;
-                }
-                let Some(target) = &import.target else {
-                    continue;
-                };
-                let dependency = &graph.modules[target];
-                let foreign = &declarations[target];
-                index.import_export_names(import.names, foreign, dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))));
-                let Ok(uri) = file_uri(target) else {
-                    continue;
-                };
-                let types = module
-                    .imports
-                    .iter()
-                    .filter(|other| other.target.as_ref() == Some(target))
-                    .flat_map(|other| other.bindings.iter())
-                    .filter(|binding| foreign.is_record_declaration(&binding.exported))
-                    .map(|binding| (binding.exported.clone(), binding.local.clone()))
-                    .collect::<BTreeMap<_, _>>();
-                for binding in &import.bindings {
-                    if dependency.exports.contains_key(&binding.exported) {
-                        for index in [&mut index, &mut declaration] {
-                            index.import_declaration(
-                                foreign,
-                                dependency.exported_local(&binding.exported),
-                                &binding.local,
-                                binding.span,
-                                uri.as_str(),
-                                &types,
-                            );
+                        if dependency.exports.contains_key(&binding.exported) {
+                            for index in [&mut index, &mut declaration] {
+                                index.import_declaration(
+                                    foreign,
+                                    dependency.exported_local(&binding.exported),
+                                    &binding.local,
+                                    binding.span,
+                                    uri.as_str(),
+                                    &types,
+                                );
+                            }
                         }
                     }
                 }
+                declaration.finish_imports();
+                index.finish_imports();
             }
-            declaration.finish_imports();
             declarations.insert(id.clone(), declaration);
-            index.finish_imports();
             indices.insert(id.clone(), index);
-            if trace && started.elapsed().as_millis() >= 500 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
+            if trace && started.elapsed().as_millis() >= 50 { eprintln!("[index] module={}ms source={}", started.elapsed().as_millis(), id.0); }
         }
         Self {
+            declarations_only: false,
             indices,
             entry_aliases: BTreeMap::new(),
-            references: BTreeMap::new(),
+            references: OnceLock::new(),
             graph: graph.clone(),
         }
     }
@@ -192,18 +272,20 @@ impl ProjectIndex {
             self.entry_aliases.insert(physical,logical);
         }
     }
-    fn refresh_references(&mut self) {
-        self.references.clear();
-        for (id, index) in &self.indices {
-            if let Ok(uri) = file_uri(id) {
-                for (definition, location, declaration) in index.reference_locations(uri.as_str()) {
-                    self.references
-                        .entry(definition.to_string())
-                        .or_default()
-                        .push((location, declaration));
+    fn references(&self) -> &HashMap<Location, Vec<(Location, bool)>> {
+        self.references.get_or_init(|| {
+            let started = std::time::Instant::now();
+            let mut references: HashMap<Location, Vec<(Location, bool)>> = HashMap::new();
+            for (id, index) in &self.indices {
+                if let Ok(uri) = file_uri(id) {
+                    for (definition, location, declaration) in index.reference_locations(&uri) {
+                        references.entry(definition).or_default().push((location, declaration));
+                    }
                 }
             }
-        }
+            if std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some() { eprintln!("[index] references={}ms", started.elapsed().as_millis()); }
+            references
+        })
     }
     pub fn request(
         &self,
@@ -225,9 +307,9 @@ impl ProjectIndex {
                             .pointer("/context/includeDeclaration")
                             .and_then(Value::as_bool)
                             .unwrap_or(true);
+                        let definition=serde_json::from_value::<Location>(definition).ok();
                         let mut locations=serde_json::json!(
-                            self.references
-                                .get(&definition.to_string())
+                            definition.as_ref().and_then(|definition|self.references().get(definition))
                                 .into_iter()
                                 .flatten()
                                 .filter(|(_, declaration)| include || !declaration)
@@ -240,12 +322,23 @@ impl ProjectIndex {
         }
         let index = self.indices.get(&id)?;
         if method == "textDocument/completion"
+            && !self.declarations_only
             && !index.checked()
             && let Some(items) = self.repaired_member_completion(&id, index, params)
         {
             return Some(Ok(items));
         }
-        Some(index.request(method, params, uri).map(|mut answer| { self.rust_locations(&mut answer); answer }))
+        let answer = if self.declarations_only {
+            index.request_declarations(method, params, uri)
+        } else {
+            index.request(method, params, uri)
+        };
+        Some(answer.map(|mut answer| {
+            self.rust_locations(&mut answer);
+            if self.declarations_only && method == "textDocument/completion" && answer.is_array() {
+                serde_json::json!({"isIncomplete":true,"items":answer})
+            } else { answer }
+        }))
     }
 
     fn rust_locations(&self, value: &mut Value) {
@@ -291,6 +384,24 @@ impl ProjectIndex {
 mod generic_prefix_recovery_tests {
     use super::*;
     #[test]
+    fn imported_task_start_preserves_job_cancel_hover() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-started-job-hover");
+        let entry = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dep = SourceId(root.join("workers.tsr").to_string_lossy().into_owned());
+        let text = "import {studioWorkers} from './workers.tsr';async function main():Task<void>{const workers=studioWorkers().start();try{}finally{workers.cancel();await workers;}}";
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(entry.clone(), 1, text.into());
+        workspace.open(dep, 1, "export async function studioWorkers():Task<void>{}".into());
+        let snapshot = workspace.snapshot();
+        let graph = tsrust_compiler::project::load_project_headers(&snapshot, &entry.0).unwrap();
+        let analysis = snapshot.check_with_diagnostics(&entry).unwrap();
+        for index in [ProjectIndex::declarations(&graph), ProjectIndex::checked(&analysis)] {
+            let params = serde_json::json!({"position":{"line":0,"character":text.find("cancel").unwrap()+1}});
+            let hover = index.request("textDocument/hover", &params, file_uri(&entry).unwrap().as_str()).unwrap().unwrap();
+            assert!(hover.to_string().contains("Requests cancellation of this job"), "{hover}");
+        }
+    }
+    #[test]
     fn completed_generic_call_hover_survives_a_broken_sibling_without_accepting_invalid_prefixes() {
         let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust-generic-prefix-recovery");
         let id=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
@@ -322,5 +433,133 @@ mod generic_prefix_recovery_tests {
         let params=serde_json::json!({"position":{"line":0,"character":invalid.rfind("deepStrictEqual").unwrap()+2}});
         let hover=recovered.request("textDocument/hover",&params,&uri).unwrap().unwrap();
         assert!(hover.to_string().contains("deepStrictEqual<T>"),"invalid prefixes cannot supply checked specialization: {hover}");
+    }
+}
+
+#[cfg(test)]
+mod declaration_only_tests {
+    use super::*;
+    #[test]
+    fn bundled_parse_reuse_is_finite_isolated_and_sensitive_to_source_and_mode() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-bundled-index-reuse");
+        let entry = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(entry.clone(), 1, "import {test} from 'std:testing';function main(){}".into());
+        let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &entry.0).unwrap();
+        let module = &graph.modules[&SourceId("std:testing".into())];
+        assert!(reusable_bundle(module));
+        let (mut declaration, mut body) = module_indices(module, false);
+        declaration.mark_checked();
+        body.mark_checked();
+        let builds = || crate::intelligence::PROJECT_SOURCE_BUILDS.with(|count| count.get());
+        let before = builds();
+        let (declaration, body) = module_indices(module, false);
+        assert_eq!(builds(), before, "unchanged bundle must reuse both parses");
+        assert!(!declaration.checked() && !body.checked(), "project mutations must not contaminate the cache");
+        module_indices(module, true);
+        assert_eq!(builds(), before + 2, "entry help mode must be respected");
+        let mut changed = module.clone();
+        changed.declaration_source.push_str("\nfunction cacheWitness(value: int): int { return value; }\n");
+        let (declaration, _) = module_indices(&changed, false);
+        assert_eq!(builds(), before + 4);
+        let start = changed.declaration_source.find("cacheWitness").unwrap();
+        let prefix = &changed.declaration_source[..start];
+        let params = serde_json::json!({"position":{"line":prefix.bytes().filter(|&b| b == b'\n').count(),"character":prefix.rsplit('\n').next().unwrap().encode_utf16().count()}});
+        assert!(declaration.request_declarations("textDocument/hover", &params, "file:///bundle.tsr").unwrap().to_string().contains("cacheWitness(value: int)"));
+        let before = builds();
+        let (restored, _) = module_indices(module, false);
+        assert!(builds() <= before + 2, "another test thread may already have restored the immutable bundle");
+        assert!(!restored.request_declarations("textDocument/documentSymbol", &serde_json::json!({}), "file:///bundle.tsr").unwrap().to_string().contains("cacheWitness"), "original declarations must be restored");
+        // Even a known bundle ID cannot cache substituted workspace source.
+        changed.source.text.push_str("\n// private workspace override");
+        let before = builds();
+        module_indices(&changed, false);
+        module_indices(&changed, false);
+        assert_eq!(builds(), before + 4);
+        let mut dependent = module.clone();
+        dependent.imports[0].native = None;
+        dependent.imports[0].target = Some(entry);
+        assert!(!reusable_bundle(&dependent), "project-dependent links must never enter the bundle cache");
+        let before = builds();
+        module_indices(&dependent, false);
+        module_indices(&dependent, false);
+        assert_eq!(builds(), before + 4);
+    }
+
+    #[test]
+    fn preliminary_help_uses_declared_imports_and_marks_completions_incomplete() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join("tsrust-declaration-help");
+        let id = SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dep = SourceId(root.join("dep.tsr").to_string_lossy().into_owned());
+        let uri = file_uri(&id).unwrap().to_string();
+        let source = "import {Row,render} from './dep.tsr';function main(row:Row){render(row);row.;}";
+        let mut workspace = crate::workspace::Workspace::default();
+        workspace.open(dep, 1, "export interface Row{value:string;}/** Render a row. */export function render(row:Row):string{return 4;}".into());
+        workspace.open(id.clone(), 1, source.into());
+        let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &id.0).unwrap();
+        let index = ProjectIndex::declarations(&graph);
+        let ask = |method: &str, offset| index.request(method, &serde_json::json!({"position":{"line":0,"character":offset}}), &uri).unwrap().unwrap();
+        let hover = ask("textDocument/hover", source.rfind("render(").unwrap()+1);
+        assert!(hover.to_string().contains("Render a row"), "{hover}");
+        let signatures = ask("textDocument/signatureHelp", source.rfind("render(").unwrap()+7);
+        assert!(signatures.to_string().contains("Row"), "{signatures}");
+        let repairs = crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get());
+        let completion = ask("textDocument/completion", source.rfind("row.").unwrap()+4);
+        assert_eq!(completion["isIncomplete"], true);
+        assert!(completion["items"].as_array().unwrap().iter().any(|item|item["label"]=="value"), "{completion}");
+        assert!(index.indices.values().all(|index| !index.checked()));
+        assert_eq!(crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get()), repairs, "declaration reads must not run cursor repair on the protocol thread");
+        let source_index = index.indices.get(&id).unwrap();
+        source_index.request("textDocument/completion", &serde_json::json!({"position":{"line":0,"character":source.rfind("row.").unwrap()+4}}), &uri).unwrap();
+        assert!(crate::intelligence::MEMBER_REPAIR_ATTEMPTS.with(|count| count.get()) > repairs, "ordinary unchecked requests retain cursor repair");
+    }
+}
+
+#[cfg(test)]
+mod compact_location_tests {
+    use super::*;
+    #[test]
+    fn compact_locations_keep_unicode_alias_references_and_snapshot_identity() {
+        use crate::{LineIndex,workspace::Workspace};
+        use tsrust_compiler::{Span,project::load_project_headers};
+        let root=std::env::temp_dir().canonicalize().unwrap().join("tsrust location é");
+        let entry=SourceId(root.join("main.tsr").to_string_lossy().into_owned());
+        let dependency=SourceId(root.join("lib é.tsr").to_string_lossy().into_owned());
+        let auxiliary=SourceId(root.join("aux.tsr").to_string_lossy().into_owned());
+        let source="/*😀*/ export function source():int{return 1;}";
+        let main="import {source as renamed} from './lib é.tsr';import {forward} from './aux.tsr';function main(){console.log(renamed(),forward(),renamed());}";
+        let mut workspace=Workspace::default();
+        workspace.open(entry.clone(),1,main.into());
+        workspace.open(dependency.clone(),1,source.into());
+        workspace.open(auxiliary,1,"import {source as original} from './lib é.tsr';export function forward():int{return original();}".into());
+        let index=ProjectIndex::declarations(&load_project_headers(&workspace.snapshot(),&entry.0).unwrap());
+        assert!(index.references.get().is_none(), "reference tables must not delay preliminary help");
+        let uri=file_uri(&entry).unwrap();
+        let at=main.find("renamed()").unwrap();
+        let params=serde_json::json!({"position":{"line":0,"character":main[..at].encode_utf16().count()},"context":{"includeDeclaration":true}});
+        let declaration=source.find("source()").unwrap();
+        let expected=serde_json::json!({"uri":file_uri(&dependency).unwrap(),"range":LineIndex::new(source).range(source,Span::new(declaration,declaration+6)).unwrap()});
+        assert!(expected["uri"].as_str().unwrap().contains("%20"));
+        assert!(index.request("textDocument/hover",&params,uri.as_str()).unwrap().unwrap().to_string().contains("int"));
+        assert_eq!(index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap(),expected);
+        assert!(index.references.get().is_none(), "hover and definition do not need a reference table");
+        let all=index.request("textDocument/references",&params,uri.as_str()).unwrap().unwrap();
+        assert!(index.references.get().is_some(), "references initialize on demand");
+        assert!(all.as_array().unwrap().contains(&expected));
+        assert!(all.as_array().unwrap().len()>4);
+        let mut without=params.clone();without["context"]["includeDeclaration"]=false.into();
+        let references=index.request("textDocument/references",&without,uri.as_str()).unwrap().unwrap();
+        let expected_references=all.as_array().unwrap().iter().filter(|location|**location!=expected).cloned().collect::<Vec<_>>();
+        assert_eq!(references,serde_json::json!(expected_references));
+        for location in all.as_array().unwrap() {
+            let typed=serde_json::from_value::<Location>(location.clone()).unwrap();
+            assert_eq!(serde_json::to_value(typed).unwrap(),*location);
+        }
+        assert!(workspace.change(&dependency,2,format!("\r\n{source}")));
+        let newer=ProjectIndex::declarations(&load_project_headers(&workspace.snapshot(),&entry.0).unwrap());
+        let moved=newer.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap();
+        assert_eq!(moved["range"]["start"]["line"],1);
+        assert_eq!(moved["range"]["start"]["character"],expected["range"]["start"]["character"]);
+        assert_eq!(index.request("textDocument/definition",&params,uri.as_str()).unwrap().unwrap(),expected,"older snapshot stays immutable");
     }
 }
