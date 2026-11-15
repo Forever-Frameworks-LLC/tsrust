@@ -1,16 +1,17 @@
 //! Point-sensitive capture facts are separate from stable allocation records.
 use super::*;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 #[derive(Clone,Copy,PartialEq,Eq,Hash,Debug)]
 pub(super) enum Instance { OwnedSingle, Merged }
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(not(test), expect(dead_code, reason = "Live and consumed states are exercised by retained point-sensitive factory witnesses; production currently joins unknown states."))]
 pub(super) enum Capture { Live { bindings:Vec<Binding>, instance:Instance }, Consumed, Unknown }
 #[derive(Clone,Default,PartialEq,Eq,Hash)]
-pub(super) struct State { pub bindings:Vec<Binding>, pub captures:BTreeMap<environment_store::Handle,Capture> }
-impl From<Vec<Binding>> for State {fn from(bindings:Vec<Binding>)->Self {Self {bindings,captures:BTreeMap::new()}}}
+pub(super) struct State { pub bindings:Arc<Vec<Binding>>, pub captures:BTreeMap<environment_store::Handle,Capture> }
+impl From<Vec<Binding>> for State {fn from(bindings:Vec<Binding>)->Self {Self {bindings:bindings.into(),captures:BTreeMap::new()}}}
 impl std::ops::Deref for State {type Target=Vec<Binding>;fn deref(&self)->&Self::Target {&self.bindings}}
-impl std::ops::DerefMut for State {fn deref_mut(&mut self)->&mut Self::Target {&mut self.bindings}}
+impl std::ops::DerefMut for State {fn deref_mut(&mut self)->&mut Self::Target {Arc::make_mut(&mut self.bindings)}}
 fn canonical(bindings:&[Binding])->Option<Vec<Binding>> {
     if bindings.iter().any(|binding|binding.identity.is_none()) {return None;}
     let mut result=bindings.to_vec();result.sort_by_key(|binding|binding.identity);
@@ -63,7 +64,7 @@ impl State {
             };
             captures.insert(*handle,value);
         }
-        let next=Self {bindings,captures};let changed=*self!=next;*self=next;Some(changed)
+        let next=Self {bindings:bindings.into(),captures};let changed=*self!=next;if changed {*self=next;}Some(changed)
     }
 }
 #[cfg(test)]
@@ -72,6 +73,17 @@ mod tests {
  fn binding(body:usize)->Binding {Binding {alternatives:None,identity:Some(crate::local_capture_plan::BindingId {owner:0,declaration_start:1}),name:"action".into(),scope:Span::new(0,100),targets:vec![Target::Unknown],origins:vec![body_origins::Origin::Body(Span::new(body,body+1))],selection:Selection::default(),elements:None,mutable:true,contract:None}}
  fn handle(store:&mut environment_store::Store,site:usize)->environment_store::Handle {store.allocate(Span::new(site,site+1),Span::new(90,91),&[binding(5)]).unwrap()}
  fn origins(state:&State,handle:environment_store::Handle)->Vec<body_origins::Origin> {match &state.captures[&handle] {Capture::Live {bindings,..}=>bindings[0].origins.clone(),_=>panic!("live capture required")}}
+ #[test] fn cloned_states_share_unchanged_bindings_and_isolate_writes() {
+  let mut original:State=vec![binding(5)].into();let incoming=original.clone();original.join(&incoming,&HashMap::new()).unwrap();
+  let saved=original.clone();let mut branch=original.clone();
+  assert!(Arc::ptr_eq(&original.bindings,&branch.bindings));
+  assert!(!branch.join(&original,&HashMap::new()).unwrap());
+  assert!(Arc::ptr_eq(&original.bindings,&branch.bindings));
+  branch[0].origins=vec![body_origins::Origin::Body(Span::new(9,10))];
+  assert!(!Arc::ptr_eq(&original.bindings,&branch.bindings));
+  assert!(original==saved);assert!(original.bindings[0].origins==binding(5).origins);
+  assert!(branch.bindings[0].origins==binding(9).origins);
+ }
  #[test] fn single_instance_restores_exact_state_without_changing_other_instance() {
   let mut store=environment_store::Store::default();let first=handle(&mut store,20);let second=handle(&mut store,30);let mut state=State::default();
   state.install(first,&[binding(5)],Instance::OwnedSingle).unwrap();state.install(second,&[binding(7)],Instance::OwnedSingle).unwrap();

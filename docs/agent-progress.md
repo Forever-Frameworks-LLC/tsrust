@@ -4,6 +4,72 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Generic flow-state sharing reduces the reproduced startup peak — 2026-11-14
+
+Previous goal turn made progress: core regression acceptance and stale Settings
+wrapper repair690f1dd7f. No core/app processes were live at the start of this
+turn except owner Zed LSP28276; system-free memory61%. Apps remain stopped and
+their caches clear. General performance tuning remains deferred. This section
+only investigates the newly reported actual startup memory spike.
+
+Before any compiler edits, installed CLI e82c15ae emitted both real Studio main
+and ai-actions.test.tsr with MallocSpaceEfficient=1. Fingerprints of172 Studio/SDK
+source files stayed identical. Main: sampled peak footprint275,006,400B, OS peak
+RSS616,300,544B, emitted SHA2566d723adbbc56921a4243ddb23397b2ad5b869ca87f3d371afb1fb196f12efe7d.
+AI-actions: sampled lifetime peak footprint3,077,295,032B, OS peak RSS2,225,618,944B,
+emitted SHA256277a7ac1c30c3fb6d8af732938b49eec5af4f3793397b742478413d2b737ed93.
+Both exited0 and generated output was removed. Overall58.295s/17.986s are diagnostic
+observations, not quiet-machine timing benchmarks. Sampling can miss a late peak;
+OS peak RSS is complete but does not include compressed memory. Diagnostics had
+180s/3.5GiB-footprint/system-free20% stop conditions and built no native outputs.
+
+The test file reproduces the multi-GiB peak outside Zed. A first3-second stack
+capture localized heavy allocation to Analyzer::new_with_source_proofs,
+generic call validation's branch-flow invocation worklist and guard-partition
+state joins. The proposed early Analyzer/CheckedProgram drops occur after this
+work; do not implement them as a demonstrated repair for this spike.
+
+Accepted implementation: FlowState bindings use Arc<Vec<Binding>> so unchanged
+clones share storage; DerefMut uses Arc::make_mut. Equal, fully normalized joins
+retain existing storage. Capture state, target normalization, branch partitioning,
+fact sets, budgets and all checks are unchanged. Three direct callers adapt their
+construction/mutation to the shared representation. One internal regression proves
+sharing across clones/equal joins and write isolation. Release CLI/LSP build passed
+in3m37s (tool84969). Installed controls were retained through the comparison. CLI SHA256
+a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372.
+
+Candidate paired replay passed with identical172 source fingerprints and identical
+emitted Rust hashes for both files. AI-actions sampled peak1,342,621,448B (56.37%
+lower in this diagnostic) and OS peak RSS1,306,968,064B (41.28% lower). Main sampled
+peak212,091,696B but OS peak RSS643,366,912B,4.39% higher than before. Do not claim
+universal peak-memory improvement or a stable timing speedup. Overall59.284s and
+14.798s remain single diagnostic observations. This meets the bounded candidate's
+requirement to reduce the reproducing file's peak without changing generated code.
+
+Complete release-profile core regressions passed (tool46737):8m28s build/setup;
+compiler library1558 passed,0 failed,8 pre-existing ignored in79.77s; CLI61/61 in
+1.63s; LSP library36/36 in1.08s; LSP scheduler7/7 in0.02s. The new sharing/isolation
+case and existing equal-state target normalization, recursive request/environment,
+array transfer and guard-correlation cases all pass. Transport integration18/18
+passed in1.44s after3.78s setup (tool38794). Real private LSP acceptance on ai-actions.test.tsr passed
+clean diagnostics, rejection of an in-memory invalid return and clearing after
+repair; disk source bytes were preserved (tool36624). No app/model/hosted CI started.
+
+This is one bounded successful memory repair, not a new timing benchmark or a
+demonstration that every restored-tab Zed startup stays below1GiB. General further
+tuning remains deferred; do not layer additional optimization onto this section.
+Installed consumers were staged, version/hash checked and replaced atomically per
+file. CLI0.2.0 matches a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372;
+LSP0.3.0 matches a0e43372045e0a39a57a13f13097db9e34303739199ab490aeeb64fdaea9fa01.
+Release and installed copies agree. Owner Studio/SDK drafts remain protected and
+unstaged; validation includes those SDK additions rather than an immutable HEAD
+without them. Existing full-goal host/runtime/platform/merge requirements remain
+open. No owner Zed process was killed for this checkpoint; a language-server restart
+is needed to load the new binary. Whole-project formatting passed0 files/snippets/
+fingerprints. Only the four branch-flow files and this evidence belong to the
+checkpoint; closed diagnostic scripts/reports are disposable after recording these
+results. No app target was repopulated and no remote action occurred.
+
 ## Core milestone and actual restarted Zed observation — 2026-11-14
 
 Previous goal turn made source progress: macOS allocator startup repair62e931f00
