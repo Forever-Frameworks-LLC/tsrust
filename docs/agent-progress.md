@@ -4,6 +4,49 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Core milestone and actual restarted Zed observation — 2026-11-14
+
+Previous goal turn made source progress: macOS allocator startup repair62e931f00
+passed its focused protocol/scheduler checks and was installed. Owner has now
+restarted Zed's LSP: PID28276, parent17082, with MallocSpaceEfficient=1 verified
+from that process's environment without printing other environment fields.
+The actual session still reached3,377,843,536B lifetime peak (3.15GiB), then fell
+to128,388,432B footprint/74,334,208B swapped at capture. Owner independently
+reported over1GB followed by123MB. Reclamation is improved; the full startup
+transient spike remains unresolved. Do not substitute the smaller private replay
+for this actual restored-session observation.
+
+A bounded3-second stack sample found tsrust-analysis in check_graph_entry and
+analyze_with_recursive_fallback/analyze_recursive_with_proofs. Declarations and
+file-reference workers were waiting. Source review found two concrete lifetime
+overlaps worth a later bounded memory repair: the seed Analyzer remains alive
+after its parameter modes have been copied; the final speculative CheckedProgram
+remains alive while the definitive Analyzer is created/run. No compiler analysis
+source has been changed for this observation. Do not resume broad speculative
+performance tuning or reduce diagnostics coverage. Owner Studio/Worklist sessions
+and app caches remain stopped/clear.
+
+Core release-profile regression invocation (tool38585):6m13s build/setup;
+compiler library1557 passed,0 failed,8 pre-existing ignored in78.65s. CLI bin60/61
+passed in8.15s; the single failure was a stale expected Settings wrapper family,
+still listing4 names after SettingsFooter/SettingsTitleSuffix were added to the
+committed catalog. Kept the exact export assertion and updated its expected6
+names; added generated-wrapper signature assertions for both additions. Exact
+replay passed1/1 in0.00s after14.69s setup (tool32300). Together these accept all61
+CLI cases across the two runs, not a fabricated single green run. LSP library/bin
+remainder (tool31946) passed36 library cases in1.07s and7 scheduler cases in0.03s
+after25.40s setup. Cargo had stopped before them at the original CLI failure.
+
+VS Code npm test passed type checking/build,4 executable-discovery cases and2
+TextMate grammar cases. Zed Tree-sitter corpus passed3/3, covering match syntax,
+ownership annotations and typed JSX. GitHub connector lookup was unavailable;
+read-only gh pr list found no open PRs. No push, comment, CI dispatch or app launch.
+All validation includes protected SDK additions in the working tree; immutable
+committed-source proof without those additions remains distinct. The full goal,
+remaining host/runtime/platform acceptance and eventual validated merge stay open.
+Whole-project formatting passed0 files/snippets/fingerprints; only ui_cli.rs and
+this record belong to this checkpoint. No further source optimization was introduced.
+
 ## Zed startup memory investigation — 2026-11-14
 
 Owner restarted Zed on apps/studio and reported 1.28GB, with screenshot showing

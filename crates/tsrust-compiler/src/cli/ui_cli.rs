@@ -112,9 +112,11 @@ mod tests {
     fn wrappers_cover_item_components_and_format() {
         let catalog=catalog();
         let settings=catalog.iter().find(|component|component.name=="Settings").unwrap();
-        assert_eq!(exports(settings,&catalog),["Settings","SettingsPage","SettingsGroup","SettingItem"]);
+        assert_eq!(exports(settings,&catalog),["Settings","SettingsPage","SettingsGroup","SettingItem","SettingsFooter","SettingsTitleSuffix"]);
         let source=tsrust_compiler::format(&wrapper(settings,&catalog)).unwrap();
         assert!(source.contains("export function SettingItem(props: SettingItemProps): Node"));
+        assert!(source.contains("export function SettingsFooter(props: SettingsFooterProps): Node"));
+        assert!(source.contains("export function SettingsTitleSuffix(props: SettingsTitleSuffixProps): Node"));
         let plot=catalog.iter().find(|component|component.name=="Plot").unwrap();
         assert_eq!(exports(plot,&catalog),["Plot","PlotLine","PlotArea","PlotBars","PlotTooltip","PlotTooltipRow"]);
         assert!(catalog.iter().filter(|component|!component.item).count()>60);
