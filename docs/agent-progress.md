@@ -4,6 +4,67 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
 
+## Original PR19 CI terminal; complete repair batch ready — 2026-11-14
+
+Previous goal turn made progress by retaining completed Linux host and cancelled
+runtime evidence. Continued the same original run43673677678 until terminal;
+owned watch16944 exited1 because the run failed, not because observation expired.
+Remote source remains aa628e637. No second push or manual rerun has happened yet.
+
+Original completed outcomes:
+- All3 packaged toolchain builds, compiler/LSP core and VS Code checks passed.
+- Linux host:22 targets,181 passed,0 failed/ignored; target test-wall1269.01s.
+- macOS host:22 targets,182 passed,0 failed/ignored; target test-wall1531.97s.
+  Top-level dev build3m27s, compiler host test build3m18s, LSP host build2m33s.
+- Windows host:22 targets,170 passed,7 failed,1 existing ignored; target test-wall
+  1644.19s. Dev build3m09s, compiler host build2m50s, LSP host build2m23s. These
+  wall reports include native compilation inside tests, so actual execution on
+  every host remains conservatively below one hour. No ignored case is a pass.
+- Linux runtime142/143 groups passed, failing only GPUI starter compilation;
+  Windows runtime recorded the same GPUI failure before cancellation; macOS
+  runtime passed87 groups including GPUI before cancellation. Neither cancelled
+  job is full platform acceptance. Exact retained counts/profiles remain below.
+- Tooling formatting and documentation failed for the diagnosed causes repaired
+  in b624b681c; platform guard72e74985e addresses both Linux/Windows GPUI errors.
+  The final CI aggregate correctly failed. Do not merge this original remote head.
+
+Windows host diagnosis completed locally before a follow-up push:
+1. bounded_project_format_preserves_binary_and_oversized_sources used nul.tsr,
+   which is the Windows NUL device even with an extension; it was not a regular
+   enumerated fixture, yielding2 skipped files instead of3. Renamed only that
+   fixture to embedded-nul.tsr; retained its embedded-NUL content and every exact
+   count/untouched-byte assertion. Microsoft naming rules confirm the cause:
+   https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file .
+2. Six stdio formatting cases supplied drive-less file:///formatter... URIs,
+   which Windows correctly rejects as non-absolute. A small shared test helper
+   now constructs native absolute temporary-document URIs with the existing
+   project_diagnostics::file_uri converter. No source files or per-case source
+   trees are created. Formatting outputs, analysis and idempotence assertions
+   remain unchanged. Production URI validation and formatter code are untouched.
+
+Affected local replay passed (tool50853 command outputs): compiler exact bounded
+format case1/1 in0.50s after3m02s build/setup; full affected stdio target18/18 in
+0.99s after3m17s build/setup. Retain the original35 other compiler-format cases
+and other host targets; do not repeat the full matrix for test-fixture edits.
+The orchestration postcondition initially failed because Cargo overwrote the cached
+LSP artifact chosen for consumer restoration; neither test command failed. Restored
+from the unchanged installed executable with the standard verified temporary-copy/
+atomic-rename procedure, keeping independent consumer inodes. Configured and
+installed LSP both match a0e43372045e0a39a57a13f13097db9e34303739199ab490aeeb64fdaea9fa01;
+original owner LSP28276 stayed live throughout and was not restarted. No binary
+snapshot/archive was made. Installed CLI and original owner source were untouched;
+ordinary shared-target CLI output may refresh as part of Cargo test setup.
+
+This closes local diagnosis of every reported original-run failure. Next: format
+and checkpoint this final fixture/evidence slice, read current PR/base state,
+then push the accepted batch once to update PR19 and follow its new exact head.
+The changed inputs are docs/catalog/provenance, matching format policy, the native
+platform guard and portable host fixtures. Existing CI/docs will synchronize once;
+no duplicate manual dispatch. Do not rerun unchanged local core/runtime/host gates.
+No app/model/PostgreSQL restart or new publication is authorized. Staging still
+requires review or an explicit owner exception; main publication still requires
+an unused version and explicit version-specific approval on a concrete candidate.
+
 ## PR19 Linux GPUI failure diagnosed; platform guard accepted locally — 2026-11-14
 
 Current original CI43673677678 is still running on remote aa628e637. Linux runtime

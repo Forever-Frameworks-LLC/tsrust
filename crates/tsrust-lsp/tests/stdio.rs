@@ -4,6 +4,12 @@ use std::io::{BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{Receiver, channel};
 use std::time::{Duration, Instant};
+fn document_uri(name: &str) -> String {
+    let path = std::env::temp_dir().join(format!("tsrust-stdio-{}-{name}", std::process::id()));
+    tsrust_lsp::project_diagnostics::file_uri(
+        &tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned()),
+    ).unwrap().to_string()
+}
 struct Server {
     child: Child,
     stdin: Option<ChildStdin>,
@@ -212,7 +218,7 @@ fn formatting_readonly_tuple_generics_returns_tight_idempotent_edit() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.notify("initialized", json!({}));
     let source = "function names(pair: ReadOnly < [string, string] >): int { const [left, right] = pair; return left.length + right.length; } function main() {}";
-    let uri = "file:///formatter-generics.tsr";
+    let uri = document_uri("formatter-generics.tsr");
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
     let Message::Response(response) = server.response() else { panic!("format response"); };
@@ -236,7 +242,7 @@ fn formatting_exception_handlers_returns_joined_idempotent_edit() {
     server.request(1,"initialize",json!({"capabilities":{}}));
     assert!(matches!(server.response(),Message::Response(r) if r.error.is_none()));
     server.notify("initialized",json!({}));
-    let uri="file:///formatter-exceptions.tsr";
+    let uri=document_uri("formatter-exceptions.tsr");
     let source="function main(){try{try{throw 1;}\n\nfinally{}}\n\ncatch(error){}\n\nfinally{}}";
     server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -261,7 +267,7 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.notify("initialized", json!({}));
     let source = "interface Box < T > { value: T, label?: string } function main() { const values = new Map < string, int >(); }";
-    let uri = "file:///formatter-generics.tsr";
+    let uri = document_uri("formatter-generics.tsr");
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
     let Message::Response(response) = server.response() else { panic!("format response"); };
@@ -326,7 +332,7 @@ fn formatting_assertions_and_generic_calls_returns_a_stable_edit() {
     let mut server=Server::start();
     server.request(1,"initialize",json!({"capabilities":{}}));
     server.response();
-    let uri="file:///format-types.tsr";
+    let uri=document_uri("format-types.tsr");
     let source="interface Box<T>{value:T;}function identity<T>(value:T):T{return value;}function main(){const boxed={value:9}\n\nas Box < int >;const callback=((x:int):int=>x+1) satisfies(value:int)=>int;console.log(callback(identity < int >(boxed.value)));}";
     server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2,"textDocument/formatting",json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -349,7 +355,7 @@ fn formatting_logical_not_chains_returns_a_stable_edit() {
     server.request(1, "initialize", json!({"capabilities":{}}));
     assert!(matches!(server.response(), Message::Response(response) if response.error.is_none()));
     server.notify("initialized", json!({}));
-    let uri = "file:///format-logical-not.tsr";
+    let uri = document_uri("format-logical-not.tsr");
     let source = "function main(){const text='hi';console.log(!! text,! ! ! text);}";
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));
@@ -486,7 +492,7 @@ fn formatting_import_rules_returns_grouped_wrapped_idempotent_edit() {
     server.request(1, "initialize", json!({"capabilities":{}}));
     assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
     server.notify("initialized", json!({}));
-    let uri = "file:///formatter-import-rules.tsrx";
+    let uri = document_uri("formatter-import-rules.tsrx");
     let source = "import { Local } from './local.tsr'; import { A, B, C, D, E, F } from 'std:ui'; function main() {}";
     server.notify("textDocument/didOpen", json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":source}}));
     server.request(2, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));

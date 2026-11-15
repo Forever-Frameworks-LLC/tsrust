@@ -550,7 +550,8 @@ fn bounded_project_format_preserves_binary_and_oversized_sources() {
     let dir = support::TempDirectory::new();
     let source = b"const n=1;";
     let limit = source.len().to_string();
-    let excluded: &[(&str, &[u8])] = &[("nul.tsr", b"//\0a"), ("invalid.tsr", &[0xff]), ("large.tsr", b"const nn=1;")];
+    // NUL remains a Windows device name even with a file extension.
+    let excluded: &[(&str, &[u8])] = &[("embedded-nul.tsr", b"//\0a"), ("invalid.tsr", &[0xff]), ("large.tsr", b"const nn=1;")];
     std::fs::write(dir.0.join("main.tsr"), source).unwrap();
     for (name, bytes) in excluded { std::fs::write(dir.0.join(name), bytes).unwrap(); }
     let output = support::run(support::cli().args(["format", "--write", "--text-files-up-to", &limit]).arg(&dir.0), 10);
