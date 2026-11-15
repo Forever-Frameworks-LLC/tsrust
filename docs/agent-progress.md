@@ -4,6 +4,88 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Runtime/catalog milestone accepted locally — 2026-11-14
+
+Previous goal turn only clarified the owner's memory observation; it added no new
+acceptance. Revalidated current source and resumed the remaining existing compiler
+runtime/catalog milestone. Apps, PostgreSQL and model hosts stayed stopped. No
+additional performance tuning, app CI or remote mutation was introduced.
+
+Initial generation reported1,078 executable catalog examples in120 groups and42
+host-controlled examples. A final disk-count audit exposed silent filename
+collisions: only1,075 files in119 directories existed. The registered repository
+adds23 fixture/example groups and33 files. See the collision repair below.
+Used the public tsrust test runner, each directory compiled together once, original
+sources in place, fresh runtime-data working directories and the shared root Cargo
+target; incremental off/jobs1. Restored the normal release CLI with cargo build
+--release --offline --locked (0.35s), SHA256
+a1d8ff9cd55abc92173b55fc9c4c47c2c4eb4572984330cf48336440dc7d7372.
+The executable initially differed from the recorded hash; this command restored
+the already accepted normal release consumer.
+
+Initial sandboxed structured-logging execution could not bind its HTTP listener;
+no acceptance was claimed. Stopped only the identified owned validation processes
+and reran with local-listener access. First full traversal (tool5869) accepted19
+groups, but GPUI's cold dependency build exceeded the runner's600s wall timeout.
+The regex binding setup then rejected its stale lockfile, aborting discovery before
+the remaining groups. Confirmed all compiler descendants were terminal before
+resuming. Preserved the19 passed groups rather than replaying them.
+
+Repair: examples/rust-regex/regex.bindings.lock lacked the current runtime's admitted
+ignore dependency and its bstr/globset closure. Regenerated with the existing pinned
+backend manifest offline. Added exactly those3 package records and the root ignore
+edge; no existing package version/checksum changed. Public bindings resolve --offline
+now passes; existing lock-drift rejection behavior remains unchanged. No product
+compiler code or binding schema changed.
+
+Resumed only123 unfinished groups (tool45203), allowing cold setup/build up to3600s
+per CLI invocation and using existing --reporter json --profile observations. All
+123 passed, including12 GPUI starter cases and the repaired regex example. Combined
+with the retained19 groups, that traversal accepted142 distinct groups and1,506
+cases in1,108 files, before the final generator audit identified3 omitted examples.
+It was not full catalog coverage and is not represented as such.
+Successful invocations report334.251s build/setup and3.614s test execution total;
+the earlier timed-out cold build has no completed profile and adds600s of wall
+setup, not a passed test. Traversal/replay wall totals702.449s+260.266s including
+that cold build. Actual execution stays far below the owner's one-hour limit.
+These are acceptance observations, not quiet-machine performance benchmarks.
+
+Generator repair: numeric group/member identities prefix readable slugs, preventing
+case-folded group/member collisions on Windows/macOS. Exclusive file creation
+rejects accidental overwrite. A small host unit verifies Number/number groups and
+Request/request members survive independently even under case-folded path comparison
+(1/1 passed,0.003s). Regeneration now creates exactly1,078 files in120 directories.
+The old lowercase naming had overwritten std:http request/Request, std:testing
+TrackedResource/trackedResource and std:url SearchParams/searchParams examples,
+and merged Number/number into one directory. No executable example body or expected
+output changed. Existing directory batching and host-only exclusions remain intact.
+
+Focused public-runner replay (tool13217) passes84/84 cases in5 groups: both separate
+Number groups plus std:http/std:testing/std:url. Build/setup8.240s, execution0.015s,
+wall10.240s. Retain the unaffected138 original groups; replace their4 old affected
+groups with these5 current groups. Final complete coverage is143 groups,1,509
+unique accepted cases,1,111 files,0 failures/hook failures/skips across preserved
+runs. All1,078 generated examples are now present and accepted. No unchanged suite
+was rerun merely because generated filenames changed.
+
+Fingerprint guards covered9,225 regular Git-reported files before/after each run;
+all stayed unchanged during each run. The intentional lock/generator repairs
+occurred between runs. The final replay guarded9,226 regular files with no changes
+during execution. Symlinks were excluded from this regular-file count. Owner Studio/SDK drafts
+and benchmark data remain preserved and unstaged. Validation includes the protected
+SDK additions; committed-source qualification without them remains distinct.
+Whole-project formatter passed0 files/snippets/fingerprints; diff whitespace clean.
+
+No test processes remain; the owner's existing Zed LSP was left running. All four
+app targets remain0B. Pruned closed native executable/runtime-artifact caches
+(~8.9GiB), retaining shared Cargo dependencies and471MiB generated runtime build
+inputs. Free space approximately188GiB. Temporary catalog/generated lock preparation,
+profiling reports and orchestration are disposable after this evidence checkpoint.
+Only the regex example lock, catalog generator, its discovery regression and this
+record belong to the checkpoint. Core, host and runtime/catalog local milestones are now accepted; exact committed-source
+qualification, supported-platform CI and eventual merge remain open. Existing
+owner deferrals and closed-app visual limits remain unchanged.
+
 ## Existing native/process host milestone accepted locally — 2026-11-14
 
 Previous goal turn made progress with measured memory repair4fbefd10e. No further

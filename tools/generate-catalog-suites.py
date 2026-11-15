@@ -72,10 +72,11 @@ def main():
     catalog = json.loads((ROOT / "crates/tsrust-lsp/src/builtins.json").read_text(encoding="utf-8"))
     counts = {"tests": 0, "host": 0, "groups": 0}
     seen = set()
-    for group, entries in sorted(catalog.items()):
-        directory = output / re.sub(r"[^A-Za-z0-9]+", "-", group).strip("-").lower()
+    # Indices keep case-distinct names separate on case-insensitive filesystems.
+    for group_index, (group, entries) in enumerate(sorted(catalog.items())):
+        directory = output / (str(group_index) + "-" + re.sub(r"[^A-Za-z0-9]+", "-", group).strip("-").lower())
         written = 0
-        for entry in entries:
+        for entry_index, entry in enumerate(entries):
             for index, example in enumerate(entry.get("examples", [])):
                 # Separator-sensitive examples record the Windows rendering separately.
                 expected = example.get("windowsOutput", example["output"]) if os.name == "nt" else example["output"]
@@ -95,7 +96,8 @@ def main():
                     check = f"catalogTest({quote(name)}, () => {{ catalogStart(); catalogProgram(); catalogEqual(catalogFinish(), {quote(expected)}); }});\n"
                 directory.mkdir(parents=True, exist_ok=True)
                 slug = re.sub(r"[^A-Za-z0-9]+", "-", entry["name"]).strip("-").lower() or "entry"
-                (directory / f"{slug}-{index}.test.tsr").write_text(HEADER + module + "\n" + check, encoding="utf-8")
+                with (directory / f"{entry_index}-{slug}-{index}.test.tsr").open("x", encoding="utf-8") as file:
+                    file.write(HEADER + module + "\n" + check)
                 written += 1
                 counts["tests"] += 1
         counts["groups"] += bool(written)
