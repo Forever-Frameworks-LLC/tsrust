@@ -4,6 +4,25 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Zed file icon support — 2026-11-14
+
+Owner reported missing icons for .tsr and .tsrx. Language recognition already
+includes both suffixes; Zed's icon associations are separate from its language
+registry. Added the optional Tsrust (Zed Default) icon theme to editors/zed,
+mapping tsr to the built-in typescript icon and tsrx to react (Zed's JSX icon).
+Zed merges default suffix associations and falls back to built-in icon assets,
+so this requires no copied artwork, adapter build or compiler change. Reference:
+https://zed.dev/docs/extensions/icon-themes and Zed crates/theme/src/registry.rs.
+
+Registered the theme in the existing local development extension index and
+selected it for both light/dark settings, preserving the existing mode and all
+other settings. JSON parsing and both suffix mappings were checked. Whole-project
+formatting passed with0 files/snippets/fingerprints changed. Live icon rendering has not been
+visually verified; the already-running Zed may need `zed: reload extensions` to
+refresh its in-memory registry. No app session was restarted. Prior cleanup/CI
+rollback is checkpoint263b9dbe7; only the icon theme, manifest, README and this
+record belong to the next checkpoint. Owner source/SDK drafts remain unstaged.
+
 ## Owner closed application sessions and rejected test-app CI — 2026-11-14
 
 Latest owner direction: the Worklist component-validation app does not justify

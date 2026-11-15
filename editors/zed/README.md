@@ -22,6 +22,12 @@ Highlighting covers ownership annotations (ReadOnly, Mutable, Owned and Once),
 Tsrust built-in types and typed JSX. Indentation, bracket and outline queries use
 the same grammar. Semantic diagnostics remain compiler-owned.
 
+File icons are separate from language recognition in Zed. Select **Tsrust (Zed
+Default)** with `icon theme selector: toggle` to give `.tsr` files the built-in
+TypeScript icon and `.tsrx` files the built-in JSX icon. This small theme inherits
+Zed's default icons for other files and folders and works in light and dark mode.
+Installing the language extension alone does not change the selected icon theme.
+
 The grammar source is in grammar/ and pins the upstream TypeScript grammar.
 Generated parser C and scanner sources are checked in for reproducible builds.
 To regenerate and validate it, run npm ci, npm run generate and npm test from

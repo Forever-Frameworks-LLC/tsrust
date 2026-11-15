@@ -1,0 +1,15 @@
+{
+  "$schema": "https://zed.dev/schema/icon_themes/v0.3.0.json",
+  "name": "Tsrust",
+  "author": "Tsrust contributors",
+  "themes": [
+    {
+      "name": "Tsrust (Zed Default)",
+      "appearance": "dark",
+      "file_suffixes": {
+        "tsr": "typescript",
+        "tsrx": "react"
+      }
+    }
+  ]
+}
