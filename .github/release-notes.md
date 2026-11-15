@@ -1,84 +1,39 @@
-Build native programs and desktop applications with TypeScript-style syntax and Rust ownership. This
-release completes the v0.2.0 standard library: the APIs a backend program needs
-from Node.js or Rust's standard library, translated to their direct Rust
-equivalents and checked by the compiler and editor.
+This patch release improves compiler, language-server and native development workflows.
+It includes compiler/CLI **0.2.1**, language server **0.3.1** and VS Code extension
+**0.2.2**. Extension versions are independent of compiler versions.
 
-New and expanded modules:
+Changes since v0.2.0:
 
-- Files and bytes: `std:fs` open options, metadata, directories, cursors, links,
-  temporary directories and text helpers; `std:bytes` codecs (UTF-8, hex,
-  base64/base64url) and binary records; `std:io` readers, writers and copies
-  shared across files, sockets, processes, HTTP bodies and compression.
-- Host: `std:path` resolve/parse/format, `std:env` variables and directories,
-  `std:os` parallelism and hostname, signals, `std:process` child processes,
-  `std:net` TCP/UDP and `std:dns` system lookups.
-- Web: `std:url` WHATWG URLs and query parameters; HTTP client timeouts,
-  redirects, proxies, uploads and forms; source-owned middleware; SSE and
-  WebSocket servers and clients.
-- Text and data: reusable `std:regex`, an explicit-locale `std:locale` subset
-  (collation, segmentation, number formatting), gzip/deflate `std:compression`,
-  and more collection, numeric and date operations.
-- Work and coordination: owned lazy iterator pipelines, task/timer/channel
-  helpers with cancellation tokens, and `std:crypto` hashes, HMAC, HKDF, random
-  bytes and Argon2 password hashing on explicit CPU pools.
-- Operations: `std:log` structured logging with request context, and
-  `std:testing` hooks, deep assertions, rejection checks, output capture
-  (`captureOutput`, `startOutputCapture`/`finishOutputCapture`) and profiling.
-- Rust packages: practical adapters for locked Rust crates, including generated
-  nominal record projections.
+- Reuse error-effect analysis within a solve and share unchanged ownership-flow
+  state to reduce repeated work and temporary allocations while preserving checks.
+- Improve development watcher scheduling and native-runtime cache reuse.
+- Improve Tsrust editor support, including Zed syntax for match expressions and
+  ownership modifiers. Zed support is in the source repository; the VSIX is for
+  VS Code.
+- Fix native GPUI compilation on Linux and Windows by restricting macOS window
+  positioning to macOS. UI dependencies remain separate from backend builds.
+- Preserve case-distinct standard-library examples in generated acceptance suites.
+- Correct generated API documentation and formatting-source identity handling on
+  the performance page without changing recorded benchmark measurements.
 
-Behavior changes from v0.1:
-
-- File reads and writes no longer impose a 64 MiB ceiling. Use the optional
-  `maxBytes`/`maxEntries` controls for an explicit bound.
-- HTTP clients follow the selected backend defaults: no total request timeout,
-  bounded redirect following and proxy discovery. Response readers no longer stop
-  at 1 MiB; set `bodyLimit`, `timeoutMs`, `followRedirects` or `proxy` to opt in.
-- HTTP servers no longer cap forms at 128 fields, multipart bodies at 128 parts,
-  configured body sizes at 64 MiB, deadlines at one hour, routes at 4096 bytes or
-  cookie lifetimes at 400 days. Configured limits stay in application source.
-- Async `main` runs on an 8 MiB main-thread stack on every host.
-
-Every public export has a reviewed ledger entry. Every non-UI catalog entry has an
-example that runs natively against its recorded output. The performance page
-compares Tsrust with hand-written Rust and Node.js after tsc across the accepted
-v0.2 workloads, plus HTTP text, JSON, parsing, SQLite and CPU rendering. These
-are workload-level results, not universal application speedups.
-
-The distribution includes compiler/CLI 0.2.0, language server 0.3.0 and VS Code
-extension 0.2.2. Backend applications can expose HTTP APIs and generate TypeScript
-or Rust clients with `tsrust api generate`. Native desktop applications use the
-GPUI Kit-backed `std:ui`, `.tsrx` components, signals, themes, navigation and windows.
-Use `tsrust new desktop --ui`, `tsrust ui add` for editable component wrappers,
-and `tsrust package` for application packaging. UI dependencies remain isolated
-from ordinary backend builds.
-
-The checked-in GPUI gallery includes 71 component pages and 358 component examples,
-plus live guides. This is experimental desktop support, with detailed component
-coverage and native styling limitations in the source documentation. It is not a
-claim of complete upstream API or web-platform parity. TSRX editor integration
-includes markup support and highlighted hover examples; workspace diagnostics and
-recovery fixes are included.
-
-Use `tsrust new service --app` to create a backend project, `tsrust new hello` for
-a console program, or `tsrust` for the interactive launcher.
-
-Documentation: https://forever-frameworks-llc.github.io/tsrust/
+Validation passed compiler/LSP core tests, all 143 runtime suite groups on each
+supported host, host/process-boundary tests, tooling, documentation and the VS Code
+extension checks. Release packaging additionally verifies optimized CLI/LSP archives
+and smoke tests before publication. Existing explicitly ignored tests are not
+counted as passes. CI timings are not application-performance benchmarks.
 
 Download the archive matching your host, verify it against `SHA256SUMS`, and put
-both `bin/` executables on `PATH`, or install a managed copy with
-`tsrust toolchain install --root NEW_DIRECTORY`; managed installations update with
-`tsrust toolchain check` and `tsrust toolchain update`. Cargo-owned installations
-update through Cargo. Install the separate VSIX in VS Code. Native compilation
-requires Rustup with Rust 1.99.1 and a system linker; archives do not include Rust.
-Linux archives target glibc systems (built on Ubuntu 24.04), not static musl.
+both `bin/` executables on `PATH`. Supported prebuilt hosts are Apple-silicon macOS,
+Windows x64 and Linux x64 (glibc, built on Ubuntu 24.04). Native compilation requires
+Rustup with Rust 1.99.1 and a system linker; archives do not include Rust. Install
+the separate VSIX in VS Code, or follow the source repository's Zed extension guide.
 
-Tsrust is experimental. Language and library APIs may change between minor
-versions. No platform developer signing or Apple notarization is provided.
-Large-workspace and multi-hour language-server memory behavior is not yet
-verified. Browser UI support remains unverified. Intel macOS prebuilt archives are no longer
-provided; supported prebuilt hosts are Apple-silicon macOS, Windows x64 and Linux x64.
-Tsrust Studio is a planning draft, not an application delivered in this release.
+Tsrust remains experimental. Large-workspace analysis can still temporarily use
+over 1 GB of memory; multi-hour memory behavior is not fully verified. The measured
+development improvements do not establish a universal overhead bound relative to
+Rust. Native desktop UI support has known styling and platform limitations;
+browser UI remains unverified. Studio and Worklist are local platform-validation
+experiments, not supported application products in this release. No platform
+developer signing or Apple notarization is provided.
 
-See the installation and release guides in the tagged source for prerequisites,
-verification commands and test coverage.
+Documentation: https://forever-frameworks-llc.github.io/tsrust/
