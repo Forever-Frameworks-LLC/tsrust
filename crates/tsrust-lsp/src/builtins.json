@@ -23503,20 +23503,20 @@
       "signature": "completionText(text: string, item: string, start: int, end: int): Result<string, string>",
       "parameters": [
         {
-          "name": "text",
-          "type": "string"
+          "label": "text: string",
+          "documentation": "Exact current UTF-8 document; read without mutation."
         },
         {
-          "name": "item",
-          "type": "string"
+          "label": "item: string",
+          "documentation": "JSON-encoded LSP CompletionItem with UTF-16 positions for this document."
         },
         {
-          "name": "start",
-          "type": "int"
+          "label": "start: int",
+          "documentation": "Inclusive zero-based UTF-8 byte offset for fallback replacement when textEdit is absent."
         },
         {
-          "name": "end",
-          "type": "int"
+          "label": "end: int",
+          "documentation": "Exclusive zero-based UTF-8 byte offset for fallback replacement when textEdit is absent."
         }
       ],
       "documentation": "Prepare a completion and its same-document import/additional edits as independent proposed text. Never edits, focuses or saves a document.\n\n`text` is the exact current UTF-8 document; `item` is one JSON-encoded LSP CompletionItem with UTF-16 positions. `start` and `end` are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Numeric snippet stops/defaults are expanded; server commands are ignored. Returns the complete proposed document. Invalid, surrogate-interior, reversed, outside-document or overlapping ranges and unsupported snippets return an error. Inputs and output are limited to 16 MiB each. Verify document session/revision before applying.\n\n```tsr\nconst proposed = unwrap(completionText('pri', '{\"label\":\"print\"}', 0, 3));\nconsole.log(proposed); // print\n```\n\nOwnership: reads inputs; returns independent text."

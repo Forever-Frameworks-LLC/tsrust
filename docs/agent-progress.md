@@ -4,6 +4,72 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
 
+## PR19 active; diagnosed docs/format repair accepted locally — 2026-11-14
+
+Previous goal turn made progress:143 runtime/catalog groups accepted and f3a6c27ce.
+This turn integrated and qualified committed source as recorded below, then pushed
+exactly once: aa628e6376e300c3e7a49c5d1ac54433c653febf on
+codex/compiler-lsp-worklist. PR19 is open/mergeable against stag:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/19 . GitHub connector methods
+returned Unknown tool; fallback gh performed the authorized push/PR creation.
+No publication, main promotion or manual workflow dispatch occurred.
+
+Authoritative live runs on that head:
+- CI43673677678: https://github.com/Forever-Frameworks-LLC/tsrust/actions/runs/43673677678 .
+  All3 packaged toolchain builds, compiler/LSP core and VS Code checks passed.
+  Three runtime-suite and three host-boundary jobs remain in progress at the last
+  verified snapshot. Do not claim platform runtime acceptance before they finish.
+- Documentation43673677729 completed failure: unmapped Signal catalog group.
+- CI tooling job132689046368 completed failure:393 files flagged by default import
+  organization. Correctness lint had passed; the failure is formatting policy.
+- A live owned gh run watch follows CI43673677678 (tool session16944, redirected
+  target/staging-ci-watch.log in the original checkout). Poll this handle/run;
+  do not start another workflow because observation times out. Functions state
+  active_staging_validation also records these exact handles.
+
+Diagnosed/repaired locally in the managed candidate, without another push:
+1. Map Signal members into the std:ui reference. The next local build exposed
+   malformed completionText parameter objects using name/type instead of the
+   catalog's canonical label/documentation records. Normalized those4 records,
+   preserving the signature and compiler behavior. The initially suspected
+   Signal.set metadata was valid; completionText was the malformed entry.
+2. Performance rendering rejected3 formatting-only source transitions: HTTP
+   requests.tsr, HTTP cpu.tsr and runtime local_closures.tsr. Compared current code
+   tokens including comments with immutable main88db8210a originals and verified
+   every original hash matches the published measurement pins. Registered those
+   exact transitions in the existing format-source-identities registry and reused
+   sourceIdentityMatches at the3 rendering boundaries. Original measured source
+   hashes, timestamps, protocols, oracles and results stay unchanged. Measurement
+   SQLite is byte-identical to committed source. No new performance run is claimed.
+   Existing mutation guards reject new whitespace bytes without a registered proof,
+   semantic edits and unrelated hashes. The CPU-highlight test uses the same
+   exact original/formatted identity pair rather than rewriting measurement pins.
+3. Aligned CI format --check with the existing checkpoint policy:
+   --options '{"organizeImports":false}'. This preserves import evaluation order;
+   no files or triggers are excluded. Reproduced locally: default options flag
+   exactly393 files and exit1; the checkpoint options pass exit0. No formatter
+   implementation changed and imports were not silently reordered.
+
+Focused local repair acceptance:
+- Full site build passes:46 API reference pages/146 catalog groups;79 site pages,
+  Pagefind129 HTML files. All5 website tests passed (including parameter schema and
+  rendered Signal/completionText witnesses); rendered links/anchors/assets checked
+  across129 pages. Existing performance values and comparison tests still pass.
+- Existing formatting identity/mutation test passes, including all3 new proofs.
+- Affected LSP library36/36 passed1.05s after3m17s build/setup (tool32333).
+- Tooling Python discovery5/5 passed0.018s. Whole-project formatter0 files/snippets/
+  fingerprints; whitespace diff check clean. Temporary Node dependency symlinks
+  only reuse the original checkout's installed modules; remove before checkpoint.
+
+Next: let the original CI runtime/host jobs finish and diagnose any further real
+failure locally. Batch all accepted repairs into one necessary follow-up push;
+no second push has happened yet. A new PR synchronize will trigger existing CI
+once for changed inputs; do not dispatch a duplicate run or push evidence-only
+updates. Keep passed local gates and original remote build/core/editor evidence.
+Apps/PostgreSQL/model hosts remain stopped, original owner drafts untouched, and
+no new release is authorized. Main promotion still needs an unused version and
+explicit publication approval after staging is green. Goal remains incomplete.
+
 ## Committed candidate accepted locally; staging PR next — 2026-11-14
 
 Previous goal turn made progress: runtime/catalog acceptance and checkpoint
