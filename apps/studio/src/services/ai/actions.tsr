@@ -22,7 +22,14 @@ import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
 import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { FileDeclarations, EditorContextResult, editorContext, readContext, referenceContext, referenceLiteral } from './context.tsr';
+import {
+  FileDeclarations,
+  EditorContextResult,
+  editorContext,
+  readContext,
+  referenceContext,
+  referenceLiteral
+} from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
 
 import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';

@@ -515,6 +515,7 @@ function App(
           else {
             mode.set('debug');
             sidebar.set(true);
+
             if (lastDebugTarget.get() === '') chooseDebugTarget(debugTarget);
             else debugTarget.set(lastDebugTarget.get());
           }

@@ -26,6 +26,7 @@ Use named imports for the declarations you need. See
 
 | Task | Module |
 | --- | --- |
+| Build experimental native desktop UI | [`std:ui`](/tsrust/reference/library/ui/) |
 | Read arguments and environment variables | [`std:env`](/tsrust/reference/library/env/) |
 | Read and write asynchronous streams | [`std:io`](/tsrust/reference/library/io/) |
 | Launch child processes and own their pipes | [`std:process`](/tsrust/reference/library/process/) |

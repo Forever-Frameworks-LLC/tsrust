@@ -1,4 +1,4 @@
-Write backend services with TypeScript-style syntax and Rust ownership. This
+Build native programs and desktop applications with TypeScript-style syntax and Rust ownership. This
 release completes the v0.2.0 standard library: the APIs a backend program needs
 from Node.js or Rust's standard library, translated to their direct Rust
 equivalents and checked by the compiler and editor.
@@ -45,9 +45,20 @@ compares Tsrust with hand-written Rust and Node.js after tsc across the accepted
 v0.2 workloads, plus HTTP text, JSON, parsing, SQLite and CPU rendering. These
 are workload-level results, not universal application speedups.
 
-The distribution includes the `tsrust` CLI and `tsrust-lsp` language server, plus
-the separate VS Code extension. Applications expose HTTP APIs; bring your own UI
-and generate TypeScript or Rust clients with `tsrust api generate`.
+The distribution includes compiler/CLI 0.2.0, language server 0.3.0 and VS Code
+extension 0.2.2. Backend applications can expose HTTP APIs and generate TypeScript
+or Rust clients with `tsrust api generate`. Native desktop applications use the
+GPUI Kit-backed `std:ui`, `.tsrx` components, signals, themes, navigation and windows.
+Use `tsrust new desktop --ui`, `tsrust ui add` for editable component wrappers,
+and `tsrust package` for application packaging. UI dependencies remain isolated
+from ordinary backend builds.
+
+The checked-in GPUI gallery includes 71 component pages and 358 component examples,
+plus live guides. This is experimental desktop support, with detailed component
+coverage and native styling limitations in the source documentation. It is not a
+claim of complete upstream API or web-platform parity. TSRX editor integration
+includes markup support and highlighted hover examples; workspace diagnostics and
+recovery fixes are included.
 
 Use `tsrust new service --app` to create a backend project, `tsrust new hello` for
 a console program, or `tsrust` for the interactive launcher.
@@ -59,13 +70,15 @@ both `bin/` executables on `PATH`, or install a managed copy with
 `tsrust toolchain install --root NEW_DIRECTORY`; managed installations update with
 `tsrust toolchain check` and `tsrust toolchain update`. Cargo-owned installations
 update through Cargo. Install the separate VSIX in VS Code. Native compilation
-requires Rustup with Rust 1.96.1 and a system linker; archives do not include Rust.
+requires Rustup with Rust 1.99.1 and a system linker; archives do not include Rust.
 Linux archives target glibc systems (built on Ubuntu 24.04), not static musl.
 
 Tsrust is experimental. Language and library APIs may change between minor
 versions. No platform developer signing or Apple notarization is provided.
 Large-workspace and multi-hour language-server memory behavior is not yet
-verified. The original Tsrust UI is frozen and is not part of this release.
+verified. Browser UI support remains unverified. Intel macOS prebuilt archives are no longer
+provided; supported prebuilt hosts are Apple-silicon macOS, Windows x64 and Linux x64.
+Tsrust Studio is a planning draft, not an application delivered in this release.
 
 See the installation and release guides in the tagged source for prerequisites,
 verification commands and test coverage.

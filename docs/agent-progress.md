@@ -2,7 +2,32 @@
 
 This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
-v0.2.0 merge/publication is not approved. v0.1.2 is released.
+v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
+
+## Committed candidate integration in progress — 2026-11-14
+
+Previous goal turn made progress: runtime/catalog acceptance and checkpoint
+f3a6c27ce. Current main/stag were fetched read-only; no PR is open. The old handoff's
+release status was stale: PR17 merged into main88db8210a on2026-11-11T02:59:05Z,
+and v0.2.0 published at02:59:55Z. No new release is authorized by this discovery.
+
+A managed clean checkout at f3a6c27ce preserves all owner SDK/Studio drafts in the
+original tree. Direct merging main previews611 false squash-history conflicts.
+Verified ac195a4762d46709b9bda65da316ee7ec5375775, origin/stag3c2f01d5e and
+origin/main88db8210a have identical tree0a69b5863adfbc4570defbd8f566563fc3f96ac4.
+The unsquashed source shares11f63fd48 with this branch and adds6 commits; its merge
+has only the handoff conflict. Resolve that conflict by preserving current evidence
+and recording this reconciliation. Integrating this verified source first preserves
+upstream Windows Cargo target-path handling, Linux ALSA/offline GPUI preparation,
+release provenance checks, VS Code0.2.2 and existing suite timing/cold-build handling.
+App CI exclusions remain intact; no Worklist service/job is added.
+
+Next: validate the exact clean integrated source, including the Windows helper's
+unit coverage and tooling. After source acceptance, connect the identical-tree
+squashed main history without changing source. Do not mask actual upstream edits
+with an unconditional ours merge. Owner drafts remain protected and are not copied,
+stashed, committed or reverted. App sessions remain stopped; one shared Cargo
+target and incremental off/jobs1 remain required. No remote mutation occurred.
 
 ## Runtime/catalog milestone accepted locally — 2026-11-14
 
