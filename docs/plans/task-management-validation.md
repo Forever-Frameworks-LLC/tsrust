@@ -5,6 +5,14 @@ validate the platform through a complete native task-management product. Finish
 local acceptance before pushing and guiding a PR to main. Repair OS-specific CI
 failures locally before another push. Existing Studio scope remains retained.
 
+Owner clarification, 2026-11-14: Worklist is a local component-validation app,
+not an additional CI product. No Worklist CI job or database service is authorized.
+Its desktop/API/database and Studio sessions are stopped; do not restart them on
+automatic continuation. Generated app caches and targets are cleared, preserving
+source and owner drafts. Existing compiler performance gains are accepted for now;
+further optimization and the original <10 percent overhead target are deferred.
+Retain the local acceptance and its limits rather than expanding test-app scope.
+
 ## Performance acceptance
 
 Measure Tsrust end-to-end build overhead against a direct Rust build of the same
@@ -42,7 +50,7 @@ API, desktop, offline cache and worker boundaries, including simultaneous
 API/desktop dev sessions. Repair every discovered compiler/LSP/runtime issue and
 keep focused regression witnesses. Verify external editor diagnostics and matched
 compiler results. Final acceptance includes all requested product behavior,
-the performance comparison, complete local regressions, supported-platform CI
+the performance comparison, complete local regressions, existing compiler/LSP supported-platform CI
 and the merged PR. Partial application scaffolding does not satisfy this goal.
 
 ## Initial state

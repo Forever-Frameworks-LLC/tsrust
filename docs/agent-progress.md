@@ -4,6 +4,67 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Owner closed application sessions and rejected test-app CI — 2026-11-14
+
+Latest owner direction: the Worklist component-validation app does not justify
+additional CI/CD jobs. Remove the proposed integration job, stop all Worklist
+processes, and clean Worklist/Studio caches and targets. This supersedes the
+previous keep-Worklist/API-running directions and the proposed CI work below.
+Do not restart Worklist, its API/database, Studio or model hosts on automatic goal
+continuation. Do not recreate app build caches just to refill them. Application/
+experimental acceptance stays local; no Worklist CI job/service/gate is authorized.
+Optimization also remains deferred. Compiler/LSP source acceptance and any eventual
+validated PR remain separate; the full original goal is not newly claimed complete.
+
+All uncommitted workflow expansion and optional --roots selector were removed.
+.github/workflows/ci.yml matches HEAD exactly. The generic runtime runner now
+excludes apps/ and experiments/ so their resource-dependent tests cannot silently
+expand ordinary CI. Library fixtures, examples and every generated catalog group
+remain registered. Two lightweight discovery checks pass locally. No test assertions
+or application source files were deleted. docs/plans/ci-build-once.md records this
+owner clarification. No new CI job or step is retained and no remote action occurred.
+
+The rejected local workflow replay had already terminated before the stop request:
+13/14 cases passed in572.69ms; change-feed failed with migration-source/No such file
+or directory because that discarded workflow invoked tests from its temporary root
+rather than the API directory containing migrations. API snapshot passed. This is
+not a new compiler failure or an all-green application milestone. Its temporary API
+exited and its owned PostgreSQL database worklist_ci_validation_037387dd925a was
+removed by the harness. Do not resume or expand that rejected CI experiment.
+Preserve prior correctly rooted14-case application acceptance below.
+
+Stopped requested dev supervisors99887 and33729 with SIGTERM; their native children
+99918 and45647 exited. Docker compose down removed only the Worklist Postgres
+container and network. Persistent postgres-data volume remains; it is data, not a
+build cache. No Studio/model-host process was present. Zed's separate LSP75803 was
+left running. There is no authorized background Worklist/API/Studio dev session now.
+
+Cleared all contents of apps/tasks/api/target, apps/tasks/desktop/target,
+apps/studio/target and apps/studio/model-host/target except lock-inode skeletons.
+Also removed the cold debug/runtime caches created by the rejected replay under
+target/debug and target/tsrust-native, plus compiled target/studio-model-host and
+studio-model-host-hybrid helpers. Exclusive nonblocking locks guarded cache removal;
+all source files reported by Git (including owner untracked sources) were content-
+fingerprinted before/after and unchanged. No source symlink target was followed.
+
+Removed ~/.tsrust/worklist offline SQLite cache and its null draft journal; no real
+Worklist draft was present. Removed Studio's derived ~/.tsrust/studio/knowledge
+cache. Kept Studio recovery drafts, chats, settings and configured model/tokenizer
+assets. The current Studio configuration points into target/studio-models; those
+configured model files were deliberately retained as assets rather than treating
+them as compiled output. No owner asset relocation or settings rewrite occurred.
+This distinction is explicit: model assets and persistent database data were not
+uninstalled. Owner source/SDK drafts and benchmark acceptance records are untouched.
+
+Filesystem free space is now approximately195GiB (~209GB decimal), compared with
+48GiB before the two earlier cleanup passes. Current release CLI/LSP consumers
+remain available, so formatting/checking does not require recreating a debug build.
+Whole-project formatting passed0 files/snippets/fingerprints; two local suite-
+discovery checks passed. Further app/UI/hardware validation is stopped per owner;
+any later work must respect these constraints instead of following historical
+live-process handles or adding test-app CI. Source checkpoint retains only the
+small local-only discovery guard, its test and these owner-direction records.
+
 ## Broad generated-cache cleanup completed — 2026-11-14
 
 Owner rejected the first19.5GiB-only cleanup as insufficient: more than200GB was
