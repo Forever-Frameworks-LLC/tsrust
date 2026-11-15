@@ -4,6 +4,59 @@ This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
 B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
 v0.2.0 merge/publication is not approved. v0.1.2 is released.
 
+## Zed startup memory investigation — 2026-11-14
+
+Owner restarted Zed on apps/studio and reported 1.28GB, with screenshot showing
+2.34GB for LSP21430 (parent Zed17082). Stopped our unrelated release core-regression
+build group22656 with SIGTERM before test execution; tool77364 exited143. No test
+passes belong to that interrupted build. Earlier lightweight checks passed24/24
+packaging/release-policy cases (2.754s),22 storage cases (0.350s),2 suite-discovery
+cases (0.015s), and the retained release LSP initialize/capabilities/shutdown smoke.
+
+Read-only footprint/vmmap/sample captured the actual live server:1,374,408,352B
+footprint,3,858,517,616B lifetime peak,1,293,877,248B swapped/compressed. Heap zones
+reported193.0MiB allocated and1.0GiB dirty+swap fragmentation (85%); empty small
+regions alone held815.1MiB swapped. All worker threads were idle. A later sample
+fell to874,106,480B footprint/803,192,832B swapped without a restart. This proves
+substantial freed-heap retention and delayed reclamation, not that startup's whole
+peak or a sustained live-object leak has been explained.
+
+A private bounded LSP replay initialized apps/studio and opened disk main.tsrx,
+returned clean version1 diagnostics, shut down normally and preserved source bytes.
+Default allocator:748,569,752B peak,441,271,448B final footprint,26,853,376B final
+swapped;20 samples,58.889s overall. With process-local MallocSpaceEfficient=1 and
+the same binary/protocol/source:566,084,616B peak,143,213,624B final footprint,
+3,375,104B final swapped;21 samples,60.292s overall. These are bounded diagnostic
+observations, not quiet-machine timing benchmarks or reproduction of every restored
+Zed tab. The diagnostic had120s/3GiB footprint/system-free20% stop conditions.
+A separate25.6MB allocator smoke returned0 bytes from pressure-relief; no periodic
+trim hook or new allocator dependency was added.
+
+Accepted source uses macOS process re-exec before stdio/workers to set the system
+allocator policy before libmalloc initialization. Explicit existing values are
+preserved, including0; arguments/PID/stdio are retained. Other platforms are
+unchanged. No check, index or workspace cap is introduced. stdio regression adds
+actual process initialization/shutdown and OS environment proof for default1 and
+explicit0. All18 stdio cases passed in1.54s after3m19s release setup. All7 scheduler
+unit cases passed in0.01s after16.41s setup. Rebuilt-default real Studio replay,
+without an injected allocator environment setting, passed clean diagnostics and
+source preservation:529,728,448B peak,121,144,424B final footprint,3,325,952B final
+swapped;21 samples,62.285s overall. The first16.41s overlapped unit-test setup;
+none of these durations are quiet benchmark claims. Full restored-tab Zed startup
+and multi-hour memory stability remain unverified.
+
+Release/installed LSP0.3.0 both SHA-256
+de919999f1fd20409a0e7e0530f55aeb6de1962017740ad1daa642a9e7921e96.
+Installed copy was staged, version/hash verified and atomically replaced. CLI
+remains accepted e82c15ae70eafdc140e108c0925f0968d368e1180325511941eea5c4c706e971.
+No owner Zed process was killed or restarted and no app sessions were started.
+Zed's current process still maps the old binary until `editor: restart language
+server`. Source/SDK drafts remain unstaged; build/replay included those protected
+SDK additions, rather than proving an immutable HEAD without them. Whole-project
+formatting passed0 files/snippets/fingerprints after the final source/docs edits.
+Apple allocator behavior is documented in
+https://github.com/apple-oss-distributions/libmalloc/blob/main/src/malloc.c.
+
 ## Zed file icon support — 2026-11-14
 
 Owner reported missing icons for .tsr and .tsrx. Language recognition already

@@ -596,10 +596,25 @@ fn publish_project(
         Notification::new("textDocument/publishDiagnostics".into(), params),
     )
 }
+#[cfg(target_os = "macos")]
+fn configure_allocator() -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+    if std::env::var_os("MallocSpaceEfficient").is_some() { return Ok(()); }
+    // libmalloc reads this before main; return freed analysis pages instead of caching them.
+    Err(std::process::Command::new(std::env::current_exe()?)
+        .args(std::env::args_os().skip(1))
+        .env("MallocSpaceEfficient", "1")
+        .exec())
+}
 fn main() {
     if std::env::args_os().skip(1).eq([std::ffi::OsString::from("--version")]) {
         println!("tsrust-lsp {}",env!("CARGO_PKG_VERSION"));
         return;
+    }
+    #[cfg(target_os = "macos")]
+    if let Err(error) = configure_allocator() {
+        eprintln!("tsrust-lsp: cannot configure system allocator: {error}");
+        std::process::exit(1);
     }
     let (connection, _io_threads) = Connection::stdio();
     let code = match run(connection, diagnostics) {

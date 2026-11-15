@@ -11,7 +11,10 @@ struct Server {
 }
 impl Server {
     fn start() -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_tsrust-lsp"))
+        Self::from_command(Command::new(env!("CARGO_BIN_EXE_tsrust-lsp")))
+    }
+    fn from_command(mut command: Command) -> Self {
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -85,6 +88,25 @@ impl Drop for Server {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+    }
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn allocator_startup_preserves_stdio_and_explicit_policy() {
+    for policy in [None, Some("0")] {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_tsrust-lsp"));
+        command.env_remove("MallocSpaceEfficient");
+        if let Some(value) = policy { command.env("MallocSpaceEfficient", value); }
+        let mut server = Server::from_command(command);
+        server.request(1, "initialize", json!({"capabilities":{}}));
+        assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+        let environment = Command::new("/bin/ps").args(["eww", "-p", &server.child.id().to_string(), "-o", "command="]).output().unwrap();
+        assert!(environment.status.success());
+        let expected = format!("MallocSpaceEfficient={}", policy.unwrap_or("1"));
+        assert!(String::from_utf8(environment.stdout).unwrap().split_whitespace().any(|field| field == expected), "allocator policy must be effective before protocol initialization");
+        server.request(2, "shutdown", Value::Null);
+        assert!(matches!(server.response(), Message::Response(r) if r.error.is_none()));
+        server.finish(0);
     }
 }
 #[test]
