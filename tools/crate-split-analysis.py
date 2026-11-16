@@ -277,6 +277,22 @@ def main():
     if "--json" in sys.argv:
         print(json.dumps(report, indent=2))
         return
+    if "--candidates" in sys.argv:
+        # Files outside the largest cycle, smallest rebuild set first, with the
+        # groups an edit to them would rebuild (for crate-split spikes).
+        for file, component_ids in sorted(by_file.items(), key=lambda entry: per_file[entry[0]]):
+            if largest in component_ids:
+                continue
+            seen = set(component_ids)
+            pending = list(component_ids)
+            while pending:
+                for parent in dependents[pending.pop()]:
+                    if parent not in seen:
+                        seen.add(parent)
+                        pending.append(parent)
+            members = sorted(member for index in seen for member in components[index])
+            print(json.dumps({"file": file, "rebuildBytes": per_file[file], "members": members}))
+        return
     for key, value in report.items():
         print(f"{key}: {value}")
     print("largest component members by kind:")

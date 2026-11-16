@@ -7,6 +7,17 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Per-module crate timing spike — 2026-11-16
+
+experiments/crate-split-spike: Studio's real dev-build program split into a
+prebuilt `rest` rlib and a small `edit` crate holding one file outside the
+callable cycle (settings-tools.tsr). Edit rebuild + link: 0.47s versus 13.9s
+for the single incremental crate. Owner direction: if the spike pays off,
+pursue the "Everywhere" option (trait-object callables in all builds, one
+crate per module). With check unchanged at ~14.5s, the projected Studio loop
+is about 17-18s (check + emit + ~1-2s rustc), making whole-program analysis
+the next bottleneck.
+
 ## Per-module crate prototype: feasibility analysis — 2026-11-16
 
 tools/crate-split-analysis.py reads `tsrust emit --source-locations` output,
