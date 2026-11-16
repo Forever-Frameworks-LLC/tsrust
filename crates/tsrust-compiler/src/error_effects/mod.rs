@@ -677,6 +677,7 @@ impl Slice {
         slice
     }
     fn contains(&self,key:propagation::Key)->bool {self.keys.contains(&key)}
+    fn reads_callbacks(&self)->bool {self.keys.iter().any(|key|matches!(key,propagation::Key::Callback(_)))}
     fn closed(&self)->bool {!self.open.load(std::sync::atomic::Ordering::Relaxed)}
     /// Entries outside the slice were not solved; report them as unknown.
     fn mask(&self,effects:&mut ErrorEffects) {
@@ -724,7 +725,14 @@ pub(crate) fn annotate_partial_with_callers_for(functions:&mut [Option<&mut Chec
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
     for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
+    let seeds=seeds.filter(|_|!full_effects_requested());
+    // Callback origins only matter for callback contracts in the slice. Scanning
+    // every checked body for callback arguments is the costly part of a region
+    // solve, so a slice that reads no callback contract skips it.
+    let probe=seeds.map(|seeds|Slice::new(functions,closures,families,invocations,&origins,stored_fields,seeds));
+    let scan=probe.as_ref().is_none_or(Slice::reads_callbacks);
     fn parts_of(function:&CheckedFunction)->(&[Stmt],&[crate::analysis::Binding]) {(&function.body,&function.bindings)}
+    if scan {
     let regions=functions.iter().filter_map(|function|function.as_deref()).map(parts_of)
         .chain(std::iter::once(caller))
         .chain(closures.iter().map(|closure|parts_of(&closure.function)))
@@ -759,6 +767,7 @@ pub(crate) fn annotate_partial_with_callers_for(functions:&mut [Option<&mut Chec
             }
         }
     }
+    }
     let mut grounded=HashSet::new();
     loop {
         let mut changed=false;
@@ -768,8 +777,11 @@ pub(crate) fn annotate_partial_with_callers_for(functions:&mut [Option<&mut Chec
         if !changed {break;}
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
-    let seeds=seeds.filter(|_|!full_effects_requested());
-    let slice=seeds.map(|seeds|Slice::new(functions,closures,families,invocations,&origins,stored_fields,seeds));
+    let slice=match (seeds,probe) {
+        (Some(_),Some(probe)) if !scan=>Some(probe),
+        (Some(seeds),_)=>Some(Slice::new(functions,closures,families,invocations,&origins,stored_fields,seeds)),
+        _=>None,
+    };
     let slice=slice.as_ref();
     #[cfg(test)] let full=slice.map(|_|annotate_partial_with_callers_for(functions,closures,families,caller,unions,invocations,fields,stored_fields,None));
     let mut effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields,slice);

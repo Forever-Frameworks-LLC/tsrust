@@ -827,6 +827,15 @@ struct AnalysisProgram {
     revision: u64,
 }
 
+impl AnalysisProgram {
+    /// Function bodies and signatures. The revision tracks record shapes only
+    /// (native_view_recursive), so function-only mutation does not bump it.
+    fn functions_mut(&mut self) -> &mut Vec<crate::syntax::Function> { &mut self.source.functions }
+    /// Records for append-only materialization. Existing records must not be
+    /// edited through this; appends change the record count the shape cache checks.
+    fn records_for_append(&mut self) -> &mut Vec<crate::syntax::Record> { &mut self.source.records }
+}
+
 impl std::ops::Deref for AnalysisProgram {
     type Target = Program;
     fn deref(&self) -> &Program { &self.source }
@@ -1814,7 +1823,7 @@ impl Analyzer {
             if params.iter().copied().any(|ty| ty.union().is_some() && analyzer.unions.payload(ty).is_some_and(|payload|matches!(payload,Type::Callback(id) if analyzer.callback_needs_context(id)))) {
                 analyzer.templates.insert(index,analyzer.program.functions[index].clone());
             }
-            let annotation = analyzer.program.functions[index].result.take();
+            let annotation = analyzer.program.functions_mut()[index].result.take();
             let result = annotation
                 .as_ref()
                 .map(|value| analyzer.resolve_result(value))
@@ -2808,7 +2817,7 @@ impl Analyzer {
                 }
                 for &index in &stale {
                     self.checked[index] = None;
-                    self.program.functions[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
+                    self.program.functions_mut()[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
                 }
                 for index in stale {
                     self.function(index)?;
@@ -3672,7 +3681,7 @@ impl Analyzer {
                 .map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read })
                 .collect());
         }
-        self.program.functions.push(source);
+        self.program.functions_mut().push(source);
         self.signatures.push(signature);
         self.checked.push(None);
         self.visiting.push(false);

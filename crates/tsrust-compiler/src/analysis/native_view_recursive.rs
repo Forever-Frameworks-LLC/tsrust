@@ -11,6 +11,9 @@ pub(super) struct Shapes {
     incomplete: Vec<bool>,
     scoped_families: Vec<(usize,crate::native_view_callable_storage::Family)>,
     fields: Vec<Vec<(String, Type)>>,
+    /// Address and length of each recorded field name in the program, so an
+    /// unchanged record validates without comparing name text.
+    name_identities: Vec<Vec<(usize, usize)>>,
     readonly_view: Option<usize>,
     map_values: Vec<Option<Type>>,
     native_elements: Vec<Option<Type>>,
@@ -28,6 +31,8 @@ impl Shapes {
             map_values: analyzer.program.records.iter().map(|record| record.map_definition.as_ref().map(|map| map.value)).collect(),
             readonly_view: analyzer.program.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::ByteView)),
             recursive: crate::recursive_view_shapes::Index::with_storage(&analyzer.program.records, &|id| analyzer.unions.members(id), &analyzer.callables.storage),
+            name_identities: analyzer.program.records.iter().map(|record| record.fields.iter()
+                .filter(|field| field.ty.is_some()).map(|field| (field.name.text.as_ptr() as usize, field.name.text.len())).collect()).collect(),
             fields: analyzer.program.records.iter().map(|record| record.fields.iter()
                 .filter_map(|field| field.ty.map(|ty| (field.name.text.clone(), ty))).collect()).collect(),
             unions: analyzer.unions.snapshot(),
@@ -48,10 +53,20 @@ impl Shapes {
                 && self.native_elements[id]==record.native_element()
                 && self.map_values[id]==record.map_definition.as_ref().map(|map|map.value)
                 && self.incomplete[id]==record.fields.iter().any(|field|field.ty.is_none())
-                && self.fields[id].iter().map(|(name,ty)|(name.as_str(),*ty))
-                    .eq(record.fields.iter().filter_map(|field|field.ty.map(|ty|(field.name.text.as_str(),ty)))));
+                && self.same_fields(id,record));
         if unchanged { self.program_revision.set(analyzer.program.revision); }
         unchanged
+    }
+
+    /// Same allocation and length means the same text: field names are replaced,
+    /// never edited in place, so only a changed address needs a text comparison.
+    fn same_fields(&self, id: usize, record: &crate::syntax::Record) -> bool {
+        let mut current = record.fields.iter().filter_map(|field| field.ty.map(|ty| (field.name.text.as_str(), ty)));
+        for ((name, ty), &(address, length)) in self.fields[id].iter().zip(&self.name_identities[id]) {
+            let Some((text, current_ty)) = current.next() else { return false; };
+            if *ty != current_ty || !((address == text.as_ptr() as usize && length == text.len()) || name == text) { return false; }
+        }
+        current.next().is_none()
     }
 
     fn normalize(&self, root: Type, loan: &mut Loan) {

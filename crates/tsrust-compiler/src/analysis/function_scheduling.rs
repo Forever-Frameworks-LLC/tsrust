@@ -329,7 +329,7 @@ impl Analyzer {
         {
             sources.entry(index).or_insert_with(|| self.program.functions[index].body.clone());
         }
-        let body = std::mem::take(&mut self.program.functions[index].body);
+        let body = std::mem::take(&mut self.program.functions_mut()[index].body);
         let (context, parameters) = self.reserve_function_parameters(index)?;
         let result_type = self.signatures[index].result;
         Ok(Some((PreparedFunction { index, body, context, result_type }, parameters)))
