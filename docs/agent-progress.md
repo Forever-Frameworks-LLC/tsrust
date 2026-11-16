@@ -7,6 +7,38 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Dev-loop optimization round 2 — 2026-11-16
+
+Owner: keep optimizing the edit loop for every Tsrust project, not only UI.
+
+Measured edit loops (one string edit, `tsrust dev --verbose`):
+- hello (2 files): 0.35s. examples/backend-tasks (1.3k lines, HTTP+SQL):
+  1.7s, almost all rustc+link (frontend 0.08s); ~13k mono items, ~11k of
+  them std/tokio/hyper generics instantiated for application types.
+- apps/studio (18k lines): was 87-108s (check 60-71s, rustc 25s); now 61s
+  (check 35s, emit 1.4s, rustc+link 24s).
+
+Commit 0918ec67b: error-effect solving was 72% of Studio's check (2,936
+whole-program solves). Per-entry dependency tracking plus parallel cache
+warming with an order-preserving sequential pass; stable padded module bases
+and a separate source-table module so unchanged files emit identical Rust.
+Validation: compiler lib 1564/1564, project 96/96, CI suites 23/23 (64s),
+starter 12/12. TSRUST_TRACE_SOLVES=1 prints per-solve timings.
+
+Measurement pitfall: adding -Z flags (time-passes) on only one of two rustc
+runs changes the options hash and discards the incremental session.
+
+Remaining levers, by size:
+1. Error effects still ~45% of Studio check: solve only the callee slice a
+   region reads, or reuse results across solves (needs a sound body-change
+   signal; 46+ mutation sites make a generation counter fragile).
+2. rustc fixed cost ~11s per Studio build (parse/expand/resolve and
+   dependency-graph I/O on 20 MB of Rust). Shrink output: completion
+   plumbing 8%, error converters 6%; a 3.4 MB knowledge database is embedded
+   as one string literal.
+3. Within-file churn: labels/temporaries are named from source offsets, so
+   an edit renames those after it in the same file.
+
 ## GPUI platform continuation — 2026-11-16
 
 Branch codex/gpui-platform starts at main 21c20650b (v0.2.1). The old
