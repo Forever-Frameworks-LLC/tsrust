@@ -73,14 +73,21 @@ single crate so they can be verified against today's output.
    including inferred return types. Output: a crate assignment (module or
    merged group) per item, reported by `tsrust emit --crate-plan`. Verify on
    Studio, the gallery and Worklist with `crate-split-analysis.py`.
-2. **Stable names.** A pass over the generated program (beside the codegen-unit
-   splitter) renames program-wide numbered items consistently: functions and
-   closures to `<module hash>_<local index>`, and records, unions, view unions
-   and families to names derived from their definitions (bottom-up, with
-   recursive groups hashed together). Name construction is spread over ~260
-   emitter sites, so a single post-pass is safer than editing each. Verify that
-   an edit to one module changes only that module's items, and that program
-   output is unchanged across the suites.
+2. **Stable names.** Source names are already unique and stable, so generated
+   items reuse them: `<module path>::<name>`, with a default export as an alias.
+   Only compiler-made items need derived names, each from a stable parent:
+   - generic specializations: base name + hash of the type arguments
+     (today `computed<specialization#7>`, numbered in creation order);
+   - generic record instances: base name + hash of the argument types;
+   - structural records and unions: hash of their field names and types;
+   - closures: the enclosing function's stable name + ordinal within it;
+   - module prefixes: the module path instead of its index
+     (`__tsrust_module_37_` shifts when modules are added).
+   Studio today: functions 478 of 1,263 and records 946 of 1,877 already have
+   unique descriptive names; all 1,489 closures are anonymous. The renaming
+   is one post-pass over the generated program (name construction spans ~260
+   emitter sites). Verify that an edit to one module changes only that
+   module's items, and that program output is unchanged across the suites.
 3. **Split emission behind a development flag.** Emit the types, module and
    program crates for `TSRUST_CRATE_SPLIT=1` builds:
    - closure data structs, families, records and unions in the types crate;

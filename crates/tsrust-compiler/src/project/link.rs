@@ -75,7 +75,8 @@ impl ProjectAnalysis {
         (rust, features)
     }
     /// Source module of each generated function and closure, by checked-program
-    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…]}`.
+    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…],
+    /// "functionNames":[…],"recordNames":[…]}`.
     /// Modules are indexed in dependency order; null marks compiler-generated items
     /// with no source module (they belong with the program entry).
     pub fn crate_plan(&self) -> String {
@@ -97,7 +98,9 @@ impl ProjectAnalysis {
             .map(|module| module.map_or("null".to_owned(), |index| index.to_string()))
             .collect::<Vec<_>>().join(",");
         let modules = self.graph.order.iter().map(|id| crate::json_string(&id.0)).collect::<Vec<_>>().join(",");
-        format!("{{\"modules\":[{modules}],\"functions\":[{functions}],\"closures\":[{closures}]}}")
+        let function_names = self.analysis.program.functions.iter().map(|function| crate::json_string(&function.name)).collect::<Vec<_>>().join(",");
+        let record_names = self.analysis.program.records.iter().map(|record| crate::json_string(&record.name.text)).collect::<Vec<_>>().join(",");
+        format!("{{\"modules\":[{modules}],\"functions\":[{functions}],\"closures\":[{closures}],\"functionNames\":[{function_names}],\"recordNames\":[{record_names}]}}")
     }
     fn source_name(&self, name: &str) -> String {
         for (module, source) in self.graph.order.iter().enumerate() {
