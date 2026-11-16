@@ -7,6 +7,24 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Sliced error-effect solving — 2026-11-16
+
+Commit e9c662d8e: partial error-contract solves cover only the dependency
+slice their reader needs (seeds from the region/catch/finally body or the
+task/worker callable), with fallback to whole-program solving when a solved
+body reads outside the slice. TSRUST_FULL_EFFECTS=1 forces the old path for
+A/B checks; Studio, gallery, Tasks desktop and backend-tasks emit
+byte-identical Rust and diagnostics both ways.
+
+Studio: check 35s to 21.5s; edit loop 61s to 48s (session start 87-108s).
+Remaining per-edit cost in Studio: rustc+link ~25s (about 11s fixed for 20 MB
+of Rust), check 21.5s (caller-variant origin walk ~3.7s over 1,135 solves;
+the rest is ordinary analysis), emit 1.4s.
+
+Pre-existing failure, unchanged by this work: tests/task_group_stack.rs
+race_and_all_settled asserts 'race(vec!' but the emitter passes a futures
+variable.
+
 ## Dev-loop optimization round 2 — 2026-11-16
 
 Owner: keep optimizing the edit loop for every Tsrust project, not only UI.
