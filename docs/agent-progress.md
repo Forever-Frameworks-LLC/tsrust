@@ -7,6 +7,17 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Whole-program scans removed from check — 2026-11-16
+
+Commit 6d598c252: region solves skip the callback-origin scan when their slice
+reads no callback contract; record-shape cache revalidation (66k walks over
+1,877 records) avoided by narrow accessors (AnalysisProgram::functions_mut,
+records_for_append) that do not bump the shape-only program revision, plus
+identity-first field-name checks. Studio check 21.5s to 14.8s; edit loop 48s
+to 41s. Old/new compilers emit identical diagnostics and Rust for 37
+projects. Generic record materialization (threads.rs, generic_calls.rs) still
+bumps the revision because it can rewrite existing record fields.
+
 ## Sliced error-effect solving — 2026-11-16
 
 Commit e9c662d8e: partial error-contract solves cover only the dependency
