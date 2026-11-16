@@ -62,7 +62,10 @@ compiler library and integration tests, Studio/gallery/Worklist test suites,
 and an A/B check that `check` output is unchanged. Steps 1-4 keep emitting a
 single crate so they can be verified against today's output.
 
-1. **Provenance and grouping.** The emitter records the source module of every
+1. **Provenance and grouping.** *(1a done 2026-11-16: `ProjectAnalysis::crate_plan`
+   and `tsrust emit --crate-plan` map every generated function and closure to its
+   source module; on Studio it agrees with the source-location mapping for all
+   2,402 items, and 147 compiler-generated functions have no module.)* The emitter records the source module of every
    generated item and builds the module dependency graph from its references,
    including inferred return types. Output: a crate assignment (module or
    merged group) per item, reported by `tsrust emit --crate-plan`. Verify on

@@ -111,6 +111,7 @@ Options:
   --color auto|always|never  Color help, diagnostics, dev status and test reports
   --debug                   build: retain mapped Rust source beside the executable and emit debugger symbols
   --source-locations        emit: annotate Rust statements with Tsrust file and byte range
+  --crate-plan              emit: print each generated function's and closure's source module as JSON
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
@@ -239,6 +240,7 @@ fn run() -> Result<u8, String> {
     let mut release = false;
     let mut package = false;
     let mut source_locations = false;
+    let mut crate_plan = false;
     let mut debug = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -262,6 +264,7 @@ fn run() -> Result<u8, String> {
             "--release" if !release => release = true,
             "--debug" if command == "build" && !debug => debug = true,
             "--source-locations" if command == "emit" && !source_locations => source_locations = true,
+            "--crate-plan" if command == "emit" && !crate_plan => crate_plan = true,
             "--package" if !package => package = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
@@ -346,6 +349,14 @@ fn run() -> Result<u8, String> {
             .any(|id| Path::new(&id.0) == output)
     {
         return Err("output must not overwrite a project source file".into());
+    }
+    if crate_plan {
+        let tsrust_compiler::project_cli::CheckedInput::Project(project) = &analysis else {
+            return Err("--crate-plan needs a project entry (a tsrust.config.json project)".into());
+        };
+        let plan = project.crate_plan();
+        match &output {Some(output) => fs::write(output, plan).map_err(|e| e.to_string())?, None => println!("{plan}")}
+        return Ok(0);
     }
     let check_elapsed=check_started.elapsed();
     let emit_started=std::time::Instant::now();

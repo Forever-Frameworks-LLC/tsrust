@@ -74,6 +74,31 @@ impl ProjectAnalysis {
         }
         (rust, features)
     }
+    /// Source module of each generated function and closure, by checked-program
+    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…]}`.
+    /// Modules are indexed in dependency order; null marks compiler-generated items
+    /// with no source module (they belong with the program entry).
+    pub fn crate_plan(&self) -> String {
+        let module_of_span = |span: Span| -> Option<usize> {
+            let location = self.source_location(span)?;
+            self.graph.order.iter().position(|id| *id == location.source)
+        };
+        let module_of_name = |name: &str| -> Option<usize> {
+            let rest = name.strip_prefix("__tsrust_module_")?;
+            rest.split_once('_')?.0.parse().ok()
+        };
+        let first_span = |body: &[crate::syntax::Stmt]| body.first().map(|statement| statement.span);
+        let functions = self.analysis.program.functions.iter()
+            .map(|function| module_of_name(&function.name).or_else(|| first_span(&function.body).and_then(module_of_span)))
+            .map(|module| module.map_or("null".to_owned(), |index| index.to_string()))
+            .collect::<Vec<_>>().join(",");
+        let closures = self.analysis.program.closures.iter()
+            .map(|closure| module_of_span(closure.span))
+            .map(|module| module.map_or("null".to_owned(), |index| index.to_string()))
+            .collect::<Vec<_>>().join(",");
+        let modules = self.graph.order.iter().map(|id| crate::json_string(&id.0)).collect::<Vec<_>>().join(",");
+        format!("{{\"modules\":[{modules}],\"functions\":[{functions}],\"closures\":[{closures}]}}")
+    }
     fn source_name(&self, name: &str) -> String {
         for (module, source) in self.graph.order.iter().enumerate() {
             let prefix = format!("__tsrust_module_{module}_");
