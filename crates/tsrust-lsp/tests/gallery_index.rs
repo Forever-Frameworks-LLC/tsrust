@@ -29,7 +29,8 @@ fn gallery_index(checked:bool) {
             eprintln!("gallery header setup finished in {:?}",started.elapsed());ready.send(()).unwrap();
             ProjectIndex::new(&graph)
         };
-        let offset=source.rfind("<Route path=").unwrap()+2;
+        // Formatting may put props on following lines; hover inside the Route tag name.
+        let offset=source.rfind("<Route").unwrap()+2;
         let position=LineIndex::new(&source).range(&source,tsrust_compiler::Span::new(offset,offset)).unwrap().start;
         let hover=index.request("textDocument/hover",&json!({"position":position}),uri.as_str()).unwrap().unwrap();
         let definition=index.request("textDocument/definition",&json!({"position":position}),uri.as_str()).unwrap().unwrap();
