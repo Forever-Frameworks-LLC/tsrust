@@ -49,3 +49,8 @@ inside the 37% cycle, reached through 4 plain functions):
   Closure types need their data struct in a shared crate and their body as a
   link-time-declared function in the module crate (one direct call, same
   machine code).
+
+Async follow-up: async source functions are emitted as closure structs with
+`async fn call`. Cross-file calls returning such closures (type inferred):
+Studio 16 calls / 12 closures, Worklist desktop 7 / 6, Worklist API 0. Only
+those against the crate dependency direction force modules to share a crate.
