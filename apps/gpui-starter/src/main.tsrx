@@ -26,6 +26,7 @@ import { ComponentsPage } from './pages/Components.tsrx';
 import { StateandReactivityPage } from './pages/StateandReactivity.tsrx';
 import { StylingandThemesPage } from './pages/StylingandThemes.tsrx';
 import { NavigationandWindowsPage } from './pages/NavigationandWindows.tsrx';
+import { InputandZoomPage } from './pages/InputandZoom.tsrx';
 import { PackagingPage } from './pages/Packaging.tsrx';
 import { ButtonPage } from './pages/Button.tsrx';
 import { TogglePage } from './pages/Toggle.tsrx';
@@ -171,6 +172,13 @@ function App(): Node {
               active={path.get() === "/navigation-and-windows"}
               onClick={() => {
                 navigate("/navigation-and-windows");
+              }}
+            />
+            <SidebarItem
+              label="Input and Zoom"
+              active={path.get() === "/input-and-zoom"}
+              onClick={() => {
+                navigate("/input-and-zoom");
               }}
             />
             <SidebarItem
@@ -733,6 +741,12 @@ function App(): Node {
             path="/navigation-and-windows"
             render={() => <Page>
               <NavigationandWindowsPage />
+            </Page>}
+          />
+          <Route
+            path="/input-and-zoom"
+            render={() => <Page>
+              <InputandZoomPage />
             </Page>}
           />
           <Route

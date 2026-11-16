@@ -2679,6 +2679,7 @@ impl Root {
                             _ => KitTheme::sync_system_appearance(Some(window), cx),
                         },
                         "minimize" => window.minimize_window(),
+                        "text-zoom" => {set_text_zoom(&value); window.refresh();}
                         "zoom" => window.zoom_window(),
                         "fullscreen" => window.toggle_fullscreen(),
                         "close" => window.remove_window(),
@@ -4247,5 +4248,61 @@ impl Render for ImageViewport {
             .child(canvas(move|bounds,_,cx| {let _=state.update(cx,|state,cx|{if state.viewport!=bounds.size {state.viewport=bounds.size;cx.notify();}});},|_,_,_,_|{}).absolute().size_full())
             .child(div().id("image-scroll").relative().size_full().overflow_scroll().track_scroll(&self.scroll).child(body))
             .scrollbar(&self.scroll,gpui_kit::component::scroll::ScrollbarAxis::Both)
+    }
+}
+
+
+/// Application text zoom, shared by every window. 1 is the theme's own size.
+thread_local! {static TEXT_ZOOM: std::cell::Cell<f32> = const {std::cell::Cell::new(1.)};}
+/// Apply a `text-zoom` command payload; see `window::next_zoom`.
+fn set_text_zoom(value: &serde_json::Value) {
+    TEXT_ZOOM.with(|zoom| zoom.set(super::window::next_zoom(zoom.get(), value.get("step").and_then(serde_json::Value::as_i64), value.get("level").and_then(serde_json::Value::as_f64))));
+}
+
+/// The operating system's text-size preference, read once: Windows Settings >
+/// Accessibility > Text size and GNOME's text-scaling-factor. macOS has no
+/// system-wide text size for desktop apps, so it uses application zoom alone.
+fn system_text_scale() -> f32 {
+    static SCALE: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+    *SCALE.get_or_init(|| read_system_text_scale().filter(|scale| scale.is_finite()).map_or(1., |scale| scale.clamp(0.5, 3.)))
+}
+
+fn read_system_text_scale() -> Option<f32> {
+    let output = |program: &str, args: &[&str]| std::process::Command::new(program).args(args).stderr(std::process::Stdio::null()).output().ok()
+        .filter(|output| output.status.success()).and_then(|output| String::from_utf8(output.stdout).ok());
+    if cfg!(windows) {
+        // REG_DWORD percentage, 100–225; absent until the user changes it.
+        let text = output("reg", &["query", r"HKCU\Software\Microsoft\Accessibility", "/v", "TextScaleFactor"])?;
+        let hex = text.split_whitespace().find_map(|word| word.strip_prefix("0x"))?;
+        return u32::from_str_radix(hex, 16).ok().map(|percent| percent as f32 / 100.);
+    }
+    if cfg!(all(unix, not(target_os = "macos"))) {
+        return output("gsettings", &["get", "org.gnome.desktop.interface", "text-scaling-factor"])?.trim().parse().ok();
+    }
+    None
+}
+
+/// Theme sizes before zoom, and the sizes last applied, so a theme change that
+/// resets font sizes becomes the new base instead of being scaled twice.
+#[derive(Default)]
+struct TextScale {base: Option<(Pixels, Pixels)>, applied: Option<(Pixels, Pixels)>}
+
+impl Root {
+    /// Scale Kit theme text and the window rem size by zoom × system preference.
+    /// Utility classes are in rems, so text, spacing and boxes scale together.
+    fn apply_text_scale(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let factor = TEXT_ZOOM.with(std::cell::Cell::get) * system_text_scale();
+        let theme = KitTheme::global(cx);
+        let current = (theme.font_size, theme.mono_font_size);
+        if self.text_scale.applied != Some(current) {self.text_scale.base = Some(current);}
+        let (font, mono) = self.text_scale.base.unwrap_or(current);
+        let wanted = (font * factor, mono * factor);
+        if current != wanted {
+            let theme = KitTheme::global_mut(cx);
+            theme.font_size = wanted.0;
+            theme.mono_font_size = wanted.1;
+        }
+        self.text_scale.applied = Some(wanted);
+        if window.rem_size() != wanted.0 {window.set_rem_size(wanted.0);}
     }
 }

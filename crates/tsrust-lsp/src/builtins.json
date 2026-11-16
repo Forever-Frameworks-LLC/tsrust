@@ -22444,6 +22444,42 @@
         "onVisibilityChange": {
           "documentation": "Optional owned reusable callback (visible: boolean) => void, default none. Reports initial visibility after mounting and each boolean transition after layout, scrolling, resizing or hidden changes. true means this View has positive rectangular area inside the viewport and all clipping ancestors; zero-size or hidden views report false. It does not detect occlusion by siblings, opacity or other windows. Example: const entered = signal(false); return <View onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}><Text>{entered.get() ? \"Ready\" : \"Waiting\"}</Text></View>; shows Ready on first entry and retains it. Callbacks may update state; updates refresh after the callback without intercepting scrolling. Throwing stops the mounted tree with normal cleanup. Keep layout feedback stable: callbacks which repeatedly hide/show their own view can oscillate. Reports follow layout. Static document() serialization never invokes callbacks. Ownership: the View owns the callback; local component state captures are non-retaining and removed nodes receive no late notifications."
         },
+        "onKeyDown": {
+          "documentation": "Optional owned reusable callback (event: KeyboardEvent) => void. Runs for each key press, including auto-repeats, while this View or a descendant has keyboard focus. Give the View tabIndex={0} to make it focusable itself; text fields inside still receive their typing and the handler observes it too. Example: <View tabIndex={0} onKeyDown={(event) => { if (event.key === 'escape') { close(); } }}>…</View>. Ownership: the View owns the callback."
+        },
+        "onKeyUp": {
+          "documentation": "Optional owned reusable callback (event: KeyboardEvent) => void. Runs when a key is released while this View or a descendant has keyboard focus. repeat is always false. Example: <View tabIndex={0} onKeyUp={(event) => { if (event.key === 'space') { charging.set(false); } }}/>. Ownership: the View owns the callback."
+        },
+        "onPointerDown": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when any pointer button is pressed over this View; button says which. Example: <View onPointerDown={(event) => { dragging.set(event.button === 'left'); }}/>. Ownership: the View owns the callback."
+        },
+        "onPointerUp": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when any pointer button is released over this View. A release outside the View is not reported. Ownership: the View owns the callback."
+        },
+        "onPointerMove": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs as the pointer moves over this View; button is none, or the held button while dragging. clickCount is 0. Keep the handler cheap: it can run every frame. Ownership: the View owns the callback."
+        },
+        "onWheel": {
+          "documentation": "Optional owned reusable callback (event: WheelEvent) => void. Runs for each wheel or trackpad scroll over this View. Scrolling containers still scroll. Example: <View onWheel={(event) => { if (event.ctrlKey) { zoomIn(); } }}/>. Ownership: the View owns the callback."
+        },
+        "onDoubleClick": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs on the second press of a left-button double click over this View, with clickCount 2. Ownership: the View owns the callback."
+        },
+        "onContextMenu": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when the right button is pressed over this View, where a context menu would open; use x and y to place one. For a ready-made menu use ContextMenu. Ownership: the View owns the callback."
+        },
+        "onHover": {
+          "documentation": "Optional owned reusable callback (hovered: boolean) => void. Called with true when the pointer enters this View and false when it leaves. Ownership: the View owns the callback."
+        },
+        "onFocus": {
+          "documentation": "Optional owned reusable callback () => void. Runs when keyboard focus moves into this View or one of its descendants from outside it. Requires tabIndex; Views without it never report focus. Ownership: the View owns the callback."
+        },
+        "onBlur": {
+          "documentation": "Optional owned reusable callback () => void. Runs when keyboard focus leaves this View and all its descendants. Requires tabIndex. Ownership: the View owns the callback."
+        },
+        "onFileDrop": {
+          "documentation": "Optional owned reusable callback (paths: string[]) => void. Receives the absolute paths of files and folders dropped onto this View from the system file manager. Example: <View onFileDrop={(paths) => { open(paths[0]); }}>Drop a file</View>. Ownership: the View owns the callback; paths are a read-only copy."
+        },
         "id": {
           "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
         },
@@ -22899,6 +22935,42 @@
         "onVisibilityChange": {
           "documentation": "Optional owned reusable callback (visible: boolean) => void, default none. Reports initial visibility after mounting and each boolean transition after layout, scrolling, resizing or hidden changes. true means this View has positive rectangular area inside the viewport and all clipping ancestors; zero-size or hidden views report false. It does not detect occlusion by siblings, opacity or other windows. Example: const entered = signal(false); return <View onVisibilityChange={(visible) => { if (visible) { entered.set(true); } }}><Text>{entered.get() ? \"Ready\" : \"Waiting\"}</Text></View>; shows Ready on first entry and retains it. Callbacks may update state; updates refresh after the callback without intercepting scrolling. Throwing stops the mounted tree with normal cleanup. Keep layout feedback stable: callbacks which repeatedly hide/show their own view can oscillate. Reports follow layout. Static document() serialization never invokes callbacks. Ownership: the View owns the callback; local component state captures are non-retaining and removed nodes receive no late notifications."
         },
+        "onKeyDown": {
+          "documentation": "Optional owned reusable callback (event: KeyboardEvent) => void. Runs for each key press, including auto-repeats, while this View or a descendant has keyboard focus. Give the View tabIndex={0} to make it focusable itself; text fields inside still receive their typing and the handler observes it too. Example: <View tabIndex={0} onKeyDown={(event) => { if (event.key === 'escape') { close(); } }}>…</View>. Ownership: the View owns the callback."
+        },
+        "onKeyUp": {
+          "documentation": "Optional owned reusable callback (event: KeyboardEvent) => void. Runs when a key is released while this View or a descendant has keyboard focus. repeat is always false. Example: <View tabIndex={0} onKeyUp={(event) => { if (event.key === 'space') { charging.set(false); } }}/>. Ownership: the View owns the callback."
+        },
+        "onPointerDown": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when any pointer button is pressed over this View; button says which. Example: <View onPointerDown={(event) => { dragging.set(event.button === 'left'); }}/>. Ownership: the View owns the callback."
+        },
+        "onPointerUp": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when any pointer button is released over this View. A release outside the View is not reported. Ownership: the View owns the callback."
+        },
+        "onPointerMove": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs as the pointer moves over this View; button is none, or the held button while dragging. clickCount is 0. Keep the handler cheap: it can run every frame. Ownership: the View owns the callback."
+        },
+        "onWheel": {
+          "documentation": "Optional owned reusable callback (event: WheelEvent) => void. Runs for each wheel or trackpad scroll over this View. Scrolling containers still scroll. Example: <View onWheel={(event) => { if (event.ctrlKey) { zoomIn(); } }}/>. Ownership: the View owns the callback."
+        },
+        "onDoubleClick": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs on the second press of a left-button double click over this View, with clickCount 2. Ownership: the View owns the callback."
+        },
+        "onContextMenu": {
+          "documentation": "Optional owned reusable callback (event: PointerEvent) => void. Runs when the right button is pressed over this View, where a context menu would open; use x and y to place one. For a ready-made menu use ContextMenu. Ownership: the View owns the callback."
+        },
+        "onHover": {
+          "documentation": "Optional owned reusable callback (hovered: boolean) => void. Called with true when the pointer enters this View and false when it leaves. Ownership: the View owns the callback."
+        },
+        "onFocus": {
+          "documentation": "Optional owned reusable callback () => void. Runs when keyboard focus moves into this View or one of its descendants from outside it. Requires tabIndex; Views without it never report focus. Ownership: the View owns the callback."
+        },
+        "onBlur": {
+          "documentation": "Optional owned reusable callback () => void. Runs when keyboard focus leaves this View and all its descendants. Requires tabIndex. Ownership: the View owns the callback."
+        },
+        "onFileDrop": {
+          "documentation": "Optional owned reusable callback (paths: string[]) => void. Receives the absolute paths of files and folders dropped onto this View from the system file manager. Example: <View onFileDrop={(paths) => { open(paths[0]); }}>Drop a file</View>. Ownership: the View owns the callback; paths are a read-only copy."
+        },
         "id": {
           "documentation": "Optional document identifier, without ASCII whitespace or control characters. Defaults to none. <View id=\"account\" /> produces id=\"account\" in HTML. Both adapters retain it as tree metadata; no lookup or routing API is created. Construction throws for invalid IDs. Ownership: consumes the supplied string."
         },
@@ -23081,6 +23153,35 @@
       "signature": "zoomWindow(): void",
       "parameters": [],
       "documentation": "Toggles the active window between its normal and zoomed (maximized) size on the next frame.\n\n```tsrx\n<Button onPress={() => { zoomWindow(); }}>Zoom</Button>\n```"
+    },
+    {
+      "name": "zoomIn",
+      "signature": "zoomIn(): void",
+      "parameters": [],
+      "documentation": "Makes the interface one zoom step larger on the next frame, stopping at 300 percent. Zoom scales text, spacing and component sizes together in every window, multiplying the operating system's text-size preference (Windows Settings > Accessibility > Text size; GNOME text scaling), which the app applies automatically. macOS has no system-wide text size for desktop apps, so zoom is the control there. Levels: 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250 and 300 percent. Pointer coordinates stay in logical pixels.\n\n```tsrx\n<Shortcut command=\"zoom-in\" keys=\"secondary-=\" onTrigger={() => { zoomIn(); }}/>\n```"
+    },
+    {
+      "name": "zoomOut",
+      "signature": "zoomOut(): void",
+      "parameters": [],
+      "documentation": "Makes the interface one zoom step smaller on the next frame, stopping at 50 percent. Zoom scales text, spacing and component sizes together in every window, multiplying the operating system's text-size preference (Windows Settings > Accessibility > Text size; GNOME text scaling), which the app applies automatically. macOS has no system-wide text size for desktop apps, so zoom is the control there. Levels: 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250 and 300 percent. Pointer coordinates stay in logical pixels.\n\n```tsrx\n<Button onPress={() => { zoomOut(); }}>Smaller</Button>\n```"
+    },
+    {
+      "name": "resetZoom",
+      "signature": "resetZoom(): void",
+      "parameters": [],
+      "documentation": "Returns the interface to 100 percent zoom on the next frame. The system text-size preference still applies.\n\n```tsrx\n<Button onPress={() => { resetZoom(); }}>Actual size</Button>\n```"
+    },
+    {
+      "name": "setZoom",
+      "signature": "setZoom(level: number): void",
+      "parameters": [
+        {
+          "label": "level: number",
+          "documentation": "Zoom factor where 1 is 100 percent. Clamped to 0.5–3; NaN and infinities are ignored."
+        }
+      ],
+      "documentation": "Sets an exact zoom level on the next frame, for example to restore a saved preference. Zoom scales text, spacing and component sizes together in every window, multiplying the operating system's text-size preference (Windows Settings > Accessibility > Text size; GNOME text scaling), which the app applies automatically. macOS has no system-wide text size for desktop apps, so zoom is the control there. Levels: 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250 and 300 percent. Pointer coordinates stay in logical pixels.\n\n```tsrx\nsetZoom(1.25); // 125 percent\n```"
     },
     {
       "name": "toggleFullscreen",
@@ -23439,6 +23540,21 @@
       "name": "TerminalSnapshot",
       "signature": "interface TerminalSnapshot",
       "documentation": "Copied native terminal state: found is required; directory, title, exited, exitCode (nullable), error, text, selectedText, columns, rows, scrollOffset and focused are optional and absent when not found. text contains only the visible grid, not the full scrollback or raw output. Reading has no focus, input or scrolling effects. Example: a mounted 80-column terminal reports columns=80; an unknown id reports found=false. Ownership: independent snapshot; later terminal output does not mutate it. generation identifies the mounted shell instance and changes on restart. Use it as expectedGeneration to reject a stale action."
+    },
+    {
+      "name": "KeyboardEvent",
+      "signature": "interface KeyboardEvent",
+      "documentation": "A key press or release delivered to a View's onKeyDown or onKeyUp while that View or a descendant has keyboard focus. key names the key: letters and digits as lowercase characters, and named keys such as enter, escape, tab, backspace, delete, space, up, down, left, right, home, end, pageup, pagedown and f1–f12. text is what the key would type with the current layout and modifiers, empty for keys that type nothing, so Shift+a has key a and text A. repeat is true for auto-repeated presses while held and always false on key up. ctrlKey, altKey, shiftKey and metaKey report held modifiers; metaKey is Command on macOS, the Windows key on Windows and Super on Linux.\n\n```tsrx\n<View tabIndex={0} onKeyDown={(event) => { if (event.key === 'escape') { open.set(false); } }}>…</View>\n```\n\nOwnership: a read-only copy for the duration of the handler."
+    },
+    {
+      "name": "PointerEvent",
+      "signature": "interface PointerEvent",
+      "documentation": "A pointer press, release or move over a View, used by onPointerDown, onPointerUp, onPointerMove, onDoubleClick and onContextMenu. button is left, right, middle, back or forward, or none for movement without a held button. x and y are logical pixels from the window's top-left corner and do not change with zoom. clickCount counts consecutive presses of the same button (2 on a double click) and is 0 for movement. ctrlKey, altKey, shiftKey and metaKey report held modifiers; metaKey is Command on macOS, the Windows key on Windows and Super on Linux.\n\n```tsrx\n<View onPointerDown={(event) => { start.set(event.x); }} onPointerMove={(event) => { if (event.button === 'left') { offset.set(event.x - start.get()); } }}/>\n```\n\nOwnership: a read-only copy for the duration of the handler."
+    },
+    {
+      "name": "WheelEvent",
+      "signature": "interface WheelEvent",
+      "documentation": "A wheel or trackpad scroll over a View, delivered to onWheel. deltaX and deltaY are the scroll amounts in deltaMode units: pixel for trackpads and precise wheels, line for notched wheels. Positive deltaY means the content moves up, as when the wheel turns toward the user. Scrolling containers still scroll; the handler only observes. ctrlKey, altKey, shiftKey and metaKey report held modifiers; metaKey is Command on macOS, the Windows key on Windows and Super on Linux.\n\n```tsrx\n<View onWheel={(event) => { if (event.ctrlKey) { scale.set(scale.get() - event.deltaY / 100); } }}/>\n```\n\nOwnership: a read-only copy for the duration of the handler."
     },
     {
       "name": "controlTerminal",
