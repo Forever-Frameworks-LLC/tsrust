@@ -1,6 +1,6 @@
 //! Finite lifetime boundaries for recursive records containing native byte views.
 use crate::{native_return_borrows::BorrowAccess, syntax::{Record, Type, UnionId}};
-use std::collections::HashSet;
+use crate::fast_hash::FastSet;
 
 pub(crate) struct Index {
     shared: Vec<Option<BorrowAccess>>,
@@ -25,13 +25,16 @@ impl Index {
         let mut edges = vec![Vec::new(); records.len()];
         let mut incomplete = vec![false; records.len()];
         let mut access = vec![None; records.len()];
+        // Union membership is shared by every record that reaches it; read it once.
+        let mut union_members: Vec<Option<Vec<Type>>> = Vec::new();
+        let mut seen = FastSet::default();
         for (id, record) in records.iter().enumerate() {
             access[id] = record.native_type.and_then(|native| crate::native_types::declaration(native).borrow_access());
             let mut pending = record.native_element().into_iter().collect::<Vec<_>>();
             for field in &record.fields {
                 if let Some(ty) = field.ty { pending.push(ty); } else { incomplete[id] = true; }
             }
-            let mut seen = HashSet::new();
+            seen.clear();
             while let Some(ty) = pending.pop() {
                 if !seen.insert(ty) { continue; }
                 match ty {
@@ -39,7 +42,11 @@ impl Index {
                     Type::Record(_) => incomplete[id] = true,
                     Type::Array(element) => pending.push(element.ty()),
                     Type::Map(map) => { if let Some(map)=records.get(map).and_then(|record|record.map_definition.as_ref()) { pending.push(map.value); } },
-                    Type::Union(union) | Type::BorrowedUnion(union) => pending.extend(members(union)),
+                    Type::Union(union) | Type::BorrowedUnion(union) => {
+                        let index = union.index();
+                        if union_members.len() <= index { union_members.resize(index + 1, None); }
+                        pending.extend(union_members[index].get_or_insert_with(|| members(union)).iter().copied());
+                    }
                     _ => if let Some(borrow) = leaf(ty) {
                         access[id] = Some(access[id].map_or(borrow, |existing| merge(existing, borrow)));
                     }

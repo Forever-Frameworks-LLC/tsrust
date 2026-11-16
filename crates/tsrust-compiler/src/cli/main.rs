@@ -435,7 +435,9 @@ fn run() -> Result<u8, String> {
             prepared.finish()?;prepared.publish();
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
+        let incremental_entry=absolute(&source_path)?.join(&command);
         let mut command=backend_command();prepared.link(&mut command)?;
+        prepared.application=runtime_build::application_backend_args(&mut command,&cache_root,&incremental_entry,release||debug,&prepared.application);
         if debug {
             prepared.application = retain_debug_source(&prepared.application, &executable)?;
             command.args(["--crate-name", "program", "-g"]);

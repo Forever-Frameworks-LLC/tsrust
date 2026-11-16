@@ -3,6 +3,7 @@
 //! The library does not invoke subprocesses or read source files. CLI and future
 //! editor/LSP clients can share this analysis entry point and source diagnostics.
 mod types;
+mod fast_hash;
 mod generics;
 mod records;
 mod callables;
@@ -58,6 +59,7 @@ pub(crate) use native::binding_types as native_binding_types;
 pub use native::type_resolution as native_type_resolution;
 pub use native::exports as native_exports;
 pub use native::cache as native_cache;
+pub use native::codegen_units as native_codegen_units;
 pub use native::runtime as native_runtime;
 pub(crate) use native::emit as native_emit;
 pub use stdlib::path::runtime as native_path;

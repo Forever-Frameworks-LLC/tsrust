@@ -183,7 +183,8 @@ mod platform {
             report(Status::Info,"Compiling and linking the application…");
             let errors=files.0.join("backend.stderr");
             let mut command=crate::backend_command();prepared.link(&mut command)?;
-            command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
+            let application=crate::runtime_build::application_backend_args(&mut command,&cache_root,&project.entry.join("dev"),release,&prepared.application);
+            command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};

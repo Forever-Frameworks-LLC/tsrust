@@ -2,7 +2,6 @@
 use crate::diagnostic::{Diagnostic, Span};
 use crate::syntax::{Type, UnionId};
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct UnionType {
@@ -17,8 +16,8 @@ pub struct UnionType {
 struct ArenaState {
     member_revision: u64,
     types: Vec<UnionType>,
-    identities: HashMap<Vec<Type>, UnionId>,
-    named_types: HashMap<usize, Type>,
+    identities: crate::fast_hash::FastMap<Vec<Type>, UnionId>,
+    named_types: crate::fast_hash::FastMap<usize, Type>,
 }
 
 #[derive(Default)]
@@ -158,7 +157,7 @@ impl UnionArena {
         span: Span,
     ) -> Result<Type, Diagnostic> {
         let mut members = Vec::new();
-        let mut seen = HashSet::new();
+        let mut seen = crate::fast_hash::FastSet::default();
         for value in types {
             let alternatives = match value {
                 Type::Union(id) if !self.is_recursive(id) => self.members(id),

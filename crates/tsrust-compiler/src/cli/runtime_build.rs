@@ -54,7 +54,7 @@ impl Prepared {
   Self::prepare(source,backend,root,temporary,release,true)
  }
  fn prepare(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
-  let units=native_runtime::separate(source);let application=temporary.join("program.rs");fs::write(&application,units.application).map_err(|e|e.to_string())?;
+  let units=native_runtime::separate(source);let application=temporary.join("program.rs");fs::write(&application,tsrust_compiler::native_codegen_units::partition(&units.application)).map_err(|e|e.to_string())?;
   let Some(runtime)=units.runtime else{return Ok(Self{application,library:None,command:None,state:"none",shared_sources:false,source_snapshot:None,cache:None,opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None});};
   if units.dependencies {return Self::with_dependencies(application,&runtime,backend,root,temporary,release,opportunistic);}
   let library=temporary.join("libtsrust_runtime.rlib");
@@ -67,7 +67,7 @@ impl Prepared {
   Ok(Self{application,library:Some(library),command,state:if reused{"hit"}else{"miss"},shared_sources:false,source_snapshot:None,cache:Some(cache),opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None})
  }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
-  use crate::native_dependency_bundle as bundle;
+
   let absolute_root=crate::absolute(root)?;fs::create_dir_all(&absolute_root).map_err(|e|e.to_string())?;let absolute_root=absolute_root.canonicalize().map_err(|e|e.to_string())?;let root=absolute_root.as_path();
   let packages=crate::rust_binding_packages::packages(runtime)?;
   let binding=crate::rust_binding_packages::checked(&packages)?;
@@ -82,9 +82,8 @@ impl Prepared {
   cache_parts.push(profiles(gpui).as_bytes());
   if let Some(inputs)=&shared_inputs{cache_parts.push(inputs.as_bytes());}
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
-  let packed=temporary.join("runtime-artifacts");let restored=temporary.join("dependencies");
-  let copied=if opportunistic{cache.try_copy_to(&packed)}else{cache.copy_to(&packed)};
-  if copied && bundle::unpack(&packed,&restored).is_ok() {
+  let packed=temporary.join("runtime-artifacts");
+  if let Some(restored)=staged_dependencies(root,&cache,&packed,opportunistic) {
    return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
   }
   let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(gpui))).map_err(|e|e.to_string())?;
@@ -190,6 +189,38 @@ impl Prepared {
  }if let Some(library)=&self.library {command.arg("--extern").arg(format!("tsrust_runtime={}",library.display()));}Ok(())}
 }
 
+/// Unpack a cached dependency bundle once per runtime identity and reuse the directory.
+/// A GPUI bundle is near a gigabyte; copying and unpacking it on every rebuild cost
+/// seconds. The directory is published by an atomic rename after a completion marker,
+/// so concurrent builds see either nothing or a complete, immutable set.
+fn staged_dependencies(root:&Path,cache:&NativeCache,packed:&Path,opportunistic:bool)->Option<PathBuf>{
+ let parent=root.join(STAGED_DIRECTORY);
+ let staged=parent.join(cache.identity_key());
+ if staged.join(STAGED_MARKER).is_file(){touch(&staged.join(STAGED_MARKER));return Some(staged);}
+ let copied=if opportunistic{cache.try_copy_to(packed)}else{cache.copy_to(packed)};
+ if !copied {return None;}
+ fs::create_dir_all(&parent).ok()?;
+ prune_staged(&parent,STAGED_ENTRIES);
+ let pending=parent.join(format!("{}.pending-{}",cache.identity_key(),std::process::id()));
+ let _=fs::remove_dir_all(&pending);
+ if crate::native_dependency_bundle::unpack(packed,&pending).is_err(){let _=fs::remove_dir_all(&pending);return None;}
+ fs::write(pending.join(STAGED_MARKER),b"").ok()?;
+ if fs::rename(&pending,&staged).is_err(){let _=fs::remove_dir_all(&pending);}
+ staged.join(STAGED_MARKER).is_file().then_some(staged)
+}
+fn touch(path:&Path){if let Ok(file)=fs::File::options().write(true).open(path){let _=file.set_modified(std::time::SystemTime::now());}}
+const STAGED_DIRECTORY:&str="runtime-staged";
+const STAGED_MARKER:&str=".complete";
+const STAGED_ENTRIES:usize=3;
+fn prune_staged(parent:&Path,keep:usize){
+ let Ok(entries)=fs::read_dir(parent) else{return};
+ let mut staged:Vec<(std::time::SystemTime,PathBuf)>=entries.flatten().filter(|entry|entry.file_type().is_ok_and(|kind|kind.is_dir()))
+  .map(|entry|(fs::metadata(entry.path().join(STAGED_MARKER)).and_then(|meta|meta.modified()).unwrap_or(std::time::UNIX_EPOCH),entry.path())).collect();
+ if staged.len()<keep{return;}
+ staged.sort_by(|a,b|b.0.cmp(&a.0));
+ for (_,path) in staged.into_iter().skip(keep-1){let _=fs::remove_dir_all(path);}
+}
+
 // Keep Cargo graph/body aliases distinct without renaming them for environment-only misses.
 fn runtime_library_name(workspace:&Path,runtime:&str)->String {
  use std::hash::{Hash,Hasher};
@@ -204,6 +235,72 @@ fn runtime_library_name(workspace:&Path,runtime:&str)->String {
 /// Overflow checks remain enabled independently at both compiler call sites.
 pub(crate) fn application_optimization(release:bool,native_ui:bool)->&'static str {
  if release {"opt-level=3"} else if native_ui {"opt-level=1"} else {"opt-level=0"}
+}
+
+/// Development application builds keep rustc's incremental query cache per program
+/// entry, so an edit re-checks and re-codegens only changed generated items. Release
+/// builds stay non-incremental to keep full cross-item optimization. Lints are capped:
+/// generated Rust is not user source, and rendering thousands of style warnings costs
+/// seconds per build while hiding real errors in failure output.
+/// Returns the generated source path to compile: incremental sessions use a stable copy,
+/// because rustc keys cached items by source file name and a temporary path would
+/// invalidate every item on each build.
+pub(crate) fn application_backend_args(command:&mut Command,cache_root:&Path,entry:&Path,release:bool,application:&Path)->PathBuf{
+ command.args(["--cap-lints","allow"]);
+ if release {return application.to_owned();}
+ let directory=cache_root.join(INCREMENTAL_DIRECTORY);
+ let _=fs::create_dir_all(&directory);
+ prune_incremental(&directory,INCREMENTAL_ENTRIES);
+ let mut hash=Sha256::new();hash.update(b"application-incremental-1");hash.update(entry.to_string_lossy().as_bytes());
+ let key=hash.finalize().iter().take(8).map(|byte|format!("{byte:02x}")).collect::<String>();
+ let session=directory.join(key);let _=fs::create_dir_all(&session);
+ // Touch so pruning keeps recently used programs.
+ let marker=session.join(".used");if !marker.exists(){let _=fs::write(&marker,b"");}touch(&marker);
+ let stable=session.join("program.rs");
+ let source=match fs::read(application){Ok(source)=>source,Err(_)=>return application.to_owned()};
+ // Keep the old file (and its mtime) when the generated text is unchanged.
+ if fs::read(&stable).ok().as_deref()!=Some(source.as_slice()) {
+  // Rename atomically: a concurrent build of the same entry reads a whole file.
+  let pending=session.join(format!("program.rs.{}",std::process::id()));
+  if fs::write(&pending,&source).and_then(|()|fs::rename(&pending,&stable)).is_err(){let _=fs::remove_file(&pending);return application.to_owned();}
+ }
+ command.arg("-C").arg(format!("incremental={}",session.join("rustc").display()));
+ stable
+}
+const INCREMENTAL_DIRECTORY:&str="incremental";
+const INCREMENTAL_ENTRIES:usize=6;
+fn prune_incremental(directory:&Path,keep:usize){
+ let Ok(entries)=fs::read_dir(directory) else{return};
+ let mut sessions:Vec<(std::time::SystemTime,PathBuf)>=entries.flatten().filter(|entry|entry.file_type().is_ok_and(|kind|kind.is_dir()))
+  .map(|entry|{let used=fs::metadata(entry.path().join(".used")).and_then(|meta|meta.modified()).unwrap_or(std::time::UNIX_EPOCH);(used,entry.path())}).collect();
+ if sessions.len()<keep{return;}
+ sessions.sort_by(|a,b|b.0.cmp(&a.0));
+ for (_,path) in sessions.into_iter().skip(keep-1){let _=fs::remove_dir_all(path);}
+}
+
+#[cfg(test)] mod application_backend_tests {
+ use super::*;
+ #[test] fn development_builds_are_incremental_per_entry_and_release_builds_are_not(){
+  let directory=crate::TempDirectory::new().unwrap();let root=directory.0.as_path();
+  let generated=root.join("generated.rs");fs::write(&generated,"fn main(){}").unwrap();
+  let args=|entry:&str,release:bool|{let mut command=Command::new("rustc");let source=application_backend_args(&mut command,root,Path::new(entry),release,&generated);(command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>(),source)};
+  assert_eq!(args("/a/main.tsr",true),(vec!["--cap-lints".to_owned(),"allow".to_owned()],generated.clone()));
+  let (first,source)=args("/a/main.tsr",false);let (again,same)=args("/a/main.tsr",false);let (other,elsewhere)=args("/b/main.tsr",false);
+  assert!(first[3].starts_with("incremental="));assert_eq!(first,again);assert_ne!(first,other);
+  assert_eq!(source,same);assert_ne!(source,elsewhere);assert_ne!(source,generated);
+  assert_eq!(fs::read_to_string(&source).unwrap(),"fn main(){}");
+ }
+ #[test] fn pruning_keeps_the_most_recently_used_sessions(){
+  let directory=crate::TempDirectory::new().unwrap();let root=directory.0.join(INCREMENTAL_DIRECTORY);
+  let generated=directory.0.join("generated.rs");fs::write(&generated,"fn main(){}").unwrap();
+  for index in 0..INCREMENTAL_ENTRIES+2 {
+   let mut command=Command::new("rustc");application_backend_args(&mut command,&directory.0,Path::new(&format!("/entry/{index}")),false,&generated);
+   std::thread::sleep(std::time::Duration::from_millis(15));
+  }
+  assert_eq!(fs::read_dir(&root).unwrap().count(),INCREMENTAL_ENTRIES);
+  let mut newest=Command::new("rustc");let source=application_backend_args(&mut newest,&directory.0,Path::new(&format!("/entry/{}",INCREMENTAL_ENTRIES+1)),false,&generated);
+  assert!(source.exists(),"the newest session survives pruning");
+ }
 }
 
 #[cfg(test)] mod application_profile_tests {
@@ -342,4 +439,22 @@ fn exported_linker_policy_is_valid_toml_and_windows_msvc_only() {
  assert!(config.get("build").is_none());
  let targets=config["target"].as_table().unwrap();assert_eq!(targets.len(),1);
  assert_eq!(targets["cfg(all(target_os = \"windows\", target_env = \"msvc\"))"]["rustflags"][0].as_str(),Some(MSVC_LINKER_FLAG));
+}
+
+#[cfg(test)] mod staged_dependency_tests {
+ use super::*;
+ #[test] fn cached_dependency_bundles_unpack_once_and_are_then_reused_in_place(){
+  let directory=crate::TempDirectory::new().unwrap();let root=directory.0.as_path();
+  let built=root.join("built");fs::create_dir(&built).unwrap();
+  fs::write(built.join("libtsrust_runtime.rlib"),b"runtime").unwrap();fs::write(built.join("libdependency.rlib"),b"dependency").unwrap();
+  let bundle=root.join("bundle");crate::native_dependency_bundle::pack(&built.join("libtsrust_runtime.rlib"),&built,&bundle).unwrap();
+  let cache=NativeCache::runtime(&root.join("runtime"),&[b"staged-test"]);cache.publish(&bundle).unwrap();
+  let first=staged_dependencies(root,&cache,&root.join("copy-1"),false).expect("first build stages the bundle");
+  assert_eq!(fs::read(first.join("libdependency.rlib")).unwrap(),b"dependency");
+  assert!(root.join("copy-1").exists());
+  let second=staged_dependencies(root,&cache,&root.join("copy-2"),false).expect("second build reuses the staged directory");
+  assert_eq!(first,second);
+  assert!(!root.join("copy-2").exists(),"a staged hit must not copy the cached bundle again");
+  assert!(fs::read_dir(root.join(STAGED_DIRECTORY)).unwrap().flatten().all(|entry|!entry.file_name().to_string_lossy().contains(".pending-")));
+ }
 }
