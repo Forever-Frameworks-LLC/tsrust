@@ -12,6 +12,7 @@ import { test, strictEqual } from 'std:testing';
 
 import { EditorPolicy, defaultFormatting, projectEditorPolicy } from '../src/lib/settings/formatting.tsr';
 import { defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { paletteCommands } from '../src/lib/workspace/commands.tsr';
 import { createDocument, ProposedEdit, edit } from '../src/lib/workspace/documents.tsr';
 import {
   FormattingAuthority,
@@ -23,7 +24,6 @@ import {
   applyFormatting
 } from '../src/lib/workspace/formatting-actions.tsr';
 import { problemSelection } from '../src/lib/workspace/problem-actions.tsr';
-import { paletteCommands } from '../src/lib/workspace/commands.tsr';
 import { Workspace } from '../src/lib/workspace/workspace.tsr';
 import { prepareProjectTask } from '../src/services/project-tasks.tsr';
 import { WorkflowToolContext, workflowTools, invokeWorkflowTool } from '../src/services/workflow-tools.tsr';

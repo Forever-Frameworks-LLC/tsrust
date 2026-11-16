@@ -7774,6 +7774,8 @@ export interface CodeEditorProps {
   autoFocus?: ReactiveValue<boolean>;
   /** Shows source line numbers. Defaults to true. */
   lineNumbers?: ReactiveValue<boolean>;
+  /** Fixed end of the native editor's initial selection, in UTF-8 bytes. With initialCaret, selects between the two offsets and preserves direction. Defaults to initialCaret. */
+  initialAnchor?: ReactiveValue<int>;
   /** Initial UTF-8 byte offset in the native editor. Read once after mounting its text. Offsets clip to a character boundary inside the document. */
   initialCaret?: ReactiveValue<int>;
   /** Comma-separated one-based source lines marked in the native editor gutter, for example '2,5'. An empty string shows an empty gutter. Omission hides it. Requires visible line numbers. */
@@ -7832,6 +7834,8 @@ export interface CodeEditorProps {
   onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
   /** Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers. */
   onLanguageRequest?: Owned<Function<void, [request: ReadOnly<string>]>>;
+  /** Receives a JSON pair [anchor, caret] of UTF-8 byte offsets when the primary selection changes in the native editor. Equal endpoints indicate an insertion point. */
+  onSelectionChange?: Owned<Function<void, [selection: ReadOnly<string>]>>;
   /** Receives the active caret's UTF-8 byte offset when it moves in the native editor, including keyboard navigation without edits. */
   onCaretChange?: Owned<Function<void, [offset: int]>>;
   /** Receives the one-based source line when the user clicks the native breakpoint gutter. Update breakpointLines to change the markers. Wrapped rows refer to their original source line. */
@@ -7947,6 +7951,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (prop_lineNumbers !== undefined) {
     node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
+  }
+
+  const prop_initialAnchor = props.initialAnchor;
+
+  if (prop_initialAnchor !== undefined) {
+    node = kitInt(node, 'initialAnchor', prop_initialAnchor);
   }
 
   const prop_initialCaret = props.initialCaret;
@@ -8137,6 +8147,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (event_onLanguageRequest !== undefined) {
     node = unwrapNode(nativeKitOn(node, 'languageRequest', event_onLanguageRequest));
+  }
+
+  const event_onSelectionChange = props.onSelectionChange;
+
+  if (event_onSelectionChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'selectionChange', event_onSelectionChange));
   }
 
   const event_onCaretChange = props.onCaretChange;

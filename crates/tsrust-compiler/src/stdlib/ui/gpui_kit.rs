@@ -2174,11 +2174,26 @@ impl Root {
                         editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
                         if let Some(offset) = props.get("initialCaret").and_then(|value|value.parse::<usize>().ok()) {
-                            state.set_selected_range(offset..offset,cx);
+                            let anchor=props.get("initialAnchor").and_then(|value|value.parse::<usize>().ok()).unwrap_or(offset);
+                            state.set_selected_range_with_direction(anchor.min(offset)..anchor.max(offset),offset<anchor,cx);
                         }
                         if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
                     });
+                    if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("selectionChange")) {
+                        let endpoints=|editor:&EditorState| {
+                            let range=editor.selected_range();
+                            if editor.is_selection_reversed() {[range.end,range.start]} else {[range.start,range.end]}
+                        };
+                        let mut previous=endpoints(state.read(cx));
+                        cx.observe(&state,move |root,state,cx| {
+                            let selection=endpoints(state.read(cx));
+                            if selection!=previous {
+                                previous=selection;
+                                root.emit(id,"selectionChange",serde_json::json!(selection).to_string(),cx);
+                            }
+                        }).detach();
+                    }
                     if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("caretChange")) {
                         let mut previous=state.read(cx).cursor();
                         cx.observe(&state,move |root,state,cx| {

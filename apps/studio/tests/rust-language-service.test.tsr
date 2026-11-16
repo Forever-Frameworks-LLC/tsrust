@@ -2,9 +2,9 @@ import { get } from 'std:env';
 import { canonicalize, createTempDir, readTextFile, removeDirAll, writeTextFile } from 'std:fs';
 import { Channel, delay } from 'std:futures';
 import { JsonRaw } from 'std:json';
-import { completionText } from 'std:ui';
 import { join } from 'std:path';
 import { strictEqual, test } from 'std:testing';
+import { completionText } from 'std:ui';
 
 import { DiagnosticRange, LanguageDocument, documentUri, languageIdentity } from '../src/lib/language/diagnostics.tsr';
 import { languagePresets } from '../src/lib/language/presets.tsr';

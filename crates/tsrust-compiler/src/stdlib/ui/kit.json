@@ -5159,6 +5159,11 @@
           "doc": "Shows source line numbers. Defaults to true."
         },
         {
+          "name": "initialAnchor",
+          "type": "int",
+          "doc": "Fixed end of the native editor's initial selection, in UTF-8 bytes. With initialCaret, selects between the two offsets and preserves direction. Defaults to initialCaret."
+        },
+        {
           "name": "initialCaret",
           "type": "int",
           "doc": "Initial UTF-8 byte offset in the native editor. Read once after mounting its text. Offsets clip to a character boundary inside the document."
@@ -5329,6 +5334,12 @@
           "value": "string",
           "param": "request",
           "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+        },
+        {
+          "prop": "onSelectionChange",
+          "value": "string",
+          "param": "selection",
+          "doc": "Receives a JSON pair [anchor, caret] of UTF-8 byte offsets when the primary selection changes in the native editor. Equal endpoints indicate an insertion point."
         },
         {
           "prop": "onCaretChange",

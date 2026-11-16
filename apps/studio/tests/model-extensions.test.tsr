@@ -1,11 +1,13 @@
-import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
-import { get } from 'std:env';
-import { signal } from 'std:ui';
-import { toggleExtensions } from '../src/components/workbench/model-extensions.tsrx';
-import { Channel } from 'std:futures';
-import { sha256 } from 'std:crypto';
 import { fromUtf8, toHex } from 'std:bytes';
+import { sha256 } from 'std:crypto';
+import { get } from 'std:env';
+import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
+import { Channel } from 'std:futures';
 import { strictEqual, test } from 'std:testing';
+import { signal } from 'std:ui';
+
+import { toggleExtensions } from '../src/components/workbench/model-extensions.tsrx';
+import { defaultConfig } from '../src/lib/settings/settings.tsr';
 import {
   modelFolder,
   modelTokenizer,
@@ -15,8 +17,6 @@ import {
   installedModel,
   modelExtensions
 } from '../src/services/ai/model-extensions.tsr';
-
-import { defaultConfig } from '../src/lib/settings/settings.tsr';
 
 test('model selector excludes a missing model or tokenizer and keeps a working custom pair', () => {
   const folder = unwrap(createTempDir(undefined, 'studio-selector-'));

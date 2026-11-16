@@ -12,11 +12,12 @@ import {
 } from 'std:fs';
 import { join } from 'std:path';
 import { compile, escape } from 'std:regex';
-import { recallTerms } from '../../lib/ai/prompts.tsr';
 import { open } from 'std:sqlite';
 
-import encoded from '../../assets/knowledge/passages.txt';
+import { recallTerms } from '../../lib/ai/prompts.tsr';
+
 import manifest from '../../assets/knowledge/manifest.json';
+import encoded from '../../assets/knowledge/passages.txt';
 
 function databasePath(folder: ReadOnly<string>): string {
   const path = join(folder, manifest.sha256 + '.sqlite');

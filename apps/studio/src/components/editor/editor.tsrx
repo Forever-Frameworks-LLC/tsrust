@@ -15,18 +15,18 @@ import {
   signal
 } from 'std:ui';
 
-import { LanguageReferences } from '../../lib/language/references.tsr';
-import { showNativeLanguageReferences } from '../../services/lsp/references.tsr';
+import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { navigateNativeLanguage } from '../../lib/language/navigation.tsr';
+import { LanguageReferences } from '../../lib/language/references.tsr';
 import { accessibleName, message } from '../../lib/localization.tsr';
 import { updateDraft, publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { dirty } from '../../lib/workspace/documents.tsr';
 import { QueuedFormatting, enqueueFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
-import { LanguageState, requestNativeLanguage, cancelNativeLanguage } from '../../services/lsp/controller.tsr';
-import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { AiState, requestInline, cancelInline } from '../../services/ai/actions.tsr';
+import { LanguageState, requestNativeLanguage, cancelNativeLanguage } from '../../services/lsp/controller.tsr';
+import { showNativeLanguageReferences } from '../../services/lsp/references.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { ImagePreview } from './image-preview.tsrx';
 
@@ -54,7 +54,7 @@ export function FilePanel(
   const markerLines = computed<string>(() => breakpoints.get().filter((point) => point.path === markerPath).map((point) => point.line.toString()).join(','));
   const editPath = clone(path);
   const caretPath = clone(path);
-  const pendingCaret = signal<int>(-1);
+  const pendingSelection = signal<string>('');
   const languagePath = clone(path);
   const referencePath = clone(path);
   const languageRequests = messages.share();
@@ -140,17 +140,23 @@ export function FilePanel(
         <View hidden={preview.get()} className="flex-col grow min-h-0">
           <Ticker
             interval={250}
-            running={pendingCaret.get() >= 0}
+            running={pendingSelection.get() !== ''}
             onTick={(_frame) => {
-              const offset = pendingCaret.get();
+              const selection = pendingSelection.get();
 
-              if (offset < 0) return;
-              pendingCaret.set(-1);
+              if (selection === '') return;
+              pendingSelection.set('');
+              const pair = JSON.parse<int[]>(selection);
+
+              if (pair.length !== 2) return;
+              const anchor = pair[0];
+              const offset = pair[1];
               const next = workspace.get();
               const index = next.files.findIndex((entry) => entry.document.path === caretPath);
 
-              if (index >= 0 && (next.files[index].caret ?? 0) !== offset) {
+              if (index >= 0 && ((next.files[index].caret ?? 0) !== offset || (next.files[index].anchor ?? offset) !== anchor)) {
                 next.files[index].caret = offset;
+                next.files[index].anchor = anchor === offset ? undefined : anchor;
                 publishWorkspace(next, workspace, recovery);
               }
             }}
@@ -160,8 +166,9 @@ export function FilePanel(
             language={extname(file.document.path).slice(1)}
             value={text.get()}
             initialCaret={file.caret ?? 0}
-            onCaretChange={(offset) => {
-              pendingCaret.set(offset);
+            initialAnchor={file.anchor ?? file.caret ?? 0}
+            onSelectionChange={(selection) => {
+              pendingSelection.set(clone(selection));
             }}
             breakpointLines={markerLines.get()}
             onBreakpointClick={(line) => {

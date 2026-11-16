@@ -1,5 +1,3 @@
-import { searchPageCount } from '../../lib/explorer/search.tsr';
-import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
 import { Channel, Sender } from 'std:futures';
 import { join, extname } from 'std:path';
 import {
@@ -28,7 +26,14 @@ import {
   t,
   translate
 } from 'std:ui';
+
+import { searchPageCount } from '../../lib/explorer/search.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
+import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
+import { FormattingTarget } from '../../lib/workspace/formatting-actions.tsr';
+import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merge.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr';
 import {
   DiffHunk,
   GitChange,
@@ -37,10 +42,6 @@ import {
   diffHunks,
   gitPatch
 } from '../../services/git.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { openFile, OpenFile, Workspace } from '../../lib/workspace/workspace.tsr';
-import { publishWorkspace, saveTarget, updateDraft } from '../../lib/workspace/document-actions.tsr';
-import { hasConflictStart, resolveFirstConflict } from '../../lib/workspace/merge.tsr';
 
 function CommitRow(line: ReadOnly<string>, selected: Signal<GitChange>, font: Signal<int>): Node {
   const label = clone(line);

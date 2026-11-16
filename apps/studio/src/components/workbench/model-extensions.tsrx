@@ -1,6 +1,6 @@
+import { readTextFile, stat } from 'std:fs';
 import { Channel, Sender } from 'std:futures';
 import { basename, join } from 'std:path';
-import { readTextFile, stat } from 'std:fs';
 import {
   Node,
   Signal,
@@ -17,6 +17,8 @@ import {
   translate,
   signal
 } from 'std:ui';
+
+import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import {
   StudioConfig,
@@ -27,7 +29,6 @@ import {
   defaultConfig
 } from '../../lib/settings/settings.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
-import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { ModelExtension, modelExtensions, availableModelPaths, modelTokenizer, modelFolder } from '../../services/ai/model-extensions.tsr';
 
 export function toggleExtensions(sidebar: Signal<boolean>, mode: Signal<string>, settings: Signal<StudioConfig>, modelPaths: Signal<string[]>): void {

@@ -3,10 +3,7 @@ import {
   toUtf8,
   view
 } from 'std:bytes';
-
 import { canonicalize, stat, readTextFile } from 'std:fs';
-import { s } from 'std:schema';
-import { compile, escape, Regex } from 'std:regex';
 import {
   basename,
   dirname,
@@ -15,15 +12,17 @@ import {
   join,
   separator
 } from 'std:path';
+import { compile, escape, Regex } from 'std:regex';
+import { s } from 'std:schema';
 
-import { functionExcerpt, recallTerms } from '../../lib/ai/prompts.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
-import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
-import { LanguageReadResult } from '../lsp/controller.tsr';
-import { DiagnosticRange, diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
-import { DirectoryTree } from '../../lib/explorer/tree.tsr';
-import { Workspace } from '../../lib/workspace/workspace.tsr';
 import { chatIdentity } from '../../lib/ai/conversations.tsr';
+import { functionExcerpt, recallTerms } from '../../lib/ai/prompts.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import { DiagnosticRange, diagnosticColumn, diagnosticPath } from '../../lib/language/diagnostics.tsr';
+import { LanguageReferences, ReferenceLocation, referenceSymbol } from '../../lib/language/references.tsr';
+import { Workspace } from '../../lib/workspace/workspace.tsr';
+import { LanguageReadResult } from '../lsp/controller.tsr';
 
 // Only trusted picker results may extend a read beyond the bound workspace.
 export function readContext(workspace: ReadOnly<Workspace>, path: ReadOnly<string>, kind: ReadOnly<string>, allowedPaths: ReadOnly<string[]>): Result<ContextFragment, string> {

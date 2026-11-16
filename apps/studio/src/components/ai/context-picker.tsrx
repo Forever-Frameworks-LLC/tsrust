@@ -20,10 +20,10 @@ import {
   t
 } from 'std:ui';
 
-import { fileSearchLabel, matchingFilePaths } from '../../lib/explorer/search-actions.tsr';
 import { ContextFragment } from '../../lib/ai/conversations.tsr';
-import { Entry, projectFiles } from '../../lib/workspace/workspace.tsr';
+import { fileSearchLabel, matchingFilePaths } from '../../lib/explorer/search-actions.tsr';
 import { localizeError, message } from '../../lib/localization.tsr';
+import { Entry, projectFiles } from '../../lib/workspace/workspace.tsr';
 import { AiContext, aiContextHandles, performModelAction } from '../../services/ai/actions.tsr';
 
 export interface ContextPickerState {
