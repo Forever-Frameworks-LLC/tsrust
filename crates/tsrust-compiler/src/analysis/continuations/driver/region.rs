@@ -224,7 +224,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let region = task.region.value();
                 let effects = if refresh {
                     analyzer.check_pending_region_functions(&region.body, result_type, false)?;
-                    if partial { analyzer.region_caller_error_effects(context, &region.body) } else { analyzer.region_error_effects(context)? }
+                    if partial { analyzer.region_caller_error_effects(context, &region.body) } else { analyzer.region_error_effects(context, &region.body)? }
                 } else { task.environment.effects.clone() };
                 let incoming = crate::error_effects::annotate_region_body(&mut region.body, &effects);
                 if incoming.opaque && (std::env::var("TSRUST_TRACE_EFFECTS").as_deref()==Ok("1") || cfg!(test) && std::thread::current().name().is_some_and(|name|name.ends_with("iterator_terminal_error_contract_after_prior_catch_diagnostic"))) {
@@ -268,7 +268,13 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             Phase::Catch | Phase::Replay => {
                 let context = contexts.get(task.context);
                 let frame = task.frame.as_ref().expect("region phases");
-                let effects = if frame.refresh { &analyzer.region_error_effects(context)? } else { &frame.effects };
+                let refreshed = if frame.refresh {
+                    let source = match phase { Phase::Catch => &task.region.value().catch.as_ref().expect("catch").body,
+                        Phase::Replay => task.region.value().finally.as_ref().expect("finally"), _ => unreachable!() };
+                    Some(analyzer.region_error_effects(context, source)?)
+                } else { None };
+                let frame = task.frame.as_ref().expect("region phases");
+                let effects = refreshed.as_ref().unwrap_or(&frame.effects);
                 let outer = frame.outer;
                 let source = match phase { Phase::Catch => &mut task.region.value().catch.as_mut().expect("catch").body,
                     Phase::Replay => task.region.value().finally.as_mut().expect("finally"), _ => unreachable!() };
@@ -294,7 +300,7 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             Phase::Canonical => {
                 let context = contexts.get(task.isolated.expect("canonical context"));
                 let frame = task.frame.as_ref().expect("cleanup region");
-                let effects = if frame.refresh { &analyzer.region_error_effects(context)? } else { &frame.effects };
+                let effects = if frame.refresh { &analyzer.region_error_effects(context, &body)? } else { &frame.effects };
                 crate::error_effects::annotate_region_body(&mut body, effects);
                 let context = contexts.take(task.isolated.take().expect("canonical context"));
                 task.frame.as_mut().unwrap().cleanup.as_mut().unwrap().canonical = Some((body, context.bindings));

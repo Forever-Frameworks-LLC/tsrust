@@ -20,6 +20,7 @@ pub(super) struct Reader<'a> {
 }
 impl<'a> Reader<'a> {
     pub(super) fn new(effects:&'a ErrorEffects)->Self {Self{effects,reads:Default::default()}}
+    pub(super) fn into_keys(self)->Vec<Key> {let mut keys=self.reads.into_inner();keys.sort_unstable_by_key(|key|format_key(*key));keys.dedup();keys}
     // All body contract lookups pass through this reader; ErrorEffects stays Send + Sync.
     pub(super) fn read(&self,key:Key,value:Option<&FailureSet>)->FailureSet {
         self.reads.borrow_mut().push(key);
@@ -54,7 +55,11 @@ impl Cache {
 fn format_key(key:Key)->(u8,usize,usize) {
     match key {Key::Function(id)=>(0,id,0),Key::Closure(id)=>(1,id,0),Key::Storage(id)=>(2,id,0),Key::Callback(id)=>(3,id,0),Key::Method(id,method)=>(4,id,method),Key::Invocation(id)=>(5,id,0)}
 }
-impl Cache {pub(super) fn evaluations_traced(&self)->usize {self.traced}}
+impl Cache {
+    pub(super) fn evaluations_traced(&self)->usize {self.traced}
+    /// Entries read by the last evaluation.
+    pub(super) fn read_keys(&self)->impl Iterator<Item=Key>+'_ {self.observed.iter().map(|(key,_)|*key)}
+}
 /// Record growth of one entry; returns `changed` for fixpoint bookkeeping.
 pub(super) fn grow(versions:&mut Versions,key:Key,changed:bool)->bool {
     if changed {versions.bump(key);}

@@ -565,20 +565,162 @@ pub(crate) fn annotate_with_callbacks(program:&mut CheckedProgram,callbacks:&std
     let unions=crate::unions::UnionArena::from_snapshot(program.unions.clone());
     let stored_fields=record_stored_field_origins(&unions,&program.records,&program.scoped_records);
     let mut functions=program.functions.iter_mut().map(Some).collect::<Vec<_>>();
-    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations,&uninhabited,&stored_fields)
+    annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations,&uninhabited,&stored_fields,None)
 }
 pub(crate) fn annotate_parts_with_storage(functions:&mut [&mut CheckedFunction],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
     annotate_partial_with_storage(&mut functions.iter_mut().map(|function|Some(&mut **function)).collect::<Vec<_>>(),closures,families,invocations)
 }
 
 pub(crate) fn annotate_partial_with_storage(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry)->ErrorEffects {
-    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default(),&[])
+    annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default(),&[],None)
+}
+
+/// As [`annotate_partial_with_storage`], solving only the contracts `seeds`
+/// depend on. Other entries are returned as unknown, never as stale values.
+#[inline(never)]
+pub(crate) fn annotate_partial_with_storage_for(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,seeds:&Seeds)->ErrorEffects {
+    if full_effects_requested() {return annotate_partial_with_storage(functions,closures,families,invocations);}
+    #[cfg(test)] let full=annotate_partial_with_storage(functions,closures,families,invocations);
+    let slice=Slice::new(functions,closures,families,invocations,&Default::default(),&[],seeds);
+    let mut effects=annotate_partial_with_contracts(functions,closures,families,&Default::default(),invocations,&Default::default(),&[],Some(&slice));
+    if !slice.closed() {return annotate_partial_with_storage(functions,closures,families,invocations);}
+    slice.mask(&mut effects);
+    #[cfg(test)] slice.assert_matches(&effects,&full);
+    effects
+}
+
+/// TSRUST_FULL_EFFECTS=1 solves every partial contract for the whole program,
+/// for comparing sliced solving against the original behavior.
+fn full_effects_requested()->bool {
+    static FULL:std::sync::OnceLock<bool>=std::sync::OnceLock::new();
+    *FULL.get_or_init(||std::env::var_os("TSRUST_FULL_EFFECTS").is_some_and(|value|value=="1"))
+}
+
+/// Contract entries a partial solve must produce exactly: those its reader
+/// (a region body, a task or a worker closure) looks up.
+#[derive(Clone,Debug,Default)]
+pub(crate) struct Seeds(Vec<propagation::Key>);
+impl Seeds {
+    /// Entries read while annotating `body`; a copy is evaluated so the body is untouched.
+    pub(crate) fn body(body:&[Stmt])->Self {
+        let mut copy=body.to_vec();
+        let empty=ErrorEffects::default();
+        let reader=propagation::Reader::new(&empty);
+        traversal::body_effect_with(&mut copy,&reader);
+        Self(reader.into_keys())
+    }
+    /// The entry of a scheduled callable value.
+    pub(crate) fn callable(ty:Type)->Self {Self(key_of_type(ty).into_iter().collect())}
+}
+
+fn key_of_type(ty:Type)->Option<propagation::Key> {
+    match ty {
+        Type::Closure(id)=>Some(propagation::Key::Closure(id)),
+        Type::Callback(id)=>Some(propagation::Key::Callback(id)),
+        Type::StoredCallable(id)|Type::BorrowedCallable(id)=>Some(propagation::Key::Storage(id)),
+        _=>None,
+    }
+}
+
+/// Every contract entry the seeds transitively depend on, following the same
+/// edges the solver uses: body lookups, closure forwards, consuming wrappers,
+/// storage family origins and stored fields, callback origins and generic
+/// invocation pairs. Nothing outside the slice can change an entry inside it,
+/// so solving the slice in program order reproduces the full solve's entries,
+/// payload order and annotations for those bodies.
+pub(crate) struct Slice {
+    keys:crate::fast_hash::FastSet<propagation::Key>,
+    functions:Vec<bool>,
+    closures:Vec<bool>,
+    families:crate::fast_hash::FastSet<usize>,
+    /// Set when a solved body read an entry outside the slice; callers then fall back.
+    open:std::sync::atomic::AtomicBool,
+}
+impl Slice {
+    fn new(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,callback_origins:&std::collections::HashMap<usize,Vec<Type>>,stored_fields:&[(usize,Type)],seeds:&Seeds)->Self {
+        use propagation::Key;
+        let mut slice=Slice{keys:Default::default(),functions:vec![false;functions.len()],closures:vec![false;closures.len()],families:Default::default(),open:std::sync::atomic::AtomicBool::new(false)};
+        let family_origins=families.iter().map(|(id,origins)|(*id,origins)).collect::<crate::fast_hash::FastMap<_,_>>();
+        let pairs=invocations.entries().collect::<crate::fast_hash::FastMap<_,_>>();
+        let empty=ErrorEffects::default();
+        let reads=|function:&mut CheckedFunction|{let reader=propagation::Reader::new(&empty);function_effect_with(function,&reader);reader.into_keys()};
+        let mut pending=seeds.0.clone();
+        while let Some(key)=pending.pop() {
+            if !slice.keys.insert(key) {continue;}
+            match key {
+                Key::Function(id)=>if let Some(Some(function))=functions.get_mut(id) {
+                    slice.functions[id]=true;
+                    pending.extend(reads(function));
+                },
+                Key::Closure(id)=>if let Some(closure)=closures.get_mut(id) {
+                    slice.closures[id]=true;
+                    pending.extend(reads(&mut closure.function));
+                    for method in &mut closure.methods {pending.extend(reads(&mut method.function));}
+                    match closure.forward {
+                        Some(ClosureForward::Function(origin))=>pending.push(Key::Function(origin)),
+                        Some(ClosureForward::Once(origin))=>pending.push(Key::Closure(origin)),
+                        Some(ClosureForward::Abstract(contract))=>pending.push(Key::Callback(contract)),
+                        Some(ClosureForward::RestAdapter{..})=>pending.extend(closure.function.bindings.first().and_then(|binding|key_of_type(binding.ty))),
+                        Some(ClosureForward::Native(_))|None=>{},
+                    }
+                },
+                Key::Method(id,_)=>pending.push(Key::Closure(id)),
+                Key::Storage(id)=>{
+                    slice.families.insert(id);
+                    if let Some(origins)=family_origins.get(&id) {pending.extend(origins.iter().map(|origin|Key::Closure(*origin)));}
+                    pending.extend(stored_fields.iter().filter(|(family,_)|*family==id).filter_map(|(_,source)|key_of_type(*source)));
+                },
+                Key::Callback(id)=>if let Some(types)=callback_origins.get(&id) {pending.extend(types.iter().filter_map(|ty|key_of_type(*ty)));},
+                Key::Invocation(id)=>if let Some(pairs)=pairs.get(&id) {pending.extend(pairs.iter().map(|pair|Key::Closure(pair.origin)));},
+            }
+        }
+        slice
+    }
+    fn contains(&self,key:propagation::Key)->bool {self.keys.contains(&key)}
+    fn closed(&self)->bool {!self.open.load(std::sync::atomic::Ordering::Relaxed)}
+    /// Entries outside the slice were not solved; report them as unknown.
+    fn mask(&self,effects:&mut ErrorEffects) {
+        use propagation::Key;
+        for (id,(contract,fails)) in effects.function_errors.iter_mut().zip(effects.functions.iter_mut()).enumerate() {
+            if !self.functions[id] {*contract=FailureSet::unknown();*fails=true;}
+        }
+        for (id,(contract,fails)) in effects.closure_errors.iter_mut().zip(effects.closures.iter_mut()).enumerate() {
+            if !self.closures[id] {*contract=FailureSet::unknown();*fails=true;}
+        }
+        for ((origin,_),contract) in effects.method_errors.iter_mut() {if !self.closures.get(*origin).copied().unwrap_or(false) {*contract=FailureSet::unknown();}}
+        for (family,contract) in effects.storage_errors.iter_mut() {if !self.families.contains(family) {*contract=FailureSet::unknown();}}
+        for (id,contract) in effects.callback_errors.iter_mut() {if !self.contains(Key::Callback(*id)) {*contract=FailureSet::unknown();}}
+        for (id,contract) in effects.invocation_errors.iter_mut().enumerate() {if !self.contains(Key::Invocation(id)) {*contract=FailureSet::unknown();}}
+    }
+    #[cfg(test)]
+    fn assert_matches(&self,sliced:&ErrorEffects,full:&ErrorEffects) {
+        use propagation::Key;
+        for key in &self.keys {
+            let (left,right)=match *key {
+                Key::Function(id)=>(sliced.function_errors.get(id),full.function_errors.get(id)),
+                Key::Closure(id)=>(sliced.closure_errors.get(id),full.closure_errors.get(id)),
+                Key::Storage(id)=>(sliced.storage_errors.get(&id),full.storage_errors.get(&id)),
+                Key::Callback(id)=>(sliced.callback_errors.get(&id),full.callback_errors.get(&id)),
+                Key::Method(id,method)=>(sliced.method_errors.get(&(id,method)),full.method_errors.get(&(id,method))),
+                Key::Invocation(id)=>(sliced.invocation_errors.get(id),full.invocation_errors.get(id)),
+            };
+            assert_eq!(left,right,"sliced contract {key:?} must match the full partial solve");
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:(&[Stmt],&[crate::analysis::Binding]),unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
+    annotate_partial_with_callers_for(functions,closures,families,caller,unions,invocations,fields,stored_fields,None)
 }
 
 /// Include calls in the currently checked region before its callable is stored.
 /// Callback-only cycles retain an unknown contract until a concrete origin exists.
+/// With `seeds`, only the contracts they depend on are solved; other entries
+/// are returned as unknown, never as stale values.
 #[inline(never)]
-pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:(&[Stmt],&[crate::analysis::Binding]),unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)])->ErrorEffects {
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn annotate_partial_with_callers_for(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],caller:(&[Stmt],&[crate::analysis::Binding]),unions:&crate::unions::UnionArena,invocations:&crate::polymorphic_invocation_plans::Registry,fields:&[(usize,Type)],stored_fields:&[(usize,Type)],seeds:Option<&Seeds>)->ErrorEffects {
     use std::collections::{HashMap,HashSet};
     let mut origins:HashMap<usize,Vec<Type>>=HashMap::new();
     for &(id,actual) in fields {origins.entry(id).or_default().push(actual);}
@@ -626,10 +768,14 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
         if !changed {break;}
     }
     let mut callbacks=origins.keys().map(|id|(*id,if grounded.contains(id){FailureSet::default()}else{FailureSet::unknown()})).collect::<HashMap<_,_>>();
-    let mut effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
+    let seeds=seeds.filter(|_|!full_effects_requested());
+    let slice=seeds.map(|seeds|Slice::new(functions,closures,families,invocations,&origins,stored_fields,seeds));
+    let slice=slice.as_ref();
+    #[cfg(test)] let full=slice.map(|_|annotate_partial_with_callers_for(functions,closures,families,caller,unions,invocations,fields,stored_fields,None));
+    let mut effects=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields,slice);
     loop {
         let mut changed=false;
-        for (id,types) in &origins {
+        for (id,types) in origins.iter().filter(|(id,_)|slice.is_none_or(|slice|slice.contains(propagation::Key::Callback(**id)))) {
             let mut found=FailureSet::default();
             for ty in types {
                 found|=match ty {
@@ -642,13 +788,19 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
             }
             changed|=callbacks.get_mut(id).expect("callback origin").join(found);
         }
-        if !changed {return effects;}
+        if !changed {
+            let Some(slice)=slice else {return effects;};
+            if !slice.closed() {return annotate_partial_with_callers_for(functions,closures,families,caller,unions,invocations,fields,stored_fields,None);}
+            slice.mask(&mut effects);
+            #[cfg(test)] slice.assert_matches(&effects,full.as_ref().expect("full partial solve"));
+            return effects;
+        }
         // Callback contracts only grow, so retain the already established effects.
         effects.callback_errors.clone_from(&callbacks);
-        propagate_partial_contracts(functions,closures,families,invocations,&storage_grounding(families,&Default::default(),stored_fields),stored_fields,&mut effects);
+        propagate_partial_contracts(functions,closures,families,invocations,&storage_grounding(families,&Default::default(),stored_fields),stored_fields,&mut effects,slice);
         #[cfg(test)]
         {
-            let cold=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields);
+            let cold=annotate_partial_with_contracts(functions,closures,families,&callbacks,invocations,&Default::default(),stored_fields,slice);
             assert_eq!(effects.function_errors,cold.function_errors);
             assert_eq!(effects.closure_errors,cold.closure_errors);
             assert_eq!(effects.callback_errors,cold.callback_errors);
@@ -661,7 +813,7 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
     }
 }
 #[inline(never)]
-fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry,uninhabited:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)])->ErrorEffects {
+fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],callbacks:&std::collections::HashMap<usize,FailureSet>,invocations:&crate::polymorphic_invocation_plans::Registry,uninhabited:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],slice:Option<&Slice>)->ErrorEffects {
     // A storage-only cycle is not a constructor witness. Ground sources through
     // actual closure families or separately resolved callback/absence contracts;
     // any unresolved source still contributes opaque below.
@@ -670,7 +822,7 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
     for (id,function) in functions.iter().enumerate() {
         if function.is_none() {effects.function_errors[id]=FailureSet::unknown();effects.functions[id]=true;}
     }
-    propagate_partial_contracts(functions,closures,families,invocations,&grounded,stored_fields,&mut effects);
+    propagate_partial_contracts(functions,closures,families,invocations,&grounded,stored_fields,&mut effects,slice);
     effects
 }
 
@@ -687,12 +839,12 @@ fn storage_grounding(families:&[(usize,Vec<usize>)],uninhabited:&std::collection
     grounded
 }
 
-fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects,slice:Option<&Slice>) {
     #[cfg(test)] let mut cold=effects.clone();
-    propagate_contracts::<true>(functions,closures,families,invocations,grounded,stored_fields,effects);
+    propagate_contracts::<true>(functions,closures,families,invocations,grounded,stored_fields,effects,slice);
     #[cfg(test)] {
         let before=functions.iter().filter_map(|function|function.as_deref()).chain(closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).map(propagation::annotations).collect::<Vec<_>>();
-        propagate_contracts::<false>(functions,closures,families,invocations,grounded,stored_fields,&mut cold);
+        propagate_contracts::<false>(functions,closures,families,invocations,grounded,stored_fields,&mut cold,slice);
         assert_eq!(effects.function_errors,cold.function_errors);
         assert_eq!(effects.closure_errors,cold.closure_errors);
         assert_eq!(effects.callback_errors,cold.callback_errors);
@@ -704,7 +856,7 @@ fn propagate_partial_contracts(functions:&mut [Option<&mut CheckedFunction>],clo
         assert_eq!(before,after,"cached solving must refresh all expression and catch annotations");
     }
 }
-fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects) {
+fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFunction>],closures:&mut [crate::analysis::CheckedClosure],families:&[(usize,Vec<usize>)],invocations:&crate::polymorphic_invocation_plans::Registry,grounded:&std::collections::HashSet<usize>,stored_fields:&[(usize,Type)],effects:&mut ErrorEffects,slice:Option<&Slice>) {
     let mut versions=propagation::Versions::default();
     let mut function_cache=(0..functions.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
     let mut closure_cache=(0..closures.len()).map(|_|propagation::Cache::default()).collect::<Vec<_>>();
@@ -727,21 +879,25 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
         if CACHED {
             use rayon::prelude::*;
             let snapshot=&*effects;let observed=&versions;
-            functions.par_iter_mut().zip(function_cache.par_iter_mut()).for_each(|(function,cache)|{
+            functions.par_iter_mut().zip(function_cache.par_iter_mut()).enumerate().for_each(|(id,(function,cache))|{
+                if slice.is_some_and(|slice|!slice.functions[id]) {return;}
                 if let Some(function)=function.as_deref_mut() {cache.effect(function,snapshot,observed);}
             });
-            closures.par_iter_mut().zip(closure_cache.par_iter_mut()).zip(method_cache.par_iter_mut()).for_each(|((closure,cache),methods)|{
+            closures.par_iter_mut().zip(closure_cache.par_iter_mut()).zip(method_cache.par_iter_mut()).enumerate().for_each(|(id,((closure,cache),methods))|{
+                if slice.is_some_and(|slice|!slice.closures[id]) {return;}
                 cache.effect(&mut closure.function,snapshot,observed);
                 for (method,cache) in closure.methods.iter_mut().zip(methods.iter_mut()) {cache.effect(&mut method.function,snapshot,observed);}
             });
         }
         for (id,function) in functions.iter_mut().enumerate() {
             let Some(function)=function else {continue;};
+            if slice.is_some_and(|slice|!slice.functions[id]) {continue;}
             let next=if CACHED {function_cache[id].effect(function,effects,&versions)}else{function_effect(function,effects)};
             changed |= propagation::grow(&mut versions,propagation::Key::Function(id),effects.function_errors[id].join(next));
             effects.functions[id]=effects.function_errors[id].may_fail();
         }
         for (id,closure) in closures.iter_mut().enumerate() {
+            if slice.is_some_and(|slice|!slice.closures[id]) {continue;}
             let mut next=if CACHED {closure_cache[id].effect(&mut closure.function,effects,&versions)}else{function_effect(&mut closure.function,effects)};
             for (method_id,method) in closure.methods.iter_mut().enumerate() {
                 let found=if CACHED {method_cache[id][method_id].effect(&mut method.function,effects,&versions)}else{function_effect(&mut method.function,effects)};
@@ -765,6 +921,7 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
+            if slice.is_some_and(|slice|!slice.families.contains(id)) {continue;}
             let mut next=if origins.is_empty()&&!grounded.contains(id){FailureSet::unknown()}else{FailureSet::default()};
             for origin in origins {next |= effects.closure_errors.get(*origin).cloned().unwrap_or_else(FailureSet::unknown);}
             for &(_,source) in stored_fields.iter().filter(|(family,_)|family==id) {
@@ -781,6 +938,7 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
         // A consuming wrapper calls the selected method on its inner environment.
         // Preserve that identity for effect lookup without merging other methods.
         for (id,closure) in closures.iter().enumerate() {
+            if slice.is_some_and(|slice|!slice.closures[id]) {continue;}
             if let Some(ClosureForward::Once(inner))=closure.forward {
                 let methods=methods_by_origin.get(inner).cloned().unwrap_or_default();
                 #[cfg(test)]
@@ -802,6 +960,12 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
         if let Some(before)=before {for (id,old) in before.iter().enumerate() {if effects.invocation_errors.get(id)!=Some(old) {versions.bump(propagation::Key::Invocation(id));}}}
         changed |= refreshed;
         if !changed {break;}
+    }
+    if CACHED && let Some(slice)=slice {
+        let outside=|cache:&propagation::Cache|cache.read_keys().any(|key|!slice.contains(key));
+        let open=function_cache.iter().enumerate().any(|(id,cache)|slice.functions[id] && outside(cache))
+            || closure_cache.iter().zip(&method_cache).enumerate().any(|(id,(cache,methods))|slice.closures[id] && (outside(cache) || methods.iter().any(outside)));
+        if open {slice.open.store(true,std::sync::atomic::Ordering::Relaxed);}
     }
     if CACHED && std::env::var_os("TSRUST_TRACE_SOLVES").is_some() {
         trace_evaluations+=function_cache.iter().chain(closure_cache.iter()).chain(method_cache.iter().flatten()).map(|cache|cache.evaluations_traced()).sum::<usize>();
@@ -1369,10 +1533,10 @@ mod tests {
         let mut functions=[];let mut closures=[];
         let families=[(0,vec![]),(1,vec![]),(2,vec![])];
         let sources=[(0,Type::Undefined),(1,Type::StoredCallable(2)),(2,Type::StoredCallable(1))];
-        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&sources);
+        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&sources,None);
         assert_eq!(effects.storage_errors[&0],FailureSet::default());assert!(effects.storage_errors[&1].opaque);assert!(effects.storage_errors[&2].opaque);
         let unresolved=[(0,Type::Undefined),(0,Type::StoredCallable(99))];
-        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&unresolved);
+        let effects=annotate_partial_with_contracts(&mut functions,&mut closures,&families,&Default::default(),&Default::default(),&Default::default(),&unresolved,None);
         assert!(effects.storage_errors[&0].opaque,"one known source must not erase an unresolved alternative");
         assert!(families.iter().all(|(_,origins)|origins.is_empty()),"effect summaries never populate runtime constructors");
     }

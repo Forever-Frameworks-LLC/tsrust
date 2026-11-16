@@ -3340,7 +3340,7 @@ impl Analyzer {
         let mut inner=context.clone();
         self.with_exception_environment_mode(&mut inner,&Default::default(),runtime,true,true,|analyzer,context|
             analyzer.check_region_body(context,&mut checked_body,result))?;
-        let effects=self.discovery_error_effects();
+        let effects=self.discovery_error_effects_for(&crate::error_effects::Seeds::body(&checked_body));
         let incoming=crate::error_effects::annotate_region_body(&mut checked_body,&effects);
         let runtime=if incoming.runtime && !incoming.opaque && region.catch.as_ref().is_some_and(|handler|handler.name.is_some()) {
             Some(runtime.unwrap_or_else(||self.materialize_discovery_runtime_error()))
@@ -3789,11 +3789,21 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn discovery_error_effects(&mut self)->crate::error_effects::ErrorEffects {
         let started=std::time::Instant::now();
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let result=crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations);
         if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE discovery {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
+    }
+
+    /// Partial contracts for one reader; only entries `seeds` depend on are exact.
+    fn discovery_error_effects_for(&mut self,seeds:&crate::error_effects::Seeds)->crate::error_effects::ErrorEffects {
+        let started=std::time::Instant::now();
+        let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
+        let result=crate::error_effects::annotate_partial_with_storage_for(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations,seeds);
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE discovery-slice {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
         result
     }
 
@@ -3853,9 +3863,10 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn region_error_effects(&mut self,context:&Context)->Result<crate::error_effects::ErrorEffects,Diagnostic> {
+    /// Contracts for annotating `body`; partial solving covers only what it reads.
+    fn region_error_effects(&mut self,context:&Context,body:&[Stmt])->Result<crate::error_effects::ErrorEffects,Diagnostic> {
         if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
-            Ok(self.discovery_error_effects())
+            Ok(self.discovery_error_effects_for(&crate::error_effects::Seeds::body(body)))
         }else{self.checked_error_effects()}
     }
 
@@ -3873,7 +3884,7 @@ impl Analyzer {
         handler.error_contract=Some(Box::new(incoming.clone()));
         handler.error_type=if let Some(name)=&handler.name {incoming.catch_type(&self.unions,runtime,name.span)?}else{None};
         let (normal,completions,mut errors)=self.check_catch_exits(context,handler,result)?;
-        let refreshed=if effects.is_none() {Some(self.region_error_effects(context)?)}else{None};
+        let refreshed=if effects.is_none() {Some(self.region_error_effects(context,&handler.body)?)}else{None};
         let current=effects.or(refreshed.as_ref()).expect("catch contracts");
         let outgoing=crate::error_effects::annotate_region_body(&mut handler.body,current);
         let points=crate::error_effects::OperationEffects::for_body(&handler.body);
@@ -3986,7 +3997,7 @@ impl Analyzer {
         self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
             self.region_caller_error_effects(context,body)
-        }else{self.region_error_effects(context)?};
+        }else{self.region_error_effects(context,body)?};
         let contract=crate::error_effects::annotate_region_body(body,&effects);
         let points=crate::error_effects::OperationEffects::for_body(body);
         errors.refine(&mut |span|points.get(span));
@@ -4001,7 +4012,8 @@ impl Analyzer {
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
         let started=std::time::Instant::now();
-        let result=crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields);
+        let seeds=crate::error_effects::Seeds::body(body);
+        let result=crate::error_effects::annotate_partial_with_callers_for(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields,Some(&seeds));
         if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE caller {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
         result
     }
