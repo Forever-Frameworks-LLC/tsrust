@@ -13,7 +13,7 @@ DEST = ROOT / "apps/studio/src/assets/knowledge"
 GUIDES = ["docs/guides/ui", *[f"website/src/content/docs/{area}" for area in ("language", "learn", "library", "start", "tools")]]
 GPUI = [f"crates/tsrust-compiler/patched-dependencies/{crate}/src" for crate in ("gpui-base", "gpui-component")]
 TESTS = ["crates/tsrust-compiler/tests/fixtures", "apps/studio/tests", "apps/studio/model-host/tests"]
-SOURCES = [*GPUI, "examples", *GUIDES, *TESTS]
+SOURCES = [*GPUI, "examples", "apps/gpui-starter", *GUIDES, *TESTS]
 
 
 def passages(path, text):
@@ -80,7 +80,7 @@ def main():
         db.execute("CREATE VIRTUAL TABLE passages USING fts5(path, title, terms, body, line UNINDEXED)")
         for name in sorted(files.decode().split("\0")):
             path = Path(name)
-            if name == "examples/gpui-starter/src/search-index.tsr":
+            if name == "apps/gpui-starter/src/search-index.tsr":
                 continue  # Generated gallery navigation data is not a code example.
             if path.suffix not in {".md", ".tsr", ".tsrx", ".rs"}:
                 continue

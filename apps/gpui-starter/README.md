@@ -14,7 +14,7 @@ run `python3 tools/generate-ui-gallery.py` from the repository root.
 From the repository root:
 
 ```bash
-./examples/gpui-starter/dev.sh
+./apps/gpui-starter/dev.sh
 ```
 
 The script builds this checkout's compiler, installs the pinned Rust toolchain

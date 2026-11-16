@@ -13,7 +13,7 @@ fn gallery_index(checked:bool) {
     let (finished,result)=mpsc::channel();
     let worker=std::thread::spawn(move|| {
         let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap();
-        let path=root.join("examples/gpui-starter/src/main.tsrx").canonicalize().unwrap();
+        let path=root.join("apps/gpui-starter/src/main.tsrx").canonicalize().unwrap();
         let source=std::fs::read_to_string(&path).unwrap();
         let id=tsrust_compiler::project::SourceId(path.to_string_lossy().into_owned());
         let uri=file_uri(&id).unwrap();

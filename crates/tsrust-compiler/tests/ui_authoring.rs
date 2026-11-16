@@ -61,9 +61,9 @@ fn table_ownership_errors_do_not_replay_every_bundled_function_or_hide_other_err
     let directory=support::TempDirectory::new();
     let path=directory.0.join("main.tsrx");
     let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap();
-    let source=std::fs::read_to_string(root.join("examples/gpui-starter/src/pages/Table.tsrx")).unwrap();
+    let source=std::fs::read_to_string(root.join("apps/gpui-starter/src/pages/Table.tsrx")).unwrap();
     let example=path.parent().unwrap().join("example.tsrx");
-    std::fs::write(&example,std::fs::read_to_string(root.join("examples/gpui-starter/src/example.tsrx")).unwrap()).unwrap();
+    std::fs::write(&example,std::fs::read_to_string(root.join("apps/gpui-starter/src/example.tsrx")).unwrap()).unwrap();
     let source=source.replace("'../example.tsrx'","'./example.tsrx'").replace("clone(person.name)","person.name").replace("clone(person.email)","person.email");
     let source=format!("{source}\nfunction independent():boolean{{return 42;}}function main(){{const page=TablePage();}}\n");
     std::fs::write(&path,&source).unwrap();
