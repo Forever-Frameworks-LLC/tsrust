@@ -6,7 +6,8 @@
 //! modules lets rustc reuse the unchanged units: a one-line edit in the GPUI starter
 //! went from 17s to 7s of rustc time, and cold builds parallelize better.
 //!
-//! Only `functionN` and `tsr_result_functionN` items move. Child modules see private
+//! Only `functionN` and `tsr_result_functionN` items move, and never across a
+//! `macro_rules!` definition. Child modules see private
 //! crate-root items through `use super::*`, and the root sees the moved functions
 //! through a glob import of each `pub(super)` function. Boundaries come from a small
 //! lexer that tracks delimiters, strings, raw strings, characters and comments, so a
@@ -39,15 +40,15 @@ pub fn partition_with(application: &str, unit_bytes: usize) -> String {
         *units += 1;
         unit.clear();
     };
-    let mut moving = true;
     for item in items {
         let text = &application[item.start..item.end];
         let head = &application[item.head..item.end];
-        // Modules and later items may rely on textual macro order; stop at the first module.
-        if module_head(head) {
-            moving = false;
+        // Item order is irrelevant except for macro_rules!, which scopes textually.
+        // Moved functions only ever move later, and never across a macro definition.
+        if head.starts_with("macro_rules!") {
+            flush(&mut unit, &mut output, &mut units);
         }
-        if moving && let Some(offset) = generated_function(head) {
+        if let Some(offset) = generated_function(head) {
             let insert = item.head - item.start + offset;
             unit.push_str(&text[..insert]);
             unit.push_str("pub(super) ");
@@ -69,11 +70,6 @@ struct Item {
     /// Start of the item keyword line.
     head: usize,
     end: usize,
-}
-
-fn module_head(head: &str) -> bool {
-    let head = head.strip_prefix("pub ").unwrap_or(head);
-    head.starts_with("mod ")
 }
 
 /// Byte offset of `fn`/`async fn` in a movable generated function head.
@@ -310,10 +306,11 @@ fn function2() {}\n";
         assert!(partitioned.contains("#[inline(never)]\npub(super) fn tsr_result_function1("));
         assert!(partitioned.contains("pub(super) fn function1<T"));
         assert!(partitioned.contains("use tsrust_generated_unit0::*;"));
-        // Root items, main and items after the first module stay in place.
+        // Root items and main stay in place; functions after a module still move.
         assert!(partitioned.contains("\nstruct Record0 {"));
         assert!(partitioned.contains("\nfn main() {"));
-        assert!(partitioned.contains("mod after { pub fn helper() {} }\nfn function2() {}"));
+        assert!(partitioned.contains("mod after { pub fn helper() {} }"));
+        assert!(partitioned.contains("pub(super) fn function2() {}"));
         assert!(!partitioned.contains("pub(super) fn function9") && !partitioned.contains("pub(super) fn function8"));
         // Literal and label text is preserved exactly.
         assert!(partitioned.contains("\"}\nfn function9() {\""));
@@ -323,7 +320,16 @@ fn function2() {}\n";
     #[test]
     fn units_follow_the_byte_budget_and_large_budgets_use_one_unit() {
         assert_eq!(partition_with(PROGRAM, usize::MAX).matches("mod tsrust_generated_unit").count(), 1);
-        assert_eq!(partition_with(PROGRAM, 1).matches("mod tsrust_generated_unit").count(), 3);
+        assert_eq!(partition_with(PROGRAM, 1).matches("mod tsrust_generated_unit").count(), 4);
+    }
+
+    #[test]
+    fn functions_never_cross_a_macro_definition() {
+        let source = "fn function0() { helper!(); }\nmacro_rules! helper { () => {} }\nfn function1() { helper!(); }\n";
+        let partitioned = partition_with(source, usize::MAX);
+        let macro_at = partitioned.find("macro_rules! helper").unwrap();
+        assert!(partitioned.find("pub(super) fn function0").unwrap() < macro_at);
+        assert!(partitioned.find("pub(super) fn function1").unwrap() > macro_at);
     }
 
     #[test]

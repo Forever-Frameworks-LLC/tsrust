@@ -186,10 +186,14 @@ mod platform {
             let application=crate::runtime_build::application_backend_args(&mut command,&cache_root,&project.entry.join("dev"),release,&prepared.application);
             command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
+            let rustc_started=Instant::now();
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
+            if verbose{eprintln!("[build] rustc={:.1}ms",rustc_started.elapsed().as_secs_f64()*1000.);}
+            let publish_started=Instant::now();
             if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root,false){let _=cache.try_publish(&binary);}
+            if verbose{eprintln!("[build] publish={:.1}ms",publish_started.elapsed().as_secs_f64()*1000.);}
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",if reused_frontend{0.0}else{frontend.check.as_secs_f64()*1000.0},if reused_frontend{0.0}else{frontend.emit.as_secs_f64()*1000.0},backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         #[cfg(target_os="macos")]
