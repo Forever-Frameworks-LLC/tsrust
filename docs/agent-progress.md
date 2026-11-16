@@ -1,8 +1,249 @@
 # Tsrust continuation
 
-This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
-v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
+This is the only handoff. Read AGENTS.md, docs/agent-goal.md and
+docs/plans/gpui-application-platform.md. v0.2.1 is released; no further version
+publication is authorized. Active owner goal (2026-11-16): continue the GPUI
+application platform plan with heavy priority on compilation time, keep the
+gallery, Studio and Tasks apps together under apps/, and complete the UI input
+and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
+
+## GPUI platform continuation — 2026-11-16
+
+Branch codex/gpui-platform starts at main 21c20650b (v0.2.1). The old
+codex/gpui-ui branch is superseded; its owner Studio/Kit drafts were carried
+onto this branch (commit 37ec2f369) after resolving one import conflict.
+
+Layout: examples/gpui-starter moved to apps/gpui-starter beside apps/studio
+and apps/tasks. tools/run-suites.py keeps the gallery in CI (CI_APP_ROOTS)
+while other apps stay local-only; the Studio knowledge index was regenerated.
+
+Compile time (commit 855d9202c), measured on apps/gpui-starter, one JSX text
+edit under `tsrust dev --verbose` (not quiet-machine benchmarks):
+- Before: 39s per edit = check 6.7s + emit 1.5s + dependency unpack 2.4s +
+  app rustc/link ~27s (rustc: borrowck 6.9, typeck 6.6, LLVM 8.3).
+- After: 18s = check 5.8s + emit 0.9s + prepare 0.45s + rustc/link 10.7s.
+- Levers: generated functions split into ~150 KB child modules (codegen
+  units; lexer-aware, emit output unchanged); per-entry rustc incremental
+  sessions from a stable source path for dev/run/build/test debug builds
+  (target/tsrust-native/incremental, 6 kept); --cap-lints allow on generated
+  code (~6,900 warnings); dependency bundles staged once per identity
+  (target/tsrust-native/runtime-staged, 3 kept); Fx-style hasher for type
+  keyed analysis tables and memoized union members in recursive view shapes.
+- Whole-project `tsrust check` of the starter 49.6s to 42.8s.
+- Next levers: frontend analysis reuse across edits (check is 5.8s of 18s)
+  and smaller generated exception plumbing (TsrCompletion 107k occurrences,
+  16.7 MB Rust for 17k source lines).
+
+UI (commit ab7aba2c4): View input events (key down/up, pointer down/up/move,
+wheel, double click, context menu, hover, focus/blur, file drop) with typed
+records; tabIndex Views are GPUI focus stops. Utility sizes are rems; zoomIn,
+zoomOut, resetZoom, setZoom; Windows TextScaleFactor and GNOME
+text-scaling-factor apply automatically. Verified on macOS with real CGEvent
+input and a zoom geometry check; file drop, Windows and Linux unverified.
+Gallery page: docs/guides/ui/06-input-and-zoom.md (Input and Zoom).
+
+Validation: repository CI suites 23/23 (286s, build 278s, tests 2.7s);
+starter 12/12; Studio 174/177 (3 need model-host binary, rust-analyzer
+component, tsserver); Tasks desktop 8/10 (2 need DATABASE_URL); compiler lib
+focused 30/30; CLI runtime_build 19/19; tsrust-ui window 8/8; ui_authoring
+13/13; LSP editor_consistency 31/31, jsx 6/6, gallery_index 2/2 after fixing
+its stale '<Route path=' anchor. completion_matrix
+completion_answers_at_typing_speed fails 30 rows in Immediate/Paced modes;
+identical on origin/main, so pre-existing and not yet repaired.
+
+Not pushed. gallery generator output now sorts imports and adds a blank line
+after std:ui imports; committed pages predate that, so regeneration rewrites
+every page (not CI-checked). Only the new page and routes were committed.
+
+## Latest release installed locally — 2026-11-15
+
+Owner requested installing the latest release locally. Official latest stable is
+v0.2.1. Verified current source matches tagv0.2.1 exactly except this developer
+handoff. Updated existing Cargo-owned installs through offline/locked/forced Cargo
+install,one job,CARGO_INCREMENTAL=0,shared original target. No owner source edits.
+Compiler build/setup3m11s;LSP35.86s. Cargo registrations are now CLI0.2.1/LSP0.3.1
+from this managed worktree (old metadata had lagged the prior executable versions).
+PATH resolves ~/.cargo/bin/tsrust and ~/.cargo/bin/tsrust-lsp;both versions verified.
+Shared target/release consumers match installed consumer hashes:
+CLI b2280c657ac44156413e96e4c8a62f2c7c26369af154f392265fe2ea21df1fe1
+LSP 950c71886031d9309025cf38a30fd707c8b8a0a7200193d1a046254a2417d520
+
+Zed settings still point to original target/release/tsrust-lsp,now verified0.3.1.
+A fresh installed LSP process passed initialize,hover capability and clean shutdown
+with the existing smoke helper and an empty temporary workspace (removed afterward).
+Existing editor processes were not restarted;restart their language server/reload
+editor to load the newly installed binary into an already-running process.
+
+VS Code had tsrust-local.tsrust0.2.1. Downloaded published0.2.2 VSIX plus official
+SHA256SUMS,verified hash/version,installed via code --install-extension --force,
+then confirmed tsrust-local.tsrust@0.2.2. Initial sandboxed list command could not
+create Code log directory;the normal authorized CLI install/verification succeeded.
+No workspace configuration or editor draft was changed. App/model/database sessions
+remain stopped. Temporary VSIX/checksums/install logs are removed after this local
+checkpoint. No source/product changes,extra tests,benchmark runs,push or new release.
+
+## v0.2.1 released and verified — 2026-11-15
+
+Owner explicitly authorized v0.2.1 publication and PR20's owner review bypass after
+all checks passed. Both actions completed; no approval remains pending.
+PR19 implementation,PR20 metadata and PR21 promotion are MERGED.
+Published latest stable release (not draft/prerelease):
+https://github.com/Forever-Frameworks-LLC/tsrust/releases/tag/v0.2.1
+PR21 merged2026-11-15T14:27:29Z;release published14:27:38Z.
+Main and immutable v0.2.1 tag point to21c20650b53d49326928a52c598658348a0269fa.
+Validated source PR-merge34738b6765a95dc8d538736f064841b93ff64c9e and published
+main have the same tree7467dc8091bd695897f04f29d992b3e5d44082cb.
+
+Release43722833880 SUCCESS:preflight,VSIX,all3 package builds and Release gate.
+Each platform passed15 packaging tests plus distributed CLI/LSP smoke:initialize,
+capabilities,clean shutdown,scaffold,native run,shared-cache JSON,exact documented
+quickstart/testing programs and platform reporter commands. Optimized build/setup:
+Linux10m17s,macOS13m08s,Windows13m08s. These are not benchmark measurements.
+Trusted Promote and publish43724423203 SUCCESS,merging/publishing the exact built
+artifacts without rebuilding. Docs43724474556 build/deploy SUCCESS on21c20650b.
+All prior PR20 CI and local gates remain retained below; no duplicate dispatch.
+All owned release/docs watch handles are terminal success;do not poll/restart.
+
+Independent post-publication verification passed:
+- Downloaded exactly5 official assets:3 platform tarballs,VSIX0.2.2,SHA256SUMS.
+  All5 bytes match official GitHub API SHA-256 digests;all4 payloads also match
+  SHA256SUMS (file digesteea1e842e8a40188b4158559bd0a03bb0a7a6c71c09de42d8868d559f74439d7).
+- Every archive's CLI0.2.1/LSP0.3.1,target,clean release marker and sourceCommit
+  match the release provenance snapshot. Verified1009 consumer/notice file hashes
+  per archive,exact generated README/toolchain identity,Rust1.99.1,and VSIX version.
+  Manifest intentionally hashes consumers/notices,not generated README/toolchain;
+  initial verifier assumed otherwise,then was corrected to this documented contract.
+- Published notes begin with the exact validated release-notes source. Tag/main
+  tree identity verified. API confirms v0.2.1 is latest stable.
+- Live installation,status,performance and std:ui reference pages returnHTTP200;
+  normalized complete rendered text matches locally validated release documentation.
+  Installation namesv0.2.1/correct platforms;status includesLSP0.3.1/knownmemory
+  limits;Signal.get/set/handle and completionText are present.
+- Benchmark integrity audit:3873 rows vs3839 in v0.2.0. All3839 prior row histories
+  are logically identical;34 development/compiler workload-engine rows added in
+  earlier performance work. No old rows removed or rewritten. Metadata/release
+  preparation leaves the accepted PR19 database byte-identical. Initial byte-equal
+  comparison against v0.2.0 was too broad;logical audit proves historical data was
+  preserved while publishing the earlier added measurements,including negative
+  experiments. No new measurements were run for release preparation.
+
+Temporary downloaded packages,provenance records and raw release/watch logs are
+removed after this local evidence checkpoint;do not retain binary/source archives.
+Owner drafts,installed tools and existing Zed LSP were not replaced or restarted.
+Studio/Worklist/API/database/model sessions remain stopped. No local application
+or SDK-draft acceptance is implied by this clean committed-source release.
+The release goal is achieved. This local evidence-only commit need not be pushed
+and must not retrigger CI solely to synchronize notes. Future work needs a new
+owner request;do not resume deferred tuning or application polishing automatically.
+
+## v0.2.1 publication authorized; promotion PR21 active — historical 2026-11-15
+
+Owner explicitly said "yes, publish v0.2.1 and use the owner bypass for PR20 once
+all checks pass. get it merged and released". Approval boundary is resolved; do
+not ask again. Rechecked exact PR20 head2dd2be1d2 and all checks green,then used
+--squash --admin --match-head-commit. PR20 is MERGED at2026-11-15T14:09:05Z,
+stagingedfc05fab371393440cfa74ce2c6c79bff8d4aed. Final main+stag merge preview
+is exact staging tree7467dc8091bd695897f04f29d992b3e5d44082cb.
+
+Opened authorized promotion PR21 (stag→main):
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/21
+Main base88db8210a7965fa22f5af59e2c720e950f7ceb36,headedfc05fab. No competing
+open PR existed before creating21. Automatic Release43722833880 is active on the
+exact staging head; no manual dispatch,tag or duplicate run. Owned gh watch
+session33150 writes /private/tmp/tsrust-release-43722833880-watch.log; revalidate
+that handle/exact run before any restart. Follow this run,
+then the triggered trusted Promote and publish workflow. Verify release/tag/main,
+all3 archives/VSIX/checksums and documentation deployment before claiming complete.
+Release preflight132838318705 and editor132838403241 passed. Linux release job
+132838403321 passed15 packaging tests,optimized build10m17s,and distributed
+LSP initialize/capabilities/shutdown plus CLI scaffold/native-run/JSON/exact
+quickstart/testing examples/platform reporter smoke checks. macOS132838403317 and
+Windows132838403276 remain in optimized compilation at latest check,no failure.
+Docs workflow listens to successful Promote and publish completion (not just
+pushes),so it covers the GITHUB_TOKEN merge; follow that automatic deployment.
+Any failure must be diagnosed locally before another push; retain completed checks.
+Source benchmark data and owner drafts remain unchanged;apps stay stopped.
+This local evidence update is not a push. Earlier pending-approval statements
+below are historical and superseded by this explicit approval.
+
+## Release metadata PR20 fully accepted; publication approval pending — 2026-11-15
+
+Exact remote release candidate2dd2be1d23fb05a2bd1e34f7b344f51252b3b81d now has
+complete CI43718413791 SUCCESS (all13 jobs),Documentation43718413778 SUCCESS.
+Watch3264 exited0; terminal,do not poll/restart. PR20 remains OPEN,REVIEW_REQUIRED,
+BLOCKED,with no reviews at final check:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/20
+
+Final retained CI counts on the metadata head:
+- Core1663 passed,0 failed,8 existing ignored; detailed timings below.
+- Runtime143/143 groups on each Linux/macOS/Windows,0 failures; GPUI passed each.
+- Linux host22 targets/181 passed,0 failed/ignored,test-wall1346.10s;
+  top-level dev1m40s/compiler-host build2m03s/LSP-host build2m08s.
+- macOS host22 targets/182 passed,0 failed/ignored,test-wall1633.40s;
+  dev2m56s/compiler-host build3m22s/LSP-host build3m28s.
+- Windows host22 targets/177 passed,0 failed,1 existing ignored,test-wall1619.94s;
+  dev2m56s/compiler-host build2m53s/LSP-host build2m29s.
+All summed target test-wall values include nested native builds and remain below
+3600s,so execution conservatively satisfies the owner limit. CI timings are not
+benchmark measurements. Existing SQLite/identity records remain unchanged.
+
+Required version-specific publication/PR20 review exception question remains
+unanswered. Owner's "promote away" and release goal authorize preparation and
+public-release intent,but project skill requires explicit version/public outcome;
+the pending question names v0.2.1 (CLI0.2.1/LSP0.3.1/VSIX0.2.2),PR20 owner bypass
+only after green checks,and automatic stag→main publication. Do not assume an
+automatic goal continuation answers that question. No new tag,publication or
+main-promotion PR exists. Next: on explicit approval,recheck exact PR20 head/checks,
+merge into staging using the approved exception,then open stag→main once and
+follow Release plus Promote and publish,verifying final assets/docs/provenance.
+Do not repeat passed CI or dispatch a duplicate validation run.
+
+The following active-run observations are retained historical evidence and are
+superseded by the completed results above. This evidence-only local checkpoint
+must not be pushed merely to synchronize notes. Temporary raw logs under
+/private/tmp/tsrust-ci-43718413791-* may be deleted after checkpointing.
+
+## Release metadata PR20 opened — historical 2026-11-15
+
+Exact locally accepted commit2dd2be1d23fb05a2bd1e34f7b344f51252b3b81d was pushed
+once as codex/release-0.2.1 to merge the coherent release metadata/docs batch into
+staging. PR20: https://github.com/Forever-Frameworks-LLC/tsrust/pull/20 .
+Only this metadata push occurred after the two PR19 implementation pushes.
+No other open PR existed before creating20. Normal automatic CI43718413791 and
+Documentation43718413778 started on exact2dd2be1d2; no manual dispatch or duplicate
+run. Existing implementation acceptance on PR19 remains retained. Follow these
+exact runs and diagnose any failure locally before another push. Owned gh watch
+CI session3264 writes /private/tmp/tsrust-ci-43718413791-watch.log; revalidate this
+handle or exact run before any restart. This local evidence edit is not a push.
+
+The owner explicitly requested promotion/release,but the version-specific v0.2.1
+publication and metadata-PR review bypass question remains unanswered. Creating
+the staging-only PR is independent authorized release preparation; do not open
+the auto-publishing stag→main PR or bypass PR20 review before the answer arrives.
+Documentation43718413778 completed success;VS Code job132824864497 also passed.
+PR20 tooling and all3 builds subsequently passed. Core log confirms compiler1558
+passed/8 existing ignored (88.37s),CLI62 (5.78s),LSP36 (2.53s),scheduler7 (.02s):
+1663 passed,0 failed,build/setup4m07s. All6 runtime/host jobs are now active:
+Linux runtime132826662761,Windows runtime132826662768,macOS runtime132826662806;
+Windows host132826662792,Linux host132826662797,macOS host132826662856.
+Linux runtime subsequently passed143/143 groups,0 failed:wall776.0s,
+build767.182s/test4.232s;GPUI starter3files419.560s build/.002s test.
+macOS runtime also passed143/143:wall1001.0s,build989.937s/test5.457s;
+GPUI starter3files526.264s/.003s. Windows runtime passed143/143:wall975.0s,
+build956.470s/test4.547s;GPUI starter3files467.321s/.004s.
+All3 runtime platforms accepted. Linux host subsequently passed22 targets/181
+tests,0 failed/ignored,target test-wall1346.10s including nested native builds;
+top-level dev1m40s/compiler-host build2m03s/LSP-host build2m08s. Only macOS and
+Windows host jobs remain active,no failure.
+These CI build/execution observations are not new benchmark measurements.
+Read-only Git
+merge-tree previews passed: main+currentstag yields exact staging tree
+abf6a2f8e50b4245239ba1f039c5f40d8ea594b0; main+candidate2dd2be1d2 yields exact
+candidate tree7467dc8091bd695897f04f29d992b3e5d44082cb. No conflicts or unexpected
+main-only content were introduced by the historical divergence. Repeat only if
+main/stag/candidate changes before actual promotion.
+No version tag,publication or main promotion happened. Earlier references to no
+version push below are historical preparation state, superseded by this section.
 
 ## Promotion requested; v0.2.1 release metadata prepared locally — 2026-11-15
 
