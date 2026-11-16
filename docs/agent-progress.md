@@ -7,6 +7,22 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Spike 2: zero-cost crate split via link-time symbols — 2026-11-16
+
+Owner constraints: no runtime performance loss, no dev/release divergence.
+Trait-object callables are rejected. Instead, cyclic references between
+module crates become `unsafe extern "Rust"` declarations resolved by the
+linker to `#[unsafe(no_mangle)]` definitions (direct calls, unchanged
+generated code), with `let _ = [declared, defined];` signature checks that
+make any mismatch a compile error. Spike (experiments/crate-split-spike):
+Studio's in-cycle services/ai/context.tsr (594 KB) as its own crate rebuilds +
+links in 0.6-0.7s versus 13.9s; the split binary runs; the check rejects a
+mismatched definition. Studio has 0 cross-file async function references;
+344 closure-type references need closure data structs in a shared crate with
+bodies as link-time functions. Next: plan the emitter work (module provenance,
+stable names, shared types crate, closure body extraction, Cargo or rustc
+orchestration, release build with LTO or single crate from identical source).
+
 ## Per-module crate timing spike — 2026-11-16
 
 experiments/crate-split-spike: Studio's real dev-build program split into a
