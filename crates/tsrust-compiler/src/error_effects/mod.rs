@@ -716,19 +716,36 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
     }
     // Payload types are checked identities. Every finite coordinate grows
     // monotonically; the final unchanged pass refreshes expression metadata.
+    let mut trace_passes=0usize;let mut trace_evaluations=0usize;
     loop {
+        trace_passes+=1;
         let mut changed=false;
+        // Warm stale body caches in parallel against the effects at the start of
+        // the pass. The sequential pass below then reuses a warmed result only if
+        // no entry that body read has grown since, so results, payload order and
+        // annotations stay identical to sequential solving (checked in tests).
+        if CACHED {
+            use rayon::prelude::*;
+            let snapshot=&*effects;let observed=&versions;
+            functions.par_iter_mut().zip(function_cache.par_iter_mut()).for_each(|(function,cache)|{
+                if let Some(function)=function.as_deref_mut() {cache.effect(function,snapshot,observed);}
+            });
+            closures.par_iter_mut().zip(closure_cache.par_iter_mut()).zip(method_cache.par_iter_mut()).for_each(|((closure,cache),methods)|{
+                cache.effect(&mut closure.function,snapshot,observed);
+                for (method,cache) in closure.methods.iter_mut().zip(methods.iter_mut()) {cache.effect(&mut method.function,snapshot,observed);}
+            });
+        }
         for (id,function) in functions.iter_mut().enumerate() {
             let Some(function)=function else {continue;};
             let next=if CACHED {function_cache[id].effect(function,effects,&versions)}else{function_effect(function,effects)};
-            changed |= propagation::grow(&mut versions,propagation::FUNCTION,effects.function_errors[id].join(next));
+            changed |= propagation::grow(&mut versions,propagation::Key::Function(id),effects.function_errors[id].join(next));
             effects.functions[id]=effects.function_errors[id].may_fail();
         }
         for (id,closure) in closures.iter_mut().enumerate() {
             let mut next=if CACHED {closure_cache[id].effect(&mut closure.function,effects,&versions)}else{function_effect(&mut closure.function,effects)};
             for (method_id,method) in closure.methods.iter_mut().enumerate() {
                 let found=if CACHED {method_cache[id][method_id].effect(&mut method.function,effects,&versions)}else{function_effect(&mut method.function,effects)};
-                changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone()));
+                changed|=propagation::grow(&mut versions,propagation::Key::Method(id,method_id),effects.method_errors.get_mut(&(id,method_id)).expect("method effects").join(found.clone()));
                 next |= found;
             }
             next |= match closure.forward {
@@ -744,7 +761,7 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
                 Some(ClosureForward::Native(id))=>native_binding_effect(id),
                 None=>FailureSet::default(),
             };
-            changed |= propagation::grow(&mut versions,propagation::CLOSURE,effects.closure_errors[id].join(next));
+            changed |= propagation::grow(&mut versions,propagation::Key::Closure(id),effects.closure_errors[id].join(next));
             effects.closures[id]=effects.closure_errors[id].may_fail();
         }
         for (id,origins) in families {
@@ -759,7 +776,7 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
                     _=>FailureSet::unknown(),
                 };
             }
-            changed |= propagation::grow(&mut versions,propagation::STORAGE,effects.storage_errors.get_mut(id).expect("initialized family effects").join(next));
+            changed |= propagation::grow(&mut versions,propagation::Key::Storage(*id),effects.storage_errors.get_mut(id).expect("initialized family effects").join(next));
         }
         // A consuming wrapper calls the selected method on its inner environment.
         // Preserve that identity for effect lookup without merging other methods.
@@ -775,13 +792,20 @@ fn propagate_contracts<const CACHED:bool>(functions:&mut [Option<&mut CheckedFun
                 for method in methods {
                     let contract=effects.method_errors[&(inner,method)].clone();
                     if !methods_by_origin[id].contains(&method) {methods_by_origin[id].push(method);}
-                    if !effects.method_errors.contains_key(&(id,method)) {versions[propagation::METHOD]+=1;}
-                    changed|=propagation::grow(&mut versions,propagation::METHOD,effects.method_errors.entry((id,method)).or_default().join(contract));
+                    if !effects.method_errors.contains_key(&(id,method)) {versions.bump(propagation::Key::Method(id,method));}
+                    changed|=propagation::grow(&mut versions,propagation::Key::Method(id,method),effects.method_errors.entry((id,method)).or_default().join(contract));
                 }
             }
         }
-        changed |= propagation::grow(&mut versions,propagation::INVOCATION,effects.refresh_invocation_errors(invocations));
+        let before=CACHED.then(||effects.invocation_errors.clone());
+        let refreshed=effects.refresh_invocation_errors(invocations);
+        if let Some(before)=before {for (id,old) in before.iter().enumerate() {if effects.invocation_errors.get(id)!=Some(old) {versions.bump(propagation::Key::Invocation(id));}}}
+        changed |= refreshed;
         if !changed {break;}
+    }
+    if CACHED && std::env::var_os("TSRUST_TRACE_SOLVES").is_some() {
+        trace_evaluations+=function_cache.iter().chain(closure_cache.iter()).chain(method_cache.iter().flatten()).map(|cache|cache.evaluations_traced()).sum::<usize>();
+        eprintln!("PROPAGATE passes={trace_passes} evaluations={trace_evaluations} bodies={}",functions.iter().filter(|f|f.is_some()).count()+closures.len()+closures.iter().map(|c|c.methods.len()).sum::<usize>());
     }
 }
 fn function_effect(function:&mut CheckedFunction,effects:&ErrorEffects)->FailureSet {
@@ -903,15 +927,15 @@ fn native_binding_effect(id:usize)->FailureSet {
 fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)->FailureSet {
     use CallTarget::*;
     match target {
-        Callback(_)=>value.callback_contract().map(|id|effects.read(propagation::CALLBACK,effects.callback_errors.get(&id))).unwrap_or_else(FailureSet::unknown),
-        ConditionalCallback(id)=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
+        Callback(_)=>value.callback_contract().map(|id|effects.read(propagation::Key::Callback(id),effects.callback_errors.get(&id))).unwrap_or_else(FailureSet::unknown),
+        ConditionalCallback(id)=>effects.read(propagation::Key::Callback(id),effects.callback_errors.get(&id)),
         NativeBinding(id) if matches!(crate::native_bindings::BINDINGS[id].name,"invokeRegistration"|"invokeSuite") && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
             let suite=crate::native_bindings::BINDINGS[id].name=="invokeSuite";
             let callback = match &value.kind { ExprKind::Call(_, args) => args.get(usize::from(suite)).and_then(|value| value.ty), _ => None };
             let callback=match callback {
-                Some(Type::Closure(id)) => effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
-                Some(Type::Callback(id)) => effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
-                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
+                Some(Type::Closure(id)) => effects.read(propagation::Key::Closure(id),effects.closure_errors.get(id)),
+                Some(Type::Callback(id)) => effects.read(propagation::Key::Callback(id),effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.read(propagation::Key::Storage(id),effects.storage_errors.get(&id)),
                 _ => FailureSet::unknown(),
             };
             if suite {callback|FailureSet::runtime()}else{callback}
@@ -919,13 +943,13 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)
         NativeBinding(id)=>native_binding_effect(id),
         ClosureMethod(method)=>{
             if let ExprKind::Call(callee,_)=&value.kind && let Some(id)=callee.generic_invocation {
-                return effects.read(propagation::INVOCATION,effects.invocation_errors.get(id));
+                return effects.read(propagation::Key::Invocation(id),effects.invocation_errors.get(id));
             }
             let origin=match &value.kind {ExprKind::Call(callee,_)=>match callee.ty {Some(Type::Closure(id))=>Some(id),_=>None},_=>None};
-            origin.map(|id|effects.read(propagation::METHOD,effects.method_errors.get(&(id,method)))).unwrap_or_else(FailureSet::unknown)
+            origin.map(|id|effects.read(propagation::Key::Method(id,method),effects.method_errors.get(&(id,method)))).unwrap_or_else(FailureSet::unknown)
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
-        SchemaConstraint(id)=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
+        SchemaConstraint(id)=>effects.read(propagation::Key::Function(id),effects.function_errors.get(id)),
         // Push itself only transfers an element into storage. Allocation failure
         // is outside checked transport; receiver/argument effects are folded by
         // expression traversal and must still retain their exceptional paths.
@@ -933,7 +957,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)
         MatchYield(_)=>FailureSet::default(),
         ResultUnwrap(error)=>FailureSet::thrown(Some(error)),
         SchemaExport(id)=>FailureSet { explicit:vec![Type::Record(id)],runtime:false,opaque:false },
-        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.read(propagation::STORAGE,effects.storage_errors.get(family))),
+        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.read(propagation::Key::Storage(*family),effects.storage_errors.get(family))),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
         SchemaAddIssue(_)|SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
@@ -942,9 +966,9 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&propagation::Reader<'_>)
         ArrayReduceRight|ArraySort|ArrayToSorted=>{
             let callback=match &value.kind {ExprKind::Call(_,args)=>args.first(),_=>None};
             let invoked=match callback.and_then(|value|value.ty) {
-                Some(Type::Closure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
-                Some(Type::Callback(id))=>effects.read(propagation::CALLBACK,effects.callback_errors.get(&id)),
-                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&id)),
+                Some(Type::Closure(id))=>effects.read(propagation::Key::Closure(id),effects.closure_errors.get(id)),
+                Some(Type::Callback(id))=>effects.read(propagation::Key::Callback(id),effects.callback_errors.get(&id)),
+                Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=>effects.read(propagation::Key::Storage(id),effects.storage_errors.get(&id)),
                 None if matches!(target,ArraySort|ArrayToSorted)=>FailureSet::default(),
                 _=>FailureSet::unknown(),
             };
@@ -965,11 +989,11 @@ fn own_expression_effect(value:&Expr,effects:&propagation::Reader<'_>)->FailureS
     };
     if runtime {FailureSet::runtime()}else {
         match value.target {
-            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.read(propagation::FUNCTION,effects.function_errors.get(id)),
-            Some(CallTarget::Closure(_))=>value.closure_origin().map(|origin|effects.read(propagation::CLOSURE,effects.closure_errors.get(origin))).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::ConditionalClosure(id))=>effects.read(propagation::CLOSURE,effects.closure_errors.get(id)),
-            Some(CallTarget::StoredCallable(_))=>value.storage_family().map(|family|effects.read(propagation::STORAGE,effects.storage_errors.get(&family))).unwrap_or_else(FailureSet::unknown),
-            Some(CallTarget::StoredCallableField(family))=>effects.read(propagation::STORAGE,effects.storage_errors.get(&family)),
+            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.read(propagation::Key::Function(id),effects.function_errors.get(id)),
+            Some(CallTarget::Closure(_))=>value.closure_origin().map(|origin|effects.read(propagation::Key::Closure(origin),effects.closure_errors.get(origin))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::ConditionalClosure(id))=>effects.read(propagation::Key::Closure(id),effects.closure_errors.get(id)),
+            Some(CallTarget::StoredCallable(_))=>value.storage_family().map(|family|effects.read(propagation::Key::Storage(family),effects.storage_errors.get(&family))).unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::StoredCallableField(family))=>effects.read(propagation::Key::Storage(family),effects.storage_errors.get(&family)),
             Some(target)=>native_effect(target,value,effects),
             None=>FailureSet::default(),
         }

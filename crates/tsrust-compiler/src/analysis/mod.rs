@@ -3790,8 +3790,11 @@ impl Analyzer {
 
     #[inline(never)]
     fn discovery_error_effects(&mut self)->crate::error_effects::ErrorEffects {
+        let started=std::time::Instant::now();
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations)
+        let result=crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations);
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE discovery {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
     }
 
     #[inline(never)]
@@ -3997,7 +4000,10 @@ impl Analyzer {
         let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
+        let started=std::time::Instant::now();
+        let result=crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields);
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE caller {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
     }
 
     #[inline(never)]

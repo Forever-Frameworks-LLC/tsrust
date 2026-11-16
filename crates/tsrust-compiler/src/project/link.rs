@@ -61,13 +61,18 @@ impl ProjectAnalysis {
         self.emit_rust_with_locations(None)
     }
     pub(crate) fn emit_rust_with_locations(&self, debug_source: Option<(&str, &str)>) -> (String, Vec<&'static str>) {
-        crate::emit::emit_with_source_segments(
+        let setup = crate::project_runtime::setup(&self.segments);
+        let (mut rust, features) = crate::emit::emit_with_source_segments(
             &self.analysis.program,
-            &crate::project_runtime::setup(&self.segments),
+            &setup,
             &self.segments,
             Some(&self.graph),
             debug_source,
-        )
+        );
+        if rust.contains("crate::tsrust_source_segments::SEGMENTS") {
+            rust.push_str(&crate::project_runtime::segments_module(&self.segments));
+        }
+        (rust, features)
     }
     fn source_name(&self, name: &str) -> String {
         for (module, source) in self.graph.order.iter().enumerate() {
@@ -135,6 +140,17 @@ impl ProjectAnalysis {
         locate(&self.segments, span)
     }
 }
+/// Coordinate space reserved for one module. Linked spans, generated labels and
+/// runtime error offsets derive from module bases, so a base that moves with
+/// every edit to an earlier file changes generated code in every later file and
+/// defeats incremental native builds. Reserving the length plus 4 KiB, rounded to
+/// 16 KiB, keeps other modules' bases fixed unless an edit crosses a boundary.
+/// Gaps lie outside every segment, like generated coordinates.
+fn segment_capacity(length: usize) -> usize {
+    const GRANULE: usize = 16 * 1024;
+    (length + 1 + 4 * 1024).div_ceil(GRANULE) * GRANULE
+}
+
 fn locate(segments: &[(SourceId, usize, usize)], span: Span) -> Option<SourceLocation> {
     segments
         .iter()
@@ -222,7 +238,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         let source = &graph.modules[id];
         let length = source.source.text.len().max(source.declaration_source.len());
         segments.push((id.clone(), offset, length));
-        offset += length + 1;
+        offset += segment_capacity(length);
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
             if let Some(native) = import.native {
@@ -1134,4 +1150,18 @@ fn bundled_containment_projection_links_specializes_and_executes() {
     ])};
     let checked=check_graph(graph).unwrap();
     crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");
+}
+
+#[cfg(test)]
+mod segment_capacity_tests {
+    #[test]
+    fn small_edits_keep_later_module_bases_and_large_ones_stay_disjoint() {
+        use super::segment_capacity;
+        assert_eq!(segment_capacity(0), 16 * 1024);
+        assert_eq!(segment_capacity(8_000), segment_capacity(8_200), "a typical edit keeps the next base");
+        for length in [0, 1, 12_287, 12_288, 40_000, 1_000_000] {
+            assert!(segment_capacity(length) > length, "segments never overlap their successor");
+            assert_eq!(segment_capacity(length) % (16 * 1024), 0);
+        }
+    }
 }
