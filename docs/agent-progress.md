@@ -7,6 +7,22 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Codegen-unit split fixed for all programs — 2026-11-16
+
+Commit 83bd76f5f: the splitter stopped at the first top-level module, so
+programs with an early runtime module (std:schema; Studio) were never split.
+It now only avoids crossing macro_rules!. Studio: 62 units; rustc+link per
+edit 24.5s to 19.1s; edit loop 41s to 35s (check 14.5s, emit 1.4s, prepare
+0.75s). Direct rustc on the same edit is 13.9s (~11s fixed for 20 MB); the
+running app competes for CPU inside `tsrust dev`. Raising -C codegen-units
+past 256 did not help.
+
+Next structural lever (owner asked): one Rust crate per exported module so an
+edit recompiles only that module's crate. Blockers: globally numbered,
+program-wide monomorphized types (RecordN, UnionN, ClosureN, error enums)
+would need a shared types crate with content-stable names, trait impls in
+that crate (orphan rule), module-scoped function names and pub visibility.
+
 ## Whole-program scans removed from check — 2026-11-16
 
 Commit 6d598c252: region solves skip the callback-origin scan when their slice
