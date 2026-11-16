@@ -7,6 +7,25 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Per-module crate prototype: feasibility analysis — 2026-11-16
+
+tools/crate-split-analysis.py reads `tsrust emit --source-locations` output,
+groups items with their impls, builds the reference graph and condenses it into
+strongly connected components (code that must share a crate). Studio (22 MB):
+
+- As generated today: one cycle holds 37% of the code across 42 source files;
+  an ideal acyclic split would still rebuild 42% (median file) / 51% (worst)
+  per edit.
+- If stored-callable families dispatched through trait objects instead of an
+  enum over concrete closure types: largest group 15%, median rebuild 16%.
+- If closure calls across modules also went through trait objects: largest
+  group 12% (shared records/unions only), median rebuild 1.5%, worst 38%.
+
+Conclusion: crate-per-module only pays off with a different callable
+representation (dyn dispatch, at least in development builds). That is an
+owner decision: runtime cost (boxing, vtable calls) and a second codegen path
+versus a several-fold smaller per-edit compile.
+
 ## Codegen-unit split fixed for all programs — 2026-11-16
 
 Commit 83bd76f5f: the splitter stopped at the first top-level module, so
