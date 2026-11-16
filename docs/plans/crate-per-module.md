@@ -54,6 +54,9 @@ padded source bases already keep offsets stable).
 - `extern "Rust"` declarations cannot name async future types, generic
   functions, or `impl Trait` returns. Generated functions are monomorphic; the
   async case is handled by merging.
+- Async source functions are emitted as closure structs with `async fn call`.
+  Families whose dispatch awaits closures: Studio 1 of 78 (2 closures),
+  Worklist desktop 0 of 77, Worklist API 0.
 
 ## Steps
 
@@ -70,24 +73,34 @@ single crate so they can be verified against today's output.
    including inferred return types. Output: a crate assignment (module or
    merged group) per item, reported by `tsrust emit --crate-plan`. Verify on
    Studio, the gallery and Worklist with `crate-split-analysis.py`.
-2. **Closure bodies as functions.** Emit each closure's `call`/method bodies
-   as free functions taking the closure data, with the inherent methods
-   delegating to them. Single crate still; generated behavior identical.
-3. **Stable names.** Replace program-wide counters for functions, closures,
-   records and unions with module-scoped or content-derived names. Verify that
-   an edit to one module changes only that module's items.
-4. **Link-time declarations in one crate.** Route back-edge calls through
-   `extern "Rust"` declarations plus `#[unsafe(no_mangle)]` definitions while
-   still emitting one crate, proving the declarations, checks and symbol
-   naming before splitting.
-5. **Multi-crate emission and builds.** Emit the types, module and program
-   crates; build them with Cargo (one workspace per project in the existing
-   native workspace cache) for `dev`, `run`, `build` and `test`, reusing the
-   staged runtime. Measure Studio and the gallery edit loops.
-6. **Release.** Build the same crates with thin or fat LTO; compare binary size
-   and the SQLite benchmark suite against single-crate release. If any
-   regression remains, release compiles the identical source as one crate.
-7. **Tooling.** `tsrust emit` keeps a single readable file; `--debug` source
+2. **Stable names.** A pass over the generated program (beside the codegen-unit
+   splitter) renames program-wide numbered items consistently: functions and
+   closures to `<module hash>_<local index>`, and records, unions, view unions
+   and families to names derived from their definitions (bottom-up, with
+   recursive groups hashed together). Name construction is spread over ~260
+   emitter sites, so a single post-pass is safer than editing each. Verify that
+   an edit to one module changes only that module's items, and that program
+   output is unchanged across the suites.
+3. **Split emission behind a development flag.** Emit the types, module and
+   program crates for `TSRUST_CRATE_SPLIT=1` builds:
+   - closure data structs, families, records and unions in the types crate;
+   - closure bodies as impls of a per-closure trait defined in the module crate
+     (allowed by the orphan rule, body text unchanged), plus a
+     `#[unsafe(no_mangle)]` shim per synchronous body for family dispatch in
+     the types crate;
+   - back-edge calls through `unsafe extern "Rust"` declarations with
+     `[declared, defined]` checks in the program crate;
+   - closures dispatched asynchronously from a family (Studio: 1 family, 2
+     closures; Worklist: none) keep their bodies in the types crate, with
+     whatever they need pulled in after them.
+   Compare program output and suites against single-crate builds.
+4. **Builds.** Cargo workspace per project in the native workspace cache for
+   `dev`, `run`, `build` and `test`, reusing the staged runtime. Measure Studio
+   and gallery edit loops, then make the split the default.
+5. **Release.** Same crates with thin or fat LTO; compare binary size and the
+   SQLite benchmark suite against single-crate release. If any regression
+   remains, release compiles the identical source as one crate.
+6. **Tooling.** `tsrust emit` keeps a single readable file; `--debug` source
    mapping, packaging and Windows path limits are verified on all platforms.
 
 ## Risks and checks
