@@ -117,8 +117,9 @@ single crate so they can be verified against today's output.
    Compare program output and suites against single-crate builds.
 4. **Builds.** *(Done 2026-11-17: rustc driver per crate in `SplitCrates::build`,
    cancelled by a newer edit in `tsrust dev`, and the default for development
-   builds (`TSRUST_CRATE_SPLIT=0` opts out). Linux x64 and Windows link with
-   lld, where archive order does not matter; hardware runs are still pending.)* Cargo workspace per project in the native workspace cache for
+   builds (`TSRUST_CRATE_SPLIT=0` opts out). Linux links verified in Docker
+   with GNU ld (aarch64) and lld (x86_64): rustc's generated `symbols.o`
+   references every exported body, so archive order does not matter.)* Cargo workspace per project in the native workspace cache for
    `dev`, `run`, `build` and `test`, reusing the staged runtime. Measure Studio
    and gallery edit loops, then make the split the default.
 5. **Release.** Same crates with thin or fat LTO; compare binary size and the

@@ -18,11 +18,14 @@ removed before it compiles, so a killed compile is never treated as fresh).
 
 - Studio cancel check: an edit during a running split build is abandoned, the
   next edit builds once (rebuilt=2, 4.2-4.7 s rustc+link) and no rustc remains.
-- Linking: Linux x64 links with rust-lld by default since Rust 1.90 (pinned
-  toolchain 1.99.1) and Windows passes `-Clinker-flavor=lld-link`, so archive
-  order (types-crate code calling closure bodies in module rlibs) does not
-  matter there; macOS ld64 is verified. Not run on Linux/Windows hardware yet;
-  a forced GNU ld would need `--start-group` handling.
+- Linking: verified in Docker (rust:1.99.1-bookworm) with a minimal crate of
+  the same shape (types crate calling an `extern "Rust"` closure body exported
+  by a module rlib that nothing else references, archives ordered module before
+  types). aarch64 Linux links with GNU ld and x86_64 Linux with `-fuse-ld=lld`;
+  both run correctly. rustc adds a generated `symbols.o` that references every
+  exported symbol of the linked rlibs, so archive order never drops a body.
+  Windows (`-Clinker-flavor=lld-link`) gets the same `symbols.o`; not run on
+  Windows.
 - Validation: CI suites 23/23 (68 s, no aborts), CLI unit tests 65/65.
 - The earlier one-off full rebuild matches the first build after a compiler
   binary change; repeat sessions start from the native cache.
