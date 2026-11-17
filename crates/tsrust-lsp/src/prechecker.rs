@@ -82,7 +82,7 @@ fn precheck(session: &mut ProjectSession, request: &Request) -> Option<&'static 
     let identity = prechecked::graph_identity(&analysis.graph);
     let checked = CheckedInput::Project(analysis);
     let (rust, features) = checked.emit_rust_with_native_features();
-    let value = prechecked::Prechecked { rust, features: features.into_iter().map(str::to_owned).collect(), keys: checked.name_keys() };
+    let value = prechecked::Prechecked { rust, features: features.into_iter().map(str::to_owned).collect(), keys: checked.name_keys(), editor: true };
     prechecked::store(&root, &identity, &value).ok()?;
     Some("stored")
 }

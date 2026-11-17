@@ -6,7 +6,9 @@
 //! and if a stored result has the same graph identity (every module's id and
 //! text) from the same compiler build, it skips checking and emission. The
 //! check is a deterministic function of that graph, so a reused result is the
-//! one a fresh check would produce.
+//! one a fresh check would produce. `tsrust dev` stores its own checks here too,
+//! so returning to sources it already checked (an edit, then its undo) skips
+//! the check as well.
 use crate::project::{ProjectGraph, SourceId};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -22,6 +24,8 @@ pub struct Prechecked {
     pub rust: String,
     pub features: Vec<String>,
     pub keys: crate::native::stable_names::Keys,
+    /// Checked by the language server rather than by `tsrust dev` itself.
+    pub editor: bool,
 }
 
 /// Every module's id and source text, plus the entry and each resolved import
@@ -65,7 +69,7 @@ pub fn contains(root: &Path, identity: &[u8]) -> bool {
 pub fn store(root: &Path, identity: &[u8], value: &Prechecked) -> Result<(), String> {
     let directory = directory(root);
     std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-    let header = serde_json::json!({ "features": value.features, "keys": value.keys, "identity": identity.len() });
+    let header = serde_json::json!({ "features": value.features, "keys": value.keys, "identity": identity.len(), "editor": value.editor });
     let mut bytes = serde_json::to_vec(&header).map_err(|e| e.to_string())?;
     bytes.push(b'\n');
     bytes.extend_from_slice(identity);
@@ -94,6 +98,7 @@ pub fn load(root: &Path, identity: &[u8]) -> Option<Prechecked> {
         rust: String::from_utf8(rest[length..].to_vec()).ok()?,
         features: serde_json::from_value(header.get("features")?.clone()).ok()?,
         keys: serde_json::from_value(header.get("keys")?.clone()).ok()?,
+        editor: header.get("editor").and_then(serde_json::Value::as_bool).unwrap_or(true),
     })
 }
 
@@ -125,12 +130,22 @@ pub fn begin(root: &Path, identity: &[u8]) -> Option<Pending> {
     let path = file(root, identity).with_extension("pending");
     std::fs::create_dir_all(path.parent()?).ok()?;
     std::fs::write(&path, std::process::id().to_string()).ok()?;
-    let _ = std::fs::write(directory(root).join("server"), std::process::id().to_string());
+    let _ = std::fs::write(directory(root).join("server"), format!("{}\n{COMPILER_IDENTITY}\n", std::process::id()));
     Some(Pending(path))
 }
 
 fn alive(path: &Path) -> bool {
-    std::fs::read_to_string(path).ok().and_then(|text| text.trim().parse().ok()).is_some_and(process_alive)
+    std::fs::read_to_string(path).ok().and_then(|text| text.lines().next()?.trim().parse().ok()).is_some_and(process_alive)
+}
+
+/// Whether a running language server that checks ahead for this project was
+/// built from different compiler sources. Its results can never match this
+/// build, so it should be restarted. A server file without an identity comes
+/// from a build older than this check, which is also a different build.
+pub fn editor_on_other_build(root: &Path) -> bool {
+    let path = directory(root).join("server");
+    let Ok(text) = std::fs::read_to_string(&path) else { return false };
+    alive(&path) && text.lines().nth(1).map(str::trim) != Some(COMPILER_IDENTITY)
 }
 
 /// The stored result for this graph identity, waiting while another process is
@@ -148,7 +163,8 @@ pub fn wait(root: &Path, identity: &[u8], grace: std::time::Duration, cancelled:
             return Some(result);
         }
         let checking = alive(&pending);
-        if cancelled.load(std::sync::atomic::Ordering::Relaxed) || !checking && !(started.elapsed() < grace && alive(&server)) {
+        // A server from another build can never store this identity; do not wait for it.
+        if cancelled.load(std::sync::atomic::Ordering::Relaxed) || !checking && !(started.elapsed() < grace && alive(&server) && !editor_on_other_build(root)) {
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(25));
@@ -219,12 +235,12 @@ mod tests {
         let root = std::env::temp_dir().join(format!("tsrust-prechecked-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let keys = crate::native::stable_names::Keys { functions: vec!["main".into()], ..Default::default() };
-        let value = Prechecked { rust: "fn main(){}\n".into(), features: vec!["ui".into()], keys: keys.clone() };
+        let value = Prechecked { rust: "fn main(){}\n".into(), features: vec!["ui".into()], keys: keys.clone(), editor: false };
         assert!(load(&root, b"graph").is_none());
         store(&root, b"graph", &value).unwrap();
         assert!(contains(&root, b"graph"));
         let loaded = load(&root, b"graph").unwrap();
-        assert_eq!((loaded.rust.as_str(), loaded.features.as_slice(), &loaded.keys), ("fn main(){}\n", ["ui".to_owned()].as_slice(), &keys));
+        assert_eq!((loaded.rust.as_str(), loaded.features.as_slice(), &loaded.keys, loaded.editor), ("fn main(){}\n", ["ui".to_owned()].as_slice(), &keys, false));
         assert!(load(&root, b"other").is_none());
         for index in 0..RETAINED + 2 {
             store(&root, format!("graph{index}").as_bytes(), &value).unwrap();
@@ -239,7 +255,7 @@ mod tests {
         use std::time::{Duration, Instant};
         let root = std::env::temp_dir().join(format!("tsrust-prechecked-wait-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
-        let value = || Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default() };
+        let value = || Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default(), editor: true };
         let idle = AtomicBool::new(false);
         // Nothing pending and no checking server: return at once.
         let started = Instant::now();
@@ -251,7 +267,7 @@ mod tests {
             let root = root.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(Duration::from_millis(200));
-                store(&root, b"a", &Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default() }).unwrap();
+                store(&root, b"a", &Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default(), editor: true }).unwrap();
                 drop(pending);
             })
         };
@@ -265,6 +281,23 @@ mod tests {
         // Cancellation ends a wait for a check still in progress.
         let _still_running = begin(&root, b"c").unwrap();
         assert!(wait(&root, b"c", Duration::ZERO, &AtomicBool::new(true)).is_none());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_language_server_from_another_build_is_reported() {
+        let root = std::env::temp_dir().join(format!("tsrust-prechecked-server-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(!editor_on_other_build(&root));
+        let pending = begin(&root, b"a").unwrap();
+        drop(pending);
+        assert!(!editor_on_other_build(&root), "this build");
+        std::fs::write(directory(&root).join("server"), std::process::id().to_string()).unwrap();
+        assert!(editor_on_other_build(&root), "no identity: an older build");
+        std::fs::write(directory(&root).join("server"), format!("{}\nother\n", std::process::id())).unwrap();
+        assert!(editor_on_other_build(&root));
+        std::fs::write(directory(&root).join("server"), "0\nother\n").unwrap();
+        assert!(!editor_on_other_build(&root), "not running");
         let _ = std::fs::remove_dir_all(&root);
     }
 }

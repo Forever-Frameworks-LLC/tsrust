@@ -10,7 +10,12 @@ pub(crate) struct Output {
     pub emit: Duration,
     pub keys: tsrust_compiler::native_stable_names::Keys,
     /// Checked and emitted ahead of the save by the language server.
+    /// Reused a stored check of the same sources instead of checking.
     pub prechecked: bool,
+    /// The reused check came from the language server, not an earlier build.
+    pub from_editor: bool,
+    /// A language server from another compiler build checks this project.
+    pub editor_on_other_build: bool,
 }
 pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<(std::sync::Arc<Output>,bool),String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
@@ -112,6 +117,8 @@ fn compile(
             emit: Duration::ZERO,
             keys: prechecked.keys,
             prechecked: true,
+            from_editor: prechecked.editor,
+            editor_on_other_build: false,
         });
     }
     let analysis = tsrust_compiler::project_cli::check_input_cached_with_provider(
@@ -127,9 +134,23 @@ fn compile(
     let keys = analysis.name_keys();
     let emit = started.elapsed();
     let mut identity = Vec::new();
+    let mut editor_on_other_build = false;
     match &analysis {
         CheckedInput::Project(project) => {
             identity = tsrust_compiler::project_prechecked::graph_identity(&project.graph);
+            // Store this check too: returning to these sources (an edit, then its
+            // undo) then skips checking. Written beside the build.
+            let stored = tsrust_compiler::project_prechecked::Prechecked {
+                rust: rust.clone(),
+                features: features.clone(),
+                keys: keys.clone(),
+                editor: false,
+            };
+            let (root, key) = (sources.root.clone(), identity.clone());
+            std::thread::spawn(move || {
+                let _ = tsrust_compiler::project_prechecked::store(&root, &key, &stored);
+            });
+            editor_on_other_build = tsrust_compiler::project_prechecked::editor_on_other_build(&sources.root);
         }
         CheckedInput::Single(_) => {
             let id = sources.resolve(
@@ -155,6 +176,8 @@ fn compile(
         emit,
         keys,
         prechecked: false,
+        from_editor: false,
+        editor_on_other_build,
     })
 }
 

@@ -7,6 +7,18 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Reused checks across builds — 2026-11-17
+
+`tsrust dev` now also stores its own checked programs in
+`target/tsrust-native/prechecked/` (header `"editor": false`), so returning to
+sources it checked earlier, beyond the two in-memory revisions, skips the check
+(scratch witness: edits A, B, C, then A again reported "Reusing an earlier
+check of these sources." and rebuilt in 83 ms). The language server writes its
+pid and `COMPILER_IDENTITY` to `prechecked/server`; dev reports once per run
+when a running server is from another build (its results can never match) and
+does not wait for one. Owner log showed the cause of no reuse after a
+reinstall: Zed's language server process predated the new compiler identity.
+
 ## Idle GPUI ticks and rustc contention in `tsrust dev` — 2026-11-17
 
 An idle Studio window used 30-50% of a core: its polling `Ticker`s (several

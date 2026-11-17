@@ -442,7 +442,12 @@ mod platform {
             }
         }
         if frontend.prechecked && !reused_frontend {
-            report(Status::Info, "Using the editor's background check.");
+            report(Status::Info, if frontend.from_editor {"Using the editor's background check."} else {"Reusing an earlier check of these sources."});
+        }
+        // Said once per run: the editor's checks cannot be reused until it restarts.
+        static WARNED_EDITOR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if frontend.editor_on_other_build && !WARNED_EDITOR.swap(true, Ordering::Relaxed) {
+            report(Status::Info, "The editor's language server is from another tsrust build, so its background checks cannot be used. Restart it in the editor.");
         }
         if verbose {
             eprintln!(
