@@ -7,6 +7,34 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Check and prepare time in the dev loop — 2026-11-17
+
+Studio `tsrust check` is one whole-program `Analyzer::run` (single thread).
+Profiled with `sample` and fixed three costs that grew with program size:
+
+- Record layout validation re-checked every record on each append
+  (`append_checked_record_fields`, about 25% of check). `record_layout::Validated`
+  in the callable tables now validates only appended records, reusing earlier
+  sizes; any change to existing union members (`UnionArena::member_rewrites`,
+  bumped by recursive bindings and closure remapping) restarts from the first
+  record, and a failure keeps the prefix so the error repeats as before.
+- Native view shapes were rebuilt for every new union. Record shapes are now
+  shared (`Rc`) and only the union snapshot is extended; scoped callable
+  families compare a registry revision before a deep comparison.
+- `native_runtime::separate` scanned the 22 MB Studio program once per runtime
+  module and icon. It now indexes `mod tsrust_native_*` headers once, compares
+  candidates at those offsets, splices once, and collects borrowed string
+  literals in one pass.
+
+Results (Studio): check 14.5 s -> 11.6-11.8 s; runtime-prepare 1.13 s -> 0.58 s
+(separate 706 -> 153 ms). Output is unchanged: identical diagnostics for Studio
+and the Tasks API/desktop, native cache hits across the CI suites, runtime
+cache hit and 2 rebuilt crates after an edit. Lib 1578/1578, CI suites 23/23.
+
+Remaining check profile is flat (UI calls, result discovery, futures, record
+carriers each 5-10%). Large further gains need reuse of analysis across edits
+(per-module or per-function check results), which the analyzer does not have.
+
 ## Crate-per-module step 4: split is the default — 2026-11-17
 
 Development builds (`dev`, `build`/`run`/`test` without `--release`/`--debug`)

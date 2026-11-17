@@ -34,15 +34,20 @@ pub(crate) struct Index {
 }
 impl Index {
     pub(crate) fn new(records: &[Record], members: impl Fn(UnionId) -> Vec<Type>) -> Self {
+        Self::new_from(records, 0, members)
+    }
+    /// Links whose parent is in `records[from..]`. Earlier records never name later
+    /// ones, so a cycle through a later record stays among later records.
+    pub(crate) fn new_from(records: &[Record], from: usize, members: impl Fn(UnionId) -> Vec<Type>) -> Self {
         let mut edges = vec![Vec::new(); records.len()];
         let mut candidates = Vec::new();
-        for (parent, record) in records.iter().enumerate() {
+        for (parent, record) in records.iter().enumerate().skip(from) {
             for field in &record.fields {
                 let Some(ty) = field.ty else { continue; };
                 for payload in inline_payloads(ty,&members) {
                     // Arrays already terminate inline layout. A nullable ancestor
                     // permits indirection at the union that stores this record.
-                    if let Type::Record(child)=payload.ty && child<records.len() {
+                    if let Type::Record(child)=payload.ty && (from..records.len()).contains(&child) {
                         edges[parent].push(child);
                         if payload.nullable && let Some(union)=payload.union {
                             candidates.push((parent,union,child));
