@@ -35,6 +35,11 @@ Remaining check profile is flat (UI calls, result discovery, futures, record
 carriers each 5-10%). Large further gains need reuse of analysis across edits
 (per-module or per-function check results), which the analyzer does not have.
 
+Design for that reuse: `docs/plans/check-reuse.md`. Studio check runs five
+whole-program analyses (an aborted direct attempt, three speculative access
+passes, one definitive pass). Next: audit switch, then the definitive pass as
+the convergence check (phase 1).
+
 ## Crate-per-module step 4: split is the default — 2026-11-17
 
 Development builds (`dev`, `build`/`run`/`test` without `--release`/`--debug`)
