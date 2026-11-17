@@ -73,7 +73,10 @@ single crate so they can be verified against today's output.
    including inferred return types. Output: a crate assignment (module or
    merged group) per item, reported by `tsrust emit --crate-plan`. Verify on
    Studio, the gallery and Worklist with `crate-split-analysis.py`.
-2. **Stable names.** Source names are already unique and stable, so generated
+2. **Stable names.** *(Done 2026-11-16 for development builds: ledger-based
+   renaming in `native/stable_names.rs`, per-unit part files; Studio
+   add-function rustc+link 32-34 s -> 20-22 s. New closures still invalidate
+   all bodies through the shared callback traits, which step 3 removes.)* Source names are already unique and stable, so generated
    items reuse them: `<module path>::<name>`, with a default export as an alias.
    Only compiler-made items need derived names, each from a stable parent:
    - generic specializations: base name + hash of the type arguments

@@ -7,6 +7,36 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Crate-per-module step 2: stable names — 2026-11-16
+
+Committed `native/stable_names.rs`: development builds (not `--release`, not
+`--debug`) rename generated items through a ledger in the incremental session
+directory. Keys are compiler-derived (source names normalized with module
+paths, specialization counters dropped, type arguments, fields, union members,
+closure enclosing function + ordinal); items without compiler keys are anchored
+to their first user + ordinal. Locals and labels are renumbered per top-level
+item. Family variants become `V_<closure number>`. Incremental builds also
+hash-assign functions to unit modules and write each unit and remaining items
+to their own `include!`d part file (`codegen_units::partition_files`), so an
+insertion shifts spans in one file only. `tsrust emit --stable-names LEDGER`
+prints the renamed program.
+
+Studio measurements (rustc + link, warm): literal edit ~14 s; adding a
+function without a closure 32-34 s -> 20-22 s. Adding a closure still costs
+~37 s: every closure implements the generated Callback / OnceCallback /
+ReadCallback traits, and a new impl invalidates every body that proves those
+traits. Per-signature traits conflict (E0119) with the blanket
+`impl<F: Callback<A, R> + ?Sized> Callback<A, R> for &mut F`; the crate split
+(step 3) is the intended fix.
+
+Validation with fresh caches: CI suites 23/23, gpui-starter 12/12, Studio
+172/177 — the 5 failures need absent tools (model-host binary, gopls,
+rust-analyzer, tsserver) and fail identically with the previous compiler.
+
+Note: the repository's Rust is not rustfmt-formatted; never run `cargo fmt`.
+
+Next: step 3, split emission behind `TSRUST_CRATE_SPLIT=1`.
+
 ## Spike 2: zero-cost crate split via link-time symbols — 2026-11-16
 
 Owner constraints: no runtime performance loss, no dev/release divergence.
