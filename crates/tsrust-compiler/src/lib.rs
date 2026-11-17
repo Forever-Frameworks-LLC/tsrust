@@ -10,6 +10,7 @@ mod callables;
 mod native;
 mod analysis;
 pub use analysis::native_capabilities::ArrayCapabilities;
+pub use analysis::set_concurrent_check;
 mod parameters;
 mod parameter_arity;
 pub use parameters::ParameterOmission;

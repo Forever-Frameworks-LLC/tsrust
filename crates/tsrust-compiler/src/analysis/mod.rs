@@ -738,8 +738,27 @@ fn analyze_recursive_with_proofs(program:Program,source_proofs:&std::cell::OnceC
     let mut program_callback_sites = BTreeMap::new();
     // Every non-copy coordinate can rise from read to mutate to consume only.
     let mut remaining = parameter_count.saturating_mul(2) + 1;
+    // Coordinates raised by the previous pass; `None` before the first pass.
+    let mut raised: Option<usize> = None;
     while remaining > 0 {
         remaining -= 1;
+        // After a pass that raised few coordinates, the next pass is likely to
+        // confirm the fixpoint, so the definitive analysis under the current
+        // assumptions runs beside it. If the pass confirms, that result is exactly
+        // what the definitive run below would compute; otherwise it is discarded.
+        // The iteration itself is unchanged, and so is the checked program.
+        let likely_fixpoint = raised.is_some_and(|raised| raised <= (parameter_count / 16).max(16));
+        let definitive = (likely_fixpoint && concurrent_definitive_pass()).then(|| {
+            let lattice = (modes.clone(), capture_access.clone(), program_access.clone(), program_callback_sites.clone());
+            let program = program.clone();
+            let proofs = source_proofs.get().cloned();
+            #[cfg(test)] DEFINITIVE_THREADS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            std::thread::Builder::new().name("tsrust-definitive".into()).stack_size(crate::COMPILER_STACK_BYTES).spawn(move || {
+                let proofs = proofs.map(std::cell::OnceCell::from).unwrap_or_default();
+                definitive_analysis(program, &proofs, lattice)
+            })
+        }).and_then(Result::ok);
+        let assumed_functions = modes.len();
         let mut analyzer = Analyzer::new_with_source_proofs(program.clone(),Some(source_proofs))?;
         analyzer.assumed_modes = Some(modes.clone());
         analyzer.assumed_capture_access = capture_access.clone();
@@ -782,23 +801,62 @@ fn analyze_recursive_with_proofs(program:Program,source_proofs:&std::cell::OnceC
         changed |= generic_changed;
         discovered += generic_discovered;
         remaining += discovered.saturating_mul(2) + usize::from(discovered != 0);
+        let mut count = discovered;
         for (current, function) in modes.iter_mut().zip(&inferred.functions) {
             for (mode, binding) in current.iter_mut().zip(&function.bindings) {
                 let next = (*mode).max(binding.mode);
+                count += usize::from(next != *mode);
                 changed |= next != *mode;
                 *mode = next;
             }
         }
+        raised = Some(count);
         if !changed {
-            let mut analyzer = Analyzer::new_with_source_proofs(program,Some(source_proofs))?;
-            analyzer.assumed_modes = Some(modes);
-            analyzer.assumed_capture_access = capture_access;
-            analyzer.program_access = program_access;
-            analyzer.program_callback_sites = program_callback_sites;
-            return finish_analysis(analyzer.run()?);
+            // A pass that only appended modes for newly checked functions leaves
+            // the concurrent run with different assumptions; run it again.
+            if let Some(definitive) = definitive && modes.len() == assumed_functions {
+                return match definitive.join() {
+                    Ok(result) => finish_analysis(result?),
+                    Err(panic) => std::panic::resume_unwind(panic),
+                };
+            }
+            return finish_analysis(definitive_analysis(program, source_proofs, (modes, capture_access, program_access, program_callback_sites))?);
         }
     }
     unreachable!("finite recursive access lattice must converge")
+}
+
+type AccessLattice = (Vec<Vec<Mode>>, named_capture_access::Lattice, BTreeMap<usize, Mode>, BTreeMap<usize, CallbackKind>);
+
+/// The checking run that produces the checked program under converged access assumptions.
+fn definitive_analysis(program:Program,source_proofs:&std::cell::OnceCell<crate::generic_call_validation::Proofs>,lattice:AccessLattice)->Result<CheckedProgram,Diagnostic>{
+    let (modes, capture_access, program_access, program_callback_sites) = lattice;
+    let mut analyzer = Analyzer::new_with_source_proofs(program,Some(source_proofs))?;
+    analyzer.assumed_modes = Some(modes);
+    analyzer.assumed_capture_access = capture_access;
+    analyzer.program_access = program_access;
+    analyzer.program_callback_sites = program_callback_sites;
+    analyzer.run()
+}
+
+#[cfg(test)] static DEFINITIVE_THREADS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static CONCURRENT_CHECK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Let access inference run the definitive analysis beside a pass that is likely
+/// to confirm the fixpoint. This lowers the latency of one check at the cost of
+/// a second core; batch work that already checks in parallel leaves it off.
+/// `TSRUST_CHECK_THREADS=1` turns it off and `=2` turns it on.
+pub fn set_concurrent_check(enabled: bool) {
+    CONCURRENT_CHECK.store(enabled, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn concurrent_definitive_pass() -> bool {
+    let enabled = match std::env::var("TSRUST_CHECK_THREADS").as_deref() {
+        Ok("1") => false,
+        Ok("2") => true,
+        _ => CONCURRENT_CHECK.load(std::sync::atomic::Ordering::Relaxed),
+    };
+    enabled && std::thread::available_parallelism().is_ok_and(|threads| threads.get() > 1)
 }
 
 #[cfg(test)]
@@ -12092,6 +12150,17 @@ mod type_hints;
   let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let before=crate::generic_call_validation::validation_runs();let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);let append=result.functions.iter().find(|function|function.name=="append").unwrap();assert_eq!(append.bindings[0].mode,Mode::Mutate);
   let invalid=source.replace("preserve<int>(n)","preserve<int>(n, 2)");assert!(analyze_recursive(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
+ }
+ #[test]fn concurrent_definitive_pass_produces_the_sequential_checked_program(){
+  let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function total(values:int[],n:int):int{if(n<0){return 0;}return values[n]+total(values,n-1);}function main(){const values=[0];append(values,2);console.log(total(values,2));}").unwrap();
+  let emitted=|concurrent:bool|{set_concurrent_check(concurrent);let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).map(|checked|crate::emit::emit(&checked));set_concurrent_check(false);result.unwrap()};
+  let sequential=emitted(false);
+  let spawned=DEFINITIVE_THREADS.load(std::sync::atomic::Ordering::Relaxed);
+  assert_eq!(emitted(true),sequential);
+  assert!(DEFINITIVE_THREADS.load(std::sync::atomic::Ordering::Relaxed)>spawned,"the definitive pass ran beside a speculative pass");
+  let invalid=source.replace("append(values,2);","append(values,2);append(values);");
+  set_concurrent_check(true);let error=analyze_recursive(crate::syntax::parse(&invalid).unwrap()).err();set_concurrent_check(false);
+  assert_eq!(error.map(|error|error.code),analyze_recursive(crate::syntax::parse(&invalid).unwrap()).err().map(|error|error.code));
  }
  #[test]fn recursive_fallback_reuses_only_this_inputs_source_proofs(){
   let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);

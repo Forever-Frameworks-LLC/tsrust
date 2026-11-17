@@ -63,24 +63,32 @@ reach the same least fixpoint as iteration from the bottom. The rule used below:
 > and inputs are unchanged has an unchanged least-fixpoint value, so it may be
 > seeded with its previous value.
 
-## Phase 1: the definitive pass confirms convergence
+## Phase 1: definitive pass beside a confirming pass (done 2026-11-17)
 
-Run every iteration after the first as a definitive analysis. If its observed
-lattice equals its assumptions, it is the fixpoint, and its checked program is
-the result. Otherwise raise the lattice and continue. If a definitive pass fails
-with a diagnostic that a speculative pass would tolerate, rerun that pass
-speculatively.
+The first idea was to let a definitive pass stand in for the confirming
+speculative pass. A definitive run applies checks that a speculative run skips
+(`effects_only` gates more than 50 checks and some behavior), so the two might
+observe different lattices. Proving them equal would need an audit, and a gap
+would change results.
 
-- Studio: speculative 1, speculative 2, definitive (confirms): 3 analyses
-  instead of 4, saving about 2.2 s.
-- Obligation: for the same assumptions, a definitive and a speculative run
-  observe the same lattice. Add an audit switch (`TSRUST_CHECK_AUDIT=1`) that
-  runs both and compares observations at every pass. Run it over the compiler
-  library tests, the CI runtime suites, Studio, Tasks and the gallery before the
-  switch-over, and keep it in one CI job.
-- `effects_only` and `speculative_access_run` decide what the speculative run
-  tolerates. Read every use before implementing, and list the ones that can
-  change an observation.
+Implemented instead: once a pass raised few coordinates (at most
+`max(16, parameters / 16)`), the next speculative pass runs with the
+definitive analysis under the same assumptions on a second thread. If the
+speculative pass confirms the fixpoint, and appended no modes for new functions,
+the concurrent result is exactly what the sequential definitive run would
+compute, and it is used. Otherwise it is discarded. The pass sequence is
+unchanged, so results are identical by construction. The threshold only affects
+speed.
+
+- Enabled by `tsrust dev` (`set_concurrent_check`). Library use, tests and
+  batch commands stay on one thread: with the parallel test harness, a second
+  analysis thread doubled the compiler library test time (62 s to 116 s).
+  `TSRUST_CHECK_THREADS=1` turns it off and `=2` turns it on.
+- Studio: `tsrust check` 10.9 s on one thread vs 9.1-9.9 s with the concurrent
+  pass; in `tsrust dev` check is 9.6-9.7 s and an edit rebuilds in 16.5-16.8 s
+  wall (21-24 s before this session's check work). Emitted Rust for Studio is
+  byte-identical with the concurrent pass on and off; a library test checks the
+  same and that the concurrent path ran.
 
 ## Phase 2: propagate within a pass
 
@@ -121,7 +129,7 @@ iteration with the entries whose inputs did not change.
   reset ones converge in one pass, check becomes parse/link + one definitive
   analysis + finish: about 4.7 s instead of 11.7 s on Studio. Edits that reset a
   long chain of callers need more passes.
-- **Proof in tests.** The audit switch also checks each warm start against a
+- **Proof in tests.** An audit switch checks each warm start against a
   cold iteration from the bottom (same lattice, same checked program, same
   emitted Rust). Add edit-replay tests: apply recorded edits to Studio and the
   Tasks apps (string, JSX, new function, removed consumer in a recursive group,
@@ -159,9 +167,9 @@ check. These are smaller targets to take on after phases 1 and 2.
 
 ## Order of work
 
-1. Audit switch, then phase 1. Gate: audit clean on lib tests, CI suites,
-   Studio, Tasks and the gallery; Studio check time measured.
-2. Phase 2, under the same audit.
+1. Phase 1 (done).
+2. Phase 2, with an audit switch that compares the checked program against
+   the current iteration on lib tests, CI suites, Studio, Tasks and the gallery.
 3. Phase 3 behind `TSRUST_CHECK_REUSE=1` until the edit-replay tests and the
    audit pass, then on by default in `tsrust dev` only. One-off `check`, `build`
    and `test` stay cold.

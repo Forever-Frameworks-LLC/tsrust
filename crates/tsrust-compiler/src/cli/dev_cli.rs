@@ -499,6 +499,8 @@ mod platform {
         }
     }
     pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
+        // One edit is checked at a time; a second core shortens access inference.
+        tsrust_compiler::set_concurrent_check(true);
         let mut release=false;let mut verbose=false;let mut program_args=Vec::new();let mut passthrough=false;
         let mut args=args.peekable();
         while let Some(arg)=args.next() {

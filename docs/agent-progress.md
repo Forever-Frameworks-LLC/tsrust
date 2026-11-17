@@ -37,8 +37,11 @@ carriers each 5-10%). Large further gains need reuse of analysis across edits
 
 Design for that reuse: `docs/plans/check-reuse.md`. Studio check runs five
 whole-program analyses (an aborted direct attempt, three speculative access
-passes, one definitive pass). Next: audit switch, then the definitive pass as
-the convergence check (phase 1).
+passes, one definitive pass). Phase 1 done: in `tsrust dev` the definitive
+analysis runs beside a speculative pass that is likely to confirm the fixpoint
+(results identical by construction; emitted Studio Rust byte-identical). Studio
+dev check 9.6-9.7 s, edit rebuild 16.5-16.8 s wall. Lib 1579/1579, CLI 65/65,
+CI suites 23/23. Next: phase 2 (propagate modes within a pass).
 
 ## Crate-per-module step 4: split is the default — 2026-11-17
 
