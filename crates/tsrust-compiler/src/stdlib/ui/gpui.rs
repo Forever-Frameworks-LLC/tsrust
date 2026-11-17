@@ -722,6 +722,14 @@ impl Root {
                 .tab_index(index as isize).tab_stop(index == 0);
             element = element.track_focus(&handle);
         }
+        if node.semantics.window_drag_region {
+            // A custom titlebar leaves moving the window to the app (`app_owns_titlebar_drag`).
+            // Pressing a drag region moves the window natively; a double-click zooms it as the
+            // system titlebar does. Controls inside stop the mouse-down first, so they still work.
+            element = element.window_control_area(WindowControlArea::Drag).on_mouse_down(MouseButton::Left, |event, window, _| {
+                if event.click_count == 2 && cfg!(target_os = "macos") {window.titlebar_double_click();} else {window.start_window_move();}
+            });
+        }
         let Some(kit) = node.kit.as_deref() else {return element;};
         if !VIEW_EVENTS.iter().any(|event| kit.handles(event)) {return element;}
         let root = cx.entity().downgrade();
