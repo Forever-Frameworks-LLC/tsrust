@@ -91,7 +91,11 @@ single crate so they can be verified against today's output.
    is one post-pass over the generated program (name construction spans ~260
    emitter sites). Verify that an edit to one module changes only that
    module's items, and that program output is unchanged across the suites.
-3. **Split emission behind a development flag.** Emit the types, module and
+3. **Split emission behind a development flag.** *(Prototype done 2026-11-16:
+   `experiments/crate-split-spike/split_modules.py` splits Studio into 103 crates
+   that build in 15.8 s cold; a literal edit in one module rebuilds and links in
+   1.1-1.2 s; a change to the shared types crate rebuilds everything in 9.7 s.
+   Next: port the splitter into the compiler on stable names.)* Emit the types, module and
    program crates for `TSRUST_CRATE_SPLIT=1` builds:
    - closure data structs, families, records and unions in the types crate;
    - closure bodies as impls of a per-closure trait defined in the module crate

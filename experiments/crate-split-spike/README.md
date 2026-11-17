@@ -54,3 +54,37 @@ Async follow-up: async source functions are emitted as closure structs with
 `async fn call`. Cross-file calls returning such closures (type inferred):
 Studio 16 calls / 12 closures, Worklist desktop 7 / 6, Worklist API 0. Only
 those against the crate dependency direction force modules to share a crate.
+
+## Spike 3: every module in its own crate
+
+`split_modules.py PROGRAM.rs PLAN.json OUT` splits a whole program, and
+`build_split.py OUT RUNTIME_ARTIFACTS BINARY [--only CRATES]` builds it with
+rustc. PROGRAM.rs is the program a `tsrust build --release` compiles (runtime
+modules come from `tsrust_runtime`, plain numbering); PLAN.json is
+`tsrust emit --crate-plan` from the same compiler.
+
+- `tsrust_types`: every item used from more than one crate (records, unions,
+  families, shared closures, runtime glue) plus compiler-made functions.
+- `tsrust_m<K>`: source module K's generated functions, closures and types
+  only it uses, and the bodies of its synchronous closures whose structs had
+  to move to `tsrust_types`. A per-closure trait keeps the body text unchanged;
+  an `export_name` function calls it, and the closure's `call` in
+  `tsrust_types` calls that function through a link-time declaration.
+- `program`: `main` and `let _ = [declared, defined];` for every link-time
+  declaration. Module crates depend only on `tsrust_types`, so they build in
+  parallel. Function calls between module crates are link-time declarations.
+
+The staged runtime rlib has a hashed crate name (`tsrust_runtime_<hash>`);
+`build_split.py` links it under that name for dependents.
+
+Results, 2026-11-16 (dev flags, opt-level 0, incremental per crate):
+
+| Program | Crates | Cold build | Literal edit in one module | Shared types change |
+|---|---|---|---|---|
+| Studio | 103 (types 5.9 MB, std:ui 4.9 MB) | 15.8 s | 1.1-1.2 s (single crate: ~14 s) | 9.7 s |
+| Worklist desktop | 9 | 8.0 s | - | - |
+| Worklist API | 4 | 1.2 s | - | - |
+
+All three binaries start and behave like their single-crate builds (API: same
+missing-database error; Studio and Worklist desktop open their windows).
+Studio needs 1,319 link-time function declarations and 857 closure-body detours.
