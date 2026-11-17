@@ -41,7 +41,9 @@ passes, one definitive pass). Phase 1 done: in `tsrust dev` the definitive
 analysis runs beside a speculative pass that is likely to confirm the fixpoint
 (results identical by construction; emitted Studio Rust byte-identical). Studio
 dev check 9.6-9.7 s, edit rebuild 16.5-16.8 s wall. Lib 1579/1579, CLI 65/65,
-CI suites 23/23. Next: phase 2 (propagate modes within a pass).
+CI suites 23/23. Phase 2 does not apply (callers of record-callback callees
+are checked first, so each component level costs a pass); see the plan for
+the measurements and the remaining options.
 
 ## Crate-per-module step 4: split is the default — 2026-11-17
 

@@ -90,17 +90,43 @@ speed.
   byte-identical with the concurrent pass on and off; a library test checks the
   same and that the concurrent path ran.
 
-## Phase 2: propagate within a pass
+## Phase 2: propagate within a pass (does not apply; measured 2026-11-17)
 
-A pass reads its assumptions only from the previous pass. Most of pass 2's
-raises (69 in Studio) follow from pass 1's raises in callees that were already
-checked earlier in the same pass. Publish a function's observed parameter modes
-into the current assumptions as soon as its group finishes (chaotic iteration).
-Every observation then comes from a state that is still at most the least
-fixpoint, so the result is unchanged, and the confirming pass may come one pass
-earlier. Measure how many passes Studio, Tasks and the suites need before and
-after. Keep the audit from phase 1 to compare checked programs against the old
-iteration.
+At a call site the analyzer already uses the callee's checked parameter modes
+when the callee was checked earlier in the same pass. Assumed modes are read
+only for callees that are not checked yet. Instrumenting every read on Studio:
+
+| Pass | Coordinates read | Reads that differ from the raised lattice | Raised |
+|---|---|---|---|
+| 1 | 2,638 (all) | 1,099 | 1,099 |
+| 2 | 2,636 | 57 | 69 |
+| 3 | 2,636 | 0 | 0 |
+
+Every pass reads nearly every coordinate. `function_dependency_order` leaves
+out callees whose record parameters carry callbacks ("record callback contracts
+depend on environments constructed by the caller"), so UI components with
+props records are checked after their callers, and every caller sees assumed
+modes. A chain of components needs one pass per level. All 69 pass-2 raises are
+on functions created during the run (component instantiations and generic
+specializations), whose callers ran before them.
+
+So publishing modes earlier in a pass cannot help: when a callee finishes, its
+callers have already been checked. Two variants were tried and reverted:
+
+- Read-based convergence (stop when every value a pass read equals the raised
+  lattice, since the next pass would then run identically): sound, but on
+  Studio pass 2 still reads 57 stale values, so pass 3 is still needed. No gain.
+- Per-pass fixed costs: cloning the program and constructing the analyzer cost
+  about 0.1 s per pass; linking about 0.13 s. Not worth restructuring.
+
+What would reduce the pass count:
+
+- Check a record-callback callee before its modes are read (at the call, with
+  the caller's environment), so callers observe checked modes and an acyclic
+  chain converges in one pass. This changes the analyzer's checking order,
+  which the code deliberately avoids today, and needs an audit that compares
+  checked programs with the current order.
+- Phase 3 (warm start across edits).
 
 ## Phase 3: warm start across edits
 
