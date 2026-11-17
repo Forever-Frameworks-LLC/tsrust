@@ -134,7 +134,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), view_focus: Default::default(), rendered_views: Default::default(), focused_views: Default::default(), text_scale: Default::default(), view_hover: HashMap::new(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {window: None, viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), view_focus: Default::default(), rendered_views: Default::default(), focused_views: Default::default(), text_scale: Default::default(), view_hover: HashMap::new(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -299,6 +299,9 @@ macro_rules! control_input {
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 
 struct Root {
+    /// The window this view renders in, known after its first frame. Commands
+    /// queued by an event run through it without waiting for a frame.
+    window: Option<AnyWindowHandle>,
     viewport: (f32,f32),
     revision: u64,
     command_owner: commands::Owner,
@@ -356,9 +359,16 @@ impl Root {
                     // shortcut: redraw live windows on shared writes; track subscribers if window counts make this costly.
                     cx.refresh_windows();
                 }
-                let redraw=force || changed>0 || self.revision!=revision || commands::has_pending(&self.command_owner) || super::i18n::has_changed();
+                let pending=commands::has_pending(&self.command_owner);
+                let redraw=force || changed>0 || self.revision!=revision || pending || super::i18n::has_changed();
                 self.revision=revision;
                 if redraw {cx.notify();}
+                // A covered or minimized window may not draw again soon, and quit,
+                // close and other commands must not wait for its next frame.
+                if pending && let Some(window)=self.window {
+                    let root=cx.entity().downgrade();
+                    cx.defer(move|cx|{let _=window.update(cx,|_,window,cx|{let _=root.update(cx,|root,cx|root.run_commands(window,cx));});});
+                }
             }
             Err(error) => fail(&self.failure, error),
         }
@@ -801,6 +811,7 @@ impl Root {
 impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _scope=self.scope();
+        self.window=Some(window.window_handle());
         self.viewport=(f32::from(window.viewport_size().width),f32::from(window.viewport_size().height));
         let revision=super::state::revision();
         if self.revision != revision {
