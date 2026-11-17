@@ -7,6 +7,28 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Idle GPUI ticks and rustc contention in `tsrust dev` — 2026-11-17
+
+An idle Studio window used 30-50% of a core: its polling `Ticker`s (several
+always running at 50-150 ms) refreshed every binding in the tree on each tick.
+`Root::emit` now skips the refresh for a tick when the signal revision equals
+the last settled revision, no command is pending and no locale changed
+(`stdlib/ui/gpui_kit.rs`). Bindings read signals, and every signal write
+advances the revision, so the skipped refresh could not change anything; the
+Ticker documentation already requires onTick to update signals. Witness: a
+scratch app with 1,500 bound text rows and a no-op 16 ms Ticker idled at 34-35%
+CPU before and 1.6-1.7% after (both release runtimes, same machine).
+
+Also found: Studio launches `tsrust-lsp` from PATH, which on the owner machine
+was a stale 2026-11-15 `~/.cargo/bin` copy; each dev relaunch started a full
+workspace scan (about 5.5 CPU-minutes with that copy, about 100 s with the
+current build). Running the scan at macOS utility QoS was tried and reverted:
+a full rustc compile of Studio's main module crate took 24.6 s alone, 26.5 s
+beside a looping `tsrust check` at default priority and 27.4 s at utility, so
+CPU competition is not the rustc slowdown inside dev. The remaining suspect is
+memory pressure (8 GB machine, ~1.9 GB swap in use) evicting the ~1.3 GB of
+runtime rlibs between edits.
+
 ## Editor background checks for `tsrust dev` — 2026-11-17
 
 While `tsrust dev` runs it writes `target/tsrust-native/dev-session` (pid and

@@ -1417,6 +1417,13 @@ impl Root {
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
         let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
+        // Bindings read signals, and every signal write advances the revision. A tick
+        // that wrote nothing since the last settled event, queued no command and
+        // changed no locale cannot change a binding, so skip refreshing the tree.
+        // Polling Tickers otherwise re-evaluate every binding many times a second.
+        if event == "tick" && result.is_ok() && super::state::revision() == self.revision && !commands::has_pending(&self.command_owner) && !super::i18n::has_changed() {
+            return;
+        }
         // Polling timers still refresh bindings and run commands, but idle ticks need no frame.
         self.settle_event(result, cx, event != "tick");
     }
