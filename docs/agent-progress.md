@@ -7,6 +7,20 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Rust/GPUI vs Tsrust comparison app — 2026-11-17
+
+`benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with
+`std:ui` (same gpui-kit 0.9.0, patches, lock and profile), plus `measure.py`
+(startup, idle, 600-tick animation) and `edit_loop.py`. Results, profiles and
+takeaways are in its README; rows are in `measurements.sqlite` under
+`gpui-compare/*`. Headline: edit loop 1.20 s vs 0.81 s, animation CPU 2.0x
+(row Nodes rebuilt on every list change, styles recollected every frame),
+binary 1.9x, RSS +44 MiB, startup +0.2 s. Found and fixed: UI commands (quit,
+close, notifications) ran only during a render, so a covered window never
+quit; they now also run right after the queuing event (`stdlib/ui/gpui.rs`).
+Open levers: keyed row reuse in `each`, per-node style caching, and GPUI
+creating a CTFont per shaped line (shared with plain GPUI).
+
 ## Reused checks across builds — 2026-11-17
 
 `tsrust dev` now also stores its own checked programs in

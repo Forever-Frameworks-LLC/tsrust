@@ -1,0 +1,18 @@
+// The list model, shared by both versions of the comparison app.
+
+export function makeItems(count: int): string[] {
+  const items: string[] = [];
+
+  for (let index = 0; index < count; index += 1) items.push('Item ' + index.toString());
+  return items;
+}
+
+export function filterItems(items: ReadOnly<string[]>, query: ReadOnly<string>): string[] {
+  const visible: string[] = [];
+
+  for (const item of items) {
+    if (query === '' || item.includes(query)) visible.push(clone(item));
+  }
+
+  return visible;
+}
