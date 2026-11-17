@@ -20,7 +20,7 @@ The app: a header with the visible count and a frame number, a search Input, an
 
 ```bash
 (cd rust && cargo build --release --offline)
-(cd tsrust && tsrust build)
+(cd tsrust && tsrust build --release)
 python3 measure.py rust/target/release/gpui-compare tsrust/target/gpui-compare 5
 python3 edit_loop.py "$(command -v tsrust)" 5
 ```
@@ -31,7 +31,35 @@ app activates itself) and reports median wall time, CPU time and peak RSS.
 `cargo build`/`cargo check` (dev profile, incremental), Tsrust with one
 `tsrust dev --verbose` session and `tsrust check`.
 
-## Results (2026-11-17, MacBook Air M3, 8 GB)
+## Results after the update fixes (2026-11-17, release builds)
+
+| | Rust/GPUI | Tsrust | Ratio |
+|---|---|---|---|
+| Release binary | 23.8 MiB | 41.6 MiB | 1.7x |
+| Startup wall (n=5) | 0.35 s | 0.42 s | 1.2x |
+| Idle 10 s, CPU (includes startup) | 0.29 s | 0.37 s | |
+| Peak RSS | 159-161 MiB | 194-196 MiB | +35 MiB |
+| Animate 600 ticks, wall | 14.1 s | 15.4 s | 1.1x |
+| Animate 600 ticks, CPU | 10.1 s | 13.4 s | 1.3x |
+
+The first results below compared release Rust with a default `tsrust build`,
+which compiles application code at opt-level 1 and the runtime at 2. In that
+same default mode the fixes took animate CPU from 20.5 s to 15.1 s:
+
+- Style resolution: ancestors without descendant selectors are skipped, and
+  nodes whose classes need no node context share one resolution per class
+  string until the theme, mode or viewport changes (`collect_styles` went from
+  about 450 samples to 15 in a 5-second profile).
+- Row construction: class strings are validated once per distinct string, the
+  structure check skips table rules for classes without `table`, and `Node`
+  shrank from about 1,030 to 384 bytes by boxing its semantics, editable
+  field, copy state and branch, and sharing its theme.
+
+Keyed row reuse did not apply here: the rows have no `id` and their text
+changes on every tick, so each refresh still calls `Row` for the visible
+items. That and the per-frame element build are the remaining Tsrust cost.
+
+## First results (2026-11-17, MacBook Air M3, 8 GB, Tsrust default build)
 
 | | Rust/GPUI | Tsrust | Ratio |
 |---|---|---|---|
@@ -87,9 +115,8 @@ Animate mode, 5-second `sample` of the main thread:
 - For a small app the Tsrust edit loop is close to Rust's (+0.4 s per rebuild).
   Studio's longer loop comes from its size: whole-program check passes and
   large generated crates.
-- Runtime cost is about 2x CPU per update in this list-heavy case, coming from
-  rebuilding rows and recomputing styles, not from GPUI. Keyed row reuse in
-  `each` and caching resolved styles per node until its classes change are the
-  two largest levers.
-- The binary is about 2x larger and memory about 44 MiB higher; startup about
-  0.2 s slower.
+- Runtime cost was about 2x CPU per update in this list-heavy case, from
+  rebuilding rows and recomputing styles rather than from GPUI. After the
+  fixes above, release builds use 1.3x the CPU of plain GPUI per update.
+- The binary is about 1.7x larger, memory about 35 MiB higher and startup
+  about 0.07 s slower in release builds.

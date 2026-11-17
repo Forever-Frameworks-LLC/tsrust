@@ -102,7 +102,8 @@ pub(crate) fn scoped(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inheri
 #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&str,inherited:&std::collections::BTreeMap<String,f32>,width:f32)->(Vec<(State,Utility)>,std::collections::BTreeMap<String,f32>) {
  let mut variables=inherited.clone();let mut output=Vec::new();
- let sources=ancestors.iter().enumerate().map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
+ // Ancestors contribute only through descendant selectors (`[&...]:`).
+ let sources=ancestors.iter().enumerate().filter(|(_,parent)|parent.class_name.contains("[&")).map(|(index,parent)|(*parent,&ancestors[..index],Some(index+1==ancestors.len()))).chain(std::iter::once((node,ancestors,None)));
  for (source,parents,direct) in sources {let mut filtered=Vec::new();for class in source.class_name.split_whitespace(){
   let parsed=parts(class).expect("validated utility");
   match (direct,parsed.descendant){(None,None)=>{},(Some(direct),Some(target))if target.matches(node,direct,ancestors)=>{},_=>continue}
@@ -114,6 +115,12 @@ pub(crate) fn scoped_at_width(node:&Node,ancestors:&[&Node],theme:&Theme,mode:&s
   output.extend(super::resolved_with_variables(&filtered.join(" "),theme,mode,&variables));
  }
  (output,variables)
+}
+/// Whether resolving these classes needs nothing but the class string, theme, mode,
+/// width and inherited spacing variables: no metadata, children or ancestor predicates.
+#[cfg(feature="gpui")]
+pub(crate) fn context_free(classes:&str)->bool {
+ classes.split_whitespace().all(|class|parts(class).is_ok_and(|parsed|parsed.predicates.iter().all(|predicate|matches!(predicate,Predicate::Dark|Predicate::MinWidth(_)|Predicate::Class(_)))))
 }
 #[cfg(any(all(test, feature = "runtime"),feature="gpui"))]
 fn state_name(state:State)->&'static str {match state{State::Base=>"",State::Hover=>"hover",State::Focus=>"focus",State::Active=>"active",State::Disabled=>"disabled"}}

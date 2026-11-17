@@ -452,8 +452,8 @@ fn mode(cx: &App) -> &'static str {if cx.theme().mode.is_dark() {"dark"} else {"
 /// The std:ui utility palette built from the active GPUI Kit theme, so classes
 /// such as text-muted-foreground and border-border follow any Kit theme. Cached
 /// until the Kit colors change.
-fn utility_theme(cx: &App) -> Theme {
-    thread_local! {static CACHE: std::cell::RefCell<Option<(String, Theme)>> = const {std::cell::RefCell::new(None)};}
+fn utility_theme(cx: &App) -> std::rc::Rc<Theme> {
+    thread_local! {static CACHE: std::cell::RefCell<Option<(String, std::rc::Rc<Theme>)>> = const {std::cell::RefCell::new(None)};}
     let kit = cx.theme();
     let colors = [
         ("background", kit.background), ("foreground", kit.foreground), ("card", kit.group_box), ("cardForeground", kit.group_box_foreground),
@@ -466,7 +466,7 @@ fn utility_theme(cx: &App) -> Theme {
         if let Some((cached, theme)) = cache.borrow().as_ref() && *cached == key {return theme.clone();}
         let mut config: serde_json::Value = serde_json::from_str(super::theme::DEFAULT_JSON).expect("bundled theme");
         for mode in ["light", "dark"] {for (name, color) in &colors {config[mode][*name] = color.clone().into();}}
-        let theme = Theme::parse(&config.to_string()).unwrap_or_default();
+        let theme = std::rc::Rc::new(Theme::parse(&config.to_string()).unwrap_or_default());
         *cache.borrow_mut() = Some((key, theme.clone()));
         theme
     })

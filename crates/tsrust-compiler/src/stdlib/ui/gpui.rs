@@ -134,7 +134,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {window: None, viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), view_focus: Default::default(), rendered_views: Default::default(), focused_views: Default::default(), text_scale: Default::default(), view_hover: HashMap::new(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {window: None, viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), style_memo: StyleMemo::default(), focus: cx.focus_handle(), view_focus: Default::default(), rendered_views: Default::default(), focused_views: Default::default(), text_scale: Default::default(), view_hover: HashMap::new(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -305,7 +305,9 @@ struct Root {
     viewport: (f32,f32),
     revision: u64,
     command_owner: commands::Owner,
-    styles: HashMap<u64, Vec<(State, Utility)>>,
+    styles: HashMap<u64, std::rc::Rc<[(State, Utility)]>>,
+    /// Resolved rules shared across frames by nodes whose classes need no node context.
+    style_memo: StyleMemo,
     node: Node,
     inputs: HashMap<u64, (Field, Subscription)>,
     /// Options last applied to each input's Kit state, so changed props re-apply once.
@@ -610,7 +612,7 @@ impl Root {
     }
 
     fn element(&self, node: &Node, theme: &Theme, mode: &str, cx: &mut Context<Self>) -> AnyElement {
-        let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
+        let (theme, mode) = node.theme.as_deref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
         let id = node.identity.get();
         if node.editable.is_some() {
             let control = match self.inputs.get(&id) {
@@ -825,7 +827,8 @@ impl Render for Root {
         self.run_commands(window, cx);
         let theme = utility_theme(cx);
         self.styles.clear();
-        collect_styles(&self.node, &mut Vec::new(), &theme, mode(cx), &Default::default(), self.viewport, &mut self.styles);
+        self.style_memo.prepare(&theme, mode(cx), self.viewport);
+        StyleCollector {viewport: self.viewport, memo: &mut self.style_memo.entries, output: &mut self.styles}.collect(&self.node, &mut Vec::new(), &theme, mode(cx), true, &Default::default());
         self.rendered_views.borrow_mut().clear();
         let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
         if window.focused(cx).is_none() {self.focus.focus(window, cx);}
@@ -884,17 +887,68 @@ fn styled_control<T:Styled+StatefulInteractiveElement>(mut element:T,rules:&[(St
     element
 }
 
-fn collect_styles<'a>(node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, inherited: &std::collections::BTreeMap<String, f32>, viewport: (f32,f32), output: &mut HashMap<u64, Vec<(State, Utility)>>) {
-    let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
-    let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, viewport.0);
-    output.insert(node.identity.get(), rules.into_iter().map(|(state,rule)|(state,rule.in_viewport(viewport.0,viewport.1))).collect());
-    ancestors.push(node);
-    for child in node.visible_children() {collect_styles(child, ancestors, theme, mode, &variables, viewport, output);}
-    ancestors.pop();
+type Variables = std::collections::BTreeMap<String, f32>;
+type ResolvedStyle = (std::rc::Rc<[(State, Utility)]>, std::rc::Rc<Variables>);
+
+/// Rules resolved from a class string alone, keyed by the class string and the
+/// inherited spacing variables. Rows of a list usually share their class strings,
+/// so one resolution serves them all, in every frame until the theme, mode or
+/// viewport changes. `None` marks classes whose predicates read node metadata.
+#[derive(Default)]
+struct StyleMemo {
+    context: Option<(std::rc::Rc<Theme>, &'static str, (f32, f32))>,
+    entries: HashMap<String, Vec<(Vec<(String, u32)>, Option<ResolvedStyle>)>>,
+}
+
+impl StyleMemo {
+    fn prepare(&mut self, theme: &std::rc::Rc<Theme>, mode: &'static str, viewport: (f32, f32)) {
+        let current = self.context.as_ref().is_some_and(|(known, known_mode, known_viewport)| std::rc::Rc::ptr_eq(known, theme) && *known_mode == mode && *known_viewport == viewport);
+        if !current || self.entries.len() > 4096 {
+            self.entries.clear();
+            self.context = Some((theme.clone(), mode, viewport));
+        }
+    }
+}
+
+struct StyleCollector<'m> {
+    viewport: (f32, f32),
+    memo: &'m mut HashMap<String, Vec<(Vec<(String, u32)>, Option<ResolvedStyle>)>>,
+    output: &'m mut HashMap<u64, std::rc::Rc<[(State, Utility)]>>,
+}
+
+impl StyleCollector<'_> {
+    /// `shared` holds while the node uses the window's theme and no ancestor has a
+    /// descendant selector, so its rules depend only on its classes and variables.
+    fn collect<'a>(&mut self, node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, shared: bool, inherited: &Variables) {
+        let (theme, mode, shared) = node.theme.as_deref().map_or((theme, mode, shared), |(theme, mode)| (theme, mode.as_str(), false));
+        let (rules, variables) = if shared {self.shared(node, ancestors, theme, mode, inherited)} else {self.resolve(node, ancestors, theme, mode, inherited)};
+        self.output.insert(node.identity.get(), rules);
+        let shared = shared && !node.class_name.contains("[&");
+        ancestors.push(node);
+        for child in node.visible_children() {self.collect(child, ancestors, theme, mode, shared, &variables);}
+        ancestors.pop();
+    }
+
+    fn resolve(&self, node: &Node, ancestors: &[&Node], theme: &Theme, mode: &str, inherited: &Variables) -> ResolvedStyle {
+        let (width, height) = self.viewport;
+        let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, width);
+        (rules.into_iter().map(|(state, rule)| (state, rule.in_viewport(width, height))).collect(), std::rc::Rc::new(variables))
+    }
+
+    fn shared(&mut self, node: &Node, ancestors: &[&Node], theme: &Theme, mode: &str, inherited: &Variables) -> ResolvedStyle {
+        let variables = inherited.iter().map(|(name, value)| (name.clone(), value.to_bits())).collect::<Vec<_>>();
+        if let Some(found) = self.memo.get(node.class_name.as_str()).and_then(|entries| entries.iter().find(|(known, _)| *known == variables)) {
+            if let Some(resolved) = &found.1 {return resolved.clone();}
+            return self.resolve(node, ancestors, theme, mode, inherited);
+        }
+        let resolved = style::context_free_classes(&node.class_name).then(|| self.resolve(node, ancestors, theme, mode, inherited));
+        self.memo.entry(node.class_name.clone()).or_default().push((variables, resolved.clone()));
+        resolved.unwrap_or_else(|| self.resolve(node, ancestors, theme, mode, inherited))
+    }
 }
 
 impl Root {
-    fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(Vec::as_slice).unwrap_or_default()}
+    fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(|rules| &**rules).unwrap_or_default()}
     fn node_style(&self, node: &Node) -> StyleRefinement {
         let mut surface = styled_rules(div(), self.rules(node), node.is_disabled(), node.identity.get());
         surface.style().clone()
