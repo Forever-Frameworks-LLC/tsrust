@@ -7,6 +7,33 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
+
+GPUI comparison fixes (`stdlib/ui/gpui.rs`, `tsrust-ui`): `StyleMemo` shares
+resolved rules per class string for nodes whose classes need no node context
+(cleared on theme, mode or viewport change); `scoped_at_width` skips ancestors
+without `[&` selectors; `style::validate` remembers accepted class strings;
+`validate_structure` skips table rules without `table`; `Node` is 384 bytes
+(was about 1,030: boxed semantics, editable, copy, branch; `Rc` theme;
+witness `nodes_stay_small_to_move`). Animate CPU in the default build went
+20.5 s to 15.1 s. Correction: the earlier 2.0x compared release Rust with a
+default (opt-level 1) Tsrust build; release vs release is now 1.3x
+(13.4 s vs 10.1 s), startup 0.42 vs 0.35 s. Keyed reuse did not apply (rows
+have no id and change text every tick). Passed: tsrust-ui 169 tests,
+`ui_authoring` 13.
+
+`benchmarks/lang-compare/` is a ten-phase CPU program in `.tsr` and plain Rust
+with equal checksums. Release medians: words 4.0x, sets 2.6x, orders 1.8x,
+sieve 1.8x, fib 1.4x, trees 1.4x, matrix 1.3x, nbody 1.3x, format 1.2x, text
+0.5x; process 2.94 s vs 1.93 s, RSS 520 vs 256 MiB. README lists the profiled
+causes (Result check per fallible call, small-vector array enum, no sized
+array constructor, owned `split` pieces and keys, two-table ordered Map/Set,
+record-copying `filter` and index-permutation sort, work-list drops) and the
+fix order. Found and fixed: `Map.set` borrowed the map mutably before its
+arguments, so `m.set(k, (m.get(k) ?? 0) + 1)` failed in rustc
+(`emit/map_emit.rs`; witness in `tests/fixtures/maps/values.tsr`).
+`tsrust build` without `--release` is opt-level 0; compare only release builds.
+
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
 `benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with
