@@ -325,9 +325,29 @@ mod platform {
                     command
                 };
                 let rustc_started = Instant::now();
-                let summary = split
-                    .build(&base, &binary, prepared.library.as_deref())
-                    .map_err(|error| format!("Native build failed:\n{error}"))?;
+                // The build runs beside the watcher; a newer edit or a stop kills its compilers.
+                let cancelled = std::sync::atomic::AtomicBool::new(false);
+                let library = prepared.library.as_deref();
+                let summary = std::thread::scope(|scope| {
+                    let running = scope.spawn(|| split.build(&base, &binary, library, &cancelled));
+                    let mut last_input_check = Instant::now();
+                    while !running.is_finished() {
+                        if STOP.load(Ordering::Relaxed) {
+                            cancelled.store(true, Ordering::Relaxed);
+                        } else if last_input_check.elapsed() >= Duration::from_millis(100) {
+                            if !watcher.still_current(root, expected) {
+                                cancelled.store(true, Ordering::Relaxed);
+                            }
+                            last_input_check = Instant::now();
+                        }
+                        std::thread::sleep(Duration::from_millis(20));
+                    }
+                    running.join().map_err(|_| "Native build thread panicked".to_owned())?
+                })
+                .map_err(|error| format!("Native build failed:\n{error}"))?;
+                let Some(summary) = summary else {
+                    return Ok(None);
+                };
                 if verbose {
                     eprintln!("[build] rustc={:.1}ms split {summary}", rustc_started.elapsed().as_secs_f64() * 1000.);
                 }

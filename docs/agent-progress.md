@@ -7,10 +7,32 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Crate-per-module step 4: split is the default — 2026-11-17
+
+Development builds (`dev`, `build`/`run`/`test` without `--release`/`--debug`)
+now compile one crate per source module by default; `TSRUST_CRATE_SPLIT=0`
+restores the single-crate build. In `tsrust dev` the split build runs beside
+the watcher and kills its rustc processes when a newer edit or a stop arrives
+(`SplitCrates::build` takes a cancel flag; a crate's fingerprint stamp is
+removed before it compiles, so a killed compile is never treated as fresh).
+
+- Studio cancel check: an edit during a running split build is abandoned, the
+  next edit builds once (rebuilt=2, 4.2-4.7 s rustc+link) and no rustc remains.
+- Linking: Linux x64 links with rust-lld by default since Rust 1.90 (pinned
+  toolchain 1.99.1) and Windows passes `-Clinker-flavor=lld-link`, so archive
+  order (types-crate code calling closure bodies in module rlibs) does not
+  matter there; macOS ld64 is verified. Not run on Linux/Windows hardware yet;
+  a forced GNU ld would need `--start-group` handling.
+- Validation: CI suites 23/23 (68 s, no aborts), CLI unit tests 65/65.
+- The earlier one-off full rebuild matches the first build after a compiler
+  binary change; repeat sessions start from the native cache.
+
+Next: release LTO comparison (plan step 5), then check time (~14.5 s of the
+Studio loop).
+
 ## Crate-per-module step 3: split development builds — 2026-11-16
 
-`TSRUST_CRATE_SPLIT=1` development builds (`dev`, `build`/`run`/`test`
-without `--release`/`--debug`) compile one crate per source module
+The emission and driver behind the old `TSRUST_CRATE_SPLIT=1` flag
 (`native/crate_split.rs`, driver `runtime_build::SplitCrates`). The prototype
 and its results are in `experiments/crate-split-spike/` (spike 3).
 
@@ -26,12 +48,6 @@ and its results are in `experiments/crate-split-spike/` (spike 3).
 - Studio `tsrust dev` (103 crates): string edit 3.2-3.5 s rustc+link,
   adding a function with a closure 3.1-3.3 s; single crate ~14 s and ~37 s.
   Check is now ~14.5 s of the ~21 s loop.
-
-Open: a split build is not cancelled by a newer edit in `tsrust dev`;
-Linux/Windows linking unverified (types-crate code calls closure bodies defined
-in module rlibs: fine with lld/link.exe/ld64, needs a check on GNU ld); one
-observed full rebuild after the first edit of a session did not reproduce.
-Next: those, then make the split the default and attack check time.
 
 ## Crate-per-module step 2: stable names — 2026-11-16
 

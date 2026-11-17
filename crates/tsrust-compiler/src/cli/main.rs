@@ -531,7 +531,7 @@ fn run() -> Result<u8, String> {
                 command.args(["--cap-lints", "allow", "--edition=2024", "-C", optimization, "-C", "overflow-checks=on"]);
                 command
             };
-            let summary = split.build(&base, &executable, prepared.library.as_deref())?;
+            let summary = split.build(&base, &executable, prepared.library.as_deref(), &Default::default())?.ok_or("Native build cancelled")?;
             if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] split {summary}");}
             if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root, false) { let _ = cache.publish(&executable); }
         } else {

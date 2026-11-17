@@ -45,7 +45,7 @@ pub(crate) struct Prepared {
  packed:Option<PathBuf>,
  _workspace:Option<crate::native_workspace::Workspace>,
  cargo:Option<artifacts::Build>,
- /// Per-module crates for this build (`TSRUST_CRATE_SPLIT=1` development builds).
+ /// Per-module crates for this development build (off with `TSRUST_CRATE_SPLIT=0`).
  pub split:Option<SplitCrates>,
 }
 impl Prepared {
@@ -514,10 +514,10 @@ impl Naming {
     }
 }
 
-/// Per-module crates (`TSRUST_CRATE_SPLIT=1`): development builds only, behind a flag
-/// until the split is the default (docs/plans/crate-per-module.md).
+/// Per-module crates for development builds (docs/plans/crate-per-module.md).
+/// On by default; `TSRUST_CRATE_SPLIT=0` keeps the single-crate build.
 pub(crate) fn crate_split_enabled() -> bool {
-    std::env::var("TSRUST_CRATE_SPLIT").as_deref() == Ok("1")
+    std::env::var("TSRUST_CRATE_SPLIT").as_deref() != Ok("0")
 }
 
 /// A program split into one crate per source module, written to the incremental
@@ -589,13 +589,16 @@ impl SplitCrates {
 
     /// Build every crate with `base` (backend, runtime link flags and codegen
     /// options), the types crate first, then module crates in parallel, then the
-    /// program into `binary`. Returns a timing summary.
+    /// program into `binary`. Returns a timing summary, or `None` when `cancelled`
+    /// was set: running compilers are killed and no further crates start.
     pub(crate) fn build(
         &self,
         base: &(dyn Fn() -> Command + Sync),
         binary: &Path,
         runtime: Option<&Path>,
-    ) -> Result<String, String> {
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Option<String>, String> {
+        use std::sync::atomic::Ordering::Relaxed;
         let started = std::time::Instant::now();
         let lib = self.directory.join("lib");
         if let Some(runtime) = runtime {
@@ -624,6 +627,11 @@ impl SplitCrates {
                 && output.is_file()
                 && fs::read_to_string(&stamp).ok().as_deref() == Some(fingerprint.as_str());
             if !fresh {
+                if cancelled.load(Relaxed) {
+                    return Err(String::new());
+                }
+                // A cancelled compile can leave a partial output; forget the old stamp first.
+                let _ = fs::remove_file(&stamp);
                 let mut command = base();
                 command.arg("-L").arg(format!("dependency={}", lib.display()));
                 // Crates built against the runtime find it again by search path.
@@ -637,21 +645,36 @@ impl SplitCrates {
                 if !unit.program {
                     command.args(["--crate-type", "rlib", "--crate-name", &unit.name]);
                 }
-                let result = command
+                let _ = fs::create_dir_all(self.directory.join("incremental"));
+                let errors = self.directory.join("incremental").join(format!("{}.stderr", unit.name));
+                let mut child = command
                     .arg(&source)
                     .arg("-o")
                     .arg(&output)
-                    .output()
+                    .stdout(std::process::Stdio::null())
+                    .stderr(fs::File::create(&errors).map_err(|e| e.to_string())?)
+                    .spawn()
                     .map_err(|e| format!("Cannot invoke pinned Rust: {e}"))?;
-                if !result.status.success() {
-                    let _ = fs::remove_file(&stamp);
+                let status = loop {
+                    if cancelled.load(Relaxed) {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return Err(String::new());
+                    }
+                    if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+                        break status;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                };
+                let stderr = fs::read_to_string(&errors).unwrap_or_default();
+                let _ = fs::remove_file(&errors);
+                if !status.success() {
                     return Err(format!(
                         "Rust rejected generated code. This is a compiler defect; inspect with the emit command.\n{}",
-                        String::from_utf8_lossy(&result.stderr).trim()
+                        stderr.trim()
                     ));
                 }
                 if !unit.program {
-                    let _ = fs::create_dir_all(self.directory.join("incremental"));
                     let _ = fs::write(&stamp, &fingerprint);
                 }
                 rebuilt.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -659,9 +682,17 @@ impl SplitCrates {
             fingerprints.lock().map_err(|e| e.to_string())?.insert(unit.name.clone(), fingerprint);
             Ok(())
         };
+        // An empty error means the build was cancelled.
+        let finish = |result: Result<(), String>| match result {
+            Err(error) if error.is_empty() => Ok(false),
+            Err(error) => Err(error),
+            Ok(()) => Ok(true),
+        };
         let types = self.crates.iter().filter(|unit| unit.dependencies.is_empty() && !unit.program);
         for unit in types {
-            run(unit)?;
+            if !finish(run(unit))? {
+                return Ok(None);
+            }
         }
         let types_done = started.elapsed();
         let modules = self.crates.iter().filter(|unit| !unit.dependencies.is_empty() && !unit.program).collect::<Vec<_>>();
@@ -685,21 +716,25 @@ impl SplitCrates {
                 });
             }
         });
-        if let Some(error) = failure.into_inner().map_err(|e| e.to_string())? {
-            return Err(error);
+        if let Some(error) = failure.into_inner().map_err(|e| e.to_string())?
+            && !finish(Err(error))?
+        {
+            return Ok(None);
         }
         let modules_done = started.elapsed();
         for unit in self.crates.iter().filter(|unit| unit.program) {
-            run(unit)?;
+            if !finish(run(unit))? {
+                return Ok(None);
+            }
         }
-        Ok(format!(
+        Ok(Some(format!(
             "crates={} rebuilt={} types={:.1}ms modules={:.1}ms program={:.1}ms",
             self.crates.len(),
             rebuilt.load(std::sync::atomic::Ordering::Relaxed),
             types_done.as_secs_f64() * 1000.0,
             (modules_done - types_done).as_secs_f64() * 1000.0,
             (started.elapsed() - modules_done).as_secs_f64() * 1000.0
-        ))
+        )))
     }
 }
 
