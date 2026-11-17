@@ -74,6 +74,16 @@ impl ProjectAnalysis {
         }
         (rust, features)
     }
+    /// Stable identities of generated items, keyed by module path.
+    pub fn name_keys(&self) -> crate::native::stable_names::Keys {
+        let modules = self
+            .graph
+            .order
+            .iter()
+            .map(|id| id.0.clone())
+            .collect::<Vec<_>>();
+        crate::native::stable_names::keys(&self.analysis.program, &modules)
+    }
     /// Source module of each generated function and closure, by checked-program
     /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…],
     /// "functionNames":[…],"recordNames":[…]}`.

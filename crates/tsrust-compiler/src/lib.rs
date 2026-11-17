@@ -61,6 +61,7 @@ pub use native::exports as native_exports;
 pub use native::cache as native_cache;
 pub use native::codegen_units as native_codegen_units;
 pub use native::runtime as native_runtime;
+pub use native::stable_names as native_stable_names;
 pub(crate) use native::emit as native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use stdlib::path::relative as native_path_relative;
@@ -199,6 +200,11 @@ impl Analysis {
     /// Generated Rust and deterministic features selected by emitted native bindings.
     pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
         emit::emit_with_native_features(&self.program, "")
+    }
+
+    /// Stable identities of generated items, for incremental native builds.
+    pub fn name_keys(&self) -> native::stable_names::Keys {
+        native::stable_names::keys(&self.program, &[])
     }
 
     pub fn closures(&self) -> Vec<ClosureInfo> {

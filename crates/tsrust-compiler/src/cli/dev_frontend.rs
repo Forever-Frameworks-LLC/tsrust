@@ -1,7 +1,15 @@
 //! A bounded, persistent frontend worker. Cancelled responses are discarded by callers.
 use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,Instant}};
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
-pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
+pub(crate) struct Output {
+    pub rust: String,
+    pub features: Vec<&'static str>,
+    pub identity: Vec<u8>,
+    pub stats: SessionStats,
+    pub check: Duration,
+    pub emit: Duration,
+    pub keys: tsrust_compiler::native_stable_names::Keys,
+}
 pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<(std::sync::Arc<Output>,bool),String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
 /// request, including imported dependencies outside the ordinary watch tree.
@@ -74,20 +82,62 @@ fn run(requests:Receiver<Request>) {
   let _=request.reply.send(result);
  }
 }
-fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)->Result<Output,String>{
- let started=Instant::now();
- let id=sources.resolve(None,entry.to_str().ok_or("Source path must be valid UTF-8.")?)?;
- let source=sources.read(&id)?;
- let analysis=tsrust_compiler::project_cli::check_input_cached_with_provider(entry,&source,session,sources).map_err(|error|error.render_with_provider(&entry.display().to_string(),&source,false,sources))?;
- let check=started.elapsed();let started=Instant::now();
- let(rust,features)=analysis.emit_rust_with_native_features();let emit=started.elapsed();
- let mut identity=Vec::new();
- match &analysis {
-  CheckedInput::Project(project)=>for(id,module)in &project.graph.modules {for value in [id.0.as_bytes(),module.source.text.as_bytes()] {identity.extend_from_slice(&(value.len()as u64).to_le_bytes());identity.extend_from_slice(value);}},
-  CheckedInput::Single(_)=>{let id=sources.resolve(None,entry.to_str().ok_or("Source path must be valid UTF-8.")?)?;identity.extend_from_slice(&(id.0.len()as u64).to_le_bytes());identity.extend_from_slice(id.0.as_bytes());identity.extend_from_slice(source.as_bytes());},
- }
- let stats=if matches!(analysis,CheckedInput::Project(_)){session.stats()}else{SessionStats::default()};
- Ok(Output{rust,features,identity,stats,check,emit})
+fn compile(
+    session: &mut ProjectSession,
+    entry: &std::path::Path,
+    sources: &Snapshot,
+) -> Result<Output, String> {
+    let started = Instant::now();
+    let id = sources.resolve(
+        None,
+        entry.to_str().ok_or("Source path must be valid UTF-8.")?,
+    )?;
+    let source = sources.read(&id)?;
+    let analysis = tsrust_compiler::project_cli::check_input_cached_with_provider(
+        entry, &source, session, sources,
+    )
+    .map_err(|error| {
+        error.render_with_provider(&entry.display().to_string(), &source, false, sources)
+    })?;
+    let check = started.elapsed();
+    let started = Instant::now();
+    let (rust, features) = analysis.emit_rust_with_native_features();
+    let keys = analysis.name_keys();
+    let emit = started.elapsed();
+    let mut identity = Vec::new();
+    match &analysis {
+        CheckedInput::Project(project) => {
+            for (id, module) in &project.graph.modules {
+                for value in [id.0.as_bytes(), module.source.text.as_bytes()] {
+                    identity.extend_from_slice(&(value.len() as u64).to_le_bytes());
+                    identity.extend_from_slice(value);
+                }
+            }
+        }
+        CheckedInput::Single(_) => {
+            let id = sources.resolve(
+                None,
+                entry.to_str().ok_or("Source path must be valid UTF-8.")?,
+            )?;
+            identity.extend_from_slice(&(id.0.len() as u64).to_le_bytes());
+            identity.extend_from_slice(id.0.as_bytes());
+            identity.extend_from_slice(source.as_bytes());
+        }
+    }
+    let stats = if matches!(analysis, CheckedInput::Project(_)) {
+        session.stats()
+    } else {
+        SessionStats::default()
+    };
+    Ok(Output {
+        rust,
+        features,
+        identity,
+        stats,
+        check,
+        emit,
+        keys,
+    })
 }
 
 #[cfg(test)]

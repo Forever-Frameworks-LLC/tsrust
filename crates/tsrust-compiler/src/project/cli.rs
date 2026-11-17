@@ -11,6 +11,15 @@ pub enum CheckedInput {
     Single(Analysis),
     Project(ProjectAnalysis),
 }
+impl CheckedInput {
+    /// Stable identities of generated items, for incremental native builds.
+    pub fn name_keys(&self) -> crate::native::stable_names::Keys {
+        match self {
+            Self::Single(analysis) => analysis.name_keys(),
+            Self::Project(project) => project.name_keys(),
+        }
+    }
+}
 pub enum InputDiagnostic {
     Single(Diagnostic),
     Project(ProjectDiagnostic),

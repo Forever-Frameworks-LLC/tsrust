@@ -6,8 +6,9 @@
 //! modules lets rustc reuse the unchanged units: a one-line edit in the GPUI starter
 //! went from 17s to 7s of rustc time, and cold builds parallelize better.
 //!
-//! Only `functionN` and `tsr_result_functionN` items move, and never across a
-//! `macro_rules!` definition. Child modules see private
+//! Only `functionN` and `tsr_result_functionN` items move, by a hash of their
+//! name, into units emitted after every other item (programs defining macros
+//! keep source order instead). Child modules see private
 //! crate-root items through `use super::*`, and the root sees the moved functions
 //! through a glob import of each `pub(super)` function. Boundaries come from a small
 //! lexer that tracks delimiters, strings, raw strings, characters and comments, so a
@@ -24,6 +25,257 @@ pub fn partition_with(application: &str, unit_bytes: usize) -> String {
     let Some(items) = top_level_items(application) else {
         return application.to_owned();
     };
+    if items
+        .iter()
+        .any(|item| application[item.head..item.end].starts_with("macro_rules!"))
+    {
+        return sequential(application, &items, unit_bytes);
+    }
+    // Assign each generated function to a unit by a hash of its name, not by
+    // position: inserting a function then leaves every other function in the
+    // same module, so rustc reuses their codegen units. With stable generated
+    // names (stable_names) the assignment survives edits elsewhere. The unit
+    // count only changes when the generated code crosses a power-of-two size.
+    let movable = items
+        .iter()
+        .filter_map(|item| {
+            let head = &application[item.head..item.end];
+            generated_function(head).map(|offset| (item, offset))
+        })
+        .collect::<Vec<_>>();
+    if movable.is_empty() {
+        return application.to_owned();
+    }
+    let bytes = movable
+        .iter()
+        .map(|(item, _)| item.end - item.start)
+        .sum::<usize>();
+    let units = bytes.div_ceil(unit_bytes.max(1)).max(1).next_power_of_two();
+    let mut bodies = vec![String::new(); units];
+    let mut output = String::with_capacity(application.len() + application.len() / 64);
+    for item in &items {
+        let text = &application[item.start..item.end];
+        let head = &application[item.head..item.end];
+        match generated_function(head) {
+            Some(offset) => {
+                let name = head.split(['(', '<']).next().unwrap_or(head);
+                let unit = &mut bodies[(stable_hash(name) % units as u64) as usize];
+                let insert = item.head - item.start + offset;
+                unit.push_str(&text[..insert]);
+                unit.push_str("pub(super) ");
+                unit.push_str(&text[insert..]);
+                if !unit.ends_with('\n') {
+                    unit.push('\n');
+                }
+            }
+            None => output.push_str(text),
+        }
+    }
+    // Units follow every other item: generated functions only ever move later.
+    if !output.ends_with('\n') {
+        output.push('\n');
+    }
+    for (index, body) in bodies
+        .iter()
+        .enumerate()
+        .filter(|(_, body)| !body.is_empty())
+    {
+        output.push_str(&format!(
+            "mod tsrust_generated_unit{index} {{ use super::*;\n"
+        ));
+        output.push_str(body);
+        output.push_str(&format!("}}\nuse tsrust_generated_unit{index}::*;\n"));
+    }
+    output
+}
+
+/// One source file of a multi-file incremental build.
+pub struct SourcePart {
+    pub file_name: String,
+    pub text: String,
+}
+
+/// Split the application across files for incremental builds. rustc's
+/// incremental cache keys spans by line, so an item inserted anywhere in one
+/// file invalidates every item after it in that file. Generated functions go to
+/// unit modules (one codegen unit each) whose bodies live in their own files;
+/// every other movable item goes to an `include!`d file in the root module, so
+/// visibility is unchanged. Items are assigned by a hash of their stable name
+/// and sorted by name within a file, so an insertion shifts lines in one file.
+/// The first part is `program.rs`; the others are named `tsrust_part_*.rs`.
+/// Programs defining macros keep one file in source order.
+pub fn partition_files(application: &str, unit_bytes: usize) -> Vec<SourcePart> {
+    let single = || {
+        vec![SourcePart {
+            file_name: "program.rs".into(),
+            text: partition_with(application, unit_bytes),
+        }]
+    };
+    let Some(items) = top_level_items(application) else {
+        return single();
+    };
+    if items
+        .iter()
+        .any(|item| application[item.head..item.end].starts_with("macro_rules!"))
+    {
+        return single();
+    }
+    let mut root = String::with_capacity(application.len() / 8);
+    let mut functions: Vec<(String, String)> = Vec::new();
+    let mut others: Vec<(String, String)> = Vec::new();
+    for item in &items {
+        let text = &application[item.start..item.end];
+        let head = &application[item.head..item.end];
+        if let Some(offset) = generated_function(head) {
+            let insert = item.head - item.start + offset;
+            let mut moved = String::with_capacity(text.len() + 12);
+            moved.push_str(&text[..insert]);
+            moved.push_str("pub(super) ");
+            moved.push_str(&text[insert..]);
+            functions.push((item_name(head), moved));
+        } else if fixed_in_root(head) {
+            root.push_str(text);
+        } else {
+            others.push((item_name(head), text.to_owned()));
+        }
+    }
+    let count = |parts: &[(String, String)]| {
+        parts
+            .iter()
+            .map(|(_, text)| text.len())
+            .sum::<usize>()
+            .div_ceil(unit_bytes.max(1))
+            .max(1)
+            .next_power_of_two()
+    };
+    let distribute = |parts: Vec<(String, String)>, files: usize| {
+        let mut buckets: Vec<Vec<(String, String)>> = vec![Vec::new(); files];
+        for (name, text) in parts {
+            buckets[(stable_hash(&name) % files as u64) as usize].push((name, text));
+        }
+        buckets
+            .into_iter()
+            .map(|mut bucket| {
+                bucket.sort_by(|a, b| a.0.cmp(&b.0));
+                let mut text = String::new();
+                for (_, item) in bucket {
+                    text.push_str(&item);
+                    if !text.ends_with('\n') {
+                        text.push('\n');
+                    }
+                }
+                text
+            })
+            .collect::<Vec<_>>()
+    };
+    let mut parts = Vec::new();
+    if !root.ends_with('\n') {
+        root.push('\n');
+    }
+    if !others.is_empty() {
+        let files = count(&others);
+        for (index, text) in distribute(others, files)
+            .into_iter()
+            .enumerate()
+            .filter(|(_, text)| !text.is_empty())
+        {
+            let file_name = format!("tsrust_part_items{index}.rs");
+            root.push_str(&format!("include!(\"{file_name}\");\n"));
+            parts.push(SourcePart { file_name, text });
+        }
+    }
+    if !functions.is_empty() {
+        let files = count(&functions);
+        for (index, text) in distribute(functions, files)
+            .into_iter()
+            .enumerate()
+            .filter(|(_, text)| !text.is_empty())
+        {
+            let file_name = format!("tsrust_part_unit{index}.rs");
+            root.push_str(&format!("mod tsrust_generated_unit{index} {{ use super::*; include!(\"{file_name}\"); }}\nuse tsrust_generated_unit{index}::*;\n"));
+            parts.push(SourcePart { file_name, text });
+        }
+    }
+    parts.insert(
+        0,
+        SourcePart {
+            file_name: "program.rs".into(),
+            text: root,
+        },
+    );
+    parts
+}
+
+/// Items that must stay in the root file: imports, modules, inner attributes and `main`.
+fn fixed_in_root(head: &str) -> bool {
+    let head = head.trim_start();
+    let head = head
+        .strip_prefix("pub(crate) ")
+        .or_else(|| head.strip_prefix("pub "))
+        .unwrap_or(head);
+    head.starts_with("use ")
+        || head.starts_with("mod ")
+        || head.starts_with("extern ")
+        || head.starts_with("#!")
+        || head.starts_with("fn main(")
+        || !item_keyword(head)
+}
+
+/// The name an item defines, or for an impl block, the type it implements for.
+fn item_name(head: &str) -> String {
+    let line = head.split('\n').next().unwrap_or(head);
+    let line = line
+        .strip_prefix("pub(crate) ")
+        .or_else(|| line.strip_prefix("pub(super) "))
+        .or_else(|| line.strip_prefix("pub "))
+        .unwrap_or(line);
+    if let Some(rest) = line.strip_prefix("impl") {
+        // Skip the impl's own generic parameters, then take the implementing type.
+        let mut rest = rest.trim_start();
+        if rest.starts_with('<') {
+            let mut depth = 0usize;
+            let end = rest
+                .char_indices()
+                .find_map(|(index, c)| {
+                    match c {
+                        '<' => depth += 1,
+                        '>' => {
+                            depth -= 1;
+                            if depth == 0 {
+                                return Some(index + 1);
+                            }
+                        }
+                        _ => {}
+                    }
+                    None
+                })
+                .unwrap_or(rest.len());
+            rest = rest[end..].trim_start();
+        }
+        let header = rest.split('{').next().unwrap_or(rest);
+        let target = header.rsplit(" for ").next().unwrap_or(header).trim();
+        return format!(
+            "impl {} for {}",
+            target.split('<').next().unwrap_or(target),
+            header.split(" for ").next().unwrap_or(header).trim()
+        );
+    }
+    line.split(['{', '(', '<', '=', ';'])
+        .next()
+        .unwrap_or(line)
+        .trim()
+        .to_owned()
+}
+
+/// FNV-1a: stable across Rust versions and platforms, unlike `DefaultHasher`.
+fn stable_hash(text: &str) -> u64 {
+    text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+        (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
+    })
+}
+
+/// Source-order filling for programs that define macros, which scope textually.
+fn sequential(application: &str, items: &[Item], unit_bytes: usize) -> String {
     let mut output = String::with_capacity(application.len() + application.len() / 64);
     let mut unit = String::new();
     let mut units = 0usize;
@@ -31,7 +283,9 @@ pub fn partition_with(application: &str, unit_bytes: usize) -> String {
         if unit.is_empty() {
             return;
         }
-        output.push_str(&format!("mod tsrust_generated_unit{units} {{ use super::*;\n"));
+        output.push_str(&format!(
+            "mod tsrust_generated_unit{units} {{ use super::*;\n"
+        ));
         output.push_str(unit);
         if !unit.ends_with('\n') {
             output.push('\n');
@@ -43,8 +297,7 @@ pub fn partition_with(application: &str, unit_bytes: usize) -> String {
     for item in items {
         let text = &application[item.start..item.end];
         let head = &application[item.head..item.end];
-        // Item order is irrelevant except for macro_rules!, which scopes textually.
-        // Moved functions only ever move later, and never across a macro definition.
+        // Never move a function across a macro definition.
         if head.starts_with("macro_rules!") {
             flush(&mut unit, &mut output, &mut units);
         }
@@ -64,12 +317,12 @@ pub fn partition_with(application: &str, unit_bytes: usize) -> String {
     output
 }
 
-struct Item {
+pub(crate) struct Item {
     /// Start including leading attributes.
-    start: usize,
+    pub(crate) start: usize,
     /// Start of the item keyword line.
-    head: usize,
-    end: usize,
+    pub(crate) head: usize,
+    pub(crate) end: usize,
 }
 
 /// Byte offset of `fn`/`async fn` in a movable generated function head.
@@ -87,7 +340,7 @@ fn generated_function(head: &str) -> Option<usize> {
 }
 
 /// Split the source at top-level line starts, or `None` if delimiters do not balance.
-fn top_level_items(source: &str) -> Option<Vec<Item>> {
+pub(crate) fn top_level_items(source: &str) -> Option<Vec<Item>> {
     let starts = top_level_line_starts(source)?;
     let mut items = Vec::new();
     let mut pending_attributes: Option<usize> = None;
@@ -112,7 +365,11 @@ fn top_level_items(source: &str) -> Option<Vec<Item>> {
             }
         }
         if item_keyword(line) || previous.is_none() {
-            close(&mut items, previous.take(), pending_attributes.unwrap_or(start));
+            close(
+                &mut items,
+                previous.take(),
+                pending_attributes.unwrap_or(start),
+            );
             previous = Some((pending_attributes.take().unwrap_or(start), start));
         } else if let Some(attributes) = pending_attributes.take() {
             // Attributes followed by a non-item line stay as plain text.
@@ -122,12 +379,23 @@ fn top_level_items(source: &str) -> Option<Vec<Item>> {
     let end = source.len();
     if let Some(attributes) = pending_attributes {
         close(&mut items, previous.take(), attributes);
-        items.push(Item { start: attributes, head: attributes, end });
+        items.push(Item {
+            start: attributes,
+            head: attributes,
+            end,
+        });
     } else {
         close(&mut items, previous, end);
     }
     if items.first().is_some_and(|item| item.start != 0) {
-        items.insert(0, Item { start: 0, head: 0, end: items[0].start });
+        items.insert(
+            0,
+            Item {
+                start: 0,
+                head: 0,
+                end: items[0].start,
+            },
+        );
     }
     Some(items)
 }
@@ -302,15 +570,21 @@ fn function2() {}\n";
     #[test]
     fn generated_functions_move_into_child_modules_with_their_attributes() {
         let partitioned = partition_with(PROGRAM, 1);
-        assert!(partitioned.contains("mod tsrust_generated_unit0 { use super::*;\npub(super) fn function0("));
+        assert!(partitioned.contains("pub(super) fn function0("));
         assert!(partitioned.contains("#[inline(never)]\npub(super) fn tsr_result_function1("));
         assert!(partitioned.contains("pub(super) fn function1<T"));
-        assert!(partitioned.contains("use tsrust_generated_unit0::*;"));
-        // Root items and main stay in place; functions after a module still move.
-        assert!(partitioned.contains("\nstruct Record0 {"));
-        assert!(partitioned.contains("\nfn main() {"));
-        assert!(partitioned.contains("mod after { pub fn helper() {} }"));
         assert!(partitioned.contains("pub(super) fn function2() {}"));
+        assert!(partitioned.contains("use super::*;"));
+        // Root items and main stay in place, before every unit.
+        let first_unit = partitioned.find("mod tsrust_generated_unit").unwrap();
+        assert!(partitioned.find("\nstruct Record0 {").unwrap() < first_unit);
+        assert!(partitioned.find("\nfn main() {").unwrap() < first_unit);
+        assert!(
+            partitioned
+                .find("mod after { pub fn helper() {} }")
+                .unwrap()
+                < first_unit
+        );
         assert!(!partitioned.contains("pub(super) fn function9") && !partitioned.contains("pub(super) fn function8"));
         // Literal and label text is preserved exactly.
         assert!(partitioned.contains("\"}\nfn function9() {\""));
@@ -320,11 +594,82 @@ fn function2() {}\n";
     #[test]
     fn units_follow_the_byte_budget_and_large_budgets_use_one_unit() {
         assert_eq!(partition_with(PROGRAM, usize::MAX).matches("mod tsrust_generated_unit").count(), 1);
-        assert_eq!(partition_with(PROGRAM, 1).matches("mod tsrust_generated_unit").count(), 4);
+        assert!(
+            partition_with(PROGRAM, 1)
+                .matches("mod tsrust_generated_unit")
+                .count()
+                > 1
+        );
     }
 
     #[test]
-    fn functions_never_cross_a_macro_definition() {
+    fn inserting_a_function_leaves_other_functions_in_their_units() {
+        let before = "fn function1() {}\nfn function2() {}\nfn function3() {}\nfn main() {}\n";
+        let after = "fn function7() {}\nfn function1() {}\nfn function2() {}\nfn function3() {}\nfn main() {}\n";
+        let unit_of = |text: &str, name: &str| {
+            let at = text.find(&format!("pub(super) fn {name}()")).unwrap();
+            text[..at]
+                .rfind("mod tsrust_generated_unit")
+                .map(|start| text[start..].split_whitespace().nth(1).unwrap().to_owned())
+        };
+        let (left, right) = (partition_with(before, 18), partition_with(after, 18));
+        for name in ["function1", "function2", "function3"] {
+            assert_eq!(
+                unit_of(&left, name),
+                unit_of(&right, name),
+                "{name}: {left}\n---\n{right}"
+            );
+        }
+    }
+
+    #[test]
+    fn files_keep_root_items_and_isolate_insertions_to_one_part() {
+        let before = "use std::fmt;\nstruct Record1 { field0: i64 }\nstruct Record2 { field0: i64 }\nfn function1() {}\nfn function2() {}\nfn main() { function1(); }\n";
+        let after = "use std::fmt;\nstruct Record9 { field0: bool }\nstruct Record1 { field0: i64 }\nstruct Record2 { field0: i64 }\nfn function9() {}\nfn function1() {}\nfn function2() {}\nfn main() { function1(); }\n";
+        let (left, right) = (partition_files(before, 25), partition_files(after, 25));
+        assert_eq!(left.len(), right.len(), "same file count under this budget");
+        assert!(
+            left[0]
+                .text
+                .starts_with("use std::fmt;\nfn main() { function1(); }\n"),
+            "{}",
+            left[0].text
+        );
+        assert!(
+            left[0].text.contains("include!(\"tsrust_part_items")
+                && left[0].text.contains("include!(\"tsrust_part_unit")
+        );
+        let find = |parts: &[SourcePart], needle: &str| {
+            parts
+                .iter()
+                .find(|part| part.text.contains(needle))
+                .map(|part| part.file_name.clone())
+        };
+        for needle in [
+            "struct Record1",
+            "struct Record2",
+            "pub(super) fn function1",
+            "pub(super) fn function2",
+        ] {
+            assert_eq!(find(&left, needle), find(&right, needle), "{needle}");
+        }
+        let changed = left
+            .iter()
+            .filter(|part| {
+                right
+                    .iter()
+                    .find(|other| other.file_name == part.file_name)
+                    .is_none_or(|other| other.text != part.text)
+            })
+            .count();
+        assert!(
+            changed <= 3,
+            "an insertion rewrites only the parts receiving new items and the root list"
+        );
+    }
+
+    #[test]
+    fn programs_with_macros_never_move_a_function_across_a_macro_definition() {
         let source = "fn function0() { helper!(); }\nmacro_rules! helper { () => {} }\nfn function1() { helper!(); }\n";
         let partitioned = partition_with(source, usize::MAX);
         let macro_at = partitioned.find("macro_rules! helper").unwrap();

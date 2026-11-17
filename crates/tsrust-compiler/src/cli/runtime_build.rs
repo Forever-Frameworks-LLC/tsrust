@@ -47,25 +47,161 @@ pub(crate) struct Prepared {
  cargo:Option<artifacts::Build>,
 }
 impl Prepared {
- pub fn new(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool)->Result<Self,String> {
-  Self::prepare(source,backend,root,temporary,release,false)
- }
- pub fn for_dev(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool)->Result<Self,String> {
-  Self::prepare(source,backend,root,temporary,release,true)
- }
- fn prepare(source:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
-  let units=native_runtime::separate(source);let application=temporary.join("program.rs");fs::write(&application,tsrust_compiler::native_codegen_units::partition(&units.application)).map_err(|e|e.to_string())?;
-  let Some(runtime)=units.runtime else{return Ok(Self{application,library:None,command:None,state:"none",shared_sources:false,source_snapshot:None,cache:None,opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None});};
-  if units.dependencies {return Self::with_dependencies(application,&runtime,backend,root,temporary,release,opportunistic);}
-  let library=temporary.join("libtsrust_runtime.rlib");
-  let cache=NativeCache::runtime(&root.join("runtime"),&[b"runtime-rlib-abi-1",backend.as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on;crate=tsrust_runtime",runtime.as_bytes()]);
-  let reused=if opportunistic{cache.try_copy_to(&library)}else{cache.copy_to(&library)};
-  let command=if reused {None}else{
-   let input=temporary.join("runtime.rs");fs::write(&input,runtime).map_err(|e|e.to_string())?;
-   let mut command=crate::backend_command();command.args(["--edition=2024","--crate-type=rlib","--crate-name=tsrust_runtime","-C",if release{"opt-level=3"}else{"opt-level=0"},"-C","overflow-checks=on"]).arg(input).arg("-o").arg(&library);Some(command)
-  };
-  Ok(Self{application,library:Some(library),command,state:if reused{"hit"}else{"miss"},shared_sources:false,source_snapshot:None,cache:Some(cache),opportunistic,dependencies:None,packed:None,_workspace:None,cargo:None})
- }
+    pub fn new(
+        source: &str,
+        backend: &str,
+        root: &Path,
+        temporary: &Path,
+        release: bool,
+    ) -> Result<Self, String> {
+        Self::prepare(source, backend, root, temporary, release, false, None)
+    }
+    /// As [`Self::new`], naming generated items through an incremental session ledger.
+    pub fn new_named(
+        source: &str,
+        backend: &str,
+        root: &Path,
+        temporary: &Path,
+        release: bool,
+        naming: Option<&Naming>,
+    ) -> Result<Self, String> {
+        Self::prepare(source, backend, root, temporary, release, false, naming)
+    }
+    pub fn for_dev(
+        source: &str,
+        backend: &str,
+        root: &Path,
+        temporary: &Path,
+        release: bool,
+        naming: Option<&Naming>,
+    ) -> Result<Self, String> {
+        Self::prepare(source, backend, root, temporary, release, true, naming)
+    }
+    fn prepare(
+        source: &str,
+        backend: &str,
+        root: &Path,
+        temporary: &Path,
+        release: bool,
+        opportunistic: bool,
+        naming: Option<&Naming>,
+    ) -> Result<Self, String> {
+        let units = native_runtime::separate(source);
+        let application = temporary.join("program.rs");
+        // Stable names keep unchanged items byte-identical across edits; split afterwards.
+        let named = match naming {
+            Some(naming) => {
+                let mut ledger = tsrust_compiler::native_stable_names::Ledger::load(&naming.ledger);
+                let named = tsrust_compiler::native_stable_names::stabilize(
+                    &units.application,
+                    &naming.keys,
+                    &mut ledger,
+                );
+                ledger.save(&naming.ledger);
+                named
+            }
+            None => units.application.clone(),
+        };
+        if naming.is_some() {
+            // Incremental builds spread items over files so an insertion shifts lines in one file.
+            for part in tsrust_compiler::native_codegen_units::partition_files(
+                &named,
+                tsrust_compiler::native_codegen_units::DEFAULT_UNIT_BYTES,
+            ) {
+                fs::write(temporary.join(&part.file_name), part.text).map_err(|e| e.to_string())?;
+            }
+        } else {
+            fs::write(
+                &application,
+                tsrust_compiler::native_codegen_units::partition(&named),
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        let Some(runtime) = units.runtime else {
+            return Ok(Self {
+                application,
+                library: None,
+                command: None,
+                state: "none",
+                shared_sources: false,
+                source_snapshot: None,
+                cache: None,
+                opportunistic,
+                dependencies: None,
+                packed: None,
+                _workspace: None,
+                cargo: None,
+            });
+        };
+        if units.dependencies {
+            return Self::with_dependencies(
+                application,
+                &runtime,
+                backend,
+                root,
+                temporary,
+                release,
+                opportunistic,
+            );
+        }
+        let library = temporary.join("libtsrust_runtime.rlib");
+        let cache = NativeCache::runtime(
+            &root.join("runtime"),
+            &[
+                b"runtime-rlib-abi-1",
+                backend.as_bytes(),
+                std::env::consts::OS.as_bytes(),
+                std::env::consts::ARCH.as_bytes(),
+                if release { b"release" } else { b"debug" },
+                b"edition=2024;overflow-checks=on;crate=tsrust_runtime",
+                runtime.as_bytes(),
+            ],
+        );
+        let reused = if opportunistic {
+            cache.try_copy_to(&library)
+        } else {
+            cache.copy_to(&library)
+        };
+        let command = if reused {
+            None
+        } else {
+            let input = temporary.join("runtime.rs");
+            fs::write(&input, runtime).map_err(|e| e.to_string())?;
+            let mut command = crate::backend_command();
+            command
+                .args([
+                    "--edition=2024",
+                    "--crate-type=rlib",
+                    "--crate-name=tsrust_runtime",
+                    "-C",
+                    if release {
+                        "opt-level=3"
+                    } else {
+                        "opt-level=0"
+                    },
+                    "-C",
+                    "overflow-checks=on",
+                ])
+                .arg(input)
+                .arg("-o")
+                .arg(&library);
+            Some(command)
+        };
+        Ok(Self {
+            application,
+            library: Some(library),
+            command,
+            state: if reused { "hit" } else { "miss" },
+            shared_sources: false,
+            source_snapshot: None,
+            cache: Some(cache),
+            opportunistic,
+            dependencies: None,
+            packed: None,
+            _workspace: None,
+            cargo: None,
+        })
+    }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
 
   let absolute_root=crate::absolute(root)?;fs::create_dir_all(&absolute_root).map_err(|e|e.to_string())?;let absolute_root=absolute_root.canonicalize().map_err(|e|e.to_string())?;let root=absolute_root.as_path();
@@ -245,28 +381,126 @@ pub(crate) fn application_optimization(release:bool,native_ui:bool)->&'static st
 /// Returns the generated source path to compile: incremental sessions use a stable copy,
 /// because rustc keys cached items by source file name and a temporary path would
 /// invalidate every item on each build.
-pub(crate) fn application_backend_args(command:&mut Command,cache_root:&Path,entry:&Path,release:bool,application:&Path)->PathBuf{
- command.args(["--cap-lints","allow"]);
- if release {return application.to_owned();}
- let directory=cache_root.join(INCREMENTAL_DIRECTORY);
- let _=fs::create_dir_all(&directory);
- prune_incremental(&directory,INCREMENTAL_ENTRIES);
- let mut hash=Sha256::new();hash.update(b"application-incremental-1");hash.update(entry.to_string_lossy().as_bytes());
- let key=hash.finalize().iter().take(8).map(|byte|format!("{byte:02x}")).collect::<String>();
- let session=directory.join(key);let _=fs::create_dir_all(&session);
- // Touch so pruning keeps recently used programs.
- let marker=session.join(".used");if !marker.exists(){let _=fs::write(&marker,b"");}touch(&marker);
- let stable=session.join("program.rs");
- let source=match fs::read(application){Ok(source)=>source,Err(_)=>return application.to_owned()};
- // Keep the old file (and its mtime) when the generated text is unchanged.
- if fs::read(&stable).ok().as_deref()!=Some(source.as_slice()) {
-  // Rename atomically: a concurrent build of the same entry reads a whole file.
-  let pending=session.join(format!("program.rs.{}",std::process::id()));
-  if fs::write(&pending,&source).and_then(|()|fs::rename(&pending,&stable)).is_err(){let _=fs::remove_file(&pending);return application.to_owned();}
- }
- command.arg("-C").arg(format!("incremental={}",session.join("rustc").display()));
- stable
+pub(crate) fn application_backend_args(
+    command: &mut Command,
+    cache_root: &Path,
+    entry: &Path,
+    release: bool,
+    application: &Path,
+) -> PathBuf {
+    command.args(["--cap-lints", "allow"]);
+    if release {
+        return application.to_owned();
+    }
+    let session = incremental_session(cache_root, entry);
+    let stable = session.join("program.rs");
+    // Copy the multi-file parts too, leaving unchanged files (and their mtimes) alone.
+    if let Some(directory) = application.parent()
+        && let Ok(entries) = fs::read_dir(directory)
+    {
+        let mut current = std::collections::BTreeSet::new();
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(text_name) = name.to_str() else {
+                continue;
+            };
+            if !(text_name.starts_with("tsrust_part_") && text_name.ends_with(".rs")) {
+                continue;
+            }
+            current.insert(name.clone());
+            let Ok(bytes) = fs::read(entry.path()) else {
+                continue;
+            };
+            let target = session.join(&name);
+            if fs::read(&target).ok().as_deref() != Some(bytes.as_slice()) {
+                let pending = session.join(format!("{text_name}.{}", std::process::id()));
+                if fs::write(&pending, &bytes)
+                    .and_then(|()| fs::rename(&pending, &target))
+                    .is_err()
+                {
+                    let _ = fs::remove_file(&pending);
+                    return application.to_owned();
+                }
+            }
+        }
+        // Remove parts a previous build used that this one no longer has.
+        if let Ok(entries) = fs::read_dir(&session) {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                if name
+                    .to_str()
+                    .is_some_and(|text| text.starts_with("tsrust_part_") && text.ends_with(".rs"))
+                    && !current.contains(&name)
+                {
+                    let _ = fs::remove_file(entry.path());
+                }
+            }
+        }
+    }
+    let source = match fs::read(application) {
+        Ok(source) => source,
+        Err(_) => return application.to_owned(),
+    };
+    // Keep the old file (and its mtime) when the generated text is unchanged.
+    if fs::read(&stable).ok().as_deref() != Some(source.as_slice()) {
+        // Rename atomically: a concurrent build of the same entry reads a whole file.
+        let pending = session.join(format!("program.rs.{}", std::process::id()));
+        if fs::write(&pending, &source)
+            .and_then(|()| fs::rename(&pending, &stable))
+            .is_err()
+        {
+            let _ = fs::remove_file(&pending);
+            return application.to_owned();
+        }
+    }
+    command
+        .arg("-C")
+        .arg(format!("incremental={}", session.join("rustc").display()));
+    stable
 }
+/// The incremental session directory for one program entry, created and marked used.
+pub(crate) fn incremental_session(cache_root: &Path, entry: &Path) -> PathBuf {
+    let directory = cache_root.join(INCREMENTAL_DIRECTORY);
+    let _ = fs::create_dir_all(&directory);
+    prune_incremental(&directory, INCREMENTAL_ENTRIES);
+    let mut hash = Sha256::new();
+    hash.update(b"application-incremental-1");
+    hash.update(entry.to_string_lossy().as_bytes());
+    let key = hash
+        .finalize()
+        .iter()
+        .take(8)
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let session = directory.join(key);
+    let _ = fs::create_dir_all(&session);
+    // Touch so pruning keeps recently used programs.
+    let marker = session.join(".used");
+    if !marker.exists() {
+        let _ = fs::write(&marker, b"");
+    }
+    touch(&marker);
+    session
+}
+
+/// Stable naming for an incremental build: item keys and the session's ledger.
+pub(crate) struct Naming {
+    pub keys: tsrust_compiler::native_stable_names::Keys,
+    pub ledger: PathBuf,
+}
+impl Naming {
+    pub(crate) fn for_session(
+        keys: tsrust_compiler::native_stable_names::Keys,
+        cache_root: &Path,
+        entry: &Path,
+    ) -> Self {
+        Self {
+            keys,
+            ledger: incremental_session(cache_root, entry).join("names.json"),
+        }
+    }
+}
+
 const INCREMENTAL_DIRECTORY:&str="incremental";
 const INCREMENTAL_ENTRIES:usize=6;
 fn prune_incremental(directory:&Path,keep:usize){

@@ -9,6 +9,7 @@ pub mod exports;
 pub mod return_borrows;
 pub mod runtime;
 pub mod signatures;
+pub mod stable_names;
 pub mod type_resolution;
 pub mod types;
 

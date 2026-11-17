@@ -112,6 +112,7 @@ Options:
   --debug                   build: retain mapped Rust source beside the executable and emit debugger symbols
   --source-locations        emit: annotate Rust statements with Tsrust file and byte range
   --crate-plan              emit: print each generated function's and closure's source module as JSON
+  --stable-names LEDGER     emit: name generated items through LEDGER as incremental builds do
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
@@ -191,7 +192,13 @@ fn run() -> Result<u8, String> {
     let Some(command) = args.next() else {
         return Err("Missing command. Run `tsrust --help` for usage.".into());
     };
-    if command == "--help" || command == "-h" || env::args().skip(2).take_while(|arg|arg!="--").any(|arg| arg == "--help" || arg == "-h") {
+    if command == "--help"
+        || command == "-h"
+        || env::args()
+            .skip(2)
+            .take_while(|arg| arg != "--")
+            .any(|arg| arg == "--help" || arg == "-h")
+    {
         print_help();
         return Ok(0);
     }
@@ -235,12 +242,15 @@ fn run() -> Result<u8, String> {
     let mut output: Option<PathBuf> = None;
     let mut json = false;
     let mut color_mode = "auto".to_owned();
-    let mut test_filter:Option<String>=None;let mut test_reporter:Option<String>=None;let mut test_timeout:Option<u64>=None;
+    let mut test_filter: Option<String> = None;
+    let mut test_reporter: Option<String> = None;
+    let mut test_timeout: Option<u64> = None;
     let mut test_profile=false;
     let mut release = false;
     let mut package = false;
     let mut source_locations = false;
     let mut crate_plan = false;
+    let mut stable_names: Option<PathBuf> = None;
     let mut debug = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -248,13 +258,33 @@ fn run() -> Result<u8, String> {
                 output = Some(PathBuf::from(args.next().ok_or("Missing output path")?))
             }
             "--json" if !json => json = true,
-            "--filter" if command=="test"&&test_filter.is_none()=>test_filter=Some(args.next().ok_or("--filter requires a literal name substring")?),
-            _ if command=="test"&&arg.starts_with("--filter=")&&test_filter.is_none()=>test_filter=Some(arg[9..].to_owned()),
-            "--reporter" if command=="test"&&test_reporter.is_none()=>test_reporter=Some(args.next().ok_or("--reporter requires pretty, plain or json")?),
-            _ if command=="test"&&arg.starts_with("--reporter=")&&test_reporter.is_none()=>test_reporter=Some(arg[11..].to_owned()),
-            "--profile" if command=="test"&&!test_profile=>test_profile=true,
-            "--timeout" if command=="test"&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&args.next().ok_or("--timeout requires milliseconds")?)?),
-            _ if command=="test"&&arg.starts_with("--timeout=")&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&arg[10..])?),
+            "--filter" if command == "test" && test_filter.is_none() => {
+                test_filter = Some(
+                    args.next()
+                        .ok_or("--filter requires a literal name substring")?,
+                )
+            }
+            _ if command == "test" && arg.starts_with("--filter=") && test_filter.is_none() => {
+                test_filter = Some(arg[9..].to_owned())
+            }
+            "--reporter" if command == "test" && test_reporter.is_none() => {
+                test_reporter = Some(
+                    args.next()
+                        .ok_or("--reporter requires pretty, plain or json")?,
+                )
+            }
+            _ if command == "test" && arg.starts_with("--reporter=") && test_reporter.is_none() => {
+                test_reporter = Some(arg[11..].to_owned())
+            }
+            "--profile" if command == "test" && !test_profile => test_profile = true,
+            "--timeout" if command == "test" && test_timeout.is_none() => {
+                test_timeout = Some(test_timeout_value(
+                    &args.next().ok_or("--timeout requires milliseconds")?,
+                )?)
+            }
+            _ if command == "test" && arg.starts_with("--timeout=") && test_timeout.is_none() => {
+                test_timeout = Some(test_timeout_value(&arg[10..])?)
+            }
             "--color" => {
                 color_mode = args
                     .next()
@@ -263,13 +293,29 @@ fn run() -> Result<u8, String> {
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
             "--debug" if command == "build" && !debug => debug = true,
-            "--source-locations" if command == "emit" && !source_locations => source_locations = true,
+            "--source-locations" if command == "emit" && !source_locations => {
+                source_locations = true
+            }
             "--crate-plan" if command == "emit" && !crate_plan => crate_plan = true,
+            "--stable-names" if command == "emit" && stable_names.is_none() => {
+                stable_names = Some(PathBuf::from(
+                    args.next().ok_or("--stable-names requires a ledger path")?,
+                ))
+            }
             "--package" if !package => package = true,
-            _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
+            _ => {
+                return Err(format!(
+                    "Unknown or repeated option: {arg}. Run `tsrust --help` for usage."
+                ));
+            }
         }
     }
-    if test_reporter.as_deref().is_some_and(|value|!matches!(value,"pretty"|"plain"|"json")){return Err("--reporter requires pretty, plain or json".into());}
+    if test_reporter
+        .as_deref()
+        .is_some_and(|value| !matches!(value, "pretty" | "plain" | "json"))
+    {
+        return Err("--reporter requires pretty, plain or json".into());
+    }
     if !matches!(color_mode.as_str(), "auto" | "always" | "never") {
         return Err("--color requires auto, always or never".into());
     }
@@ -371,6 +417,20 @@ fn run() -> Result<u8, String> {
             println!("Emitted package {}",output.display());
             return Ok(0);
         }
+        // Diagnostic aid: show the generated program as incremental native builds name it.
+        let rust = match &stable_names {
+            Some(ledger_path) => {
+                let mut ledger = tsrust_compiler::native_stable_names::Ledger::load(ledger_path);
+                let renamed = tsrust_compiler::native_stable_names::stabilize(
+                    &rust,
+                    &analysis.name_keys(),
+                    &mut ledger,
+                );
+                ledger.save(ledger_path);
+                renamed
+            }
+            None => rust,
+        };
         if let Some(output) = output {
             fs::write(output, rust).map_err(|e| e.to_string())?;
         } else {
@@ -438,7 +498,22 @@ fn run() -> Result<u8, String> {
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {
-        let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
+        let incremental_entry = absolute(&source_path)?.join(&command);
+        let naming = (!release && !debug).then(|| {
+            runtime_build::Naming::for_session(
+                analysis.name_keys(),
+                &cache_root,
+                &incremental_entry,
+            )
+        });
+        let mut prepared = runtime_build::Prepared::new_named(
+            &rust,
+            &backend_identity,
+            &cache_root,
+            &directory.0,
+            release,
+            naming.as_ref(),
+        )?;
         if let Some(mut runtime)=prepared.command.take() {
             prepared.acquire_target(true)?;
             let result=runtime.output().map_err(|e|e.to_string())?;
@@ -446,8 +521,8 @@ fn run() -> Result<u8, String> {
             prepared.finish()?;prepared.publish();
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
-        let incremental_entry=absolute(&source_path)?.join(&command);
-        let mut command=backend_command();prepared.link(&mut command)?;
+        let mut command = backend_command();
+        prepared.link(&mut command)?;
         prepared.application=runtime_build::application_backend_args(&mut command,&cache_root,&incremental_entry,release||debug,&prepared.application);
         if debug {
             prepared.application = retain_debug_source(&prepared.application, &executable)?;

@@ -89,123 +89,331 @@ mod platform {
             std::thread::sleep(Duration::from_millis(20));
         }
     }
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<Built>,String> {
-        use std::sync::mpsc::{self,TrySendError,RecvTimeoutError};
-        let inputs=expected.as_ref().map_err(Clone::clone)?;
-        let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
-        let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
-        report(Status::Info,format_args!("Checking {}…", project.entry.strip_prefix(root).unwrap_or(&project.entry).display()));
+    fn build(
+        root: &Path,
+        release: bool,
+        verbose: bool,
+        expected: &Fingerprint,
+        watcher: &mut Watcher,
+        worker: &crate::dev_frontend::Worker,
+    ) -> Result<Option<Built>, String> {
+        use std::sync::mpsc::{self, RecvTimeoutError, TrySendError};
+        let inputs = expected.as_ref().map_err(Clone::clone)?;
+        let config = inputs
+            .get(&root.join(project_config::FILE))
+            .ok_or("Missing project configuration in build snapshot")?;
+        let project = project_config::parse(
+            root,
+            std::str::from_utf8(config.bytes()).map_err(|e| e.to_string())?,
+        )?;
+        report(
+            Status::Info,
+            format_args!(
+                "Checking {}…",
+                project
+                    .entry
+                    .strip_prefix(root)
+                    .unwrap_or(&project.entry)
+                    .display()
+            ),
+        );
         // Keep the same probe and teardown, but overlap it with frontend work.
-        let files=TempDirectory::new().map_err(|e|e.to_string())?;
-        let backend_started=Instant::now();
-        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
-        let mut command=crate::backend_command();command.arg("--version")
-            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
-            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
-        let probe=Process::spawn(&mut command);
-        let (reply,response)=mpsc::channel();
+        let files = TempDirectory::new().map_err(|e| e.to_string())?;
+        let backend_started = Instant::now();
+        let probe_out = files.0.join("backend-version.stdout");
+        let probe_err = files.0.join("backend-version.stderr");
+        let mut command = crate::backend_command();
+        command
+            .arg("--version")
+            .stdout(std::fs::File::create(&probe_out).map_err(|e| e.to_string())?)
+            .stderr(std::fs::File::create(&probe_err).map_err(|e| e.to_string())?);
+        let probe = Process::spawn(&mut command);
+        let (reply, response) = mpsc::channel();
         struct CancelCheck(std::sync::Arc<std::sync::atomic::AtomicBool>);
-        impl Drop for CancelCheck {fn drop(&mut self){self.0.store(true,Ordering::Relaxed);}}
-        let cancel=CancelCheck(Default::default());
-        let mut request=crate::dev_frontend::Request{entry:project.entry.clone(),sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply,cancelled:cancel.0.clone()};
+        impl Drop for CancelCheck {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::Relaxed);
+            }
+        }
+        let cancel = CancelCheck(Default::default());
+        let mut request = crate::dev_frontend::Request {
+            entry: project.entry.clone(),
+            sources: crate::dev_frontend::Snapshot {
+                root: root.to_owned(),
+                files: expected.as_ref().map_err(Clone::clone)?.clone(),
+            },
+            reply,
+            cancelled: cancel.0.clone(),
+        };
         loop {
-            if STOP.load(Ordering::Relaxed) || !watcher.still_current(root,expected) {return Ok(None);}
+            if STOP.load(Ordering::Relaxed) || !watcher.still_current(root, expected) {
+                return Ok(None);
+            }
             match worker.requests.try_send(request) {
-                Ok(())=>break,
-                Err(TrySendError::Full(pending))=>request=pending,
-                Err(TrySendError::Disconnected(_))=>return Err("Frontend worker stopped".into()),
+                Ok(()) => break,
+                Err(TrySendError::Full(pending)) => request = pending,
+                Err(TrySendError::Disconnected(_)) => return Err("Frontend worker stopped".into()),
             }
             std::thread::sleep(Duration::from_millis(20));
         }
-        let mut last_input_check=Instant::now();
-        let (frontend,reused_frontend)=loop {
-            if STOP.load(Ordering::Relaxed){return Ok(None);}
-            if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if !watcher.still_current(root,expected) {return Ok(None);}
-                last_input_check=Instant::now();
+        let mut last_input_check = Instant::now();
+        let (frontend, reused_frontend) = loop {
+            if STOP.load(Ordering::Relaxed) {
+                return Ok(None);
+            }
+            if last_input_check.elapsed() >= Duration::from_millis(100) {
+                if !watcher.still_current(root, expected) {
+                    return Ok(None);
+                }
+                last_input_check = Instant::now();
             }
             match response.recv_timeout(Duration::from_millis(20)) {
-                Ok(Ok(output))=>break output,
-                Ok(Err(error))=>{if !watcher.still_current(root,expected){return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
-                Err(RecvTimeoutError::Disconnected)=>return Err("Frontend worker stopped".into()),
-                Err(RecvTimeoutError::Timeout)=>{},
+                Ok(Ok(output)) => break output,
+                Ok(Err(error)) => {
+                    if !watcher.still_current(root, expected) {
+                        return Ok(None);
+                    }
+                    eprint!("{error}");
+                    return Err("Build failed".into());
+                }
+                Err(RecvTimeoutError::Disconnected) => return Err("Frontend worker stopped".into()),
+                Err(RecvTimeoutError::Timeout) => {}
             }
         };
-        if !watcher.still_current(root,expected) {return Ok(None);}
-        if verbose && reused_frontend {eprintln!("[build] Reused checked application.");}
-        else if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
-        let mut probe=probe?;
-        let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
-        let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
-        let backend_elapsed=backend_started.elapsed();
-        let binary=files.0.join(if cfg!(windows){"program.exe"}else{"program"});
-        let features=frontend.features.join(",");
-        let optimization=crate::runtime_build::application_optimization(release,false);
-        let cache_root=std::env::var_os("TSRUST_CACHE_DIR").map(PathBuf::from).unwrap_or_else(||root.join("target/tsrust-native"));
-        let shared_inputs=crate::backend_sources::application_identity(&frontend.rust,&cache_root)?;
-        let mut cache_parts:Vec<&[u8]>=vec![
-            b"native-cache-abi-5-dev-profile",crate::native_dependency_bundle::dependency_identity().as_bytes(),backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
-            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),optimization.as_bytes(),
+        if !watcher.still_current(root, expected) {
+            return Ok(None);
+        }
+        if verbose && reused_frontend {
+            eprintln!("[build] Reused checked application.");
+        } else if verbose {
+            eprintln!(
+                "[build] syntax reused={} parsed={} headers reused={} parsed={}",
+                frontend.stats.reused,
+                frontend.stats.parsed,
+                frontend.stats.headers_reused,
+                frontend.stats.headers_parsed
+            );
+        }
+        let mut probe = probe?;
+        let Some(status) = wait_for_build(&mut probe, root, expected, watcher)? else {
+            return Ok(None);
+        };
+        let backend_identity = crate::validate_backend_output(std::process::Output {
+            status,
+            stdout: std::fs::read(probe_out).map_err(|e| e.to_string())?,
+            stderr: std::fs::read(probe_err).map_err(|e| e.to_string())?,
+        })?;
+        let backend_elapsed = backend_started.elapsed();
+        let binary = files.0.join(if cfg!(windows) {
+            "program.exe"
+        } else {
+            "program"
+        });
+        let features = frontend.features.join(",");
+        let optimization = crate::runtime_build::application_optimization(release, false);
+        let cache_root = std::env::var_os("TSRUST_CACHE_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| root.join("target/tsrust-native"));
+        let shared_inputs =
+            crate::backend_sources::application_identity(&frontend.rust, &cache_root)?;
+        let mut cache_parts: Vec<&[u8]> = vec![
+            b"native-cache-abi-5-dev-profile",
+            crate::native_dependency_bundle::dependency_identity().as_bytes(),
+            backend_identity.as_bytes(),
+            env!("CARGO_PKG_VERSION").as_bytes(),
+            std::env::consts::OS.as_bytes(),
+            std::env::consts::ARCH.as_bytes(),
+            if release { b"release" } else { b"debug" },
+            b"edition=2024;overflow-checks=on",
+            frontend.rust.as_bytes(),
+            &frontend.identity,
+            features.as_bytes(),
+            optimization.as_bytes(),
         ];
-        if let Some(inputs)=&shared_inputs {cache_parts.push(inputs.as_bytes());}
-        if let Some(identity)=crate::runtime_build::application_cache_identity(&frontend.rust){cache_parts.push(identity);}
+        if let Some(inputs) = &shared_inputs {
+            cache_parts.push(inputs.as_bytes());
+        }
+        if let Some(identity) = crate::runtime_build::application_cache_identity(&frontend.rust) {
+            cache_parts.push(identity);
+        }
         cache_parts.push(crate::runtime_build::profile_identity(&frontend.rust).as_bytes());
-        let cache=tsrust_compiler::native_cache::NativeCache::new(&cache_root,&cache_parts);
-        let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
-        let native_started=Instant::now();
+        let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
+        let cache_started = Instant::now();
+        let reused = cache.try_copy_to(&binary);
+        let cache_elapsed = cache_started.elapsed();
+        let native_started = Instant::now();
         if !reused {
-            let prepare_started=Instant::now();
-            let mut prepared=crate::runtime_build::Prepared::for_dev(&frontend.rust,&backend_identity,&cache_root,&files.0,release)?;
-            if verbose{eprintln!("[build] runtime-prepare={:.1}ms",prepare_started.elapsed().as_secs_f64()*1000.);}
-            if let Some(mut command)=prepared.command.take() {
-                let runtime_started=Instant::now();
-                let mut last_input_check=Instant::now();
+            let prepare_started = Instant::now();
+            let naming = (!release).then(|| {
+                crate::runtime_build::Naming::for_session(
+                    frontend.keys.clone(),
+                    &cache_root,
+                    &project.entry.join("dev"),
+                )
+            });
+            let mut prepared = crate::runtime_build::Prepared::for_dev(
+                &frontend.rust,
+                &backend_identity,
+                &cache_root,
+                &files.0,
+                release,
+                naming.as_ref(),
+            )?;
+            if verbose {
+                eprintln!(
+                    "[build] runtime-prepare={:.1}ms",
+                    prepare_started.elapsed().as_secs_f64() * 1000.
+                );
+            }
+            if let Some(mut command) = prepared.command.take() {
+                let runtime_started = Instant::now();
+                let mut last_input_check = Instant::now();
                 while !prepared.acquire_target(false)? {
-                    if STOP.load(Ordering::Relaxed){return Ok(None);}
-                    if last_input_check.elapsed()>=Duration::from_millis(100){
-                        if !watcher.still_current(root,expected){return Ok(None);}
-                        last_input_check=Instant::now();
+                    if STOP.load(Ordering::Relaxed) {
+                        return Ok(None);
+                    }
+                    if last_input_check.elapsed() >= Duration::from_millis(100) {
+                        if !watcher.still_current(root, expected) {
+                            return Ok(None);
+                        }
+                        last_input_check = Instant::now();
                     }
                     std::thread::sleep(Duration::from_millis(20));
                 }
-                if verbose{if let Some(directory)=command.get_current_dir(){eprintln!("[build] dependency-workspace={}",directory.display());}}
-                report(Status::Info,"Preparing native runtime (offline; runtime cache miss).");
-                let errors=files.0.join("runtime.stderr");
-                command.stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
-                let mut compiler=Process::spawn(&mut command)?;
-                let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
-                if !status.success(){return Err(prepared.compilation_error(&std::fs::read_to_string(errors).unwrap_or_default()));}
-                prepared.finish()?;prepared.publish();
-                if verbose{eprintln!("[build] runtime-build+publish={:.1}ms",runtime_started.elapsed().as_secs_f64()*1000.);}
+                if verbose {
+                    if let Some(directory) = command.get_current_dir() {
+                        eprintln!("[build] dependency-workspace={}", directory.display());
+                    }
+                }
+                report(
+                    Status::Info,
+                    "Preparing native runtime (offline; runtime cache miss).",
+                );
+                let errors = files.0.join("runtime.stderr");
+                command.stderr(std::fs::File::create(&errors).map_err(|e| e.to_string())?);
+                let mut compiler = Process::spawn(&mut command)?;
+                let Some(status) = wait_for_build(&mut compiler, root, expected, watcher)? else {
+                    return Ok(None);
+                };
+                if !status.success() {
+                    return Err(prepared
+                        .compilation_error(&std::fs::read_to_string(errors).unwrap_or_default()));
+                }
+                prepared.finish()?;
+                prepared.publish();
+                if verbose {
+                    eprintln!(
+                        "[build] runtime-build+publish={:.1}ms",
+                        runtime_started.elapsed().as_secs_f64() * 1000.
+                    );
+                }
             }
-            if verbose{eprintln!("[build] runtime={}",prepared.state);}
+            if verbose {
+                eprintln!("[build] runtime={}", prepared.state);
+            }
             // A file avoids pipe backpressure while the supervisor watches edits.
-            report(Status::Info,"Compiling and linking the application…");
-            let errors=files.0.join("backend.stderr");
-            let mut command=crate::backend_command();prepared.link(&mut command)?;
-            let application=crate::runtime_build::application_backend_args(&mut command,&cache_root,&project.entry.join("dev"),release,&prepared.application);
-            command.current_dir(root).arg("--edition=2024").args(["-C",optimization]).args(["-C","overflow-checks=on"]).arg(&application).arg("-o").arg(&binary)
-                .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
-            let rustc_started=Instant::now();
-            let mut compiler=Process::spawn(&mut command)?;
-            let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
-            if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
-            if verbose{eprintln!("[build] rustc={:.1}ms",rustc_started.elapsed().as_secs_f64()*1000.);}
-            let publish_started=Instant::now();
-            if crate::backend_sources::unchanged(shared_inputs.as_deref(),&cache_root,false){let _=cache.try_publish(&binary);}
-            if verbose{eprintln!("[build] publish={:.1}ms",publish_started.elapsed().as_secs_f64()*1000.);}
+            report(Status::Info, "Compiling and linking the application…");
+            let errors = files.0.join("backend.stderr");
+            let mut command = crate::backend_command();
+            prepared.link(&mut command)?;
+            let application = crate::runtime_build::application_backend_args(
+                &mut command,
+                &cache_root,
+                &project.entry.join("dev"),
+                release,
+                &prepared.application,
+            );
+            command
+                .current_dir(root)
+                .arg("--edition=2024")
+                .args(["-C", optimization])
+                .args(["-C", "overflow-checks=on"])
+                .arg(&application)
+                .arg("-o")
+                .arg(&binary)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::fs::File::create(&errors).map_err(|e| e.to_string())?);
+            let rustc_started = Instant::now();
+            let mut compiler = Process::spawn(&mut command)?;
+            let Some(status) = wait_for_build(&mut compiler, root, expected, watcher)? else {
+                return Ok(None);
+            };
+            if !status.success() {
+                return Err(format!(
+                    "Native build failed:\n{}",
+                    std::fs::read_to_string(errors).unwrap_or_default()
+                ));
+            }
+            if verbose {
+                eprintln!(
+                    "[build] rustc={:.1}ms",
+                    rustc_started.elapsed().as_secs_f64() * 1000.
+                );
+            }
+            let publish_started = Instant::now();
+            if crate::backend_sources::unchanged(shared_inputs.as_deref(), &cache_root, false) {
+                let _ = cache.try_publish(&binary);
+            }
+            if verbose {
+                eprintln!(
+                    "[build] publish={:.1}ms",
+                    publish_started.elapsed().as_secs_f64() * 1000.
+                );
+            }
         }
-        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",if reused_frontend{0.0}else{frontend.check.as_secs_f64()*1000.0},if reused_frontend{0.0}else{frontend.emit.as_secs_f64()*1000.0},backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
-        #[cfg(target_os="macos")]
-        let binary=if frontend.features.contains(&"ui"){crate::app_package_cli::development_bundle(project,&binary)?}else{binary};
-        let identity=ApplicationIdentity {
-            native:cache,
-            #[cfg(target_os="macos")]
-            bundle:if frontend.features.contains(&"ui") {
-                Some(std::fs::read(binary.parent().unwrap().parent().unwrap().join("Info.plist")).map_err(|error|error.to_string())?)
-            }else{None},
+        if verbose {
+            eprintln!(
+                "[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",
+                if reused_frontend {
+                    0.0
+                } else {
+                    frontend.check.as_secs_f64() * 1000.0
+                },
+                if reused_frontend {
+                    0.0
+                } else {
+                    frontend.emit.as_secs_f64() * 1000.0
+                },
+                backend_elapsed.as_secs_f64() * 1000.0,
+                if reused { "hit" } else { "miss" },
+                cache_elapsed.as_secs_f64() * 1000.0,
+                if reused {
+                    0.0
+                } else {
+                    native_started.elapsed().as_secs_f64() * 1000.0
+                }
+            );
+        }
+        #[cfg(target_os = "macos")]
+        let binary = if frontend.features.contains(&"ui") {
+            crate::app_package_cli::development_bundle(project, &binary)?
+        } else {
+            binary
         };
-        Ok(Some(Built{_files:files,binary,identity}))
+        let identity = ApplicationIdentity {
+            native: cache,
+            #[cfg(target_os = "macos")]
+            bundle: if frontend.features.contains(&"ui") {
+                Some(
+                    std::fs::read(
+                        binary
+                            .parent()
+                            .unwrap()
+                            .parent()
+                            .unwrap()
+                            .join("Info.plist"),
+                    )
+                    .map_err(|error| error.to_string())?,
+                )
+            } else {
+                None
+            },
+        };
+        Ok(Some(Built {
+            _files: files,
+            binary,
+            identity,
+        }))
     }
     #[cfg(all(test,unix))]
     mod tests {
