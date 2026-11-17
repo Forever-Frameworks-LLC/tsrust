@@ -3,12 +3,14 @@ use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,I
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {
     pub rust: String,
-    pub features: Vec<&'static str>,
+    pub features: Vec<String>,
     pub identity: Vec<u8>,
     pub stats: SessionStats,
     pub check: Duration,
     pub emit: Duration,
     pub keys: tsrust_compiler::native_stable_names::Keys,
+    /// Checked and emitted ahead of the save by the language server.
+    pub prechecked: bool,
 }
 pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<(std::sync::Arc<Output>,bool),String>>,pub cancelled:std::sync::Arc<std::sync::atomic::AtomicBool>}
 /// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
@@ -93,6 +95,23 @@ fn compile(
         entry.to_str().ok_or("Source path must be valid UTF-8.")?,
     )?;
     let source = sources.read(&id)?;
+    // The language server may already have checked exactly these sources.
+    if tsrust_compiler::project_cli::uses_modules(&source).unwrap_or(false)
+        && let Some(path) = entry.to_str()
+        && let Ok(identity) = session.graph_identity(sources, path)
+        && let Some(prechecked) = tsrust_compiler::project_prechecked::load(&sources.root, &identity)
+    {
+        return Ok(Output {
+            rust: prechecked.rust,
+            features: prechecked.features,
+            identity,
+            stats: session.stats(),
+            check: started.elapsed(),
+            emit: Duration::ZERO,
+            keys: prechecked.keys,
+            prechecked: true,
+        });
+    }
     let analysis = tsrust_compiler::project_cli::check_input_cached_with_provider(
         entry, &source, session, sources,
     )
@@ -102,17 +121,13 @@ fn compile(
     let check = started.elapsed();
     let started = Instant::now();
     let (rust, features) = analysis.emit_rust_with_native_features();
+    let features = features.into_iter().map(str::to_owned).collect::<Vec<_>>();
     let keys = analysis.name_keys();
     let emit = started.elapsed();
     let mut identity = Vec::new();
     match &analysis {
         CheckedInput::Project(project) => {
-            for (id, module) in &project.graph.modules {
-                for value in [id.0.as_bytes(), module.source.text.as_bytes()] {
-                    identity.extend_from_slice(&(value.len() as u64).to_le_bytes());
-                    identity.extend_from_slice(value);
-                }
-            }
+            identity = tsrust_compiler::project_prechecked::graph_identity(&project.graph);
         }
         CheckedInput::Single(_) => {
             let id = sources.resolve(
@@ -137,6 +152,7 @@ fn compile(
         check,
         emit,
         keys,
+        prechecked: false,
     })
 }
 

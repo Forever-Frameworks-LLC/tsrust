@@ -77,6 +77,16 @@ mod platform {
     }
     struct Built {_files:TempDirectory,binary:PathBuf,identity:ApplicationIdentity}
     struct Running {process:Process,build:Built}
+    static DEV_SESSION: std::sync::Mutex<Option<(PathBuf, tsrust_compiler::project_prechecked::DevSession)>> = std::sync::Mutex::new(None);
+
+    /// Tell the language server this project is being built, so it checks ahead
+    /// of saves. The marker names the entry exactly as this build checks it.
+    fn announce_dev_session(root: &Path, entry: &Path) {
+        let Ok(mut session) = DEV_SESSION.lock() else { return };
+        if session.as_ref().is_some_and(|(announced, _)| announced == entry) { return; }
+        *session = tsrust_compiler::project_prechecked::announce_dev_session(root, entry).map(|guard| (entry.to_owned(), guard));
+    }
+
     fn wait_for_build(process:&mut Process,root:&Path,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<std::process::ExitStatus>,String> {
         let mut last_input_check=Instant::now();
         loop {
@@ -136,6 +146,7 @@ mod platform {
             }
         }
         let cancel = CancelCheck(Default::default());
+        announce_dev_session(root, &project.entry);
         let mut request = crate::dev_frontend::Request {
             entry: project.entry.clone(),
             sources: crate::dev_frontend::Snapshot {
@@ -406,6 +417,9 @@ mod platform {
             }
             }
         }
+        if frontend.prechecked && !reused_frontend {
+            report(Status::Info, "Using the editor's background check.");
+        }
         if verbose {
             eprintln!(
                 "[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",
@@ -430,7 +444,7 @@ mod platform {
             );
         }
         #[cfg(target_os = "macos")]
-        let binary = if frontend.features.contains(&"ui") {
+        let binary = if frontend.features.iter().any(|feature| feature == "ui") {
             crate::app_package_cli::development_bundle(project, &binary)?
         } else {
             binary
@@ -438,7 +452,7 @@ mod platform {
         let identity = ApplicationIdentity {
             native: cache,
             #[cfg(target_os = "macos")]
-            bundle: if frontend.features.contains(&"ui") {
+            bundle: if frontend.features.iter().any(|feature| feature == "ui") {
                 Some(
                     std::fs::read(
                         binary
@@ -564,7 +578,7 @@ mod platform {
             }
             watcher.wait(Duration::from_millis(100));
         }
-        drop(running);report(Status::Info,"Stopped.");Ok(0)
+        drop(running);if let Ok(mut session)=DEV_SESSION.lock(){*session=None;}report(Status::Info,"Stopped.");Ok(0)
     }
 }
 #[cfg(any(unix,windows))] pub use platform::run;

@@ -76,6 +76,7 @@ pub use project::resolution as project_resolution;
 pub(crate) use project::data::module as data_module;
 pub(crate) use project::data::shape as data_shape;
 pub(crate) use project::data::lowering as data_lowering;
+pub use project::prechecked as project_prechecked;
 pub use project::session as project_session;
 pub use project::cli as project_cli;
 pub use project::source_discovery as source_discovery;

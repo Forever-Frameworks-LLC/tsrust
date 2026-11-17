@@ -54,6 +54,8 @@ struct Deferred {
 
 /// The longest a request waits for a current project analysis. After that it
 /// is answered from the document alone and marked incomplete.
+/// Typing pause before the latest text is checked for a running `tsrust dev`.
+const PRECHECK_AFTER: Duration = Duration::from_millis(600);
 const ANSWER_WITHIN: Duration = Duration::from_secs(3);
 
 fn project_request(method: &str) -> bool {
@@ -237,7 +239,17 @@ fn run(
     let mut shutdown = false;
     let trace = std::env::var_os("TSRUST_LSP_TRACE_TIMINGS").is_some();
     let mut debounce = Duration::from_millis(200);
+    // A running `tsrust dev` reuses checks made here after typing pauses.
+    let prechecker = tsrust_lsp::prechecker::Prechecker::new()?;
+    let mut precheck_due: Option<(Instant, std::path::PathBuf)> = None;
     loop {
+        if shutdown {
+            precheck_due = None;
+        } else if precheck_due.as_ref().is_some_and(|(due, _)| *due <= Instant::now())
+            && let Some((_, path)) = precheck_due.take()
+        {
+            prechecker.request(projects.workspace.snapshot(), path);
+        }
         if shutdown && let Some((_,cancel))=&file_active {cancel.store(true,std::sync::atomic::Ordering::Relaxed);}
         if let Some((snapshot, workspace)) = &in_flight_input
             && (shutdown || !documents.current(snapshot) || workspace.as_ref().is_some_and(|input| !projects.workspace.current(input))) {
@@ -309,6 +321,7 @@ fn run(
             Duration::from_secs(60)
         };
         let wait = deferred.iter().map(|entry| (entry.since + ANSWER_WITHIN).saturating_duration_since(now)).min().map_or(wait, |deadline| wait.min(deadline));
+        let wait = precheck_due.as_ref().map_or(wait, |(due, _)| wait.min(due.saturating_duration_since(now)));
         select! {
             recv(connection.receiver) -> message => {
                 let Ok(message) = message else { return Ok(if shutdown { 0 } else { 1 }); };
@@ -452,6 +465,9 @@ fn run(
                                     return Err("Expected exactly one full-document change".into());
                                 }
                                 let uri = params.text_document.uri.to_string();
+                                if let Ok(id) = tsrust_lsp::project_diagnostics::source_path_id(&uri) {
+                                    precheck_due = Some((now + PRECHECK_AFTER, std::path::PathBuf::from(id.0)));
+                                }
                                 let change = params.content_changes.into_iter().next().unwrap();
                                 if auxiliary_uri(&uri) {
                                     scanner.dirty(now,debounce);

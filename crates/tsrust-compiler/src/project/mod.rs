@@ -892,6 +892,7 @@ pub(crate) mod facts;
 pub(crate) mod link;
 pub mod resolution;
 pub(crate) mod runtime;
+pub mod prechecked;
 pub mod session;
 pub mod source_discovery;
 

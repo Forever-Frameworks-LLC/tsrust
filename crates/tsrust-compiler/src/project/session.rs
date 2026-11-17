@@ -41,6 +41,14 @@ impl ProjectSession {
         let result=crate::project_link::check_graph_cached(graph,self);
         self.stats.retained=self.entries.len();result
     }
+    /// The graph identity (`project_prechecked::graph_identity`) of `entry` under
+    /// `provider`, loading module headers through this session's cache without checking.
+    pub fn graph_identity(&mut self,provider:&impl SourceProvider,entry:&str)->Result<Vec<u8>,ProjectDiagnostic> {
+        self.headers.begin();
+        let graph=load_project_cached(provider,entry,&mut self.headers)?;
+        self.headers.retain(&graph);
+        Ok(crate::project::prechecked::graph_identity(&graph))
+    }
     pub(crate) fn parse(&mut self,graph:&ProjectGraph,id:&SourceId,index:usize,test_entry:bool,imported:crate::type_aliases::Aliases,records:crate::type_aliases::ImportedRecords)->Result<Program,Diagnostic> {
         let module=&graph.modules[id];
         // Dependencies precede importers. Their generation changes for any source

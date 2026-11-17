@@ -7,6 +7,29 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Editor background checks for `tsrust dev` — 2026-11-17
+
+While `tsrust dev` runs it writes `target/tsrust-native/dev-session` (pid and
+entry). The language server then checks that entry against the editor's
+unsaved text 600 ms after typing pauses (one background thread, a newer edit
+cancels the check in progress) and stores the emitted Rust, native features and
+stable-name keys in `target/tsrust-native/prechecked/` (newest four kept). On
+save, `tsrust dev` loads the module graph through its header cache and reuses a
+stored result whose graph identity matches: entry, every module id and text,
+and every resolved import target, from the same compiler build
+(`project_prechecked::COMPILER_IDENTITY`, a hash of the compiler crate sources
+from `build.rs`). The check is deterministic in those inputs, so a reused result
+equals a fresh check. Nothing runs in the language server without a live dev
+session.
+
+Studio, `main.tsrx` string edit driven through the language server: the
+background check stored its result about 20 s after the change (the server's
+own diagnostics for the open file run at the same time); a save then rebuilt in
+5.5-6.5 s with check 25-37 ms, instead of 14-17 s. Lib 1580/1580, CLI 65/65,
+LSP 87/88: `completion_matrix::completion_answers_at_typing_speed` fails 30
+Immediate/Paced rows (Iterator, SQL pool and row, Router requests, void result
+arrays), and fails the same way at 86d5d83f5 before this work; not yet fixed.
+
 ## Check and prepare time in the dev loop — 2026-11-17
 
 Studio `tsrust check` is one whole-program `Analyzer::run` (single thread).
