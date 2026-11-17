@@ -30,6 +30,14 @@ pub struct Keys {
     pub unions: Vec<String>,
     pub functions: Vec<String>,
     pub closures: Vec<String>,
+    /// Source modules in dependency order, and each function's and closure's
+    /// module index (None: made by the compiler), for per-module crates.
+    #[serde(default)]
+    pub modules: Vec<String>,
+    #[serde(default)]
+    pub function_modules: Vec<Option<usize>>,
+    #[serde(default)]
+    pub closure_modules: Vec<Option<usize>>,
 }
 
 /// Number assigned to each key, per number space; persisted between builds.
@@ -262,6 +270,7 @@ pub fn keys(program: &CheckedProgram, modules: &[String]) -> Keys {
         unions,
         functions,
         closures,
+        ..Keys::default()
     }
 }
 
@@ -424,8 +433,21 @@ fn scan<'a>(text: &'a str, mut visit: impl FnMut(usize, usize, Token<'a>)) {
 
 /// Rename generated numbers in `application` through `ledger`.
 pub fn stabilize(application: &str, keys: &Keys, ledger: &mut Ledger) -> String {
+    stabilize_with_origins(application, keys, ledger).0
+}
+
+/// Compiler numbers of renamed items: stable number to the number the compiler
+/// created (which indexes `Keys` and crate-plan provenance).
+#[derive(Default)]
+pub struct Origins {
+    pub functions: HashMap<u64, u64>,
+    pub closures: HashMap<u64, u64>,
+}
+
+/// As [`stabilize`], also returning where each function and closure number came from.
+pub fn stabilize_with_origins(application: &str, keys: &Keys, ledger: &mut Ledger) -> (String, Origins) {
     let Some(items) = super::codegen_units::top_level_items(application) else {
-        return application.to_owned();
+        return (application.to_owned(), Origins::default());
     };
     // Owner of each item: the numbered item it defines, if any.
     let item_owner = |item: &super::codegen_units::Item| -> Option<(usize, u64)> {
@@ -576,7 +598,19 @@ pub fn stabilize(application: &str, keys: &Keys, ledger: &mut Ledger) -> String 
         last = item.end;
     }
     out.push_str(&application[last..]);
-    stabilize_family_variants(&out)
+    let mut origins = Origins::default();
+    for ((space, number), stable) in &mapping {
+        match SPACES[*space].0 {
+            "function" => {
+                origins.functions.insert(*stable, *number);
+            }
+            "closure" => {
+                origins.closures.insert(*stable, *number);
+            }
+            _ => {}
+        }
+    }
+    (stabilize_family_variants(&out), origins)
 }
 
 /// Family enums name variants with a program-wide counter (`V1446(Closure1147)`),

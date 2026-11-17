@@ -491,6 +491,7 @@ fn run() -> Result<u8, String> {
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
     if let Some(identity)=runtime_build::application_cache_identity(&rust){cache_parts.push(identity);}
     cache_parts.push(runtime_build::profile_identity(&rust).as_bytes());
+    if !release && !debug && runtime_build::crate_split_enabled() { cache_parts.push(b"crate-split-1"); }
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     // Debug symbols can include platform sidecars outside the executable cache.
@@ -521,6 +522,19 @@ fn run() -> Result<u8, String> {
             prepared.finish()?;prepared.publish();
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
+        if let Some(split) = &prepared.split {
+            let mut probe = backend_command();
+            prepared.link(&mut probe)?;
+            let base = || {
+                let mut command = backend_command();
+                let _ = prepared.link(&mut command);
+                command.args(["--cap-lints", "allow", "--edition=2024", "-C", optimization, "-C", "overflow-checks=on"]);
+                command
+            };
+            let summary = split.build(&base, &executable, prepared.library.as_deref())?;
+            if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] split {summary}");}
+            if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root, false) { let _ = cache.publish(&executable); }
+        } else {
         let mut command = backend_command();
         prepared.link(&mut command)?;
         prepared.application=runtime_build::application_backend_args(&mut command,&cache_root,&incremental_entry,release||debug,&prepared.application);
@@ -558,6 +572,7 @@ fn run() -> Result<u8, String> {
         if debug { record_debug_unit(&prepared.application, &executable).map_err(|e|e.to_string())?; }
         // Cache failure must not turn a successful native build into a failure.
         if !debug && backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
+        }
     }
     if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});

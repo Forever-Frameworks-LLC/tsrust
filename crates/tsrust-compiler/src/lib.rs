@@ -60,6 +60,7 @@ pub use native::type_resolution as native_type_resolution;
 pub use native::exports as native_exports;
 pub use native::cache as native_cache;
 pub use native::codegen_units as native_codegen_units;
+pub use native::crate_split as native_crate_split;
 pub use native::runtime as native_runtime;
 pub use native::stable_names as native_stable_names;
 pub(crate) use native::emit as native_emit;

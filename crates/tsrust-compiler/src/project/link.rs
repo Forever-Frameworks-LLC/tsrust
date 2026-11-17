@@ -82,14 +82,15 @@ impl ProjectAnalysis {
             .iter()
             .map(|id| id.0.clone())
             .collect::<Vec<_>>();
-        crate::native::stable_names::keys(&self.analysis.program, &modules)
+        let mut keys = crate::native::stable_names::keys(&self.analysis.program, &modules);
+        let (functions, closures) = self.module_indices();
+        keys.modules = modules;
+        keys.function_modules = functions;
+        keys.closure_modules = closures;
+        keys
     }
-    /// Source module of each generated function and closure, by checked-program
-    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…],
-    /// "functionNames":[…],"recordNames":[…]}`.
-    /// Modules are indexed in dependency order; null marks compiler-generated items
-    /// with no source module (they belong with the program entry).
-    pub fn crate_plan(&self) -> String {
+    /// Source module index of each generated function and closure (None: compiler-made).
+    fn module_indices(&self) -> (Vec<Option<usize>>, Vec<Option<usize>>) {
         let module_of_span = |span: Span| -> Option<usize> {
             let location = self.source_location(span)?;
             self.graph.order.iter().position(|id| *id == location.source)
@@ -101,12 +102,20 @@ impl ProjectAnalysis {
         let first_span = |body: &[crate::syntax::Stmt]| body.first().map(|statement| statement.span);
         let functions = self.analysis.program.functions.iter()
             .map(|function| module_of_name(&function.name).or_else(|| first_span(&function.body).and_then(module_of_span)))
-            .map(|module| module.map_or("null".to_owned(), |index| index.to_string()))
-            .collect::<Vec<_>>().join(",");
-        let closures = self.analysis.program.closures.iter()
-            .map(|closure| module_of_span(closure.span))
-            .map(|module| module.map_or("null".to_owned(), |index| index.to_string()))
-            .collect::<Vec<_>>().join(",");
+            .collect();
+        let closures = self.analysis.program.closures.iter().map(|closure| module_of_span(closure.span)).collect();
+        (functions, closures)
+    }
+    /// Source module of each generated function and closure, by checked-program
+    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…],
+    /// "functionNames":[…],"recordNames":[…]}`.
+    /// Modules are indexed in dependency order; null marks compiler-generated items
+    /// with no source module (they belong with the program entry).
+    pub fn crate_plan(&self) -> String {
+        let (functions, closures) = self.module_indices();
+        let list = |values: Vec<Option<usize>>| values.into_iter().map(|module| module.map_or("null".to_owned(), |index| index.to_string())).collect::<Vec<_>>().join(",");
+        let functions = list(functions);
+        let closures = list(closures);
         let modules = self.graph.order.iter().map(|id| crate::json_string(&id.0)).collect::<Vec<_>>().join(",");
         let function_names = self.analysis.program.functions.iter().map(|function| crate::json_string(&function.name)).collect::<Vec<_>>().join(",");
         let record_names = self.analysis.program.records.iter().map(|record| crate::json_string(&record.name.text)).collect::<Vec<_>>().join(",");

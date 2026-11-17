@@ -268,7 +268,7 @@ fn item_name(head: &str) -> String {
 }
 
 /// FNV-1a: stable across Rust versions and platforms, unlike `DefaultHasher`.
-fn stable_hash(text: &str) -> u64 {
+pub(crate) fn stable_hash(text: &str) -> u64 {
     text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
         (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
     })
@@ -419,7 +419,7 @@ fn item_keyword(line: &str) -> bool {
 }
 
 /// Offsets of lines that begin outside every delimiter, literal and comment.
-fn top_level_line_starts(source: &str) -> Option<Vec<usize>> {
+pub(crate) fn top_level_line_starts(source: &str) -> Option<Vec<usize>> {
     let bytes = source.as_bytes();
     let mut starts = vec![0];
     let mut depth = 0i64;

@@ -237,6 +237,9 @@ mod platform {
             cache_parts.push(identity);
         }
         cache_parts.push(crate::runtime_build::profile_identity(&frontend.rust).as_bytes());
+        if !release && crate::runtime_build::crate_split_enabled() {
+            cache_parts.push(b"crate-split-1");
+        }
         let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
         let cache_started = Instant::now();
         let reused = cache.try_copy_to(&binary);
@@ -311,6 +314,27 @@ mod platform {
             if verbose {
                 eprintln!("[build] runtime={}", prepared.state);
             }
+            if let Some(split) = &prepared.split {
+                report(Status::Info, "Compiling and linking the application…");
+                let mut probe = crate::backend_command();
+                prepared.link(&mut probe)?;
+                let base = || {
+                    let mut command = crate::backend_command();
+                    let _ = prepared.link(&mut command);
+                    command.current_dir(root).args(["--cap-lints", "allow", "--edition=2024", "-C", optimization, "-C", "overflow-checks=on"]);
+                    command
+                };
+                let rustc_started = Instant::now();
+                let summary = split
+                    .build(&base, &binary, prepared.library.as_deref())
+                    .map_err(|error| format!("Native build failed:\n{error}"))?;
+                if verbose {
+                    eprintln!("[build] rustc={:.1}ms split {summary}", rustc_started.elapsed().as_secs_f64() * 1000.);
+                }
+                if crate::backend_sources::unchanged(shared_inputs.as_deref(), &cache_root, false) {
+                    let _ = cache.try_publish(&binary);
+                }
+            } else {
             // A file avoids pipe backpressure while the supervisor watches edits.
             report(Status::Info, "Compiling and linking the application…");
             let errors = files.0.join("backend.stderr");
@@ -359,6 +383,7 @@ mod platform {
                     "[build] publish={:.1}ms",
                     publish_started.elapsed().as_secs_f64() * 1000.
                 );
+            }
             }
         }
         if verbose {

@@ -45,6 +45,8 @@ pub(crate) struct Prepared {
  packed:Option<PathBuf>,
  _workspace:Option<crate::native_workspace::Workspace>,
  cargo:Option<artifacts::Build>,
+ /// Per-module crates for this build (`TSRUST_CRATE_SPLIT=1` development builds).
+ pub split:Option<SplitCrates>,
 }
 impl Prepared {
     pub fn new(
@@ -89,20 +91,27 @@ impl Prepared {
         let units = native_runtime::separate(source);
         let application = temporary.join("program.rs");
         // Stable names keep unchanged items byte-identical across edits; split afterwards.
+        let mut split = None;
         let named = match naming {
             Some(naming) => {
                 let mut ledger = tsrust_compiler::native_stable_names::Ledger::load(&naming.ledger);
-                let named = tsrust_compiler::native_stable_names::stabilize(
+                let (named, origins) = tsrust_compiler::native_stable_names::stabilize_with_origins(
                     &units.application,
                     &naming.keys,
                     &mut ledger,
                 );
                 ledger.save(&naming.ledger);
+                if crate_split_enabled() && !naming.keys.modules.is_empty() {
+                    split = SplitCrates::write(&named, &naming.keys, &origins, naming)?;
+                }
                 named
             }
             None => units.application.clone(),
         };
-        if naming.is_some() {
+        if split.is_some() {
+            // The crates are the program; the single-file form is only a fallback marker.
+            fs::write(&application, "").map_err(|e| e.to_string())?;
+        } else if naming.is_some() {
             // Incremental builds spread items over files so an insertion shifts lines in one file.
             for part in tsrust_compiler::native_codegen_units::partition_files(
                 &named,
@@ -131,10 +140,11 @@ impl Prepared {
                 packed: None,
                 _workspace: None,
                 cargo: None,
+                split,
             });
         };
         if units.dependencies {
-            return Self::with_dependencies(
+            let mut prepared = Self::with_dependencies(
                 application,
                 &runtime,
                 backend,
@@ -142,7 +152,9 @@ impl Prepared {
                 temporary,
                 release,
                 opportunistic,
-            );
+            )?;
+            prepared.split = split;
+            return Ok(prepared);
         }
         let library = temporary.join("libtsrust_runtime.rlib");
         let cache = NativeCache::runtime(
@@ -200,6 +212,7 @@ impl Prepared {
             packed: None,
             _workspace: None,
             cargo: None,
+            split,
         })
     }
  fn with_dependencies(application:PathBuf,runtime:&str,backend:&str,root:&Path,temporary:&Path,release:bool,opportunistic:bool)->Result<Self,String> {
@@ -220,7 +233,7 @@ impl Prepared {
   let cache=NativeCache::runtime(&root.join("runtime"),&cache_parts);
   let packed=temporary.join("runtime-artifacts");
   if let Some(restored)=staged_dependencies(root,&cache,&packed,opportunistic) {
-   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None});
+   return Ok(Self{application,library:Some(restored.join("libtsrust_runtime.rlib")),command:None,state:"hit",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:Some(restored),packed:Some(packed),_workspace:None,cargo:None,split:None});
   }
   let mut identity=serde_json::to_vec(&("native-build-workspace-1",dependency_identity,backend,std::env::consts::OS,std::env::consts::ARCH,release,profiles(gpui))).map_err(|e|e.to_string())?;
   if gpui{identity.extend(crate::backend_sources::GPUI_LOCK.as_bytes());identity.extend(gpui_patch.as_bytes());}
@@ -298,7 +311,7 @@ impl Prepared {
   if runtime.contains("pub mod tsrust_native_sqlite {"){command.args(["--features","sqlite"]);}
   if release {command.arg("--release");}
   cargo.capture(&mut command)?;
-  Ok(Self{application,library:None,command:Some(command),state:"miss",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:None,packed:Some(packed),_workspace:workspace,cargo:Some(cargo)})
+  Ok(Self{application,library:None,command:Some(command),state:"miss",shared_sources:true,source_snapshot:shared_inputs.map(|inputs|(root.to_owned(),inputs)),cache:Some(cache),opportunistic,dependencies:None,packed:Some(packed),_workspace:workspace,cargo:Some(cargo),split:None})
  }
  /// Acquire before spawning Cargo; dev polls this without blocking cancellation.
  pub fn acquire_target(&mut self,blocking:bool)->Result<bool,String>{match &mut self.cargo{Some(cargo)=>cargo.acquire(blocking),None=>Ok(true)}}
@@ -499,6 +512,227 @@ impl Naming {
             ledger: incremental_session(cache_root, entry).join("names.json"),
         }
     }
+}
+
+/// Per-module crates (`TSRUST_CRATE_SPLIT=1`): development builds only, behind a flag
+/// until the split is the default (docs/plans/crate-per-module.md).
+pub(crate) fn crate_split_enabled() -> bool {
+    std::env::var("TSRUST_CRATE_SPLIT").as_deref() == Ok("1")
+}
+
+/// A program split into one crate per source module, written to the incremental
+/// session. Unchanged crate files keep their bytes and mtimes, and a crate whose
+/// source, flags and dependencies are unchanged is not recompiled at all.
+pub(crate) struct SplitCrates {
+    directory: PathBuf,
+    crates: Vec<SplitCrate>,
+}
+struct SplitCrate {
+    name: String,
+    dependencies: Vec<String>,
+    program: bool,
+}
+impl SplitCrates {
+    fn write(
+        named: &str,
+        keys: &tsrust_compiler::native_stable_names::Keys,
+        origins: &tsrust_compiler::native_stable_names::Origins,
+        naming: &Naming,
+    ) -> Result<Option<Self>, String> {
+        let Some(session) = naming.ledger.parent() else {
+            return Ok(None);
+        };
+        let directory = session.join("split");
+        let function_module = |number: u64| {
+            let original = origins.functions.get(&number).copied().unwrap_or(number);
+            keys.function_modules.get(usize::try_from(original).ok()?).copied().flatten()
+        };
+        let closure_module = |number: u64| {
+            let original = origins.closures.get(&number).copied().unwrap_or(number);
+            keys.closure_modules.get(usize::try_from(original).ok()?).copied().flatten()
+        };
+        let provenance = tsrust_compiler::native_crate_split::Provenance {
+            modules: &keys.modules,
+            function_module: &function_module,
+            closure_module: &closure_module,
+        };
+        let Some(crates) = tsrust_compiler::native_crate_split::split(named, &provenance) else {
+            return Ok(None);
+        };
+        fs::create_dir_all(directory.join("lib")).map_err(|e| e.to_string())?;
+        let mut current = std::collections::BTreeSet::new();
+        for unit in &crates {
+            let file = format!("{}.rs", unit.name);
+            write_if_changed(&directory.join(&file), unit.source.as_bytes())?;
+            current.insert(file);
+        }
+        if let Ok(entries) = fs::read_dir(&directory) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if name.ends_with(".rs") && !current.contains(&name) {
+                    let _ = fs::remove_file(entry.path());
+                }
+            }
+        }
+        Ok(Some(Self {
+            directory,
+            crates: crates
+                .into_iter()
+                .map(|unit| SplitCrate {
+                    name: unit.name,
+                    dependencies: unit.dependencies,
+                    program: unit.program,
+                })
+                .collect(),
+        }))
+    }
+
+    /// Build every crate with `base` (backend, runtime link flags and codegen
+    /// options), the types crate first, then module crates in parallel, then the
+    /// program into `binary`. Returns a timing summary.
+    pub(crate) fn build(
+        &self,
+        base: &(dyn Fn() -> Command + Sync),
+        binary: &Path,
+        runtime: Option<&Path>,
+    ) -> Result<String, String> {
+        let started = std::time::Instant::now();
+        let lib = self.directory.join("lib");
+        if let Some(runtime) = runtime {
+            alias_runtime(runtime, &lib)?;
+        }
+        let flags = format!("{:?}", base().get_args().collect::<Vec<_>>());
+        let fingerprints = std::sync::Mutex::new(std::collections::HashMap::<String, String>::new());
+        let rebuilt = std::sync::atomic::AtomicUsize::new(0);
+        let run = |unit: &SplitCrate| -> Result<(), String> {
+            let source = self.directory.join(format!("{}.rs", unit.name));
+            let output = if unit.program { binary.to_owned() } else { lib.join(format!("lib{}.rlib", unit.name)) };
+            let mut hash = Sha256::new();
+            hash.update(b"split-crate-1");
+            hash.update(flags.as_bytes());
+            hash.update(fs::read(&source).map_err(|e| e.to_string())?);
+            {
+                let known = fingerprints.lock().map_err(|e| e.to_string())?;
+                for dependency in &unit.dependencies {
+                    hash.update(dependency.as_bytes());
+                    hash.update(known.get(dependency).map(String::as_str).unwrap_or("?").as_bytes());
+                }
+            }
+            let fingerprint = hash.finalize().iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+            let stamp = self.directory.join("incremental").join(format!("{}.fingerprint", unit.name));
+            let fresh = !unit.program
+                && output.is_file()
+                && fs::read_to_string(&stamp).ok().as_deref() == Some(fingerprint.as_str());
+            if !fresh {
+                let mut command = base();
+                command.arg("-L").arg(format!("dependency={}", lib.display()));
+                // Crates built against the runtime find it again by search path.
+                if let Some(directory) = runtime.and_then(Path::parent) {
+                    command.arg("-L").arg(format!("dependency={}", directory.display()));
+                }
+                for dependency in &unit.dependencies {
+                    command.arg("--extern").arg(format!("{dependency}={}", lib.join(format!("lib{dependency}.rlib")).display()));
+                }
+                command.arg("-C").arg(format!("incremental={}", self.directory.join("incremental").join(&unit.name).display()));
+                if !unit.program {
+                    command.args(["--crate-type", "rlib", "--crate-name", &unit.name]);
+                }
+                let result = command
+                    .arg(&source)
+                    .arg("-o")
+                    .arg(&output)
+                    .output()
+                    .map_err(|e| format!("Cannot invoke pinned Rust: {e}"))?;
+                if !result.status.success() {
+                    let _ = fs::remove_file(&stamp);
+                    return Err(format!(
+                        "Rust rejected generated code. This is a compiler defect; inspect with the emit command.\n{}",
+                        String::from_utf8_lossy(&result.stderr).trim()
+                    ));
+                }
+                if !unit.program {
+                    let _ = fs::create_dir_all(self.directory.join("incremental"));
+                    let _ = fs::write(&stamp, &fingerprint);
+                }
+                rebuilt.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
+            fingerprints.lock().map_err(|e| e.to_string())?.insert(unit.name.clone(), fingerprint);
+            Ok(())
+        };
+        let types = self.crates.iter().filter(|unit| unit.dependencies.is_empty() && !unit.program);
+        for unit in types {
+            run(unit)?;
+        }
+        let types_done = started.elapsed();
+        let modules = self.crates.iter().filter(|unit| !unit.dependencies.is_empty() && !unit.program).collect::<Vec<_>>();
+        let queue = std::sync::Mutex::new(modules.into_iter());
+        let failure = std::sync::Mutex::new(None::<String>);
+        let workers = std::thread::available_parallelism().map_or(4, usize::from);
+        std::thread::scope(|scope| {
+            for _ in 0..workers {
+                scope.spawn(|| loop {
+                    if failure.lock().map(|failed| failed.is_some()).unwrap_or(true) {
+                        return;
+                    }
+                    let Some(unit) = queue.lock().ok().and_then(|mut queue| queue.next()) else {
+                        return;
+                    };
+                    if let Err(error) = run(unit)
+                        && let Ok(mut failed) = failure.lock()
+                    {
+                        failed.get_or_insert(error);
+                    }
+                });
+            }
+        });
+        if let Some(error) = failure.into_inner().map_err(|e| e.to_string())? {
+            return Err(error);
+        }
+        let modules_done = started.elapsed();
+        for unit in self.crates.iter().filter(|unit| unit.program) {
+            run(unit)?;
+        }
+        Ok(format!(
+            "crates={} rebuilt={} types={:.1}ms modules={:.1}ms program={:.1}ms",
+            self.crates.len(),
+            rebuilt.load(std::sync::atomic::Ordering::Relaxed),
+            types_done.as_secs_f64() * 1000.0,
+            (modules_done - types_done).as_secs_f64() * 1000.0,
+            (started.elapsed() - modules_done).as_secs_f64() * 1000.0
+        ))
+    }
+}
+
+fn write_if_changed(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    if fs::read(path).ok().as_deref() == Some(bytes) {
+        return Ok(());
+    }
+    let pending = path.with_extension(format!("rs.{}", std::process::id()));
+    fs::write(&pending, bytes)
+        .and_then(|()| fs::rename(&pending, path))
+        .map_err(|e| {
+            let _ = fs::remove_file(&pending);
+            e.to_string()
+        })
+}
+
+/// A Cargo-built runtime rlib names its crate `tsrust_runtime_<hash>`; crates
+/// compiled against it find it by that name, so link it under that file name.
+fn alias_runtime(runtime: &Path, lib: &Path) -> Result<(), String> {
+    let bytes = fs::read(runtime).map_err(|e| e.to_string())?;
+    let prefix = b"tsrust_runtime_";
+    let name = bytes.windows(prefix.len() + 16).find(|window| {
+        window.starts_with(prefix) && window[prefix.len()..].iter().all(|byte| byte.is_ascii_hexdigit())
+    });
+    let Some(name) = name else {
+        return Ok(());
+    };
+    let alias = lib.join(format!("lib{}.rlib", String::from_utf8_lossy(name)));
+    if fs::metadata(&alias).is_ok_and(|meta| meta.len() == bytes.len() as u64) {
+        return Ok(());
+    }
+    let _ = fs::remove_file(&alias);
+    fs::hard_link(runtime, &alias).or_else(|_| fs::write(&alias, &bytes)).map_err(|e| e.to_string())
 }
 
 const INCREMENTAL_DIRECTORY:&str="incremental";
