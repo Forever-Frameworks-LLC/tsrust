@@ -121,11 +121,18 @@ callers have already been checked. Two variants were tried and reverted:
 
 What would reduce the pass count:
 
-- Check a record-callback callee before its modes are read (at the call, with
-  the caller's environment), so callers observe checked modes and an acyclic
-  chain converges in one pass. This changes the analyzer's checking order,
-  which the code deliberately avoids today, and needs an audit that compares
-  checked programs with the current order.
+- Check a record-callback callee before its modes are read. Investigated
+  2026-11-17 and not possible without changing results: a function with record
+  parameters is checked against the callback closures that all of its callers
+  put into those records, and `run` checks it again when later callers add
+  callback origins (`field_origins` and the stale-function loop). Checking it at
+  its first call would see only part of that set. Generic specializations
+  created during a caller's check could be checked earlier, but Studio's pass-2
+  stale reads include components (Textarea, Button, Tag), so a third pass would
+  remain.
+- Ceiling for any pass-count work: one observing pass plus one confirming pass
+  (with the definitive analysis beside it) is the minimum, so at most one
+  speculative pass (about 2.2 s on Studio) can be saved this way.
 - Phase 3 (warm start across edits).
 
 ## Phase 3: warm start across edits
