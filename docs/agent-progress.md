@@ -7,6 +7,32 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Crate-per-module step 3: split development builds — 2026-11-16
+
+`TSRUST_CRATE_SPLIT=1` development builds (`dev`, `build`/`run`/`test`
+without `--release`/`--debug`) compile one crate per source module
+(`native/crate_split.rs`, driver `runtime_build::SplitCrates`). The prototype
+and its results are in `experiments/crate-split-spike/` (spike 3).
+
+- Crates: `tsrust_types` (items used by more than one crate and compiler-made
+  functions), `tsrust_m_<file>_<hash>` per module, and the program crate with
+  `main` and `[declared, defined]` checks for every link-time declaration.
+- Session layout: `target/tsrust-native/incremental/<entry>/split/` holds the
+  crate sources, `lib/` rlibs (plus a hard link of a Cargo-built runtime under
+  its hashed crate name) and per-crate incremental directories and
+  fingerprints. The native executable cache key includes the split flag.
+- Validation: compiler lib 1576/1576, CI suites 23/23, Studio 172/177 (same
+  five failures as single-crate: model host, gopls, rust-analyzer, tsserver).
+- Studio `tsrust dev` (103 crates): string edit 3.2-3.5 s rustc+link,
+  adding a function with a closure 3.1-3.3 s; single crate ~14 s and ~37 s.
+  Check is now ~14.5 s of the ~21 s loop.
+
+Open: a split build is not cancelled by a newer edit in `tsrust dev`;
+Linux/Windows linking unverified (types-crate code calls closure bodies defined
+in module rlibs: fine with lld/link.exe/ld64, needs a check on GNU ld); one
+observed full rebuild after the first edit of a session did not reproduce.
+Next: those, then make the split the default and attack check time.
+
 ## Crate-per-module step 2: stable names — 2026-11-16
 
 Committed `native/stable_names.rs`: development builds (not `--release`, not

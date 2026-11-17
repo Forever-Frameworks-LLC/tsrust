@@ -95,7 +95,14 @@ single crate so they can be verified against today's output.
    `experiments/crate-split-spike/split_modules.py` splits Studio into 103 crates
    that build in 15.8 s cold; a literal edit in one module rebuilds and links in
    1.1-1.2 s; a change to the shared types crate rebuilds everything in 9.7 s.
-   Next: port the splitter into the compiler on stable names.)* Emit the types, module and
+   Ported 2026-11-16: `native/crate_split.rs` splits development builds when
+   `TSRUST_CRATE_SPLIT=1`; `runtime_build::SplitCrates` writes crates into the
+   incremental session, skips fresh crates and builds module crates in
+   parallel. CI suites 23/23 and Studio 172/177 (same five tool-dependent
+   failures as single-crate) pass split. Studio `tsrust dev`: string edit
+   3.2-3.5 s rustc+link (2 crates), adding a function with a closure 3.1-3.3 s
+   (5-6 crates); single crate: ~14 s and ~37 s. Check (~14.5 s) is now the
+   largest cost.)* Emit the types, module and
    program crates for `TSRUST_CRATE_SPLIT=1` builds:
    - closure data structs, families, records and unions in the types crate;
    - closure bodies as impls of a per-closure trait defined in the module crate
@@ -108,7 +115,9 @@ single crate so they can be verified against today's output.
      closures; Worklist: none) keep their bodies in the types crate, with
      whatever they need pulled in after them.
    Compare program output and suites against single-crate builds.
-4. **Builds.** Cargo workspace per project in the native workspace cache for
+4. **Builds.** *(Partly done: rustc driver per crate in `SplitCrates::build`.
+   Remaining: cancel a split build on a newer edit in `tsrust dev`, Linux/Windows
+   link validation, then make the split the default.)* Cargo workspace per project in the native workspace cache for
    `dev`, `run`, `build` and `test`, reusing the staged runtime. Measure Studio
    and gallery edit loops, then make the split the default.
 5. **Release.** Same crates with thin or fat LTO; compare binary size and the
