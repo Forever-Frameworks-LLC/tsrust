@@ -36,6 +36,10 @@ impl Prechecker {
     /// Check the dev entry that contains `path`, if any, against `workspace`,
     /// cancelling an earlier check that has not finished.
     pub fn request(&self, workspace: WorkspaceSnapshot, path: PathBuf) {
+        self.send(workspace, path);
+    }
+
+    fn send(&self, workspace: WorkspaceSnapshot, path: PathBuf) {
         let cancelled = Arc::new(AtomicBool::new(false));
         if let Ok(mut current) = self.current.lock()
             && let Some(previous) = current.replace(cancelled.clone())
@@ -70,6 +74,7 @@ fn precheck(session: &mut ProjectSession, request: &Request) -> Option<&'static 
     if prechecked::contains(&root, &identity) {
         return Some("already stored");
     }
+    let _pending = prechecked::begin(&root, &identity);
     let analysis = tsrust_compiler::project_session::with_cancellation(request.cancelled.clone(), || {
         session.check(&request.workspace, &entry.0).map_err(|error| error.message)
     })

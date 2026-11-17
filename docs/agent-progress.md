@@ -22,13 +22,34 @@ from `build.rs`). The check is deterministic in those inputs, so a reused result
 equals a fresh check. Nothing runs in the language server without a live dev
 session.
 
-Studio, `main.tsrx` string edit driven through the language server: the
-background check stored its result about 20 s after the change (the server's
-own diagnostics for the open file run at the same time); a save then rebuilt in
-5.5-6.5 s with check 25-37 ms, instead of 14-17 s. Lib 1580/1580, CLI 65/65,
-LSP 87/88: `completion_matrix::completion_answers_at_typing_speed` fails 30
-Immediate/Paced rows (Iterator, SQL pool and row, Router requests, void result
-arrays), and fails the same way at 86d5d83f5 before this work; not yet fixed.
+The language server marks a check in progress with
+`prechecked/<hash>.pending` (and its pid in `prechecked/server`). On save,
+`tsrust dev` uses a stored result, waits while the same graph is still being
+checked, and waits up to 1 s for a live server to start on it (a save reaches
+the editor and `tsrust dev` together; the server skips its typing pause on
+`didSave` but never restarts a check already running for that text). It checks
+for itself only when nothing is pending or the server's check fails; a newer
+edit ends the wait. The dev-session marker is rewritten each build when another
+process replaced or removed it, and removed on exit only by its owner.
+
+Studio, `main.tsrx` string edit driven through the language server: a save
+after the background check stored its result rebuilt in 5.5-6.5 s (check
+25-37 ms) instead of 14-17 s; a save 3 s after the edit waited for the running
+check instead of starting another.
+
+Dev builds and app bundles now live in `target/tsrust-native/dev-runs/` instead
+of the system temporary directory, which removes macOS's
+`sandbox_extension_issue_file_to_process ... Operation not permitted` message
+(verified by launching the same bundle from both places). Runs left by dead
+dev processes are removed at startup.
+
+Fixed failing language-server tests (all also failed on origin/main):
+completion while typing now waits for the document's own running full check
+instead of answering from a declaration index that lacks inferred receiver
+types (an unrelated check never delays it); `Function<...>` parameter labels use
+the formatter's `name: Type` spacing; catalog examples added for Signal.get/set,
+std:fs.renameNew and six std:ui entries, each run with its stated output.
+Validation: compiler lib 1581/1581, CLI 65/65, LSP 896/896, CI suites 23/23.
 
 ## Check and prepare time in the dev loop — 2026-11-17
 

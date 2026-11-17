@@ -305,7 +305,8 @@ fn run(
         let mut index = 0;
         while index < deferred.len() {
             let uri = deferred[index].uri.as_str();
-            let waiting = !projects.covers(uri) && (documents.pending(uri) || in_flight.as_deref() == Some(uri));
+            let own = in_flight.as_deref() == Some(uri);
+            let waiting = !projects.covers_for(deferred[index].request.method.as_str(), uri, own) && (documents.pending(uri) || own);
             let expired = now.duration_since(deferred[index].since) >= ANSWER_WITHIN;
             if waiting && !expired && !shutdown {
                 index += 1;
@@ -333,7 +334,7 @@ fn run(
                                     scanner.initialize(&request.params, Instant::now());
                                     initialized = true;
                                     Response::new_ok(request.id, json!({
-                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "experimental":{"fileReferences":true}, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
+                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1, "save": {"includeText": false}}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "experimental":{"fileReferences":true}, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
                                         "serverInfo": {"name": "tsrust-lsp", "version": env!("CARGO_PKG_VERSION")}
                                     }))
                             }
@@ -392,7 +393,7 @@ fn run(
                                 if project_request(method)
                                     && let Some(uri) = uri
                                     && documents.snapshot(&uri).is_some_and(|snapshot| tsrust_compiler::project_cli::uses_modules(&snapshot.text).unwrap_or(false))
-                                    && !projects.covers(&uri)
+                                    && !projects.covers_for(method, &uri, in_flight.as_deref() == Some(uri.as_str()))
                                     && (documents.pending(&uri) || in_flight.as_deref() == Some(uri.as_str()))
                                 {
                                     documents.expedite(&uri, Instant::now());
@@ -480,6 +481,12 @@ fn run(
                                     for dependent in projects.change(snapshot) { documents.reschedule(&dependent, now, debounce); }
                                 }
                                 Ok(())
+                            }),
+                            // A save reaches `tsrust dev` at about the same time; start at once so it can wait for this check.
+                            "textDocument/didSave" => serde_json::from_value::<lsp_types::DidSaveTextDocumentParams>(notification.params).map_err(|e| e.to_string()).map(|params| {
+                                // Skip the typing pause only; a check already running for this text continues.
+                                if let Some((due, _)) = &mut precheck_due { *due = now; }
+                                let _ = params;
                             }),
                             "textDocument/didClose" => serde_json::from_value::<DidCloseTextDocumentParams>(notification.params).map_err(|e| e.to_string()).and_then(|params| {
                                 let uri = params.text_document.uri.to_string();
@@ -571,7 +578,7 @@ fn run(
                                 projects.workspace.register(entry,checked.workspace.as_ref().expect("project input"));
                             }
                             projects.cache_actions(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), actions);
-                            projects.cache_index(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), index);
+                            projects.cache_checked_index(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), index);
                             if scanner.covers(&checked.snapshot.uri) {
                                 // Foreground diagnostics must not wait for every closed workspace file.
                                 let entry=tsrust_lsp::project_diagnostics::source_id(&checked.snapshot.uri)?;

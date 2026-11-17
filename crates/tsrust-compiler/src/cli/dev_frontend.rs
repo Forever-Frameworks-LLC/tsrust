@@ -75,7 +75,8 @@ fn run(requests:Receiver<Request>) {
    recent.push(hit);continue;
   }
   // Keep the current revision and its predecessor for undo/redo, including across failed checks.
-  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources)).map(|output|{
+  let cancelled=request.cancelled.clone();
+  let result=tsrust_compiler::project_session::with_cancellation(request.cancelled,||compile(&mut session,&request.entry,&request.sources,&cancelled)).map(|output|{
    let output=std::sync::Arc::new(output);
    if recent.len()==2 {recent.remove(0);}
    recent.push((request.sources.files,output.clone()));
@@ -88,6 +89,7 @@ fn compile(
     session: &mut ProjectSession,
     entry: &std::path::Path,
     sources: &Snapshot,
+    cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<Output, String> {
     let started = Instant::now();
     let id = sources.resolve(
@@ -99,7 +101,7 @@ fn compile(
     if tsrust_compiler::project_cli::uses_modules(&source).unwrap_or(false)
         && let Some(path) = entry.to_str()
         && let Ok(identity) = session.graph_identity(sources, path)
-        && let Some(prechecked) = tsrust_compiler::project_prechecked::load(&sources.root, &identity)
+        && let Some(prechecked) = tsrust_compiler::project_prechecked::wait(&sources.root, &identity, Duration::from_secs(1), cancelled)
     {
         return Ok(Output {
             rust: prechecked.rust,
@@ -171,11 +173,11 @@ mod tests {
   write(&root.join("dep.tsr"),"export function value():int{return 1;}");
   let mut watcher=crate::dev_watch::Watcher::default();let mut session=ProjectSession::default();
   let first=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  let error=tsrust_compiler::project_session::with_cancellation(std::sync::Arc::new(true.into()),||compile(&mut session,&entry,&first)).err().expect("superseded check");
+  let error=tsrust_compiler::project_session::with_cancellation(std::sync::Arc::new(true.into()),||compile(&mut session,&entry,&first,&Default::default())).err().expect("superseded check");
   assert!(error.contains("check-cancelled"),"{error}");
   write(&root.join("dep.tsr"),"export function value():int{return 2;}");
   let latest=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  assert_eq!(compile(&mut session,&entry,&latest).unwrap().rust,compile(&mut ProjectSession::default(),&entry,&latest).unwrap().rust);
+  assert_eq!(compile(&mut session,&entry,&latest,&Default::default()).unwrap().rust,compile(&mut ProjectSession::default(),&entry,&latest,&Default::default()).unwrap().rust);
  }
  #[test]
  fn external_dependency_edits_keep_old_snapshots_frozen_and_refresh_new_ones(){
@@ -183,11 +185,11 @@ mod tests {
   std::fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"app","build":{"entry":"main.tsr","output":"app"}}"#).unwrap();let entry=root.join("main.tsr");let external=base.join("external.tsr");
   write(&external,"export function value():int{return 1;}");write(&entry,"import {value} from '../external';function main(){console.log(value());}");
   let mut watcher=crate::dev_watch::Watcher::default();let before=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};let mut session=ProjectSession::default();
-  let first=compile(&mut session,&entry,&before).unwrap().rust;
+  let first=compile(&mut session,&entry,&before,&Default::default()).unwrap().rust;
   write(&external,"export function value():int{return 2;}");
-  assert_eq!(compile(&mut session,&entry,&before).unwrap().rust,first);
+  assert_eq!(compile(&mut session,&entry,&before,&Default::default()).unwrap().rust,first);
   let after=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  assert_ne!(compile(&mut session,&entry,&after).unwrap().rust,first);
+  assert_ne!(compile(&mut session,&entry,&after,&Default::default()).unwrap().rust,first);
  }
  #[cfg(unix)]
  #[test]
@@ -198,20 +200,20 @@ mod tests {
   std::fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"app","build":{"entry":"main.tsr","output":"app"},"paths":{"@dep":"./linked.tsr"}}"#).unwrap();
   let entry=root.join("main.tsr");write(&entry,"import {value} from '@dep';function main(){console.log(value());}");
   let mut watcher=crate::dev_watch::Watcher::default();let first=watcher.snapshot(&root).unwrap();let frozen=Snapshot{root:root.clone(),files:first.clone()};let mut session=ProjectSession::default();
-  let original=compile(&mut session,&entry,&frozen).unwrap().rust;
+  let original=compile(&mut session,&entry,&frozen,&Default::default()).unwrap().rust;
   write(&external,"export function value():int{return 2;}");
-  assert_eq!(compile(&mut session,&entry,&frozen).unwrap().rust,original);
+  assert_eq!(compile(&mut session,&entry,&frozen,&Default::default()).unwrap().rust,original);
   let second=watcher.snapshot(&root).unwrap();assert_ne!(first,second);
-  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:second}).unwrap().rust,original);
+  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:second},&Default::default()).unwrap().rust,original);
   let replacement=base.join("replacement.tsr");write(&replacement,"export function value():int{return 3;}");std::fs::remove_file(root.join("linked.tsr")).unwrap();std::os::unix::fs::symlink(replacement,root.join("linked.tsr")).unwrap();
-  assert_eq!(compile(&mut session,&entry,&frozen).unwrap().rust,original);
-  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()}).unwrap().rust,original);
+  assert_eq!(compile(&mut session,&entry,&frozen,&Default::default()).unwrap().rust,original);
+  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()},&Default::default()).unwrap().rust,original);
   std::fs::write(base.join("replacement.tsr"),[0xff]).unwrap();
   let invalid=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  let error=compile(&mut session,&entry,&invalid).err().unwrap();
+  let error=compile(&mut session,&entry,&invalid,&Default::default()).err().unwrap();
   write(&base.join("replacement.tsr"),"export function value():int{return 4;}");
-  assert_eq!(compile(&mut session,&entry,&invalid).err().unwrap(),error);
-  assert!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()}).is_ok());
+  assert_eq!(compile(&mut session,&entry,&invalid,&Default::default()).err().unwrap(),error);
+  assert!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()},&Default::default()).is_ok());
  }
  #[test]
  fn aliases_and_candidate_selection_remain_frozen_after_disk_changes() {
@@ -221,13 +223,13 @@ mod tests {
   write(&entry,"import {value} from '@/component';function main(){console.log(value());}");
   write(&root.join("src/component/index.tsr"),"export function value():int{return 1;}");
   let mut watcher=crate::dev_watch::Watcher::default();let snapshot=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};let mut session=ProjectSession::default();
-  let original=compile(&mut session,&entry,&snapshot).unwrap().rust;
+  let original=compile(&mut session,&entry,&snapshot,&Default::default()).unwrap().rust;
   write(&root.join("src/component.tsr"),"export function value():int{return 2;}");
-  assert_eq!(compile(&mut session,&entry,&snapshot).unwrap().rust,original);
+  assert_eq!(compile(&mut session,&entry,&snapshot,&Default::default()).unwrap().rust,original);
   std::fs::write(root.join("tsrust.config.json"),r#"{"paths":{"@/*":"./missing/*"}}"#).unwrap();
   std::fs::remove_file(root.join("src/component/index.tsr")).unwrap();
-  assert_eq!(compile(&mut session,&entry,&snapshot).unwrap().rust,original);
-  let current=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};assert!(compile(&mut session,&entry,&current).is_err());
+  assert_eq!(compile(&mut session,&entry,&snapshot,&Default::default()).unwrap().rust,original);
+  let current=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};assert!(compile(&mut session,&entry,&current,&Default::default()).is_err());
  }
  #[test]
  fn nested_config_is_captured_and_changed_mappings_invalidate_snapshot() {
@@ -245,13 +247,13 @@ mod tests {
   let later=root.join("later.tsr");write(&later,"export function later():int{return 1;}");
   assert!(sources.resolve(None,later.to_str().unwrap()).is_err());
   std::fs::remove_file(later).unwrap();
-  let original=compile(&mut session,&entry,&sources).unwrap().rust;
+  let original=compile(&mut session,&entry,&sources,&Default::default()).unwrap().rust;
   write(&entry,"function main(){console.log('changed');}");write(&dep,"export function value():int{return 2;}");
-  assert_eq!(compile(&mut session,&entry,&sources).unwrap().rust,original);
+  assert_eq!(compile(&mut session,&entry,&sources,&Default::default()).unwrap().rust,original);
   write(&entry,"import {value} from './dep.tsr';function main(){console.log(value());}");write(&dep,"export function value():int{return 'snapshot-error';}");
   let invalid=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
   write(&dep,"export function value():int{return 99;}");
-  let error=compile(&mut session,&entry,&invalid).err().unwrap();assert!(error.contains("snapshot-error"),"{error}");assert!(!error.contains("return 99"),"{error}");
+  let error=compile(&mut session,&entry,&invalid,&Default::default()).err().unwrap();assert!(error.contains("snapshot-error"),"{error}");assert!(!error.contains("return 99"),"{error}");
  }
  #[test]
  fn rust_body_edits_refresh_captured_dev_output() {
@@ -261,11 +263,11 @@ mod tests {
   let dep=root.join("compute.rs");std::fs::write(&dep,"pub fn value()->i64{1}").unwrap();
   let mut watcher=crate::dev_watch::Watcher::default();let mut session=ProjectSession::default();
   let before=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  let first=compile(&mut session,&entry,&before).unwrap();assert!(first.rust.contains("pub fn value()->i64{1}"));
+  let first=compile(&mut session,&entry,&before,&Default::default()).unwrap();assert!(first.rust.contains("pub fn value()->i64{1}"));
   std::fs::write(&dep,"pub fn value()->i64{2}").unwrap();
   let after=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
-  let next=compile(&mut session,&entry,&after).unwrap();assert!(next.rust.contains("pub fn value()->i64{2}"));assert_ne!(next.identity,first.identity);
-  assert!(compile(&mut session,&entry,&before).unwrap().rust.contains("pub fn value()->i64{1}"));
+  let next=compile(&mut session,&entry,&after,&Default::default()).unwrap();assert!(next.rust.contains("pub fn value()->i64{2}"));assert_ne!(next.identity,first.identity);
+  assert!(compile(&mut session,&entry,&before,&Default::default()).unwrap().rust.contains("pub fn value()->i64{1}"));
  }
 
 }

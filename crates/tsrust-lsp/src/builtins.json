@@ -4,7 +4,8 @@
       "name": "get",
       "signature": "get(): T",
       "parameters": [],
-      "documentation": "Returns an independent snapshot of the current scalar, nullable, array or plain-record value. Takes no arguments and leaves state unchanged. Editing a returned record or array does not update state; call set(next) to replace it. Throws UiError if the component owner was disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst copy = names.get();\ncopy[0] = \"Grace\";\nconsole.log(names.get()[0]); // Ada\n```\n\nOwnership: copies nested data; this read does not retain the signal owner."
+      "documentation": "Returns an independent snapshot of the current scalar, nullable, array or plain-record value. Takes no arguments and leaves state unchanged. Editing a returned record or array does not update state; call set(next) to replace it. Throws UiError if the component owner was disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst copy = names.get();\ncopy[0] = \"Grace\";\nconsole.log(names.get()[0]); // Ada\n```\n\nOwnership: copies nested data; this read does not retain the signal owner.",
+      "examples": [{"source": "import {signal} from 'std:ui';function main(){const count=signal(3);console.log(count.get());}", "output": "3\n"}]
     },
     {
       "name": "set",
@@ -15,7 +16,8 @@
           "documentation": "Required replacement with the same payload type. Copied independently; no default."
         }
       ],
-      "documentation": "Replaces the complete state value with an independent snapshot and refreshes live bindings after the handler. value must match the signal payload type; resources, borrowed views and callbacks are rejected even inside data. Returns void. Later edits to value do not change state. Throws UiError after the component owner is disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst next = names.get();\nnext[0] = \"Grace\";\nnames.set(next);\nconsole.log(names.get()[0]); // Grace\n```\n\nOwnership: borrows the replacement and copies its nested data; bindings do not retain the component owner."
+      "documentation": "Replaces the complete state value with an independent snapshot and refreshes live bindings after the handler. value must match the signal payload type; resources, borrowed views and callbacks are rejected even inside data. Returns void. Later edits to value do not change state. Throws UiError after the component owner is disposed.\n\n```tsrust\nconst names = signal([\"Ada\"]);\nconst next = names.get();\nnext[0] = \"Grace\";\nnames.set(next);\nconsole.log(names.get()[0]); // Grace\n```\n\nOwnership: borrows the replacement and copies its nested data; bindings do not retain the component owner.",
+      "examples": [{"source": "import {signal} from 'std:ui';function main(){const count=signal(1);count.set(5);console.log(count.get());}", "output": "5\n"}]
     },
     {
       "name": "handle",
@@ -8925,7 +8927,8 @@
           "documentation": "New path with an existing parent on the same filesystem."
         }
       ],
-      "documentation": "Moves an entry only if the destination is absent. An existing destination gives already-exists and both entries remain intact. Cross-filesystem moves can fail. Paths are relative to the working directory unless absolute. Returns Ok on success. Example: unwrap(renameNew('draft.txt', 'final.txt')) moves the draft to a new final.txt. Ownership: reads both path arguments."
+      "documentation": "Moves an entry only if the destination is absent. An existing destination gives already-exists and both entries remain intact. Cross-filesystem moves can fail. Paths are relative to the working directory unless absolute. Returns Ok on success. Example: unwrap(renameNew('draft.txt', 'final.txt')) moves the draft to a new final.txt. Ownership: reads both path arguments.\n\n```tsrust\nimport { writeTextFile, renameNew, readTextFile, removeFile } from \"std:fs\";\n\nfunction main() {\n  unwrap(writeTextFile(\"catalog-draft\", \"ok\"));\n  unwrap(renameNew(\"catalog-draft\", \"catalog-final\"));\n  console.log(unwrap(readTextFile(\"catalog-final\")));\n  unwrap(removeFile(\"catalog-final\"));\n}\n```\n\nExpected output: ok.",
+      "examples": [{"source": "import {writeTextFile,renameNew,readTextFile,removeFile} from \"std:fs\";function main(){unwrap(writeTextFile(\"catalog-draft\",\"ok\"));unwrap(renameNew(\"catalog-draft\",\"catalog-final\"));console.log(unwrap(readTextFile(\"catalog-final\")));unwrap(removeFile(\"catalog-final\"));}", "output": "ok\n"}]
     },
     {
       "name": "rename",
@@ -23524,22 +23527,22 @@
     {
       "name": "TerminalAction",
       "signature": "type TerminalAction = 'focus' | 'write' | 'paste' | 'interrupt' | 'copy' | 'copy-output' | 'scroll' | 'close' | 'restart' | 'select'",
-      "documentation": "Native terminal operations addressed by session id. focus changes keyboard focus; write sends exact UTF-8 bytes; paste normalizes line endings and uses bracketed paste when requested by the application; interrupt sends Ctrl+C through the PTY; copy copies local selection; copy-output copies retained scrollback and screen text; scroll moves history by signed lines; close force-terminates foreground job and shell. Hiding a Terminal does not close it. Example: {action: 'interrupt'} stops a foreground program which handles Ctrl+C. Ownership: plain command data. restart starts a fresh shell only after exit; select sets an inclusive viewport cell range without sending PTY input."
+      "documentation": "Native terminal operations addressed by session id. focus changes keyboard focus; write sends exact UTF-8 bytes; paste normalizes line endings and uses bracketed paste when requested by the application; interrupt sends Ctrl+C through the PTY; copy copies local selection; copy-output copies retained scrollback and screen text; scroll moves history by signed lines; close force-terminates foreground job and shell. Hiding a Terminal does not close it. Example: {action: 'interrupt'} stops a foreground program which handles Ctrl+C. Ownership: plain command data. restart starts a fresh shell only after exit; select sets an inclusive viewport cell range without sending PTY input.\n\n```tsrust\nimport { TerminalAction } from \"std:ui\";\n\nfunction main() {\n  const action: TerminalAction = \"write\";\n  console.log(action);\n}\n```\n\nExpected output: write."
     },
     {
       "name": "TerminalRequest",
       "signature": "interface TerminalRequest",
-      "documentation": "Arguments for controlTerminal: action is required; text supplies write/paste input, limited to 1 MiB after encoding; lines supplies scroll delta from -2147483648 through 2147483647, positive upward. No Enter is added; include \\r explicitly to submit a command. Example: {action: 'write', text: 'pwd\\r'} runs pwd in the shell. Input can execute code and affect files; agent hosts must enforce grants and isolation before calling. Ownership: an owned record queued in the originating window. expectedGeneration must match the generation reported by readTerminal; omission targets the current instance. Agent callers must supply the observed positive generation. selection supplies exactly four nonnegative viewport coordinates [startRow,startColumn,endRow,endColumn] for select; each coordinate must lie inside the current grid."
+      "documentation": "Arguments for controlTerminal: action is required; text supplies write/paste input, limited to 1 MiB after encoding; lines supplies scroll delta from -2147483648 through 2147483647, positive upward. No Enter is added; include \\r explicitly to submit a command. Example: {action: 'write', text: 'pwd\\r'} runs pwd in the shell. Input can execute code and affect files; agent hosts must enforce grants and isolation before calling. Ownership: an owned record queued in the originating window. expectedGeneration must match the generation reported by readTerminal; omission targets the current instance. Agent callers must supply the observed positive generation. selection supplies exactly four nonnegative viewport coordinates [startRow,startColumn,endRow,endColumn] for select; each coordinate must lie inside the current grid.\n\n```tsrust\nimport { TerminalRequest } from \"std:ui\";\n\nfunction main() {\n  const request: TerminalRequest = {\n    action: \"write\", text: \"pwd\\r\"\n  };\n  console.log(request.action);\n}\n```\n\nExpected output: write."
     },
     {
       "name": "TerminalCommandResult",
       "signature": "interface TerminalCommandResult",
-      "documentation": "Asynchronous terminal action outcome. ok=true means the action was delivered, not that a shell command completed or succeeded. ok=false carries error for missing session, unsupported action, invalid arguments or failed PTY input. Example: result.ok=false with error Terminal session is not mounted means the named Terminal has not been displayed. Ownership: copied result data; callbacks borrow it for their duration."
+      "documentation": "Asynchronous terminal action outcome. ok=true means the action was delivered, not that a shell command completed or succeeded. ok=false carries error for missing session, unsupported action, invalid arguments or failed PTY input. Example: result.ok=false with error Terminal session is not mounted means the named Terminal has not been displayed. Ownership: copied result data; callbacks borrow it for their duration.\n\n```tsrust\nimport { TerminalCommandResult } from \"std:ui\";\n\nfunction main() {\n  const result: TerminalCommandResult = {\n    ok: false, error: \"Terminal session is not mounted\"\n  };\n  console.log(result.ok);\n}\n```\n\nExpected output: false."
     },
     {
       "name": "TerminalSnapshot",
       "signature": "interface TerminalSnapshot",
-      "documentation": "Copied native terminal state: found is required; directory, title, exited, exitCode (nullable), error, text, selectedText, columns, rows, scrollOffset and focused are optional and absent when not found. text contains only the visible grid, not the full scrollback or raw output. Reading has no focus, input or scrolling effects. Example: a mounted 80-column terminal reports columns=80; an unknown id reports found=false. Ownership: independent snapshot; later terminal output does not mutate it. generation identifies the mounted shell instance and changes on restart. Use it as expectedGeneration to reject a stale action."
+      "documentation": "Copied native terminal state: found is required; directory, title, exited, exitCode (nullable), error, text, selectedText, columns, rows, scrollOffset and focused are optional and absent when not found. text contains only the visible grid, not the full scrollback or raw output. Reading has no focus, input or scrolling effects. Example: a mounted 80-column terminal reports columns=80; an unknown id reports found=false. Ownership: independent snapshot; later terminal output does not mutate it. generation identifies the mounted shell instance and changes on restart. Use it as expectedGeneration to reject a stale action.\n\n```tsrust\nimport { TerminalSnapshot } from \"std:ui\";\n\nfunction main() {\n  const snapshot: TerminalSnapshot = {\n    found: false\n  };\n  console.log(snapshot.found);\n}\n```\n\nExpected output: false."
     },
     {
       "name": "KeyboardEvent",
@@ -23593,7 +23596,7 @@
     {
       "name": "EditorLanguageDelivery",
       "signature": "interface EditorLanguageDelivery { accepted: boolean; }",
-      "documentation": "Delivery receipt from answerEditorLanguage. accepted is false for stale, cancelled, expired or other-window requests. Reading the receipt does not edit or focus a document."
+      "documentation": "Delivery receipt from answerEditorLanguage. accepted is false for stale, cancelled, expired or other-window requests. Reading the receipt does not edit or focus a document.\n\n```tsrust\nimport { EditorLanguageDelivery } from \"std:ui\";\n\nfunction main() {\n  const delivery: EditorLanguageDelivery = {\n    accepted: false\n  };\n  console.log(delivery.accepted);\n}\n```\n\nExpected output: false."
     },
     {
       "name": "answerEditorLanguage",
@@ -23635,7 +23638,7 @@
           "documentation": "Exclusive zero-based UTF-8 byte offset for fallback replacement when textEdit is absent."
         }
       ],
-      "documentation": "Prepare a completion and its same-document import/additional edits as independent proposed text. Never edits, focuses or saves a document.\n\n`text` is the exact current UTF-8 document; `item` is one JSON-encoded LSP CompletionItem with UTF-16 positions. `start` and `end` are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Numeric snippet stops/defaults are expanded; server commands are ignored. Returns the complete proposed document. Invalid, surrogate-interior, reversed, outside-document or overlapping ranges and unsupported snippets return an error. Inputs and output are limited to 16 MiB each. Verify document session/revision before applying.\n\n```tsr\nconst proposed = unwrap(completionText('pri', '{\"label\":\"print\"}', 0, 3));\nconsole.log(proposed); // print\n```\n\nOwnership: reads inputs; returns independent text."
+      "documentation": "Prepare a completion and its same-document import/additional edits as independent proposed text. Never edits, focuses or saves a document.\n\n`text` is the exact current UTF-8 document; `item` is one JSON-encoded LSP CompletionItem with UTF-16 positions. `start` and `end` are zero-based UTF-8 byte offsets for the fallback replacement when textEdit is absent. Numeric snippet stops/defaults are expanded; server commands are ignored. Returns the complete proposed document. Invalid, surrogate-interior, reversed, outside-document or overlapping ranges and unsupported snippets return an error. Inputs and output are limited to 16 MiB each. Verify document session/revision before applying.\n\n```tsr\nconst proposed = unwrap(completionText('pri', '{\"label\":\"print\"}', 0, 3));\nconsole.log(proposed); // print\n```\n\nOwnership: reads inputs; returns independent text.\n\n```tsrust\nimport { completionText } from \"std:ui\";\n\nfunction main() {\n  console.log(unwrap(completionText(\"con\", JSON.stringify({\n    label: \"console\"\n  }), 0, 3)));\n}\n```\n\nExpected output: console."
     },
     {
       "name": "Icon",

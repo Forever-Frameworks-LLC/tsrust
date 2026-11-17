@@ -101,11 +101,57 @@ fn prune(directory: &Path) {
     let Ok(entries) = std::fs::read_dir(directory) else { return };
     let mut files = entries
         .flatten()
+        .filter(|entry| entry.path().extension().is_some_and(|extension| extension == "checked"))
         .filter_map(|entry| Some((entry.metadata().ok()?.modified().ok()?, entry.path())))
         .collect::<Vec<_>>();
     files.sort_by(|left, right| right.0.cmp(&left.0));
     for (_, path) in files.into_iter().skip(RETAINED) {
         let _ = std::fs::remove_file(path);
+    }
+}
+
+/// A check in progress for one graph identity. Dropping it removes the marker,
+/// whether the check stored a result, failed or was cancelled.
+pub struct Pending(PathBuf);
+impl Drop for Pending {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Mark that this process is checking this graph identity, so `tsrust dev` waits
+/// for the result instead of starting the same check.
+pub fn begin(root: &Path, identity: &[u8]) -> Option<Pending> {
+    let path = file(root, identity).with_extension("pending");
+    std::fs::create_dir_all(path.parent()?).ok()?;
+    std::fs::write(&path, std::process::id().to_string()).ok()?;
+    let _ = std::fs::write(directory(root).join("server"), std::process::id().to_string());
+    Some(Pending(path))
+}
+
+fn alive(path: &Path) -> bool {
+    std::fs::read_to_string(path).ok().and_then(|text| text.trim().parse().ok()).is_some_and(process_alive)
+}
+
+/// The stored result for this graph identity, waiting while another process is
+/// still checking it. When a language server that checks for this project is
+/// running but has not started on this identity, wait up to `grace` for it to
+/// begin (a save reaches the editor and `tsrust dev` at about the same time).
+/// Returns `None` when there is nothing to wait for, the check fails, or
+/// `cancelled` is set.
+pub fn wait(root: &Path, identity: &[u8], grace: std::time::Duration, cancelled: &std::sync::atomic::AtomicBool) -> Option<Prechecked> {
+    let pending = file(root, identity).with_extension("pending");
+    let server = directory(root).join("server");
+    let started = std::time::Instant::now();
+    loop {
+        if let Some(result) = load(root, identity) {
+            return Some(result);
+        }
+        let checking = alive(&pending);
+        if cancelled.load(std::sync::atomic::Ordering::Relaxed) || !checking && !(started.elapsed() < grace && alive(&server)) {
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
     }
 }
 
@@ -117,8 +163,16 @@ fn marker(root: &Path) -> PathBuf {
 pub struct DevSession(PathBuf);
 impl Drop for DevSession {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
+        // Leave a marker that another running session has since written.
+        if self.0.parent().and_then(Path::parent).and_then(Path::parent).is_some_and(announced_by_this_process) {
+            let _ = std::fs::remove_file(&self.0);
+        }
     }
+}
+
+/// Whether the dev-session marker of this project names this process.
+pub fn announced_by_this_process(root: &Path) -> bool {
+    std::fs::read_to_string(marker(root)).ok().and_then(|text| text.lines().next()?.parse::<u32>().ok()) == Some(std::process::id())
 }
 
 /// Announce a running `tsrust dev` for this project and its entry, so the
@@ -176,6 +230,41 @@ mod tests {
             store(&root, format!("graph{index}").as_bytes(), &value).unwrap();
         }
         assert_eq!(std::fs::read_dir(directory(&root)).unwrap().count(), RETAINED);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn waiting_follows_a_pending_check_and_stops_without_one() {
+        use std::sync::atomic::AtomicBool;
+        use std::time::{Duration, Instant};
+        let root = std::env::temp_dir().join(format!("tsrust-prechecked-wait-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let value = || Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default() };
+        let idle = AtomicBool::new(false);
+        // Nothing pending and no checking server: return at once.
+        let started = Instant::now();
+        assert!(wait(&root, b"a", Duration::from_secs(5), &idle).is_none());
+        assert!(started.elapsed() < Duration::from_secs(1));
+        // A check in progress in this process: wait until it stores the result.
+        let pending = begin(&root, b"a").unwrap();
+        let writer = {
+            let root = root.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(200));
+                store(&root, b"a", &Prechecked { rust: "fn main(){}\n".into(), features: Vec::new(), keys: Default::default() }).unwrap();
+                drop(pending);
+            })
+        };
+        assert_eq!(wait(&root, b"a", Duration::ZERO, &idle).unwrap().rust, value().rust);
+        writer.join().unwrap();
+        // A pending check that ends without a result: stop waiting.
+        let failed = begin(&root, b"b").unwrap();
+        let ender = std::thread::spawn(move || { std::thread::sleep(Duration::from_millis(100)); drop(failed); });
+        assert!(wait(&root, b"b", Duration::ZERO, &idle).is_none());
+        ender.join().unwrap();
+        // Cancellation ends a wait for a check still in progress.
+        let _still_running = begin(&root, b"c").unwrap();
+        assert!(wait(&root, b"c", Duration::ZERO, &AtomicBool::new(true)).is_none());
         let _ = std::fs::remove_dir_all(&root);
     }
 }

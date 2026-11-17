@@ -4354,7 +4354,7 @@ fn callable_parameters(ty: &str) -> Option<Vec<String>> {
             return Some(
                 parameters
                     .iter()
-                    .map(|parameter| ty[parameter.span.start..parameter.span.end].trim().to_string())
+                    .map(|parameter| labeled_parameter(ty[parameter.span.start..parameter.span.end].trim()))
                     .collect(),
             );
         }
@@ -4379,6 +4379,17 @@ fn callable_parameters(ty: &str) -> Option<Vec<String>> {
         parameters.push(ty[begin..end].trim().to_string());
     }
     Some(parameters)
+}
+
+/// A `Function<...>` parameter as the formatter writes it: `name: Type`.
+fn labeled_parameter(source: &str) -> String {
+    let name_end = source.find(|ch: char| !(ch.is_alphanumeric() || matches!(ch, '_' | '$' | '.'))).unwrap_or(source.len());
+    let rest = source[name_end..].trim_start();
+    let (marker, rest) = if let Some(rest) = rest.strip_prefix("?:") {("?", rest)} else if let Some(rest) = rest.strip_prefix(':') {("", rest)} else {return source.to_owned()};
+    if name_end == 0 {
+        return source.to_owned();
+    }
+    format!("{}{marker}: {}", &source[..name_end], rest.trim())
 }
 
 fn optional_parameter_type(ty: &str) -> String {

@@ -77,13 +77,35 @@ mod platform {
     }
     struct Built {_files:TempDirectory,binary:PathBuf,identity:ApplicationIdentity}
     struct Running {process:Process,build:Built}
+    fn dev_runs(root: &Path) -> PathBuf {
+        root.join("target").join("tsrust-native").join("dev-runs")
+    }
+
+    /// Remove build directories left by dev processes that are no longer running.
+    fn prune_dev_runs(root: &Path) {
+        let Ok(entries) = std::fs::read_dir(dev_runs(root)) else { return };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let pid = name.strip_prefix("tsrust-").and_then(|rest| rest.split('-').next()).and_then(|pid| pid.parse::<i32>().ok());
+            #[cfg(unix)]
+            let alive = pid.is_some_and(|pid| unsafe { unix::kill(pid, 0) } == 0);
+            #[cfg(not(unix))]
+            let alive = pid == Some(std::process::id() as i32);
+            if !alive {
+                let _ = std::fs::remove_dir_all(entry.path());
+            }
+        }
+    }
+
     static DEV_SESSION: std::sync::Mutex<Option<(PathBuf, tsrust_compiler::project_prechecked::DevSession)>> = std::sync::Mutex::new(None);
 
     /// Tell the language server this project is being built, so it checks ahead
     /// of saves. The marker names the entry exactly as this build checks it.
     fn announce_dev_session(root: &Path, entry: &Path) {
         let Ok(mut session) = DEV_SESSION.lock() else { return };
-        if session.as_ref().is_some_and(|(announced, _)| announced == entry) { return; }
+        // Another dev session of the same project may have replaced or removed the marker.
+        if session.as_ref().is_some_and(|(announced, _)| announced == entry) && tsrust_compiler::project_prechecked::announced_by_this_process(root) { return; }
+        *session = None;
         *session = tsrust_compiler::project_prechecked::announce_dev_session(root, entry).map(|guard| (entry.to_owned(), guard));
     }
 
@@ -128,7 +150,9 @@ mod platform {
             ),
         );
         // Keep the same probe and teardown, but overlap it with frontend work.
-        let files = TempDirectory::new().map_err(|e| e.to_string())?;
+        // Inside the project, not the system temporary directory: macOS logs a
+        // sandbox-extension failure for app bundles launched from there.
+        let files = TempDirectory::new_in(&dev_runs(root)).map_err(|e| e.to_string())?;
         let backend_started = Instant::now();
         let probe_out = files.0.join("backend-version.stdout");
         let probe_err = files.0.join("backend-version.stderr");
@@ -533,6 +557,7 @@ mod platform {
         // Source discovery uses canonical identities, including Windows extended paths.
         let root=std::fs::canonicalize(&project.root).map_err(|e|e.to_string())?;
         report(Status::Info,format_args!("Watching {}. Press Ctrl+C to stop.",root.display()));
+        prune_dev_runs(&root);
         let worker=crate::dev_frontend::Worker::new()?;
         let mut watcher=Watcher::default();
         let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
