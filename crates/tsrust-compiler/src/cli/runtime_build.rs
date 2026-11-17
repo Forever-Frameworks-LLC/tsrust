@@ -604,7 +604,15 @@ impl SplitCrates {
         if let Some(runtime) = runtime {
             alias_runtime(runtime, &lib)?;
         }
-        let flags = format!("{:?}", base().get_args().collect::<Vec<_>>());
+        let mut flags = format!("{:?}", base().get_args().collect::<Vec<_>>());
+        // The staged runtime directory is keyed by the whole environment, so the
+        // same runtime appears under another path after an unrelated variable
+        // changes. Fingerprint it by content; crates built against it stay valid.
+        if let Some(runtime) = runtime
+            && let Some(directory) = runtime.parent()
+        {
+            flags = flags.replace(&directory.display().to_string(), &format!("<runtime {}>", content_identity(runtime)?));
+        }
         let fingerprints = std::sync::Mutex::new(std::collections::HashMap::<String, String>::new());
         let rebuilt = std::sync::atomic::AtomicUsize::new(0);
         let run = |unit: &SplitCrate| -> Result<(), String> {
@@ -736,6 +744,23 @@ impl SplitCrates {
             (started.elapsed() - modules_done).as_secs_f64() * 1000.0
         )))
     }
+}
+
+/// SHA-256 of a file, remembered beside it by length and modification time.
+fn content_identity(path: &Path) -> Result<String, String> {
+    let metadata = fs::metadata(path).map_err(|e| e.to_string())?;
+    let modified = metadata.modified().ok().and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |time| time.as_nanos());
+    let key = format!("{} {modified}", metadata.len());
+    let stamp = path.with_extension("rlib.identity");
+    if let Ok(text) = fs::read_to_string(&stamp)
+        && let Some((recorded, identity)) = text.rsplit_once(' ')
+        && recorded == key
+    {
+        return Ok(identity.to_owned());
+    }
+    let identity = Sha256::digest(fs::read(path).map_err(|e| e.to_string())?).iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    let _ = fs::write(&stamp, format!("{key} {identity}"));
+    Ok(identity)
 }
 
 fn write_if_changed(path: &Path, bytes: &[u8]) -> Result<(), String> {

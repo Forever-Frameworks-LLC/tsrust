@@ -45,6 +45,14 @@ CI suites 23/23. Phase 2 does not apply (callers of record-callback callees
 are checked first, so each component level costs a pass); see the plan for
 the measurements and the remaining options.
 
+Split fingerprints now hash the staged runtime rlib's content instead of its
+directory. That directory is keyed by the whole environment, so a different
+shell or PATH made every crate rebuild (12-20 s on Studio); now 2 crates
+rebuild. Open: inside `tsrust dev`, the edited module crate and the program
+crate take about 2 s each (rustc CPU about 0.9 s), but 0.45-0.9 s when the same
+command runs alone. Pre-reading the rlibs and toolchain did not change the dev
+timings, so the file cache is not the cause.
+
 ## Crate-per-module step 4: split is the default — 2026-11-17
 
 Development builds (`dev`, `build`/`run`/`test` without `--release`/`--debug`)
