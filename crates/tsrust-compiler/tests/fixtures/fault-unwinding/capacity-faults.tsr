@@ -1,0 +1,13 @@
+function grow(text: string, count: int): string {
+  return text.repeat(count);
+}
+
+function main() {
+  try {
+    console.log(grow('ab', 4611686018427387904).length);
+  } catch (error) {
+    console.log(error.name, error.code);
+  }
+
+  console.log('ab'.repeat(4611686018427387904).length);
+}

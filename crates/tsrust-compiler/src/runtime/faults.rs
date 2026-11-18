@@ -11,14 +11,21 @@ struct TsrFaultInfo {
     source: TsrFaultText,
     start: i64,
     end: i64,
+    line: i64,
+    column: i64,
+    // Captured only when RUST_BACKTRACE is set; printed by the uncaught report.
+    backtrace: std::backtrace::Backtrace,
 }
 thread_local! {
     static TSR_FAULT: std::cell::RefCell<Option<TsrFaultInfo>> = const { std::cell::RefCell::new(None) };
     // Catch points active on this thread; a fault raised with none is reported by the hook.
     static TSR_FAULT_CATCHERS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
+/// `Uncaught RangeError: message` then `    at file:line:column`.
+/// A fault without a source position (a runtime helper's limit) has no `at` line.
 fn tsr_fault_text(fault: &TsrFaultInfo) -> std::string::String {
-    std::format!("Uncaught {}: {} ({}:{}..{})\n", &*fault.name, &*fault.message, &*fault.source, fault.start, fault.end)
+    if fault.line == 0 { return std::format!("Uncaught {}: {}\n", &*fault.name, &*fault.message); }
+    std::format!("Uncaught {}: {}\n    at {}:{}:{}\n", &*fault.name, &*fault.message, &*fault.source, fault.line, fault.column)
 }
 fn tsr_fault_write(text: &str) {
     use std::io::Write;
@@ -47,15 +54,18 @@ fn tsr_install_fault_hook() {
 }
 #[cold]
 #[inline(never)]
-fn tsr_raise_fault_parts(name: TsrFaultText, code: TsrFaultText, message: TsrFaultText, source: TsrFaultText, start: i64, end: i64) -> ! {
+fn tsr_raise_fault_parts(name: TsrFaultText, code: TsrFaultText, message: TsrFaultText, source: TsrFaultText, start: i64, end: i64, line: i64, column: i64) -> ! {
     let text: std::string::String = std::string::String::from(&*message);
-    TSR_FAULT.with(|slot| *slot.borrow_mut() = Some(TsrFaultInfo { name, code, message, source, start, end }));
+    // With no catch point on this thread (Rust code calling generated
+    // functions), nothing would take the record: panic with the text alone.
+    if TSR_FAULT_CATCHERS.with(|catchers| catchers.get()) == 0 { std::panic::panic_any(text) }
+    TSR_FAULT.with(|slot| *slot.borrow_mut() = Some(TsrFaultInfo { name, code, message, source, start, end, line, column, backtrace: std::backtrace::Backtrace::capture() }));
     std::panic::panic_any(text)
 }
 #[cold]
 #[inline(never)]
-fn tsr_raise_fault(name: &'static str, code: &'static str, message: &'static str, source: &'static str, start: i64, end: i64) -> ! {
-    tsr_raise_fault_parts(TsrFaultText::Borrowed(name), TsrFaultText::Borrowed(code), TsrFaultText::Borrowed(message), TsrFaultText::Borrowed(source), start, end)
+fn tsr_raise_fault(name: &'static str, code: &'static str, message: &'static str, source: &'static str, start: i64, end: i64, line: i64, column: i64) -> ! {
+    tsr_raise_fault_parts(TsrFaultText::Borrowed(name), TsrFaultText::Borrowed(code), TsrFaultText::Borrowed(message), TsrFaultText::Borrowed(source), start, end, line, column)
 }
 /// Run `body`; a fault it raises comes back as its details. Other panics continue.
 fn tsr_catch_faults<R>(body: impl FnOnce() -> R) -> Result<R, TsrFaultInfo> {
@@ -75,10 +85,36 @@ fn tsr_catch_faults<R>(body: impl FnOnce() -> R) -> Result<R, TsrFaultInfo> {
 /// process ends here with status 1, whoever called the entry.
 fn tsr_fault_exit(fault: &TsrFaultInfo) -> std::process::ExitCode {
     tsr_fault_write(&tsr_fault_text(fault));
+    if fault.backtrace.status() == std::backtrace::BacktraceStatus::Captured {
+        tsr_fault_write(&std::format!("native backtrace:\n{}\n", fault.backtrace));
+    }
     std::process::exit(1)
 }
 #[allow(dead_code)]
 fn tsr_fault_entry(body: fn()) -> std::process::ExitCode {
     tsr_install_fault_hook();
     match tsr_catch_faults(body) { Ok(()) => std::process::ExitCode::SUCCESS, Err(fault) => tsr_fault_exit(&fault) }
+}
+/// A length or allocation limit: `RangeError` with code `capacity`. Emitted
+/// checks append their location to the text, separated by U+001F.
+#[cold]
+#[inline(never)]
+fn tsr_capacity_fault(failure: &str) -> ! {
+    let owned = |text: &str| TsrFaultText::Owned(std::string::String::from(text));
+    let mut parts = failure.split('\u{1f}');
+    let message = owned(parts.next().unwrap_or(failure));
+    let source = owned(parts.next().unwrap_or(""));
+    let mut number = || parts.next().and_then(|part| part.parse::<i64>().ok()).unwrap_or(0);
+    let (start, end, line, column) = (number(), number(), number(), number());
+    tsr_raise_fault_parts(TsrFaultText::Borrowed("RangeError"), TsrFaultText::Borrowed("capacity"), message, source, start, end, line, column)
+}
+#[allow(dead_code)]
+trait TsrCapacity<T> { fn tsr_capacity(self, failure: &str) -> T; }
+impl<T> TsrCapacity<T> for Option<T> {
+    #[inline]
+    fn tsr_capacity(self, failure: &str) -> T { match self { Some(value) => value, None => tsr_capacity_fault(failure) } }
+}
+impl<T, E> TsrCapacity<T> for Result<T, E> {
+    #[inline]
+    fn tsr_capacity(self, failure: &str) -> T { match self { Ok(value) => value, Err(_) => tsr_capacity_fault(failure) } }
 }

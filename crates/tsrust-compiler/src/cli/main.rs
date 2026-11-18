@@ -408,7 +408,7 @@ fn run() -> Result<u8, String> {
     let emit_started=std::time::Instant::now();
     let (rust, native_features) = if source_locations || debug {
         analysis.emit_rust_with_locations(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?, &source)
-    } else { analysis.emit_rust_with_native_features() };
+    } else { analysis.emit_rust_for_source(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?, &source) };
     let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
         if package {

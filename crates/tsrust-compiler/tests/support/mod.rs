@@ -270,7 +270,8 @@ fn checked_fixture_rust(source: &str, contracts: Option<&[(&str, Mode)]>, direct
     success(&emitted);
     assert!(emitted.stderr.is_empty());
     let rust = String::from_utf8(emitted.stdout).unwrap();
-    assert_eq!(rust, analysis.emit_rust());
+    let canonical = std::fs::canonicalize(&path).unwrap();
+    assert_eq!(rust, analysis.emit_rust_for_source(canonical.to_str().unwrap(), source));
     rust
 }
 

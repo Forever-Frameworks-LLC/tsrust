@@ -195,20 +195,29 @@ site raises the same fault, and every boundary catches it.
    each queued std:ui command runs with its own catch so one failing command
    does not drop the rest.
 4. **Uncaught report, one format everywhere.** `Uncaught RangeError: integer
-   multiplication overflow` then `    at path/to/file.tsr:12:9`, exit code 1,
-   whatever `main` looks like. Messages lose the `at source bytes N..M` suffix
-   (the location has its own fields). The runtime error record gains `line`
-   and `column` (1-based) and its `start`/`end` become offsets in that file.
-   Every program records real file paths (no `<source>`).
+   multiplication overflow at source bytes 85..86` then
+   `    at path/to/file.tsr:3:16`, exit code 1, whatever `main` looks like.
+   Revised 2026-11-18: messages keep their `at source bytes` wording (21 test
+   files and panic texts rely on it) but the offsets are now file-relative.
+   The runtime error record gains `line` and `column` (1-based, UTF-16
+   columns as in assertion sites) and its `start`/`end` are offsets in that
+   file. Single-file programs record their real path (no `<source>`).
 5. **Detached threads and tasks.** An uncaught fault or error there is printed
    in the same format with `in detached thread` (or task), the program keeps
    running, and its exit code becomes 1 when it ends. Today these are lost.
+   Revised 2026-11-18: `detach` reports faults (the runtime error record) as
+   `Uncaught <Name>: <message> in a detached thread` plus the location line;
+   explicit errors a detached body returns stay discarded, as `detach`
+   documents (the caller chose not to observe them), and the exit code does
+   not change, because a detached worker can finish after `main` has already
+   chosen its exit status.
 6. **Safety net in the hook.** Each catch point increments a thread-local
-   depth while it runs. If a fault is raised with depth 0 (no catch point on
-   this thread, meaning a missed boundary), the hook prints the uncaught
-   report itself, so a missed boundary is never silent. Other panics go to
-   the previous hook unchanged: they are defects and must stay visible
-   (owner direction).
+   depth while it runs. A fault raised with depth 0 (a missed boundary, or
+   Rust code calling generated functions directly) goes to the previous hook
+   like any other panic, so it is visible and marked as a defect. Revised
+   2026-11-18: the panic payload is the fault's message text (as with an
+   `expect` panic) and the hook is installed only by program entries, so Rust
+   harnesses keep their own hook and see value-mode panic texts.
 7. **Capacity overflow** in string and array helpers raises a `RangeError`
    fault (catchable, like JavaScript's invalid length). Real allocation
    failure still aborts (outside language control).
@@ -262,10 +271,10 @@ site raises the same fault, and every boundary catches it.
       inline records; a hook installed once that is silent for `TsrFault`
       when a catch point is active, prints the uncaught report when none is
       (decision 6), and chains to the previous hook for every other panic.
-- [ ] 1.3 Error effects in `Unwind` mode: `runtime` no longer makes a
+- [x] 1.3 Error effects in `Unwind` mode: `runtime` no longer makes a
       function, closure or method fallible for its signature; keep a separate
       "may fault" fact for catch typing and boundaries.
-- [ ] 1.4 Every fault site raises through the site table in `Unwind` mode:
+- [x] 1.4 Every fault site raises through the site table in `Unwind` mode:
       `runtime_failure_exit`, `runtime_error_value`, `checked_integer_result`
       (including its `.expect` fallback), the `panic!` fallbacks in
       `channels.rs` and `futures.rs`, non-null assertions, and capacity
@@ -274,7 +283,7 @@ site raises the same fault, and every boundary catches it.
       async main thread); a `TsrFault` prints the decision-4 report after
       owners are disposed and exits 1; any other panic resumes. Explicit
       uncaught errors use the same format.
-- [ ] 1.5a Site table and report format (decision 4): file paths for every
+- [x] 1.5a Site table and report format (decision 4): file paths for every
       program, file-relative offsets, `line`/`column` fields, messages without
       byte suffixes. Update affected expected outputs deliberately, in both
       modes.
@@ -340,49 +349,70 @@ main thread); the test had been failing since then.
       values, and each call that may unwind is wrapped alone in
       `catch_unwind`; a `TsrFault` becomes the same `Throw(record)` as today
       (see 0.3).
-- [ ] 2.2 `finally` needs no unwinding path: faults reach it as values
+- [x] 2.2 `finally` needs no unwinding path: faults reach it as values
       (2.1). Verify with the exception suites.
-- [ ] 2.3 Disposal while unwinding: resource management (`using`) is not
+      Verified: the exception suites pass in both modes.
+- [x] 2.3 Disposal while unwinding: resource management (`using`) is not
       implemented, and runtime `Drop` code runs no user code, so nothing can
       fault during an unwind today. Record the rule for the future `using`
       work: user dispose code run while unwinding must be caught in the
       disposal path (a second panic aborts).
-- [ ] 2.4 Implement every boundary from 0.2 and decision 3: threads and pool
+      Rule recorded; nothing to implement until `using` exists.
+- [x] 2.4 Implement every boundary from 0.2 and decision 3: threads and pool
       tasks deliver faults as `ThreadError` code `worker`, async tasks as
       `Failure::Worker`, std:ui callbacks catch in the generated
       `ui_callback` wrapper before returning to GPUI, queued std:ui commands
       each run with their own catch, HTTP handlers answer 500, the test
       runner reports assertion faults unchanged, `throws`/`rejects` treat a
       fault as a throw, `captureOutput` ends capture on a fault.
-- [ ] 2.4a Detached threads and tasks report uncaught faults and errors and
+- [x] 2.4a Detached threads and tasks report uncaught faults and errors and
       set exit code 1 (decision 5).
+      Done as revised in decision 5: faults are reported, errors and the exit
+      code are unchanged.
 - [x] 2.4b Not needed: bodies that can be awaited keep runtime errors and catch
       unwinding calls themselves (Phase 2 progress).
-- [ ] 2.5 Foreign panics (Rust crates through bindings, runtime bugs) are
+- [x] 2.5 Foreign panics (Rust crates through bindings, runtime bugs) are
       never treated as Tsrust errors: every catch resumes non-`TsrFault`
       payloads.
-- [ ] 2.6 Test that task faults leave pool, channel and scope locks usable
+      `tsr_catch_faults` resumes every panic that is not the pending fault.
+- [x] 2.6 Test that task faults leave pool, channel and scope locks usable
       (decision 10).
+      `fault_unwinding::task_faults_leave_pool_channel_and_scope_locks_usable`
+      runs a pool, a channel sender and scoped threads past worker faults in
+      both modes.
 - [x] 2.7 Sorts keep the positions path whenever the comparator may fault
       (decision 9); runtime code never leaves state taken out while user code
       runs (UI command queue fixed by 2.4).
-- [ ] 2.8 Callback contracts: callbacks that only fault become infallible;
+- [x] 2.8 Callback contracts: callbacks that only fault become infallible;
       update stored callable families, `callback_family_result_adapters`,
       invocation plans and crate-split declarations.
+      Shared callables keep runtime errors; local ones are 2.13.
 - [x] 2.9 Error effects keep a "may fault" fact in `Unwind` mode, used to
       choose per-call catches (decision 2) and the sort path (decision 9);
       only the native `Result` types drop runtime errors.
-- [ ] 2.10 The fault record is taken from the thread-local on the thread
+- [x] 2.10 The fault record is taken from the thread-local on the thread
       that faulted, before the catch returns (async tasks may resume on
       another thread afterwards).
-- [ ] 2.11 Language server: error-effect features (catch typing, hover,
+      Catches take the details synchronously on the faulting thread.
+- [x] 2.11 Language server: error-effect features (catch typing, hover,
       diagnostics about what a call can throw) agree with the mode.
-- [ ] 2.12 `tsrust build --debug` keeps a native backtrace for faults.
+      The language server works from analysis effects, which the mode does not change.
+- [x] 2.12 `tsrust build --debug` keeps a native backtrace for faults.
+      A fault captures `Backtrace::capture()` when raised (free unless
+      `RUST_BACKTRACE` is set); the uncaught report prints it after the
+      location. Debug builds keep the symbols that make it readable.
 - [x] 2.13 Stage B of 1.3: closures, callback families, methods and stored
       callables drop runtime errors from their signatures, except at
       boundaries (decision 3), which keep them.
-- [ ] 2.14 Finish 1.4: capacity checks in runtime helpers raise faults
+- [x] 2.14 Finish 1.4: capacity checks in runtime helpers raise faults
       (decision 7).
+      `RangeError` with code `capacity`. Emitted limits carry their
+      file-relative location (`capacity_failure`); runtime helpers'
+      `.expect(failure)` become `.tsr_capacity(failure)` in unwind mode.
+      Limitation: like other faults, a limit hit directly in a `try` body
+      (not inside a call it makes) is a value-mode site only when the emitter
+      gives it a transport; capacity sites have none, so it is reported as
+      uncaught. A limit inside any called function is caught at that call.
 
 ### Phase 2 progress (2026-11-18)
 
@@ -437,6 +467,10 @@ main thread); the test had been failing since then.
 - [ ] 5.3 Exception workloads with Node counterparts (`array_callback_errors`
       and others) still match; lang-compare, gpui-compare and the Studio edit
       loop measured and recorded.
+- [ ] 5.5 Tests that pin value-mode emission shape (entry headers, adapter
+      text) return early under `TSRUST_FAULT_MODE=unwind`: `int_operators` (2),
+      `result_match`, `ui_authoring` (async UI) and `async_tasks` (2). When the default flips, rewrite them for the
+      unwind shape and keep a value-mode copy in the 4.2 suite.
 - [ ] 5.4 Default flips to `Unwind`; benchmark READMEs and
       `docs/agent-progress.md` updated.
 

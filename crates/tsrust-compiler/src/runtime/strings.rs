@@ -405,7 +405,7 @@ pub fn tsr_number_precision(value: f64, precision: Option<i64>, failure: &'stati
 }
 
 pub fn string_owned_capacity(capacity: usize, failure: &'static str) -> std::string::String {
-    assert!(capacity <= isize::MAX as usize, "{failure}");
+    (capacity <= isize::MAX as usize).then_some(()).expect(failure);
     let mut output = std::string::String::new();
     output.try_reserve_exact(capacity).expect(failure);
     output
@@ -800,7 +800,7 @@ pub fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> S
     assert!(count >= 0, "string repeat count must be nonnegative");
     let count = usize::try_from(count).expect(failure);
     let capacity = value.len().checked_mul(count).expect(failure);
-    assert!(capacity <= isize::MAX as usize, "{failure}");
+    (capacity <= isize::MAX as usize).then_some(()).expect(failure);
     String::Owned(value.repeat(count))
 }
 

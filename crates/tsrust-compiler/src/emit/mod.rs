@@ -8,6 +8,27 @@ mod counted_builders;
 mod scalar_reduce_slices;
 mod foreach_slices;
 mod runtime_support_ids;
+
+/// With unwinding faults, length and allocation limits raise `RangeError`
+/// faults (decision 7). Runtime helpers name their limit `failure`; emitted
+/// checks carry a located literal (`capacity_failure`). A string literal never
+/// holds an unescaped quote, so `.expect("` only matches generated code.
+fn capacity_faults(output:&mut String,runtime_start:usize) {
+    let runtime=output.split_off(runtime_start).replace(".expect(failure)",".tsr_capacity(failure)");
+    let mut rewritten=String::with_capacity(output.len()+runtime.len());
+    let mut rest=output.as_str();
+    while let Some(at)=rest.find(".expect(\"") {
+        let literal=&rest[at+9..];
+        let end=literal.find("\")").map_or(0,|end|end);
+        rewritten.push_str(&rest[..at]);
+        rewritten.push_str(if literal[..end].contains("\\u{1f}") {".tsr_capacity(\""} else {".expect(\""});
+        rest=literal;
+    }
+    rewritten.push_str(rest);
+    rewritten.push_str(&runtime);
+    *output=rewritten;
+}
+
 #[cfg(test)]
 mod statement_work_tests;
 use declaration_scope::Declarations;
@@ -290,6 +311,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
         debug_source: None,
+        single_source: None,
         debug_lines: RefCell::default(),
         source_segments: &[],
         source_graph: None,
@@ -348,7 +370,17 @@ pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str
 }
 
 pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>)->(String,Vec<&'static str>) {
+    emit_located(program,entry_setup,segments,graph,debug_source,None)
+}
+
+/// A single-file program: runtime failures report `path` with lines from `text`.
+pub(crate) fn emit_single_source(program:&CheckedProgram,path:&str,text:&str)->(String,Vec<&'static str>) {
+    emit_located(program,"",&[],None,None,Some((path,text)))
+}
+
+fn emit_located(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>,single_source:Option<(&str,&str)>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
+    emitter.single_source=single_source;
     emitter.debug_source=debug_source;
     emitter.source_segments=segments;
     emitter.source_graph=graph;
@@ -358,7 +390,7 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
     if crate::error_effects::unwind_faults() {
         rust.push_str(crate::runtime::FAULTS);
         if let Some(record)=program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol) {
-            let _=writeln!(rust,"#[cold] #[inline(never)] #[allow(dead_code)] fn tsr_raise_runtime_record(record: Record{record}) -> ! {{ tsr_raise_fault_parts(record.field0, record.field1, record.field2, record.field3, record.field4, record.field5) }}");
+            let _=writeln!(rust,"#[cold] #[inline(never)] #[allow(dead_code)] fn tsr_raise_runtime_record(record: Record{record}) -> ! {{ tsr_raise_fault_parts(record.field0, record.field1, record.field2, record.field3, record.field4, record.field5, record.field6, record.field7) }}");
         }
     }
     let features = emitter
@@ -414,6 +446,8 @@ struct Emitter<'a> {
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
     debug_source: Option<(&'a str, &'a str)>,
+    /// The path and text of a single-file program, for runtime failure locations.
+    single_source: Option<(&'a str, &'a str)>,
     debug_lines: RefCell<HashMap<&'a str, Vec<usize>>>,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     source_graph: Option<&'a crate::project::ProjectGraph>,
@@ -1366,8 +1400,8 @@ impl Emitter<'_> {
         // (docs/plans/fault-unwinding.md) instead of the native panicking check.
         let Some((name,contract,runtime))=transport.filter(|(_,contract,_)|contract.runtime) else {
             if !crate::error_effects::unwind_faults() || closure.is_some() {return None;}
-            let (source,start,end)=self.fault_location(span);
-            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64),|site|(site.source,site.start as i64,site.end as i64));tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end)}}}}",arguments[0],arguments[1]));
+            let (source,start,end,line,column)=self.fault_location(span);
+            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end,line,column)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64),|site|(site.source,site.start as i64,site.end as i64,site.line as i64,site.column as i64));tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end,line,column)}}}}",arguments[0],arguments[1]));
         };
         let Some(Type::Record(record))=runtime else{return None;};
         let error=self.runtime_error_value(record,"AssertionError","assertion","",span);
@@ -1379,7 +1413,7 @@ impl Emitter<'_> {
             self.exception_regions.throw_value("assertion_error",Type::Record(record),&unions,span).expect("checked native assertion region")
         };
         let succeeded=if closure.is_some(){"Ok(())"}else{"()"};
-        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;}}{failed}}}}}",arguments[0],arguments[1]))
+        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;assertion_error.field6=site.line as i64;assertion_error.field7=site.column as i64;}}{failed}}}}}",arguments[0],arguments[1]))
     }
 
     #[inline(never)]
@@ -1402,8 +1436,8 @@ impl Emitter<'_> {
         // Without a region, a runner failure is raised as a fault (docs/plans/fault-unwinding.md).
         let Some((name,contract,runtime))=transport else {
             if !crate::error_effects::unwind_faults() {return None;}
-            let (source,start,end)=self.fault_location(span);
-            return Some(format!("match {call}{{Ok(value)=>value,Err(message)=>tsr_raise_fault_parts(std::borrow::Cow::Borrowed({error_name:?}),std::borrow::Cow::Borrowed({error_code:?}),std::borrow::Cow::Owned(message),std::borrow::Cow::Borrowed({source:?}),{start}_i64,{end}_i64)}}"));
+            let (source,start,end,line,column)=self.fault_location(span);
+            return Some(format!("match {call}{{Ok(value)=>value,Err(message)=>tsr_raise_fault_parts(std::borrow::Cow::Borrowed({error_name:?}),std::borrow::Cow::Borrowed({error_code:?}),std::borrow::Cow::Owned(message),std::borrow::Cow::Borrowed({source:?}),{start}_i64,{end}_i64,{line}_i64,{column}_i64)}}"));
         };
         let Some(Type::Record(record))=runtime else{return None;};
         let value=self.runtime_error_value(record,error_name,error_code,"",span);
@@ -1477,9 +1511,9 @@ impl Emitter<'_> {
     }
     #[inline(never)]
     fn runtime_error_value(&self,record:usize,name:&str,code:&str,message:&str,span:crate::Span)->String {
-        let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
-        let (source,start,end)=location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base));
-        exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,message,source,start,end)
+        let (source,start,end,line,column)=self.fault_location(span);
+        let message=self.file_relative_message(message);
+        exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,&message,source,start,end,line,column)
     }
 
     /// A direct call. When the callee may unwind a fault and the active region
@@ -1520,8 +1554,8 @@ impl Emitter<'_> {
     fn fault_throw(&self,span:crate::Span)->Option<String> {
         let (_, contract, runtime) = self.exception_regions.current_transport()?;
         let (true, Some(Type::Record(record))) = (contract.runtime, runtime) else {return None;};
-        let order=if self.record_runtime.ordered.contains(&record) {", key_order: [0,1,2,3,4,5]"} else {""};
-        let value=format!("Record{record} {{ field0: fault.name, field1: fault.code, field2: fault.message, field3: fault.source, field4: fault.start, field5: fault.end{order} }}");
+        let order=if self.record_runtime.ordered.contains(&record) {", key_order: [0,1,2,3,4,5,6,7]"} else {""};
+        let value=format!("Record{record} {{ field0: fault.name, field1: fault.code, field2: fault.message, field3: fault.source, field4: fault.start, field5: fault.end, field6: fault.line, field7: fault.column{order} }}");
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         Some(self.exception_regions.throw_value(&value, Type::Record(record), &unions, span).expect("checked runtime fault transport"))
     }
@@ -1540,15 +1574,44 @@ impl Emitter<'_> {
             return Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")));
         }
         crate::error_effects::unwind_faults().then(|| {
-            let (source,start,end)=self.fault_location(span);
-            format!("{{ tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64) }}")
+            let (source,start,end,line,column)=self.fault_location(span);
+            let message=self.file_relative_message(message);
+            format!("{{ tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64) }}")
         })
     }
 
-    /// The source file and file-relative offsets of `span`.
-    fn fault_location(&self,span:crate::Span)->(&str,usize,usize) {
-        let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
-        location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base))
+    /// The source file of `span`, its file-relative offsets, and its 1-based line
+    /// and UTF-16 column (0 when the text is unavailable).
+    fn fault_location(&self,span:crate::Span)->(&str,usize,usize,usize,usize) {
+        let (source,base,text)=if let Some((id,base,_))=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len) {
+            (id.0.as_str(),*base,self.source_graph.and_then(|graph|graph.modules.get(id)).map(|module|module.source.text.as_str()))
+        } else if let Some((path,text))=self.single_source {(path,0,Some(text))} else {("<source>",0,None)};
+        let (start,end)=(span.start-base,span.end-base);
+        let (line,column)=text.and_then(|text|text.get(..start)).map_or((0,0),|prefix|(prefix.bytes().filter(|byte|*byte==b'\n').count()+1,prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()+1));
+        (source,start,end,line,column)
+    }
+
+    /// Failure text for a length or allocation limit at `span`. With unwinding
+    /// faults it also carries the file-relative location, separated by U+001F,
+    /// for `tsr_capacity` to raise as a `RangeError` (decision 7).
+    fn capacity_failure(&self,what:&str,span:crate::Span)->String {
+        if !crate::error_effects::unwind_faults() {return format!("{what} at source bytes {}..{}",span.start,span.end);}
+        let (source,start,end,line,column)=self.fault_location(span);
+        format!("{what} at source bytes {start}..{end}\u{1f}{source}\u{1f}{start}\u{1f}{end}\u{1f}{line}\u{1f}{column}")
+    }
+
+    /// Messages name `source bytes A..B` in whole-program offsets; report them per file.
+    fn file_relative_message(&self,message:&str)->String {
+        const MARK:&str="at source bytes ";
+        let Some(at)=message.find(MARK) else {return message.to_owned();};
+        let rest=&message[at+MARK.len()..];
+        let digits=|text:&str|text.bytes().take_while(u8::is_ascii_digit).count();
+        let first=digits(rest);
+        let (Ok(start),Some(tail))=(rest[..first].parse::<usize>(),rest[first..].strip_prefix("..")) else {return message.to_owned();};
+        let second=digits(tail);
+        let Ok(end)=tail[..second].parse::<usize>() else {return message.to_owned();};
+        let (_,relative_start,relative_end,_,_)=self.fault_location(crate::Span::new(start,end));
+        format!("{}{MARK}{relative_start}..{relative_end}{}",&message[..at],&tail[second..])
     }
 
     #[inline(never)]
@@ -2641,7 +2704,7 @@ impl Emitter<'_> {
         let mut arms=String::new();
         for (tag,ty) in payloads.into_iter().enumerate() {
             let report=if Some(ty)==runtime {
-                "tsr_console_write(true,&std::format!(\"Uncaught {}: {} ({}:{}..{})\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field4,payload.field5));".to_owned()
+                "tsr_console_write(true,&std::format!(\"Uncaught {}: {}\\n    at {}:{}:{}\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field6,payload.field7));".to_owned()
             } else if matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::CacheInsertError)) {
                 // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
                 "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
@@ -3427,6 +3490,7 @@ impl Emitter<'_> {
             // stack as async entrypoints: Windows gives the main thread 1 MiB.
             let _ = writeln!(output, "fn main() {{ {hook}std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
+        let runtime_start=output.len();
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") || output.contains("tsr_console_union_") {
@@ -3855,6 +3919,7 @@ impl Emitter<'_> {
                 output.push_str(crate::runtime::SEARCH_OWNED);
             }
         }
+        if crate::error_effects::unwind_faults() {capacity_faults(&mut output,runtime_start);}
         output
     }
 
@@ -5181,7 +5246,7 @@ impl Emitter<'_> {
         let selection=self.storage_selection_with(fun,target,false,render);
         let operands=self_append::operands(target,value).expect("proved string self append");
         let rendered=operands.iter().map(|operand|{let(child,mode)=Self::chain_operand(operand);render(child,mode,false)}).collect::<Vec<_>>();
-        let failure=format!("string addition capacity overflow at source bytes {}..{}",value.span.start,value.span.end);
+        let failure=self.capacity_failure("string addition capacity overflow", crate::Span::new(value.span.start, value.span.end));
         let(parts,capacity,pushes)=self.string_parts(fun,&operands,&rendered,&failure);
         format!("{{ {}{parts}let sink=tsr_string_reserve(&mut ({}),{capacity},{failure:?}); {pushes} }}",selection.setup,selection.place)
     }
@@ -5202,7 +5267,7 @@ impl Emitter<'_> {
         } else {
             format!("*({})", selection.shared)
         };
-        let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
+        let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(span.start, span.end));
         if let Some(operands) = self.appended_operands(fun, target, value) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
             let (parts, capacity, pushes) = self.string_parts(fun,&operands, &rendered, &failure);
@@ -5219,10 +5284,7 @@ impl Emitter<'_> {
             );
         }
         let result = if string {
-            let failure = format!(
-                "string addition capacity overflow at source bytes {}..{}",
-                span.start, span.end
-            );
+            let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(span.start, span.end));
             format!("tsr_string_add(compound_left, compound_right, {failure:?})")
         } else if target_type == Type::Number && op.bitwise_or_power() {
             Self::number_operation(op, "compound_left", "compound_right")
@@ -5437,10 +5499,7 @@ impl Emitter<'_> {
             _ => "usize::try_from(splicing_arg1.max(0)).unwrap_or(usize::MAX).min(splicing_len - splicing_start)".to_owned(),
         };
         let inserted = args.len().saturating_sub(2);
-        let failure = format!(
-            "toSpliced capacity overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("toSpliced capacity overflow", crate::Span::new(span.start, span.end));
         write!(output, "let splicing_deleted = {deleted}; let splicing_end = splicing_start + splicing_deleted; let splicing_capacity = (splicing_len - splicing_deleted).checked_add({inserted}).expect({failure:?}); let mut splicing_values: Vec<{}> = Vec::with_capacity(splicing_capacity); ", self.native_type(element.ty())).unwrap();
         let literal =
             self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
@@ -5900,10 +5959,7 @@ impl Emitter<'_> {
             .map(|arg| self.expr(fun, arg, Mode::Consume))
             .collect::<Vec<_>>()
             .join(", ");
-        let failure = format!(
-            "splice capacity or int length overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("splice capacity or int length overflow", crate::Span::new(span.start, span.end));
         let result = if let Type::Array(ArrayElement::Record(record, 0)) = array_type
             && self.record_runtime.recursive(record)
         {
@@ -6303,10 +6359,7 @@ impl Emitter<'_> {
         let depth = args
             .first()
             .map_or_else(|| "1i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
-        let failure = format!(
-            "flat capacity overflow at source bytes {}..{}",
-            expr.span.start, expr.span.end
-        );
+        let failure = self.capacity_failure("flat capacity overflow", crate::Span::new(expr.span.start, expr.span.end));
         let count = if levels == 0 {
             "let flat_count=flat_array.len();".to_owned()
         } else {
@@ -6441,10 +6494,7 @@ impl Emitter<'_> {
             format!("flatmap_callback.call({})", arguments.join(","))
         };
         let call = self.registered_traversal_call(call, callback);
-        let failure = format!(
-            "flatMap capacity overflow at source bytes {}..{}",
-            expr.span.start, expr.span.end
-        );
+        let failure = self.capacity_failure("flatMap capacity overflow", crate::Span::new(expr.span.start, expr.span.end));
         let append = if matches!(returned, Type::Array(_)) {
             format!(
                 "let flatmap_count=flatmap_result.len();tsr_flat_capacity(flatmap_values.len(),flatmap_count,{failure:?});flatmap_values.reserve(flatmap_count);flatmap_values.extend(flatmap_result.tsr_owned_items());"
@@ -6689,7 +6739,7 @@ impl Emitter<'_> {
     }
 
     fn string_chain_code(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
-        let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
+        let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(operator.start, operator.end));
         let (parts, capacity, pushes) = self.string_parts(fun,operands, rendered, &failure);
         format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
     }
@@ -6826,10 +6876,7 @@ impl Emitter<'_> {
         args: &[Expr],
         span: crate::diagnostic::Span,
     ) -> String {
-        let failure = format!(
-            "string concat capacity or allocation failure at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("string concat capacity or allocation failure", crate::Span::new(span.start, span.end));
         let mut code = String::from("{ ");
         let mut integers = Vec::with_capacity(args.len() + 1);
         // Snapshot every reached operand before capacity planning or formatting.
@@ -6927,10 +6974,7 @@ impl Emitter<'_> {
                     let _=write!(output,"{} }}",self.string_literal(&text));
                     return output;
                 }
-                let failure = format!(
-                    "string concat capacity or allocation failure at source bytes {}..{}",
-                    span.start, span.end
-                );
+                let failure = self.capacity_failure("string concat capacity or allocation failure", crate::Span::new(span.start, span.end));
                 let arguments = (0..args.len())
                     .map(|index| format!("string_argument{index}"))
                     .collect::<Vec<_>>()
@@ -6962,10 +7006,7 @@ impl Emitter<'_> {
                 )
             }
             CallTarget::StringRepeat => {
-                let failure = format!(
-                    "string repeat capacity overflow at source bytes {}..{}",
-                    span.start, span.end
-                );
+                let failure = self.capacity_failure("string repeat capacity overflow", crate::Span::new(span.start, span.end));
                 format!("tsr_string_repeat(string_receiver, string_argument0, {failure:?})")
             }
             CallTarget::StringReplace | CallTarget::StringReplaceAll => format!(
@@ -7340,10 +7381,7 @@ impl Emitter<'_> {
                 );
             }
         }
-        let failure = format!(
-            "concat capacity overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("concat capacity overflow", crate::Span::new(span.start, span.end));
         output.push_str("let mut concat_capacity = concat_array.len(); ");
         for (index, argument) in args.iter().enumerate() {
             let count = if matches!(argument.ty, Some(Type::Array(_))) {
@@ -9394,10 +9432,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
             None => render(right, if string { Mode::Read } else { Mode::Copy }),
         };
         if string && *op == BinaryOp::Add {
-            let failure = format!(
-                "string addition capacity overflow at source bytes {}..{}",
-                operator.start, operator.end
-            );
+            let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(operator.start, operator.end));
             if let Some(argument) = appended {
                 let push = match argument.ty {
                     Some(Type::Int) => format!("let number: i64 = {right}; tsr_push_int(&mut output, number);"),

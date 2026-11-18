@@ -1,10 +1,11 @@
 //! Native expressions used by typed exception lowering.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn runtime_error_value_with_order(
     record:usize, ordered:bool, name:&str, code:&str, message:&str,
-    source:&str, start:usize, end:usize,
+    source:&str, start:usize, end:usize, line:usize, column:usize,
 ) -> String {
-    let order=if ordered {", key_order: [0,1,2,3,4,5]"}else{""};
-    format!("Record{record} {{ field0: String::Borrowed({name:?}), field1: String::Borrowed({code:?}), field2: String::Borrowed({message:?}), field3: String::Borrowed({source:?}), field4: {start}_i64, field5: {end}_i64{order} }}")
+    let order=if ordered {", key_order: [0,1,2,3,4,5,6,7]"}else{""};
+    format!("Record{record} {{ field0: String::Borrowed({name:?}), field1: String::Borrowed({code:?}), field2: String::Borrowed({message:?}), field3: String::Borrowed({source:?}), field4: {start}_i64, field5: {end}_i64, field6: {line}_i64, field7: {column}_i64{order} }}")
 }
 
 /// Native payload types are resolved by the caller from the checked error contract.

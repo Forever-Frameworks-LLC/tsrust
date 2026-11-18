@@ -129,7 +129,7 @@ fn compile(
     })?;
     let check = started.elapsed();
     let started = Instant::now();
-    let (rust, features) = analysis.emit_rust_with_native_features();
+    let (rust, features) = analysis.emit_rust_for_source(&entry.display().to_string(), &source);
     let features = features.into_iter().map(str::to_owned).collect::<Vec<_>>();
     let keys = analysis.name_keys();
     let emit = started.elapsed();

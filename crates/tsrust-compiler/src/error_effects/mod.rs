@@ -161,7 +161,7 @@ pub(crate) struct ErrorEffects {
 pub(crate) fn runtime_error_schema()->Record {
             use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind,TypeName};
     let span=crate::Span::new(0,0);
-    let fields=[("name",Type::String),("code",Type::String),("message",Type::String),("source",Type::String),("start",Type::Int),("end",Type::Int)]
+    let fields=[("name",Type::String),("code",Type::String),("message",Type::String),("source",Type::String),("start",Type::Int),("end",Type::Int),("line",Type::Int),("column",Type::Int)]
         .into_iter().map(|(name,ty)|RecordField {
             name:Token{text:name.to_owned(),span,kind:TokenKind::Name},
             annotation:ValueAnnotation{kind:ValueAnnotationKind::Named(TypeName{text:if ty==Type::String {"string"}else{"int"}.to_owned(),span}),span},
@@ -1539,7 +1539,7 @@ mod tests {
         assert_eq!(schema.name.kind,TokenKind::Symbol);
         assert_eq!(schema.name.text,"#RuntimeError");
         let fields=schema.fields.iter().map(|field|(field.name.text.as_str(),field.ty.unwrap())).collect::<Vec<_>>();
-        assert_eq!(fields,vec![("name",Type::String),("code",Type::String),("message",Type::String),("source",Type::String),("start",Type::Int),("end",Type::Int)]);
+        assert_eq!(fields,vec![("name",Type::String),("code",Type::String),("message",Type::String),("source",Type::String),("start",Type::Int),("end",Type::Int),("line",Type::Int),("column",Type::Int)]);
         assert_eq!(program.records.len(),1,"schema metadata does not inject a source record");
     }
     #[test]

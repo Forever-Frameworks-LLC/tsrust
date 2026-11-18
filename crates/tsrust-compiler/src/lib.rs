@@ -200,6 +200,10 @@ impl Analysis {
     pub fn emit_rust(&self) -> String {
         emit::emit(&self.program)
     }
+    /// Generated Rust for one source file, with fault locations naming `path`.
+    pub fn emit_rust_for_source(&self, path: &str, text: &str) -> String {
+        emit::emit_single_source(&self.program, path, text).0
+    }
     /// Generated Rust and deterministic features selected by emitted native bindings.
     pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
         emit::emit_with_native_features(&self.program, "")
