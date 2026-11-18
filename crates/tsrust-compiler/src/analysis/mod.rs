@@ -85,7 +85,7 @@ mod checked_callable_storage;
 mod conditional_callable_carriers;
 mod borrowed_conditional_carriers;
 mod record_call_capture_release;
-mod record_parameter_carriers;
+pub(crate) mod record_parameter_carriers;
 mod direct_callback_stores;
 mod caller_error_origins;
 pub(crate) mod record_parameter_borrows;
@@ -2890,8 +2890,11 @@ impl Analyzer {
                 }
             }
         }
-        if self.assumed_modes.is_some()
-            && !self.effects_only
+        // Speculative result discovery also runs on the plain analysis path
+        // (with temporary assumed modes), so its provisional closures must be
+        // dropped here too. Their capture storage predates the definitive
+        // checks and would otherwise be emitted as stale native environments.
+        if !self.effects_only
             && self.validated_closures.len() != self.closures.len()
         {
             let mut ids = vec![None; self.closures.len()];

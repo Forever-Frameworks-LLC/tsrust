@@ -3868,7 +3868,7 @@ impl Emitter<'_> {
             // A data union writes the text of its active alternative; null
             // and undefined write nothing, as array text requires.
             for (index, union) in self.program.unions.iter().enumerate() {
-                if union.members.iter().any(|member| matches!(member, Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_) | Type::Void)) {
+                if union.members.iter().any(|member| matches!(member, Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_) | Type::Void)) {
                     continue;
                 }
                 if self.nominal_union_alias(index).is_some() { continue; }

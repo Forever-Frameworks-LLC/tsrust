@@ -86,14 +86,31 @@ Runtime rerun under the unwind default (2026-11-18, Rust 1.99.1, 93 samples,
 quiet machine): about 820 workloads in eight batches, ingested and listed in
 `website/tools/performance-runs.json`. Tsrust faster than Node.js on 885 of
 1165 workloads (was 876); median ratios: Arrays 2.17x to 2.31x, JSON and
-schema 0.93x to 1.00x, others within noise. Not measured:
-`caller_borrowed_record_stores`, whose generated Rust fails with E0596 (a
-closure capture passed as `Mutable` is captured shared inside a nested arrow
-function). Released 0.2.1 fails the same way, so it predates this work. A
-reduction also showed union text-join impls conflict (E0119) for aliased
-callable unions, because the `TsrJoinText` loop in `emit/mod.rs` skips
-`Callback`/`Closure`/`StoredCallable`/`Callable` but not `BorrowedCallable`.
-Both are open.
+schema 0.93x to 1.00x, others within noise.
+
+`caller_borrowed_record_stores` failed to compile there (also in released
+0.2.1); fixed the same day, with four pre-existing defects behind it:
+- E0596/E0308: speculative result discovery on the plain analysis path made
+  closures with provisional capture storage (a `Mutable` argument captured
+  shared, an `Owned` one borrowed). Pruning of unvalidated closures only ran
+  under assumed modes, so those stale copies were emitted next to the real
+  ones. Pruning now runs on every definitive analysis (`analysis/mod.rs`).
+- E0119: the `TsrJoinText` union loop in `emit/mod.rs` now also skips
+  `BorrowedCallable` members, so aliased callable unions get no duplicate impl.
+- E0277: a closure relaying a holder to an installer that stores a
+  conditional callback now forwards the callee's
+  `From<BorrowedCallable…>` obligation (`closure_record_signature_emit.rs`).
+- E0502: owner provenance (`borrowed_owner_provenance::plan`) now also starts
+  from callback-value closures (test bodies, lent callbacks), so replacing a
+  holder's callback releases the earlier source there as it does in functions.
+Witness: `tests/fixtures/caller-borrowed-record-stores/relayed-closures.test.tsr`
+(6 tests, both fault modes), run by `caller_borrowed_record_stores.rs`.
+Checks: compiler lib (1583) plus 24 closure/callback/record-store targets in
+unwind mode; lib, `caller_borrowed_record_stores` and
+`caller_input_instance_replacement` in value mode; all pass. Measured
+2026-11-18T17:08:36Z (93 samples, quiet machine, ingested and listed):
+native 0.323 ms (0.291 ms on 2026-11-04, before the unwind default),
+node-tsc 4.87 ms.
 
 ## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
 
