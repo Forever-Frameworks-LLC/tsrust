@@ -17,7 +17,7 @@ fn annotation(
                 if variables.contains(&name.text)
                     || matches!(
                         name.text.as_str(),
-                        "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void"
+                        "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "#RuntimeError"
                     )
                 {
                     continue;

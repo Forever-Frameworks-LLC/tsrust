@@ -1,0 +1,40 @@
+[package]
+name = "gpui-compare"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+gpui-kit = { version = "=0.9.0" }
+
+# The same GPUI Kit sources as Tsrust's runtime.
+[patch.crates-io]
+gpui-component = { path = "../../../crates/tsrust-compiler/patched-dependencies/gpui-component" }
+gpui-base = { path = "../../../crates/tsrust-compiler/patched-dependencies/gpui-base" }
+url = { path = "../../../crates/tsrust-compiler/patched-dependencies/url" }
+
+# Tsrust's GPUI profile: application code at opt-level 1 in dev, dependencies at
+# 2 and GPUI's layout/text crates at 3; release at 3 with overflow checks.
+[profile.dev]
+overflow-checks = true
+debug = false
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+debug-assertions = false
+
+[profile.dev.package]
+gpui-pre = { opt-level = 3 }
+gpui-component = { opt-level = 3 }
+gpui-kit = { opt-level = 3 }
+gpui-pre-platform = { opt-level = 3 }
+rustybuzz = { opt-level = 3 }
+taffy = { opt-level = 3 }
+ttf-parser = { opt-level = 3 }
+
+[profile.release]
+overflow-checks = true

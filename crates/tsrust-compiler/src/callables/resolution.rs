@@ -29,6 +29,8 @@ pub(crate) struct Tables {
     pub(crate) result_sources: HashMap<CallableSourceKey, usize>,
     pub(crate) callbacks: Vec<CallbackContract>,
     pub(crate) results: Vec<ResultContract>,
+    /// Inline layouts already validated for the records these tables resolved.
+    pub(crate) layouts: crate::record_layout::Validated,
 }
 
 impl Tables {

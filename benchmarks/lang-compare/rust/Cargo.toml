@@ -1,0 +1,14 @@
+[package]
+name = "lang-compare"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+
+# Tsrust's release profile for generated programs: checked integer overflow.
+[profile.release]
+overflow-checks = true
+incremental = false

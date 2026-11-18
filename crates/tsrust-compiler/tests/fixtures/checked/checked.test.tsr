@@ -1,0 +1,189 @@
+import { describe, strictEqual, test } from 'std:testing';
+import { AsyncError, delay } from 'std:futures';
+
+function scale(value: int): Checked<int> {
+  return value * 4611686018427387904;
+}
+
+function deeper(value: int): int {
+  const values = [value];
+  return values[value];
+}
+
+function callee(value: int): Checked<int> {
+  return deeper(value) + 1;
+}
+
+function parse(text: string): Checked<int, string> {
+  if (text.length === 0) {
+    throw 'empty';
+  }
+
+  return unwrap(scale(text.length));
+}
+
+function choose(flag: int): Checked<int, string | int> {
+  if (flag === 1) {
+    throw 'text';
+  }
+
+  if (flag === 2) {
+    throw 7;
+  }
+
+  return flag;
+}
+
+async function later(value: int): Task<Checked<int>> {
+  return value + 9223372036854775807;
+}
+
+async function waited(value: int): Task<Checked<int, AsyncError<undefined>>> {
+  await delay(0);
+  return value * 4611686018427387904;
+}
+
+const twice = (value: int): Checked<int> => value * 4611686018427387904;
+
+function quiet(flag: boolean): Checked<void> {
+  if (flag) {
+    return;
+  }
+
+  const values: int[] = [];
+  console.log(values[1]);
+}
+
+function outer(value: int): Checked<int, RuntimeError> {
+  const inner = (item: int): Checked<int> => item * 4611686018427387904;
+
+  match (inner(value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(_) => {
+      return -1;
+    },
+  }
+}
+
+function sum(values: int[]): Checked<int> {
+  return values.map((value: int): int => value * 4611686018427387904).length;
+}
+
+function same<T>(value: T): Checked<T> {
+  return value;
+}
+
+function second<T>(values: T[]): Checked<int> {
+  const lengths = [values.length];
+  return lengths[1];
+}
+
+function apply(action: ReadOnly<Function<Checked<int>, [int]>>, value: int): int {
+  match (action(value)) {
+    Ok(result) => {
+      return result + 1;
+    },
+    Err(_) => {
+      return -1;
+    },
+  }
+}
+
+function fault(result: Result<int, RuntimeError>): string {
+  match (result) {
+    Ok(value) => {
+      return `ok ${value}`;
+    },
+    Err(error) => {
+      return `${error.name} ${error.code} ${error.line}:${error.column}`;
+    },
+  }
+}
+
+function explicit(result: Result<int, RuntimeError | string>): string {
+  match (result) {
+    Ok(value) => {
+      return `ok ${value}`;
+    },
+    Err(_) => {
+      return 'failed';
+    },
+  }
+}
+
+describe('Checked', () => {
+  test('local faults become errors', () => {
+    strictEqual(fault(scale(1)), 'ok 4611686018427387904');
+    strictEqual(fault(scale(2)), 'RangeError overflow 5:16');
+  });
+  test('callee faults become errors', () => {
+    strictEqual(fault(callee(0)), 'ok 1');
+    strictEqual(fault(callee(3)), 'RangeError bounds 10:10');
+  });
+  test('explicit errors and unwrap', () => {
+    strictEqual(explicit(parse('a')), 'ok 4611686018427387904');
+    strictEqual(explicit(parse('')), 'failed');
+    strictEqual(explicit(parse('ab')), 'failed');
+  });
+  test('error alternatives', () => {
+    strictEqual(unwrap(choose(0)), 0);
+
+    match (choose(1)) {
+      Ok(_) => strictEqual(true, false),
+      Err(error) => strictEqual(typeof error, 'string'),
+    }
+
+    match (choose(2)) {
+      Ok(_) => strictEqual(true, false),
+      Err(error) => strictEqual(typeof error, 'number'),
+    }
+  });
+  test('async results', async () => {
+    strictEqual(fault(await later(0)), 'ok 9223372036854775807');
+    strictEqual(fault(await later(1)), 'RangeError overflow 38:16');
+    strictEqual(unwrap(await waited(1)), 4611686018427387904);
+
+    match (await waited(2)) {
+      Ok(_) => strictEqual('ok', 'failed'),
+      Err(_) => strictEqual('failed', 'failed'),
+    }
+  });
+  test('arrow and void bodies', () => {
+    strictEqual(fault(twice(1)), 'ok 4611686018427387904');
+    strictEqual(fault(twice(2)), 'RangeError overflow 46:51');
+
+    match (quiet(true)) {
+      Ok(_) => strictEqual('ok', 'ok'),
+      Err(_) => strictEqual('failed', 'ok'),
+    }
+
+    match (quiet(false)) {
+      Ok(_) => strictEqual('ok', 'failed'),
+      Err(error) => strictEqual(error.code, 'bounds'),
+    }
+  });
+  test('nesting and callbacks', () => {
+    strictEqual(fault(outer(1)), 'ok 4611686018427387904');
+    strictEqual(fault(outer(2)), 'ok -1');
+    strictEqual(fault(sum([1])), 'ok 1');
+    strictEqual(fault(sum([1, 2])), 'RangeError overflow 71:48');
+  });
+  test('generics, function types and try', () => {
+    strictEqual(unwrap(same('kept')), 'kept');
+    strictEqual(unwrap(same(5)), 5);
+    strictEqual(fault(second(['a'])).startsWith('RangeError bounds'), true);
+    strictEqual(apply(twice, 1), 4611686018427387905);
+    strictEqual(apply(twice, 2), -1);
+    let caught = '';
+
+    try {
+      console.log(unwrap(twice(2)));
+    } catch (error) {
+      caught = 'caught';
+    }
+
+    strictEqual(caught, 'caught');
+  });
+});

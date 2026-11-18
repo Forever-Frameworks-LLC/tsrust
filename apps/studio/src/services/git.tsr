@@ -1,11 +1,11 @@
 import { FormattingTarget } from '../lib/workspace/formatting-actions.tsr';
 import { fromUtf8, length, toUtf8 } from 'std:bytes';
-import { Channel, Sender } from 'std:futures';
-import { isAbsolute, separator } from 'std:path';
 import { createTempDir, lstat, removeDirAll } from 'std:fs';
+import { Channel, Sender } from 'std:futures';
 import { toInt } from 'std:numeric';
-import { compile } from 'std:regex';
+import { isAbsolute, separator } from 'std:path';
 import { run } from 'std:process';
+import { compile } from 'std:regex';
 
 function gitOutputBytes(): int {
   return 2 * 1024 * 1024;

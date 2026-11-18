@@ -123,24 +123,26 @@ pub struct Node {
     identity:std::cell::Cell<u64>,
     next_identity:std::cell::Cell<u64>,
     anonymous_text:bool,
-    pub(crate) theme: Option<(theme::Theme,String)>,
+    /// Shared so inherited themes and moves of a Node stay cheap.
+    pub(crate) theme: Option<std::rc::Rc<(theme::Theme,String)>>,
     theme_mode: Option<TextBinding>,
     theme_inherited: bool,
-    pub(crate) semantics: Semantics,
+    /// Boxed: rows are built and moved often, and most nodes keep default semantics.
+    pub(crate) semantics: Box<Semantics>,
     pub(crate) kind: Kind,
     pub(crate) class_name: String,
     pub(crate) text: String,
     pub(crate) children: Vec<Node>,
     pub(crate) parts: Vec<TextPart>,
     pub(crate) disabled: Option<Box<dyn FnMut()->Result<bool,String>>>,
-    pub(crate) copy:Option<clipboard::Copy>,
+    pub(crate) copy:Option<Box<clipboard::Copy>>,
     pub(crate) visibility:Option<visibility::Observation>,
     pub(crate) press: Option<Box<dyn FnMut() -> Result<(), String>>>,
-    pub(crate) editable: Option<editable::Editable>,
+    pub(crate) editable: Option<Box<editable::Editable>>,
     read_only: Option<Box<dyn FnMut()->Result<bool,String>>>,
     collapsed:bool,
     hidden:Option<Box<dyn FnMut()->Result<bool,String>>>,
-    branch:Option<branch::Branch>,
+    branch:Option<Box<branch::Branch>>,
     /// A reactive list slot: rebuilt on refresh, keeping rows whose shape is unchanged.
     each:Option<Box<dyn FnMut()->Result<Option<Node>,String>>>,
     class_binding:Option<Box<dyn FnMut()->Result<String,String>>>,
@@ -215,7 +217,7 @@ impl Node {
         if value.size.chars().any(|ch|!(ch.is_ascii_alphanumeric()||ch=='-')){return Err("UI data-size must contain ASCII letters, digits or hyphens".into());}
         value.href=self.semantics.href.clone();
         if self.variant_binding.is_some(){value.variant=self.semantics.variant.clone();}
-        let prior=std::mem::replace(&mut self.semantics,value);
+        let prior=std::mem::replace(&mut self.semantics,Box::new(value));
         if validate_structure && let Err(error)=self.validate_structure(){self.semantics=prior;return Err(error);}
         Ok(prior!=self.semantics)
     }
@@ -290,7 +292,7 @@ impl Node {
     pub fn with_theme(mut self, json: &str, mode: &str) -> Result<Self,String> {
         if self.kind==Kind::SvgPath{return Err("Put a vector theme scope on Svg, not an individual Path".into());}
         let theme=theme::Theme::parse(json)?;theme.color(mode,"background")?;
-        self.theme=Some((theme,mode.to_owned()));self.theme_mode=None;self.theme_inherited=false;self.inherit_branch_theme();Ok(self)
+        self.theme=Some(std::rc::Rc::new((theme,mode.to_owned())));self.theme_mode=None;self.theme_inherited=false;self.inherit_branch_theme();Ok(self)
     }
     pub fn with_theme_binding(self,json:&str,mode:TextBinding)->Result<Self,String> {
         let mut node=self.with_theme(json,&mode.value()?)?;node.theme_mode=Some(mode);Ok(node)
@@ -349,9 +351,9 @@ impl Node {
         if let Some(binding)=&mut self.hidden {let next=binding()?;changed+=usize::from(next!=self.collapsed);self.collapsed=next;}
         if self.collapsed{return Ok(changed);}
         if let Some(binding)=&self.theme_mode {
-            let mode=binding.value()?;let (theme,current)=self.theme.as_mut().expect("theme binding scope");
-            theme.color(&mode,"background")?;
-            if *current!=mode {*current=mode;changed+=1;self.inherit_branch_theme();}
+            let mode=binding.value()?;let theme=self.theme.as_mut().expect("theme binding scope");
+            theme.0.color(&mode,"background")?;
+            if theme.1!=mode {std::rc::Rc::make_mut(theme).1=mode;changed+=1;self.inherit_branch_theme();}
         }
         if !retained {changed+=self.refresh_branch()?;}
         if let Some(data)=&mut self.vector{changed+=data.refresh()?;}
@@ -411,7 +413,7 @@ impl Node {
     pub(crate) fn editable(mut field:editable::Editable,class_name:String)->Result<Self,String> {
         field.refresh()?;
         let mut node=Self::new(Kind::View,class_name,String::new(),vec![])?;
-        node.kind=if field.multiline{Kind::Textarea}else{Kind::Input};node.text=field.value.clone();node.editable=Some(field);Ok(node)
+        node.kind=if field.multiline{Kind::Textarea}else{Kind::Input};node.text=field.value.clone();node.editable=Some(Box::new(field));Ok(node)
     }
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]
     pub(crate) fn input(&mut self,target:u64,value:&str)->Result<bool,String> {
@@ -456,14 +458,15 @@ impl Node {
             }
             _ => {}
         }
-        let class_name = class_name.split_whitespace().collect::<Vec<_>>().join(" ");
+        let normalized=!class_name.starts_with(' ')&&!class_name.ends_with(' ')&&!class_name.contains("  ")&&!class_name.contains(|ch:char|ch.is_whitespace()&&ch!=' ');
+        let class_name = if normalized {class_name} else {class_name.split_whitespace().collect::<Vec<_>>().join(" ")};
         for child in &children{child.reset_identities();}
         let node=Self {
             navigation:navigation::Context::current(),
             depth,
             identity:std::cell::Cell::new(0),next_identity:std::cell::Cell::new(0),anonymous_text:false,branch:None,each:None,
             theme: None,theme_mode:None,theme_inherited:false,
-            semantics: Semantics::default(),
+            semantics: Box::default(),
             kind,
             class_name,
             text,
@@ -737,3 +740,6 @@ fn inline_paint_styles_are_valid_without_admitting_layout_boxes() {
   let state=Signal::new(1i64);let child=Node::text(vec![TextPart::Signal(state.handle().text_binding(i64::to_string))],"font-bold".into()).unwrap().with_semantics("{\"tag\":\"strong\"}").unwrap();let mut node=Node::text_children(vec![Child::Text(TextPart::Literal("Count ".into())),Child::Node(child)],String::new()).unwrap();node.ensure_identities();let id=node.children[1].identity.get();state.set(2).unwrap();node.refresh().unwrap();assert!(document(&node,"Text").contains(">2</strong>"));assert_eq!(node.children[1].identity.get(),id);drop(state);assert!(node.refresh().unwrap_err().contains("disposed"));
  }
 }
+/// Rebuilt list rows construct and move many Nodes; rarely used parts stay boxed.
+#[cfg(all(test, feature = "runtime"))]
+#[test] fn nodes_stay_small_to_move(){assert!(std::mem::size_of::<Node>()<=384,"Node grew to {} bytes",std::mem::size_of::<Node>());}

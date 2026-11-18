@@ -220,7 +220,7 @@ impl Analyzer {
     fn empty_environment_record(&mut self, id: usize, types: Vec<Type>) -> Type {
         let instance = self
             .scoped_records
-            .materialize(id, types, &mut self.program.records);
+            .materialize(id, types, self.program.records_for_append());
         if self.fields.len() <= instance {
             self.fields.push(
                 self.program.records[instance]

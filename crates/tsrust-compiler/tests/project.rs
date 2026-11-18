@@ -266,6 +266,26 @@ fn linked_aliases_local_shadowing_and_closures_execute() {
     assert_eq!(native_stdout(&checked.emit_rust(), "0"), "9\n3\n9\n");
 }
 #[test]
+fn crate_plan_maps_functions_and_closures_to_their_source_modules() {
+    let memory = Memory::new(&[
+        ("main.tsr", "import { value } from './a.tsr'; function main(){const f=():int=>{return value();};console.log(f());}"),
+        ("a.tsr", "export function value():int{const g=():int=>{return 9;};return g();}"),
+    ]);
+    let checked = tsrust_compiler::project::check_graph(load_project(&memory, "main.tsr").unwrap())
+        .unwrap_or_else(|e| panic!("{}: {}", e.code, e.message));
+    let plan: serde_json::Value = serde_json::from_str(&checked.crate_plan()).unwrap();
+    let modules = plan["modules"].as_array().unwrap().iter().map(|module| module.as_str().unwrap()).collect::<Vec<_>>();
+    assert_eq!(modules, ["a.tsr", "main.tsr"], "dependencies come first");
+    let used = |key: &str| {
+        let mut found = plan[key].as_array().unwrap().iter().filter_map(serde_json::Value::as_u64).map(|index| modules[index as usize]).collect::<Vec<_>>();
+        found.sort();
+        found
+    };
+    assert_eq!(used("closures"), ["a.tsr", "main.tsr"]);
+    let functions = used("functions");
+    assert!(functions.contains(&"a.tsr") && functions.contains(&"main.tsr"), "{functions:?}");
+}
+#[test]
 fn dependency_semantic_error_is_not_reported_in_entry() {
     let memory = Memory::new(&[
         (
@@ -436,7 +456,8 @@ fn cli_dependency_compile_and_runtime_errors_identify_original_source() {
         let error = support::run(&mut command, 60);
         assert!(!error.status.success());
         let message = String::from_utf8(error.stderr).unwrap();
-        assert!(message.contains("runtime error:"), "{message}");
+        // Value mode maps the panic through the source table; unwinding faults report themselves.
+        assert!(message.contains("runtime error:") || message.starts_with("Uncaught RangeError:"), "{message}");
         assert!(message.contains("dependency.tsr"), "{message}");
         let start = source.find("values[5]").unwrap();
         assert!(

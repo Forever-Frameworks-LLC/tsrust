@@ -251,7 +251,9 @@ const engines = (id) => [
  // Size variants may share the same independent hand-written implementation.
  {id: 'rust-hand', command: [path.join(build, `${id}-hand`)]},
  {id: 'node-tsc', command: [process.execPath, path.join(build, `${id}.js`)]},
- {id: 'node-ts', command: [process.execPath, path.join(build, `${id}.ts`)]},
+ // Type stripping alone rejects enums and parameter properties; transform mode
+ // generates their code, as tsc does for node-tsc.
+ {id: 'node-ts', command: [process.execPath, '--experimental-transform-types', '--disable-warning=ExperimentalWarning', path.join(build, `${id}.ts`)]},
  {id: 'tsx', command: [...tsx, '--tsconfig', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
  {id: 'ts-node-check', command: [...tsnode, '--project', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},
  {id: 'ts-node-transpile', command: [...tsnode, '--transpileOnly', '--project', path.join(here, 'tsconfig.json'), path.join(build, `${id}.ts`)]},

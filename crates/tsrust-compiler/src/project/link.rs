@@ -61,13 +61,67 @@ impl ProjectAnalysis {
         self.emit_rust_with_locations(None)
     }
     pub(crate) fn emit_rust_with_locations(&self, debug_source: Option<(&str, &str)>) -> (String, Vec<&'static str>) {
-        crate::emit::emit_with_source_segments(
+        // Unwinding faults report their own file and position; the panic hook
+        // that maps whole-program offsets to files serves value mode only.
+        let setup = if crate::error_effects::unwind_faults() { String::new() } else { crate::project_runtime::setup(&self.segments) };
+        let (mut rust, features) = crate::emit::emit_with_source_segments(
             &self.analysis.program,
-            &crate::project_runtime::setup(&self.segments),
+            &setup,
             &self.segments,
             Some(&self.graph),
             debug_source,
-        )
+        );
+        if rust.contains("crate::tsrust_source_segments::SEGMENTS") {
+            rust.push_str(&crate::project_runtime::segments_module(&self.segments));
+        }
+        (rust, features)
+    }
+    /// Stable identities of generated items, keyed by module path.
+    pub fn name_keys(&self) -> crate::native::stable_names::Keys {
+        let modules = self
+            .graph
+            .order
+            .iter()
+            .map(|id| id.0.clone())
+            .collect::<Vec<_>>();
+        let mut keys = crate::native::stable_names::keys(&self.analysis.program, &modules);
+        let (functions, closures) = self.module_indices();
+        keys.modules = modules;
+        keys.function_modules = functions;
+        keys.closure_modules = closures;
+        keys
+    }
+    /// Source module index of each generated function and closure (None: compiler-made).
+    fn module_indices(&self) -> (Vec<Option<usize>>, Vec<Option<usize>>) {
+        let module_of_span = |span: Span| -> Option<usize> {
+            let location = self.source_location(span)?;
+            self.graph.order.iter().position(|id| *id == location.source)
+        };
+        let module_of_name = |name: &str| -> Option<usize> {
+            let rest = name.strip_prefix("__tsrust_module_")?;
+            rest.split_once('_')?.0.parse().ok()
+        };
+        let first_span = |body: &[crate::syntax::Stmt]| body.first().map(|statement| statement.span);
+        let functions = self.analysis.program.functions.iter()
+            .map(|function| module_of_name(&function.name).or_else(|| first_span(&function.body).and_then(module_of_span)))
+            .collect();
+        let closures = self.analysis.program.closures.iter().map(|closure| module_of_span(closure.span)).collect();
+        (functions, closures)
+    }
+    /// Source module of each generated function and closure, by checked-program
+    /// index, as JSON: `{"modules":[paths…],"functions":[module|null…],"closures":[…],
+    /// "functionNames":[…],"recordNames":[…]}`.
+    /// Modules are indexed in dependency order; null marks compiler-generated items
+    /// with no source module (they belong with the program entry).
+    pub fn crate_plan(&self) -> String {
+        let (functions, closures) = self.module_indices();
+        let list = |values: Vec<Option<usize>>| values.into_iter().map(|module| module.map_or("null".to_owned(), |index| index.to_string())).collect::<Vec<_>>().join(",");
+        let functions = list(functions);
+        let closures = list(closures);
+        let modules = self.graph.order.iter().map(|id| crate::json_string(&id.0)).collect::<Vec<_>>().join(",");
+        let function_names = self.analysis.program.functions.iter().map(|function| crate::json_string(&function.name)).collect::<Vec<_>>().join(",");
+        let record_names = self.analysis.program.records.iter().map(|record| crate::json_string(&record.name.text)).collect::<Vec<_>>().join(",");
+        format!("{{\"modules\":[{modules}],\"functions\":[{functions}],\"closures\":[{closures}],\"functionNames\":[{function_names}],\"recordNames\":[{record_names}]}}")
     }
     fn source_name(&self, name: &str) -> String {
         for (module, source) in self.graph.order.iter().enumerate() {
@@ -135,6 +189,17 @@ impl ProjectAnalysis {
         locate(&self.segments, span)
     }
 }
+/// Coordinate space reserved for one module. Linked spans, generated labels and
+/// runtime error offsets derive from module bases, so a base that moves with
+/// every edit to an earlier file changes generated code in every later file and
+/// defeats incremental native builds. Reserving the length plus 4 KiB, rounded to
+/// 16 KiB, keeps other modules' bases fixed unless an edit crosses a boundary.
+/// Gaps lie outside every segment, like generated coordinates.
+fn segment_capacity(length: usize) -> usize {
+    const GRANULE: usize = 16 * 1024;
+    (length + 1 + 4 * 1024).div_ceil(GRANULE) * GRANULE
+}
+
 fn locate(segments: &[(SourceId, usize, usize)], span: Span) -> Option<SourceLocation> {
     segments
         .iter()
@@ -222,7 +287,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         let source = &graph.modules[id];
         let length = source.source.text.len().max(source.declaration_source.len());
         segments.push((id.clone(), offset, length));
-        offset += length + 1;
+        offset += segment_capacity(length);
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
             if let Some(native) = import.native {
@@ -408,6 +473,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         module_owner_bindings: vec![],
         type_aliases: Default::default(),
         unresolved_bases: Vec::new(),
+        uses_runtime_error: false,
     };
     let mut logging_native=BTreeMap::new();
     let mut closure_id = 0;
@@ -579,6 +645,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             test_initializers.insert(id.clone(),initialization);
         }
         else {linked.module_bindings.extend(program.module_bindings);}
+        linked.uses_runtime_error |= program.uses_runtime_error;
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);
     }
@@ -668,7 +735,7 @@ impl Linker<'_> {
                 } else { self.names.get(base).cloned().unwrap_or_else(|| {
                     if matches!(
                         base,
-                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result"
+                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result" | "#RuntimeError"
                     ) {
                         base.into()
                     } else {
@@ -1134,4 +1201,18 @@ fn bundled_containment_projection_links_specializes_and_executes() {
     ])};
     let checked=check_graph(graph).unwrap();
     crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");
+}
+
+#[cfg(test)]
+mod segment_capacity_tests {
+    #[test]
+    fn small_edits_keep_later_module_bases_and_large_ones_stay_disjoint() {
+        use super::segment_capacity;
+        assert_eq!(segment_capacity(0), 16 * 1024);
+        assert_eq!(segment_capacity(8_000), segment_capacity(8_200), "a typical edit keeps the next base");
+        for length in [0, 1, 12_287, 12_288, 40_000, 1_000_000] {
+            assert!(segment_capacity(length) > length, "segments never overlap their successor");
+            assert_eq!(segment_capacity(length) % (16 * 1024), 0);
+        }
+    }
 }

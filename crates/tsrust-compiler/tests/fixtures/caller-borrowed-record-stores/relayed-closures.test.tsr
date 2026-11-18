@@ -1,0 +1,167 @@
+import { test, strictEqual } from 'std:testing';
+
+type ReadHolder = {
+  run: ReadOnly<Function<int>> | undefined;
+};
+
+type MutableHolder = {
+  run: Mutable<Function<int>> | undefined;
+};
+
+function installConditional(holder: Mutable<ReadHolder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
+  calls[0] += 1;
+  const selected = chooseBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+  calls[0] += selected();
+  holder.run = selected;
+}
+
+function chooseBranch(plus: boolean, calls: Mutable<int[]>): boolean {
+  calls[0] += 10;
+  return plus;
+}
+
+test('a block closure relays a captured source to a conditional installer', () => {
+  const original = [4];
+  const calls = [0];
+  const holder: ReadHolder = {
+    run: undefined
+  };
+  {
+    const installLocal = (target: Mutable<ReadHolder>): void => {
+      installConditional(target, original, true, calls);
+    };
+    installLocal(holder);
+  }
+
+  strictEqual(holder.run!(), 5);
+  strictEqual(calls[0], 116);
+});
+
+test('a closure parameter source relays to a conditional installer', () => {
+  const original = [4];
+  const calls = [0];
+  const holder: ReadHolder = {
+    run: undefined
+  };
+  {
+    const installLocal = (target: Mutable<ReadHolder>, source: ReadOnly<int[]>): void => {
+      installConditional(target, source, false, calls);
+    };
+    installLocal(holder, original);
+  }
+
+  strictEqual(holder.run!(), 6);
+  strictEqual(calls[0], 217);
+});
+
+test('a nested arrow relays locals through two block closures', () => {
+  const inspect = (): int[] => {
+    const original = [4];
+    const replacement = [8];
+    const calls = [0];
+    const holder: ReadHolder = {
+      run: undefined
+    };
+    {
+      const installFirst = (target: Mutable<ReadHolder>): void => {
+        installConditional(target, original, true, calls);
+      };
+      installFirst(holder);
+    }
+
+    const first = holder.run!();
+    {
+      const installSecond = (target: Mutable<ReadHolder>): void => {
+        installConditional(target, replacement, true, calls);
+      };
+      installSecond(holder);
+    }
+
+    original[0] += 1;
+    return [first, original[0], holder.run!(), calls[0]];
+  };
+  strictEqual(inspect().join(','), '5,5,9,236');
+});
+
+test('a lent callback releases a source after its holder is replaced', () => {
+  let observed = '';
+  {
+    const inspect = (): void => {
+      const original = [4];
+      const replacement = [8];
+      const calls = [0];
+      const holder: ReadHolder = {
+        run: undefined
+      };
+      installConditional(holder, original, true, calls);
+      const first = holder.run!();
+      installConditional(holder, replacement, false, calls);
+      original[0] += 1;
+      observed = [first, original[0], holder.run!(), calls[0]].join(',');
+    };
+    runCallback(inspect);
+  }
+
+  strictEqual(observed, '5,5,10,337');
+});
+
+test('a block closure lends a captured array to a later mutable installer', () => {
+  const source = [20];
+  const calls = [0];
+  const holder: MutableHolder = {
+    run: undefined
+  };
+  {
+    const lend = (target: Mutable<MutableHolder>): void => {
+      calls[0] += 1;
+      installScopedMutation(target, source);
+    };
+    lend(holder);
+    strictEqual(holder.run!(), 21);
+    clearMutable(holder);
+    lend(holder);
+    strictEqual(holder.run!(), 22);
+    clearMutable(holder);
+  }
+
+  source[0] += 1;
+  strictEqual(source[0], 23);
+  strictEqual(calls[0], 2);
+});
+
+test('a finally block keeps the installed replacement', () => {
+  const original = [30];
+  const replacement = [40];
+  const holder: ReadHolder = {
+    run: undefined
+  };
+  installThroughFinally(holder, original, replacement);
+  strictEqual(holder.run!(), 40);
+});
+
+function installScopedMutation(holder: Mutable<MutableHolder>, source: Mutable<int[]>): void {
+  holder.run = (): int => {
+    source[0] += 1;
+    return source[0];
+  };
+}
+
+function installThroughFinally(holder: Mutable<ReadHolder>, original: ReadOnly<int[]>, replacement: ReadOnly<int[]>): void {
+  try {
+    installCapturedSource(holder, original);
+  } finally {
+    installCapturedSource(holder, replacement);
+  }
+}
+
+function installCapturedSource(holder: Mutable<ReadHolder>, source: ReadOnly<int[]>): void {
+  holder.run = (): int => source[0];
+}
+
+function clearMutable(holder: Mutable<MutableHolder>): void {
+  holder.run = undefined;
+}
+
+function runCallback(callback: Mutable<Function<void>>): void {
+  callback();
+}

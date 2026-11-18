@@ -56,6 +56,14 @@ impl Emitter<'_> {
             .control_targets
             .enter(ControlTarget::Loop(statement.span.start));
         let id = binding.expect("checked iteration binding");
+        if let Some((text, separator)) = self.split_pieces(fun, iterable, id) {
+            let label = statement.span.start;
+            let declarations = self.conditional_temporaries.borrow_mut().drain(..).collect::<Vec<_>>().join(" ");
+            let _ = writeln!(output, "{{ {declarations} let split_text_{label}: &String = {text}; let split_separator_{label}: &String = {separator}; let mut split_piece_{label} = String::Owned(std::string::String::new());");
+            let _ = writeln!(output, "'loop_{label}: for split_part_{label} in tsr_split_parts(split_text_{label}, split_separator_{label}) {{");
+            let _ = writeln!(output, "    let value{id}: &String = tsr_split_piece(&mut split_piece_{label}, split_text_{label}, split_part_{label});");
+            return Some(IterationFrame { scope, suffix: "} }\n".into() });
+        }
         let iterable_code = self.expr(fun, iterable, Mode::Read);
         let declarations = self
             .conditional_temporaries
@@ -150,5 +158,18 @@ impl Emitter<'_> {
         let resets=resets.to_vec();
         work.push(Work::Resume(Box::new(move |output,work,_|self.schedule_for_of(output,fun,statement,visible,depth+1,&resets,work))));
         work.push(Work::Capture);
+    }
+}
+
+impl Emitter<'_> {
+    /// `for (const piece of text.split(separator))` with one string separator and a
+    /// read-only string binding: the receiver and separator code, evaluated in order.
+    fn split_pieces(&self, fun: &CheckedFunction, iterable: &Expr, id: usize) -> Option<(String, String)> {
+        if iterable.target != Some(CallTarget::StringSplit) || fun.bindings[id].mutable || fun.bindings[id].ty.scalar_base() != Type::String {return None;}
+        let ExprKind::Call(callee, arguments) = &iterable.kind else {return None;};
+        let [separator] = arguments.as_slice() else {return None;};
+        let ExprKind::Field(base, _) = &callee.kind else {return None;};
+        if separator.ty.map(Type::scalar_base) != Some(Type::String) {return None;}
+        Some((self.string_observation(fun, base), self.expr(fun, separator, Mode::Read)))
     }
 }

@@ -17,7 +17,7 @@ pub(crate) fn scope(node:&Node,theme:&crate::theme::Theme,mode:&str)->String {
     if node.theme.is_some() {theme.variables(mode)}else{String::new()}
 }
 fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
- let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();
+ let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_deref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();
  let tag=node.tag();
  out.push('<');out.push_str(tag);
  if let Some(vector)=&node.vector{for (key,value) in vector.attributes(){out.push(' ');out.push_str(key);out.push_str("=\"");escape(&value,out);out.push('\"');}}
@@ -51,10 +51,10 @@ fn element(node:&Node,out:&mut String,theme:&crate::theme::Theme,mode:&str) {
 }
 pub(crate) fn stylesheet(node:&Node,scope:&str)->String {
  fn collect(node:&Node,theme:&crate::theme::Theme,mode:&str,scope:&str,out:&mut String) {
-  let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();out.push_str(&crate::style::css(&node.class_name,theme,mode,id,scope));
+  let Some(node)=node.visible_root() else{return;};let (theme,mode)=node.theme.as_deref().map(|(t,m)|(t,m.as_str())).unwrap_or((theme,mode));let id=node.identity.get();out.push_str(&crate::style::css(&node.class_name,theme,mode,id,scope));
   for child in &node.children {collect(child,theme,mode,scope,out);}
  }
- let default=crate::theme::Theme::default();let (theme,mode)=node.theme.as_ref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let mut out=BASE.to_owned();
+ let default=crate::theme::Theme::default();let (theme,mode)=node.theme.as_deref().map(|(t,m)|(t,m.as_str())).unwrap_or((&default,"light"));let mut out=BASE.to_owned();
  out.push_str(&format!("body{{{}color:var(--ui-foreground);background:var(--ui-background);font-size:var(--ui-text-base)}}",theme.variables(mode)));
  node.ensure_identities();collect(node,theme,mode,scope,&mut out);out
 }

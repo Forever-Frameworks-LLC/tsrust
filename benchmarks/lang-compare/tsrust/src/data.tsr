@@ -1,0 +1,87 @@
+// Record, collection and recursive-structure phases.
+import { toInt } from 'std:numeric';
+import { nextRandom } from './text.tsr';
+
+type Order = {
+  id: int;
+  customer: string;
+  amount: number;
+  tags: string[];
+};
+
+export function orders(count: int): int {
+  const all: Order[] = [];
+  let state = 7;
+
+  for (let id = 0; id < count; id += 1) {
+    state = nextRandom(state);
+    const tags: string[] = [];
+
+    if (state % 3 === 0) tags.push('priority');
+
+    if (state % 5 === 0) tags.push('gift');
+    all.push({
+      id, customer: 'customer-' + (state % 5000).toString(), amount: Number(state % 100000) / 100, tags
+    });
+  }
+
+  const large = all.filter((order) => order.amount > 250);
+  const totals = large.map((order) => order.amount * Number(order.tags.length + 1));
+  const sum = totals.reduce((total, value) => total + value, 0.0);
+  large.sort((left, right) => left.amount !== right.amount ? (right.amount > left.amount ? 1 : -1) : left.id - right.id);
+  const byCustomer = new Map<string, number>();
+
+  for (const order of large) byCustomer.set(clone(order.customer), (byCustomer.get(order.customer) ?? 0) + order.amount);
+  return unwrap(toInt(Math.floor(sum))) + large[0].id + byCustomer.size;
+}
+
+type Tree = {
+  left: Tree | null;
+  right: Tree | null;
+};
+
+function build(depth: int): Tree {
+  return depth === 0 ? {
+    left: null, right: null
+  }
+
+  : {
+    left: build(depth - 1), right: build(depth - 1)
+  };
+}
+
+function check(tree: ReadOnly<Tree>): int {
+  const left = tree.left;
+  const right = tree.right;
+
+  if (left === null || right === null) return 1;
+  return 1 + check(left) + check(right);
+}
+
+export function trees(maxDepth: int): int {
+  let total = 0;
+
+  for (let depth = 4; depth <= maxDepth; depth += 2) {
+    const iterations = 1 << (maxDepth - depth + 4);
+
+    for (let index = 0; index < iterations; index += 1) total += check(build(depth));
+  }
+
+  return total;
+}
+
+export function sets(count: int): int {
+  const seen = new Set<int>();
+  let state = 3;
+  let repeats = 0;
+
+  for (let index = 0; index < count; index += 1) {
+    state = nextRandom(state);
+    const key = state % (count * 2);
+
+    if (seen.has(key)) repeats += 1;
+    else seen.add(key);
+  }
+
+  return repeats * 1000003 + seen.size;
+}

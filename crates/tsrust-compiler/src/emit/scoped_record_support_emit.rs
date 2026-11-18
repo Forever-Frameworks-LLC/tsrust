@@ -176,6 +176,8 @@ mod tests {
     use super::*;
     #[test]
     fn production_metadata_supports_distinct_nested_callback_environments() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function probe(pair:ReadOnly<Pair>):int{return pair.left.run()+pair.right.run();}function main(){}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();
@@ -208,6 +210,8 @@ mod tests {
     }
     #[test]
     fn separate_mutable_getters_cannot_hold_sibling_fields_together() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function probe(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();
@@ -240,6 +244,8 @@ mod tests {
 
     #[test]
     fn nominal_whole_view_transport_preserves_disjoint_sibling_fields() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let source=crate::format(r#"type Holder={run:ReadOnly<Function<int>>;label:string;};type Pair={left:Holder;right:Holder;};function touch(left:Mutable<Holder>,right:Mutable<Holder>):void{left.label="left!";right.label="right!";}function probe(holder:ReadOnly<Holder>):int{return holder.run();}function main(){}"#).unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let checked=crate::check(&source).unwrap();

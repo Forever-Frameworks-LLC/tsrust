@@ -3,43 +3,92 @@ use super::*;
 use super::native_view_loans::{Loan, Segment};
 use crate::native_return_borrows::BorrowAccess;
 
+/// Record and union shapes for loan normalization, rebuilt when the program
+/// changes. Appending unions keeps the record part: records that did not change
+/// name only unions that already existed, whose members did not change.
 pub(super) struct Shapes {
+    records: std::rc::Rc<RecordShapes>,
+    union_revision: u64,
+    union_rewrites: u64,
+    unions: Vec<crate::unions::UnionType>,
+}
+pub(super) struct RecordShapes {
     pub(super) recursive: crate::recursive_view_shapes::Index,
     program_revision: std::cell::Cell<u64>,
-    union_revision: u64,
     native_types: Vec<Option<crate::native_signatures::NativeTypeId>>,
     incomplete: Vec<bool>,
     scoped_families: Vec<(usize,crate::native_view_callable_storage::Family)>,
+    /// Registry revision the scoped families were last confirmed against.
+    native_revision: std::cell::Cell<u64>,
     fields: Vec<Vec<(String, Type)>>,
+    /// Address and length of each recorded field name in the program, so an
+    /// unchanged record validates without comparing name text.
+    name_identities: Vec<Vec<(usize, usize)>>,
     readonly_view: Option<usize>,
     map_values: Vec<Option<Type>>,
     native_elements: Vec<Option<Type>>,
-    unions: Vec<crate::unions::UnionType>,
+}
+impl std::ops::Deref for Shapes {
+    type Target = RecordShapes;
+    fn deref(&self) -> &RecordShapes { &self.records }
 }
 impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
-        Self {
+        let records = RecordShapes {
             program_revision: std::cell::Cell::new(analyzer.program.revision),
-            union_revision: analyzer.unions.member_revision(),
             native_types:analyzer.program.records.iter().map(|record|record.native_type).collect(),
             incomplete:analyzer.program.records.iter().map(|record|record.fields.iter().any(|field|field.ty.is_none())).collect(),
             scoped_families:analyzer.callables.storage.scoped_native_families().map(|(id,family)|(id,family.clone())).collect(),
+            native_revision: std::cell::Cell::new(analyzer.callables.storage.native_revision()),
             native_elements: analyzer.program.records.iter().map(|record| record.native_element()).collect(),
             map_values: analyzer.program.records.iter().map(|record| record.map_definition.as_ref().map(|map| map.value)).collect(),
             readonly_view: analyzer.program.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::ByteView)),
             recursive: crate::recursive_view_shapes::Index::with_storage(&analyzer.program.records, &|id| analyzer.unions.members(id), &analyzer.callables.storage),
+            name_identities: analyzer.program.records.iter().map(|record| record.fields.iter()
+                .filter(|field| field.ty.is_some()).map(|field| (field.name.text.as_ptr() as usize, field.name.text.len())).collect()).collect(),
             fields: analyzer.program.records.iter().map(|record| record.fields.iter()
                 .filter_map(|field| field.ty.map(|ty| (field.name.text.clone(), ty))).collect()).collect(),
+        };
+        Self {
+            records: std::rc::Rc::new(records),
+            union_revision: analyzer.unions.member_revision(),
+            union_rewrites: analyzer.unions.member_rewrites(),
             unions: analyzer.unions.snapshot(),
         }
     }
 
+    /// The same record shapes with the unions appended since this snapshot.
+    fn with_appended_unions(&self, analyzer: &Analyzer) -> Option<Self> {
+        if analyzer.unions.member_rewrites() != self.union_rewrites || !self.records_match(analyzer) {
+            return None;
+        }
+        let mut unions = self.unions.clone();
+        unions.extend(analyzer.unions.snapshot_from(unions.len()));
+        Some(Self {
+            records: std::rc::Rc::clone(&self.records),
+            union_revision: analyzer.unions.member_revision(),
+            union_rewrites: self.union_rewrites,
+            unions,
+        })
+    }
+
     fn matches(&self, analyzer:&Analyzer)->bool {
+        analyzer.unions.member_revision() == self.union_revision && self.records_match(analyzer)
+    }
+
+    fn records_match(&self, analyzer:&Analyzer)->bool {
         self.fields.len()==analyzer.program.records.len()
-            && analyzer.unions.member_revision() == self.union_revision
-            && self.scoped_families.len()==analyzer.callables.storage.scoped_native_families().count()
-            && self.scoped_families.iter().all(|(id,family)|analyzer.callables.storage.scoped_native_family(*id)==Some(family))
+            && self.same_families(analyzer)
             && (self.program_revision.get() == analyzer.program.revision || self.matches_records(analyzer))
+    }
+
+    fn same_families(&self, analyzer:&Analyzer)->bool {
+        let storage=&analyzer.callables.storage;
+        if self.native_revision.get()==storage.native_revision() { return true; }
+        let same=self.scoped_families.len()==storage.scoped_native_families().count()
+            && self.scoped_families.iter().all(|(id,family)|storage.scoped_native_family(*id)==Some(family));
+        if same { self.native_revision.set(storage.native_revision()); }
+        same
     }
 
     fn matches_records(&self, analyzer: &Analyzer) -> bool {
@@ -48,10 +97,20 @@ impl Shapes {
                 && self.native_elements[id]==record.native_element()
                 && self.map_values[id]==record.map_definition.as_ref().map(|map|map.value)
                 && self.incomplete[id]==record.fields.iter().any(|field|field.ty.is_none())
-                && self.fields[id].iter().map(|(name,ty)|(name.as_str(),*ty))
-                    .eq(record.fields.iter().filter_map(|field|field.ty.map(|ty|(field.name.text.as_str(),ty)))));
+                && self.same_fields(id,record));
         if unchanged { self.program_revision.set(analyzer.program.revision); }
         unchanged
+    }
+
+    /// Same allocation and length means the same text: field names are replaced,
+    /// never edited in place, so only a changed address needs a text comparison.
+    fn same_fields(&self, id: usize, record: &crate::syntax::Record) -> bool {
+        let mut current = record.fields.iter().filter_map(|field| field.ty.map(|ty| (field.name.text.as_str(), ty)));
+        for ((name, ty), &(address, length)) in self.fields[id].iter().zip(&self.name_identities[id]) {
+            let Some((text, current_ty)) = current.next() else { return false; };
+            if *ty != current_ty || !((address == text.as_ptr() as usize && length == text.len()) || name == text) { return false; }
+        }
+        current.next().is_none()
     }
 
     fn normalize(&self, root: Type, loan: &mut Loan) {
@@ -109,7 +168,8 @@ impl Analyzer {
     pub(super) fn native_recursive_shapes(&self)->std::rc::Rc<Shapes> {
         let mut cache=self.native_recursive_shapes.borrow_mut();
         if cache.as_ref().is_none_or(|shapes|!shapes.matches(self)) {
-            *cache=Some(std::rc::Rc::new(Shapes::new(self)));
+            let shapes=cache.as_ref().and_then(|shapes|shapes.with_appended_unions(self)).unwrap_or_else(||Shapes::new(self));
+            *cache=Some(std::rc::Rc::new(shapes));
         }
         std::rc::Rc::clone(cache.as_ref().unwrap())
     }

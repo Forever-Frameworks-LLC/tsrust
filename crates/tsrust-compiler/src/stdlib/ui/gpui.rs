@@ -134,7 +134,7 @@ fn open(node: Node, title: String, options: Options, failure: Failure, cx: &mut 
         }),
         ..Default::default()
     };
-    open_window(window, cx, move |_, cx| cx.new(|cx| Root {viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), focus: cx.focus_handle(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
+    open_window(window, cx, move |_, cx| cx.new(|cx| Root {window: None, viewport:(options.width as f32,options.height as f32), revision: u64::MAX, command_owner: commands::Owner::new(), styles: HashMap::new(), style_memo: StyleMemo::default(), focus: cx.focus_handle(), view_focus: Default::default(), rendered_views: Default::default(), focused_views: Default::default(), text_scale: Default::default(), view_hover: HashMap::new(), node, inputs: HashMap::new(), input_options: HashMap::new(), states: HashMap::new(), language_requests: Default::default(), dialog: None, sheet: None, accordions: HashMap::new(), failure}))
         .map(|_| ()).map_err(|error| format!("Failed to open the window: {error}"))
 }
 
@@ -299,10 +299,15 @@ macro_rules! control_input {
 enum Field {Line(Entity<InputState>), Text(Entity<TextareaState>)}
 
 struct Root {
+    /// The window this view renders in, known after its first frame. Commands
+    /// queued by an event run through it without waiting for a frame.
+    window: Option<AnyWindowHandle>,
     viewport: (f32,f32),
     revision: u64,
     command_owner: commands::Owner,
-    styles: HashMap<u64, Vec<(State, Utility)>>,
+    styles: HashMap<u64, std::rc::Rc<[(State, Utility)]>>,
+    /// Resolved rules shared across frames by nodes whose classes need no node context.
+    style_memo: StyleMemo,
     node: Node,
     inputs: HashMap<u64, (Field, Subscription)>,
     /// Options last applied to each input's Kit state, so changed props re-apply once.
@@ -318,6 +323,16 @@ struct Root {
     failure: Failure,
     /// Keeps the root on the action dispatch path when no control has focus.
     focus: FocusHandle,
+    /// Focus handles of focusable Views (tabIndex), created on first render.
+    view_focus: std::cell::RefCell<HashMap<u64, FocusHandle>>,
+    /// Views rendered this frame, so removed nodes release their focus handles.
+    rendered_views: std::cell::RefCell<std::collections::HashSet<u64>>,
+    /// Views that contained focus after the previous frame, for onFocus/onBlur.
+    focused_views: std::collections::BTreeSet<u64>,
+    /// Last reported hover state of each View with onHover.
+    view_hover: HashMap<u64, bool>,
+    /// Zoom and system text-size scaling applied to the Kit theme.
+    text_scale: TextScale,
 }
 
 impl Root {
@@ -346,9 +361,16 @@ impl Root {
                     // shortcut: redraw live windows on shared writes; track subscribers if window counts make this costly.
                     cx.refresh_windows();
                 }
-                let redraw=force || changed>0 || self.revision!=revision || commands::has_pending(&self.command_owner) || super::i18n::has_changed();
+                let pending=commands::has_pending(&self.command_owner);
+                let redraw=force || changed>0 || self.revision!=revision || pending || super::i18n::has_changed();
                 self.revision=revision;
                 if redraw {cx.notify();}
+                // A covered or minimized window may not draw again soon, and quit,
+                // close and other commands must not wait for its next frame.
+                if pending && let Some(window)=self.window {
+                    let root=cx.entity().downgrade();
+                    cx.defer(move|cx|{let _=window.update(cx,|_,window,cx|{let _=root.update(cx,|root,cx|root.run_commands(window,cx));});});
+                }
             }
             Err(error) => fail(&self.failure, error),
         }
@@ -590,7 +612,7 @@ impl Root {
     }
 
     fn element(&self, node: &Node, theme: &Theme, mode: &str, cx: &mut Context<Self>) -> AnyElement {
-        let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
+        let (theme, mode) = node.theme.as_deref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
         let id = node.identity.get();
         if node.editable.is_some() {
             let control = match self.inputs.get(&id) {
@@ -659,22 +681,139 @@ impl Root {
                 }
                 text.child(self.inline_text(node)).into_any_element()
             }
-            _ if children.is_empty() => styled_rules(div(), self.rules(node), false, node.identity.get()).child(SharedString::from(node.text.clone())).into_any_element(),
+            _ if children.is_empty() => self.view_input(styled_rules(div(), self.rules(node), false, node.identity.get()), node, cx).child(SharedString::from(node.text.clone())).into_any_element(),
             _ => {
                 // GPUI keeps scroll offsets per element id; overflow-auto views need one.
                 // Their children keep their natural size instead of shrinking to fit.
                 let scrolls = style::state_rules(self.rules(node), State::Base, false).iter().any(|rule| matches!(rule, Utility::Overflow(2) | Utility::OverflowAxis(_,2)));
-                if !scrolls {return styled_rules(div(), self.rules(node), false, node.identity.get()).children(children).into_any_element();}
+                let element = self.view_input(styled_rules(div(), self.rules(node), false, node.identity.get()), node, cx);
+                if !scrolls {return element.children(children).into_any_element();}
                 let children = children.into_iter().map(|child| div().flex_shrink_0().child(child));
-                styled_rules(div(), self.rules(node), false, node.identity.get()).children(children).into_any_element()
+                element.children(children).into_any_element()
             }
         }
+    }
+}
+
+/// Input events a View can observe; each is registered only when handled.
+const VIEW_EVENTS: [&str; 12] = ["keyDown", "keyUp", "pointerDown", "pointerUp", "pointerMove", "wheel", "doubleClick", "contextMenu", "hover", "focus", "blur", "fileDrop"];
+
+fn modifier_fields(modifiers: &Modifiers) -> String {
+    format!("\"ctrlKey\":{},\"altKey\":{},\"shiftKey\":{},\"metaKey\":{}", modifiers.control, modifiers.alt, modifiers.shift, modifiers.platform)
+}
+
+fn key_payload(keystroke: &Keystroke, repeat: bool) -> String {
+    let key = serde_json::to_string(&keystroke.key).unwrap_or_else(|_| "\"\"".into());
+    let text = serde_json::to_string(keystroke.key_char.as_deref().unwrap_or("")).unwrap_or_else(|_| "\"\"".into());
+    format!("{{\"key\":{key},\"text\":{text},{},\"repeat\":{repeat}}}", modifier_fields(&keystroke.modifiers))
+}
+
+fn pointer_button(button: MouseButton) -> &'static str {
+    match button {
+        MouseButton::Left => "left",
+        MouseButton::Right => "right",
+        MouseButton::Middle => "middle",
+        MouseButton::Navigate(NavigationDirection::Back) => "back",
+        MouseButton::Navigate(_) => "forward",
+    }
+}
+
+fn pointer_payload(button: &str, position: Point<Pixels>, modifiers: &Modifiers, clicks: usize) -> String {
+    format!("{{\"button\":\"{button}\",\"x\":{},\"y\":{},\"clickCount\":{clicks},{}}}", f32::from(position.x), f32::from(position.y), modifier_fields(modifiers))
+}
+
+impl Root {
+    /// Attach the View input listeners its node handles. Keyboard events reach a View
+    /// when it or a descendant has focus; a tabIndex View is itself focusable.
+    fn view_input(&self, mut element: Stateful<Div>, node: &Node, cx: &mut Context<Self>) -> Stateful<Div> {
+        if node.kind != Kind::View {return element;}
+        let id = node.identity.get();
+        if let Some(index) = node.semantics.tab_index {
+            self.rendered_views.borrow_mut().insert(id);
+            let handle = self.view_focus.borrow_mut().entry(id).or_insert_with(|| cx.focus_handle()).clone()
+                .tab_index(index as isize).tab_stop(index == 0);
+            element = element.track_focus(&handle);
+        }
+        if node.semantics.window_drag_region {
+            // A custom titlebar leaves moving the window to the app (`app_owns_titlebar_drag`).
+            // Pressing a drag region moves the window natively; a double-click zooms it as the
+            // system titlebar does. Controls inside stop the mouse-down first, so they still work.
+            element = element.window_control_area(WindowControlArea::Drag).on_mouse_down(MouseButton::Left, |event, window, _| {
+                if event.click_count == 2 && cfg!(target_os = "macos") {window.titlebar_double_click();} else {window.start_window_move();}
+            });
+        }
+        let Some(kit) = node.kit.as_deref() else {return element;};
+        if !VIEW_EVENTS.iter().any(|event| kit.handles(event)) {return element;}
+        let root = cx.entity().downgrade();
+        let send = move |event: &'static str, value: String, cx: &mut App| {let _ = root.update(cx, |root, cx| root.emit(id, event, value, cx));};
+        if kit.handles("keyDown") {let send = send.clone(); element = element.on_key_down(move |event, _, cx| send("keyDown", key_payload(&event.keystroke, event.is_held), cx));}
+        if kit.handles("keyUp") {let send = send.clone(); element = element.on_key_up(move |event, _, cx| send("keyUp", key_payload(&event.keystroke, false), cx));}
+        if kit.handles("pointerDown") {let send = send.clone(); element = element.on_any_mouse_down(move |event, _, cx| send("pointerDown", pointer_payload(pointer_button(event.button), event.position, &event.modifiers, event.click_count), cx));}
+        if kit.handles("pointerUp") {
+            for button in MouseButton::all() {
+                let send = send.clone();
+                element = element.on_mouse_up(button, move |event, _, cx| send("pointerUp", pointer_payload(pointer_button(event.button), event.position, &event.modifiers, event.click_count), cx));
+            }
+        }
+        if kit.handles("pointerMove") {
+            let send = send.clone();
+            element = element.on_mouse_move(move |event, _, cx| send("pointerMove", pointer_payload(event.pressed_button.map_or("none", pointer_button), event.position, &event.modifiers, 0), cx));
+        }
+        if kit.handles("wheel") {
+            let send = send.clone();
+            element = element.on_scroll_wheel(move |event, _, cx| {
+                let (x, y, mode) = match event.delta {ScrollDelta::Pixels(delta) => (f32::from(delta.x), f32::from(delta.y), "pixel"), ScrollDelta::Lines(delta) => (delta.x, delta.y, "line")};
+                send("wheel", format!("{{\"deltaX\":{x},\"deltaY\":{y},\"deltaMode\":\"{mode}\",{}}}", modifier_fields(&event.modifiers)), cx);
+            });
+        }
+        if kit.handles("doubleClick") {
+            let send = send.clone();
+            element = element.on_mouse_down(MouseButton::Left, move |event, _, cx| if event.click_count == 2 {send("doubleClick", pointer_payload("left", event.position, &event.modifiers, 2), cx);});
+        }
+        if kit.handles("contextMenu") {
+            let send = send.clone();
+            element = element.on_mouse_down(MouseButton::Right, move |event, _, cx| send("contextMenu", pointer_payload("right", event.position, &event.modifiers, event.click_count), cx));
+        }
+        if kit.handles("hover") {
+            // Report pointer enter/leave only; typing must not count as the pointer leaving.
+            let root = cx.entity().downgrade();
+            element = element.hover_listener_mode(HoverListenerMode::InputModalityIndependent).on_hover(move |hovered, _, cx| {
+                // GPUI can report one transition from both paint and mouse move; report changes once.
+                let hovered = *hovered;
+                let _ = root.update(cx, |root, cx| if root.view_hover.insert(id, hovered) != Some(hovered) {root.emit(id, "hover", hovered.to_string(), cx);});
+            });
+        }
+        if kit.handles("fileDrop") {
+            let send = send.clone();
+            element = element.on_drop(move |paths: &ExternalPaths, _, cx| {
+                let paths = paths.paths().iter().map(|path| path.to_string_lossy().into_owned()).collect::<Vec<_>>();
+                send("fileDrop", serde_json::to_string(&paths).unwrap_or_else(|_| "[]".into()), cx);
+            });
+        }
+        element
+    }
+
+    /// Release handles of removed Views and report focus entering or leaving each View.
+    fn report_view_focus(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let rendered = self.rendered_views.borrow().clone();
+        self.view_focus.borrow_mut().retain(|id, _| rendered.contains(id));
+        let root_node = &self.node;
+        self.view_hover.retain(|id, _| find(root_node, *id).is_some());
+        let now = self.view_focus.borrow().iter().filter(|(_, handle)| handle.contains_focused(window, cx)).map(|(id, _)| *id).collect::<std::collections::BTreeSet<_>>();
+        if now == self.focused_views {return;}
+        let changes = self.focused_views.difference(&now).map(|id| (*id, "blur")).chain(now.difference(&self.focused_views).map(|id| (*id, "focus"))).collect::<Vec<_>>();
+        self.focused_views = now;
+        let root = cx.entity().downgrade();
+        let handled = changes.into_iter().filter(|(id, event)| find(&self.node, *id).and_then(|node| node.kit.as_deref()).is_some_and(|kit| kit.handles(event))).collect::<Vec<_>>();
+        if handled.is_empty() {return;}
+        cx.defer(move |cx| {for (id, event) in handled {let _ = root.update(cx, |root, cx| root.emit(id, event, String::new(), cx));}});
     }
 }
 
 impl Render for Root {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let _scope=self.scope();
+        self.window=Some(window.window_handle());
         self.viewport=(f32::from(window.viewport_size().width),f32::from(window.viewport_size().height));
         let revision=super::state::revision();
         if self.revision != revision {
@@ -682,14 +821,18 @@ impl Render for Root {
             self.revision=revision;
         }
         self.node.ensure_identities();
+        self.apply_text_scale(window, cx);
         self.sync_inputs(window, cx);
         self.sync_kit(window, cx);
         self.run_commands(window, cx);
         let theme = utility_theme(cx);
         self.styles.clear();
-        collect_styles(&self.node, &mut Vec::new(), &theme, mode(cx), &Default::default(), self.viewport, &mut self.styles);
+        self.style_memo.prepare(&theme, mode(cx), self.viewport);
+        StyleCollector {viewport: self.viewport, memo: &mut self.style_memo.entries, output: &mut self.styles}.collect(&self.node, &mut Vec::new(), &theme, mode(cx), true, &Default::default());
+        self.rendered_views.borrow_mut().clear();
         let body = self.node.visible_root().map(|node| self.element(node, &theme, mode(cx), cx));
         if window.focused(cx).is_none() {self.focus.focus(window, cx);}
+        self.report_view_focus(window, cx);
         div().size_full().track_focus(&self.focus).on_action(cx.listener(|this, command: &TsrustCommand, _, cx| this.run_command(&command.name, cx))).children(body)
     }
 }
@@ -699,9 +842,15 @@ fn color(value: ResolvedColor) -> Hsla {
     Rgba {r, g, b, a}.into()
 }
 
+/// Utility sizes are authored in CSS pixels at the default 16px text size. They become
+/// rems so application zoom and the system text-size preference scale text, spacing
+/// and boxes together with GPUI Kit components. Borders stay one physical pixel.
+const REM_BASE: f32 = 16.;
+fn scaled(value: f32) -> Rems {rems(value / REM_BASE)}
+
 fn length(value: Length) -> gpui_kit::Length {
     match value {
-        Length::Pixels(value) => px(value).into(),
+        Length::Pixels(value) => scaled(value).into(),
         Length::Percent(value) => relative(value).into(),
         Length::Viewport(_) => relative(1.).into(),
         Length::Auto | Length::None | Length::Fit => gpui_kit::Length::Auto,
@@ -738,17 +887,68 @@ fn styled_control<T:Styled+StatefulInteractiveElement>(mut element:T,rules:&[(St
     element
 }
 
-fn collect_styles<'a>(node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, inherited: &std::collections::BTreeMap<String, f32>, viewport: (f32,f32), output: &mut HashMap<u64, Vec<(State, Utility)>>) {
-    let (theme, mode) = node.theme.as_ref().map_or((theme, mode), |(theme, mode)| (theme, mode.as_str()));
-    let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, viewport.0);
-    output.insert(node.identity.get(), rules.into_iter().map(|(state,rule)|(state,rule.in_viewport(viewport.0,viewport.1))).collect());
-    ancestors.push(node);
-    for child in node.visible_children() {collect_styles(child, ancestors, theme, mode, &variables, viewport, output);}
-    ancestors.pop();
+type Variables = std::collections::BTreeMap<String, f32>;
+type ResolvedStyle = (std::rc::Rc<[(State, Utility)]>, std::rc::Rc<Variables>);
+
+/// Rules resolved from a class string alone, keyed by the class string and the
+/// inherited spacing variables. Rows of a list usually share their class strings,
+/// so one resolution serves them all, in every frame until the theme, mode or
+/// viewport changes. `None` marks classes whose predicates read node metadata.
+#[derive(Default)]
+struct StyleMemo {
+    context: Option<(std::rc::Rc<Theme>, &'static str, (f32, f32))>,
+    entries: HashMap<String, Vec<(Vec<(String, u32)>, Option<ResolvedStyle>)>>,
+}
+
+impl StyleMemo {
+    fn prepare(&mut self, theme: &std::rc::Rc<Theme>, mode: &'static str, viewport: (f32, f32)) {
+        let current = self.context.as_ref().is_some_and(|(known, known_mode, known_viewport)| std::rc::Rc::ptr_eq(known, theme) && *known_mode == mode && *known_viewport == viewport);
+        if !current || self.entries.len() > 4096 {
+            self.entries.clear();
+            self.context = Some((theme.clone(), mode, viewport));
+        }
+    }
+}
+
+struct StyleCollector<'m> {
+    viewport: (f32, f32),
+    memo: &'m mut HashMap<String, Vec<(Vec<(String, u32)>, Option<ResolvedStyle>)>>,
+    output: &'m mut HashMap<u64, std::rc::Rc<[(State, Utility)]>>,
+}
+
+impl StyleCollector<'_> {
+    /// `shared` holds while the node uses the window's theme and no ancestor has a
+    /// descendant selector, so its rules depend only on its classes and variables.
+    fn collect<'a>(&mut self, node: &'a Node, ancestors: &mut Vec<&'a Node>, theme: &Theme, mode: &str, shared: bool, inherited: &Variables) {
+        let (theme, mode, shared) = node.theme.as_deref().map_or((theme, mode, shared), |(theme, mode)| (theme, mode.as_str(), false));
+        let (rules, variables) = if shared {self.shared(node, ancestors, theme, mode, inherited)} else {self.resolve(node, ancestors, theme, mode, inherited)};
+        self.output.insert(node.identity.get(), rules);
+        let shared = shared && !node.class_name.contains("[&");
+        ancestors.push(node);
+        for child in node.visible_children() {self.collect(child, ancestors, theme, mode, shared, &variables);}
+        ancestors.pop();
+    }
+
+    fn resolve(&self, node: &Node, ancestors: &[&Node], theme: &Theme, mode: &str, inherited: &Variables) -> ResolvedStyle {
+        let (width, height) = self.viewport;
+        let (rules, variables) = style::resolved_scoped_node_at_width(node, ancestors, theme, mode, inherited, width);
+        (rules.into_iter().map(|(state, rule)| (state, rule.in_viewport(width, height))).collect(), std::rc::Rc::new(variables))
+    }
+
+    fn shared(&mut self, node: &Node, ancestors: &[&Node], theme: &Theme, mode: &str, inherited: &Variables) -> ResolvedStyle {
+        let variables = inherited.iter().map(|(name, value)| (name.clone(), value.to_bits())).collect::<Vec<_>>();
+        if let Some(found) = self.memo.get(node.class_name.as_str()).and_then(|entries| entries.iter().find(|(known, _)| *known == variables)) {
+            if let Some(resolved) = &found.1 {return resolved.clone();}
+            return self.resolve(node, ancestors, theme, mode, inherited);
+        }
+        let resolved = style::context_free_classes(&node.class_name).then(|| self.resolve(node, ancestors, theme, mode, inherited));
+        self.memo.entry(node.class_name.clone()).or_default().push((variables, resolved.clone()));
+        resolved.unwrap_or_else(|| self.resolve(node, ancestors, theme, mode, inherited))
+    }
 }
 
 impl Root {
-    fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(Vec::as_slice).unwrap_or_default()}
+    fn rules(&self, node: &Node) -> &[(State, Utility)] {self.styles.get(&node.identity.get()).map(|rules| &**rules).unwrap_or_default()}
     fn node_style(&self, node: &Node) -> StyleRefinement {
         let mut surface = styled_rules(div(), self.rules(node), node.is_disabled(), node.identity.get());
         surface.style().clone()
@@ -825,7 +1025,7 @@ fn native_font_family(value:u8)->SharedString {
 
 fn apply(style: &mut StyleRefinement, rule: Utility) {
     let edge = |edges: &mut EdgesRefinement<DefiniteLength>, side: u8, value: f32| {
-        let value = Some(px(value).into());
+        let value = Some(scaled(value).into());
         match side {0 => edges.top = value, 1 => edges.right = value, 2 => edges.bottom = value, _ => edges.left = value}
     };
     match rule {
@@ -834,11 +1034,11 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
         Utility::Display(grid) => style.display = Some(if grid {Display::Grid} else {Display::Flex}),
         Utility::InlineFlex => style.display = Some(Display::Flex),
         Utility::Hidden => style.display = Some(Display::None),
-        Utility::GapAxis(0, value) => style.gap.height = Some(px(value).into()),
-        Utility::GapAxis(_, value) => style.gap.width = Some(px(value).into()),
+        Utility::GapAxis(0, value) => style.gap.height = Some(scaled(value).into()),
+        Utility::GapAxis(_, value) => style.gap.width = Some(scaled(value).into()),
         Utility::Padding(side, value) => edge(&mut style.padding, side, value),
         Utility::Margin(side, value) => {
-            let value = Some(px(value).into());
+            let value = Some(scaled(value).into());
             match side {0 => style.margin.top = value, 1 => style.margin.right = value, 2 => style.margin.bottom = value, _ => style.margin.left = value}
         }
         Utility::Dimension(property, value) => {
@@ -870,7 +1070,7 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
         Utility::Items(value) => style.align_items = Some([AlignItems::FlexStart, AlignItems::Center, AlignItems::Stretch, AlignItems::FlexEnd, AlignItems::Baseline][value.min(4) as usize]),
         Utility::Justify(value) => style.justify_content = Some([JustifyContent::FlexStart, JustifyContent::Center, JustifyContent::SpaceBetween, JustifyContent::FlexEnd, JustifyContent::SpaceAround, JustifyContent::SpaceEvenly][value.min(5) as usize]),
         Utility::SelfAlign(0, value) => style.align_self = Some([AlignSelf::FlexStart, AlignSelf::Center, AlignSelf::FlexEnd, AlignSelf::Stretch, AlignSelf::Stretch][value.min(4) as usize]),
-        Utility::FontSize(value) => style.text.font_size = Some(px(value).into()),
+        Utility::FontSize(value) => style.text.font_size = Some(scaled(value).into()),
         Utility::Weight(value) => style.text.font_weight = Some(FontWeight(value)),
         Utility::Italic(value) => style.text.font_style = Some(if value {FontStyle::Italic} else {FontStyle::Normal}),
         Utility::Underline(value) => style.text.underline = value.then(|| UnderlineStyle {thickness: px(1.), ..Default::default()}),
@@ -887,7 +1087,7 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
             _ => CursorStyle::Arrow,
         }),
         Utility::Leading(value) => style.text.line_height = Some(relative(value).into()),
-        Utility::DefaultLeading(value) => style.text.line_height = Some(px(value).into()),
+        Utility::DefaultLeading(value) => style.text.line_height = Some(scaled(value).into()),
         Utility::Align(value) => style.text.text_align = Some([TextAlign::Left, TextAlign::Center, TextAlign::Right][value.min(2) as usize]),
         Utility::Foreground(value) => style.text.color = Some(color(value)),
         Utility::Background(value) => style.background = Some(color(value).into()),
@@ -897,7 +1097,7 @@ fn apply(style: &mut StyleRefinement, rule: Utility) {
             match side {0 => style.border_widths.top = value, 1 => style.border_widths.right = value, 2 => style.border_widths.bottom = value, _ => style.border_widths.left = value}
         }
         Utility::Corner(corner, value) => {
-            let value = Some(px(value).into());
+            let value = Some(scaled(value).into());
             match corner {0 => style.corner_radii.top_left = value, 1 => style.corner_radii.top_right = value, 2 => style.corner_radii.bottom_right = value, _ => style.corner_radii.bottom_left = value}
         }
         Utility::Overflow(value) => {

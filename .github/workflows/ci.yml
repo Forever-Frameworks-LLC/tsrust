@@ -54,6 +54,8 @@ jobs:
       - uses: ./.github/actions/setup
       # Unit, rejection and diagnostic-code checks run in process: no native builds.
       - run: cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins
+      # Value mode stays the fallback for targets without unwinding (docs/plans/fault-unwinding.md, 4.2).
+      - run: TSRUST_FAULT_MODE=value cargo test --offline --locked -p tsrust-compiler -p tsrust-lsp --lib --bins
   build:
     name: Build (${{ matrix.target }})
     strategy:

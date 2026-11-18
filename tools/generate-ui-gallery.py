@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate the GPUI Kit component gallery in examples/gpui-starter.
+"""Generate the GPUI Kit component gallery in apps/gpui-starter.
 
-examples/gpui-starter/pages.spec mirrors GPUI Kit's component docs. Each page:
+apps/gpui-starter/pages.spec mirrors GPUI Kit's component docs. Each page:
 
     === Title | slug | Group
     One-paragraph summary.
@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-STARTER = ROOT / "examples/gpui-starter"
+STARTER = ROOT / "apps/gpui-starter"
 SPEC = STARTER / "pages.spec"
 API = [ROOT / "crates/tsrust-compiler/src/stdlib/ui/api.tsr", ROOT / "crates/tsrust-compiler/src/stdlib/ui/kit.tsr"]
 ICONS = ROOT / "crates/tsrust-compiler/src/stdlib/ui/gpui_icons.rs"

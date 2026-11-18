@@ -1,18 +1,18 @@
-import { signal } from 'std:ui';
-import { join } from 'std:path';
 import { get } from 'std:env';
 import { createTempDir, removeDirAll, readTextFile, writeTextFileAtomic } from 'std:fs';
 import { Channel } from 'std:futures';
+import { join } from 'std:path';
 import { run } from 'std:process';
 import { test, strictEqual } from 'std:testing';
+import { signal } from 'std:ui';
 
+import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
 import { defaultFormatting } from '../src/lib/settings/formatting.tsr';
 import { closeEditors, planCloseEditors } from '../src/lib/workspace/close-editors.tsr';
 import { createDocument, propose, edit } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult, applyFormatting } from '../src/lib/workspace/formatting-actions.tsr';
-import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
-import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openProblem, problemSelection, ProblemLocation } from '../src/lib/workspace/problem-actions.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { TerminalSession, terminalLocation } from '../src/lib/workspace/terminals.tsr';
 import { Workspace, openWorkspace } from '../src/lib/workspace/workspace.tsr';
 import { formattingWorker } from '../src/services/formatting.tsr';

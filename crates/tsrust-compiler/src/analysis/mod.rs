@@ -85,7 +85,7 @@ mod checked_callable_storage;
 mod conditional_callable_carriers;
 mod borrowed_conditional_carriers;
 mod record_call_capture_release;
-mod record_parameter_carriers;
+pub(crate) mod record_parameter_carriers;
 mod direct_callback_stores;
 mod caller_error_origins;
 pub(crate) mod record_parameter_borrows;
@@ -738,8 +738,27 @@ fn analyze_recursive_with_proofs(program:Program,source_proofs:&std::cell::OnceC
     let mut program_callback_sites = BTreeMap::new();
     // Every non-copy coordinate can rise from read to mutate to consume only.
     let mut remaining = parameter_count.saturating_mul(2) + 1;
+    // Coordinates raised by the previous pass; `None` before the first pass.
+    let mut raised: Option<usize> = None;
     while remaining > 0 {
         remaining -= 1;
+        // After a pass that raised few coordinates, the next pass is likely to
+        // confirm the fixpoint, so the definitive analysis under the current
+        // assumptions runs beside it. If the pass confirms, that result is exactly
+        // what the definitive run below would compute; otherwise it is discarded.
+        // The iteration itself is unchanged, and so is the checked program.
+        let likely_fixpoint = raised.is_some_and(|raised| raised <= (parameter_count / 16).max(16));
+        let definitive = (likely_fixpoint && concurrent_definitive_pass()).then(|| {
+            let lattice = (modes.clone(), capture_access.clone(), program_access.clone(), program_callback_sites.clone());
+            let program = program.clone();
+            let proofs = source_proofs.get().cloned();
+            #[cfg(test)] DEFINITIVE_THREADS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            std::thread::Builder::new().name("tsrust-definitive".into()).stack_size(crate::COMPILER_STACK_BYTES).spawn(move || {
+                let proofs = proofs.map(std::cell::OnceCell::from).unwrap_or_default();
+                definitive_analysis(program, &proofs, lattice)
+            })
+        }).and_then(Result::ok);
+        let assumed_functions = modes.len();
         let mut analyzer = Analyzer::new_with_source_proofs(program.clone(),Some(source_proofs))?;
         analyzer.assumed_modes = Some(modes.clone());
         analyzer.assumed_capture_access = capture_access.clone();
@@ -782,23 +801,62 @@ fn analyze_recursive_with_proofs(program:Program,source_proofs:&std::cell::OnceC
         changed |= generic_changed;
         discovered += generic_discovered;
         remaining += discovered.saturating_mul(2) + usize::from(discovered != 0);
+        let mut count = discovered;
         for (current, function) in modes.iter_mut().zip(&inferred.functions) {
             for (mode, binding) in current.iter_mut().zip(&function.bindings) {
                 let next = (*mode).max(binding.mode);
+                count += usize::from(next != *mode);
                 changed |= next != *mode;
                 *mode = next;
             }
         }
+        raised = Some(count);
         if !changed {
-            let mut analyzer = Analyzer::new_with_source_proofs(program,Some(source_proofs))?;
-            analyzer.assumed_modes = Some(modes);
-            analyzer.assumed_capture_access = capture_access;
-            analyzer.program_access = program_access;
-            analyzer.program_callback_sites = program_callback_sites;
-            return finish_analysis(analyzer.run()?);
+            // A pass that only appended modes for newly checked functions leaves
+            // the concurrent run with different assumptions; run it again.
+            if let Some(definitive) = definitive && modes.len() == assumed_functions {
+                return match definitive.join() {
+                    Ok(result) => finish_analysis(result?),
+                    Err(panic) => std::panic::resume_unwind(panic),
+                };
+            }
+            return finish_analysis(definitive_analysis(program, source_proofs, (modes, capture_access, program_access, program_callback_sites))?);
         }
     }
     unreachable!("finite recursive access lattice must converge")
+}
+
+type AccessLattice = (Vec<Vec<Mode>>, named_capture_access::Lattice, BTreeMap<usize, Mode>, BTreeMap<usize, CallbackKind>);
+
+/// The checking run that produces the checked program under converged access assumptions.
+fn definitive_analysis(program:Program,source_proofs:&std::cell::OnceCell<crate::generic_call_validation::Proofs>,lattice:AccessLattice)->Result<CheckedProgram,Diagnostic>{
+    let (modes, capture_access, program_access, program_callback_sites) = lattice;
+    let mut analyzer = Analyzer::new_with_source_proofs(program,Some(source_proofs))?;
+    analyzer.assumed_modes = Some(modes);
+    analyzer.assumed_capture_access = capture_access;
+    analyzer.program_access = program_access;
+    analyzer.program_callback_sites = program_callback_sites;
+    analyzer.run()
+}
+
+#[cfg(test)] static DEFINITIVE_THREADS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static CONCURRENT_CHECK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Let access inference run the definitive analysis beside a pass that is likely
+/// to confirm the fixpoint. This lowers the latency of one check at the cost of
+/// a second core; batch work that already checks in parallel leaves it off.
+/// `TSRUST_CHECK_THREADS=1` turns it off and `=2` turns it on.
+pub fn set_concurrent_check(enabled: bool) {
+    CONCURRENT_CHECK.store(enabled, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn concurrent_definitive_pass() -> bool {
+    let enabled = match std::env::var("TSRUST_CHECK_THREADS").as_deref() {
+        Ok("1") => false,
+        Ok("2") => true,
+        _ => CONCURRENT_CHECK.load(std::sync::atomic::Ordering::Relaxed),
+    };
+    enabled && std::thread::available_parallelism().is_ok_and(|threads| threads.get() > 1)
 }
 
 #[cfg(test)]
@@ -825,6 +883,15 @@ mod exception_escape_tests {
 struct AnalysisProgram {
     source: Program,
     revision: u64,
+}
+
+impl AnalysisProgram {
+    /// Function bodies and signatures. The revision tracks record shapes only
+    /// (native_view_recursive), so function-only mutation does not bump it.
+    fn functions_mut(&mut self) -> &mut Vec<crate::syntax::Function> { &mut self.source.functions }
+    /// Records for append-only materialization. Existing records must not be
+    /// edited through this; appends change the record count the shape cache checks.
+    fn records_for_append(&mut self) -> &mut Vec<crate::syntax::Record> { &mut self.source.records }
 }
 
 impl std::ops::Deref for AnalysisProgram {
@@ -1613,6 +1680,11 @@ impl Analyzer {
         }
         let unions = crate::unions::UnionArena::default();
         let mut callables = crate::callable_resolution::Tables::default();
+        // `RuntimeError` (lowered to `#RuntimeError`) names the record that
+        // `catch` receives for faults; it must exist before annotations resolve.
+        if program.uses_runtime_error && !program.records.iter().any(|record| record.name.text == "#RuntimeError") {
+            program.records.push(crate::error_effects::runtime_error_schema());
+        }
         let mut generic_records = crate::generic_records::specialize_in(&mut program, &unions, &mut callables)?;
         let mut record_names = HashMap::new();
         let mut function_names = HashMap::new();
@@ -1814,7 +1886,7 @@ impl Analyzer {
             if params.iter().copied().any(|ty| ty.union().is_some() && analyzer.unions.payload(ty).is_some_and(|payload|matches!(payload,Type::Callback(id) if analyzer.callback_needs_context(id)))) {
                 analyzer.templates.insert(index,analyzer.program.functions[index].clone());
             }
-            let annotation = analyzer.program.functions[index].result.take();
+            let annotation = analyzer.program.functions_mut()[index].result.take();
             let result = annotation
                 .as_ref()
                 .map(|value| analyzer.resolve_result(value))
@@ -2568,6 +2640,8 @@ impl Analyzer {
         match &record.application {
             Some(application) if !application.resolved_arguments.is_empty() => format!("{}<{}>", native_name.unwrap_or(&application.declaration.text),
                 application.resolved_arguments.iter().map(|argument| self.type_name(*argument).into_owned()).collect::<Vec<_>>().join(", ")).into(),
+            // The fault record is written `RuntimeError` in source.
+            _ if record.name.kind==TokenKind::Symbol && record.name.text=="#RuntimeError" => "RuntimeError".into(),
             _ => native_name.unwrap_or(&record.name.text).into(),
         }
     }
@@ -2808,7 +2882,7 @@ impl Analyzer {
                 }
                 for &index in &stale {
                     self.checked[index] = None;
-                    self.program.functions[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
+                    self.program.functions_mut()[index].body = self.discovery_body_sources.as_ref().and_then(|sources|sources.get(&index)).expect("retained source").clone();
                 }
                 for index in stale {
                     self.function(index)?;
@@ -2816,8 +2890,11 @@ impl Analyzer {
                 }
             }
         }
-        if self.assumed_modes.is_some()
-            && !self.effects_only
+        // Speculative result discovery also runs on the plain analysis path
+        // (with temporary assumed modes), so its provisional closures must be
+        // dropped here too. Their capture storage predates the definitive
+        // checks and would otherwise be emitted as stale native environments.
+        if !self.effects_only
             && self.validated_closures.len() != self.closures.len()
         {
             let mut ids = vec![None; self.closures.len()];
@@ -3340,7 +3417,7 @@ impl Analyzer {
         let mut inner=context.clone();
         self.with_exception_environment_mode(&mut inner,&Default::default(),runtime,true,true,|analyzer,context|
             analyzer.check_region_body(context,&mut checked_body,result))?;
-        let effects=self.discovery_error_effects();
+        let effects=self.discovery_error_effects_for(&crate::error_effects::Seeds::body(&checked_body));
         let incoming=crate::error_effects::annotate_region_body(&mut checked_body,&effects);
         let runtime=if incoming.runtime && !incoming.opaque && region.catch.as_ref().is_some_and(|handler|handler.name.is_some()) {
             Some(runtime.unwrap_or_else(||self.materialize_discovery_runtime_error()))
@@ -3672,7 +3749,7 @@ impl Analyzer {
                 .map(|ty| if ty.is_copy() { Mode::Copy } else { Mode::Read })
                 .collect());
         }
-        self.program.functions.push(source);
+        self.program.functions_mut().push(source);
         self.signatures.push(signature);
         self.checked.push(None);
         self.visiting.push(false);
@@ -3789,9 +3866,22 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn discovery_error_effects(&mut self)->crate::error_effects::ErrorEffects {
+        let started=std::time::Instant::now();
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
-        crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations)
+        let result=crate::error_effects::annotate_partial_with_storage(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations);
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE discovery {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
+    }
+
+    /// Partial contracts for one reader; only entries `seeds` depend on are exact.
+    fn discovery_error_effects_for(&mut self,seeds:&crate::error_effects::Seeds)->crate::error_effects::ErrorEffects {
+        let started=std::time::Instant::now();
+        let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
+        let result=crate::error_effects::annotate_partial_with_storage_for(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,&self.polymorphic_invocations,seeds);
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE discovery-slice {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
     }
 
     #[inline(never)]
@@ -3850,9 +3940,10 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn region_error_effects(&mut self,context:&Context)->Result<crate::error_effects::ErrorEffects,Diagnostic> {
+    /// Contracts for annotating `body`; partial solving covers only what it reads.
+    fn region_error_effects(&mut self,context:&Context,body:&[Stmt])->Result<crate::error_effects::ErrorEffects,Diagnostic> {
         if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
-            Ok(self.discovery_error_effects())
+            Ok(self.discovery_error_effects_for(&crate::error_effects::Seeds::body(body)))
         }else{self.checked_error_effects()}
     }
 
@@ -3870,7 +3961,7 @@ impl Analyzer {
         handler.error_contract=Some(Box::new(incoming.clone()));
         handler.error_type=if let Some(name)=&handler.name {incoming.catch_type(&self.unions,runtime,name.span)?}else{None};
         let (normal,completions,mut errors)=self.check_catch_exits(context,handler,result)?;
-        let refreshed=if effects.is_none() {Some(self.region_error_effects(context)?)}else{None};
+        let refreshed=if effects.is_none() {Some(self.region_error_effects(context,&handler.body)?)}else{None};
         let current=effects.or(refreshed.as_ref()).expect("catch contracts");
         let outgoing=crate::error_effects::annotate_region_body(&mut handler.body,current);
         let points=crate::error_effects::OperationEffects::for_body(&handler.body);
@@ -3983,7 +4074,7 @@ impl Analyzer {
         self.check_pending_region_functions(body,result,false)?;
         let effects=if context.exception_environment.as_ref().is_some_and(|environment|environment.partial_contracts) {
             self.region_caller_error_effects(context,body)
-        }else{self.region_error_effects(context)?};
+        }else{self.region_error_effects(context,body)?};
         let contract=crate::error_effects::annotate_region_body(body,&effects);
         let points=crate::error_effects::OperationEffects::for_body(body);
         errors.refine(&mut |span|points.get(span));
@@ -3997,7 +4088,11 @@ impl Analyzer {
         let stored_fields=crate::error_effects::record_stored_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
         fields.extend(context.caller_error_origins.iter().copied());
-        crate::error_effects::annotate_partial_with_callers(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields)
+        let started=std::time::Instant::now();
+        let seeds=crate::error_effects::Seeds::body(body);
+        let result=crate::error_effects::annotate_partial_with_callers_for(&mut self.checked.iter_mut().map(Option::as_mut).collect::<Vec<_>>(),&mut self.closures,&families,(body,&context.bindings),&self.unions,&self.polymorphic_invocations,&fields,&stored_fields,Some(&seeds));
+        if std::env::var_os("TSRUST_TRACE_SOLVES").is_some(){eprintln!("SOLVE caller {:.2}ms checked={} closures={}",started.elapsed().as_secs_f64()*1e3,self.checked.iter().filter(|f|f.is_some()).count(),self.closures.len());}
+        result
     }
 
     #[inline(never)]
@@ -12065,6 +12160,17 @@ mod type_hints;
   let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);
   let before=crate::generic_call_validation::validation_runs();let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).unwrap();assert_eq!(crate::generic_call_validation::validation_runs()-before,1);let append=result.functions.iter().find(|function|function.name=="append").unwrap();assert_eq!(append.bindings[0].mode,Mode::Mutate);
   let invalid=source.replace("preserve<int>(n)","preserve<int>(n, 2)");assert!(analyze_recursive(crate::syntax::parse(&invalid).unwrap()).is_err());assert_eq!(crate::generic_call_validation::validation_runs()-before,2);
+ }
+ #[test]fn concurrent_definitive_pass_produces_the_sequential_checked_program(){
+  let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function total(values:int[],n:int):int{if(n<0){return 0;}return values[n]+total(values,n-1);}function main(){const values=[0];append(values,2);console.log(total(values,2));}").unwrap();
+  let emitted=|concurrent:bool|{set_concurrent_check(concurrent);let result=analyze_recursive(crate::syntax::parse(&source).unwrap()).map(|checked|crate::emit::emit(&checked));set_concurrent_check(false);result.unwrap()};
+  let sequential=emitted(false);
+  let spawned=DEFINITIVE_THREADS.load(std::sync::atomic::Ordering::Relaxed);
+  assert_eq!(emitted(true),sequential);
+  assert!(DEFINITIVE_THREADS.load(std::sync::atomic::Ordering::Relaxed)>spawned,"the definitive pass ran beside a speculative pass");
+  let invalid=source.replace("append(values,2);","append(values,2);append(values);");
+  set_concurrent_check(true);let error=analyze_recursive(crate::syntax::parse(&invalid).unwrap()).err();set_concurrent_check(false);
+  assert_eq!(error.map(|error|error.code),analyze_recursive(crate::syntax::parse(&invalid).unwrap()).err().map(|error|error.code));
  }
  #[test]fn recursive_fallback_reuses_only_this_inputs_source_proofs(){
   let source=crate::format("function preserve<T>(value:T):T{return value;}function append(values:Mutable<int[]>,n:int):void{if(n>0){values.push(preserve<int>(n));append(values,n-1);}}function main(){const values=[0];append(values,2);}").unwrap();assert_eq!(crate::format(&source).unwrap(),source);

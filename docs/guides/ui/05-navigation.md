@@ -97,8 +97,8 @@ function IndependentWindows(): Node {
 ```
 
 Open two counters: each starts at zero and `/counter/first`. Incrementing or
-navigating one leaves the other unchanged. Closing one keeps the other and this
-gallery open.
+navigating one leaves the other unchanged. Closing one keeps the other and the
+main window open.
 
 ## Shared window state
 
@@ -133,8 +133,8 @@ function SharedWindows(): Node {
 ## Keyboard links
 
 Unstyled links use the same native focus and keyboard behavior as buttons. Tab to
-Open local docs and press Enter; the path below changes without leaving this page.
-This example owns its location so it does not change the gallery's navigation.
+Open local docs and press Enter; the path below changes without leaving the page.
+The example owns its location, so it does not change the main window's navigation.
 
 ```tsx live KeyboardLinks
 function KeyboardLinks(): Node {

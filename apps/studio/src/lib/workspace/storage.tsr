@@ -1,7 +1,6 @@
 import { FsError, lstat, readTextFile, writeTextFileAtomic } from 'std:fs';
 
 import { Document, SaveConflict, dirty, markSaved, edit } from './documents.tsr';
-
 import { maxEditableBytes } from './workspace.tsr';
 
 export function saveError(document: ReadOnly<Document>, error: ReadOnly<FsError>): string {

@@ -36,6 +36,13 @@ fn calls(function: &CheckedFunction) -> Vec<Call> {
     });
     result
 }
+/// The direct function calls in `function`, each with its callee and, per
+/// argument, the root binding and field path that the argument forwards.
+pub(crate) fn forwarded_record_arguments(
+    function: &CheckedFunction,
+) -> Vec<(usize, Vec<Option<(usize, Vec<String>)>>)> {
+    calls(function).into_iter().map(|call| (call.callee, call.arguments)).collect()
+}
 impl Analyzer {
     pub(super) fn record_parameter_carriers(&mut self) -> Result<(), Diagnostic> {
         let mut functions = std::mem::take(&mut self.checked);

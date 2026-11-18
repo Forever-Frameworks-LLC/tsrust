@@ -34,6 +34,7 @@ export interface OpenFile {
   imageEffectiveZoom?: number;
   imageScroll?: ImageScroll;
   caret?: int;
+  anchor?: int;
 }
 
 export interface SourceBreakpoint {

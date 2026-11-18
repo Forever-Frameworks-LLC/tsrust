@@ -160,8 +160,23 @@ def children_doc(component):
 def prop_doc(prop):
     doc = prop["doc"]
     if prop["type"] in ("string[]", "number[]", "string[][]"):
-        doc += " Expressions reading component signals update live; plain arrays are read at construction."
+        doc += " A signal expression updates it live; a plain array is read once."
     return doc
+
+
+CLASS_NAME_DOC = "Utility classes. A signal expression updates them live without remounting; unknown utilities throw."
+OWNERSHIP = "Ownership: consumes its props and children; the returned Node owns its handlers."
+
+
+def purpose(component, limit=32):
+    """The opening sentences of the component doc, up to about `limit` words."""
+    sentences = [sentence for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z`])", component["doc"].strip()) if not sentence.startswith("Ownership:")]
+    chosen = []
+    for sentence in sentences:
+        if chosen and sum(len(part.split()) for part in chosen) + len(sentence.split()) > limit:
+            break
+        chosen.append(sentence)
+    return " ".join(chosen)
 
 
 def component_source(component):
@@ -176,7 +191,7 @@ def component_source(component):
     if has_children(component):
         lines.append(f"  /** {children_doc(component)} */")
         lines.append("  children?: Child[];")
-    lines.append("  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */")
+    lines.append(f"  /** {CLASS_NAME_DOC} */")
     lines.append("  className?: ReactiveValue<string>;")
     lines.append("}")
     lines.append("")
@@ -221,16 +236,32 @@ def component_source(component):
 
 
 def documentation(component):
+    """Component hover: what it is, an example and the prop names. Each prop's
+    own hover (from kit.tsr) and the props interface carry the details."""
+    parts = [purpose(component), f"```tsrx\n{component['example']}\n```"]
+    props = [f"`{prop['name']}`" for prop in component.get("props", [])]
+    if has_children(component):
+        props.append("`children`")
+    props.append("`className`")
+    parts.append("Props: " + ", ".join(props))
+    events = [f"`{event['prop']}`" for event in component.get("events", [])]
+    if events:
+        parts.append("Events: " + ", ".join(events))
+    parts.append(f"Hover a prop for details, or `{component['name']}Props` for all of them. {OWNERSHIP}")
+    return "\n\n".join(parts)
+
+
+def props_documentation(component):
+    """Props interface hover: the full component description and every prop."""
     parts = [component["doc"]]
     props = [f"- `{prop['name']}`: {prop_doc(prop)}" for prop in component.get("props", [])]
     props += [f"- `{event['prop']}`: {event['doc']}" for event in component.get("events", [])]
     if has_children(component):
         props.append(f"- `children`: {children_doc(component)}")
-    props.append("- `className`: utility classes, empty by default. Expressions reading component signals update without remounting; unknown utilities throw. Component state and children are preserved.")
-    parts.append("Props:\n" + "\n".join(props))
+    props.append(f"- `className`: {CLASS_NAME_DOC}")
+    parts.append("Props (all optional):\n" + "\n".join(props))
     parts.append(f"```tsrx\n{component['example']}\n```")
-    parts.append("Live props refresh after each handler when their expression reads state. Rendered with GPUI Kit on desktop.")
-    parts.append("Ownership: consumes its props and children; handlers are owned by the returned Node.")
+    parts.append(OWNERSHIP)
     return "\n\n".join(parts)
 
 
@@ -241,7 +272,7 @@ def entries(component):
         {"name": name, "signature": f"{name}(props: {name}Props): Node",
          "parameters": [{"label": f"props: {name}Props", "documentation": "Component props; every prop is optional."}],
          "documentation": doc},
-        {"name": f"{name}Props", "signature": f"interface {name}Props", "documentation": doc},
+        {"name": f"{name}Props", "signature": f"interface {name}Props", "documentation": props_documentation(component)},
     ]
 
 

@@ -227,6 +227,15 @@ pub fn reject(source: &str, code: &str) -> Diagnostic {
     diagnostic
 }
 
+/// Format as the repository does (`tools/format-project.mjs`): imports keep
+/// their written order, which is their evaluation order. Committed fixtures are
+/// compared with this, not with the editor default that organizes imports.
+#[allow(dead_code)]
+pub fn format_repository(source: &str) -> String {
+    let options = tsrust_compiler::FormatOptions { organize_imports: false, ..Default::default() };
+    tsrust_compiler::format_with_options(source, &options).unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)))
+}
+
 /// Format in memory and require a stable second pass. Native fixtures execute
 /// this result so feature acceptance exercises the editor's whitespace output.
 pub fn format_round_trip(source: &str) -> String {
@@ -270,7 +279,8 @@ fn checked_fixture_rust(source: &str, contracts: Option<&[(&str, Mode)]>, direct
     success(&emitted);
     assert!(emitted.stderr.is_empty());
     let rust = String::from_utf8(emitted.stdout).unwrap();
-    assert_eq!(rust, analysis.emit_rust());
+    let canonical = std::fs::canonicalize(&path).unwrap();
+    assert_eq!(rust, analysis.emit_rust_for_source(canonical.to_str().unwrap(), source));
     rust
 }
 
@@ -359,4 +369,18 @@ pub fn exported_main(source: &str) -> String {
     let mut module = source.to_owned();
     module.insert_str(tokens[index].0.start, "export ");
     module
+}
+
+/// Rename the program body to `name` for a Rust harness that calls it and
+/// catches its panics. With unwinding faults, `main` is a wrapper that reports
+/// and exits, so the harness calls the body it wraps instead.
+#[allow(dead_code)]
+pub fn harness_entry(rust: &str, name: &str) -> String {
+    if rust.contains("fn tsrust_unwind_main()") {
+        rust.replace("fn main() -> std::process::ExitCode", "fn tsrust_unused_entry() -> std::process::ExitCode")
+            .replace("fn tsrust_unwind_main()", &format!("fn {name}()"))
+            .replace("tsr_fault_entry(tsrust_unwind_main)", &format!("tsr_fault_entry({name})"))
+    } else {
+        rust.replace("fn main()", &format!("fn {name}()"))
+    }
 }

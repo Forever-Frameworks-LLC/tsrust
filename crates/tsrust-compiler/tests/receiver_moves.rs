@@ -95,3 +95,13 @@ fn live_captured_rebindable_repeated_or_effectful_clone_push_loops_keep_borrowin
         support::execute(&support::format_round_trip(&source),expected,None);
     }
 }
+
+#[test]
+fn filter_moves_kept_rows_out_of_a_filled_dead_local_in_a_throwing_function() {
+    // `rows` is filled by push and read inside a `??`; checked integer arithmetic makes the
+    // function throwing. Filtered as its last use, kept rows move; read again afterwards, it copies.
+    let source = "type Row={id:int;name:string;};function kept(count:int):string{const rows:Row[]=[];for(let id=0;id<count;id+=1)rows.push({id,name:`n${id}`});const names=new Map<int,string>();names.set(5,'five');const first=clone(names.get(rows.length)??'none');const even=rows.filter((row)=>row.id%2===0);return first+':'+even.map((row:ReadOnly<Row>):string=>clone(row.name)).join(',')+':'+(count-4).toString();}function live(count:int):int{const rows:Row[]=[];for(let id=0;id<count;id+=1)rows.push({id,name:'x'});const even=rows.filter((row)=>row.id%2===0);return even.length+rows.length;}function main(){console.log(kept(5));console.log(live(5));}";
+    let rust = emitted(source);
+    assert_eq!(rust.matches("transform_owned) in").count(), 1, "only the dead receiver moves: {rust}");
+    support::execute(&support::format_round_trip(source), "five:n0,n2,n4:1\n8\n", None);
+}

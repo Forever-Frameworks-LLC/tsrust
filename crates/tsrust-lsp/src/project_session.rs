@@ -23,6 +23,9 @@ pub struct ProjectSession {
     actions: BTreeMap<SourceId, (WorkspaceSnapshot, crate::project_actions::ProjectActions)>,
     buffers: BTreeMap<String, (SourceId, Snapshot, u64)>,
     sequence: u64,
+    /// Indices built by a full check. Declaration indices answer early but cannot
+    /// know types inferred from expressions, such as members of `await connect()`.
+    checked_indices: std::collections::BTreeSet<SourceId>,
 }
 impl ProjectSession {
     // Invalid results cannot answer requests; release their graphs before a replacement check.
@@ -97,6 +100,7 @@ impl ProjectSession {
         };
         self.release_stale();
         self.indices.remove(&id);
+        self.checked_indices.remove(&id);
         if self.workspace.current(input)
             && let Some(mut index) = index
         {
@@ -104,6 +108,30 @@ impl ProjectSession {
             if let Ok(logical)=input.resolve(None,&id.0){index.alias_entry(id.clone(),logical);}
             self.indices.insert(id, (input.retained(), index));
         }
+    }
+    /// `cache_index` for an index built by a full check of the project.
+    pub fn cache_checked_index(&mut self, uri: &str, input: &WorkspaceSnapshot, index: Option<crate::project_intelligence::ProjectIndex>) {
+        self.cache_index(uri, input, index);
+        if let Ok(id) = source_id(uri)
+            && self.indices.contains_key(&id)
+        {
+            self.checked_indices.insert(id);
+        }
+    }
+    /// Like `covers`, counting only indices built by a full check.
+    pub fn covers_checked(&self, uri: &str) -> bool {
+        source_id(uri).is_ok_and(|id| {
+            self.indices.iter().any(|(entry, (input, index))| {
+                self.checked_indices.contains(entry) && self.workspace.current(input) && index.contains(&id)
+            })
+        })
+    }
+    /// Whether the current indices can answer this request. Completion of a member
+    /// needs the receiver's inferred type, which a declaration index does not
+    /// have, so while this document's own full check is running a completion
+    /// waits for it. A check of another document never delays the answer.
+    pub fn covers_for(&self, method: &str, uri: &str, own_check_running: bool) -> bool {
+        if method == "textDocument/completion" && own_check_running { self.covers_checked(uri) } else { self.covers(uri) }
     }
     /// A project index built from the current text of every source it read
     /// includes this document.

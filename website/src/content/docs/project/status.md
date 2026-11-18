@@ -35,6 +35,15 @@ Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
 [test runner and profiling guide](/tsrust/tools/testing/). Releases before v0.2.0
 do not include these APIs.
 
+## Fault unwinding and faster development builds
+
+In v0.3.0, runtime faults (overflow, bounds, assertions, length limits) unwind to
+the nearest `try`, `Checked` function or boundary instead of returning through
+every call, and uncaught faults report their file, line and column.
+`Checked<T, E>` functions return faults as values; `TSRUST_FAULT_MODE=value`
+keeps the previous behavior. Development builds use one Rust crate per source
+module. The release includes LSP 0.4.0 with shorter, behavior-focused hovers.
+
 ## Compiler and editor maintenance
 
 The v0.2.1 patch improves repeated compiler analysis, ownership-flow allocation,
@@ -61,9 +70,9 @@ complete upstream parity and browser support are not claimed. The renderer is
 experimental, and platform-specific application acceptance remains separate from
 prebuilt compiler/LSP availability.
 
-The [UI reference](/tsrust/reference/library/ui/) lists the current editor catalog.
-The [source guides](https://github.com/Forever-Frameworks-LLC/tsrust/tree/main/docs/guides/ui)
-cover the supported authoring and native styling contracts. Studio and Worklist
+The [Desktop UI guides](/tsrust/ui/getting-started/) cover authoring, state,
+styling, navigation, input and packaging; the [UI reference](/tsrust/reference/library/ui/)
+lists every component, prop and function. Studio and Worklist
 are local platform-validation experiments, not supported applications delivered
 with the toolchain.
 

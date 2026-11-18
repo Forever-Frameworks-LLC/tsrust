@@ -11,15 +11,16 @@ import {
   t,
   translate
 } from 'std:ui';
-import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr';
-import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
-import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
-import { Recovery } from '../../lib/workspace/recovery.tsr';
-import { fileSearchLabel } from '../../lib/explorer/search-actions.tsr';
+
 import { EditBatch, togglePassage } from '../../lib/ai/edits.tsr';
-import { ChatStore } from '../../services/ai/history.tsr';
-import { AiState, ChatPersistence, publishChat } from '../../services/ai/actions.tsr';
+import { fileSearchLabel } from '../../lib/explorer/search-actions.tsr';
 import { message, accessibleName } from '../../lib/localization.tsr';
+import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
+import { ProposedEdit, apply, propose } from '../../lib/workspace/documents.tsr';
+import { Recovery } from '../../lib/workspace/recovery.tsr';
+import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
+import { AiState, ChatPersistence, publishChat } from '../../services/ai/actions.tsr';
+import { ChatStore } from '../../services/ai/history.tsr';
 
 // Publish once after every edit has matched its captured document.
 function applyBatch(workspace: Signal<Workspace>, recovery: Signal<Recovery>, batch: ReadOnly<EditBatch>): EditBatch | undefined {

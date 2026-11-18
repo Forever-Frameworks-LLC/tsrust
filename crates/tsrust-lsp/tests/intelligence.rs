@@ -860,7 +860,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender" | "Url" | "SearchParams" | "Regex" | "Interval" | "CancellationToken" | "Collator" | "Segmenter" | "NumberFormat" | "Child" | "TcpListener" | "TcpStream" | "UdpSocket" | "CompressionReader" | "CompressionWriter" | "Iterator" | "IteratorConstructor" | "Hasher" | "Logger" | "LoggerOptions" | "LogError") {
+            if family.starts_with("Schema") || family.starts_with("Http") || family.starts_with("Sql") || matches!(family.as_str(), "LruCache" | "SharedLruCache" | "CacheEntry" | "CacheInsertError" | "schemaBuilder" | "ValidationContext" | "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON" | "Channel" | "Sender" | "TaskContext" | "Thread" | "ScopedThread" | "ThreadPool" | "TaskMethods" | "Job" | "AsyncChannel" | "AsyncSender" | "Url" | "SearchParams" | "Regex" | "Interval" | "CancellationToken" | "Collator" | "Segmenter" | "NumberFormat" | "Child" | "TcpListener" | "TcpStream" | "UdpSocket" | "CompressionReader" | "CompressionWriter" | "Iterator" | "IteratorConstructor" | "Hasher" | "Logger" | "LoggerOptions" | "LogError" | "Signal") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -898,6 +898,11 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                         assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
                         tsrust_compiler::check(&source).unwrap_or_else(|error| panic!("{method}: {}", error.render("example.tsr", &source)));
                     }
+                    continue;
+                }
+                // Checked is witnessed as a declared result, RuntimeError inside it.
+                if matches!(method, "Checked" | "RuntimeError") {
+                    assert!(tsrust_compiler::check("function parse(): Checked<int, RuntimeError> { return 1; } function main() { console.log(unwrap(parse())); }").is_ok(), "{method}");
                     continue;
                 }
                 // Built-in function and access types are witnessed in type position.
@@ -2149,8 +2154,7 @@ fn expanded_console_catalog_discovery_and_variadic_argument_help() {
             ask(&text, "textDocument/hover", method, 0)["contents"]["value"]
                 .as_str()
                 .unwrap()
-                .contains("Returns void")
-                || method == "table"
+                .contains("): void")
         );
     }
     let help = ask(source, "textDocument/signatureHelp", "7);", 0);
@@ -2158,7 +2162,7 @@ fn expanded_console_catalog_discovery_and_variadic_argument_help() {
         help["signatures"][0]["parameters"][0]["documentation"]["value"]
             .as_str()
             .unwrap()
-            .contains("Zero or more")
+            .contains("Values to print")
     );
     let source = "function main(){console.";
     let completion = SourceIndex::new(source)
@@ -2219,10 +2223,8 @@ fn string_split_optional_docs_examples_and_native_results_are_consistent() {
         signature,
         "defaults to 4294967295",
         "modulo 2^32",
-        "discard the rest",
+        "are discarded",
         "Unicode scalars",
-        "static slices",
-        "copied storage",
         "console.log(parts[1])",
     ] {
         assert!(docs.contains(detail), "{detail}: {docs}");
@@ -2338,14 +2340,11 @@ fn string_substr_optional_docs_examples_and_native_results_are_consistent() {
     for detail in [
         signature,
         "defaults to zero",
-        "defaults to the remaining bytes",
         "length <= 0",
-        "without overflowing",
         "UTF-8 bytes",
         "UTF-16 code units",
-        "boundary diagnostic",
+        "character boundaries",
         "-9223372036854775808",
-        "independently copied",
         "console.log(\"hello\".substr(1, 3))",
     ] {
         assert!(docs.contains(detail), "{detail}: {docs}");
@@ -2940,7 +2939,6 @@ fn array_to_string_and_global_string_docs_preserve_primitive_inference() {
         "negative zero becomes 0",
         "UTF-8",
         "rounding boundaries",
-        "prototype hooks",
         "borrowed",
         "evaluated once",
         "independently owned",
@@ -3723,7 +3721,6 @@ fn array_removal_docs_and_nullable_result_views_are_consistent() {
             "arity error",
             "empty array returns undefined",
             "length decreases by one",
-            "dense homogeneous",
             "Sparse arrays",
             "without cloning",
             "mutable access",
@@ -3965,10 +3962,9 @@ fn array_at_docs_and_scoped_optional_views_are_consistent() {
         "negative index",
         "out-of-range",
         "without changing",
-        "dense homogeneous",
         "scoped read-only",
         "clone(view)",
-        "Temporary owned receivers",
+        "temporary array",
         "```tsrust",
     ] {
         assert!(
@@ -4188,16 +4184,16 @@ fn array_find_docs_predicates_and_scoped_optional_views_are_consistent() {
         );
         assert_eq!(entry["parameters"], json!([callback]));
         for detail in [
-            "exactly one reusable callback",
+            "Exactly one reusable callback",
             "no default",
-            "must be boolean",
+            "boolean-returning",
             "callback may declare fewer parameters",
             "original indices",
             "not changed",
             "empty array invokes no callbacks",
             "read-only",
             "clone(view)",
-            "Temporary owned receivers",
+            "temporary array",
             "```tsrust",
         ] {
             assert!(
@@ -5117,7 +5113,6 @@ fn array_flattening_docs_and_checked_result_types_are_consistent() {
         assert_eq!(entry["parameters"].as_array().unwrap().len(), 1);
         for detail in [
             "independently mutable",
-            "dense homogeneous",
             "once",
             "```tsrust",
         ] {

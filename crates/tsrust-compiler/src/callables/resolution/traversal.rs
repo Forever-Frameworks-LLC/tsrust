@@ -46,9 +46,9 @@ fn result_borrow_check(value: &ValueAnnotation) -> Result<(), Diagnostic> {
 
 #[derive(Default)]
 struct Cache {
-    values: HashMap<(usize, bool), Type>,
-    storage: HashMap<usize, Option<(Type, usize)>>,
-    arrays: HashMap<usize, Option<(Type, usize, usize)>>,
+    values: crate::fast_hash::FastMap<(usize, bool), Type>,
+    storage: crate::fast_hash::FastMap<usize, Option<(Type, usize)>>,
+    arrays: crate::fast_hash::FastMap<usize, Option<(Type, usize, usize)>>,
 }
 // References stay live and immutable for this one resolution run. Address keys
 // distinguish equal spans in different declarations; no pointer is dereferenced.

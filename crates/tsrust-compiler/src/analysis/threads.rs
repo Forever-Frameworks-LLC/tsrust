@@ -107,7 +107,7 @@ impl Analyzer {
             thread_transfer::require_owned_captures(closure, &self.program.records, &|id| self.unions.members(id))
                 .map_err(|_| Diagnostic::new("thread-transfer", "Worker captures must own transferable data; caller loans and stored callbacks cannot cross threads.", arguments[callback_index].span))?;
             let output = closure.function.result;
-            let effects = self.discovery_error_effects();
+            let effects = self.discovery_error_effects_for(&crate::error_effects::Seeds::callable(Type::Closure(origin)));
             let failures = &effects.closure_errors[origin];
             let runtime = failures.runtime.then(|| self.materialize_discovery_runtime_error());
             thread_transfer::require_owned_completion(output, failures, runtime, &self.program.records, &|id| self.unions.members(id))

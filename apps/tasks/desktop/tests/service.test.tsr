@@ -1,12 +1,13 @@
-import { get } from 'std:env';
-import { randomBytes } from 'std:crypto';
 import { toHex } from 'std:bytes';
+import { randomBytes } from 'std:crypto';
+import { get } from 'std:env';
 import { Channel } from 'std:futures';
 import { connect } from 'std:sql';
 import { test, strictEqual } from 'std:testing';
+
 import { routes } from '../../api/src/application.tsr';
-import { TaskCommand, TaskUpdate, taskService } from '../src/service.tsr';
 import { emptyDraft } from '../src/model.tsr';
+import { TaskCommand, TaskUpdate, taskService } from '../src/service.tsr';
 
 async function reply(updates: ReadOnly<Channel<TaskUpdate>>, requestId: int): Task<TaskUpdate> {
   while (true) {

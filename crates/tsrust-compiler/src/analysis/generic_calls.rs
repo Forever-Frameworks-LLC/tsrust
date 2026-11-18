@@ -264,7 +264,7 @@ impl Analyzer {
             self.signatures.push(Signature { params, body_params, result, inferred_result });
             self.checked.push(None);
             self.visiting.push(false);
-            self.program.functions.push(function);
+            self.program.functions_mut().push(function);
         }
         self.generic_functions.seed_functions(
             &self.program.functions[first_new_function..],

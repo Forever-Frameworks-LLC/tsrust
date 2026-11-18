@@ -1,10 +1,7 @@
-import { separator } from 'std:path';
 import { Sender, Channel } from 'std:futures';
+import { separator } from 'std:path';
 import { Signal, answerEditorLanguage, translate } from 'std:ui';
 
-import { StudioConfig } from '../../lib/settings/settings.tsr';
-import { knowledgeQuestion, searchKnowledge } from './knowledge.tsr';
-import { fitGeneration } from '../../lib/ai/generation.tsr';
 import {
   ChatHistory,
   emptyHistory,
@@ -15,13 +12,17 @@ import {
   draftContext,
   setDraftContext
 } from '../../lib/ai/conversations.tsr';
+import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
+import { fitGeneration } from '../../lib/ai/generation.tsr';
 import { ModelRequest, ModelUpdate, failedModelBackend } from '../../lib/ai/protocol.tsr';
-import { EditorTool } from '../editor-tools.tsr';
+import { DirectoryTree } from '../../lib/explorer/tree.tsr';
+import { LanguageReferences } from '../../lib/language/references.tsr';
+import { StudioConfig } from '../../lib/settings/settings.tsr';
+import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
 import { Problem } from '../../lib/workspace/problems.tsr';
 import { Workspace, openFile } from '../../lib/workspace/workspace.tsr';
+import { EditorTool } from '../editor-tools.tsr';
 import { LanguageState, LanguageReadResult } from '../lsp/controller.tsr';
-import { LanguageReferences } from '../../lib/language/references.tsr';
-import { DirectoryTree } from '../../lib/explorer/tree.tsr';
 import {
   FileDeclarations,
   EditorContextResult,
@@ -31,9 +32,7 @@ import {
   referenceLiteral
 } from './context.tsr';
 import { ChatStore, persistChats } from './history.tsr';
-
-import { ProposedEdit, propose } from '../../lib/workspace/documents.tsr';
-import { EditBatch, batchProposal } from '../../lib/ai/edits.tsr';
+import { knowledgeQuestion, searchKnowledge } from './knowledge.tsr';
 
 function editInstruction(prompt: ReadOnly<string>): string {
   let instruction = prompt.trim();

@@ -1,11 +1,12 @@
-//! Copying array methods and `String(text)` whose receiver is a dead local can
-//! move it instead.
+//! Copying array methods (including `filter`) and `String(text)` whose receiver
+//! is a dead local can move it instead.
 //!
 //! `const tail = rows.slice(1); return tail.concat();` copies `tail` although
 //! nothing reads it afterwards. A call qualifies only when its receiver is a
 //! `const` owned array (or, for `String`, a string local or a string field of a
-//! record local) that the function references exactly once, from a
-//! later statement of the same statement list (so the same loop iteration), with
+//! record local) whose last reference is that call, in a later statement of
+//! the same statement list (so the same loop iteration) holding no other
+//! reference to it, with
 //! no `match` body in between, and no closure captures it (a local function
 //! anywhere in the function disables the move). Anything else keeps the copy.
 use std::collections::{HashMap, HashSet};
@@ -46,7 +47,10 @@ pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Ha
     let mut references: HashMap<usize, usize> = HashMap::new();
     let mut captured = HashSet::new();
     visit_function_expressions(fun, &mut |expr| {
-        nested |= matches!(expr.kind, ExprKind::Selected { .. });
+        // A once-selected value (`a ?? b`) names its source bindings as roots.
+        if let ExprKind::Selected { source, .. } = &expr.kind {
+            for root in selected_roots(source) { *references.entry(root).or_default() += 1; }
+        }
         // A closure's body is not visited here; its captures name the outer bindings it uses.
         if let ExprKind::Closure { id, .. } = expr.kind {
             match closures.get(id) {
@@ -74,9 +78,17 @@ pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Ha
                     if let Some(catch) = &region.catch { lists.push(&catch.body); }
                     if let Some(finally) = &region.finally { lists.push(finally); }
                 }
-                StmtKind::Let { rebindable: false, binding: Some(id), .. } if movable(fun, *id) && references.get(id) == Some(&1) => {
-                    if let Some(span) = list[index + 1..].iter().find_map(|later| single_use(later, *id)) {
-                        result.extend(span);
+                // Earlier statements may read or fill the local (`rows.push(...)`); only its
+                // last mention, holding exactly one reference, may consume it.
+                StmtKind::Let { rebindable: false, binding: Some(id), .. } if movable(fun, *id) && references.contains_key(id) => {
+                    let rest = &list[index + 1..];
+                    if let Some(last) = rest.iter().rposition(|later| references_in(later, *id) > 0)
+                        && references_in(&rest[last], *id) == 1
+                        && let Some(Some(span)) = single_use(&rest[last], *id)
+                        // A view taken from the local before its last use could outlive the move.
+                        && (references.get(id) == Some(&1) || !viewed(fun, *id, stmt.span.start, span.0))
+                    {
+                        result.insert(span);
                     }
                 }
                 _ => {}
@@ -84,6 +96,14 @@ pub(super) fn eligible(fun: &CheckedFunction, closures: &[CheckedClosure]) -> Ha
         }
     }
     result
+}
+
+/// Whether a scoped view may borrow `id`: one names it as a root, or a place borrow is
+/// declared between the local's declaration and `end`.
+fn viewed(fun: &CheckedFunction, id: usize, start: usize, end: usize) -> bool {
+    fun.bindings.iter().enumerate().any(|(other, binding)| other != id
+        && (binding.view_roots.contains(&id)
+            || binding.borrowed_place.is_some() && binding.declaration_span.is_some_and(|span| span.start >= start && span.start < end)))
 }
 
 fn movable(fun: &CheckedFunction, id: usize) -> bool {
@@ -120,7 +140,9 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
             if let ExprKind::Call(callee, args) = &value.kind
                 && let ExprKind::Field(base, _) = &callee.kind
                 && matches!(base.kind, ExprKind::Name(_)) && base.binding == Some(id)
-                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice | CallTarget::ArrayWith)))
+                && (matches!(value.target, Some(CallTarget::ArrayConcat | CallTarget::ArrayToReversed)) && args.is_empty() || matches!(value.target, Some(CallTarget::ArrayToSorted | CallTarget::ArraySlice | CallTarget::ArrayWith))
+                    // `rows.filter(keep)` moves the kept rows out of a dead `rows`.
+                    || value.target == Some(CallTarget::ArrayFilter) && matches!(&callee.kind, ExprKind::Field(_, name) if name == "filter"))
             {
                 call = Some((value.span.start, value.span.end));
             }
@@ -137,6 +159,30 @@ fn single_use(stmt: &Stmt, id: usize) -> Option<Option<(usize, usize)>> {
         });
     }
     found.then(|| call.filter(|_| !matched))
+}
+
+fn selected_roots(source: &crate::syntax::SelectedSource) -> impl Iterator<Item = usize> + '_ {
+    source.roots.iter().copied().chain(source.place.as_ref().map(|(root, _)| *root))
+}
+
+/// References to `id` in `stmt` and every statement nested in it.
+fn references_in(stmt: &Stmt, id: usize) -> usize {
+    let mut count = 0;
+    visit_statements(std::slice::from_ref(stmt), &mut |inner| {
+        let mut look = |expr: &Expr| visit_expression(expr, &mut |value| {
+            count += usize::from(matches!(value.kind, ExprKind::Name(_)) && value.binding == Some(id));
+            if let ExprKind::Selected { source, .. } = &value.kind { count += selected_roots(source).filter(|root| *root == id).count(); }
+        });
+        match &inner.kind {
+            StmtKind::Let { value, .. } | StmtKind::Expr(value) | StmtKind::Throw(value) | StmtKind::Return(Some(value)) => look(value),
+            StmtKind::Assign { target, value, .. } => { look(target); look(value); }
+            StmtKind::If { condition, .. } | StmtKind::While { condition, .. } => look(condition),
+            StmtKind::ForOf { iterable, .. } => look(iterable),
+            StmtKind::Loop { condition: Some(condition), .. } => look(condition),
+            _ => {}
+        }
+    });
+    count
 }
 
 fn mentions_statement(stmt: &Stmt, id: usize) -> bool {

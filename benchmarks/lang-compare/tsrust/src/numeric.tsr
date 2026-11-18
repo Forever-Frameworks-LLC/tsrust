@@ -1,0 +1,150 @@
+// Number-heavy phases: integer arrays, float records, nested arrays and calls.
+
+export function sieve(limit: int): int {
+  const composite: boolean[] = [];
+
+  for (let index = 0; index <= limit; index += 1) composite.push(false);
+  let count = 0;
+  let sum = 0;
+
+  for (let candidate = 2; candidate <= limit; candidate += 1) {
+    if (composite[candidate]) continue;
+    count += 1;
+    sum = (sum + candidate) % 1000000007;
+
+    for (let multiple = candidate * candidate; multiple <= limit; multiple += candidate) composite[multiple] = true;
+  }
+
+  return count * 1000000007 + sum;
+}
+
+type Body = {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  mass: number;
+};
+
+const SOLAR_MASS = 4 * Math.PI * Math.PI;
+const DAYS_PER_YEAR = 365.24;
+
+function planets(): Body[] {
+  return [{
+    x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, mass: SOLAR_MASS
+  }, {
+    x: 4.84143144246472090e+00, y: -1.16032004402742839e+00, z: -1.03622044471123109e-01, vx: 1.66007664274403694e-03 * DAYS_PER_YEAR, vy: 7.69901118419740425e-03 * DAYS_PER_YEAR, vz: -6.90460016972063023e-05 * DAYS_PER_YEAR, mass: 9.54791938424326609e-04 * SOLAR_MASS
+  }, {
+    x: 8.34336671824457987e+00, y: 4.12479856412430479e+00, z: -4.03523417114321381e-01, vx: -2.76742510726862411e-03 * DAYS_PER_YEAR, vy: 4.99852801234917238e-03 * DAYS_PER_YEAR, vz: 2.30417297573763929e-05 * DAYS_PER_YEAR, mass: 2.85885980666130812e-04 * SOLAR_MASS
+  }, {
+    x: 1.28943695621391310e+01, y: -1.51111514016986312e+01, z: -2.23307578892655734e-01, vx: 2.96460137564761618e-03 * DAYS_PER_YEAR, vy: 2.37847173959480950e-03 * DAYS_PER_YEAR, vz: -2.96589568540237556e-05 * DAYS_PER_YEAR, mass: 4.36624404335156298e-05 * SOLAR_MASS
+  }, {
+    x: 1.53796971148509165e+01, y: -2.59193146099879641e+01, z: 1.79258772950371181e-01, vx: 2.68067772490389322e-03 * DAYS_PER_YEAR, vy: 1.62824170038242295e-03 * DAYS_PER_YEAR, vz: -9.51592254519715870e-05 * DAYS_PER_YEAR, mass: 5.15138902046611451e-05 * SOLAR_MASS
+  }];
+}
+
+function advance(bodies: Mutable<Body[]>, step: number) {
+  const count = bodies.length;
+
+  for (let i = 0; i < count; i += 1) {
+    for (let j = i + 1; j < count; j += 1) {
+      const dx = bodies[i].x - bodies[j].x;
+      const dy = bodies[i].y - bodies[j].y;
+      const dz = bodies[i].z - bodies[j].z;
+      const distance2 = dx * dx + dy * dy + dz * dz;
+      const magnitude = step / (distance2 * Math.sqrt(distance2));
+      const massI = bodies[i].mass;
+      const massJ = bodies[j].mass;
+      bodies[i].vx -= dx * massJ * magnitude;
+      bodies[i].vy -= dy * massJ * magnitude;
+      bodies[i].vz -= dz * massJ * magnitude;
+      bodies[j].vx += dx * massI * magnitude;
+      bodies[j].vy += dy * massI * magnitude;
+      bodies[j].vz += dz * massI * magnitude;
+    }
+  }
+
+  for (let i = 0; i < count; i += 1) {
+    bodies[i].x += step * bodies[i].vx;
+    bodies[i].y += step * bodies[i].vy;
+    bodies[i].z += step * bodies[i].vz;
+  }
+}
+
+function energy(bodies: ReadOnly<Body[]>): number {
+  let total: number = 0;
+  const count = bodies.length;
+
+  for (let i = 0; i < count; i += 1) {
+    const body = bodies[i];
+    total += 0.5 * body.mass * (body.vx * body.vx + body.vy * body.vy + body.vz * body.vz);
+
+    for (let j = i + 1; j < count; j += 1) {
+      const other = bodies[j];
+      const dx = body.x - other.x;
+      const dy = body.y - other.y;
+      const dz = body.z - other.z;
+      total -= body.mass * other.mass / Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+  }
+
+  return total;
+}
+
+export function nbody(steps: int): number {
+  const bodies = planets();
+  let px: number = 0;
+  let py: number = 0;
+  let pz: number = 0;
+
+  for (const body of bodies) {
+    px += body.vx * body.mass;
+    py += body.vy * body.mass;
+    pz += body.vz * body.mass;
+  }
+
+  bodies[0].vx = -px / SOLAR_MASS;
+  bodies[0].vy = -py / SOLAR_MASS;
+  bodies[0].vz = -pz / SOLAR_MASS;
+
+  for (let step = 0; step < steps; step += 1) advance(bodies, 0.01);
+  return energy(bodies);
+}
+
+export function matrix(size: int): number {
+  const a: number[][] = [];
+  const b: number[][] = [];
+
+  for (let row = 0; row < size; row += 1) {
+    const left: number[] = [];
+    const right: number[] = [];
+
+    for (let column = 0; column < size; column += 1) {
+      left.push(Number((row * size + column) % 17) / 7);
+      right.push(Number((row + column * 3) % 13) / 5);
+    }
+
+    a.push(left);
+    b.push(right);
+  }
+
+  let trace: number = 0;
+
+  for (let row = 0; row < size; row += 1) {
+    for (let column = 0; column < size; column += 1) {
+      let sum: number = 0;
+
+      for (let k = 0; k < size; k += 1) sum += a[row][k] * b[k][column];
+
+      if (row === column) trace += sum;
+    }
+  }
+
+  return trace;
+}
+
+export function fib(n: int): int {
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+}

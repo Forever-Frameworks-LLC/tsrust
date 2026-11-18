@@ -36,8 +36,8 @@ pub fn execute(){
  for(index,(name,_,_))in CASES.iter().enumerate(){expected_suite.push_str(&format!("test('{name}',case{index});\n"));}
  expected_suite.push_str("});\n");
  let actual_suite=std::fs::read_to_string(&suite).unwrap();
- assert_eq!(support::format_round_trip(&actual_suite),actual_suite);
- assert_eq!(support::format_round_trip(&expected_suite),actual_suite,"suite imports/registrations must match exact catalog module identities");
+ assert_eq!(support::format_repository(&actual_suite),actual_suite);
+ assert_eq!(support::format_repository(&expected_suite),actual_suite,"suite imports/registrations must match exact catalog module identities");
  for release in [false]{
   let mut command=support::cli();command.current_dir(&root).arg("test").arg(&suite).args(["--reporter=json","--profile"]);if release{command.arg("--release");}
   let output=support::run(&mut command,600);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));

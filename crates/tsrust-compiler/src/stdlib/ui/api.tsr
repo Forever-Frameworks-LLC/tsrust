@@ -240,9 +240,76 @@ interface TextProperties<Classes, Variant> extends SemanticProps<Variant> {
 
 export type TextProps<Classes = string, Variant = string> = TextProperties<Classes, Variant>;
 
+/** A key press or release delivered to a View that contains keyboard focus. */
+export interface KeyboardEvent {
+  /** The key's name, such as a, enter, escape, left, f5 or space. Letters are lowercase; with Shift held, shiftKey is true. */
+  key: string;
+  /** The text the key would type with the current layout and modifiers, or empty for keys that type nothing. */
+  text: string;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  /** Command on macOS, the Windows key on Windows and Super on Linux. */
+  metaKey: boolean;
+  /** True when the key is held and the system repeats it. Always false for onKeyUp. */
+  repeat: boolean;
+}
+
+/** A pointer press, release or movement over a View. */
+export interface PointerEvent {
+  /** left, right, middle, back or forward; none for movement with no button held. */
+  button: string;
+  /** Position in logical pixels from the window's top-left corner. */
+  x: number;
+  y: number;
+  /** Consecutive clicks of the same button: 1 for a single click, 2 for a double click. 0 for movement. */
+  clickCount: int;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+}
+
+/** A mouse wheel or trackpad scroll over a View. */
+export interface WheelEvent {
+  /** Horizontal and vertical scroll amounts; positive deltaY scrolls content up (the wheel moves toward the user). */
+  deltaX: number;
+  deltaY: number;
+  /** pixel for trackpads and precise wheels, line for notched wheels. */
+  deltaMode: string;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+}
+
 interface ViewProperties<Classes, Variant> extends SemanticProps<Variant> {
   /** Receives initial visibility and changes after layout. Visible means positive area inside the viewport and every clipping ancestor, not occlusion detection. Hidden subtrees report false. No scroll interception. */
   onVisibilityChange?: Owned<Function<void, [visible: boolean]>>;
+  /** Runs for each key press while this View or a descendant has keyboard focus, including repeats. Use tabIndex to make the View itself focusable. Text fields inside still receive their typing. */
+  onKeyDown?: Owned<Function<void, [event: ReadOnly<KeyboardEvent>]>>;
+  /** Runs when a key is released while this View or a descendant has keyboard focus. */
+  onKeyUp?: Owned<Function<void, [event: ReadOnly<KeyboardEvent>]>>;
+  /** Runs when any pointer button is pressed over this View. */
+  onPointerDown?: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>;
+  /** Runs when any pointer button is released over this View. */
+  onPointerUp?: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>;
+  /** Runs as the pointer moves over this View, with or without a button held. */
+  onPointerMove?: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>;
+  /** Runs for each wheel or trackpad scroll over this View. Scrolling containers still scroll. */
+  onWheel?: Owned<Function<void, [event: ReadOnly<WheelEvent>]>>;
+  /** Runs on the second click of a left-button double click over this View. */
+  onDoubleClick?: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>;
+  /** Runs when the right button is pressed over this View, where a context menu would open. */
+  onContextMenu?: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>;
+  /** Called with true when the pointer enters this View and false when it leaves. */
+  onHover?: Owned<Function<void, [hovered: boolean]>>;
+  /** Runs when keyboard focus moves into this View or a descendant from outside it. Requires tabIndex. */
+  onFocus?: Owned<Function<void>>;
+  /** Runs when keyboard focus leaves this View and all its descendants. Requires tabIndex. */
+  onBlur?: Owned<Function<void>>;
+  /** Receives the absolute paths of files dropped onto this View from the system. */
+  onFileDrop?: Owned<Function<void, [paths: ReadOnly<string[]>]>>;
   /** 0 participates in source-order keyboard focus; -1 allows pointer/accessibility focus only. Omission is not focusable. Positive values are rejected. Name scroll regions with role=region and aria-label. */
   tabIndex?: int;
   /** Removes this subtree from layout, paint, interaction and accessibility while retaining its state. TSRX state conditions refresh after handlers. Defaults to false. */
@@ -942,7 +1009,79 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
     Ok(value) => {
       const decorated = applyProperties(value, metadata, className, variant);
       const observer = props.onVisibilityChange;
-      const node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
+      let node = observer === undefined ? decorated : unwrapNode(nativeVisibility(decorated, observer));
+      const onKeyDown = props.onKeyDown;
+
+      if (onKeyDown !== undefined) {
+        node = onKeyboardEvent(node, 'keyDown', onKeyDown);
+      }
+
+      const onKeyUp = props.onKeyUp;
+
+      if (onKeyUp !== undefined) {
+        node = onKeyboardEvent(node, 'keyUp', onKeyUp);
+      }
+
+      const onPointerDown = props.onPointerDown;
+
+      if (onPointerDown !== undefined) {
+        node = onPointerEvent(node, 'pointerDown', onPointerDown);
+      }
+
+      const onPointerUp = props.onPointerUp;
+
+      if (onPointerUp !== undefined) {
+        node = onPointerEvent(node, 'pointerUp', onPointerUp);
+      }
+
+      const onPointerMove = props.onPointerMove;
+
+      if (onPointerMove !== undefined) {
+        node = onPointerEvent(node, 'pointerMove', onPointerMove);
+      }
+
+      const onWheel = props.onWheel;
+
+      if (onWheel !== undefined) {
+        node = onWheelEvent(node, 'wheel', onWheel);
+      }
+
+      const onDoubleClick = props.onDoubleClick;
+
+      if (onDoubleClick !== undefined) {
+        node = onPointerEvent(node, 'doubleClick', onDoubleClick);
+      }
+
+      const onContextMenu = props.onContextMenu;
+
+      if (onContextMenu !== undefined) {
+        node = onPointerEvent(node, 'contextMenu', onContextMenu);
+      }
+
+      const onHover = props.onHover;
+
+      if (onHover !== undefined) {
+        node = unwrapNode(nativeKitOnBoolean(node, 'hover', onHover));
+      }
+
+      const onFocus = props.onFocus;
+
+      if (onFocus !== undefined) {
+        node = unwrapNode(nativeKitOnVoid(node, 'focus', onFocus));
+      }
+
+      const onBlur = props.onBlur;
+
+      if (onBlur !== undefined) {
+        node = unwrapNode(nativeKitOnVoid(node, 'blur', onBlur));
+      }
+
+      const onFileDrop = props.onFileDrop;
+
+      if (onFileDrop !== undefined) {
+        node = onPathsEvent(node, 'fileDrop', onFileDrop);
+      }
+
       const hidden = props.hidden;
 
       if (hidden === undefined) {
@@ -961,6 +1100,31 @@ export function View(props: ViewProps<ReactiveValue<string>, ReactiveValue<strin
     }
   }
 }
+
+function onKeyboardEvent(node: Node, event: string, handler: Owned<Function<void, [event: ReadOnly<KeyboardEvent>]>>): Node {
+  return unwrapNode(nativeKitOn(node, event, (text: ReadOnly<string>): void => {
+    handler(JSON.parse<KeyboardEvent>(text));
+  }));
+}
+
+function onPointerEvent(node: Node, event: string, handler: Owned<Function<void, [event: ReadOnly<PointerEvent>]>>): Node {
+  return unwrapNode(nativeKitOn(node, event, (text: ReadOnly<string>): void => {
+    handler(JSON.parse<PointerEvent>(text));
+  }));
+}
+
+function onWheelEvent(node: Node, event: string, handler: Owned<Function<void, [event: ReadOnly<WheelEvent>]>>): Node {
+  return unwrapNode(nativeKitOn(node, event, (text: ReadOnly<string>): void => {
+    handler(JSON.parse<WheelEvent>(text));
+  }));
+}
+
+function onPathsEvent(node: Node, event: string, handler: Owned<Function<void, [paths: ReadOnly<string[]>]>>): Node {
+  return unwrapNode(nativeKitOn(node, event, (text: ReadOnly<string>): void => {
+    handler(JSON.parse<string[]>(text));
+  }));
+}
+
 /** Creates a semantic button with optional retained onPress and composed phrasing children. Disabled buttons never activate. */
 export function Button(props: ButtonProps<ReactiveValue<string>, ReactiveValue<string>>): Node {
   const Render = props.render;
@@ -1658,6 +1822,34 @@ export function minimizeWindow(): void {
 /** Toggles the active window between its normal and zoomed (maximized) size. */
 export function zoomWindow(): void {
   unwrap(nativeCommand('zoom', '{}'));
+}
+
+/** Makes text, spacing and component sizes one step larger in every window, like browser zoom: 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250 and 300 percent. Bind it with <Shortcut keys="secondary-=" onTrigger={...}/> (Cmd+= on macOS, Ctrl+= elsewhere) or a menu item. Zoom multiplies the system text-size preference (Windows Text size, GNOME text scaling), which applies automatically. */
+export function zoomIn(): void {
+  unwrap(nativeCommand('text-zoom', JSON.stringify({
+    step: 1
+  })));
+}
+
+/** Makes text, spacing and component sizes one zoom step smaller in every window, down to 50 percent. */
+export function zoomOut(): void {
+  unwrap(nativeCommand('text-zoom', JSON.stringify({
+    step: -1
+  })));
+}
+
+/** Returns every window to 100 percent zoom; the system text-size preference still applies. */
+export function resetZoom(): void {
+  unwrap(nativeCommand('text-zoom', JSON.stringify({
+    step: 0
+  })));
+}
+
+/** Sets an exact zoom level for every window, where 1 is 100 percent. Values are clamped to 0.5–3; non-finite values are ignored. Example: setZoom(1.25) restores a saved preference. */
+export function setZoom(level: number): void {
+  unwrap(nativeCommand('text-zoom', JSON.stringify({
+    level: level
+  })));
 }
 
 /** Toggles full-screen mode for the active window. */

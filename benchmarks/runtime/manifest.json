@@ -26727,7 +26727,7 @@
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
       "sourceSha256": "961cbd5253fc9471156f37c8e8fb8ec7132e4b8ab449b2aa1abbeb1f4b2dbd6f",
-      "counterpartSha256": "74c0ce5ec40b453c4d45b6b3af9b8bb26ed2d2865997e21fdfaa21e1a5930709"
+      "counterpartSha256": "4cc4cecdeb019567638471d32baf5837b8e6dc7bfd1ceb45045193455313b7d9"
     },
     {
       "id": "async_channel_await",
@@ -26750,7 +26750,7 @@
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
       "sourceSha256": "689bc889e17f92e40d726643f9a6c20cf8ae8d31e035c9e5f0f1a60f6dcec2d3",
-      "counterpartSha256": "9f0ca72ea8d525f022c84e1eb5d40c6f60229de7b1b9b0030b5ca26e8d17a31c"
+      "counterpartSha256": "2e1b3e94f9927f5f29cb917a884278d47799c632416699ee2f18e31d1237124c"
     },
     {
       "id": "cancellation_fanout",
@@ -28827,7 +28827,7 @@
       "specification": "task-ergonomics-contract.mjs",
       "notes": "One async runtime per process; setup and cleanup once per workload invocation. 8 warmups and 3 processes of 31 samples. Timers are correctness-only. Node CPU counterpart uses one explicit Worker; ready/yield scheduling and queue representations differ by engine. Unmeasured.",
       "sourceSha256": "ff6330436260a823e615acc7fa9ac961d002c08329b6bc543d9f91c114994876",
-      "counterpartSha256": "c379c89effbd8efc1b3cccb577726e23688847d9ea4ed03d89644a82df20cbe8"
+      "counterpartSha256": "a7138c4bdcfad579eccbaa383c55336f50dcb60c7b766b9271876e33311356e2"
     },
     {
       "id": "native_directory_walk",

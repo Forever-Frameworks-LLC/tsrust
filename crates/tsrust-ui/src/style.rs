@@ -9,6 +9,8 @@ mod tailwind;
 pub use text::WhiteSpace;
 #[cfg(feature="gpui")]
 pub(crate) use structural::scoped_at_width as resolved_scoped_node_at_width;
+#[cfg(feature="gpui")]
+pub(crate) use structural::context_free as context_free_classes;
 #[cfg(any(all(test, feature="runtime"),feature="gpui"))]
 pub(crate) use structural::surface_at_width as resolved_surface_at_width;
 #[cfg(all(test, feature = "runtime"))]
@@ -104,7 +106,16 @@ fn known_tokens()->&'static std::collections::BTreeSet<String> {
  TOKENS.get_or_init(||build_tokens().into_iter().collect())
 }
 pub fn tokens()->Vec<String> {known_tokens().iter().cloned().collect()}
+/// Class strings repeat across rebuilt rows; remember the ones already accepted so a
+/// rebuilt list does not parse and resolve every utility again.
 pub fn validate(classes:&str)->Result<(),String> {
+ thread_local!{static VALID:std::cell::RefCell<std::collections::HashSet<String>>=Default::default();}
+ if classes.is_empty()||VALID.with(|valid|valid.borrow().contains(classes)){return Ok(());}
+ validate_uncached(classes)?;
+ VALID.with(|valid|{let mut valid=valid.borrow_mut();if valid.len()>=4096{valid.clear();}valid.insert(classes.to_owned());});
+ Ok(())
+}
+fn validate_uncached(classes:&str)->Result<(),String> {
  if classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|token=="table-cell")) && classes.split_whitespace().any(|class|split(class).is_ok_and(|(_,token)|["w-full","w-1/2","w-1/3","w-2/3","w-1/4","w-3/4","min-w-full","max-w-full","min-w-1/2","min-w-1/3","min-w-2/3","min-w-1/4","min-w-3/4","max-w-1/2","max-w-1/3","max-w-2/3","max-w-1/4","max-w-3/4"].contains(&token))){return Err("Percentage table-cell widths are unsupported; use intrinsic or pixel widths".into());}
  let known=known_tokens(); for class in classes.split_whitespace() {let parsed=structural::parts(class)?;let (state,token)=(parsed.state,parsed.token);if parsed.placeholder && !(token.starts_with("text-") && (color_token(token)||opacity_token(token).is_some())){return Err("Placeholder variants require a text color".into());}
  if custom_spacing::declaration(token).is_some() && state!=State::Base{return Err("Spacing variable declarations cannot use interaction states".into());}

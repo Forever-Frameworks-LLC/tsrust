@@ -22,6 +22,7 @@ interface Draft {
 }
 
 interface SavedCaret {
+  anchor?: int;
   path: string;
   offset: int;
 }
@@ -82,6 +83,17 @@ function openRecoveredDraft(workspace: Mutable<Workspace>, draft: ReadOnly<Draft
     name, kind: 'text', document: unwrap(createDocument(clone(draft.path), clone(draft.savedText)))
   });
   workspace.active = clone(draft.path);
+}
+
+function clipOffset(text: ReadOnly<string>, offset: int): int {
+  if (offset <= 0) return 0;
+
+  if (offset >= text.length) return text.length;
+  const bytes = unwrap(fromUtf8(text));
+  let result = offset;
+
+  while (result > 0 && unwrap(at(bytes, result)) >= 128 && unwrap(at(bytes, result)) < 192) result -= 1;
+  return result;
 }
 
 // Validate the complete journal before changing any open buffers.
@@ -157,18 +169,14 @@ export function restoreRecovery(workspace: Mutable<Workspace>, path: string): Re
     for (const caret of journal.carets ?? []) {
       const index = next.files.findIndex((entry) => entry.document.path === caret.path && entry.kind === 'text');
 
-      if (index < 0 || caret.offset <= 0) continue;
-      let offset = caret.offset;
-      {
-        const text = next.files[index].document.text;
+      if (index < 0 || caret.offset < 0) continue;
+      const offset = clipOffset(next.files[index].document.text, caret.offset);
+      const anchor = caret.anchor;
 
-        if (offset > text.length) offset = text.length;
+      if (anchor !== undefined && anchor !== caret.offset) {
+        const clipped = clipOffset(next.files[index].document.text, anchor);
 
-        if (offset < text.length) {
-          const bytes = unwrap(fromUtf8(text));
-
-          while (offset > 0 && unwrap(at(bytes, offset)) >= 128 && unwrap(at(bytes, offset)) < 192) offset -= 1;
-        }
+        if (clipped !== offset) next.files[index].anchor = clipped;
       }
 
       next.files[index].caret = offset;
@@ -216,8 +224,10 @@ export function persistRecovery(workspace: ReadOnly<Workspace>, recovery: Mutabl
   const carets: SavedCaret[] = [];
 
   for (const file of workspace.files) {
-    if (file.kind === 'text' && (file.caret ?? 0) > 0) carets.push({
-      path: clone(file.document.path), offset: file.caret ?? 0
+    const offset = file.caret ?? 0;
+
+    if (file.kind === 'text' && (offset > 0 || (file.anchor ?? offset) !== offset)) carets.push({
+      path: clone(file.document.path), offset, anchor: file.anchor
     });
 
     if (file.kind === 'text' && dirty(file.document)) drafts.push({

@@ -374,7 +374,8 @@ unsafe impl GlobalAlloc for Allocations {
     ] {
         let source = format!("function failure(): () => string {{ const values = [1]; values.remove(-1); return (): string => {{ return \"unused\"; }}; }} function main() {{ const first = \"first\".repeat(64); const second = \"second\".repeat(64); const third = \"third\".repeat(64); const actions: (() => string)[] = [(): string => {{ return first.trim(); }}]; actions[0] = (): string => {{ return second.trim(); }}; {ending} }}");
         let analysis = tsrust_compiler::check(&source).unwrap();
-        let rust = analysis.emit_rust().replace("fn main()", "fn source_main()") + observer
+        let emitted = support::harness_entry(&analysis.emit_rust(), "source_main");
+        let rust = emitted + observer
             + &format!(r#"
 fn main() {{
     let hook = std::panic::take_hook(); std::panic::set_hook(Box::new(|_| {{}}));

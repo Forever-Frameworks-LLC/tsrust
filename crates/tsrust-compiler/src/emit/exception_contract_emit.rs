@@ -29,10 +29,12 @@ pub(crate) fn checked_throw_value(value:&str,ty:crate::syntax::Type,error_name:&
     let source=crate::error_effects::FailureSet{explicit:vec![ty],..Default::default()};
     let mapping=source.native_injection(destination,unions,runtime,span)?;
     if let crate::syntax::Type::Union(id)=ty {
-        let arms=mapping.iter().enumerate().map(|(index,target)|format!("Union{}::V{index}(payload)=>{error_name}::V{target}(payload)",id.index())).collect::<Vec<_>>().join(",");
+        // A runtime error thrown where the contract no longer carries runtime errors is raised as a fault.
+        let arms=mapping.iter().enumerate().map(|(index,target)|if *target==crate::error_effects::RAISE_FAULT {format!("Union{}::V{index}(payload)=>tsr_raise_runtime_record(payload)",id.index())} else {format!("Union{}::V{index}(payload)=>{error_name}::V{target}(payload)",id.index())}).collect::<Vec<_>>().join(",");
         Ok(format!("match {value} {{ {arms} }}"))
     }else{
         let target=mapping.first().expect("checked throw payload");
+        if *target==crate::error_effects::RAISE_FAULT {return Ok(format!("tsr_raise_runtime_record({value})"));}
         Ok(format!("{error_name}::V{target}({value})"))
     }
 }
@@ -235,6 +237,12 @@ impl RegionStack {
     #[inline(never)]
     pub(crate) fn result_call(&self,call:&str,source_name:&str,source:&crate::error_effects::FailureSet,unions:&crate::unions::UnionArena,span:crate::Span)->Result<String,crate::Diagnostic> {
         let regions=self.0.borrow();
+        // With unwinding faults a function whose only failures are faults has no
+        // region; the callee's runtime error is raised again as a fault here.
+        if regions.last().is_none_or(|region|region.transport.is_none()) && crate::error_effects::unwind_faults() && !source.opaque && source.explicit.is_empty() {
+            let raise=super::exception_emit::error_conversion("error",source_name,"",&vec![crate::error_effects::RAISE_FAULT;usize::from(source.runtime)]);
+            return Ok(format!("match {call} {{ Ok(value)=>value, Err(error)=>{raise} }}"));
+        }
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a typed completion region.",span))?;
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a destination error layout.",span))?;
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;

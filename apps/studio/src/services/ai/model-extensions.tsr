@@ -1,3 +1,5 @@
+import { length, toHex, toUtf8 } from 'std:bytes';
+import { createHasher } from 'std:crypto';
 import {
   stat,
   openFile,
@@ -8,11 +10,10 @@ import {
   mkdirAll,
   rename
 } from 'std:fs';
-import { length, toHex, toUtf8 } from 'std:bytes';
-import { createHasher } from 'std:crypto';
-import { run } from 'std:process';
-import { dirname, join } from 'std:path';
 import { Channel, Sender } from 'std:futures';
+import { dirname, join } from 'std:path';
+import { run } from 'std:process';
+
 import { StudioConfig, configPath } from '../../lib/settings/settings.tsr';
 
 export interface ModelExtension {

@@ -10,13 +10,18 @@ fn result_matches_preserve_returns_replacement_and_callback_failures() {
 
 #[test]
 fn result_payload_allocations_are_released_after_returns_replacement_and_failures() {
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
+
     let directory = support::TempDirectory::new();
     let path = directory.source(&support::format_round_trip(include_str!("fixtures/result-match-cleanup/values.tsr")));
     let emitted = support::run(support::cli().arg("emit").arg(path), 60);
     support::success(&emitted);
     let rust = String::from_utf8(emitted.stdout).unwrap();
     assert_eq!(rust.matches("fn main()").count(), 1);
-    let entry = rust.split("fn main()").nth(1).unwrap();
+    // Throwing entrypoints run on an 8 MiB thread; `tsrust_entry_main` holds the entry call.
+    let entry = rust.split("fn tsrust_entry_main()").nth(1).unwrap();
     let call = entry.split("tsr_entry_result(").nth(1).expect("fallible cleanup entry");
     let callee = call.split('(').next().unwrap();
     assert!(callee.starts_with("tsr_result_function"));

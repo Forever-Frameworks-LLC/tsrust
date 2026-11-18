@@ -28,6 +28,10 @@ fn without_offsets(rust: &str) -> String {
         rest = rest[at + 6..].trim_start_matches(|c: char| c.is_ascii_digit() || c == '.');
     }
     output.push_str(rest);
+    // Unwinding fault sites also carry line and column numbers.
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") {
+        output.retain(|c| !c.is_ascii_digit());
+    }
     output
 }
 

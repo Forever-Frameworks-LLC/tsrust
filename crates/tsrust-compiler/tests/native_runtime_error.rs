@@ -7,13 +7,13 @@ mod exception_emit;
 #[test]
 fn runtime_error_expression_uses_emitted_record_and_string_layout() {
     for ordered in [false,true] {
-    let source="type RuntimeError={name:string;code:string;message:string;source:string;start:int;end:int;};function main(){const example:RuntimeError={name:\"\",code:\"\",message:\"\",source:\"\",start:0,end:0};}";
+    let source="type RuntimeError={name:string;code:string;message:string;source:string;start:int;end:int;line:int;column:int;};function main(){const example:RuntimeError={name:\"\",code:\"\",message:\"\",source:\"\",start:0,end:0,line:0,column:0};}";
     let source=if ordered {source.replace("};}","};const keys=Object.keys(example);}")}else{source.to_owned()};
     let mut rust=tsrust_compiler::check(&source).unwrap().emit_rust();
-    let error=exception_emit::runtime_error_value_with_order(0,ordered,"RangeError","bounds","index unavailable","file\"name.tsr",7,13);
+    let error=exception_emit::runtime_error_value_with_order(0,ordered,"RangeError","bounds","index unavailable","file\"name.tsr",7,13,2,5);
     let verification=format!("let error={error}; assert_eq!(error.field0.as_ref(),\"RangeError\"); assert_eq!(error.field1.as_ref(),\"bounds\"); assert_eq!(error.field2.as_ref(),\"index unavailable\"); assert_eq!(error.field3.as_ref(),\"file\\\"name.tsr\"); assert_eq!(error.field4,7); assert_eq!(error.field5,13);");
-    let verification=if ordered {format!("{verification} assert_eq!(error.key_order,[0,1,2,3,4,5]);")}else{verification};
-    let failure=exception_emit::runtime_error_value_with_order(0,ordered,"RangeError","overflow","integer addition overflow","input.tsr",7,13);
+    let verification=if ordered {format!("{verification} assert_eq!(error.key_order,[0,1,2,3,4,5,6,7]);")}else{verification};
+    let failure=exception_emit::runtime_error_value_with_order(0,ordered,"RangeError","overflow","integer addition overflow","input.tsr",7,13,2,5);
     let arithmetic=checked_integer_binary("checked_add","{ evaluations.set(evaluations.get()+1); i64::MAX }","{ assert_eq!(evaluations.get(),1); evaluations.set(evaluations.get()+1); 1 }",&failure);
     let verification=format!("{verification} let evaluations=std::cell::Cell::new(0); let result={arithmetic}; assert_eq!(evaluations.get(),2); let completion:TsrCompletion<i64,(),Record0>=tsr_from_result(result); let caught:TsrCompletion<i64,(),Record0>=tsr_catch(completion,|error|{{ assert_eq!(error.field1.as_ref(),\"overflow\"); assert_eq!(error.field4,7); TsrCompletion::Normal(23) }}); assert!(matches!(caught,TsrCompletion::Normal(23)));");
     let index=checked_index("{ order.set(order.get()+1); values.len() }","{ assert_eq!(order.get(),1); order.set(order.get()+1); requested }",&error);

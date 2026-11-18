@@ -26,6 +26,10 @@ function main() {
   strictEqual(counts.get("a") ?? 0, 3);
   strictEqual(counts.has("b"), true);
   counts.set("c", 4);
+  // The value reads the map being written; both keep JavaScript's argument order.
+  const word = "c";
+  counts.set(clone(word), (counts.get(word) ?? 0) + 1);
+  strictEqual(counts.get("c") ?? 0, 5);
   strictEqual(counts.delete("b"), true);
   strictEqual(counts.delete("missing"), false);
   strictEqual<int | undefined>(counts.get("missing"), undefined);

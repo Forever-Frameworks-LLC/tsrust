@@ -8,6 +8,7 @@ mod counted_builders;
 mod scalar_reduce_slices;
 mod foreach_slices;
 mod runtime_support_ids;
+
 #[cfg(test)]
 mod statement_work_tests;
 use declaration_scope::Declarations;
@@ -116,6 +117,74 @@ pub fn emit(program: &CheckedProgram) -> String {
     emit_with_native_features(program, "").0
 }
 
+/// Faults unwind, so a function whose only failures are faults returns its value
+/// directly. Functions that are also callable values (forwarded closures, schema
+/// constraints) and async functions keep their contracts: those are shared
+/// callable signatures and boundaries (docs/plans/fault-unwinding.md, decision 3).
+fn plain_fault_contracts(program:&CheckedProgram)->crate::error_effects::ErrorEffects {
+    let mut effects=program.error_effects.clone();
+    let mut shared=program.closures.iter().filter_map(|closure|match closure.forward {Some(ClosureForward::Function(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
+    for function in program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))) {
+        for expression in crate::error_effects::checked_expressions(function) {
+            if let Some(CallTarget::SchemaConstraint(id))=expression.target {shared.insert(id);}
+        }
+    }
+    for (index,function) in program.functions.iter().enumerate() {
+        if function.template || shared.contains(&index) || matches!(function.result,Type::Closure(_)|Type::Callable(_)|Type::Callback(_)) {continue;}
+        let Some(contract)=effects.function_errors.get_mut(index) else {continue;};
+        contract.runtime=false;
+        let fails=contract.opaque || !contract.explicit.is_empty();
+        if let Some(summary)=effects.functions.get_mut(index) {*summary=fails;}
+    }
+    for index in local_closures(program) {
+        let Some(contract)=effects.closure_errors.get_mut(index) else {continue;};
+        contract.runtime=false;
+        let fails=contract.opaque || !contract.explicit.is_empty();
+        if let Some(summary)=effects.closures.get_mut(index) {*summary=fails;}
+    }
+    effects
+}
+
+/// Closures whose signature no other code shares: not polymorphic, forwarding,
+/// program-scoped or tasks, and every occurrence of their value is a direct
+/// call, a builtin array callback or a `let` initializer. Every other use (a
+/// parameter of another function, a native binding, a capture, a field) is a
+/// shared callable signature or a boundary and keeps runtime errors.
+fn local_closures(program:&CheckedProgram)->Vec<usize> {
+    let builtin=|target:Option<CallTarget>|matches!(target,Some(CallTarget::ArrayMap|CallTarget::ArrayFlatMap|CallTarget::ArrayFilter|CallTarget::ArrayForEach|CallTarget::ArraySome|CallTarget::ArrayEvery|CallTarget::ArrayFind|CallTarget::ArrayFindLast|CallTarget::ArrayFindIndex|CallTarget::ArrayFindLastIndex|CallTarget::ArrayReduce|CallTarget::ArrayReduceRight|CallTarget::ArraySort|CallTarget::ArrayToSorted));
+    let mut shared=HashSet::new();
+    let functions=program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).collect::<Vec<_>>();
+    for function in &functions {
+        if let Type::Closure(id)=function.result {shared.insert(id);}
+        for binding in function.bindings.iter().take(function.parameter_count) {
+            if let Type::Closure(id)=binding.input_ty.unwrap_or(binding.ty) {shared.insert(id);}
+        }
+        // Occurrences of a closure value that keep it local: a direct call's callee,
+        // a builtin array method's callback, and a `let` initializer.
+        let mut allowed=HashSet::new();
+        crate::fixed_storage::visit_statements(&function.body,&mut |statement|{
+            if let StmtKind::Let{value,..}=&statement.kind {allowed.insert(value as *const Expr as usize);}
+        });
+        for binding in &function.bindings {
+            if let Some(initializer)=&binding.initializer {allowed.insert(&**initializer as *const Expr as usize);}
+        }
+        for expression in crate::error_effects::checked_expressions(function) {
+            let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
+            allowed.insert(&**callee as *const Expr as usize);
+            if builtin(expression.target) && let Some(callback)=arguments.first() {allowed.insert(callback as *const Expr as usize);}
+        }
+        for expression in crate::error_effects::checked_expressions(function) {
+            if let Some(Type::Closure(id))=expression.ty && matches!(expression.kind,ExprKind::Name(_)|ExprKind::Closure{..}) && !allowed.contains(&(expression as *const Expr as usize)) {shared.insert(id);}
+        }
+    }
+    for closure in &program.closures {
+        for capture in &closure.captures {
+            if let Some(Type::Closure(id))=closure.function.bindings.get(capture.inner).map(|binding|binding.ty) {shared.insert(id);}
+        }
+    }
+    program.closures.iter().enumerate().filter(|(index,closure)|!closure.function.template && !closure.polymorphic && closure.forward.is_none() && !closure.program_scoped && !closure.program_async && !program.task_origins.contains(index) && !shared.contains(index)).map(|(index,_)|index).collect()
+}
+
 fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> {
     let fields = program
         .records
@@ -197,6 +266,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let self_appends=self_append::Index::new(program);
     let string_characters=string_character::Index::new(program,&self_appends);
     let mut emitter = Emitter {
+        fault_effects: crate::error_effects::unwind_faults().then(|| plain_fault_contracts(program)),
         receiver_moves: RefCell::default(),
         self_appends,
         string_characters,
@@ -221,6 +291,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
         debug_source: None,
+        single_source: None,
         debug_lines: RefCell::default(),
         source_segments: &[],
         source_graph: None,
@@ -279,13 +350,29 @@ pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str
 }
 
 pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>)->(String,Vec<&'static str>) {
+    emit_located(program,entry_setup,segments,graph,debug_source,None)
+}
+
+/// A single-file program: runtime failures report `path` with lines from `text`.
+pub(crate) fn emit_single_source(program:&CheckedProgram,path:&str,text:&str)->(String,Vec<&'static str>) {
+    emit_located(program,"",&[],None,None,Some((path,text)))
+}
+
+fn emit_located(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>,debug_source:Option<(&str, &str)>,single_source:Option<(&str,&str)>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
+    emitter.single_source=single_source;
     emitter.debug_source=debug_source;
     emitter.source_segments=segments;
     emitter.source_graph=graph;
     let declarations=if needs_exception_transport(program) {emitter.prepare_result_declarations().expect("checked source exception transports")}else{String::new()};
     let mut rust = emitter.program();
     if needs_exception_transport(program) {rust.push_str(crate::runtime::EXCEPTION_COMPLETIONS);rust.push_str(&declarations);}
+    if crate::error_effects::unwind_faults() {
+        rust.push_str(crate::runtime::FAULTS);
+        if let Some(record)=program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol) {
+            let _=writeln!(rust,"#[cold] #[inline(never)] #[allow(dead_code)] fn tsr_raise_runtime_record(record: Record{record}) -> ! {{ tsr_raise_fault_parts(record.field0, record.field1, record.field2, record.field3, record.field4, record.field5, record.field6, record.field7) }}");
+        }
+    }
     let features = emitter
         .native_bindings
         .borrow()
@@ -311,6 +398,9 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 enum SliceView { Owned, Slice, Range }
 
 struct Emitter<'a> {
+    /// With unwinding faults, function contracts without runtime errors for
+    /// functions only called directly (see `plain_fault_contracts`).
+    fault_effects: Option<crate::error_effects::ErrorEffects>,
     foreach_slices: foreach_slices::Index,
     constant_strings: constant_string::Index<'a>,
     /// Copying calls in the function being emitted whose dead receiver may be moved.
@@ -336,6 +426,8 @@ struct Emitter<'a> {
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
     debug_source: Option<(&'a str, &'a str)>,
+    /// The path and text of a single-file program, for runtime failure locations.
+    single_source: Option<(&'a str, &'a str)>,
     debug_lines: RefCell<HashMap<&'a str, Vec<usize>>>,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     source_graph: Option<&'a crate::project::ProjectGraph>,
@@ -972,7 +1064,7 @@ impl Emitter<'_> {
         if let Some(name)=&error_name {
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
             let id=self.completion_next.get();
-            let body=self.callable_result_body(&checked.function,&checked.function.body,id,name,self.program.error_effects.method_errors[&(index,method)].clone(),runtime);
+            let body=self.callable_result_body(&checked.function,&checked.function.body,id,name,self.function_effects().method_errors[&(index,method)].clone(),runtime);
             let _=writeln!(output,"        {body}");
         }else if crate::analysis::has_exception_syntax(&checked.function.body) {
             let body=self.pure_callable_completion_body(&checked.function);
@@ -1279,12 +1371,18 @@ impl Emitter<'_> {
     /// Assertion diagnostics own their message text; user values remain borrowed.
     #[inline(never)]
     fn typed_native_assertion(&self,arguments:&[String],span:crate::Span,closure:Option<usize>)->Option<String> {
-        let (name,contract,runtime)=if let Some(id)=closure {
+        let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            (name,self.program.error_effects.closure_errors[id].clone(),runtime)
-        }else{self.exception_regions.current_transport()?};
-        if !contract.runtime {return None;}
+            Some((name,self.function_effects().closure_errors[id].clone(),runtime))
+        }else{self.exception_regions.current_transport()};
+        // Where no region receives runtime errors, a failed assertion is a fault
+        // (docs/plans/fault-unwinding.md) instead of the native panicking check.
+        let Some((name,contract,runtime))=transport.filter(|(_,contract,_)|contract.runtime) else {
+            if !crate::error_effects::unwind_faults() || closure.is_some() {return None;}
+            let (source,start,end,line,column)=self.fault_location(span);
+            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end,line,column)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64),|site|(site.source,site.start as i64,site.end as i64,site.line as i64,site.column as i64));if !tsr_fault_catching(){{tsrust_testing_check_assertion(false,&assertion_message);}}tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end,line,column)}}}}",arguments[0],arguments[1]));
+        };
         let Some(Type::Record(record))=runtime else{return None;};
         let error=self.runtime_error_value(record,"AssertionError","assertion","",span);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -1295,7 +1393,7 @@ impl Emitter<'_> {
             self.exception_regions.throw_value("assertion_error",Type::Record(record),&unions,span).expect("checked native assertion region")
         };
         let succeeded=if closure.is_some(){"Ok(())"}else{"()"};
-        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;}}{failed}}}}}",arguments[0],arguments[1]))
+        Some(format!("{{let assertion_condition={};let assertion_message={};if assertion_condition{{{succeeded}}}else{{let mut assertion_error={error};assertion_error.field2=String::Owned(assertion_message.as_ref().to_owned());if let Some(site)=tsrust_testing_assertion_site(){{assertion_error.field3=String::Borrowed(site.source);assertion_error.field4=site.start as i64;assertion_error.field5=site.end as i64;assertion_error.field6=site.line as i64;assertion_error.field7=site.column as i64;}}{failed}}}}}",arguments[0],arguments[1]))
     }
 
     #[inline(never)]
@@ -1310,11 +1408,21 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn typed_native_result(&self,call:&str,span:crate::Span,closure:Option<usize>,error_name:&str,error_code:&str)->Option<String> {
-        let (name,contract,runtime)=if let Some(id)=closure {
+        let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            (name,self.program.error_effects.closure_errors[id].clone(),runtime)
-        }else{self.exception_regions.current_transport()?};
+            Some((name,self.function_effects().closure_errors[id].clone(),runtime))
+        }else{self.exception_regions.current_transport()};
+        // Without a region, a runner or `path.relative` failure is raised as a
+        // fault (docs/plans/fault-unwinding.md, decision 8). The finished run's
+        // status (failed tests) is not a fault: it keeps the native path, which
+        // ends with exit status 1 and no report.
+        let status=call.starts_with("tsrust_testing_finish_tests_result(");
+        let Some((name,contract,runtime))=transport else {
+            if !crate::error_effects::unwind_faults() || status {return None;}
+            let (source,start,end,line,column)=self.fault_location(span);
+            return Some(format!("match {call}{{Ok(value)=>value,Err(message)=>tsr_raise_fault_parts(std::borrow::Cow::Borrowed({error_name:?}),std::borrow::Cow::Borrowed({error_code:?}),std::borrow::Cow::Owned(message),std::borrow::Cow::Borrowed({source:?}),{start}_i64,{end}_i64,{line}_i64,{column}_i64)}}"));
+        };
         let Some(Type::Record(record))=runtime else{return None;};
         let value=self.runtime_error_value(record,error_name,error_code,"",span);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -1331,7 +1439,7 @@ impl Emitter<'_> {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.function_effects().closure_errors[id].clone())),
             _=>return None,
         };
         let invocation="ProgramCallback::invoke_program(&mut registered_callback,(),program,registry)";
@@ -1361,7 +1469,7 @@ impl Emitter<'_> {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.function_effects().closure_errors[id].clone())),
             _=>None,
         };
         let invocation=format!("Callback::invoke(&mut registered_callback,{arguments})");
@@ -1387,19 +1495,108 @@ impl Emitter<'_> {
     }
     #[inline(never)]
     fn runtime_error_value(&self,record:usize,name:&str,code:&str,message:&str,span:crate::Span)->String {
-        let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
-        let (source,start,end)=location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base));
-        exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,message,source,start,end)
+        let (source,start,end,line,column)=self.fault_location(span);
+        let message=self.file_relative_message(message);
+        exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,&message,source,start,end,line,column)
     }
 
+    /// A direct call. When the callee may unwind a fault and the active region
+    /// receives runtime errors (a try region), only the call runs inside a
+    /// fault catch: arguments are evaluated first, outside it, because they may
+    /// leave the region. The fault becomes the same throw a local fault makes
+    /// (docs/plans/fault-unwinding.md, decision 2).
+    fn fault_caught_call(&self,native_name:&str,values:Vec<String>,index:usize,span:crate::Span)->String {
+        let unwinds=self.fault_effects.as_ref().is_some_and(|effects|self.program.error_effects.function_errors.get(index).is_some_and(|contract|contract.runtime) && !effects.function_errors[index].runtime);
+        let throw=unwinds.then(||self.fault_throw(span)).flatten();
+        let Some(throw)=throw else {return format!("{native_name}({})",values.join(", "));};
+        let bindings=values.iter().enumerate().map(|(position,value)|format!("let fault_argument{position}={value};")).collect::<String>();
+        let arguments=(0..values.len()).map(|position|format!("fault_argument{position}")).collect::<Vec<_>>().join(", ");
+        format!("{{ {bindings} match tsr_catch_faults(|| {native_name}({arguments})) {{ Ok(value)=>value, Err(fault)=>{{ {throw} }} }} }}")
+    }
+
+    /// A local closure call whose arguments are already plain names: caught alone
+    /// when the closure may unwind and the active region receives runtime errors.
+    fn fault_caught_closure(&self,origin:usize,call:&str,span:crate::Span)->String {
+        match self.closure_call_catches(origin).then(||self.fault_throw(span)).flatten() {
+            Some(throw)=>format!("match tsr_catch_faults(|| {call}) {{ Ok(value)=>value, Err(fault)=>{{ {throw} }} }}"),
+            None=>call.to_owned(),
+        }
+    }
+
+    /// Whether local closure `origin` may fault while its signature carries no runtime errors.
+    fn closure_unwinds(&self,origin:usize)->bool {
+        self.fault_effects.as_ref().is_some_and(|effects|self.program.error_effects.closure_errors.get(origin).is_some_and(|contract|contract.runtime) && !effects.closure_errors[origin].runtime)
+    }
+
+    /// Whether a call to local closure `origin` needs its own fault catch here.
+    fn closure_call_catches(&self,origin:usize)->bool {
+        self.closure_unwinds(origin)
+            && self.exception_regions.current_transport().is_some_and(|(_,contract,runtime)|contract.runtime && matches!(runtime,Some(Type::Record(_))))
+    }
+
+    /// Throw a caught `fault` into the active region when it receives runtime errors.
+    fn fault_throw(&self,span:crate::Span)->Option<String> {
+        let (_, contract, runtime) = self.exception_regions.current_transport()?;
+        let (true, Some(Type::Record(record))) = (contract.runtime, runtime) else {return None;};
+        let order=if self.record_runtime.ordered.contains(&record) {", key_order: [0,1,2,3,4,5,6,7]"} else {""};
+        let value=format!("Record{record} {{ field0: fault.name, field1: fault.code, field2: fault.message, field3: fault.source, field4: fault.start, field5: fault.end, field6: fault.line, field7: fault.column{order} }}");
+        let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+        Some(self.exception_regions.throw_value(&value, Type::Record(record), &unions, span).expect("checked runtime fault transport"))
+    }
+
+    /// Function contracts as emitted: without runtime errors where faults unwind.
+    fn function_effects(&self)->&crate::error_effects::ErrorEffects {self.fault_effects.as_ref().unwrap_or(&self.program.error_effects)}
+
+    /// A fault is a value when the active region carries runtime errors (a try
+    /// region, or a contract that keeps them); otherwise, with unwinding faults,
+    /// it is raised. `None` keeps the caller's own fallback (value mode).
     #[inline(never)]
     fn runtime_failure_exit(&self, name: &str, code: &str, message: &str, span: crate::Span) -> Option<String> {
-        let (_, contract, runtime) = self.exception_regions.current_transport()?;
-        if !contract.runtime { return None; }
-        let Some(Type::Record(record)) = runtime else { return None; };
-        let failure = self.runtime_error_value(record,name,code,message,span);
-        let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")))
+        if let Some((_, contract, Some(Type::Record(record)))) = self.exception_regions.current_transport() && contract.runtime {
+            let failure = self.runtime_error_value(record,name,code,message,span);
+            let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+            return Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")));
+        }
+        crate::error_effects::unwind_faults().then(|| {
+            let (source,start,end,line,column)=self.fault_location(span);
+            let message=self.file_relative_message(message);
+            format!("{{ tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64) }}")
+        })
+    }
+
+    /// The source file of `span`, its file-relative offsets, and its 1-based line
+    /// and UTF-16 column (0 when the text is unavailable).
+    fn fault_location(&self,span:crate::Span)->(&str,usize,usize,usize,usize) {
+        let (source,base,text)=if let Some((id,base,_))=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len) {
+            (id.0.as_str(),*base,self.source_graph.and_then(|graph|graph.modules.get(id)).map(|module|module.source.text.as_str()))
+        } else if let Some((path,text))=self.single_source {(path,0,Some(text))} else {("<source>",0,None)};
+        let (start,end)=(span.start-base,span.end-base);
+        let (line,column)=text.and_then(|text|text.get(..start)).map_or((0,0),|prefix|(prefix.bytes().filter(|byte|*byte==b'\n').count()+1,prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()+1));
+        (source,start,end,line,column)
+    }
+
+    /// Failure text for a length or allocation limit at `span`. With unwinding
+    /// faults it also carries the file-relative location, separated by U+001F;
+    /// catch points read a panic with that text as a `RangeError` fault
+    /// (`tsr_capacity_fault`, decision 7).
+    fn capacity_failure(&self,what:&str,span:crate::Span)->String {
+        if !crate::error_effects::unwind_faults() {return format!("{what} at source bytes {}..{}",span.start,span.end);}
+        let (source,start,end,line,column)=self.fault_location(span);
+        format!("{what} at source bytes {start}..{end}\u{1f}{source}\u{1f}{start}\u{1f}{end}\u{1f}{line}\u{1f}{column}")
+    }
+
+    /// Messages name `source bytes A..B` in whole-program offsets; report them per file.
+    fn file_relative_message(&self,message:&str)->String {
+        const MARK:&str="at source bytes ";
+        let Some(at)=message.find(MARK) else {return message.to_owned();};
+        let rest=&message[at+MARK.len()..];
+        let digits=|text:&str|text.bytes().take_while(u8::is_ascii_digit).count();
+        let first=digits(rest);
+        let (Ok(start),Some(tail))=(rest[..first].parse::<usize>(),rest[first..].strip_prefix("..")) else {return message.to_owned();};
+        let second=digits(tail);
+        let Ok(end)=tail[..second].parse::<usize>() else {return message.to_owned();};
+        let (_,relative_start,relative_end,_,_)=self.fault_location(crate::Span::new(start,end));
+        format!("{}{MARK}{relative_start}..{relative_end}{}",&message[..at],&tail[second..])
     }
 
     #[inline(never)]
@@ -2048,10 +2245,10 @@ impl Emitter<'_> {
                 if let Some(method)=callback.traversal_method {
                     if let Some(name)=self.result_methods.borrow().get(&(origin,method.id)).cloned() {
                         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
-                        return self.exception_regions.result_call(&call,&name,&self.program.error_effects.method_errors[&(origin,method.id)],&unions,callback.span).expect("checked traversal method Result call");
+                        return self.exception_regions.result_call(&call,&name,&self.function_effects().method_errors[&(origin,method.id)],&unions,callback.span).expect("checked traversal method Result call");
                     }
                     call
-                }else{self.registered_closure_call(call,origin,callback.span)}
+                }else{let call=self.fault_caught_closure(origin,&call,callback.span);self.registered_closure_call(call,origin,callback.span)}
             },
             _=>unreachable!("checked reusable traversal callback"),
         }
@@ -2066,7 +2263,7 @@ impl Emitter<'_> {
         for (index,function) in self.program.functions.iter().enumerate() {
             if function.template {continue;}
             let span=function.body.first().map_or(crate::Span::default(),|statement|statement.span);
-            let contract=self.program.error_effects.function_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved function contracts.",span))?;
+            let contract=self.function_effects().function_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved function contracts.",span))?;
             if function.name!="main" && !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             contract.native_payloads(&unions,runtime,span)?;
             let (declaration,name)=self.completion_error_layout(&format!("TsrFunctionError{index}"),contract,runtime,span);
@@ -2093,7 +2290,7 @@ impl Emitter<'_> {
                 _=>{},
             }
         }
-        let mut callback_contracts=self.program.error_effects.callback_errors.iter().collect::<Vec<_>>();
+        let mut callback_contracts=self.function_effects().callback_errors.iter().collect::<Vec<_>>();
         callback_contracts.sort_by_key(|(id,_)|**id);
         // Failure discovery order is not part of the native ABI or artifact identity.
         let mut callback_layouts:Vec<(Vec<Type>,String)>=vec![];
@@ -2113,7 +2310,7 @@ impl Emitter<'_> {
             if closure.function.template {continue;}
             if closure.polymorphic {
                 for (method,body) in closure.methods.iter().enumerate().filter(|(_,body)|!body.function.template) {
-                    let contract=self.program.error_effects.method_errors.get(&(index,method)).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved method contracts.",closure.span))?;
+                    let contract=self.function_effects().method_errors.get(&(index,method)).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved method contracts.",closure.span))?;
                     if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
                     contract.native_payloads(&unions,runtime,closure.span)?;
                     let (declaration,name)=self.completion_error_layout(&format!("TsrMethodError{index}_{method}"),contract,runtime,closure.span);
@@ -2122,7 +2319,7 @@ impl Emitter<'_> {
                 }
                 continue;
             }
-            let contract=self.program.error_effects.closure_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved closure contracts.",closure.span))?;
+            let contract=self.function_effects().closure_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved closure contracts.",closure.span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             let payloads=contract.native_payloads(&unions,runtime,closure.span)?;
             if closure.polymorphic {
@@ -2144,11 +2341,11 @@ impl Emitter<'_> {
             if origins.is_empty() && !self.program.stored_contracts.is_borrowed(family)
                 && self.program.stored_contracts.scoped_native_family(family).is_none() { continue; }
             let span=origins.iter().next().map_or(crate::Span::default(),|origin|self.program.closures[*origin].span);
-            let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved storage contracts.",span))?;
+            let contract=self.function_effects().storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved storage contracts.",span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             contract.native_payloads(&unions,runtime,span)?;
             for origin in origins {
-                let source=self.program.error_effects.closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved member contracts.",span))?;
+                let source=self.function_effects().closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved member contracts.",span))?;
                 source.native_injection(contract,&unions,runtime,span)?;
             }
             let (declaration,name)=self.completion_error_layout(&format!("TsrStorageError{family}"),contract,runtime,span);
@@ -2165,11 +2362,11 @@ impl Emitter<'_> {
     #[inline(never)]
     fn abstract_result_forward(&self,call:String,contract:usize,outer:usize)->String {
         let Some(destination)=self.result_closures.borrow().get(&outer).cloned() else {return call;};
-        let source=self.program.error_effects.callback_errors.get(&contract).expect("saved abstract forwarding contract");
+        let source=self.function_effects().callback_errors.get(&contract).expect("saved abstract forwarding contract");
         if let Some((source_name,_))=self.result_callbacks.borrow().get(&contract) {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked abstract forwarding transport");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked abstract forwarding transport");
             let conversion=exception_emit::error_conversion("error",source_name,&destination,&mapping);
             format!("{call}.map_err(|error|{conversion})")
         } else {
@@ -2184,7 +2381,7 @@ impl Emitter<'_> {
         if !self.callback_traits || self.result_callbacks.borrow().is_empty() {return;}
         let closure=&self.program.closures[index];
         let forwarded_where = self.forwarded_record_signature(closure).map_or_else(||self.closure_record_signature(index).map_or_else(String::new, |signature|signature.trait_where), |(target,_)| self.forwarded_record_trait_where(target));
-        let Some(source)=self.program.error_effects.closure_errors.get(index) else {return;};
+        let Some(source)=self.function_effects().closure_errors.get(index) else {return;};
         let source_name=self.result_closures.borrow().get(&index).cloned();
         if source_name.is_none() && (source.runtime || source.opaque || !source.explicit.is_empty()) {return;}
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2236,13 +2433,13 @@ impl Emitter<'_> {
     #[inline(never)]
     #[cfg(test)]
     fn prepare_storage_result(&self,family:usize,enum_name:&str,span:crate::Span)->Result<(String,String),crate::Diagnostic> {
-        let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
+        let contract=self.function_effects().storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
         let (_,_,origins)=self.program.stored_contracts.families().find(|(id,_,_)|*id==family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a known family.",span))?;
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         contract.native_payloads(&unions,runtime,span)?;
         for origin in origins {
-            let source=self.program.error_effects.closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires saved member contracts.",span))?;
+            let source=self.function_effects().closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires saved member contracts.",span))?;
             source.native_injection(contract,&unions,runtime,span)?;
             if (source.runtime || source.opaque || !source.explicit.is_empty()) && !self.result_closures.borrow().contains_key(origin) {
                 return Err(crate::Diagnostic::new("error-effect","Fallible stored member requires Result registration before its family.",span));
@@ -2271,7 +2468,7 @@ impl Emitter<'_> {
         let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let destination=self.result_storage.borrow().get(&family).cloned();
         let Some((destination_name,destination))=destination else {return call;};
-        let source=&self.program.error_effects.closure_errors[origin];
+        let source=&self.function_effects().closure_errors[origin];
         let source_name=self.result_closures.borrow().get(&origin).cloned();
         if let Some(source_name)=source_name {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2300,7 +2497,7 @@ impl Emitter<'_> {
                 else{call}
             }else{call};
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            self.exception_regions.closure_result_call(&call,origin,&source_name,&self.program.error_effects,&unions,span).expect("checked registered closure Result call")
+            self.exception_regions.closure_result_call(&call,origin,&source_name,&self.function_effects(),&unions,span).expect("checked registered closure Result call")
         } else {
             call
         }
@@ -2309,11 +2506,11 @@ impl Emitter<'_> {
     #[inline(never)]
     fn storage_result_forward(&self,call:String,family:usize,outer:usize)->String {
         let Some(destination)=self.result_closures.borrow().get(&outer).cloned() else {return call;};
-        let source=self.program.error_effects.storage_errors.get(&family).expect("saved rest storage contract");
+        let source=self.function_effects().storage_errors.get(&family).expect("saved rest storage contract");
         if let Some((source_name,_))=self.result_storage.borrow().get(&family) {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked rest storage transport");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked rest storage transport");
             let conversion=exception_emit::error_conversion("error",source_name,&destination,&mapping);
             format!("({call}).map_err(|error|{conversion})")
         } else {
@@ -2326,12 +2523,12 @@ impl Emitter<'_> {
     fn closure_result_forward(&self,call:String,inner:usize,outer:usize)->String {
         let destination=self.result_closures.borrow().get(&outer).cloned();
         let Some(destination)=destination else {return call;};
-        let source=&self.program.error_effects.closure_errors[inner];
+        let source=&self.function_effects().closure_errors[inner];
         let source_name=self.result_closures.borrow().get(&inner).cloned();
         if let Some(source_name)=source_name {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked adapter Result contract");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked adapter Result contract");
             let conversion=exception_emit::error_conversion("error",&source_name,&destination,&mapping);
             format!("({call}).map_err(|error|{conversion})")
         } else {
@@ -2436,7 +2633,7 @@ impl Emitter<'_> {
                         (Some(destination),Some(source_name))=>{
                             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
                             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-                            let mapping=self.program.error_effects.method_errors[&(inner,method)].native_injection(&self.program.error_effects.method_errors[&(outer,outer_method)],&unions,runtime,call.span).expect("checked counted method transport");
+                            let mapping=self.function_effects().method_errors[&(inner,method)].native_injection(&self.function_effects().method_errors[&(outer,outer_method)],&unions,runtime,call.span).expect("checked counted method transport");
                             let conversion=exception_emit::error_conversion("error",&source_name,&destination,&mapping);
                             format!("({code}).map_err(|error|{conversion})")
                         }
@@ -2487,12 +2684,12 @@ impl Emitter<'_> {
         let function=&self.program.functions[index];
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        let payloads=self.program.error_effects.function_errors[index].native_payloads(&unions,runtime,function.body.first().map_or(crate::Span::default(),|statement|statement.span)).expect("checked entry error contract");
+        let payloads=self.function_effects().function_errors[index].native_payloads(&unions,runtime,function.body.first().map_or(crate::Span::default(),|statement|statement.span)).expect("checked entry error contract");
         let matched=if payloads.is_empty(){"*error"}else{"error"};
         let mut arms=String::new();
         for (tag,ty) in payloads.into_iter().enumerate() {
             let report=if Some(ty)==runtime {
-                "tsr_console_write(true,&std::format!(\"Uncaught {}: {} ({}:{}..{})\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field4,payload.field5));".to_owned()
+                "tsr_console_write(true,&if payload.field6==0 {std::format!(\"Uncaught {}: {}\\n\",payload.field0.as_ref(),payload.field2.as_ref())} else {std::format!(\"Uncaught {}: {}\\n    at {}:{}:{}\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field6,payload.field7)});".to_owned()
             } else if matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::CacheInsertError)) {
                 // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
                 "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
@@ -2502,7 +2699,9 @@ impl Emitter<'_> {
             };
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
-        let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
+        let entry=if crate::error_effects::unwind_faults() {
+            format!("{{ {} tsr_install_fault_hook(); match tsr_catch_faults({symbol}) {{ Ok(result)=>tsr_entry_result(result,|error|{{match {matched}{{{arms}}}}}), Err(fault)=>tsr_fault_exit(&fault) }} }}\n",self.entry_setup)
+        } else {format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)};
         // GPUI requires the process's own main thread even with an async entrypoint.
         if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
         else if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
@@ -2905,11 +3104,11 @@ impl Emitter<'_> {
                 arguments.extend(self.owner_inputs(target).iter().map(|source| format!("std::marker::PhantomData::<O{source}>")));
                 let arguments=arguments.join(", ");
                 let call=if let Some(destination)=&result_layout {
-                    let source=&self.program.error_effects.function_errors[target];
+                    let source=&self.function_effects().function_errors[target];
                     if let Some((symbol,source_name))=self.result_functions.borrow().get(&target).cloned() {
                         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
                         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-                        let mapping=source.native_injection(&self.program.error_effects.closure_errors[index],&unions,runtime,closure.span).expect("checked forwarded Result contract");
+                        let mapping=source.native_injection(&self.function_effects().closure_errors[index],&unions,runtime,closure.span).expect("checked forwarded Result contract");
                         let conversion=exception_emit::error_conversion("error",&source_name,destination,&mapping);
                         format!("{symbol}({arguments}).map_err(|error|{conversion})")
                     } else {
@@ -2970,7 +3169,7 @@ impl Emitter<'_> {
                 if let Some(error_name)=&result_layout {
                     let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
                     let id=self.completion_next.get();
-                    let body=self.callable_result_body(&closure.function,&closure.function.body,id,error_name,self.program.error_effects.closure_errors[index].clone(),runtime);
+                    let body=self.callable_result_body(&closure.function,&closure.function.body,id,error_name,self.function_effects().closure_errors[index].clone(),runtime);
                     let _=writeln!(output,"        {body}");
                 } else if crate::analysis::has_exception_syntax(&closure.function.body) {
                     let body=self.pure_callable_completion_body(&closure.function);
@@ -3210,6 +3409,9 @@ impl Emitter<'_> {
                 if plan.parameters.iter().any(Option::is_some) {format!("{symbol}_fixed{plan_id}")} else {symbol.clone()}
             } else if plan.parameters.iter().any(Option::is_some) {
                 format!("fixed_function{plan_id}")
+            } else if fun.name == "main" && crate::error_effects::unwind_faults() {
+                // The entry catch below wraps this body (docs/plans/fault-unwinding.md).
+                "tsrust_unwind_main".to_owned()
             } else if fun.name == "main" {
                 "main".to_owned()
             } else {
@@ -3223,10 +3425,11 @@ impl Emitter<'_> {
             }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let async_entry=Self::async_entry(fun);
-            let threaded=name == "main" && async_entry && !self.ui_window();
+            let entry=name == "main" || name == "tsrust_unwind_main";
+            let threaded=entry && async_entry && !self.ui_window();
             let _ = writeln!(output,"fn {}{generics}({params}) -> {native_result}{replacement_where} {{",if threaded {"tsrust_entry_main"} else {&name});
             if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
-            if name == "main" {
+            if entry {
                 output.push_str(self.entry_setup);
             }
             if let Some(body)=self.rust_function_body(index,&plan.parameters) {
@@ -3234,10 +3437,17 @@ impl Emitter<'_> {
             } else if let Some((_,error_name))=&result_target {
                 let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
                 let id=self.completion_next.get();
-                let body=self.callable_result_body(fun,&fun.body,id,error_name,self.program.error_effects.function_errors[index].clone(),runtime);
+                // Dead-local moves hold in throwing bodies too: a catch never sees a local
+                // declared inside its try, and a local declared outside is last mentioned
+                // by the whole try statement, which never qualifies.
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
+                let body=self.callable_result_body(fun,&fun.body,id,error_name,self.function_effects().function_errors[index].clone(),runtime);
+                self.receiver_moves.borrow_mut().clear();
                 let _=writeln!(output,"    {body}");
             } else if crate::analysis::has_exception_syntax(&fun.body) {
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
                 let body=self.pure_callable_completion_body(fun);
+                self.receiver_moves.borrow_mut().clear();
                 let _=writeln!(output,"    {body}");
             } else {
                 self.parameter_initialization(&mut output, fun);
@@ -3247,7 +3457,9 @@ impl Emitter<'_> {
             }
             if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
-            if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
+            if threaded && crate::error_effects::unwind_faults() {let _ = writeln!(output,"fn tsrust_unwind_entry() -> std::process::ExitCode {{ tsr_fault_entry(tsrust_entry_main) }}\nfn main() -> std::process::ExitCode {{ tsrust_main_thread(tsrust_unwind_entry) }}\n");}
+            else if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
+            else if name == "tsrust_unwind_main" {let _ = writeln!(output,"fn main() -> std::process::ExitCode {{ tsr_fault_entry(tsrust_unwind_main) }}\n");}
         }
         self.active_plan.set(None);
         if let Some(index)=self.program.functions.iter().position(|function|function.name=="main") {
@@ -3255,12 +3467,13 @@ impl Emitter<'_> {
                 output.push_str(&self.result_entry_adapter(index,&symbol,&error_name));
             }
         }
+        let hook = if crate::error_effects::unwind_faults() {"tsr_install_fault_hook(); "} else {""};
         if !self.program.functions.iter().any(|function| function.name == "main") && self.ui_window() {
-            let _ = writeln!(output, "fn main() {{ {} }}", self.entry_setup);
+            let _ = writeln!(output, "fn main() {{ {hook}{} }}", self.entry_setup);
         } else if !self.program.functions.iter().any(|function| function.name == "main") {
             // Test and statement-only programs run on the same 8 MiB main-thread
             // stack as async entrypoints: Windows gives the main thread 1 MiB.
-            let _ = writeln!(output, "fn main() {{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
+            let _ = writeln!(output, "fn main() {{ {hook}std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
@@ -3349,7 +3562,15 @@ impl Emitter<'_> {
             output.push_str(include_str!("../runtime/values.rs"));
         }
         // Support is emitted once per program, only when its representation is used.
-        if output.contains("String")
+        // Native binding bridges are written later; one taking or returning a
+        // string (such as decimal `format`) needs the string type too.
+        let native_strings = self.native_bindings.borrow().iter().any(|&id| {
+            let binding = &crate::native_bindings::BINDINGS[id];
+            matches!(binding.result, crate::native_bindings::NativeType::String)
+                || binding.parameters.iter().any(|parameter| matches!(parameter.ty, crate::native_bindings::NativeType::String))
+        });
+        if native_strings
+            || output.contains("String")
             || output.contains("tsr_int_text(")
             || output.contains("tsr_boolean_string(")
             || output.contains("tsr_int_locale_string(")
@@ -3418,7 +3639,13 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
-            output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
+            let runner=include_str!("../stdlib/testing/runtime/mod.rs");
+            // Test bodies are a fault boundary: a fault fails the test with its report text.
+            if crate::error_effects::unwind_faults() {
+                const CATCH:&str="let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(program, registry)));";
+                debug_assert!(runner.contains(CATCH));
+                output.push_str(&runner.replace(CATCH,"let result = tsr_catch_faults_as_panics(|| callback(program, registry));"));
+            } else { output.push_str(runner); }
             output.push_str(include_str!("../stdlib/testing/runtime/report.rs"));
             if asynchronous_runtime { output.push_str(include_str!("../stdlib/testing/runtime/async.rs")); }
             else { output.push_str("fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {body()}\n"); }
@@ -3592,6 +3819,9 @@ impl Emitter<'_> {
         if split_support {
             output.push_str(crate::runtime::STRING_SPLIT);
         }
+        if output.contains("tsr_split_parts(") {
+            output.push_str(crate::runtime::STRING_SPLIT_PIECES);
+        }
         if literal_support {
             output.push_str(crate::runtime::LITERAL_STRING_ARRAYS);
         }
@@ -3638,7 +3868,7 @@ impl Emitter<'_> {
             // A data union writes the text of its active alternative; null
             // and undefined write nothing, as array text requires.
             for (index, union) in self.program.unions.iter().enumerate() {
-                if union.members.iter().any(|member| matches!(member, Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::Callable(_) | Type::Void)) {
+                if union.members.iter().any(|member| matches!(member, Type::Callback(_) | Type::Closure(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callable(_) | Type::Void)) {
                     continue;
                 }
                 if self.nominal_union_alias(index).is_some() { continue; }
@@ -3665,7 +3895,7 @@ impl Emitter<'_> {
             }
             for index in 0..self.program.records.len() {
                 if !crate::analysis::native_capabilities::array_text_supported(Type::Record(index), &self.program.records, |id| self.program.unions[id.index()].members.clone()) { continue; }
-                if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
+                if let Some(registration)=self.record_join_registration(index){if !output.contains(&registration){output.push_str(&registration);}}
                 if record_array_structs.contains(&index) {
                     let _ = writeln!(
                         output,
@@ -5013,7 +5243,7 @@ impl Emitter<'_> {
         let selection=self.storage_selection_with(fun,target,false,render);
         let operands=self_append::operands(target,value).expect("proved string self append");
         let rendered=operands.iter().map(|operand|{let(child,mode)=Self::chain_operand(operand);render(child,mode,false)}).collect::<Vec<_>>();
-        let failure=format!("string addition capacity overflow at source bytes {}..{}",value.span.start,value.span.end);
+        let failure=self.capacity_failure("string addition capacity overflow", crate::Span::new(value.span.start, value.span.end));
         let(parts,capacity,pushes)=self.string_parts(fun,&operands,&rendered,&failure);
         format!("{{ {}{parts}let sink=tsr_string_reserve(&mut ({}),{capacity},{failure:?}); {pushes} }}",selection.setup,selection.place)
     }
@@ -5034,7 +5264,7 @@ impl Emitter<'_> {
         } else {
             format!("*({})", selection.shared)
         };
-        let failure = format!("string addition capacity overflow at source bytes {}..{}", span.start, span.end);
+        let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(span.start, span.end));
         if let Some(operands) = self.appended_operands(fun, target, value) {
             let rendered = operands.iter().map(|operand| { let (child, mode) = Self::chain_operand(operand); render(child, mode, false) }).collect::<Vec<_>>();
             let (parts, capacity, pushes) = self.string_parts(fun,&operands, &rendered, &failure);
@@ -5051,10 +5281,7 @@ impl Emitter<'_> {
             );
         }
         let result = if string {
-            let failure = format!(
-                "string addition capacity overflow at source bytes {}..{}",
-                span.start, span.end
-            );
+            let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(span.start, span.end));
             format!("tsr_string_add(compound_left, compound_right, {failure:?})")
         } else if target_type == Type::Number && op.bitwise_or_power() {
             Self::number_operation(op, "compound_left", "compound_right")
@@ -5269,10 +5496,7 @@ impl Emitter<'_> {
             _ => "usize::try_from(splicing_arg1.max(0)).unwrap_or(usize::MAX).min(splicing_len - splicing_start)".to_owned(),
         };
         let inserted = args.len().saturating_sub(2);
-        let failure = format!(
-            "toSpliced capacity overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("toSpliced capacity overflow", crate::Span::new(span.start, span.end));
         write!(output, "let splicing_deleted = {deleted}; let splicing_end = splicing_start + splicing_deleted; let splicing_capacity = (splicing_len - splicing_deleted).checked_add({inserted}).expect({failure:?}); let mut splicing_values: Vec<{}> = Vec::with_capacity(splicing_capacity); ", self.native_type(element.ty())).unwrap();
         let literal =
             self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
@@ -5502,6 +5726,18 @@ impl Emitter<'_> {
         }
     }
 
+    /// The sort call on `receiver`: in place, checked through the comparator's
+    /// Result, or, for a local comparator whose faults unwind, the positions sort
+    /// caught as one call inside a try region.
+    fn sort_call(&self,receiver:&str,compare:&str,fallible:bool,fault_comparator:Option<usize>,args:&[Expr],span:crate::Span)->String {
+        if let Some(origin)=fault_comparator {
+            let call=format!("match {receiver}.tsr_try_sort({compare}) {{ Ok(())=>(), Err(never)=>match never {{}} }}");
+            return self.fault_caught_closure(origin,&call,span);
+        }
+        if fallible {self.registered_traversal_call(format!("{receiver}.tsr_try_sort({compare})"), &args[0])}
+        else {format!("{receiver}.tsr_sort({compare})")}
+    }
+
     fn array_sort(
         &self,
         fun: &CheckedFunction,
@@ -5536,6 +5772,7 @@ impl Emitter<'_> {
             selected.exclusive
         };
         let mut fallible = false;
+        let mut fault_comparator = None;
         let compare = if let Some(callback) = args.first() {
             let callback_type = callback.ty.expect("checked comparator");
             let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
@@ -5586,8 +5823,17 @@ impl Emitter<'_> {
             } else {
                 format!("sorting_callback.call{}({})", callback.traversal_method.map_or(String::new(), |method| method.id.to_string()), values.join(", "))
             };
-            fallible = self.registered_traversal_call(call.clone(), callback) != call;
-            if fallible {
+            // A local comparator whose faults unwind keeps the positions sort, so a fault
+            // leaves the array as it was (docs/plans/fault-unwinding.md, decision 9).
+            // Without any catch site in the program a fault ends it, so the array's state
+            // after a fault is unobservable and the in-place sort stays.
+            fault_comparator = match callback_type {Type::Closure(id) if self.closure_unwinds(id) && !self.result_closures.borrow().contains_key(&id) && needs_exception_transport(self.program) => Some(id), _ => None};
+            fallible = fault_comparator.is_none() && self.registered_traversal_call(call.clone(), callback) != call;
+            if fault_comparator.is_some() {
+                let order = if result == Type::Int {"sorting_order.cmp(&0)"} else {"if sorting_order < 0.0 { std::cmp::Ordering::Less } else if sorting_order > 0.0 { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Equal }"};
+                let ty = if result == Type::Int {"i64"} else {"f64"};
+                format!("|sorting_left, sorting_right| {{ let sorting_order: {ty} = {call}; Ok::<_, std::convert::Infallible>({order}) }}")
+            } else if fallible {
                 let order = if result == Type::Int {
                     "sorting_order.cmp(&0)"
                 } else {
@@ -5616,9 +5862,7 @@ impl Emitter<'_> {
             }
         };
         if moved {
-            let call = if fallible {
-                self.registered_traversal_call(format!("sorting_copy.tsr_try_sort({compare})"), &args[0])
-            } else { format!("sorting_copy.tsr_sort({compare})") };
+            let call = self.sort_call("sorting_copy", &compare, fallible, fault_comparator, &args, call);
             write!(code, "{call}; sorting_copy }}").unwrap();
         } else if copying {
             let literal =
@@ -5649,14 +5893,10 @@ impl Emitter<'_> {
             } else {
                 "sorting_values".to_owned()
             };
-            let call = if fallible {
-                self.registered_traversal_call(format!("sorting_copy.tsr_try_sort({compare})"), &args[0])
-            } else { format!("sorting_copy.tsr_sort({compare})") };
+            let call = self.sort_call("sorting_copy", &compare, fallible, fault_comparator, &args, call);
             write!(code, "let mut sorting_copy = {wrapped}; {call}; sorting_copy }}").unwrap();
         } else {
-            let call = if fallible {
-                self.registered_traversal_call(format!("({receiver}).tsr_try_sort({compare})"), &args[0])
-            } else { format!("({receiver}).tsr_sort({compare})") };
+            let call = self.sort_call(&format!("({receiver})"), &compare, fallible, fault_comparator, &args, call);
             write!(code, "{call}; }}").unwrap();
         }
         code
@@ -5716,10 +5956,7 @@ impl Emitter<'_> {
             .map(|arg| self.expr(fun, arg, Mode::Consume))
             .collect::<Vec<_>>()
             .join(", ");
-        let failure = format!(
-            "splice capacity or int length overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("splice capacity or int length overflow", crate::Span::new(span.start, span.end));
         let result = if let Type::Array(ArrayElement::Record(record, 0)) = array_type
             && self.record_runtime.recursive(record)
         {
@@ -6119,10 +6356,7 @@ impl Emitter<'_> {
         let depth = args
             .first()
             .map_or_else(|| "1i64".into(), |arg| self.expr(fun, arg, Mode::Copy));
-        let failure = format!(
-            "flat capacity overflow at source bytes {}..{}",
-            expr.span.start, expr.span.end
-        );
+        let failure = self.capacity_failure("flat capacity overflow", crate::Span::new(expr.span.start, expr.span.end));
         let count = if levels == 0 {
             "let flat_count=flat_array.len();".to_owned()
         } else {
@@ -6257,10 +6491,7 @@ impl Emitter<'_> {
             format!("flatmap_callback.call({})", arguments.join(","))
         };
         let call = self.registered_traversal_call(call, callback);
-        let failure = format!(
-            "flatMap capacity overflow at source bytes {}..{}",
-            expr.span.start, expr.span.end
-        );
+        let failure = self.capacity_failure("flatMap capacity overflow", crate::Span::new(expr.span.start, expr.span.end));
         let append = if matches!(returned, Type::Array(_)) {
             format!(
                 "let flatmap_count=flatmap_result.len();tsr_flat_capacity(flatmap_values.len(),flatmap_count,{failure:?});flatmap_values.reserve(flatmap_count);flatmap_values.extend(flatmap_result.tsr_owned_items());"
@@ -6289,8 +6520,11 @@ impl Emitter<'_> {
         result: Type,
         filter: bool,
         from_array: bool,
+        call_span: crate::diagnostic::Span,
     ) -> String {
         let method = callback.traversal_method;
+        let moving = filter && !from_array && matches!(base.ty, Some(Type::Array(element)) if !element.ty().is_copy())
+            && method.is_none_or(|method| method.access != Mode::Mutate) && self.moves_receiver(base, call_span);
         let receiver = self.expr(
             fun,
             base,
@@ -6382,6 +6616,16 @@ impl Emitter<'_> {
             String::new()
         };
         let checked_call = self.registered_traversal_call(call.clone(), callback);
+        if moving && parameter_count < 3 && ordered_map.is_none() && !literal {
+            // The source is dead after this call: kept elements move instead of being cloned.
+            let Type::Array(output) = result else { unreachable!("checked transform result") };
+            let receiver = self.expr(fun, base, Mode::Consume);
+            let owned_items = if self.native_type(receiver_type).starts_with("Vec<") {"transform_array.into_iter()"} else {"TsrOwnedItems::tsr_owned_items(transform_array)"};
+            return format!(
+                "{{ let transform_array={receiver}; let transform_callback={environment}; let mut transform_values:Vec<{}>=Vec::new(); for (transform_position,transform_owned) in {owned_items}.enumerate() {{ let transform_value=&transform_owned; {index}let transform_keep={checked_call}; if transform_keep {{ transform_values.push(transform_owned); }} }} {} }}",
+                self.native_type(output.ty()), self.flat_array_result(result, "transform_values")
+            );
+        }
         if let Type::Map(id)=result {
             let groups=self.program.records[id].map_definition.as_ref().unwrap().value;
             let single=self.flat_array_result(groups,"vec![Clone::clone(transform_value)]");
@@ -6492,7 +6736,7 @@ impl Emitter<'_> {
     }
 
     fn string_chain_code(&self, fun:&CheckedFunction, operands: &[&Expr], rendered: &[String], operator: crate::Span) -> String {
-        let failure = format!("string addition capacity overflow at source bytes {}..{}", operator.start, operator.end);
+        let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(operator.start, operator.end));
         let (parts, capacity, pushes) = self.string_parts(fun,operands, rendered, &failure);
         format!("{{ {parts}let mut output = std::string::String::with_capacity({capacity}); {{ let sink = &mut output; {pushes}}} String::Owned(output) }}")
     }
@@ -6629,10 +6873,7 @@ impl Emitter<'_> {
         args: &[Expr],
         span: crate::diagnostic::Span,
     ) -> String {
-        let failure = format!(
-            "string concat capacity or allocation failure at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("string concat capacity or allocation failure", crate::Span::new(span.start, span.end));
         let mut code = String::from("{ ");
         let mut integers = Vec::with_capacity(args.len() + 1);
         // Snapshot every reached operand before capacity planning or formatting.
@@ -6730,10 +6971,7 @@ impl Emitter<'_> {
                     let _=write!(output,"{} }}",self.string_literal(&text));
                     return output;
                 }
-                let failure = format!(
-                    "string concat capacity or allocation failure at source bytes {}..{}",
-                    span.start, span.end
-                );
+                let failure = self.capacity_failure("string concat capacity or allocation failure", crate::Span::new(span.start, span.end));
                 let arguments = (0..args.len())
                     .map(|index| format!("string_argument{index}"))
                     .collect::<Vec<_>>()
@@ -6765,10 +7003,7 @@ impl Emitter<'_> {
                 )
             }
             CallTarget::StringRepeat => {
-                let failure = format!(
-                    "string repeat capacity overflow at source bytes {}..{}",
-                    span.start, span.end
-                );
+                let failure = self.capacity_failure("string repeat capacity overflow", crate::Span::new(span.start, span.end));
                 format!("tsr_string_repeat(string_receiver, string_argument0, {failure:?})")
             }
             CallTarget::StringReplace | CallTarget::StringReplaceAll => format!(
@@ -7143,10 +7378,7 @@ impl Emitter<'_> {
                 );
             }
         }
-        let failure = format!(
-            "concat capacity overflow at source bytes {}..{}",
-            span.start, span.end
-        );
+        let failure = self.capacity_failure("concat capacity overflow", crate::Span::new(span.start, span.end));
         output.push_str("let mut concat_capacity = concat_array.len(); ");
         for (index, argument) in args.iter().enumerate() {
             let count = if matches!(argument.ty, Some(Type::Array(_))) {
@@ -9197,10 +9429,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
             None => render(right, if string { Mode::Read } else { Mode::Copy }),
         };
         if string && *op == BinaryOp::Add {
-            let failure = format!(
-                "string addition capacity overflow at source bytes {}..{}",
-                operator.start, operator.end
-            );
+            let failure = self.capacity_failure("string addition capacity overflow", crate::Span::new(operator.start, operator.end));
             if let Some(argument) = appended {
                 let push = match argument.ty {
                     Some(Type::Int) => format!("let number: i64 = {right}; tsr_push_int(&mut output, number);"),
@@ -9495,7 +9724,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                     let call = format!("{name}(message_plan.field0, message_limit)");
                     let call = if let Some((_, source_name)) = self.result_functions.borrow().get(&index) {
                         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-                        self.exception_regions.function_result_call(&call, index, source_name, &self.program.error_effects, &unions, expr.span)
+                        self.exception_regions.function_result_call(&call, index, source_name, self.function_effects(), &unions, expr.span)
                             .expect("checked message constraint Result call")
                     } else { call };
                     let Type::Record(id) = expr.ty.unwrap() else { unreachable!() };
@@ -9896,6 +10125,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                         expr.ty.expect("checked transform result"),
                         expr.target == Some(CallTarget::ArrayFilter),
                         matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom" || name=="groupBy#map"),
+                        expr.span,
                     )
                 }
                 CallTarget::NumberToFixed
@@ -10485,6 +10715,8 @@ mod exception_region_tests {
     }
     #[test]
     fn concrete_closure_calls_use_registered_result_contract() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():int{const leaf=(n:int):int=>n/0;return leaf(64);}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program, "");
@@ -10501,6 +10733,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_closure_signature_executes_native_result() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():int{const leaf=(n:int):int=>64/n;return 64;}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let mut emitter=super::emitter_for(&program.program, "");
@@ -10544,6 +10778,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_function_value_forwards_native_result() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function leaf(n:int):int{return 64/n;}function value():int{const saved=leaf;return 64;}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program, "");
@@ -10577,6 +10813,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_once_adapter_converts_direct_and_counted_errors() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():void{const saved:Once<Function<int,[x:int]>>=(n:int):int=>64/n;}function main(){}").unwrap();
         let adapter=program.program.closures.iter().position(|closure|matches!(closure.forward,Some(crate::analysis::ClosureForward::Once(_)))).unwrap();
         let Some(crate::analysis::ClosureForward::Once(inner))=program.program.closures[adapter].forward else {unreachable!()};
@@ -10610,6 +10848,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_stored_family_emits_native_result_dispatch() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value(a:int,field:boolean):int{const actions:((n:int)=>int)[]=[(n:int):int=>64/n,(n:int):int=>n];if(field){return actions[0](a);}let selected=actions.remove(0);return selected(a);}function main(){}").unwrap();
         let caller_index=program.program.functions.iter().position(|function|function.name=="value").unwrap();
         let caller_contract=program.program.error_effects.function_errors[caller_index].clone();
@@ -10638,6 +10878,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_fixed_result_dispatch_preserves_specialized_borrowed_arrays() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function leaf(values:int[],n:int):int{return values[n];}function value(n:int):int{const values=[64];return leaf(values,n);}function bump(values:int[],n:int):int{values[n]+=1;return values[n];}function mutate(n:int):int{const values=[64];return bump(values,n);}type Box={value:int;children:Box[];};function boxed(box:Box,n:int):int{return box.children[n].value;}function records(n:int):int{const box:Box={value:0,children:[{value:64,children:[]}]};return boxed(box,n);}function text(values:string[],n:int):int{return values[n].length;}function strings(n:int):int{const values=[\"abcd\"];return text(values,n);}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "");let mut declarations=String::new();
@@ -10659,6 +10901,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_registered_entry_returns_failure_without_native_panic() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function main(){const n=1/0;}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "cleanup_witness(); pure_entry::verify();");let id=checked.program.functions.iter().position(|function|function.name=="main").unwrap();
@@ -10693,6 +10937,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_result_declarations_connect_entire_native_call_chain() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function leaf(n:int):int{return 64/n;}function stored(n:int):int{const actions:((x:int)=>int)[]=[(x:int):int=>64/x,(x:int):int=>x];return actions[0](n);}function main(){console.log(leaf(1));console.log(stored(1));console.log(stored(0));}").unwrap();
         crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "");
@@ -10705,6 +10951,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_abstract_callback_result_bounds_propagate_native_failures() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function invoke(f:Function<int,[n:int]>,n:int):int{return f(n);}function conditional(f:Function<int,[n:int]>,n:int):int{return(n>0?f:f)(n);}function main(){console.log(invoke((n:int):int=>64/n,1));console.log(conditional((n:int):int=>64/n,2));console.log(invoke((n:int):int=>n,7));console.log(conditional((n:int):int=>64/n,0));}").unwrap();
         // Exercise the retained generic checked body alongside concrete instantiations.
         for generic in checked.program.functions.iter_mut().filter(|function|matches!(function.name.as_str(),"invoke" | "conditional") && function.template){
@@ -10878,6 +11126,8 @@ mod exception_region_tests {
     }
     #[test]
     fn declared_result_calls_propagate_native_callee_failures() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function mark(value:int):int{console.log(value);return value;}function leaf(a:int,b:int):int{if(a===1){return 1/0;}return b;}function value(a:int):int{return leaf(mark(a),mark(64));}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program,"");
@@ -11046,6 +11296,8 @@ mod exception_region_tests {
     }
     #[test]
     fn source_closure_error_layout_compiles_with_capture_lifetime() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let program=crate::check("function main(){const label=\"payload\";const saved=()=>label.length;const size=saved();}").unwrap();
         let emitter=super::emitter_for(&program.program,"");let function=program.program.functions.iter().find(|function|function.name=="main").unwrap();
         let (binding,saved)=function.bindings.iter().enumerate().find(|(_,binding)|binding.name=="saved").unwrap();

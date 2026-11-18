@@ -1,8 +1,769 @@
 # Tsrust continuation
 
-This is the only handoff. Read AGENTS.md, docs/agent-goal.md and the complete
-B00–B20 checklist in docs/plans/stdlib-0.2.0.md. The active owner goal is compiler/LSP optimization and the Worklist platform-validation application, followed by a validated push and PR merge to main. See docs/plans/task-management-validation.md. Required scope remains incomplete.
-v0.2.0 is released (main88db8210a, tag/release2026-11-11). No new publication is authorized.
+This is the only handoff. Read AGENTS.md, docs/agent-goal.md and
+docs/plans/gpui-application-platform.md. v0.2.1 is released; no further version
+publication is authorized. Active owner goal (2026-11-16): continue the GPUI
+application platform plan with heavy priority on compilation time, keep the
+gallery, Studio and Tasks apps together under apps/, and complete the UI input
+and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
+
+## Fault unwinding and `Checked<T, E>` — 2026-11-18
+
+All five phases of `docs/plans/fault-unwinding.md` are done; see its
+checklist for details and evidence. Runtime faults (overflow, bounds,
+assertions, length limits) now unwind by default and are caught per call
+inside `try`, at `Checked` functions and at every boundary (threads, tasks, UI
+callbacks, HTTP handlers, test bodies). `throw`, `Result` and `unwrap` stay
+values. `TSRUST_FAULT_MODE=value` selects the previous value mode, kept as the
+fallback for targets without unwinding; CI runs the library tests in both
+modes, and value-ABI tests return early unless that variable is `value`.
+
+- Reports: `Uncaught RangeError: <message>` then `    at file:line:column`,
+  exit 1, for every entry shape; `RUST_BACKTRACE=1` adds a native backtrace;
+  detached threads print `in a detached thread` (exit unchanged). The runtime
+  error record has `line` and `column`.
+- `Checked<T>` / `Checked<T, E>` / `Task<Checked<...>>` lower on tokens before
+  parsing (`syntax/checked_lowering.rs`) to a `try` body returning
+  `Result<T, RuntimeError | E>`. `RuntimeError` is a public type name for the
+  fault record. IntelliSense, guide section and a `std:testing` suite
+  (`tests/fixtures/checked/checked.test.tsr`, both modes) are in place.
+- Speed: lang-compare fib 1.42x to 1.04x of Rust, orders 1.39x to 1.26x; other
+  phases, gpui-compare and the edit loop unchanged (rows in SQLite).
+- Known limitation (pre-existing): a `try` around a call of a callback
+  parameter needs that callback's error contract resolved.
+
+Pre-existing failures found by the full unwind regression (all confirmed
+identical at 5baf487fe) were fixed on 2026-11-18:
+- Crate split: generic native handles (`Sender<Record72>`) get one generic
+  `TsrJoinText` impl instead of per-record impls no crate may hold (E0117 in
+  `http_client_uploads`, `http_context`); the runtime alias in `split/lib` is
+  refreshed by content, so a Cargo configuration change cannot leave split
+  crates with two runtimes (`shared_sources`).
+- `tsrust dev`: split compilers run in their own process group and a cancel
+  stops the group (`dev_cancellation`); with `TSRUST_CACHE_DIR`, `prechecked`
+  and `dev-runs` live in a per-project folder of that cache and the empty
+  marker folders are removed on stop (`dev_aliases`).
+- Tests brought up to date: registered-suite checks compare with the
+  repository's import order (`support::format_repository`), `std_bytes`
+  replacements match multi-line imports, split-crate compile counts and
+  rustc flags, the 8 MiB entry thread, header reuse, and a default
+  `CARGO_TARGET_DIR` via `support::target_dir()`.
+Follow-up, same day: a print to a closed pipe now ends the CLI quietly with
+status 141 even if the pipe signal disposition changed (`cli/main.rs`); the
+runtime harness runs `node-ts` with `--experimental-transform-types`, so
+enum and parameter-property counterparts run (the `async_channel_*` and enum
+workloads verify and were measured for the first time); the strings runtime is
+included when a native binding takes or returns a string (decimal `format`
+failed to compile in programs with no other string use).
+
+UI documentation: component hovers are generated short (purpose, example, prop
+and event names; `tools/generate-ui-kit.py`), `…Props` interfaces keep the full
+prop reference, and the 48 wordiest hand-written std:ui entries were rewritten
+(mean 128 to 53 words for components, 89 to about 60 for the rest). A generic
+hover summary for long non-UI entries was tried and removed: about 40 LSP tests
+pin ownership and error details that must stay in hover, so condensing those
+needs per-entry editing. The site gained a Desktop UI section generated from
+`docs/guides/ui` (`website/tools/generate-ui-guides.mjs`), and its errors page
+documents the uncaught report, `RuntimeError` fields and `Checked`.
+
+Hover condensing, same day (owner request: condense every unnecessarily long
+hover, entry by entry): about 250 non-UI entries were rewritten by hand
+(Array, string, JSON/std:json, HTTP, compression, testing and matchers,
+fs/io, bytes, console, Set, schema, threads, path, Object, collections, SQL,
+crypto, process, dns, cache, futures), and the longest UI component and prop
+descriptions in `kit.json` were shortened. Entries over 120 words fell from 319
+to about 110 (mostly `…Props` lists, which enumerate every prop by design);
+total hover text from 152k to 129k words. Clear entries (`typeof`, `parseInt`,
+`Checked`, `Function`, `null`, …) and `Array.of` (pinned by many tests) were
+kept. Code examples and `Expected output` lines are unchanged. The LSP tests pin
+many exact phrases; those facts were folded back into the short text, and two
+console assertions now check the `): void` signature and "Values to print".
+The performance page gained a "Whole program: Tsrust and hand-written Rust"
+section generated from the `lang-compare/*` rows (latest run, unwind default:
+whole process 1.38x of Rust, fib 1.00x).
+
+Runtime rerun under the unwind default (2026-11-18, Rust 1.99.1, 93 samples,
+quiet machine): about 820 workloads in eight batches, ingested and listed in
+`website/tools/performance-runs.json`. Tsrust faster than Node.js on 885 of
+1165 workloads (was 876); median ratios: Arrays 2.17x to 2.31x, JSON and
+schema 0.93x to 1.00x, others within noise.
+
+`caller_borrowed_record_stores` failed to compile there (also in released
+0.2.1); fixed the same day, with four pre-existing defects behind it:
+- E0596/E0308: speculative result discovery on the plain analysis path made
+  closures with provisional capture storage (a `Mutable` argument captured
+  shared, an `Owned` one borrowed). Pruning of unvalidated closures only ran
+  under assumed modes, so those stale copies were emitted next to the real
+  ones. Pruning now runs on every definitive analysis (`analysis/mod.rs`).
+- E0119: the `TsrJoinText` union loop in `emit/mod.rs` now also skips
+  `BorrowedCallable` members, so aliased callable unions get no duplicate impl.
+- E0277: a closure relaying a holder to an installer that stores a
+  conditional callback now forwards the callee's
+  `From<BorrowedCallable…>` obligation (`closure_record_signature_emit.rs`).
+- E0502: owner provenance (`borrowed_owner_provenance::plan`) now also starts
+  from callback-value closures (test bodies, lent callbacks), so replacing a
+  holder's callback releases the earlier source there as it does in functions.
+Witness: `tests/fixtures/caller-borrowed-record-stores/relayed-closures.test.tsr`
+(6 tests, both fault modes), run by `caller_borrowed_record_stores.rs`.
+Checks: compiler lib (1583) plus 24 closure/callback/record-store targets in
+unwind mode; lib, `caller_borrowed_record_stores` and
+`caller_input_instance_replacement` in value mode; all pass. Measured
+2026-11-18T17:08:36Z (93 samples, quiet machine, ingested and listed):
+native 0.323 ms (0.291 ms on 2026-11-04, before the unwind default),
+node-tsc 4.87 ms.
+
+## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
+
+GPUI comparison fixes (`stdlib/ui/gpui.rs`, `tsrust-ui`): `StyleMemo` shares
+resolved rules per class string for nodes whose classes need no node context
+(cleared on theme, mode or viewport change); `scoped_at_width` skips ancestors
+without `[&` selectors; `style::validate` remembers accepted class strings;
+`validate_structure` skips table rules without `table`; `Node` is 384 bytes
+(was about 1,030: boxed semantics, editable, copy, branch; `Rc` theme;
+witness `nodes_stay_small_to_move`). Animate CPU in the default build went
+20.5 s to 15.1 s. Correction: the earlier 2.0x compared release Rust with a
+default (opt-level 1) Tsrust build; release vs release is now 1.3x
+(13.4 s vs 10.1 s), startup 0.42 vs 0.35 s. Keyed reuse did not apply (rows
+have no id and change text every tick). Passed: tsrust-ui 169 tests,
+`ui_authoring` 13.
+
+`benchmarks/lang-compare/` is a ten-phase CPU program in `.tsr` and plain Rust
+with equal checksums. Release medians: words 4.0x, sets 2.6x, orders 1.8x,
+sieve 1.8x, fib 1.4x, trees 1.4x, matrix 1.3x, nbody 1.3x, format 1.2x, text
+0.5x; process 2.94 s vs 1.93 s, RSS 520 vs 256 MiB. README lists the profiled
+causes (Result check per fallible call, small-vector array enum, no sized
+array constructor, owned `split` pieces and keys, two-table ordered Map/Set,
+record-copying `filter` and index-permutation sort, work-list drops) and the
+fix order. Found and fixed: `Map.set` borrowed the map mutably before its
+arguments, so `m.set(k, (m.get(k) ?? 0) + 1)` failed in rustc
+(`emit/map_emit.rs`; witness in `tests/fixtures/maps/values.tsr`).
+`tsrust build` without `--release` is opt-level 0; compare only release builds.
+
+Follow-up, same day: Map/Set use one open-addressing index (`TsrSetBuckets`
+in `runtime/sets.rs`, hash beside slot index, tombstones, 7/8 load), hash each
+key once per operation, and hash numbers without a tag; `Map.set(clone(name),
+v)` with string keys lowers to `set_cloned`; `for (const p of s.split(sep))`
+walks pieces through `tsr_split_parts`/`tsr_split_piece`
+(`emit/iteration_emit.rs`, witness in `tests/string_split.rs`). words 2.2x
+(was 4.0x), sets 2.0x (was 2.6x), RSS 379 MiB (was 520). Found and fixed: the
+crate split declared generic functions and generic closure bodies `extern`,
+which rustc rejects (E0044); `set_for_each`, `caller_borrowed_callback_replacement`
+and two other callback suites failed on HEAD. Such items now stay beside their
+users (`native/crate_split.rs`, `type_parameters`). Passed: 32 generic/callback
+suites, Map/Set/collections/split suites, `ui_authoring`, crate_split units.
+
+Second round (compounding first, per owner): `TsrSetBuckets.recent` caches the
+last lookup (hit verified by key compare; miss reused only with exact scalar
+bits; reset on insert/remove/clear). `emit/receiver_moves.rs` now runs for
+throwing bodies (`callable_result_body`, `pure_callable_completion_body`),
+counts `Selected` roots instead of giving up, accepts earlier references when
+the move is the last mention (guarded by `viewed`), and moves `filter`
+sources (`array_transform`, witness
+`filter_moves_kept_rows_out_of_a_filled_dead_local_in_a_throwing_function`).
+`set_cloned` accepts field keys with a different root. Fallible sorts use
+`tsr_sort_positions` plus move-once (`tsr_try_sort_vec`) or snapshot (numeric).
+words 1.9x, sets 1.9x, orders 1.4x, process 2.68 s vs 1.94 s, RSS 368 MiB.
+Passed: 39 sort/copy/exception/collection suites, 80 array/record/generic/
+callback/ui suites, receiver_moves 8.
+
+Per-call Result cost: reproductions (README "Per-call Result cost") show the
+completion lowering already optimizes to plain `Result` code and error-record
+size/placement is irrelevant; the remaining 1.2 to 1.4x is the `Result` itself.
+Only unwinding thrown errors would remove it (owner decision pending: exception
+model change, silent hook, catch_unwind at catch/thread/async boundaries,
+unwind-capable targets). No compiler change made for this item.
+
+Owner approved the fault-unwinding direction with `Checked<T, E?>`; plan and
+prioritized checklist in `docs/plans/fault-unwinding.md`. Phase 0 audits done
+(findings in the plan): no runtime producer is an expected failure; seven
+entry boundaries listed; catch points inside `try` move to individual calls so
+existing ownership transport is unchanged; no profile sets a panic strategy
+(guard test `generated_profiles_keep_panics_unwinding`). Next: Phase 1 behind
+`FaultMode`, ending at the measurement gate.
+Before Phase 1 the owner asked to resolve deferred decisions and trace flows
+end to end: the plan now has an end-to-end table of today's behavior (four
+existing defects), twelve resolved decisions and the full `Checked<T, E>`
+specification; `unwrap`/`throw` stay values by decision.
+Phase 1 built behind `TSRUST_FAULT_MODE=unwind` (`runtime/faults.rs`,
+`plain_fault_contracts`, `RAISE_FAULT` injection, entry catch). Gate met:
+fib 10.2 ms to 7.2 ms (Rust parity), generated Rust -19% on lang-compare,
+no edit-loop regression; results in the plan. Value mode unchanged. Next:
+1.5a report format, then Phase 2 (per-call catches in try, boundaries,
+stage B closures).
+
+## Rust/GPUI vs Tsrust comparison app — 2026-11-17
+
+`benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with
+`std:ui` (same gpui-kit 0.9.0, patches, lock and profile), plus `measure.py`
+(startup, idle, 600-tick animation) and `edit_loop.py`. Results, profiles and
+takeaways are in its README; rows are in `measurements.sqlite` under
+`gpui-compare/*`. Headline: edit loop 1.20 s vs 0.81 s, animation CPU 2.0x
+(row Nodes rebuilt on every list change, styles recollected every frame),
+binary 1.9x, RSS +44 MiB, startup +0.2 s. Found and fixed: UI commands (quit,
+close, notifications) ran only during a render, so a covered window never
+quit; they now also run right after the queuing event (`stdlib/ui/gpui.rs`).
+Open levers: keyed row reuse in `each`, per-node style caching, and GPUI
+creating a CTFont per shaped line (shared with plain GPUI).
+
+## Reused checks across builds — 2026-11-17
+
+`tsrust dev` now also stores its own checked programs in
+`target/tsrust-native/prechecked/` (header `"editor": false`), so returning to
+sources it checked earlier, beyond the two in-memory revisions, skips the check
+(scratch witness: edits A, B, C, then A again reported "Reusing an earlier
+check of these sources." and rebuilt in 83 ms). The language server writes its
+pid and `COMPILER_IDENTITY` to `prechecked/server`; dev reports once per run
+when a running server is from another build (its results can never match) and
+does not wait for one. Owner log showed the cause of no reuse after a
+reinstall: Zed's language server process predated the new compiler identity.
+
+## Idle GPUI ticks and rustc contention in `tsrust dev` — 2026-11-17
+
+An idle Studio window used 30-50% of a core: its polling `Ticker`s (several
+always running at 50-150 ms) refreshed every binding in the tree on each tick.
+`Root::emit` now skips the refresh for a tick when the signal revision equals
+the last settled revision, no command is pending and no locale changed
+(`stdlib/ui/gpui_kit.rs`). Bindings read signals, and every signal write
+advances the revision, so the skipped refresh could not change anything; the
+Ticker documentation already requires onTick to update signals. Witness: a
+scratch app with 1,500 bound text rows and a no-op 16 ms Ticker idled at 34-35%
+CPU before and 1.6-1.7% after (both release runtimes, same machine).
+
+Also found: Studio launches `tsrust-lsp` from PATH, which on the owner machine
+was a stale 2026-11-15 `~/.cargo/bin` copy; each dev relaunch started a full
+workspace scan (about 5.5 CPU-minutes with that copy, about 100 s with the
+current build). Running the scan at macOS utility QoS was tried and reverted:
+a full rustc compile of Studio's main module crate took 24.6 s alone, 26.5 s
+beside a looping `tsrust check` at default priority and 27.4 s at utility, so
+CPU competition is not the rustc slowdown inside dev. The remaining suspect is
+memory pressure (8 GB machine, ~1.9 GB swap in use) evicting the ~1.3 GB of
+runtime rlibs between edits.
+
+## Editor background checks for `tsrust dev` — 2026-11-17
+
+While `tsrust dev` runs it writes `target/tsrust-native/dev-session` (pid and
+entry). The language server then checks that entry against the editor's
+unsaved text 600 ms after typing pauses (one background thread, a newer edit
+cancels the check in progress) and stores the emitted Rust, native features and
+stable-name keys in `target/tsrust-native/prechecked/` (newest four kept). On
+save, `tsrust dev` loads the module graph through its header cache and reuses a
+stored result whose graph identity matches: entry, every module id and text,
+and every resolved import target, from the same compiler build
+(`project_prechecked::COMPILER_IDENTITY`, a hash of the compiler crate sources
+from `build.rs`). The check is deterministic in those inputs, so a reused result
+equals a fresh check. Nothing runs in the language server without a live dev
+session.
+
+The language server marks a check in progress with
+`prechecked/<hash>.pending` (and its pid in `prechecked/server`). On save,
+`tsrust dev` uses a stored result, waits while the same graph is still being
+checked, and waits up to 1 s for a live server to start on it (a save reaches
+the editor and `tsrust dev` together; the server skips its typing pause on
+`didSave` but never restarts a check already running for that text). It checks
+for itself only when nothing is pending or the server's check fails; a newer
+edit ends the wait. The dev-session marker is rewritten each build when another
+process replaced or removed it, and removed on exit only by its owner.
+
+Studio, `main.tsrx` string edit driven through the language server: a save
+after the background check stored its result rebuilt in 5.5-6.5 s (check
+25-37 ms) instead of 14-17 s; a save 3 s after the edit waited for the running
+check instead of starting another.
+
+Dev builds and app bundles now live in `target/tsrust-native/dev-runs/` instead
+of the system temporary directory, which removes macOS's
+`sandbox_extension_issue_file_to_process ... Operation not permitted` message
+(verified by launching the same bundle from both places). Runs left by dead
+dev processes are removed at startup.
+
+Fixed failing language-server tests (all also failed on origin/main):
+completion while typing now waits for the document's own running full check
+instead of answering from a declaration index that lacks inferred receiver
+types (an unrelated check never delays it); `Function<...>` parameter labels use
+the formatter's `name: Type` spacing; catalog examples added for Signal.get/set,
+std:fs.renameNew and six std:ui entries, each run with its stated output.
+Validation: compiler lib 1581/1581, CLI 65/65, LSP 896/896, CI suites 23/23.
+
+## Check and prepare time in the dev loop — 2026-11-17
+
+Studio `tsrust check` is one whole-program `Analyzer::run` (single thread).
+Profiled with `sample` and fixed three costs that grew with program size:
+
+- Record layout validation re-checked every record on each append
+  (`append_checked_record_fields`, about 25% of check). `record_layout::Validated`
+  in the callable tables now validates only appended records, reusing earlier
+  sizes; any change to existing union members (`UnionArena::member_rewrites`,
+  bumped by recursive bindings and closure remapping) restarts from the first
+  record, and a failure keeps the prefix so the error repeats as before.
+- Native view shapes were rebuilt for every new union. Record shapes are now
+  shared (`Rc`) and only the union snapshot is extended; scoped callable
+  families compare a registry revision before a deep comparison.
+- `native_runtime::separate` scanned the 22 MB Studio program once per runtime
+  module and icon. It now indexes `mod tsrust_native_*` headers once, compares
+  candidates at those offsets, splices once, and collects borrowed string
+  literals in one pass.
+
+Results (Studio): check 14.5 s -> 11.6-11.8 s; runtime-prepare 1.13 s -> 0.58 s
+(separate 706 -> 153 ms). Output is unchanged: identical diagnostics for Studio
+and the Tasks API/desktop, native cache hits across the CI suites, runtime
+cache hit and 2 rebuilt crates after an edit. Lib 1578/1578, CI suites 23/23.
+
+Remaining check profile is flat (UI calls, result discovery, futures, record
+carriers each 5-10%). Large further gains need reuse of analysis across edits
+(per-module or per-function check results), which the analyzer does not have.
+
+Design for that reuse: `docs/plans/check-reuse.md`. Studio check runs five
+whole-program analyses (an aborted direct attempt, three speculative access
+passes, one definitive pass). Phase 1 done: in `tsrust dev` the definitive
+analysis runs beside a speculative pass that is likely to confirm the fixpoint
+(results identical by construction; emitted Studio Rust byte-identical). Studio
+dev check 9.6-9.7 s, edit rebuild 16.5-16.8 s wall. Lib 1579/1579, CLI 65/65,
+CI suites 23/23. Phase 2 does not apply (callers of record-callback callees
+are checked first, so each component level costs a pass); see the plan for
+the measurements and the remaining options.
+
+Split fingerprints now hash the staged runtime rlib's content instead of its
+directory. That directory is keyed by the whole environment, so a different
+shell or PATH made every crate rebuild (12-20 s on Studio); now 2 crates
+rebuild. Open: inside `tsrust dev`, the edited module crate and the program
+crate take about 2 s each (rustc CPU about 0.9 s), but 0.45-0.9 s when the same
+command runs alone. Pre-reading the rlibs and toolchain did not change the dev
+timings, so the file cache is not the cause.
+
+## Crate-per-module step 4: split is the default — 2026-11-17
+
+Development builds (`dev`, `build`/`run`/`test` without `--release`/`--debug`)
+now compile one crate per source module by default; `TSRUST_CRATE_SPLIT=0`
+restores the single-crate build. In `tsrust dev` the split build runs beside
+the watcher and kills its rustc processes when a newer edit or a stop arrives
+(`SplitCrates::build` takes a cancel flag; a crate's fingerprint stamp is
+removed before it compiles, so a killed compile is never treated as fresh).
+
+- Studio cancel check: an edit during a running split build is abandoned, the
+  next edit builds once (rebuilt=2, 4.2-4.7 s rustc+link) and no rustc remains.
+- Linking: verified in Docker (rust:1.99.1-bookworm) with a minimal crate of
+  the same shape (types crate calling an `extern "Rust"` closure body exported
+  by a module rlib that nothing else references, archives ordered module before
+  types). aarch64 Linux links with GNU ld and x86_64 Linux with `-fuse-ld=lld`;
+  both run correctly. rustc adds a generated `symbols.o` that references every
+  exported symbol of the linked rlibs, so archive order never drops a body.
+  Windows (`-Clinker-flavor=lld-link`) gets the same `symbols.o`; not run on
+  Windows.
+- Validation: CI suites 23/23 (68 s, no aborts), CLI unit tests 65/65.
+- The earlier one-off full rebuild matches the first build after a compiler
+  binary change; repeat sessions start from the native cache.
+
+Next: release LTO comparison (plan step 5), then check time (~14.5 s of the
+Studio loop).
+
+## Crate-per-module step 3: split development builds — 2026-11-16
+
+The emission and driver behind the old `TSRUST_CRATE_SPLIT=1` flag
+(`native/crate_split.rs`, driver `runtime_build::SplitCrates`). The prototype
+and its results are in `experiments/crate-split-spike/` (spike 3).
+
+- Crates: `tsrust_types` (items used by more than one crate and compiler-made
+  functions), `tsrust_m_<file>_<hash>` per module, and the program crate with
+  `main` and `[declared, defined]` checks for every link-time declaration.
+- Session layout: `target/tsrust-native/incremental/<entry>/split/` holds the
+  crate sources, `lib/` rlibs (plus a hard link of a Cargo-built runtime under
+  its hashed crate name) and per-crate incremental directories and
+  fingerprints. The native executable cache key includes the split flag.
+- Validation: compiler lib 1576/1576, CI suites 23/23, Studio 172/177 (same
+  five failures as single-crate: model host, gopls, rust-analyzer, tsserver).
+- Studio `tsrust dev` (103 crates): string edit 3.2-3.5 s rustc+link,
+  adding a function with a closure 3.1-3.3 s; single crate ~14 s and ~37 s.
+  Check is now ~14.5 s of the ~21 s loop.
+
+## Crate-per-module step 2: stable names — 2026-11-16
+
+Committed `native/stable_names.rs`: development builds (not `--release`, not
+`--debug`) rename generated items through a ledger in the incremental session
+directory. Keys are compiler-derived (source names normalized with module
+paths, specialization counters dropped, type arguments, fields, union members,
+closure enclosing function + ordinal); items without compiler keys are anchored
+to their first user + ordinal. Locals and labels are renumbered per top-level
+item. Family variants become `V_<closure number>`. Incremental builds also
+hash-assign functions to unit modules and write each unit and remaining items
+to their own `include!`d part file (`codegen_units::partition_files`), so an
+insertion shifts spans in one file only. `tsrust emit --stable-names LEDGER`
+prints the renamed program.
+
+Studio measurements (rustc + link, warm): literal edit ~14 s; adding a
+function without a closure 32-34 s -> 20-22 s. Adding a closure still costs
+~37 s: every closure implements the generated Callback / OnceCallback /
+ReadCallback traits, and a new impl invalidates every body that proves those
+traits. Per-signature traits conflict (E0119) with the blanket
+`impl<F: Callback<A, R> + ?Sized> Callback<A, R> for &mut F`; the crate split
+(step 3) is the intended fix.
+
+Validation with fresh caches: CI suites 23/23, gpui-starter 12/12, Studio
+172/177 — the 5 failures need absent tools (model-host binary, gopls,
+rust-analyzer, tsserver) and fail identically with the previous compiler.
+
+Note: the repository's Rust is not rustfmt-formatted; never run `cargo fmt`.
+
+Next: step 3, split emission behind `TSRUST_CRATE_SPLIT=1`.
+
+## Spike 2: zero-cost crate split via link-time symbols — 2026-11-16
+
+Owner constraints: no runtime performance loss, no dev/release divergence.
+Trait-object callables are rejected. Instead, cyclic references between
+module crates become `unsafe extern "Rust"` declarations resolved by the
+linker to `#[unsafe(no_mangle)]` definitions (direct calls, unchanged
+generated code), with `let _ = [declared, defined];` signature checks that
+make any mismatch a compile error. Spike (experiments/crate-split-spike):
+Studio's in-cycle services/ai/context.tsr (594 KB) as its own crate rebuilds +
+links in 0.6-0.7s versus 13.9s; the split binary runs; the check rejects a
+mismatched definition. Studio has 0 cross-file async function references;
+344 closure-type references need closure data structs in a shared crate with
+bodies as link-time functions. Next: plan the emitter work (module provenance,
+stable names, shared types crate, closure body extraction, Cargo or rustc
+orchestration, release build with LTO or single crate from identical source).
+
+## Per-module crate timing spike — 2026-11-16
+
+experiments/crate-split-spike: Studio's real dev-build program split into a
+prebuilt `rest` rlib and a small `edit` crate holding one file outside the
+callable cycle (settings-tools.tsr). Edit rebuild + link: 0.47s versus 13.9s
+for the single incremental crate. Owner direction: if the spike pays off,
+pursue the "Everywhere" option (trait-object callables in all builds, one
+crate per module). With check unchanged at ~14.5s, the projected Studio loop
+is about 17-18s (check + emit + ~1-2s rustc), making whole-program analysis
+the next bottleneck.
+
+## Per-module crate prototype: feasibility analysis — 2026-11-16
+
+tools/crate-split-analysis.py reads `tsrust emit --source-locations` output,
+groups items with their impls, builds the reference graph and condenses it into
+strongly connected components (code that must share a crate). Studio (22 MB):
+
+- As generated today: one cycle holds 37% of the code across 42 source files;
+  an ideal acyclic split would still rebuild 42% (median file) / 51% (worst)
+  per edit.
+- If stored-callable families dispatched through trait objects instead of an
+  enum over concrete closure types: largest group 15%, median rebuild 16%.
+- If closure calls across modules also went through trait objects: largest
+  group 12% (shared records/unions only), median rebuild 1.5%, worst 38%.
+
+Conclusion: crate-per-module only pays off with a different callable
+representation (dyn dispatch, at least in development builds). That is an
+owner decision: runtime cost (boxing, vtable calls) and a second codegen path
+versus a several-fold smaller per-edit compile.
+
+## Codegen-unit split fixed for all programs — 2026-11-16
+
+Commit 83bd76f5f: the splitter stopped at the first top-level module, so
+programs with an early runtime module (std:schema; Studio) were never split.
+It now only avoids crossing macro_rules!. Studio: 62 units; rustc+link per
+edit 24.5s to 19.1s; edit loop 41s to 35s (check 14.5s, emit 1.4s, prepare
+0.75s). Direct rustc on the same edit is 13.9s (~11s fixed for 20 MB); the
+running app competes for CPU inside `tsrust dev`. Raising -C codegen-units
+past 256 did not help.
+
+Next structural lever (owner asked): one Rust crate per exported module so an
+edit recompiles only that module's crate. Blockers: globally numbered,
+program-wide monomorphized types (RecordN, UnionN, ClosureN, error enums)
+would need a shared types crate with content-stable names, trait impls in
+that crate (orphan rule), module-scoped function names and pub visibility.
+
+## Whole-program scans removed from check — 2026-11-16
+
+Commit 6d598c252: region solves skip the callback-origin scan when their slice
+reads no callback contract; record-shape cache revalidation (66k walks over
+1,877 records) avoided by narrow accessors (AnalysisProgram::functions_mut,
+records_for_append) that do not bump the shape-only program revision, plus
+identity-first field-name checks. Studio check 21.5s to 14.8s; edit loop 48s
+to 41s. Old/new compilers emit identical diagnostics and Rust for 37
+projects. Generic record materialization (threads.rs, generic_calls.rs) still
+bumps the revision because it can rewrite existing record fields.
+
+## Sliced error-effect solving — 2026-11-16
+
+Commit e9c662d8e: partial error-contract solves cover only the dependency
+slice their reader needs (seeds from the region/catch/finally body or the
+task/worker callable), with fallback to whole-program solving when a solved
+body reads outside the slice. TSRUST_FULL_EFFECTS=1 forces the old path for
+A/B checks; Studio, gallery, Tasks desktop and backend-tasks emit
+byte-identical Rust and diagnostics both ways.
+
+Studio: check 35s to 21.5s; edit loop 61s to 48s (session start 87-108s).
+Remaining per-edit cost in Studio: rustc+link ~25s (about 11s fixed for 20 MB
+of Rust), check 21.5s (caller-variant origin walk ~3.7s over 1,135 solves;
+the rest is ordinary analysis), emit 1.4s.
+
+Pre-existing failure, unchanged by this work: tests/task_group_stack.rs
+race_and_all_settled asserts 'race(vec!' but the emitter passes a futures
+variable.
+
+## Dev-loop optimization round 2 — 2026-11-16
+
+Owner: keep optimizing the edit loop for every Tsrust project, not only UI.
+
+Measured edit loops (one string edit, `tsrust dev --verbose`):
+- hello (2 files): 0.35s. examples/backend-tasks (1.3k lines, HTTP+SQL):
+  1.7s, almost all rustc+link (frontend 0.08s); ~13k mono items, ~11k of
+  them std/tokio/hyper generics instantiated for application types.
+- apps/studio (18k lines): was 87-108s (check 60-71s, rustc 25s); now 61s
+  (check 35s, emit 1.4s, rustc+link 24s).
+
+Commit 0918ec67b: error-effect solving was 72% of Studio's check (2,936
+whole-program solves). Per-entry dependency tracking plus parallel cache
+warming with an order-preserving sequential pass; stable padded module bases
+and a separate source-table module so unchanged files emit identical Rust.
+Validation: compiler lib 1564/1564, project 96/96, CI suites 23/23 (64s),
+starter 12/12. TSRUST_TRACE_SOLVES=1 prints per-solve timings.
+
+Measurement pitfall: adding -Z flags (time-passes) on only one of two rustc
+runs changes the options hash and discards the incremental session.
+
+Remaining levers, by size:
+1. Error effects still ~45% of Studio check: solve only the callee slice a
+   region reads, or reuse results across solves (needs a sound body-change
+   signal; 46+ mutation sites make a generation counter fragile).
+2. rustc fixed cost ~11s per Studio build (parse/expand/resolve and
+   dependency-graph I/O on 20 MB of Rust). Shrink output: completion
+   plumbing 8%, error converters 6%; a 3.4 MB knowledge database is embedded
+   as one string literal.
+3. Within-file churn: labels/temporaries are named from source offsets, so
+   an edit renames those after it in the same file.
+
+## GPUI platform continuation — 2026-11-16
+
+Branch codex/gpui-platform starts at main 21c20650b (v0.2.1). The old
+codex/gpui-ui branch is superseded; its owner Studio/Kit drafts were carried
+onto this branch (commit 37ec2f369) after resolving one import conflict.
+
+Layout: examples/gpui-starter moved to apps/gpui-starter beside apps/studio
+and apps/tasks. tools/run-suites.py keeps the gallery in CI (CI_APP_ROOTS)
+while other apps stay local-only; the Studio knowledge index was regenerated.
+
+Compile time (commit 855d9202c), measured on apps/gpui-starter, one JSX text
+edit under `tsrust dev --verbose` (not quiet-machine benchmarks):
+- Before: 39s per edit = check 6.7s + emit 1.5s + dependency unpack 2.4s +
+  app rustc/link ~27s (rustc: borrowck 6.9, typeck 6.6, LLVM 8.3).
+- After: 18s = check 5.8s + emit 0.9s + prepare 0.45s + rustc/link 10.7s.
+- Levers: generated functions split into ~150 KB child modules (codegen
+  units; lexer-aware, emit output unchanged); per-entry rustc incremental
+  sessions from a stable source path for dev/run/build/test debug builds
+  (target/tsrust-native/incremental, 6 kept); --cap-lints allow on generated
+  code (~6,900 warnings); dependency bundles staged once per identity
+  (target/tsrust-native/runtime-staged, 3 kept); Fx-style hasher for type
+  keyed analysis tables and memoized union members in recursive view shapes.
+- Whole-project `tsrust check` of the starter 49.6s to 42.8s.
+- Next levers: frontend analysis reuse across edits (check is 5.8s of 18s)
+  and smaller generated exception plumbing (TsrCompletion 107k occurrences,
+  16.7 MB Rust for 17k source lines).
+
+UI (commit ab7aba2c4): View input events (key down/up, pointer down/up/move,
+wheel, double click, context menu, hover, focus/blur, file drop) with typed
+records; tabIndex Views are GPUI focus stops. Utility sizes are rems; zoomIn,
+zoomOut, resetZoom, setZoom; Windows TextScaleFactor and GNOME
+text-scaling-factor apply automatically. Verified on macOS with real CGEvent
+input and a zoom geometry check; file drop, Windows and Linux unverified.
+Gallery page: docs/guides/ui/06-input-and-zoom.md (Input and Zoom).
+
+Validation: repository CI suites 23/23 (286s, build 278s, tests 2.7s);
+starter 12/12; Studio 174/177 (3 need model-host binary, rust-analyzer
+component, tsserver); Tasks desktop 8/10 (2 need DATABASE_URL); compiler lib
+focused 30/30; CLI runtime_build 19/19; tsrust-ui window 8/8; ui_authoring
+13/13; LSP editor_consistency 31/31, jsx 6/6, gallery_index 2/2 after fixing
+its stale '<Route path=' anchor. completion_matrix
+completion_answers_at_typing_speed fails 30 rows in Immediate/Paced modes;
+identical on origin/main, so pre-existing and not yet repaired.
+
+Not pushed. gallery generator output now sorts imports and adds a blank line
+after std:ui imports; committed pages predate that, so regeneration rewrites
+every page (not CI-checked). Only the new page and routes were committed.
+
+## Latest release installed locally — 2026-11-15
+
+Owner requested installing the latest release locally. Official latest stable is
+v0.2.1. Verified current source matches tagv0.2.1 exactly except this developer
+handoff. Updated existing Cargo-owned installs through offline/locked/forced Cargo
+install,one job,CARGO_INCREMENTAL=0,shared original target. No owner source edits.
+Compiler build/setup3m11s;LSP35.86s. Cargo registrations are now CLI0.2.1/LSP0.3.1
+from this managed worktree (old metadata had lagged the prior executable versions).
+PATH resolves ~/.cargo/bin/tsrust and ~/.cargo/bin/tsrust-lsp;both versions verified.
+Shared target/release consumers match installed consumer hashes:
+CLI b2280c657ac44156413e96e4c8a62f2c7c26369af154f392265fe2ea21df1fe1
+LSP 950c71886031d9309025cf38a30fd707c8b8a0a7200193d1a046254a2417d520
+
+Zed settings still point to original target/release/tsrust-lsp,now verified0.3.1.
+A fresh installed LSP process passed initialize,hover capability and clean shutdown
+with the existing smoke helper and an empty temporary workspace (removed afterward).
+Existing editor processes were not restarted;restart their language server/reload
+editor to load the newly installed binary into an already-running process.
+
+VS Code had tsrust-local.tsrust0.2.1. Downloaded published0.2.2 VSIX plus official
+SHA256SUMS,verified hash/version,installed via code --install-extension --force,
+then confirmed tsrust-local.tsrust@0.2.2. Initial sandboxed list command could not
+create Code log directory;the normal authorized CLI install/verification succeeded.
+No workspace configuration or editor draft was changed. App/model/database sessions
+remain stopped. Temporary VSIX/checksums/install logs are removed after this local
+checkpoint. No source/product changes,extra tests,benchmark runs,push or new release.
+
+## v0.2.1 released and verified — 2026-11-15
+
+Owner explicitly authorized v0.2.1 publication and PR20's owner review bypass after
+all checks passed. Both actions completed; no approval remains pending.
+PR19 implementation,PR20 metadata and PR21 promotion are MERGED.
+Published latest stable release (not draft/prerelease):
+https://github.com/Forever-Frameworks-LLC/tsrust/releases/tag/v0.2.1
+PR21 merged2026-11-15T14:27:29Z;release published14:27:38Z.
+Main and immutable v0.2.1 tag point to21c20650b53d49326928a52c598658348a0269fa.
+Validated source PR-merge34738b6765a95dc8d538736f064841b93ff64c9e and published
+main have the same tree7467dc8091bd695897f04f29d992b3e5d44082cb.
+
+Release43722833880 SUCCESS:preflight,VSIX,all3 package builds and Release gate.
+Each platform passed15 packaging tests plus distributed CLI/LSP smoke:initialize,
+capabilities,clean shutdown,scaffold,native run,shared-cache JSON,exact documented
+quickstart/testing programs and platform reporter commands. Optimized build/setup:
+Linux10m17s,macOS13m08s,Windows13m08s. These are not benchmark measurements.
+Trusted Promote and publish43724423203 SUCCESS,merging/publishing the exact built
+artifacts without rebuilding. Docs43724474556 build/deploy SUCCESS on21c20650b.
+All prior PR20 CI and local gates remain retained below; no duplicate dispatch.
+All owned release/docs watch handles are terminal success;do not poll/restart.
+
+Independent post-publication verification passed:
+- Downloaded exactly5 official assets:3 platform tarballs,VSIX0.2.2,SHA256SUMS.
+  All5 bytes match official GitHub API SHA-256 digests;all4 payloads also match
+  SHA256SUMS (file digesteea1e842e8a40188b4158559bd0a03bb0a7a6c71c09de42d8868d559f74439d7).
+- Every archive's CLI0.2.1/LSP0.3.1,target,clean release marker and sourceCommit
+  match the release provenance snapshot. Verified1009 consumer/notice file hashes
+  per archive,exact generated README/toolchain identity,Rust1.99.1,and VSIX version.
+  Manifest intentionally hashes consumers/notices,not generated README/toolchain;
+  initial verifier assumed otherwise,then was corrected to this documented contract.
+- Published notes begin with the exact validated release-notes source. Tag/main
+  tree identity verified. API confirms v0.2.1 is latest stable.
+- Live installation,status,performance and std:ui reference pages returnHTTP200;
+  normalized complete rendered text matches locally validated release documentation.
+  Installation namesv0.2.1/correct platforms;status includesLSP0.3.1/knownmemory
+  limits;Signal.get/set/handle and completionText are present.
+- Benchmark integrity audit:3873 rows vs3839 in v0.2.0. All3839 prior row histories
+  are logically identical;34 development/compiler workload-engine rows added in
+  earlier performance work. No old rows removed or rewritten. Metadata/release
+  preparation leaves the accepted PR19 database byte-identical. Initial byte-equal
+  comparison against v0.2.0 was too broad;logical audit proves historical data was
+  preserved while publishing the earlier added measurements,including negative
+  experiments. No new measurements were run for release preparation.
+
+Temporary downloaded packages,provenance records and raw release/watch logs are
+removed after this local evidence checkpoint;do not retain binary/source archives.
+Owner drafts,installed tools and existing Zed LSP were not replaced or restarted.
+Studio/Worklist/API/database/model sessions remain stopped. No local application
+or SDK-draft acceptance is implied by this clean committed-source release.
+The release goal is achieved. This local evidence-only commit need not be pushed
+and must not retrigger CI solely to synchronize notes. Future work needs a new
+owner request;do not resume deferred tuning or application polishing automatically.
+
+## v0.2.1 publication authorized; promotion PR21 active — historical 2026-11-15
+
+Owner explicitly said "yes, publish v0.2.1 and use the owner bypass for PR20 once
+all checks pass. get it merged and released". Approval boundary is resolved; do
+not ask again. Rechecked exact PR20 head2dd2be1d2 and all checks green,then used
+--squash --admin --match-head-commit. PR20 is MERGED at2026-11-15T14:09:05Z,
+stagingedfc05fab371393440cfa74ce2c6c79bff8d4aed. Final main+stag merge preview
+is exact staging tree7467dc8091bd695897f04f29d992b3e5d44082cb.
+
+Opened authorized promotion PR21 (stag→main):
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/21
+Main base88db8210a7965fa22f5af59e2c720e950f7ceb36,headedfc05fab. No competing
+open PR existed before creating21. Automatic Release43722833880 is active on the
+exact staging head; no manual dispatch,tag or duplicate run. Owned gh watch
+session33150 writes /private/tmp/tsrust-release-43722833880-watch.log; revalidate
+that handle/exact run before any restart. Follow this run,
+then the triggered trusted Promote and publish workflow. Verify release/tag/main,
+all3 archives/VSIX/checksums and documentation deployment before claiming complete.
+Release preflight132838318705 and editor132838403241 passed. Linux release job
+132838403321 passed15 packaging tests,optimized build10m17s,and distributed
+LSP initialize/capabilities/shutdown plus CLI scaffold/native-run/JSON/exact
+quickstart/testing examples/platform reporter smoke checks. macOS132838403317 and
+Windows132838403276 remain in optimized compilation at latest check,no failure.
+Docs workflow listens to successful Promote and publish completion (not just
+pushes),so it covers the GITHUB_TOKEN merge; follow that automatic deployment.
+Any failure must be diagnosed locally before another push; retain completed checks.
+Source benchmark data and owner drafts remain unchanged;apps stay stopped.
+This local evidence update is not a push. Earlier pending-approval statements
+below are historical and superseded by this explicit approval.
+
+## Release metadata PR20 fully accepted; publication approval pending — 2026-11-15
+
+Exact remote release candidate2dd2be1d23fb05a2bd1e34f7b344f51252b3b81d now has
+complete CI43718413791 SUCCESS (all13 jobs),Documentation43718413778 SUCCESS.
+Watch3264 exited0; terminal,do not poll/restart. PR20 remains OPEN,REVIEW_REQUIRED,
+BLOCKED,with no reviews at final check:
+https://github.com/Forever-Frameworks-LLC/tsrust/pull/20
+
+Final retained CI counts on the metadata head:
+- Core1663 passed,0 failed,8 existing ignored; detailed timings below.
+- Runtime143/143 groups on each Linux/macOS/Windows,0 failures; GPUI passed each.
+- Linux host22 targets/181 passed,0 failed/ignored,test-wall1346.10s;
+  top-level dev1m40s/compiler-host build2m03s/LSP-host build2m08s.
+- macOS host22 targets/182 passed,0 failed/ignored,test-wall1633.40s;
+  dev2m56s/compiler-host build3m22s/LSP-host build3m28s.
+- Windows host22 targets/177 passed,0 failed,1 existing ignored,test-wall1619.94s;
+  dev2m56s/compiler-host build2m53s/LSP-host build2m29s.
+All summed target test-wall values include nested native builds and remain below
+3600s,so execution conservatively satisfies the owner limit. CI timings are not
+benchmark measurements. Existing SQLite/identity records remain unchanged.
+
+Required version-specific publication/PR20 review exception question remains
+unanswered. Owner's "promote away" and release goal authorize preparation and
+public-release intent,but project skill requires explicit version/public outcome;
+the pending question names v0.2.1 (CLI0.2.1/LSP0.3.1/VSIX0.2.2),PR20 owner bypass
+only after green checks,and automatic stag→main publication. Do not assume an
+automatic goal continuation answers that question. No new tag,publication or
+main-promotion PR exists. Next: on explicit approval,recheck exact PR20 head/checks,
+merge into staging using the approved exception,then open stag→main once and
+follow Release plus Promote and publish,verifying final assets/docs/provenance.
+Do not repeat passed CI or dispatch a duplicate validation run.
+
+The following active-run observations are retained historical evidence and are
+superseded by the completed results above. This evidence-only local checkpoint
+must not be pushed merely to synchronize notes. Temporary raw logs under
+/private/tmp/tsrust-ci-43718413791-* may be deleted after checkpointing.
+
+## Release metadata PR20 opened — historical 2026-11-15
+
+Exact locally accepted commit2dd2be1d23fb05a2bd1e34f7b344f51252b3b81d was pushed
+once as codex/release-0.2.1 to merge the coherent release metadata/docs batch into
+staging. PR20: https://github.com/Forever-Frameworks-LLC/tsrust/pull/20 .
+Only this metadata push occurred after the two PR19 implementation pushes.
+No other open PR existed before creating20. Normal automatic CI43718413791 and
+Documentation43718413778 started on exact2dd2be1d2; no manual dispatch or duplicate
+run. Existing implementation acceptance on PR19 remains retained. Follow these
+exact runs and diagnose any failure locally before another push. Owned gh watch
+CI session3264 writes /private/tmp/tsrust-ci-43718413791-watch.log; revalidate this
+handle or exact run before any restart. This local evidence edit is not a push.
+
+The owner explicitly requested promotion/release,but the version-specific v0.2.1
+publication and metadata-PR review bypass question remains unanswered. Creating
+the staging-only PR is independent authorized release preparation; do not open
+the auto-publishing stag→main PR or bypass PR20 review before the answer arrives.
+Documentation43718413778 completed success;VS Code job132824864497 also passed.
+PR20 tooling and all3 builds subsequently passed. Core log confirms compiler1558
+passed/8 existing ignored (88.37s),CLI62 (5.78s),LSP36 (2.53s),scheduler7 (.02s):
+1663 passed,0 failed,build/setup4m07s. All6 runtime/host jobs are now active:
+Linux runtime132826662761,Windows runtime132826662768,macOS runtime132826662806;
+Windows host132826662792,Linux host132826662797,macOS host132826662856.
+Linux runtime subsequently passed143/143 groups,0 failed:wall776.0s,
+build767.182s/test4.232s;GPUI starter3files419.560s build/.002s test.
+macOS runtime also passed143/143:wall1001.0s,build989.937s/test5.457s;
+GPUI starter3files526.264s/.003s. Windows runtime passed143/143:wall975.0s,
+build956.470s/test4.547s;GPUI starter3files467.321s/.004s.
+All3 runtime platforms accepted. Linux host subsequently passed22 targets/181
+tests,0 failed/ignored,target test-wall1346.10s including nested native builds;
+top-level dev1m40s/compiler-host build2m03s/LSP-host build2m08s. Only macOS and
+Windows host jobs remain active,no failure.
+These CI build/execution observations are not new benchmark measurements.
+Read-only Git
+merge-tree previews passed: main+currentstag yields exact staging tree
+abf6a2f8e50b4245239ba1f039c5f40d8ea594b0; main+candidate2dd2be1d2 yields exact
+candidate tree7467dc8091bd695897f04f29d992b3e5d44082cb. No conflicts or unexpected
+main-only content were introduced by the historical divergence. Repeat only if
+main/stag/candidate changes before actual promotion.
+No version tag,publication or main promotion happened. Earlier references to no
+version push below are historical preparation state, superseded by this section.
 
 ## Promotion requested; v0.2.1 release metadata prepared locally — 2026-11-15
 

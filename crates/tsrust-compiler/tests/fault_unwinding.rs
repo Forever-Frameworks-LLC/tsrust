@@ -1,0 +1,108 @@
+// Fault-unwinding behavior that crosses the process boundary: the uncaught
+// report on stderr, the exit status and native backtraces. Each program runs
+// with the fault mode set explicitly, whatever mode the suite runs in.
+mod support;
+
+fn run(mode: &str, fixture: &str, backtrace: bool) -> std::process::Output {
+    let directory = support::TempDirectory::new();
+    let source = std::fs::read_to_string(format!("tests/fixtures/fault-unwinding/{fixture}")).unwrap();
+    let path = directory.source(&support::format_round_trip(&source));
+    let mut command = support::cli();
+    command.env("TSRUST_FAULT_MODE", mode).env("TSRUST_COLOR", "never").arg("run").arg(&path);
+    if backtrace { command.env("RUST_BACKTRACE", "1"); } else { command.env_remove("RUST_BACKTRACE"); }
+    support::run(&mut command, 300)
+}
+
+#[test]
+fn task_faults_leave_pool_channel_and_scope_locks_usable() {
+    for mode in ["unwind", "value"] {
+        let output = run(mode, "task-fault-locks.tsr", false);
+        support::success(&output);
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), "worker\n9223372036854775807\nworker\n1\nworker\n9223372036854775807\n0\n", "{mode}");
+    }
+}
+
+#[test]
+fn capacity_limits_raise_catchable_range_error_faults() {
+    let output = run("unwind", "capacity-faults.tsr", false);
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), "RangeError capacity\n");
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.starts_with("Uncaught RangeError: string repeat capacity overflow at source bytes "), "{stderr}");
+    assert!(stderr.contains(".tsr:12:15\n") && !stderr.contains("native backtrace"), "{stderr}");
+    let traced = run("unwind", "capacity-faults.tsr", true);
+    assert_eq!(traced.status.code(), Some(1));
+    assert!(String::from_utf8(traced.stderr).unwrap().contains("native backtrace:\n"));
+}
+
+#[test]
+fn checked_results_catch_faults_and_listed_errors_in_both_modes() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for mode in ["unwind", "value"] {
+        let output = support::run(
+            support::cli().current_dir(&root).env("TSRUST_FAULT_MODE", mode).env("TSRUST_COLOR", "never").env("TSRUST_TEST_REPORTER", "plain")
+                .args(["test", "crates/tsrust-compiler/tests/fixtures/checked/checked.test.tsr"]),
+            600,
+        );
+        support::success(&output);
+        assert!(String::from_utf8(output.stdout).unwrap().ends_with("8 passed, 0 failed, 0 skipped\n"), "{mode}");
+    }
+}
+
+#[test]
+fn checked_positions_and_error_types_are_diagnosed() {
+    for (source, message) in [
+        ("function f(x: Checked<int>): int { return 1; } function main(){}", "Checked is only allowed as a function's declared result type"),
+        ("function main(): Checked<void> {}", "main cannot return Checked"),
+        ("function f(): Checked<Checked<int>> { return 1; } function main(){}", "Checked cannot be nested"),
+        ("function main(){ const x: Checked<int> = 1; }", "Checked is only allowed as a function's declared result type"),
+        ("function f(): Checked<int, string, int> { return 1; } function main(){}", "Checked takes a result type and an optional error type"),
+        ("function p(a: int): Checked<int> { if (a < 0) { throw 'neg'; } return a; } function main(){ console.log(p(1)); }", "Expected RuntimeError, found string. A Checked function fails with RuntimeError or its second type argument"),
+    ] {
+        let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("accepted: {source}"));
+        assert_eq!(error.code, "checked", "{source}");
+        assert!(error.message.starts_with(message), "{}", error.message);
+    }
+    let accepted = "type F = Function<Checked<int>>; type RuntimeError = { a: int }; function f(): RuntimeError { return { a: 1 }; } function main(){ console.log(f().a); }";
+    assert!(tsrust_compiler::check(accepted).is_ok());
+}
+
+#[test]
+fn checked_and_runtime_error_catalog_examples_match_native_output() {
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+    for name in ["Checked", "RuntimeError"] {
+        let entry = catalog["globals"].as_array().unwrap().iter().find(|entry| entry["name"] == name).unwrap();
+        for example in entry["examples"].as_array().unwrap() {
+            for mode in ["unwind", "value"] {
+                let directory = support::TempDirectory::new();
+                let path = directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+                let output = support::run(support::cli().env("TSRUST_FAULT_MODE", mode).arg("run").arg(path), 300);
+                support::success(&output);
+                assert_eq!(String::from_utf8(output.stdout).unwrap(), example["output"].as_str().unwrap(), "{name} {mode}");
+            }
+        }
+    }
+}
+
+#[test]
+fn uncaught_reports_share_one_format_for_every_entry_shape() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("lib.tsr"), "export function grow(a: int): int {\n  return a * 4611686018427387904;\n}\n").unwrap();
+    for (name, source, status, report) in [
+        ("sync", "function grow(a: int): int {\n  return a * 4611686018427387904;\n}\nfunction main() {\n  console.log(grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("async", "async function grow(a: int): Task<int> {\n  return a * 4611686018427387904;\n}\nasync function main(): Task<void> {\n  console.log(await grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("bounds", "function main() {\n  const values = [1];\n  console.log(values[3]);\n}\n", 1, "Uncaught RangeError: array index out of bounds at source bytes "),
+        ("multi", "import { grow } from './lib.tsr';\nfunction main() {\n  console.log(grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("thrown", "function main() {\n  throw 'explicit';\n}\n", 1, "Uncaught explicit\n"),
+    ] {
+        let path = directory.0.join(format!("{name}.tsr"));
+        std::fs::write(&path, source).unwrap();
+        let output = support::run(support::cli().env("TSRUST_FAULT_MODE", "unwind").arg("run").arg(&path), 300);
+        assert_eq!(output.status.code(), Some(status), "{name}");
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.starts_with(report), "{name}: {stderr}");
+        let location = match name { "multi" => "/lib.tsr:2:12\n", "sync" | "async" => ".tsr:2:12\n", "bounds" => ".tsr:3:15\n", _ => "\n" };
+        assert!(stderr.ends_with(location), "{name}: {stderr}");
+        assert!(!stderr.contains("panicked") && !stderr.contains("runtime error:"), "{name}: {stderr}");
+    }
+}

@@ -8,10 +8,11 @@ import {
   writeTextFile
 } from 'std:fs';
 import { Channel } from 'std:futures';
-import { hasConflictStart, resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
 import { platform } from 'std:os';
 import { run } from 'std:process';
 import { strictEqual, test } from 'std:testing';
+
+import { hasConflictStart, resolveFirstConflict } from '../src/lib/workspace/merge.tsr';
 import {
   GitReply,
   GitRequest,

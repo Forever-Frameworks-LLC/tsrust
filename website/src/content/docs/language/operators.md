@@ -104,7 +104,8 @@ function main() {
 
 Unlike TypeScript, the assertion is checked at run time. An absent value throws
 `Non-null assertion failed: value is null or undefined`, which `try`/`catch`
-receives; uncaught, the program stops with that message and the source range.
+receives; uncaught, the program stops with a report giving that message and the
+file, line and column.
 `!` does not supply a default (use `??`), clone, or restore a moved value. It works
 in chains such as `action!()` and `values![0]`, and on an already nonnullable value
 it changes nothing. A value that can only be absent is rejected at compile time.

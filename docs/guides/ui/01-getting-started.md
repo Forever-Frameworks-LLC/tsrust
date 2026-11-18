@@ -63,5 +63,5 @@ all.
 tsrust package src/main.tsrx --name "My App" --version 1.0.0 --icon icon.png
 ```
 
-This writes a `.app` bundle with a zip and DMG on macOS. See Packaging for
+This writes a `.app` bundle with a zip and DMG on macOS. The packaging guide covers
 signing, releases and self-update.

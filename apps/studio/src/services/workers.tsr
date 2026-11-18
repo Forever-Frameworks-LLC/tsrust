@@ -3,14 +3,14 @@ import { Channel, Sender, all } from 'std:futures';
 import { ModelRequest, ModelUpdate } from '../lib/ai/protocol.tsr';
 import { LanguageServer, studioServers } from '../lib/language/servers.tsr';
 import { FormattingRequest, FormattingResult } from '../lib/workspace/formatting-actions.tsr';
-import { DebugCommand, DebugOutput, debugWorker } from './debug/session.tsr';
 import { modelDownloads } from './ai/model-extensions.tsr';
 import { modelService } from './ai/session.tsr';
 import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from './content-search.tsr';
+import { DebugCommand, DebugOutput, debugWorker } from './debug/session.tsr';
 import { formattingWorker } from './formatting.tsr';
+import { GitRequest, GitReply, gitWorker } from './git.tsr';
 import { languageServices } from './lsp/registry.tsr';
 import { LanguageMessage, LanguageUpdate } from './lsp/session.tsr';
-import { GitRequest, GitReply, gitWorker } from './git.tsr';
 import { CheckResult, projectCheckWorker } from './project-check.tsr';
 
 // One owner cancels and settles every service when the application closes.

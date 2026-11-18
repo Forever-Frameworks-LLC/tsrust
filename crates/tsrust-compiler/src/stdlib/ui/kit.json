@@ -1955,12 +1955,12 @@
           "prop": "onValidate",
           "value": "predicate",
           "param": "candidate",
-          "doc": "Synchronous pure predicate for nonempty candidate text. Return false to reject an edit; the empty string always remains valid so the field can be cleared. Runs in addition to the mask and pattern. Reads captured signals live; do not issue UI commands or mutate state during validation."
+          "doc": "Returns false to reject the edited text (never called for empty text, which is always allowed). Runs after the mask and pattern. Keep it pure and synchronous."
         },
         {
           "prop": "stepBy",
           "value": "step",
-          "doc": "Returns the step amount for the current numeric value and increment flag (true for increase, false for decrease). Takes precedence over step. Must return a finite nonnegative number; zero prevents movement. min/max still clamp the resulting value. Keep this synchronous callback pure; errors stop the application."
+          "doc": "Returns the step for the current value; the flag is true when increasing. Overrides step. Must return a finite non-negative number (0 stops movement); min and max still apply. Keep it pure; errors stop the application."
         }
       ],
       "example": "<NumberInput value={quantity.get()} onChange={(value) => { quantity.set(value); }}/>"
@@ -2924,7 +2924,7 @@
     {
       "name": "AppMenuBar",
       "children": "AppMenu",
-      "doc": "Installs the application menus. macOS displays them in the system menu bar; Windows and Linux render the Kit menu bar here. Declare one in the main window. Changed labels, checked/disabled flags and children reload automatically. Hiding or removing the owning menu bar removes its installed menus. MenuItem entries require text and a Shortcut command; the active window handles that command. Missing commands disable an item. Custom rows, href and onSelect throw; use a Shortcut handler for application actions. Ownership: retains menu labels and action names; Shortcut callbacks stay with their window.",
+      "doc": "Installs the application menus: in the system menu bar on macOS, here in the window on Windows and Linux. Declare one in the main window; changes to labels, flags and children apply automatically. Each MenuItem needs text and a Shortcut command, which the active window handles; an item whose command is missing is disabled. Custom rows, href and onSelect throw. Ownership: retains the labels and command names.",
       "example": "<AppMenuBar><AppMenu label=\"File\"><MenuItem command=\"save\">Save</MenuItem></AppMenu></AppMenuBar>"
     },
     {
@@ -3590,12 +3590,12 @@
         {
           "name": "zoom",
           "type": "number",
-          "doc": "Enables a scrollable native image viewport. 0 fits the entire image without enlarging it; positive values from 1 through 3200 select a percentage of natural image size. Omit for the ordinary fixed image box. Fit follows pane resizing. Scrollbars and trackpad scrolling pan in both directions."
+          "doc": "Shows the image in a scrollable viewport: 0 fits the whole image (never enlarging); 1 to 3200 is a percentage of its natural size. Omit for an ordinary image."
         },
         {
           "name": "scrollTo",
           "type": "string",
-          "doc": "For a zoom-enabled image, JSON with finite nonnegative x/y scroll offsets in logical pixels and a nonnegative integer request identifier. Offsets clamp to image bounds. Change request to reapply the same coordinates after manual scrolling. Example: {\"x\":120,\"y\":80,\"request\":1}. Does not change zoom."
+          "doc": "With zoom set, JSON {x, y, request} scroll offsets in logical pixels, clamped to the image. Change request to apply the same offsets again. Example: {\"x\":120,\"y\":80,\"request\":1}."
         }
       ],
       "example": "<Image src=\"assets/logo.png\" fit=\"contain\" className=\"size-16\"/>",
@@ -4159,7 +4159,7 @@
         {
           "name": "minItemWidth",
           "type": "number",
-          "doc": "Positive minimum card width in logical pixels enables a responsive virtualized grid of flat ListItem children. Columns follow the measured list width; each card remains clickable and keyboard focusable. Use selectable=false and onConfirm for card activation. Omit for ordinary list selection and sections."
+          "doc": "Shows flat ListItem children as a responsive grid of cards at least this many logical pixels wide. Use selectable=false and onConfirm to activate cards. Omit for an ordinary list."
         }
       ],
       "events": [
@@ -4369,12 +4369,12 @@
         {
           "name": "iconSvg",
           "type": "string",
-          "doc": "Inline SVG glyph. Nonempty markup takes precedence over icon; empty markup uses the named or default folder/file icon. The Tree retains the source; the row label remains its accessible name. Parsing follows the same native SVG behavior as Icon.svg."
+          "doc": "Inline SVG icon; overrides icon when non-empty. Parsed like Icon.svg."
         },
         {
           "name": "iconColor",
           "type": "string",
-          "doc": "Tint for the row icon: a theme color, palette name or #rrggbb. Omitted, empty or unrecognized values inherit the row foreground. Applies to named and SVG icons without changing text color."
+          "doc": "Icon color: a theme color, palette name or #rrggbb. Omitted or unknown values use the row's text color."
         },
         {
           "name": "expanded",
@@ -5021,7 +5021,7 @@
     },
     {
       "name": "Terminal",
-      "doc": "A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount, or runs an explicit program with args as a visible task. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory/program/args are read once at mount. Starting a task can execute code or write files; its host must grant those effects.",
+      "doc": "An interactive terminal with colors, scrollback, selection and Unicode input. On first display it starts the login shell in directory, or runs program with args. Hiding keeps the session; unmounting closes it. Address it with controlTerminal and readTerminal by id. HTML output shows an unsupported message instead. Example: <Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\"/> opens an interactive shell in /tmp. Ownership: the mounted node owns the shell; directory, program and args are read once.",
       "props": [
         {
           "name": "id",
@@ -5065,13 +5065,13 @@
         {
           "prop": "onOpenLink",
           "value": "string",
-          "doc": "Cmd-click (Ctrl-click outside macOS) a path:line:column to request guarded editor navigation. Value is JSON containing path, line and column. Includes soft-wrapped locations. The host must validate workspace scope; no external URL is opened."
+          "doc": "Cmd-click (Ctrl-click outside macOS) on a path:line:column sends JSON {path, line, column}. Check the path is in scope before opening it; URLs are never opened."
         }
       ]
     },
     {
       "name": "CodeEditor",
-      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles. Show Hover in the context menu or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere) requests documentation at the caret without editing or moving focus. A hover provider is required; Escape dismisses and cancels pending hover.",
+      "doc": "A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing (optionally seeded by defaultValue), or set value and handle onChange for controlled text. controlInput and readInput address it by id. Offsets are UTF-8 bytes. Show Hover in the context menu, or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere), shows documentation at the caret from the hover provider; Escape dismisses it. Ownership: the mounted node owns its editor state.",
       "props": [
         {
           "name": "value",
@@ -5081,7 +5081,7 @@
         {
           "name": "language",
           "type": "string",
-          "doc": "Highlighting language, such as rust, typescript or json. tsr/tsrust select the TypeScript grammar; tsrx selects TSX. Read when the editor mounts; omission displays plain text. readInput reports the canonical grammar name."
+          "doc": "Highlighting language, such as rust, typescript or json (tsr selects TypeScript, tsrx selects TSX). Read when mounted; omitted, the text is plain."
         },
         {
           "name": "readOnly",
@@ -5157,6 +5157,11 @@
           "name": "lineNumbers",
           "type": "boolean",
           "doc": "Shows source line numbers. Defaults to true."
+        },
+        {
+          "name": "initialAnchor",
+          "type": "int",
+          "doc": "Fixed end of the native editor's initial selection, in UTF-8 bytes. With initialCaret, selects between the two offsets and preserves direction. Defaults to initialCaret."
         },
         {
           "name": "initialCaret",
@@ -5322,13 +5327,19 @@
           "prop": "onPaste",
           "value": "predicate",
           "param": "payload",
-          "doc": "Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it."
+          "doc": "Called with JSON {text, paths, imageCount} before a paste (text may be null). Return true to consume the paste yourself, false to insert the text normally. Errors stop the application. Skipped on web platforms without synchronous clipboard access."
         },
         {
           "prop": "onLanguageRequest",
           "value": "string",
           "param": "request",
-          "doc": "Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers."
+          "doc": "Receives JSON {id, method, params, text} for hover, completion, signature help, definition and references (positions in UTF-16). Reply with answerEditorLanguage within five seconds. Omit to disable these features."
+        },
+        {
+          "prop": "onSelectionChange",
+          "value": "string",
+          "param": "selection",
+          "doc": "Receives a JSON pair [anchor, caret] of UTF-8 byte offsets when the primary selection changes in the native editor. Equal endpoints indicate an insertion point."
         },
         {
           "prop": "onCaretChange",
@@ -5346,7 +5357,7 @@
           "prop": "onInlineCompletion",
           "value": "string",
           "param": "request",
-          "doc": "Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions."
+          "doc": "Receives JSON {id, prefix, suffix} (the text before and after the caret) when typing pauses. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to show a suggestion, or 'null' for none. Tab accepts and Escape dismisses it."
         },
         {
           "prop": "onLanguageCancel",
@@ -5358,13 +5369,13 @@
           "prop": "onLanguageNavigate",
           "value": "string",
           "param": "location",
-          "doc": "Receives LSP ShowDocumentParams JSON for Go to Definition. The host must validate the file URI and UTF-16 selection and open the target. Native URL/local-buffer fallbacks are consumed even when omitted; omission disables navigation delivery."
+          "doc": "Receives LSP ShowDocumentParams JSON for Go to Definition. Check the file URI and selection, then open the target. Omit to disable navigation."
         },
         {
           "prop": "onLanguageReferences",
           "value": "string",
           "param": "locations",
-          "doc": "Receives JSON {locations, error} after Shift+F12 or Find References. locations is an array of LSP Locations; error is an optional failure message. Only the current focused buffer/cursor receives results. The host presents locations; opening one requires file-URI and UTF-16 range validation. No text changes occur."
+          "doc": "Receives JSON {locations, error} after Find References (Shift+F12): an array of LSP Locations and an optional error message. Show the locations yourself; check each URI and range before opening it."
         }
       ]
     },
@@ -5714,7 +5725,7 @@
     },
     {
       "name": "Diff",
-      "doc": "A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. Alternatively supply originalText and modifiedText with filePath to compare full snapshots on a background worker, retaining all context for expansion and rejecting stale comparison results. Do not combine text snapshots with patch.",
+      "doc": "A read-only, scrolling view of a unified or Git patch, one section per changed file. Changing patch replaces the files; invalid patch text stops the application with its line and message. Instead of patch, pass originalText, modifiedText and filePath to compare two full texts in the background. For example, <Diff patch={patch} mode=\"split\" softWrap={true}/> wraps both columns. Callbacks receive JSON with file paths and one-based line numbers. Ownership: the mounted node owns its comparison state.",
       "props": [
         {
           "name": "patch",
@@ -5842,7 +5853,7 @@
         {
           "prop": "onLineClick",
           "value": "string",
-          "doc": "Receives a JSON position {path, side, line} when source code is clicked outside a selection drag. side is original or modified; line is one-based. The snapshot can be parsed with JSON.parse."
+          "doc": "Receives JSON {path, side, line} when code is clicked: side is original or modified, line is one-based."
         },
         {
           "prop": "onLineHover",
@@ -6359,7 +6370,7 @@
         {
           "name": "manualSorting",
           "type": "boolean",
-          "doc": "When true, sortable headers emit onSort and show direction without rearranging the supplied rows. Sort the full dataset in onSort before pagination. Defaults to false, which sorts the supplied rows locally."
+          "doc": "When true, header clicks emit onSort and show the direction but do not reorder the rows; sort the full data in onSort. Defaults to false (rows sort locally)."
         }
       ],
       "events": [
@@ -6452,7 +6463,7 @@
         {
           "name": "key",
           "type": "string",
-          "doc": "Column identity events report. An in-range numeric key picks that cell of each row; other keys use the original declared column position. Reordering keeps the same cell data. Defaults to the original column position."
+          "doc": "Column identity reported by events. A numeric key picks that cell of each row; otherwise the original column position is used. Defaults to the original position."
         },
         {
           "name": "width",
@@ -6472,7 +6483,7 @@
         {
           "name": "sortable",
           "type": "boolean",
-          "doc": "A header click cycles ascending, descending and original order. Local sorting puts numbers before text ascending, with stable ties. Signed 128-bit integer strings compare exactly; other numeric strings use 64-bit floats, including their total order for signed zero, infinities and NaN. Text compares lexically. Descending reverses that order without reversing ties."
+          "doc": "Header clicks cycle ascending, descending and original order. Numbers sort before text, ties keep their order, and descending reverses the order."
         },
         {
           "name": "defaultSort",
@@ -6531,7 +6542,7 @@
             "descending",
             "none"
           ],
-          "doc": "Controlled sort direction. Bind none on inactive columns. After onSort, the indicator and local row order follow this value even when the handler retains its previous value. Without it, defaultSort initializes an uncontrolled three-state sort."
+          "doc": "Controlled sort direction; use none on inactive columns. Without it, defaultSort starts an uncontrolled sort."
         }
       ],
       "example": "<DataTableColumn key=\"2\" sortable={true} align=\"right\" width={120}>Salary</DataTableColumn>"
@@ -6819,7 +6830,7 @@
         {
           "name": "initialLayout",
           "type": "string",
-          "doc": "Native GPUI saved layout from onLayoutChange, read only at mount. Empty or omitted uses tabbed/vertical defaults. Restores split axes, sizes, tab order and each group selection by distinct DockPanel.value; absent panels are skipped and new children are appended. Invalid JSON, unsupported version/shape, duplicate values, nonfinite/negative sizes, more than 64 levels or 1 MiB falls back to the default layout and reports onLayoutError. Does not open files, restore panel contents, focus, zoom or editor cursor/scroll state. HTML retains the option without native docking behavior. Ownership: copies text; no panel or callback ownership changes."
+          "doc": "A layout saved from onLayoutChange, read when mounted. Restores splits, sizes, tab order and selected tabs by DockPanel.value; missing panels are skipped and new ones appended. Invalid or oversized layouts fall back to the default and call onLayoutError. Panel contents, focus and scroll positions are not restored."
         }
       ],
       "children": "DockPanel",
@@ -6838,12 +6849,12 @@
         {
           "value": "string",
           "prop": "onLayoutChange",
-          "doc": "Native GPUI emits an opaque versioned JSON snapshot after a layout change and the next frame, coalescing changes and suppressing unchanged snapshots. Includes measured split sizes, tab order and per-group active tabs using DockPanel.value. Persist it and pass it as initialLayout on the next mount; do not update layout by parsing/reconstructing this payload. Content and editor state are excluded. The borrowed text is valid only during the callback; clone to retain."
+          "doc": "Receives a versioned JSON layout after each change. Save it and pass it back as initialLayout; do not edit it. Clone the text to keep it."
         },
         {
           "value": "string",
           "prop": "onLayoutError",
-          "doc": "Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout."
+          "doc": "Receives a message when a non-empty initialLayout cannot be restored; the default layout is used. Clone the text to keep it."
         },
         {
           "value": "void",
@@ -6893,7 +6904,7 @@
     },
     {
       "name": "Questionnaire",
-      "doc": "A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question. Question ids, labels, required/multiple flags, defaults and freeform input definitions are read once at mount. Changing size or Question/QuestionChoice.disabled preserves answers. Duplicate ids, more than one default choice for a single-answer question, and multiple inputs in one question throw. Ownership: the questionnaire owns its answer and input state until disposal.",
+      "doc": "A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit buttons and required-answer checks. Choosing an answer moves to the next question. Questions are read once when mounted. Duplicate ids, more than one default for a single-answer question, or more than one input in a question throw. Ownership: owns the answers until disposed.",
       "props": [
         {
           "name": "size",
@@ -6930,7 +6941,7 @@
         {
           "prop": "onChange",
           "value": "string",
-          "doc": "Receives JSON {id,choices,freeform,status} when a committed answer changes. choices is an array of choice ids; freeform is a string or null; status is unanswered, answered or skipped. Typing alone is a draft until confirmed."
+          "doc": "Receives JSON {id, choices, freeform, status} when an answer is committed: choices is an array of choice ids, freeform a string or null, status unanswered, answered or skipped."
         },
         {
           "prop": "onCurrentChange",
@@ -7054,7 +7065,7 @@
     },
     {
       "name": "SpeechButton",
-      "doc": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. Locale, systemFallback and stopTimeout are read once when mounted; disabled, size and waveform presentation can change without restarting the recognizer. Unsupported hosts hide the button unless showWhenUnsupported is true. Each mounted button owns its recognizer and releases capture when disposed.",
+      "doc": "A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the transcript. locale, systemFallback and stopTimeout are read once when mounted. Unsupported systems hide the button unless showWhenUnsupported is true. Ownership: each button owns its recognizer.",
       "props": [
         {
           "name": "locale",

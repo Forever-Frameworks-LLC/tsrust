@@ -452,8 +452,8 @@ fn mode(cx: &App) -> &'static str {if cx.theme().mode.is_dark() {"dark"} else {"
 /// The std:ui utility palette built from the active GPUI Kit theme, so classes
 /// such as text-muted-foreground and border-border follow any Kit theme. Cached
 /// until the Kit colors change.
-fn utility_theme(cx: &App) -> Theme {
-    thread_local! {static CACHE: std::cell::RefCell<Option<(String, Theme)>> = const {std::cell::RefCell::new(None)};}
+fn utility_theme(cx: &App) -> std::rc::Rc<Theme> {
+    thread_local! {static CACHE: std::cell::RefCell<Option<(String, std::rc::Rc<Theme>)>> = const {std::cell::RefCell::new(None)};}
     let kit = cx.theme();
     let colors = [
         ("background", kit.background), ("foreground", kit.foreground), ("card", kit.group_box), ("cardForeground", kit.group_box_foreground),
@@ -466,7 +466,7 @@ fn utility_theme(cx: &App) -> Theme {
         if let Some((cached, theme)) = cache.borrow().as_ref() && *cached == key {return theme.clone();}
         let mut config: serde_json::Value = serde_json::from_str(super::theme::DEFAULT_JSON).expect("bundled theme");
         for mode in ["light", "dark"] {for (name, color) in &colors {config[mode][*name] = color.clone().into();}}
-        let theme = Theme::parse(&config.to_string()).unwrap_or_default();
+        let theme = std::rc::Rc::new(Theme::parse(&config.to_string()).unwrap_or_default());
         *cache.borrow_mut() = Some((key, theme.clone()));
         theme
     })
@@ -1417,6 +1417,13 @@ impl Root {
     fn emit(&mut self, id: u64, event: &str, value: String, cx: &mut Context<Self>) {
         let _scope=self.scope();
         let result = self.node.kit_event(id, event, &value);
+        // Bindings read signals, and every signal write advances the revision. A tick
+        // that wrote nothing since the last settled event, queued no command and
+        // changed no locale cannot change a binding, so skip refreshing the tree.
+        // Polling Tickers otherwise re-evaluate every binding many times a second.
+        if event == "tick" && result.is_ok() && super::state::revision() == self.revision && !commands::has_pending(&self.command_owner) && !super::i18n::has_changed() {
+            return;
+        }
         // Polling timers still refresh bindings and run commands, but idle ticks need no frame.
         self.settle_event(result, cx, event != "tick");
     }
@@ -2174,11 +2181,26 @@ impl Root {
                         editor_options(&mut state,&props,window,cx);
                         state.set_value(value, window, cx);
                         if let Some(offset) = props.get("initialCaret").and_then(|value|value.parse::<usize>().ok()) {
-                            state.set_selected_range(offset..offset,cx);
+                            let anchor=props.get("initialAnchor").and_then(|value|value.parse::<usize>().ok()).unwrap_or(offset);
+                            state.set_selected_range_with_direction(anchor.min(offset)..anchor.max(offset),offset<anchor,cx);
                         }
                         if text("autoFocus")=="true" {state.focus(window,cx);}
                         state
                     });
+                    if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("selectionChange")) {
+                        let endpoints=|editor:&EditorState| {
+                            let range=editor.selected_range();
+                            if editor.is_selection_reversed() {[range.end,range.start]} else {[range.start,range.end]}
+                        };
+                        let mut previous=endpoints(state.read(cx));
+                        cx.observe(&state,move |root,state,cx| {
+                            let selection=endpoints(state.read(cx));
+                            if selection!=previous {
+                                previous=selection;
+                                root.emit(id,"selectionChange",serde_json::json!(selection).to_string(),cx);
+                            }
+                        }).detach();
+                    }
                     if find(&self.node,id).and_then(|node|node.kit.as_deref()).is_some_and(|kit|kit.handles("caretChange")) {
                         let mut previous=state.read(cx).cursor();
                         cx.observe(&state,move |root,state,cx| {
@@ -2664,6 +2686,7 @@ impl Root {
                             _ => KitTheme::sync_system_appearance(Some(window), cx),
                         },
                         "minimize" => window.minimize_window(),
+                        "text-zoom" => {set_text_zoom(&value); window.refresh();}
                         "zoom" => window.zoom_window(),
                         "fullscreen" => window.toggle_fullscreen(),
                         "close" => window.remove_window(),
@@ -4232,5 +4255,61 @@ impl Render for ImageViewport {
             .child(canvas(move|bounds,_,cx| {let _=state.update(cx,|state,cx|{if state.viewport!=bounds.size {state.viewport=bounds.size;cx.notify();}});},|_,_,_,_|{}).absolute().size_full())
             .child(div().id("image-scroll").relative().size_full().overflow_scroll().track_scroll(&self.scroll).child(body))
             .scrollbar(&self.scroll,gpui_kit::component::scroll::ScrollbarAxis::Both)
+    }
+}
+
+
+/// Application text zoom, shared by every window. 1 is the theme's own size.
+thread_local! {static TEXT_ZOOM: std::cell::Cell<f32> = const {std::cell::Cell::new(1.)};}
+/// Apply a `text-zoom` command payload; see `window::next_zoom`.
+fn set_text_zoom(value: &serde_json::Value) {
+    TEXT_ZOOM.with(|zoom| zoom.set(super::window::next_zoom(zoom.get(), value.get("step").and_then(serde_json::Value::as_i64), value.get("level").and_then(serde_json::Value::as_f64))));
+}
+
+/// The operating system's text-size preference, read once: Windows Settings >
+/// Accessibility > Text size and GNOME's text-scaling-factor. macOS has no
+/// system-wide text size for desktop apps, so it uses application zoom alone.
+fn system_text_scale() -> f32 {
+    static SCALE: std::sync::OnceLock<f32> = std::sync::OnceLock::new();
+    *SCALE.get_or_init(|| read_system_text_scale().filter(|scale| scale.is_finite()).map_or(1., |scale| scale.clamp(0.5, 3.)))
+}
+
+fn read_system_text_scale() -> Option<f32> {
+    let output = |program: &str, args: &[&str]| std::process::Command::new(program).args(args).stderr(std::process::Stdio::null()).output().ok()
+        .filter(|output| output.status.success()).and_then(|output| String::from_utf8(output.stdout).ok());
+    if cfg!(windows) {
+        // REG_DWORD percentage, 100–225; absent until the user changes it.
+        let text = output("reg", &["query", r"HKCU\Software\Microsoft\Accessibility", "/v", "TextScaleFactor"])?;
+        let hex = text.split_whitespace().find_map(|word| word.strip_prefix("0x"))?;
+        return u32::from_str_radix(hex, 16).ok().map(|percent| percent as f32 / 100.);
+    }
+    if cfg!(all(unix, not(target_os = "macos"))) {
+        return output("gsettings", &["get", "org.gnome.desktop.interface", "text-scaling-factor"])?.trim().parse().ok();
+    }
+    None
+}
+
+/// Theme sizes before zoom, and the sizes last applied, so a theme change that
+/// resets font sizes becomes the new base instead of being scaled twice.
+#[derive(Default)]
+struct TextScale {base: Option<(Pixels, Pixels)>, applied: Option<(Pixels, Pixels)>}
+
+impl Root {
+    /// Scale Kit theme text and the window rem size by zoom × system preference.
+    /// Utility classes are in rems, so text, spacing and boxes scale together.
+    fn apply_text_scale(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let factor = TEXT_ZOOM.with(std::cell::Cell::get) * system_text_scale();
+        let theme = KitTheme::global(cx);
+        let current = (theme.font_size, theme.mono_font_size);
+        if self.text_scale.applied != Some(current) {self.text_scale.base = Some(current);}
+        let (font, mono) = self.text_scale.base.unwrap_or(current);
+        let wanted = (font * factor, mono * factor);
+        if current != wanted {
+            let theme = KitTheme::global_mut(cx);
+            theme.font_size = wanted.0;
+            theme.mono_font_size = wanted.1;
+        }
+        self.text_scale.applied = Some(wanted);
+        if window.rem_size() != wanted.0 {window.set_rem_size(wanted.0);}
     }
 }

@@ -10,6 +10,7 @@ import {
   t
 } from 'std:ui';
 
+import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { FileSearchState } from '../../lib/explorer/search-actions.tsr';
 import { LanguageReferences } from '../../lib/language/references.tsr';
 import { planCloseEditors } from '../../lib/workspace/close-editors.tsr';
@@ -17,9 +18,8 @@ import { publishWorkspace } from '../../lib/workspace/document-actions.tsr';
 import { QueuedFormatting } from '../../lib/workspace/formatting-actions.tsr';
 import { Recovery } from '../../lib/workspace/recovery.tsr';
 import { Workspace, OpenFile, selectFile } from '../../lib/workspace/workspace.tsr';
-import { LanguageState } from '../../services/lsp/controller.tsr';
-import { ModelRequest } from '../../lib/ai/protocol.tsr';
 import { AiState } from '../../services/ai/actions.tsr';
+import { LanguageState } from '../../services/lsp/controller.tsr';
 import { LanguageMessage } from '../../services/lsp/session.tsr';
 import { CloseEditorsState, CloseEditorsDialog, requestCloseEditors } from '../editor/close-editors.tsrx';
 import { FilePanel } from '../editor/editor.tsrx';
