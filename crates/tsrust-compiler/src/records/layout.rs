@@ -29,8 +29,43 @@ pub(crate) fn append_checked_record_fields(
             .resolve_value_annotation(annotation, false)
             .map(|ty| (ty, None))
     })?;
-    validate_record_layouts(records, unions)?;
-    Ok(())
+    let mut validated = std::mem::take(&mut callables.layouts);
+    let result = validated.extend(records, unions);
+    callables.layouts = validated;
+    result
+}
+
+/// Inline layout facts for a validated prefix of the record table.
+///
+/// A resolved record only names records that existed when it was resolved, so
+/// appending records never changes the layout of earlier ones. Validation
+/// therefore covers only new records, reusing the sizes of earlier ones. Binding
+/// a reserved recursive union can add edges to earlier records, so any change to
+/// the members of an existing union restarts validation from the first record. A failed validation keeps the old prefix
+/// and reports the same error again on the next append.
+#[derive(Default)]
+pub(crate) struct Validated {
+    records: usize,
+    bindings: u64,
+    depths: Vec<usize>,
+    sizes: Vec<usize>,
+}
+impl Validated {
+    fn extend(&mut self, records: &[Record], unions: &crate::unions::UnionArena) -> Result<(), Diagnostic> {
+        let bindings = unions.member_rewrites();
+        if bindings != self.bindings || self.records > records.len() {
+            *self = Self { bindings, ..Self::default() };
+        }
+        if self.records == records.len() {
+            return Ok(());
+        }
+        let links = crate::recursive_links::Index::new_from(records, self.records, |id| unions.members(id));
+        let (depths, sizes) = inline_layout(records, self.records, &self.depths, &self.sizes, unions, &|id, child| links.boxed(id, child))?;
+        self.depths = depths;
+        self.sizes = sizes;
+        self.records = records.len();
+        Ok(())
+    }
 }
 
 /// Resolve newly materialized declarations with the caller's shared type tables.
@@ -75,13 +110,6 @@ pub(crate) fn resolve_record_fields(
         fields.push(names);
     }
     Ok(())
-}
-
-fn validate_record_layouts(
-    records: &[Record],
-    unions: &crate::unions::UnionArena,
-) -> Result<(), Diagnostic> {
-    validate_inline_layout(records, unions)
 }
 
 #[cfg(test)]
@@ -182,21 +210,35 @@ mod tests {
     }
 }
 
+#[cfg(test)]
 fn validate_inline_layout(
     records: &[Record],
     unions: &crate::unions::UnionArena,
 ) -> Result<(), Diagnostic> {
-    let links=crate::recursive_links::Index::new(records,|id|unions.members(id));
-    validate_inline_layout_with_indirection(records, unions, &|id,child|links.boxed(id,child))
+    Validated::default().extend(records, unions)
 }
 
+#[cfg(test)]
 fn validate_inline_layout_with_indirection(
     records: &[Record],
     unions: &crate::unions::UnionArena,
     indirect: &impl Fn(crate::syntax::UnionId, usize) -> bool,
 ) -> Result<(), Diagnostic> {
+    inline_layout(records, 0, &[], &[], unions, indirect).map(drop)
+}
+
+/// Validate the inline layout of `records[from..]`, given the depths and sizes of
+/// the already validated `records[..from]`. Returns depths and sizes of all.
+fn inline_layout(
+    records: &[Record],
+    from: usize,
+    known_depths: &[usize],
+    known_sizes: &[usize],
+    unions: &crate::unions::UnionArena,
+    indirect: &impl Fn(crate::syntax::UnionId, usize) -> bool,
+) -> Result<(Vec<usize>, Vec<usize>), Diagnostic> {
     let alternatives = |ty: Type| crate::recursive_links::inline_payloads(ty,|id|unions.members(id));
-    let edges = records.iter().map(|record| record.fields.iter().flat_map(|field| {
+    let edges = records[from..].iter().map(|record| record.fields.iter().flat_map(|field| {
         alternatives(field.ty.expect("resolved record field")).into_iter().filter_map(|payload| {
             if let Type::Record(child) = payload.ty {
                 if payload.union.is_some_and(|id| indirect(id, child)) { None }
@@ -204,20 +246,23 @@ fn validate_inline_layout_with_indirection(
             } else { None }
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()).collect::<Vec<_>>();
-    let mut states = vec![0u8; records.len()];
-    let mut depths = vec![0usize; records.len()];
-    let mut sizes = vec![0usize; records.len()];
+    let mut states = vec![2u8; from];
+    states.resize(records.len(), 0);
+    let mut depths = known_depths.to_vec();
+    depths.resize(records.len(), 0);
+    let mut sizes = known_sizes.to_vec();
+    sizes.resize(records.len(), 0);
     let alignment = std::mem::align_of::<String>().max(std::mem::align_of::<i64>());
     // rustc rejects types larger than isize::MAX bytes; inline records match it.
     const MAX_INLINE_BYTES: usize = isize::MAX as usize;
-    for root in 0..records.len() {
+    for root in from..records.len() {
         if states[root] != 0 {
             continue;
         }
         states[root] = 1;
         let mut stack = vec![(root, 0)];
         while let Some(&(id, next)) = stack.last() {
-            if let Some(&(child, span)) = edges[id].get(next) {
+            if let Some(&(child, span)) = edges[id - from].get(next) {
                 stack.last_mut().expect("layout frame").1 += 1;
                 match states[child] {
                     0 => { states[child] = 1; stack.push((child, 0)); }
@@ -264,7 +309,7 @@ fn validate_inline_layout_with_indirection(
             stack.pop();
         }
     }
-    Ok(())
+    Ok((depths, sizes))
 }
 
 
@@ -310,4 +355,31 @@ fn nested_recursive_union_layout_keeps_nullable_indirection() {
     let links=crate::recursive_links::Index::new(&arrays,|id|unions.members(id));
     assert!(!links.boxed(knot.union().unwrap(),0));
     validate_inline_layout(&arrays,&unions).unwrap();
+}
+
+#[cfg(test)]
+#[test]
+fn appended_layout_validation_reuses_the_prefix_and_restarts_after_recursive_binding() {
+    use crate::{cloneability::tests::record, Span};
+    let unions = crate::unions::UnionArena::default();
+    let mut validated = Validated::default();
+    let mut records = vec![record(&[Type::Int])];
+    validated.extend(&records, &unions).unwrap();
+    // A new record pair forms a direct cycle; the failure keeps the old prefix
+    // and is reported again by the next append.
+    records.push(record(&[Type::Record(2)]));
+    records.push(record(&[Type::Record(1)]));
+    assert_eq!(validated.extend(&records, &unions).unwrap_err().code, "recursive-layout");
+    assert_eq!(validated.records, 1);
+    records.push(record(&[Type::Record(0)]));
+    assert_eq!(validated.extend(&records, &unions).unwrap_err().code, "recursive-layout");
+    // A record that names a reserved slot is valid until the slot binds back to it.
+    let mut records = vec![record(&[Type::Int])];
+    let knot = unions.reserve_recursive(Span::new(0, 1)).unwrap();
+    records.push(record(&[knot]));
+    let mut validated = Validated::default();
+    validated.extend(&records, &unions).unwrap();
+    unions.bind_recursive(knot.union().unwrap(), vec![Type::Record(1)], Span::new(0, 1)).unwrap();
+    records.push(record(&[Type::Int]));
+    assert_eq!(validated.extend(&records, &unions).unwrap_err().code, "recursive-layout");
 }

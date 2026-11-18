@@ -30,12 +30,14 @@ test('recovery restores exact drafts with fresh sessions and retains the origina
     const session = clone(workspace.files[0].document.session);
     edit(workspace.files[0].document, '日本語 🦀\r\n');
     workspace.files[0].caret = 10;
+    workspace.files[0].anchor = 14;
     unwrap(persistRecovery(workspace, recovery));
     unwrap(writeTextFile(root + '/source.tsr', 'external edit'));
     const reopened = unwrap(openWorkspace(root));
     const restored = unwrap(restoreRecovery(reopened, root + '/journal.json'));
     strictEqual(reopened.files.length, 1);
     strictEqual(reopened.files[0].caret, 10);
+    strictEqual(reopened.files[0].anchor, 14);
     strictEqual(reopened.files[0].document.text, '日本語 🦀\r\n');
     strictEqual(reopened.files[0].document.savedText, 'disk\r\n');
     strictEqual(reopened.files[0].document.session === session, false);
@@ -100,6 +102,7 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     workspace.dockLayout = 'opaque native layout 日本語';
     workspace.zoomLevel = 3;
     workspace.files[0].caret = 2;
+    workspace.files[0].anchor = 4;
     workspace.sourceBreakpoints = [{
       path: clone(first), line: 2
     }, {
@@ -109,7 +112,7 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     }];
     edit(workspace.files[1].document, 'draft 日本語 🦀\r\n');
     unwrap(persistRecovery(workspace, recovery));
-    unwrap(writeTextFile(root + '/a.tsr', '🦀 changed on disk'));
+    unwrap(writeTextFile(root + '/a.tsr', '🦀'));
     unwrap(removeFile(root + '/deleted.tsr'));
     unwrap(rename(root + '/renamed.tsr', root + '/moved.tsr'));
     unwrap(mkdirAll(root + '/renamed.tsr'));
@@ -123,8 +126,14 @@ test('workspace recovery retains clean tabs and selection while taking fresh dis
     strictEqual(points.length, 1);
     strictEqual(points[0].path, first);
     strictEqual(points[0].line, 2);
-    strictEqual(reopened.files[0].document.text, '🦀 changed on disk');
+    strictEqual(reopened.files[0].document.text, '🦀');
     strictEqual(reopened.files[0].caret, 0);
+    strictEqual(reopened.files[0].anchor, 4);
+    unwrap(persistRecovery(reopened, restored));
+    const again = unwrap(openWorkspace(root));
+    unwrap(restoreRecovery(again, root + '/journal.json'));
+    strictEqual(again.files[0].caret, 0);
+    strictEqual(again.files[0].anchor, 4);
     strictEqual(dirty(reopened.files[0].document), false);
     strictEqual(reopened.files[0].document.session === oldSession, false);
     strictEqual(reopened.files[1].document.path, second);

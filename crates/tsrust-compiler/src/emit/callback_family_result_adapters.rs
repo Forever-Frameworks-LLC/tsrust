@@ -3,7 +3,7 @@ use super::*;
 impl Emitter<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn callback_family_result_adapters(&self,output:&mut String,id:usize,contract:&crate::analysis::CallbackContract,name:&str,generics:&str,arguments:&str,forwarded:&str,native_result:&str,traits:&[(&str,&str,&str)]) {
-        let Some(source)=self.program.error_effects.storage_errors.get(&id) else {return;};
+        let Some(source)=self.function_effects().storage_errors.get(&id) else {return;};
         let source_name=self.result_storage.borrow().get(&id).map(|(name,_)|name.clone());
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);

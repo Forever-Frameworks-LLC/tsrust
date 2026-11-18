@@ -41,6 +41,7 @@ fn split_content_nonoverlap_scalars_defaults_and_u32_limits_are_exact() {
         function pieces(text:string,separator:string,limit:int):string[]{return text.split(separator,limit);}
         function unlimited(text:string,separator:string):string[]{return text.split(separator);}
         function whole(text:string):string[]{return text.split();}
+        function iterated(text:string,separator:string):string{let out="";for(const piece of text.split(separator)){if(piece==="skip")continue;out=out+"["+piece+"]";}return out;}
         function main(){
             const pieces="a,,b,".split(",",2);console.log(pieces.length);console.log(pieces[0]);console.log(pieces[1]);
             console.log("aaaaa".split("aa")[2]);console.log("x".split("longer")[0]);
@@ -51,12 +52,13 @@ fn split_content_nonoverlap_scalars_defaults_and_u32_limits_are_exact() {
         "2\na\n\na\nx\n1\n1\n0\n5\né\n😀\ne\ń\n\0\n0\n1\n2\n3\n0\n1\n0\n0\n3\n",
         "",
         r#"
-        let cases:[(&'static str,&str,&[&str]);11]=[
+        let cases:[(&'static str,&str,&[&str]);12]=[
             ("",",",&[""]),("","",&[]),("a,,b,",",",&["a","","b",""]),
             (",a,",",",&["","a",""]),("aaaaa","aa",&["","","a"]),("x","longer",&["x"]),
             ("😀é😀","😀",&["","é",""]),("a\0b\0","\0",&["a","b",""]),
             ("é😀e\u{301}\0","",&["é","😀","e","\u{301}","\0"]),("e\u{301}","é",&["e\u{301}"]),
-            ("a|b|c|d|e","|",&["a","b","c","d","e"])
+            ("a|b|c|d|e","|",&["a","b","c","d","e"]),
+            ("a skip b","",&["a"," ","s","k","i","p"," ","b"])
         ];
         for (text,separator,expected) in cases{
             for input in [String::Borrowed(text),String::Owned(text.to_owned())]{
@@ -69,6 +71,9 @@ fn split_content_nonoverlap_scalars_defaults_and_u32_limits_are_exact() {
                     for (actual,expected) in result.iter().zip(expected.iter().take(count)){assert_eq!(actual.as_ref(),*expected);}
                 }
                 let result=function2(&input);assert_eq!(result.len(),1);assert_eq!(result.get(0).unwrap().as_ref(),text);
+                // Iterating split pieces directly visits the same pieces as the array.
+                let walked=function3(std::hint::black_box(&input),std::hint::black_box(&separator));
+                assert_eq!(walked.as_ref(),expected.iter().filter(|piece|**piece!="skip").map(|piece|format!("[{piece}]")).collect::<std::string::String>());
             }
         }
         "#,

@@ -23,7 +23,7 @@ impl Analyzer {
 
     pub(super) fn native_shape_contains_view(&self, ty: Type) -> bool {
         let mut pending=vec![ty];
-        let mut seen=HashSet::new();
+        let mut seen=crate::fast_hash::FastSet::default();
         while let Some(ty)=pending.pop() {
             if !seen.insert(ty) {continue;}
             if let Type::Record(id)=ty

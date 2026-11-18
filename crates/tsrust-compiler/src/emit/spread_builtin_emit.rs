@@ -49,10 +49,7 @@ impl Emitter<'_> {
             let copied=if segment.spread && segment.value.ty==Some(Type::String) {""}else{".copied()"};
             write!(arguments,".chain(spread_segment{}_{index}.iter(){copied})",plan.slot).unwrap();
         }
-        let failure = format!(
-            "string concat capacity or allocation failure at source bytes {}..{}",
-            plan.call.span.start, plan.call.span.end
-        );
+        let failure = self.capacity_failure("string concat capacity or allocation failure", crate::Span::new(plan.call.span.start, plan.call.span.end));
         format!("tsr_string_concat_iter({receiver}, {arguments}, {failure:?})")
     }
 
@@ -185,10 +182,7 @@ impl Emitter<'_> {
         let start = SpreadSelection::Argument(0).native_name(plan.slot);
         let delete = SpreadSelection::Argument(1).native_name(plan.slot);
         let rest = SpreadSelection::Rest.native_name(plan.slot);
-        let failure = format!(
-            "splice capacity or int length overflow at source bytes {}..{}",
-            plan.call.span.start, plan.call.span.end
-        );
+        let failure = self.capacity_failure("splice capacity or int length overflow", crate::Span::new(plan.call.span.start, plan.call.span.end));
         let result = if let Type::Array(ArrayElement::Record(record, 0)) = array_type
             && self.record_runtime.recursive(record)
         {
@@ -221,10 +215,7 @@ impl Emitter<'_> {
         let start = SpreadSelection::Argument(0).native_name(plan.slot);
         let delete = SpreadSelection::Argument(1).native_name(plan.slot);
         let rest = SpreadSelection::Rest.native_name(plan.slot);
-        let failure = format!(
-            "toSpliced capacity overflow at source bytes {}..{}",
-            plan.call.span.start, plan.call.span.end
-        );
+        let failure = self.capacity_failure("toSpliced capacity overflow", crate::Span::new(plan.call.span.start, plan.call.span.end));
         let literal =
             self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
         let prefix = if literal {
@@ -261,10 +252,7 @@ impl Emitter<'_> {
             unreachable!("checked concat array receiver");
         };
         let receiver = emit(base, Mode::Read);
-        let failure = format!(
-            "array concat capacity overflow at source bytes {}..{}",
-            plan.call.span.start, plan.call.span.end
-        );
+        let failure = self.capacity_failure("array concat capacity overflow", crate::Span::new(plan.call.span.start, plan.call.span.end));
         let mut output = format!(
             "{{ let spread_concat_receiver = {receiver}; let mut spread_concat_capacity = spread_concat_receiver.len(); "
         );

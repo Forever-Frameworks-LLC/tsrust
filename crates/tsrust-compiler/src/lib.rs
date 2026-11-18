@@ -3,12 +3,14 @@
 //! The library does not invoke subprocesses or read source files. CLI and future
 //! editor/LSP clients can share this analysis entry point and source diagnostics.
 mod types;
+mod fast_hash;
 mod generics;
 mod records;
 mod callables;
 mod native;
 mod analysis;
 pub use analysis::native_capabilities::ArrayCapabilities;
+pub use analysis::set_concurrent_check;
 mod parameters;
 mod parameter_arity;
 pub use parameters::ParameterOmission;
@@ -58,7 +60,10 @@ pub(crate) use native::binding_types as native_binding_types;
 pub use native::type_resolution as native_type_resolution;
 pub use native::exports as native_exports;
 pub use native::cache as native_cache;
+pub use native::codegen_units as native_codegen_units;
+pub use native::crate_split as native_crate_split;
 pub use native::runtime as native_runtime;
+pub use native::stable_names as native_stable_names;
 pub(crate) use native::emit as native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use stdlib::path::relative as native_path_relative;
@@ -71,6 +76,7 @@ pub use project::resolution as project_resolution;
 pub(crate) use project::data::module as data_module;
 pub(crate) use project::data::shape as data_shape;
 pub(crate) use project::data::lowering as data_lowering;
+pub use project::prechecked as project_prechecked;
 pub use project::session as project_session;
 pub use project::cli as project_cli;
 pub use project::source_discovery as source_discovery;
@@ -194,9 +200,18 @@ impl Analysis {
     pub fn emit_rust(&self) -> String {
         emit::emit(&self.program)
     }
+    /// Generated Rust for one source file, with fault locations naming `path`.
+    pub fn emit_rust_for_source(&self, path: &str, text: &str) -> String {
+        emit::emit_single_source(&self.program, path, text).0
+    }
     /// Generated Rust and deterministic features selected by emitted native bindings.
     pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
         emit::emit_with_native_features(&self.program, "")
+    }
+
+    /// Stable identities of generated items, for incremental native builds.
+    pub fn name_keys(&self) -> native::stable_names::Keys {
+        native::stable_names::keys(&self.program, &[])
     }
 
     pub fn closures(&self) -> Vec<ClosureInfo> {

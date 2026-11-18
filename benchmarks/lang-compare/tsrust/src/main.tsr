@@ -1,0 +1,52 @@
+// The same CPU-bound phases as ../rust. Each phase prints its time and a
+// checksum; both versions must print the same checksums.
+import { monotonicNow } from 'std:time';
+import { get } from 'std:env';
+import { toInt } from 'std:numeric';
+import { sieve, nbody, matrix, fib } from './numeric.tsr';
+import { makeText, wordCount, formatting } from './text.tsr';
+import { orders, trees, sets } from './data.tsr';
+
+function report(name: string, started: number, checksum: string) {
+  console.log(name + ' ' + (monotonicNow() - started).toFixed(3) + ' ' + checksum);
+}
+
+function main() {
+  // SCALE multiplies each phase's element or step count (SCALE=0.1 for quick
+  // checks); PHASE runs one phase alone, for profiling.
+  const scale = Number(unwrap(get('SCALE')) ?? '1');
+  const only = unwrap(get('PHASE')) ?? '';
+  const size = (value: int): int => unwrap(toInt(Math.max(1, Math.floor(Number(value) * scale))));
+  const wanted = (name: string): boolean => only === '' || only === name;
+  let started = monotonicNow();
+
+  if (wanted('sieve')) report('sieve', started, sieve(size(20000000)).toString());
+  started = monotonicNow();
+
+  if (wanted('nbody')) report('nbody', started, nbody(size(1000000)).toFixed(9));
+  started = monotonicNow();
+
+  if (wanted('matrix')) report('matrix', started, matrix(300).toFixed(6));
+  started = monotonicNow();
+
+  if (wanted('fib')) report('fib', started, fib(32).toString());
+  started = monotonicNow();
+  const text = wanted('text') || wanted('words') ? makeText(size(3000000)) : '';
+
+  if (wanted('text')) report('text', started, text.length.toString());
+  started = monotonicNow();
+
+  if (wanted('words')) report('words', started, wordCount(text).toString());
+  started = monotonicNow();
+
+  if (wanted('format')) report('format', started, formatting(size(1000000)).toString());
+  started = monotonicNow();
+
+  if (wanted('orders')) report('orders', started, orders(size(1000000)).toString());
+  started = monotonicNow();
+
+  if (wanted('trees')) report('trees', started, trees(18).toString());
+  started = monotonicNow();
+
+  if (wanted('sets')) report('sets', started, sets(size(3000000)).toString());
+}

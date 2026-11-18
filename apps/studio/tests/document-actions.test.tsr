@@ -10,8 +10,8 @@ import { test, strictEqual } from 'std:testing';
 import { signal } from 'std:ui';
 
 import { saveDraftCopy } from '../src/lib/workspace/document-actions.tsr';
-import { FormattingTarget } from '../src/lib/workspace/formatting-actions.tsr';
 import { edit } from '../src/lib/workspace/documents.tsr';
+import { FormattingTarget } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem, collectProblems, formatProblems, operationProblem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { saveDocument } from '../src/lib/workspace/storage.tsr';

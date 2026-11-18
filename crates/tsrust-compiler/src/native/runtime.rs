@@ -91,18 +91,87 @@ pub fn requires_dependencies(source:&str)->bool {
 
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.
+/// The text of every `String::Borrowed("...")` literal without escapes.
+fn borrowed_literals(source:&str)->std::collections::HashSet<&str> {
+    const OPEN:&str="String::Borrowed(\"";
+    source.match_indices(OPEN).filter_map(|(start,_)|{
+        let text=&source[start+OPEN.len()..];
+        let end=text.find('"')?;
+        (text.as_bytes().get(end+1)==Some(&b')') && !text[..end].contains('\\')).then(||&text[..end])
+    }).collect()
+}
+
+/// Runtime modules found in the application by their `mod NAME {` headers.
+/// Extraction compares each candidate module only where its header occurs and
+/// records the replacement; `finish` splices all replacements in one pass. A copy
+/// overlapping an earlier extraction does not match, as if that extraction had
+/// already removed its text.
+struct Extraction<'a> {
+    application: &'a str,
+    headers: std::collections::HashMap<&'a str, Vec<usize>>,
+    claims: Vec<(usize, usize, &'static str)>,
+}
+impl<'a> Extraction<'a> {
+    fn new(application: &'a str) -> Self {
+        let mut headers = std::collections::HashMap::<&str, Vec<usize>>::new();
+        for (position, _) in application.match_indices("mod tsrust_native_") {
+            let rest = &application[position..];
+            if let Some(end) = rest.find(" {") && rest[4..end].bytes().all(|byte| byte == b'_' || byte.is_ascii_alphanumeric()) {
+                headers.entry(&rest[..end + 2]).or_default().push(position);
+            }
+        }
+        Self { application, headers, claims: Vec::new() }
+    }
+    fn claimed(&self, start: usize, end: usize) -> bool {
+        self.claims.iter().any(|&(claim, length, _)| start < claim + length && claim < end)
+    }
+    fn contains(&self, header: &str) -> bool {
+        self.headers.get(header).is_some_and(|positions| positions.iter().any(|&position| !self.claimed(position, position + header.len())))
+    }
+    /// Replace every unclaimed copy of `module` and report whether there was one.
+    fn replace(&mut self, header: &str, module: &str, replacement: &'static str) -> bool {
+        let Some(offset) = module.find(header) else { return false; };
+        let positions = self.headers.get(header).cloned().unwrap_or_default();
+        let mut found = false;
+        for position in positions {
+            let Some(start) = position.checked_sub(offset) else { continue; };
+            let end = start + module.len();
+            if self.application.get(start..end) == Some(module) && !self.claimed(start, end) {
+                self.claims.push((start, module.len(), replacement));
+                found = true;
+            }
+        }
+        found
+    }
+    fn finish(mut self) -> String {
+        if self.claims.is_empty() { return self.application.to_owned(); }
+        self.claims.sort_unstable_by_key(|&(start, _, _)| start);
+        let mut result = String::with_capacity(self.application.len());
+        let mut copied = 0;
+        for (start, length, replacement) in self.claims {
+            result.push_str(&self.application[copied..start]);
+            result.push_str(replacement);
+            copied = start + length;
+        }
+        result.push_str(&self.application[copied..]);
+        result
+    }
+}
+
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=if source.contains(crate::stdlib::http::MIDDLEWARE_MARKER){crate::stdlib::http::MIDDLEWARE_MARKER.to_owned()}else{String::new()};
     if source.contains(crate::stdlib::http::WEBSOCKET_MARKER){runtime.push_str(crate::stdlib::http::WEBSOCKET_MARKER);}
     // Unused Kit wrappers are pruned, so the component name appears only when used.
     // Editors, diffs and Markdown code blocks use the selected Kit grammars.
-    if ["CodeEditor","Markdown","Diff"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
-    if source.contains("String::Borrowed(\"SpeechButton\")"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
-    if ["Avatar","Image"].iter().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")"))){runtime.push_str(crate::stdlib::ui::HTTP_MARKER);}
-    if source.contains("String::Borrowed(\"Terminal\")"){runtime.push_str(crate::stdlib::ui::TERMINAL_MARKER);}
+    // One pass collects every borrowed string literal; a program can be many megabytes.
+    let literals=borrowed_literals(source);
+    if ["CodeEditor","Markdown","Diff"].iter().any(|name|literals.contains(name)){runtime.push_str(crate::stdlib::ui::HIGHLIGHT_MARKER);}
+    if literals.contains("SpeechButton"){runtime.push_str(crate::stdlib::ui::SPEECH_MARKER);}
+    if ["Avatar","Image"].iter().any(|name|literals.contains(name)){runtime.push_str(crate::stdlib::ui::HTTP_MARKER);}
+    if literals.contains("Terminal"){runtime.push_str(crate::stdlib::ui::TERMINAL_MARKER);}
     // GPUI Kit embeds only its default icons; a program naming any other catalog
     // icon registers the complete bundled set instead.
-    let all_icons=source.contains("mod tsrust_native_ui {") && include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|source.contains(&format!("String::Borrowed(\"{name}\")")));
+    let all_icons=source.contains("mod tsrust_native_ui {") && include_str!("../stdlib/ui/catalog-icons.txt").lines().any(|name|literals.contains(name));
     let mut binding_crates=std::collections::BTreeSet::new();
     for line in source.lines().filter(|line|line.starts_with(crate::project::rust::dependencies::MARKER)) {
         if let Ok(package)=serde_json::from_str::<crate::project::rust::dependencies::Package>(line.trim_start_matches(crate::project::rust::dependencies::MARKER)) {
@@ -119,12 +188,12 @@ pub fn separate(source:&str)->Units {
     let json=source.contains("mod tsrust_native_json {").then(||[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module))).flatten();
     let dependencies=requires_dependencies(source);
     // Candidate bodies can be large. Build them only while their module header remains.
+    let mut extraction = Extraction::new(&application);
     macro_rules! extract {
         ($name:literal, $module:expr $(,)?) => {
-            if application.contains(concat!("mod ", $name, " {")) {
+            if extraction.contains(concat!("mod ", $name, " {")) {
                 let module = $module;
-                if application.contains(&module) {
-                    application = application.replace(&module, concat!("use tsrust_runtime::", $name, ";\n"));
+                if extraction.replace(concat!("mod ", $name, " {"), &module, concat!("use tsrust_runtime::", $name, ";\n")) {
                     runtime.push_str("pub ");
                     runtime.push_str(&module);
                 }
@@ -171,6 +240,7 @@ pub fn separate(source:&str)->Units {
     if let Some(module)=json {extract!("tsrust_native_json",module);}
     extract!("tsrust_native_logging",crate::stdlib::logging::RUNTIME.to_owned());
     extract!("tsrust_native_discovery",discovery_module());extract!("tsrust_native_files",files_module());extract!("tsrust_native_tempfiles",tempfiles_module());extract!("tsrust_native_atomic_files",atomic_files_module());extract!("tsrust_native_path",path_module());
+    let mut application = extraction.finish();
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.
         application=application.replace(crate::runtime::STRINGS,&format!("use tsrust_runtime::text::*;\n{}",crate::runtime::NUMBER_TIE));
@@ -201,6 +271,22 @@ pub fn separate(source:&str)->Units {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extraction_matches_modules_at_headers_and_skips_copies_inside_earlier_extractions() {
+        let inner = "mod tsrust_native_b {\n}\n";
+        let outer = format!("mod tsrust_native_a {{\n{inner}}}\n");
+        let application = format!("fn main(){{}}\n{outer}{inner}#[allow(dead_code)] {inner}");
+        let mut extraction = Extraction::new(&application);
+        assert!(extraction.contains("mod tsrust_native_a {"));
+        assert!(extraction.replace("mod tsrust_native_a {", &outer, "use a;\n"));
+        assert!(extraction.contains("mod tsrust_native_b {"));
+        assert!(extraction.replace("mod tsrust_native_b {", inner, "use b;\n"));
+        assert!(!extraction.replace("mod tsrust_native_c {", "mod tsrust_native_c {}", "use c;\n"));
+        assert_eq!(extraction.finish(), "fn main(){}\nuse a;\nuse b;\n#[allow(dead_code)] use b;\n");
+        assert_eq!(borrowed_literals(r#"String::Borrowed("Terminal") String::Borrowed("a\"b") String::Borrowed("Image")"#),
+            ["Terminal","Image"].into_iter().collect());
+    }
 
     #[test]
     fn module_header_guards_keep_incomplete_definitions_and_extract_both_ui_variants() {

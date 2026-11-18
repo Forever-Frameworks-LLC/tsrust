@@ -11,6 +11,15 @@ pub enum CheckedInput {
     Single(Analysis),
     Project(ProjectAnalysis),
 }
+impl CheckedInput {
+    /// Stable identities of generated items, for incremental native builds.
+    pub fn name_keys(&self) -> crate::native::stable_names::Keys {
+        match self {
+            Self::Single(analysis) => analysis.name_keys(),
+            Self::Project(project) => project.name_keys(),
+        }
+    }
+}
 pub enum InputDiagnostic {
     Single(Diagnostic),
     Project(ProjectDiagnostic),
@@ -114,6 +123,13 @@ impl CheckedInput {
     pub fn emit_rust_with_native_features(&self) -> (String, Vec<&'static str>) {
         match self {
             Self::Single(analysis) => analysis.emit_rust_with_native_features(),
+            Self::Project(analysis) => analysis.emit_rust_with_native_features(),
+        }
+    }
+    /// Runtime failures report `path` (single files have no module graph to name it).
+    pub fn emit_rust_for_source(&self, path: &str, text: &str) -> (String, Vec<&'static str>) {
+        match self {
+            Self::Single(analysis) => crate::emit::emit_single_source(&analysis.program, path, text),
             Self::Project(analysis) => analysis.emit_rust_with_native_features(),
         }
     }

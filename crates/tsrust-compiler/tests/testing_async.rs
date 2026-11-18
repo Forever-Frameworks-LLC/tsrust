@@ -32,7 +32,8 @@ fn checked(source:&str)->String {
     let graph=load_project(&FileSourceProvider,path.to_str().unwrap()).unwrap();
     let checked=check_graph(graph).unwrap_or_else(|error|panic!("{}: {} at {:?}",error.code,error.message,error.location));
     assert!(checked.warnings().is_empty());
-    checked.emit_rust()
+    // Each program is nested in its own module below, so its source table is too.
+    checked.emit_rust().replace("crate::tsrust_source_segments::", "self::tsrust_source_segments::")
 }
 
 #[test]

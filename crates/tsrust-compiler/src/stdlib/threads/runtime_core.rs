@@ -67,7 +67,10 @@
         }
     }
     impl Drop for OwnedPool { fn drop(&mut self) { close(&self.inner); } }
-    struct Completion<T, E> { publication: Publication, result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<Cancellation>, released: AtomicBool, pool: Option<Arc<Pool>> }
+    /// A detached worker's runtime-error reporter: faults are defects, so they are printed
+    /// even though `detach` discards the result (docs/plans/fault-unwinding.md, decision 5).
+    type DetachedReport<E> = Box<dyn Fn(&E) -> Option<String> + Send + Sync>;
+    struct Completion<T, E> { publication: Publication, result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<Cancellation>, released: AtomicBool, pool: Option<Arc<Pool>>, detached: Mutex<Option<DetachedReport<E>>> }
     impl<T, E> Drop for Completion<T, E> {
         fn drop(&mut self) { self.release(); }
     }
@@ -124,12 +127,13 @@
         CANCELLATION.with(|slot| { slot.replace(previous); });
         let mut stored = completion.result.lock().unwrap();
         *stored = Some(if completion.cancel.load(Ordering::Acquire) { drop(result); Err(JoinError::Cancelled) } else { result });
+        if let (Some(Err(JoinError::Worker(error))), Some(report)) = (stored.as_ref(), completion.detached.lock().unwrap().as_ref()) && let Some(text) = report(error) { eprint!("{text}"); }
         if let Some(pool) = &completion.pool { let mut stats = pool.state.lock().unwrap(); stats.running -= 1; stats.completed += 1; pool.idle.notify_all(); }
         completion.ready.notify_all();
         completion.publication.publish();
     }
     fn completion<T, E>(pool: Option<Arc<Pool>>) -> Arc<Completion<T, E>> {
-        Arc::new(Completion { publication: Publication::default(), result: Mutex::new(None), ready: Condvar::new(), cancel: Arc::new(Cancellation::default()), released: AtomicBool::new(false), pool })
+        Arc::new(Completion { publication: Publication::default(), result: Mutex::new(None), ready: Condvar::new(), cancel: Arc::new(Cancellation::default()), released: AtomicBool::new(false), pool, detached: Mutex::new(None) })
     }
     fn submit<T: Send + 'static, E: Send + 'static>(pool: Arc<Pool>, work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
         {
@@ -149,6 +153,18 @@
     }
     pub fn join<T, E>(mut thread: Thread<T, E>) -> Result<T, JoinError<E>> { thread.wait() }
     pub fn detach<T, E>(mut thread: Thread<T, E>) { thread.settled = true; drop(thread.dedicated.take()); }
+    /// Detach, printing the worker's runtime error if it has one, before or after this call.
+    pub fn detach_reporting<T, E>(thread: Thread<T, E>, report: impl Fn(&E) -> Option<String> + Send + Sync + 'static) {
+        {
+            let stored = thread.completion.result.lock().unwrap();
+            match stored.as_ref() {
+                Some(Err(JoinError::Worker(error))) => if let Some(text) = report(error) { eprint!("{text}"); },
+                Some(_) => {},
+                None => *thread.completion.detached.lock().unwrap() = Some(Box::new(report)),
+            }
+        }
+        detach(thread);
+    }
     pub struct SendError<T> { pub code: &'static str, pub value: T }
     struct ChannelState<T> { queue: VecDeque<T>, capacity: usize, senders: usize, closed: bool, receiver: bool }
     struct ChannelShared<T> { state: Mutex<ChannelState<T>>, changed: Condvar }

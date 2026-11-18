@@ -1,7 +1,7 @@
-import { canonicalize, readTextFile } from 'std:fs';
-import { basename, dirname, join } from 'std:path';
 import { fromUtf8, toHex } from 'std:bytes';
 import { sha256 } from 'std:crypto';
+import { canonicalize, readTextFile } from 'std:fs';
+import { basename, dirname, join } from 'std:path';
 
 import { artifactChecksum } from '../ai/model-extensions.tsr';
 

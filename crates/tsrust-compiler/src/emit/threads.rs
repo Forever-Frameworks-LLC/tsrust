@@ -20,7 +20,7 @@ impl Emitter<'_> {
         if binding.name == "cancel" { return Some(format!("tsrust_native_threads::cancel({})", self.expr(fun, &args[0], Mode::Read))); }
         let callback_index = usize::from(binding.name == "__ownedPoolTask");
         let value = args.get(callback_index).map(|arg| self.expr(fun, arg, Mode::Consume)).unwrap_or_default();
-        if binding.name == "detach" { return Some(format!("tsrust_native_threads::detach({value})")); }
+        if binding.name == "detach" { return Some(self.detach_call(&args[0], value)); }
         let Type::Union(union) = expr.ty.unwrap() else { unreachable!("thread Result") };
         let variants = self.program.unions[union.index()].members.iter().enumerate().map(|(tag, ty)| {
             let Type::Record(record) = ty else { unreachable!() };
@@ -61,7 +61,7 @@ impl Emitter<'_> {
             let completion = if let Some(name) = self.result_closures.borrow().get(&origin) {
                 let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
                 let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-                let converted = exception_contract_emit::checked_catch_value("error", name, &self.program.error_effects.closure_errors[origin], &unions, runtime, expr.span).expect("checked worker errors");
+                let converted = exception_contract_emit::checked_catch_value("error", name, &self.function_effects().closure_errors[origin], &unions, runtime, expr.span).expect("checked worker errors");
                 format!("callback.call({context_argument}).map_err(|error|{converted})")
             } else { format!("Ok::<_,{error_type}>(callback.call({context_argument}))") };
             let mutable = if self.program.closures[origin].invocation == Mode::Mutate { "mut " } else { "" };
@@ -122,7 +122,7 @@ impl Emitter<'_> {
         let result=if let Some(name)=self.result_closures.borrow().get(&origin){
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError").map(Type::Record);
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
-            let converted=exception_contract_emit::checked_catch_value("error",name,&self.program.error_effects.closure_errors[origin],&unions,runtime,expr.span).expect("checked worker errors");
+            let converted=exception_contract_emit::checked_catch_value("error",name,&self.function_effects().closure_errors[origin],&unions,runtime,expr.span).expect("checked worker errors");
             format!("callback.call({argument}).map_err(|error|{converted})")
         }else{format!("Ok::<_,{}>(callback.call({argument}))",self.native_type(own_error))};
         let mutable=if self.program.closures[origin].invocation==Mode::Mutate{"mut "}else{""};
@@ -150,3 +150,21 @@ impl Emitter<'_> {
         true
     }
 }
+
+impl Emitter<'_> {
+    /// A detached worker's explicit errors are discarded as documented; its runtime
+    /// errors are defects and are printed in the uncaught format.
+    fn detach_call(&self, handle: &Expr, value: String) -> String {
+        let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
+        let error = match handle.ty { Some(Type::Record(id)) => self.program.records[id].application.as_ref().and_then(|application| application.resolved_arguments.get(1).copied()), _ => None };
+        let (Some(runtime @ Type::Record(_)), Some(error)) = (runtime, error) else { return format!("tsrust_native_threads::detach({value})"); };
+        let text = "Some(if payload.field6==0 {std::format!(\"Uncaught {}: {} in a detached thread\\n\",payload.field0.as_ref() as &str,payload.field2.as_ref() as &str)} else {std::format!(\"Uncaught {}: {} in a detached thread\\n    at {}:{}:{}\\n\",payload.field0.as_ref() as &str,payload.field2.as_ref() as &str,payload.field3.as_ref() as &str,payload.field6,payload.field7)})";
+        let report = if error == runtime {
+            format!("|payload: &{}| {text}", self.native_type(runtime))
+        } else if let Type::Union(union) = error && let Some(tag) = self.program.unions[union.index()].members.iter().position(|member| *member == runtime) {
+            format!("|error: &{}| match error {{ Union{}::V{tag}(payload) => {text}, _ => None }}", self.native_type(error), union.index())
+        } else { return format!("tsrust_native_threads::detach({value})"); };
+        format!("tsrust_native_threads::detach_reporting({value}, {report})")
+    }
+}
+

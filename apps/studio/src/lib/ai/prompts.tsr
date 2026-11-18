@@ -1,5 +1,5 @@
-import { compile, escape, Regex } from 'std:regex';
 import { at, fromUtf8, toUtf8, view } from 'std:bytes';
+import { compile, escape, Regex } from 'std:regex';
 
 // Matches the pinned Qwen template's no-tools, system/user/assistant branch.
 export function chatPrompt(message: ReadOnly<string>): string {

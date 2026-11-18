@@ -29,7 +29,7 @@ pub fn assert_registered(source:&str,expected:&str){
 pub fn execute(){
  let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
  let suite=root.join("crates/tsrust-compiler/tests/fixtures/network-runtime/runtime.test.tsr");
- assert_eq!(support::format_round_trip(&std::fs::read_to_string(&suite).unwrap()),std::fs::read_to_string(&suite).unwrap());
+ assert_eq!(support::format_repository(&std::fs::read_to_string(&suite).unwrap()),std::fs::read_to_string(&suite).unwrap());
  for release in [false,true]{
   let mut command=support::cli();command.current_dir(&root).arg("test").arg(&suite).args(["--reporter=json","--profile","--timeout=10000"]);if release{command.arg("--release");}
   let output=support::run(&mut command,600);support::success(&output);assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));

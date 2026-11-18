@@ -49,4 +49,7 @@ __pycache__/
 
 # Generated from crates/tsrust-lsp/src/builtins.json before every docs build.
 /website/src/content/docs/reference/
+/website/src/content/docs/ui/
 /website/src/content/docs/project/performance.md
+/benchmarks/gpui-compare/*/target/
+/benchmarks/lang-compare/*/target/

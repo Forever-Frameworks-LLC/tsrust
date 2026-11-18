@@ -29,6 +29,7 @@ impl Registry {
         self.origins[family]=origins;
         self.scoped_native.insert(family);
         self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
+        self.native_revision+=1;
         Ok(Some(ty))
     }
     /// Keep a fully owned pull environment finite instead of merging signatures.
@@ -43,6 +44,7 @@ impl Registry {
         self.origins[family]=origins;
         self.scoped_native.insert(family);
         self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
+        self.native_revision+=1;
         Ok(Some(ty))
     }
 
@@ -73,6 +75,7 @@ impl Registry {
         self.origins[family] = layout.alternatives.iter().map(|alternative| alternative.origin).collect();
         self.scoped_native.insert(family);
         self.native_views.get_or_insert_with(Default::default).prepare(family, layout);
+        self.native_revision += 1;
         Ok(ty)
     }
 

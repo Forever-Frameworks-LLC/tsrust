@@ -1,7 +1,9 @@
 import { createTempDir, removeDirAll, writeTextFile } from 'std:fs';
-import manifest from '../src/assets/knowledge/manifest.json';
 import { strictEqual, test } from 'std:testing';
+
 import { knowledgeQuestion, searchKnowledge } from '../src/services/ai/knowledge.tsr';
+
+import manifest from '../src/assets/knowledge/manifest.json';
 
 test('offline reference retrieval opens the shipped index and returns attributable code', () => {
   const folder = unwrap(createTempDir(undefined, 'studio-knowledge-'));

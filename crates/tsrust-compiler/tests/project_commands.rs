@@ -117,7 +117,9 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     wait(&rx,&mut lines,"second-version");
     // stderr/stdout reader threads may deliver the start line in either order.
     while lines.iter().filter(|line|line.contains("Started program")).count()<2 {lines.push(rx.recv_timeout(Duration::from_secs(5)).unwrap());}
-    assert!(lines.iter().any(|line|line.contains("syntax reused=1") && line.contains("headers reused=2")),"{lines:?}");
+    // The edited module's body changed, not its header: at least the two untouched headers are reused.
+    let headers=|line:&String|line.split("headers reused=").nth(1).and_then(|tail|tail.split(' ').next()).and_then(|count|count.parse::<usize>().ok());
+    assert!(lines.iter().any(|line|line.contains("syntax reused=1") && headers(line).is_some_and(|count|count>=2)),"{lines:?}");
     let new=pid(&lines);assert_ne!(old,new);assert_ne!(unsafe {kill(old,0)},0,"old program must be reaped");
     let mut undo=Vec::new();
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return \"first-version\";}").unwrap();

@@ -71,7 +71,7 @@ export interface IconProps {
   rotate?: ReactiveValue<number>;
   /** Inline SVG markup to draw instead of a named icon. */
   svg?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -124,7 +124,7 @@ export interface AnimateProps {
   key?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -177,7 +177,7 @@ export interface BadgeProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -252,7 +252,7 @@ export interface TagProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -341,7 +341,7 @@ export interface LabelProps {
   highlightPrefix?: ReactiveValue<boolean>;
   /** Text content, used as `text` when that prop is unset. Text children with variant="secondary" fill `secondary`. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -392,7 +392,7 @@ export interface KbdProps {
   plain?: ReactiveValue<boolean>;
   /** Text content, used as `keys` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -437,7 +437,7 @@ export interface SeparatorProps {
   color?: ReactiveValue<string> | TextBinding;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -478,7 +478,7 @@ export function Separator(props: SeparatorProps): Node {
 export interface SkeletonProps {
   /** Uses the lighter secondary color. */
   secondary?: ReactiveValue<boolean>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -503,7 +503,7 @@ export interface SpinnerProps {
   easing?: ReactiveValue<'linear' | 'ease-in-out' | 'quadratic' | 'ease-out-quint'>;
   /** Size. Defaults to medium. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -560,7 +560,7 @@ export interface ProgressProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Size. Defaults to medium. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -617,7 +617,7 @@ export interface ProgressCircleProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -670,7 +670,7 @@ export interface AvatarProps {
   placeholder?: ReactiveValue<IconName>;
   /** Size. Defaults to medium. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -731,7 +731,7 @@ export interface AlertProps {
   onClose?: Owned<Function<void>>;
   /** Text content, used as `message` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -804,7 +804,7 @@ export function Alert(props: AlertProps): Node {
 export interface AlertTitleProps {
   /** Text content, used as `text` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -817,7 +817,7 @@ export function AlertTitle(props: AlertTitleProps): Node {
 export interface AlertDescriptionProps {
   /** Text content, used as `text` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -842,7 +842,7 @@ export interface ShimmerTextProps {
   once?: ReactiveValue<boolean>;
   /** Text content, used as `text` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -897,7 +897,7 @@ export interface EmptyProps {
   icon?: ReactiveValue<IconName>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -940,7 +940,7 @@ export interface GroupBoxProps {
   contentClassName?: ReactiveValue<string> | TextBinding;
   /** content and an optional GroupBoxFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -991,7 +991,7 @@ export interface DescriptionListProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** DescriptionItem and DescriptionSeparator elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1044,7 +1044,7 @@ export interface DescriptionItemProps {
   span?: ReactiveValue<int>;
   /** Text content, used as `value` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1073,7 +1073,7 @@ export function DescriptionItem(props: DescriptionItemProps): Node {
 }
 
 export interface DescriptionSeparatorProps {
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1086,7 +1086,7 @@ export function DescriptionSeparator(props: DescriptionSeparatorProps): Node {
 export interface BreadcrumbProps {
   /** BreadcrumbItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1105,7 +1105,7 @@ export interface BreadcrumbItemProps {
   onClick?: Owned<Function<void>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1146,7 +1146,7 @@ export interface ClipboardProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the copied text. */
   onCopied?: Owned<Function<void, [text: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1223,7 +1223,7 @@ export interface CheckboxProps {
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1340,7 +1340,7 @@ export interface SwitchProps {
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1439,7 +1439,7 @@ export interface RadioGroupProps {
   onChange?: Owned<Function<void, [index: int]>>;
   /** Radio elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1504,7 +1504,7 @@ export interface RadioProps {
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1605,7 +1605,7 @@ export interface ToggleProps {
   onChange?: Owned<Function<void, [checked: boolean]>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1692,7 +1692,7 @@ export interface RatingProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the clicked star count. */
   onChange?: Owned<Function<void, [value: int]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1765,7 +1765,7 @@ export interface PaginationProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the requested page. */
   onChange?: Owned<Function<void, [page: int]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1860,7 +1860,7 @@ export interface SliderProps {
   onEndChange?: Owned<Function<void, [value: number]>>;
   /** Runs with the value (a range's start) when the thumb is released. */
   onCommit?: Owned<Function<void, [value: number]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -1987,7 +1987,7 @@ export interface StepperProps {
   onChange?: Owned<Function<void, [index: int]>>;
   /** StepperItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2054,7 +2054,7 @@ export interface StepperItemProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2113,7 +2113,7 @@ export interface TabsProps {
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Tab, TabsContent, TabsPrefix, TabsSuffix and TabsEmptySpace elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2188,7 +2188,7 @@ export interface TabProps {
   disabled?: ReactiveValue<boolean>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2247,7 +2247,7 @@ export interface TabsContentProps {
   value?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2266,7 +2266,7 @@ export function TabsContent(props: TabsContentProps): Node {
 export interface TabsPrefixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2279,7 +2279,7 @@ export function TabsPrefix(props: TabsPrefixProps): Node {
 export interface TabsSuffixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2292,7 +2292,7 @@ export function TabsSuffix(props: TabsSuffixProps): Node {
 export interface TabsEmptySpaceProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2305,7 +2305,7 @@ export function TabsEmptySpace(props: TabsEmptySpaceProps): Node {
 export interface TabPrefixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2318,7 +2318,7 @@ export function TabPrefix(props: TabPrefixProps): Node {
 export interface TabSuffixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2345,7 +2345,7 @@ export interface AccordionProps {
   onChange?: Owned<Function<void, [values: ReadOnly<string[]>]>>;
   /** AccordionItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2422,7 +2422,7 @@ export interface AccordionItemProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** AccordionTrigger and AccordionContent elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2497,7 +2497,7 @@ export function AccordionItem(props: AccordionItemProps): Node {
 export interface AccordionTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2510,7 +2510,7 @@ export function AccordionTrigger(props: AccordionTriggerProps): Node {
 export interface AccordionContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2529,7 +2529,7 @@ export interface CollapsibleProps {
   onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** CollapsibleTrigger, CollapsibleContent and other content elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2560,7 +2560,7 @@ export function Collapsible(props: CollapsibleProps): Node {
 export interface CollapsibleTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2573,7 +2573,7 @@ export function CollapsibleTrigger(props: CollapsibleTriggerProps): Node {
 export interface CollapsibleContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2584,7 +2584,7 @@ export function CollapsibleContent(props: CollapsibleContentProps): Node {
 }
 
 export interface SelectProps {
-  /** Plain options whose label is also the value; SelectItem children add more. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Plain options whose label is also the value; SelectItem children add more. A signal expression updates it live; a plain array is read once. */
   items?: ReactiveValue<string[]>;
   /** The selected option's value, controlled; set it from onChange. Without it the select keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
@@ -2622,7 +2622,7 @@ export interface SelectProps {
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** SelectItem, SelectGroup and SelectEmpty elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2762,7 +2762,7 @@ export interface SelectItemProps {
   disabled?: ReactiveValue<boolean>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2795,7 +2795,7 @@ export interface SelectGroupProps {
   label?: ReactiveValue<string> | TextBinding;
   /** SelectLabel and SelectItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2814,7 +2814,7 @@ export function SelectGroup(props: SelectGroupProps): Node {
 export interface SelectLabelProps {
   /** Text content, used as `text` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2827,7 +2827,7 @@ export function SelectLabel(props: SelectLabelProps): Node {
 export interface SelectEmptyProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -2864,11 +2864,11 @@ export interface NumberInputProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives each valid edited value. */
   onChange?: Owned<Function<void, [value: number]>>;
-  /** Synchronous pure predicate for nonempty candidate text. Return false to reject an edit; the empty string always remains valid so the field can be cleared. Runs in addition to the mask and pattern. Reads captured signals live; do not issue UI commands or mutate state during validation. */
+  /** Returns false to reject the edited text (never called for empty text, which is always allowed). Runs after the mask and pattern. Keep it pure and synchronous. */
   onValidate?: Owned<Function<boolean, [candidate: ReadOnly<string>]>>;
-  /** Returns the step amount for the current numeric value and increment flag (true for increase, false for decrease). Takes precedence over step. Must return a finite nonnegative number; zero prevents movement. min/max still clamp the resulting value. Keep this synchronous callback pure; errors stop the application. */
+  /** Returns the step for the current value; the flag is true when increasing. Overrides step. Must return a finite non-negative number (0 stops movement); min and max still apply. Keep it pure; errors stop the application. */
   stepBy?: Owned<Function<number, [value: number, increment: boolean]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3005,7 +3005,7 @@ export interface OtpInputProps {
   onFocus?: Owned<Function<void>>;
   /** Runs when it loses focus. */
   onBlur?: Owned<Function<void>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3114,7 +3114,7 @@ export interface DatePickerProps {
   months?: ReactiveValue<int>;
   /** The weekday columns start on. */
   firstDayOfWeek?: ReactiveValue<string> | TextBinding;
-  /** Quick choices beside the calendar: [label, day] or [label, start, end] rows. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Quick choices beside the calendar: [label, day] or [label, start, end] rows. A signal expression updates it live; a plain array is read once. */
   presets?: ReactiveValue<string[][]>;
   /** false draws the bare trigger. */
   appearance?: ReactiveValue<boolean>;
@@ -3128,9 +3128,9 @@ export interface DatePickerProps {
   disabledFrom?: ReactiveValue<string> | TextBinding;
   /** End of a disabled day range. */
   disabledTo?: ReactiveValue<string> | TextBinding;
-  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). A signal expression updates it live; a plain array is read once. */
   disabledWeekdays?: ReactiveValue<string[]>;
-  /** Individual YYYY-MM-DD days that cannot be chosen. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Individual YYYY-MM-DD days that cannot be chosen. A signal expression updates it live; a plain array is read once. */
   disabledDates?: ReactiveValue<string[]>;
   /** First year offered in the year view. */
   yearStart?: ReactiveValue<int>;
@@ -3140,7 +3140,7 @@ export interface DatePickerProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Runs with the new value in the same form as value. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3322,7 +3322,7 @@ export interface ColorPickerProps {
   value?: ReactiveValue<string> | TextBinding;
   /** Initial color when `value` is unset. */
   defaultValue?: ReactiveValue<string> | TextBinding;
-  /** Swatches offered first, as hex, theme or palette colors. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Swatches offered first, as hex, theme or palette colors. A signal expression updates it live; a plain array is read once. */
   featuredColors?: ReactiveValue<string[]>;
   /** Draws a dropdown of swatches (ColorSelect) instead of the swatch button with the full picker. */
   select?: ReactiveValue<boolean>;
@@ -3340,7 +3340,7 @@ export interface ColorPickerProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Runs with the chosen color as #rrggbb, or empty when cleared. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3444,7 +3444,7 @@ export interface TooltipProps {
   contentClassName?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3481,7 +3481,7 @@ export function Tooltip(props: TooltipProps): Node {
 export interface TooltipContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3514,7 +3514,7 @@ export interface PopoverProps {
   onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** PopoverTrigger, PopoverContent elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3595,7 +3595,7 @@ export function Popover(props: PopoverProps): Node {
 export interface PopoverTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3608,7 +3608,7 @@ export function PopoverTrigger(props: PopoverTriggerProps): Node {
 export interface PopoverContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3633,7 +3633,7 @@ export interface HoverCardProps {
   onOpenChange?: Owned<Function<void, [open: boolean]>>;
   /** HoverCardTrigger, HoverCardContent elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3686,7 +3686,7 @@ export function HoverCard(props: HoverCardProps): Node {
 export interface HoverCardTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3699,7 +3699,7 @@ export function HoverCardTrigger(props: HoverCardTriggerProps): Node {
 export interface HoverCardContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3750,7 +3750,7 @@ export interface DialogProps {
   onCancel?: Owned<Function<void>>;
   /** DialogTrigger and DialogContent elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -3903,7 +3903,7 @@ export interface SheetProps {
   onClose?: Owned<Function<void>>;
   /** SheetTrigger and SheetContent elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4026,7 +4026,7 @@ export interface AlertDialogProps {
   onClose?: Owned<Function<void>>;
   /** AlertDialogTrigger, AlertDialogTitle, AlertDialogDescription and body content elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4175,7 +4175,7 @@ export function AlertDialog(props: AlertDialogProps): Node {
 export interface AlertDialogContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4188,7 +4188,7 @@ export function AlertDialogContent(props: AlertDialogContentProps): Node {
 export interface AlertDialogDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4201,7 +4201,7 @@ export function AlertDialogDescription(props: AlertDialogDescriptionProps): Node
 export interface AlertDialogTitleProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4214,7 +4214,7 @@ export function AlertDialogTitle(props: AlertDialogTitleProps): Node {
 export interface AlertDialogHeaderProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4227,7 +4227,7 @@ export function AlertDialogHeader(props: AlertDialogHeaderProps): Node {
 export interface AlertDialogTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4240,7 +4240,7 @@ export function AlertDialogTrigger(props: AlertDialogTriggerProps): Node {
 export interface DialogTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4253,7 +4253,7 @@ export function DialogTrigger(props: DialogTriggerProps): Node {
 export interface DialogContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4266,7 +4266,7 @@ export function DialogContent(props: DialogContentProps): Node {
 export interface DialogHeaderProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4279,7 +4279,7 @@ export function DialogHeader(props: DialogHeaderProps): Node {
 export interface DialogTitleProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4292,7 +4292,7 @@ export function DialogTitle(props: DialogTitleProps): Node {
 export interface DialogDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4305,7 +4305,7 @@ export function DialogDescription(props: DialogDescriptionProps): Node {
 export interface DialogFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4318,7 +4318,7 @@ export function DialogFooter(props: DialogFooterProps): Node {
 export interface DialogCloseProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4331,7 +4331,7 @@ export function DialogClose(props: DialogCloseProps): Node {
 export interface SheetTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4344,7 +4344,7 @@ export function SheetTrigger(props: SheetTriggerProps): Node {
 export interface SheetContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4357,7 +4357,7 @@ export function SheetContent(props: SheetContentProps): Node {
 export interface SheetHeaderProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4370,7 +4370,7 @@ export function SheetHeader(props: SheetHeaderProps): Node {
 export interface SheetTitleProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4383,7 +4383,7 @@ export function SheetTitle(props: SheetTitleProps): Node {
 export interface SheetDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4396,7 +4396,7 @@ export function SheetDescription(props: SheetDescriptionProps): Node {
 export interface SheetFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4409,7 +4409,7 @@ export function SheetFooter(props: SheetFooterProps): Node {
 export interface SheetCloseProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4422,7 +4422,7 @@ export function SheetClose(props: SheetCloseProps): Node {
 export interface DialogActionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4435,11 +4435,11 @@ export function DialogAction(props: DialogActionProps): Node {
 export interface AppMenuBarProps {
   /** AppMenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** Installs the application menus. macOS displays them in the system menu bar; Windows and Linux render the Kit menu bar here. Declare one in the main window. Changed labels, checked/disabled flags and children reload automatically. Hiding or removing the owning menu bar removes its installed menus. MenuItem entries require text and a Shortcut command; the active window handles that command. Missing commands disable an item. Custom rows, href and onSelect throw; use a Shortcut handler for application actions. Ownership: retains menu labels and action names; Shortcut callbacks stay with their window. */
+/** Installs the application menus: in the system menu bar on macOS, here in the window on Windows and Linux. Declare one in the main window; changes to labels, flags and children apply automatically. Each MenuItem needs text and a Shortcut command, which the active window handles; an item whose command is missing is disabled. Custom rows, href and onSelect throw. Ownership: retains the labels and command names. */
 export function AppMenuBar(props: AppMenuBarProps): Node {
   let node = kitNode('AppMenuBar', props.children ?? [], props.className);
   return node;
@@ -4452,7 +4452,7 @@ export interface AppMenuProps {
   disabled?: ReactiveValue<boolean>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4521,7 +4521,7 @@ export interface DropdownMenuProps {
   onClick?: Owned<Function<void>>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4696,7 +4696,7 @@ export interface MenuItemProps {
   onSelect?: Owned<Function<void>>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4769,7 +4769,7 @@ export interface ContextMenuProps {
   fontSize?: ReactiveValue<int>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4834,7 +4834,7 @@ export interface SidebarProps {
   collapsible?: ReactiveValue<'icon' | 'offcanvas' | 'none'>;
   /** SidebarHeader, SidebarFooter and SidebarGroup elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4875,7 +4875,7 @@ export interface SidebarHeaderProps {
   selected?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4896,7 +4896,7 @@ export interface SidebarFooterProps {
   selected?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4917,7 +4917,7 @@ export interface SidebarGroupProps {
   label?: ReactiveValue<string> | TextBinding;
   /** SidebarItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -4956,7 +4956,7 @@ export interface SidebarItemProps {
   onClick?: Owned<Function<void>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5033,7 +5033,7 @@ export function SidebarItem(props: SidebarItemProps): Node {
 export interface SidebarItemSuffixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5052,7 +5052,7 @@ export interface SidebarToggleButtonProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Runs when clicked; toggle the Sidebar's collapsed state here. */
   onClick?: Owned<Function<void>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5101,7 +5101,7 @@ export interface ResizableProps {
   onResize?: Owned<Function<void, [sizes: ReadOnly<string[]>]>>;
   /** ResizablePanel elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5148,7 +5148,7 @@ export interface ResizablePanelProps {
   visible?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5195,7 +5195,7 @@ export interface TableProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** TableHeader, TableBody, TableFooter and TableCaption elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5224,7 +5224,7 @@ export function Table(props: TableProps): Node {
 export interface TableHeaderProps {
   /** TableRow elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5237,7 +5237,7 @@ export function TableHeader(props: TableHeaderProps): Node {
 export interface TableBodyProps {
   /** TableRow elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5250,7 +5250,7 @@ export function TableBody(props: TableBodyProps): Node {
 export interface TableFooterProps {
   /** TableRow elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5263,7 +5263,7 @@ export function TableFooter(props: TableFooterProps): Node {
 export interface TableCaptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5276,7 +5276,7 @@ export function TableCaption(props: TableCaptionProps): Node {
 export interface TableRowProps {
   /** TableHead, TableCell elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5293,7 +5293,7 @@ export interface TableHeadProps {
   align?: ReactiveValue<'left' | 'center' | 'right'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5326,7 +5326,7 @@ export interface TableCellProps {
   align?: ReactiveValue<'left' | 'center' | 'right'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5357,7 +5357,7 @@ export interface MarkdownProps {
   content?: ReactiveValue<string> | TextBinding;
   /** Scrolls when taller than its space. */
   scrollable?: ReactiveValue<boolean>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5382,7 +5382,7 @@ export function Markdown(props: MarkdownProps): Node {
 export interface HtmlProps {
   /** HTML source. */
   content?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5405,13 +5405,13 @@ export interface ImageProps {
   fit?: ReactiveValue<'contain' | 'cover' | 'fill' | 'none'>;
   /** Text shown while loading or when the image cannot be loaded. */
   alt?: ReactiveValue<string> | TextBinding;
-  /** Enables a scrollable native image viewport. 0 fits the entire image without enlarging it; positive values from 1 through 3200 select a percentage of natural image size. Omit for the ordinary fixed image box. Fit follows pane resizing. Scrollbars and trackpad scrolling pan in both directions. */
+  /** Shows the image in a scrollable viewport: 0 fits the whole image (never enlarging); 1 to 3200 is a percentage of its natural size. Omit for an ordinary image. */
   zoom?: ReactiveValue<number>;
-  /** For a zoom-enabled image, JSON with finite nonnegative x/y scroll offsets in logical pixels and a nonnegative integer request identifier. Offsets clamp to image bounds. Change request to reapply the same coordinates after manual scrolling. Example: {"x":120,"y":80,"request":1}. Does not change zoom. */
+  /** With zoom set, JSON {x, y, request} scroll offsets in logical pixels, clamped to the image. Change request to apply the same offsets again. Example: {"x":120,"y":80,"request":1}. */
   scrollTo?: ReactiveValue<string> | TextBinding;
   /** Reports the effective percentage after loading or resizing a zoom-enabled image. Fit may report a fractional percentage. Does not change the requested zoom. Runs only when the effective percentage changes. */
   onZoomChange?: Owned<Function<void, [value: number]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5466,7 +5466,7 @@ export interface TitleBarProps {
   onCloseWindow?: Owned<Function<void>>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5489,7 +5489,7 @@ export interface WindowBorderProps {
   resizeHitSize?: ReactiveValue<number>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5514,7 +5514,7 @@ export function WindowBorder(props: WindowBorderProps): Node {
 export interface StatusBarProps {
   /** StatusBarLeft, StatusBarRight elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5527,7 +5527,7 @@ export function StatusBar(props: StatusBarProps): Node {
 export interface StatusBarLeftProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5540,7 +5540,7 @@ export function StatusBarLeft(props: StatusBarLeftProps): Node {
 export interface StatusBarRightProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5557,7 +5557,7 @@ export interface ToolbarProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** ToolbarGroup and controls elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5590,7 +5590,7 @@ export interface ToolbarGroupProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5631,7 +5631,7 @@ export interface FormProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Field and FormFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5706,7 +5706,7 @@ export interface FieldProps {
   colEnd?: ReactiveValue<int>;
   /** FieldLabel, FieldDescription and the control elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5777,7 +5777,7 @@ export function Field(props: FieldProps): Node {
 export interface FormFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5790,7 +5790,7 @@ export function FormFooter(props: FormFooterProps): Node {
 export interface FieldDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5803,7 +5803,7 @@ export function FieldDescription(props: FieldDescriptionProps): Node {
 export interface FieldLabelProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5818,7 +5818,7 @@ export interface ScrollAreaProps {
   horizontal?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5849,7 +5849,7 @@ export interface MessageProps {
   role?: ReactiveValue<'presentation'>;
   /** MessageAvatar, MessageHeader, MessageContent and MessageFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5910,7 +5910,7 @@ export function Message(props: MessageProps): Node {
 export interface MessageGroupProps {
   /** Message elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5923,7 +5923,7 @@ export function MessageGroup(props: MessageGroupProps): Node {
 export interface MessageAvatarProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5938,7 +5938,7 @@ export interface MessageHeaderProps {
   inset?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5957,7 +5957,7 @@ export function MessageHeader(props: MessageHeaderProps): Node {
 export interface MessageContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5972,7 +5972,7 @@ export interface MessageFooterProps {
   inset?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -5995,7 +5995,7 @@ export interface BubbleProps {
   align?: ReactiveValue<'start' | 'end'>;
   /** BubbleContent, BubbleReactions or any content elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6028,7 +6028,7 @@ export function Bubble(props: BubbleProps): Node {
 export interface BubbleContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6045,7 +6045,7 @@ export interface BubbleReactionsProps {
   align?: ReactiveValue<'start' | 'end'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6078,7 +6078,7 @@ export function BubbleReactions(props: BubbleReactionsProps): Node {
 export interface BubbleGroupProps {
   /** Bubble elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6091,21 +6091,21 @@ export function BubbleGroup(props: BubbleGroupProps): Node {
 export interface ChartProps {
   /** Chart type. Defaults to line. candlestick reads open/high/low/close; sankey reads labels as nodes and links as flows. */
   kind?: ReactiveValue<'line' | 'bar' | 'area' | 'pie' | 'radar' | 'candlestick' | 'sankey'>;
-  /** Category labels, one per value. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Category labels, one per value. A signal expression updates it live; a plain array is read once. */
   labels?: ReactiveValue<string[]>;
-  /** Data values, in label order (line, bar, area, pie and radar). Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Data values, in label order (line, bar, area, pie and radar). A signal expression updates it live; a plain array is read once. */
   values?: ReactiveValue<number[]>;
-  /** Candlestick opening values, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Candlestick opening values, in label order. A signal expression updates it live; a plain array is read once. */
   open?: ReactiveValue<number[]>;
-  /** Candlestick highs, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Candlestick highs, in label order. A signal expression updates it live; a plain array is read once. */
   high?: ReactiveValue<number[]>;
-  /** Candlestick lows, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Candlestick lows, in label order. A signal expression updates it live; a plain array is read once. */
   low?: ReactiveValue<number[]>;
-  /** Candlestick closing values, in label order. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Candlestick closing values, in label order. A signal expression updates it live; a plain array is read once. */
   close?: ReactiveValue<number[]>;
-  /** Sankey flows as [source label, target label, value] triples. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Sankey flows as [source label, target label, value] triples. A signal expression updates it live; a plain array is read once. */
   links?: ReactiveValue<string[][]>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6231,7 +6231,7 @@ export interface ListProps {
   autoFocus?: ReactiveValue<boolean>;
   /** Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection. */
   scrollResetKey?: ReactiveValue<string> | TextBinding;
-  /** Positive minimum card width in logical pixels enables a responsive virtualized grid of flat ListItem children. Columns follow the measured list width; each card remains clickable and keyboard focusable. Use selectable=false and onConfirm for card activation. Omit for ordinary list selection and sections. */
+  /** Shows flat ListItem children as a responsive grid of cards at least this many logical pixels wide. Use selectable=false and onConfirm to activate cards. Omit for an ordinary list. */
   minItemWidth?: ReactiveValue<number>;
   /** Receives the highlighted row's value (or its index) as the highlight moves. */
   onSelect?: Owned<Function<void, [value: ReadOnly<string>]>>;
@@ -6243,7 +6243,7 @@ export interface ListProps {
   onLoadMore?: Owned<Function<void>>;
   /** ListItem, ListSeparator, ListGroup and ListEmpty elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6374,7 +6374,7 @@ export function List(props: ListProps): Node {
 export interface ListItemProps {
   /** Value List events report for this row; defaults to the row index. In reactive lists, distinct nonempty values also preserve row identity when rows move or are removed. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Extra words the search matches. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Extra words the search matches. A signal expression updates it live; a plain array is read once. */
   keywords?: ReactiveValue<string[]>;
   /** Dims the row and ignores clicks. */
   disabled?: ReactiveValue<boolean>;
@@ -6392,7 +6392,7 @@ export interface ListItemProps {
   onHover?: Owned<Function<void>>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6468,7 +6468,7 @@ export function ListItem(props: ListItemProps): Node {
 export interface ListItemSuffixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6479,7 +6479,7 @@ export function ListItemSuffix(props: ListItemSuffixProps): Node {
 }
 
 export interface ListSeparatorProps {
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6494,7 +6494,7 @@ export interface ListGroupProps {
   heading?: ReactiveValue<string> | TextBinding;
   /** ListItem, ListSeparator elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6513,7 +6513,7 @@ export function ListGroup(props: ListGroupProps): Node {
 export interface ListEmptyProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6546,7 +6546,7 @@ export interface TreeProps {
   onItemDrop?: Owned<Function<void, [items: ReadOnly<string>]>>;
   /** TreeItem, TreeMenu and TreeBackgroundMenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6623,9 +6623,9 @@ export interface TreeItemProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Row icon. Defaults to a folder (open or closed) or file icon. */
   icon?: ReactiveValue<IconName>;
-  /** Inline SVG glyph. Nonempty markup takes precedence over icon; empty markup uses the named or default folder/file icon. The Tree retains the source; the row label remains its accessible name. Parsing follows the same native SVG behavior as Icon.svg. */
+  /** Inline SVG icon; overrides icon when non-empty. Parsed like Icon.svg. */
   iconSvg?: ReactiveValue<string> | TextBinding;
-  /** Tint for the row icon: a theme color, palette name or #rrggbb. Omitted, empty or unrecognized values inherit the row foreground. Applies to named and SVG icons without changing text color. */
+  /** Icon color: a theme color, palette name or #rrggbb. Omitted or unknown values use the row's text color. */
   iconColor?: ReactiveValue<string> | TextBinding;
   /** Opens the folder; rebuilds the tree when it changes. */
   expanded?: ReactiveValue<boolean>;
@@ -6635,7 +6635,7 @@ export interface TreeItemProps {
   disabled?: ReactiveValue<boolean>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6700,7 +6700,7 @@ export function TreeItem(props: TreeItemProps): Node {
 export interface TreeMenuProps {
   /** MenuItem, MenuSeparator and MenuLabel elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6713,7 +6713,7 @@ export function TreeMenu(props: TreeMenuProps): Node {
 export interface TreeBackgroundMenuProps {
   /** MenuItem, MenuSeparator and MenuLabel elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6744,9 +6744,9 @@ export interface CalendarProps {
   disabledFrom?: ReactiveValue<string> | TextBinding;
   /** End of a disabled day range. */
   disabledTo?: ReactiveValue<string> | TextBinding;
-  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Weekdays that cannot be chosen, by name (sat, sun) or number (0 = Sunday). A signal expression updates it live; a plain array is read once. */
   disabledWeekdays?: ReactiveValue<string[]>;
-  /** Individual YYYY-MM-DD days that cannot be chosen. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Individual YYYY-MM-DD days that cannot be chosen. A signal expression updates it live; a plain array is read once. */
   disabledDates?: ReactiveValue<string[]>;
   /** First year offered in the year view. */
   yearStart?: ReactiveValue<int>;
@@ -6756,7 +6756,7 @@ export interface CalendarProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Runs with the selected day, or start..end for a range. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6899,7 +6899,7 @@ export interface TimeFieldProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Receives the edited time as HH:MM:SS, or empty when cleared. */
   onChange?: Owned<Function<void, [time: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -6968,11 +6968,11 @@ export function TimeField(props: TimeFieldProps): Node {
 }
 
 export interface ComboboxProps {
-  /** Plain options whose label is also the value; SelectItem children add more. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Plain options whose label is also the value; SelectItem children add more. A signal expression updates it live; a plain array is read once. */
   items?: ReactiveValue<string[]>;
   /** Selected values, controlled, one per line (a single value for single-select); set it from onChange. Without it the combobox keeps its own selection. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Initially selected values when `value` is unset. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Initially selected values when `value` is unset. A signal expression updates it live; a plain array is read once. */
   defaultValue?: ReactiveValue<string[]>;
   /** Allows several selections; each click toggles an option. Read when it mounts. */
   multiple?: ReactiveValue<boolean>;
@@ -7006,7 +7006,7 @@ export interface ComboboxProps {
   onChange?: Owned<Function<void, [values: ReadOnly<string[]>]>>;
   /** SelectItem, SelectGroup, SelectEmpty, ComboboxTrigger and ComboboxFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7149,7 +7149,7 @@ export function Combobox(props: ComboboxProps): Node {
 export interface ComboboxTriggerProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7162,7 +7162,7 @@ export function ComboboxTrigger(props: ComboboxTriggerProps): Node {
 export interface ComboboxFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7201,7 +7201,7 @@ export interface CommandProps {
   onSelect?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** CommandItem, CommandGroup, CommandSeparator, CommandEmpty, CommandHeader and CommandFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7296,7 +7296,7 @@ export interface CommandItemProps {
   label?: ReactiveValue<string> | TextBinding;
   /** Icon before the label. */
   icon?: ReactiveValue<IconName>;
-  /** Extra words the search matches. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Extra words the search matches. A signal expression updates it live; a plain array is read once. */
   keywords?: ReactiveValue<string[]>;
   /** A Shortcut command: its keys show at the end of the row. */
   command?: ReactiveValue<string> | TextBinding;
@@ -7310,7 +7310,7 @@ export interface CommandItemProps {
   onHighlight?: Owned<Function<void>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7386,7 +7386,7 @@ export function CommandItem(props: CommandItemProps): Node {
 export interface CommandFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7399,7 +7399,7 @@ export function CommandFooter(props: CommandFooterProps): Node {
 export interface CommandHeaderProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7412,7 +7412,7 @@ export function CommandHeader(props: CommandHeaderProps): Node {
 export interface CommandEmptyProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7423,7 +7423,7 @@ export function CommandEmpty(props: CommandEmptyProps): Node {
 }
 
 export interface CommandSeparatorProps {
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7438,7 +7438,7 @@ export interface CommandGroupProps {
   heading?: ReactiveValue<string> | TextBinding;
   /** CommandItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7469,7 +7469,7 @@ export interface CarouselProps {
   onChange?: Owned<Function<void, [index: int]>>;
   /** CarouselContent, CarouselItem, CarouselPrevious, CarouselNext and CarouselPagination elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7518,7 +7518,7 @@ export function Carousel(props: CarouselProps): Node {
 export interface CarouselSlideProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7533,7 +7533,7 @@ export interface CarouselContentProps {
   trackClassName?: ReactiveValue<string> | TextBinding;
   /** CarouselItem elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7554,7 +7554,7 @@ export interface CarouselItemProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7575,7 +7575,7 @@ export interface CarouselPreviousProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Size: xsmall, small, medium (default) or large. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7606,7 +7606,7 @@ export interface CarouselNextProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Size: xsmall, small, medium (default) or large. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7637,7 +7637,7 @@ export interface CarouselPaginationProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Size: xsmall, small, medium (default) or large. */
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -7670,7 +7670,7 @@ export interface TerminalProps {
   directory?: ReactiveValue<string> | TextBinding;
   /** Optional executable to run directly instead of the login shell, for a task terminal. Nonempty and without NUL. Read at mount; restart reruns this program. No shell expansion is performed. */
   program?: ReactiveValue<string> | TextBinding;
-  /** Arguments for program, passed individually without a shell. Requires an explicit program when nonempty; NUL is rejected. Read at mount and reused on restart. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Arguments for program, passed individually without a shell. Requires an explicit program when nonempty; NUL is rejected. Read at mount and reused on restart. A signal expression updates it live; a plain array is read once. */
   args?: ReactiveValue<string[]>;
   /** Monospace text size in logical pixels, from 8 through 40. Defaults to 14. Live changes resize the PTY to the measured font grid. */
   fontSize?: ReactiveValue<int>;
@@ -7678,13 +7678,13 @@ export interface TerminalProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Runs once when the current shell exits. Read its final status with readTerminal; restart resets this notification for the new session. */
   onExit?: Owned<Function<void>>;
-  /** Cmd-click (Ctrl-click outside macOS) a path:line:column to request guarded editor navigation. Value is JSON containing path, line and column. Includes soft-wrapped locations. The host must validate workspace scope; no external URL is opened. */
+  /** Cmd-click (Ctrl-click outside macOS) on a path:line:column sends JSON {path, line, column}. Check the path is in scope before opening it; URLs are never opened. */
   onOpenLink?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** A native interactive PTY terminal with VT parsing, ANSI colors, scrollback, selection and committed Unicode input. Starts the user login shell in directory on first visible mount, or runs an explicit program with args as a visible task. Hiding preserves the session; unmounting force-closes its foreground job and shell. No shell is started by HTML output, which displays an unsupported message. Address the session through controlTerminal/readTerminal using a unique id. Example: <Terminal id="shell" directory="/tmp" fontSize={14} className="size-full"/> opens an interactive shell in /tmp. Ownership: the mounted native node owns the shell, parser, grid and cleanup; directory/program/args are read once at mount. Starting a task can execute code or write files; its host must grant those effects. */
+/** An interactive terminal with colors, scrollback, selection and Unicode input. On first display it starts the login shell in directory, or runs program with args. Hiding keeps the session; unmounting closes it. Address it with controlTerminal and readTerminal by id. HTML output shows an unsupported message instead. Example: <Terminal id="shell" directory="/tmp" fontSize={14} className="size-full"/> opens an interactive shell in /tmp. Ownership: the mounted node owns the shell; directory, program and args are read once. */
 export function Terminal(props: TerminalProps): Node {
   let node = kitNode('Terminal', [], props.className);
   const prop_id = props.id;
@@ -7746,7 +7746,7 @@ export function Terminal(props: TerminalProps): Node {
 export interface CodeEditorProps {
   /** Controlled full text. Omission preserves local edits; a changed value replaces the buffer. Pair with onChange to retain user edits. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Highlighting language, such as rust, typescript or json. tsr/tsrust select the TypeScript grammar; tsrx selects TSX. Read when the editor mounts; omission displays plain text. readInput reports the canonical grammar name. */
+  /** Highlighting language, such as rust, typescript or json (tsr selects TypeScript, tsrx selects TSX). Read when mounted; omitted, the text is plain. */
   language?: ReactiveValue<string> | TextBinding;
   /** Prevents edits. */
   readOnly?: ReactiveValue<boolean>;
@@ -7774,6 +7774,8 @@ export interface CodeEditorProps {
   autoFocus?: ReactiveValue<boolean>;
   /** Shows source line numbers. Defaults to true. */
   lineNumbers?: ReactiveValue<boolean>;
+  /** Fixed end of the native editor's initial selection, in UTF-8 bytes. With initialCaret, selects between the two offsets and preserves direction. Defaults to initialCaret. */
+  initialAnchor?: ReactiveValue<int>;
   /** Initial UTF-8 byte offset in the native editor. Read once after mounting its text. Offsets clip to a character boundary inside the document. */
   initialCaret?: ReactiveValue<int>;
   /** Comma-separated one-based source lines marked in the native editor gutter, for example '2,5'. An empty string shows an empty gutter. Omission hides it. Requires visible line numbers. */
@@ -7828,27 +7830,29 @@ export interface CodeEditorProps {
   onBlur?: Owned<Function<void>>;
   /** Runs on Enter submission; secondary reports Cmd on macOS or Ctrl elsewhere. */
   onSubmit?: Owned<Function<void, [secondary: boolean]>>;
-  /** Synchronously inspects a JSON clipboard snapshot {text, paths, imageCount}. text is string or null; paths is a file-path array; imageCount counts images without exposing their bytes. Return true to consume the paste without default insertion, or false to insert normal text. Errors stop the application. Web platforms without synchronous clipboard access skip this handler. Ownership: snapshot is borrowed only for the call; clone text to retain it. */
+  /** Called with JSON {text, paths, imageCount} before a paste (text may be null). Return true to consume the paste yourself, false to insert the text normally. Errors stop the application. Skipped on web platforms without synchronous clipboard access. */
   onPaste?: Owned<Function<boolean, [payload: ReadOnly<string>]>>;
-  /** Receives JSON {id, method, params, text} for native hover, completion, signature help, definition and references reads. id is window-scoped, params uses UTF-16 positions, and text is the exact requested buffer. Reply with answerEditorLanguage; only current text can receive results. Requests expire after five seconds. Omission disables providers. */
+  /** Receives JSON {id, method, params, text} for hover, completion, signature help, definition and references (positions in UTF-16). Reply with answerEditorLanguage within five seconds. Omit to disable these features. */
   onLanguageRequest?: Owned<Function<void, [request: ReadOnly<string>]>>;
+  /** Receives a JSON pair [anchor, caret] of UTF-8 byte offsets when the primary selection changes in the native editor. Equal endpoints indicate an insertion point. */
+  onSelectionChange?: Owned<Function<void, [selection: ReadOnly<string>]>>;
   /** Receives the active caret's UTF-8 byte offset when it moves in the native editor, including keyboard navigation without edits. */
   onCaretChange?: Owned<Function<void, [offset: int]>>;
   /** Receives the one-based source line when the user clicks the native breakpoint gutter. Update breakpointLines to change the markers. Wrapped rows refer to their original source line. */
   onBreakpointClick?: Owned<Function<void, [line: int]>>;
-  /** Receives JSON {id, prefix, suffix} after typing pauses in a focused editor. prefix and suffix split the exact buffer at the caret. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to display ghost text. Tab accepts it and Escape dismisses it. Reply with 'null' for no suggestion. onLanguageCancel reports obsolete requests. Omit to disable inline suggestions. */
+  /** Receives JSON {id, prefix, suffix} (the text before and after the caret) when typing pauses. Reply with answerEditorLanguage(id, JSON.stringify(insertion), callback) to show a suggestion, or 'null' for none. Tab accepts and Escape dismisses it. */
   onInlineCompletion?: Owned<Function<void, [request: ReadOnly<string>]>>;
   /** Receives the window-scoped request id when a native language read is cancelled, replaced or expires. Cancel the matching server read; late replies are ignored. */
   onLanguageCancel?: Owned<Function<void, [request: int]>>;
-  /** Receives LSP ShowDocumentParams JSON for Go to Definition. The host must validate the file URI and UTF-16 selection and open the target. Native URL/local-buffer fallbacks are consumed even when omitted; omission disables navigation delivery. */
+  /** Receives LSP ShowDocumentParams JSON for Go to Definition. Check the file URI and selection, then open the target. Omit to disable navigation. */
   onLanguageNavigate?: Owned<Function<void, [location: ReadOnly<string>]>>;
-  /** Receives JSON {locations, error} after Shift+F12 or Find References. locations is an array of LSP Locations; error is an optional failure message. Only the current focused buffer/cursor receives results. The host presents locations; opening one requires file-URI and UTF-16 range validation. No text changes occur. */
+  /** Receives JSON {locations, error} after Find References (Shift+F12): an array of LSP Locations and an optional error message. Show the locations yourself; check each URI and range before opening it. */
   onLanguageReferences?: Owned<Function<void, [locations: ReadOnly<string>]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing, optionally seeded by defaultValue; set value and handle onChange for controlled text. controlInput and readInput address it by id. Editing and selection use Kit UTF-8 byte offsets; retained text outlives its source. Ownership: the mounted node owns one editor state; callbacks retain weak component-state handles. Show Hover in the context menu or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere) requests documentation at the caret without editing or moving focus. A hover provider is required; Escape dismisses and cancels pending hover. */
+/** A source-code editor with highlighting, line numbers, folding, selection and find/replace. Omit value for local editing (optionally seeded by defaultValue), or set value and handle onChange for controlled text. controlInput and readInput address it by id. Offsets are UTF-8 bytes. Show Hover in the context menu, or Cmd+K then Cmd+I on macOS (Ctrl+K then Ctrl+I elsewhere), shows documentation at the caret from the hover provider; Escape dismisses it. Ownership: the mounted node owns its editor state. */
 export function CodeEditor(props: CodeEditorProps): Node {
   let node = kitNode('CodeEditor', [], props.className);
   const prop_value = props.value;
@@ -7947,6 +7951,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
 
   if (prop_lineNumbers !== undefined) {
     node = kitFlag(node, 'lineNumbers', prop_lineNumbers);
+  }
+
+  const prop_initialAnchor = props.initialAnchor;
+
+  if (prop_initialAnchor !== undefined) {
+    node = kitInt(node, 'initialAnchor', prop_initialAnchor);
   }
 
   const prop_initialCaret = props.initialCaret;
@@ -8139,6 +8149,12 @@ export function CodeEditor(props: CodeEditorProps): Node {
     node = unwrapNode(nativeKitOn(node, 'languageRequest', event_onLanguageRequest));
   }
 
+  const event_onSelectionChange = props.onSelectionChange;
+
+  if (event_onSelectionChange !== undefined) {
+    node = unwrapNode(nativeKitOn(node, 'selectionChange', event_onSelectionChange));
+  }
+
   const event_onCaretChange = props.onCaretChange;
 
   if (event_onCaretChange !== undefined) {
@@ -8187,7 +8203,7 @@ export interface ToggleGroupProps {
   disabled?: ReactiveValue<boolean>;
   /** Toggle elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8246,7 +8262,7 @@ export interface ButtonGroupProps {
   onClick?: Owned<Function<void, [selected: ReadOnly<string>]>>;
   /** Button or GroupButton elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8349,7 +8365,7 @@ export interface GroupButtonProps {
   onClick?: Owned<Function<void>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8408,7 +8424,7 @@ export interface InputGroupProps {
   focusRing?: ReactiveValue<boolean>;
   /** One Input or Textarea and InputGroupAddon elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8463,7 +8479,7 @@ export interface InputGroupAddonProps {
   align?: ReactiveValue<'inline-start' | 'inline-end' | 'block-start' | 'block-end'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8486,7 +8502,7 @@ export function InputGroupAddon(props: InputGroupAddonProps): Node {
 export interface InputGroupTextProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8537,7 +8553,7 @@ export interface InputGroupButtonProps {
   onClick?: Owned<Function<void>>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8718,7 +8734,7 @@ export interface DiffProps {
   filePath?: ReactiveValue<string> | TextBinding;
   /** Code and line-number text size in logical pixels, 8–40. Omission uses the theme monospace size. Live changes preserve the diff state. */
   fontSize?: ReactiveValue<int>;
-  /** Receives a JSON position {path, side, line} when source code is clicked outside a selection drag. side is original or modified; line is one-based. The snapshot can be parsed with JSON.parse. */
+  /** Receives JSON {path, side, line} when code is clicked: side is original or modified, line is one-based. */
   onLineClick?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Receives the same JSON position as onLineClick while hovering, or JSON null on leaving a line. */
   onLineHover?: Owned<Function<void, [value: ReadOnly<string>]>>;
@@ -8726,11 +8742,11 @@ export interface DiffProps {
   onAddAnnotation?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** DiffAnnotation, DiffDecoration, DiffGutterMarker and DiffHeader elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** A read-only, virtualized view of a unified or Git patch, with one section per changed file. Display and context props preserve the retained comparison state; mode changes can reset horizontal scrolling and context changes can adjust folded rows. Changing patch replaces the parsed files. Invalid patch text reports its parse line and message and stops the application. For example, <Diff patch={patch} mode="split" softWrap={true}/> wraps both source columns. Callbacks receive retained JSON snapshots with file paths and one-based source positions. Ownership: the mounted node owns one comparison state; callbacks retain weak window owners. Alternatively supply originalText and modifiedText with filePath to compare full snapshots on a background worker, retaining all context for expansion and rejecting stale comparison results. Do not combine text snapshots with patch. */
+/** A read-only, scrolling view of a unified or Git patch, one section per changed file. Changing patch replaces the files; invalid patch text stops the application with its line and message. Instead of patch, pass originalText, modifiedText and filePath to compare two full texts in the background. For example, <Diff patch={patch} mode="split" softWrap={true}/> wraps both columns. Callbacks receive JSON with file paths and one-based line numbers. Ownership: the mounted node owns its comparison state. */
 export function Diff(props: DiffProps): Node {
   let node = kitNode('Diff', props.children ?? [], props.className);
   const prop_patch = props.patch;
@@ -8903,7 +8919,7 @@ export interface DiffAnnotationProps {
   line?: ReactiveValue<int>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -8948,7 +8964,7 @@ export interface DiffDecorationProps {
   endSide?: ReactiveValue<'original' | 'modified'>;
   /** Theme color or CSS hex color. Omission uses Kit translucent warning color. */
   color?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9011,7 +9027,7 @@ export interface DiffGutterMarkerProps {
   line?: ReactiveValue<int>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9048,7 +9064,7 @@ export interface DiffHeaderProps {
   part?: ReactiveValue<'content' | 'prefix' | 'title-suffix' | 'suffix'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9091,7 +9107,7 @@ export interface MarkerProps {
   shimmerColor?: ReactiveValue<string> | TextBinding;
   /** MarkerIcon, MarkerContent or any content elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9184,7 +9200,7 @@ export function Marker(props: MarkerProps): Node {
 export interface MarkerIconProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9197,7 +9213,7 @@ export function MarkerIcon(props: MarkerIconProps): Node {
 export interface MarkerContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9238,7 +9254,7 @@ export interface AttachmentProps {
   onRetry?: Owned<Function<void>>;
   /** AttachmentMedia, AttachmentContent and AttachmentActions elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9347,7 +9363,7 @@ export function Attachment(props: AttachmentProps): Node {
 export interface AttachmentActionsProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9360,7 +9376,7 @@ export function AttachmentActions(props: AttachmentActionsProps): Node {
 export interface AttachmentDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9377,7 +9393,7 @@ export interface AttachmentTitleProps {
   shimmerColor?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9402,7 +9418,7 @@ export function AttachmentTitle(props: AttachmentTitleProps): Node {
 export interface AttachmentContentProps {
   /** AttachmentTitle, AttachmentDescription elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9417,7 +9433,7 @@ export interface AttachmentMediaProps {
   src?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9438,7 +9454,7 @@ export interface AttachmentGroupProps {
   edgeFade?: ReactiveValue<string> | TextBinding;
   /** Attachment elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9457,7 +9473,7 @@ export function AttachmentGroup(props: AttachmentGroupProps): Node {
 export interface DataTableProps {
   /** The cells as JSON: an array of rows, each an array of cell values (`JSON.stringify(rows)`). Non-string values show as JSON text. */
   rows?: ReactiveValue<string> | TextBinding;
-  /** Column titles, when there are no DataTableColumn children. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Column titles, when there are no DataTableColumn children. A signal expression updates it live; a plain array is read once. */
   columns?: ReactiveValue<string[]>;
   /** Alternates row backgrounds. */
   stripe?: ReactiveValue<boolean>;
@@ -9505,7 +9521,7 @@ export interface DataTableProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Changing this key scrolls to the first row without selecting it. Keep it stable during background updates; use a page/filter identity to reset navigation. No effect on initial selection. */
   scrollResetKey?: ReactiveValue<string> | TextBinding;
-  /** When true, sortable headers emit onSort and show direction without rearranging the supplied rows. Sort the full dataset in onSort before pagination. Defaults to false, which sorts the supplied rows locally. */
+  /** When true, header clicks emit onSort and show the direction but do not reorder the rows; sort the full data in onSort. Defaults to false (rows sort locally). */
   manualSorting?: ReactiveValue<boolean>;
   /** Receives the selected row's index in `rows` (sorting does not change it). */
   onSelect?: Owned<Function<void, [row: int]>>;
@@ -9533,7 +9549,7 @@ export interface DataTableProps {
   onLoadMore?: Owned<Function<void>>;
   /** DataTableColumn, DataTableCell, DataTableEmpty and DataTableMenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9783,7 +9799,7 @@ export function DataTable(props: DataTableProps): Node {
 export interface DataTableColumnProps {
   /** Header text; usually given as the text children. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Column identity events report. An in-range numeric key picks that cell of each row; other keys use the original declared column position. Reordering keeps the same cell data. Defaults to the original column position. */
+  /** Column identity reported by events. A numeric key picks that cell of each row; otherwise the original column position is used. Defaults to the original position. */
   key?: ReactiveValue<string> | TextBinding;
   /** Width in pixels. */
   width?: ReactiveValue<number>;
@@ -9791,7 +9807,7 @@ export interface DataTableColumnProps {
   minWidth?: ReactiveValue<number>;
   /** Widest width a resize allows. */
   maxWidth?: ReactiveValue<number>;
-  /** A header click cycles ascending, descending and original order. Local sorting puts numbers before text ascending, with stable ties. Signed 128-bit integer strings compare exactly; other numeric strings use 64-bit floats, including their total order for signed zero, infinities and NaN. Text compares lexically. Descending reverses that order without reversing ties. */
+  /** Header clicks cycle ascending, descending and original order. Numbers sort before text, ties keep their order, and descending reverses the order. */
   sortable?: ReactiveValue<boolean>;
   /** Initial sort direction when sort is omitted. Later row refreshes preserve user sorting. Use sort for controlled updates; defaults to none. */
   defaultSort?: ReactiveValue<'ascending' | 'descending' | 'none'>;
@@ -9809,11 +9825,11 @@ export interface DataTableColumnProps {
   padding?: ReactiveValue<number>;
   /** Expands this column into unused table width, keeping its width/minWidth as a minimum. Use on one column; narrower tables retain horizontal scrolling. Defaults to false. */
   fill?: ReactiveValue<boolean>;
-  /** Controlled sort direction. Bind none on inactive columns. After onSort, the indicator and local row order follow this value even when the handler retains its previous value. Without it, defaultSort initializes an uncontrolled three-state sort. */
+  /** Controlled sort direction; use none on inactive columns. Without it, defaultSort starts an uncontrolled sort. */
   sort?: ReactiveValue<'ascending' | 'descending' | 'none'>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9936,7 +9952,7 @@ export interface DataTableCellProps {
   column?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9961,7 +9977,7 @@ export function DataTableCell(props: DataTableCellProps): Node {
 export interface DataTableEmptyProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -9974,7 +9990,7 @@ export function DataTableEmpty(props: DataTableEmptyProps): Node {
 export interface DataTableMenuProps {
   /** MenuItem, MenuSeparator and MenuLabel elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10005,7 +10021,7 @@ export interface SettingsProps {
   headerClassName?: ReactiveValue<string> | TextBinding;
   /** SettingsPage elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10092,7 +10108,7 @@ export interface SettingsPageProps {
   headerClassName?: ReactiveValue<string> | TextBinding;
   /** SettingsGroup and optional SettingsTitleSuffix elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10147,7 +10163,7 @@ export interface SettingsGroupProps {
   variant?: ReactiveValue<'normal' | 'fill' | 'outline'>;
   /** SettingItem and optional SettingsFooter elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10184,7 +10200,7 @@ export interface SettingItemProps {
   title?: ReactiveValue<string> | TextBinding;
   /** Explanation under the title. */
   description?: ReactiveValue<string> | TextBinding;
-  /** Additional search terms; none by default. Text in custom controls is not searched automatically. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Additional search terms; none by default. Text in custom controls is not searched automatically. A signal expression updates it live; a plain array is read once. */
   keywords?: ReactiveValue<string[]>;
   /** Control beside the label or below it; horizontal by default. */
   layout?: ReactiveValue<'horizontal' | 'vertical'>;
@@ -10194,7 +10210,7 @@ export interface SettingItemProps {
   onReset?: Owned<Function<void>>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10270,7 +10286,7 @@ export interface MessageScrollerProps {
   jumpButtonClassName?: ReactiveValue<string> | TextBinding;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10341,21 +10357,21 @@ export interface DockProps {
   tabbed?: ReactiveValue<boolean>;
   /** Selects the panel with this value in its current group. Update from onChange. Other visible split groups stay open. */
   value?: ReactiveValue<string> | TextBinding;
-  /** Native GPUI saved layout from onLayoutChange, read only at mount. Empty or omitted uses tabbed/vertical defaults. Restores split axes, sizes, tab order and each group selection by distinct DockPanel.value; absent panels are skipped and new children are appended. Invalid JSON, unsupported version/shape, duplicate values, nonfinite/negative sizes, more than 64 levels or 1 MiB falls back to the default layout and reports onLayoutError. Does not open files, restore panel contents, focus, zoom or editor cursor/scroll state. HTML retains the option without native docking behavior. Ownership: copies text; no panel or callback ownership changes. */
+  /** A layout saved from onLayoutChange, read when mounted. Restores splits, sizes, tab order and selected tabs by DockPanel.value; missing panels are skipped and new ones appended. Invalid or oversized layouts fall back to the default and call onLayoutError. Panel contents, focus and scroll positions are not restored. */
   initialLayout?: ReactiveValue<string> | TextBinding;
   /** Reports a panel value when its tab becomes active. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Reports a panel value after a user closes it. Remove that DockPanel child to accept; retaining it restores the panel. Set closable=false to prevent closing dirty content. */
   onClose?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Native GPUI emits an opaque versioned JSON snapshot after a layout change and the next frame, coalescing changes and suppressing unchanged snapshots. Includes measured split sizes, tab order and per-group active tabs using DockPanel.value. Persist it and pass it as initialLayout on the next mount; do not update layout by parsing/reconstructing this payload. Content and editor state are excluded. The borrowed text is valid only during the callback; clone to retain. */
+  /** Receives a versioned JSON layout after each change. Save it and pass it back as initialLayout; do not edit it. Clone the text to keep it. */
   onLayoutChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
-  /** Reports why a nonempty initialLayout could not be restored. The default layout remains usable and panels keep their content. Errors are technical English diagnostics. Clone the borrowed message to retain it. No event for an empty initialLayout. */
+  /** Receives a message when a non-empty initialLayout cannot be restored; the default layout is used. Clone the text to keep it. */
   onLayoutError?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Requests closing all panels through the host. Resolve unsaved data before removing children; no panel is removed automatically. */
   onCloseAll?: Owned<Function<void>>;
   /** DockPanel elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10434,7 +10450,7 @@ export interface DockPanelProps {
   splitControls?: ReactiveValue<boolean>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10489,7 +10505,7 @@ export interface QuestionnaireProps {
   shortcuts?: ReactiveValue<'letters' | 'numbers'>;
   /** Receives the answers as JSON: an object from question id to the array of chosen choice ids. */
   onSubmit?: Owned<Function<void, [answers: ReadOnly<string>]>>;
-  /** Receives JSON {id,choices,freeform,status} when a committed answer changes. choices is an array of choice ids; freeform is a string or null; status is unanswered, answered or skipped. Typing alone is a draft until confirmed. */
+  /** Receives JSON {id, choices, freeform, status} when an answer is committed: choices is an array of choice ids, freeform a string or null, status unanswered, answered or skipped. */
   onChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Receives the current question id after navigation, or an empty string when none is current. */
   onCurrentChange?: Owned<Function<void, [value: ReadOnly<string>]>>;
@@ -10499,11 +10515,11 @@ export interface QuestionnaireProps {
   onSubmitDetails?: Owned<Function<void, [value: ReadOnly<string>]>>;
   /** Question elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit and required-answer validation. Choosing an answer moves to the next question. Question ids, labels, required/multiple flags, defaults and freeform input definitions are read once at mount. Changing size or Question/QuestionChoice.disabled preserves answers. Duplicate ids, more than one default choice for a single-answer question, and multiple inputs in one question throw. Ownership: the questionnaire owns its answer and input state until disposal. */
+/** A step-by-step survey of Question elements with progress, Back/Skip/Next/Submit buttons and required-answer checks. Choosing an answer moves to the next question. Questions are read once when mounted. Duplicate ids, more than one default for a single-answer question, or more than one input in a question throw. Ownership: owns the answers until disposed. */
 export function Questionnaire(props: QuestionnaireProps): Node {
   let node = kitNode('Questionnaire', props.children ?? [], props.className);
   const prop_size = props.size;
@@ -10580,7 +10596,7 @@ export interface QuestionProps {
   disabled?: ReactiveValue<boolean>;
   /** QuestionChoice and at most one QuestionInput elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10639,7 +10655,7 @@ export interface QuestionChoiceProps {
   defaultSelected?: ReactiveValue<boolean>;
   /** Text content, used as `label` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10688,7 +10704,7 @@ export interface QuestionInputProps {
   accessibilityLabel?: ReactiveValue<string> | TextBinding;
   /** Disables freeform entry at mount; false by default. Disabling the parent Question also disables this field. */
   disabled?: ReactiveValue<boolean>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10749,11 +10765,11 @@ export interface SpeechButtonProps {
   onStarted?: Owned<Function<void>>;
   /** Called if the recognizer session is explicitly cancelled and its transcript discarded. Stopping normally, including its timeout, calls onFinal instead. */
   onCancelled?: Owned<Function<void>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
-/** A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the final transcript. Locale, systemFallback and stopTimeout are read once when mounted; disabled, size and waveform presentation can change without restarting the recognizer. Unsupported hosts hide the button unless showWhenUnsupported is true. Each mounted button owns its recognizer and releases capture when disposed. */
+/** A microphone button that dictates with the system speech recognizer (macOS and Windows). Click to start; click again to stop and receive the transcript. locale, systemFallback and stopTimeout are read once when mounted. Unsupported systems hide the button unless showWhenUnsupported is true. Ownership: each button owns its recognizer. */
 export function SpeechButton(props: SpeechButtonProps): Node {
   let node = kitNode('SpeechButton', [], props.className);
   const prop_locale = props.locale;
@@ -10846,7 +10862,7 @@ export function SpeechButton(props: SpeechButtonProps): Node {
 }
 
 export interface PlotProps {
-  /** Category labels along the x axis, one per value. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Category labels along the x axis, one per value. A signal expression updates it live; a plain array is read once. */
   labels?: ReactiveValue<string[]>;
   /** Draws the x axis with labels. Defaults to false. */
   axis?: ReactiveValue<boolean>;
@@ -10854,7 +10870,7 @@ export interface PlotProps {
   grid?: ReactiveValue<boolean>;
   /** PlotLine, PlotArea, PlotBars and an optional PlotTooltip elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10906,7 +10922,7 @@ export interface PlotTooltipProps {
   appearance?: ReactiveValue<boolean>;
   /** PlotTooltipRow elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -10977,7 +10993,7 @@ export interface PlotTooltipRowProps {
   color?: ReactiveValue<string> | TextBinding;
   /** Optional text color for this row’s value. Uses the same color names as Plot marks; omit to inherit tooltip text color. */
   valueColor?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11012,7 +11028,7 @@ export function PlotTooltipRow(props: PlotTooltipRowProps): Node {
 }
 
 export interface PlotLineProps {
-  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. A signal expression updates it live; a plain array is read once. */
   values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
@@ -11024,7 +11040,7 @@ export interface PlotLineProps {
   width?: ReactiveValue<number>;
   /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11080,7 +11096,7 @@ export function PlotLine(props: PlotLineProps): Node {
 }
 
 export interface PlotAreaProps {
-  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. A signal expression updates it live; a plain array is read once. */
   values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
@@ -11088,7 +11104,7 @@ export interface PlotAreaProps {
   curve?: ReactiveValue<'natural' | 'linear' | 'step'>;
   /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11132,13 +11148,13 @@ export function PlotArea(props: PlotAreaProps): Node {
 }
 
 export interface PlotBarsProps {
-  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. Expressions reading component signals update live; plain arrays are read at construction. */
+  /** Finite numbers, in label order. NaN and infinities throw a UI error. Missing trailing values are omitted; extra values beyond the labels are not drawn. A signal expression updates it live; a plain array is read once. */
   values?: ReactiveValue<number[]>;
   /** Theme color (chart-1 … chart-5, primary, destructive, foreground, muted-foreground) or #rrggbb. Defaults to the next chart color. */
   color?: ReactiveValue<string> | TextBinding;
   /** Series name in PlotTooltip. Defaults to Series 1, Series 2, and so on in mark order. */
   label?: ReactiveValue<string> | TextBinding;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11178,7 +11194,7 @@ export interface ShortcutProps {
   keys?: ReactiveValue<string> | TextBinding;
   /** Called when the keys are pressed. */
   onTrigger?: Owned<Function<void>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11213,7 +11229,7 @@ export interface TickerProps {
   running?: ReactiveValue<boolean>;
   /** Receives the tick count since the timer started (1, 2, 3 and so on). */
   onTick?: Owned<Function<void, [frame: int]>>;
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11246,7 +11262,7 @@ export interface MenuLabelProps {
   text?: ReactiveValue<string> | TextBinding;
   /** Text content, used as `text` when that prop is unset. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11263,7 +11279,7 @@ export function MenuLabel(props: MenuLabelProps): Node {
 }
 
 export interface MenuSeparatorProps {
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11280,7 +11296,7 @@ export interface SubmenuProps {
   icon?: ReactiveValue<IconName>;
   /** MenuItem, MenuLabel, MenuSeparator and Submenu elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11315,7 +11331,7 @@ export interface AvatarGroupProps {
   size?: ReactiveValue<'xsmall' | 'small' | 'medium' | 'large'>;
   /** Avatar elements. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11354,7 +11370,7 @@ export interface EmptyMediaProps {
   variant?: ReactiveValue<'default' | 'icon'>;
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11383,7 +11399,7 @@ export function EmptyMedia(props: EmptyMediaProps): Node {
 export interface EmptyHeaderProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11396,7 +11412,7 @@ export function EmptyHeader(props: EmptyHeaderProps): Node {
 export interface EmptyTitleProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11409,7 +11425,7 @@ export function EmptyTitle(props: EmptyTitleProps): Node {
 export interface EmptyDescriptionProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11422,7 +11438,7 @@ export function EmptyDescription(props: EmptyDescriptionProps): Node {
 export interface EmptyContentProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11435,7 +11451,7 @@ export function EmptyContent(props: EmptyContentProps): Node {
 export interface GroupBoxFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11448,7 +11464,7 @@ export function GroupBoxFooter(props: GroupBoxFooterProps): Node {
 export interface SettingsTitleSuffixProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 
@@ -11461,7 +11477,7 @@ export function SettingsTitleSuffix(props: SettingsTitleSuffixProps): Node {
 export interface SettingsFooterProps {
   /** Content shown inside the component. */
   children?: Child[];
-  /** Utility classes, empty by default. Expressions reading component signals update without remounting. Unknown utilities throw; class changes preserve the component's state and children. */
+  /** Utility classes. A signal expression updates them live without remounting; unknown utilities throw. */
   className?: ReactiveValue<string>;
 }
 

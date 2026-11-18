@@ -201,10 +201,14 @@ pub(crate) struct Registry {
     nested_results: std::collections::HashSet<(usize,usize)>,
     native_views: Option<Box<crate::native_view_family_registry::Registry>>,
     scoped_native: std::collections::HashSet<usize>,
+    /// Counts changes to scoped native families, so caches compare one number.
+    native_revision: u64,
 }
 mod native_view_storage_registry;
 
 impl Registry {
+    pub(crate) fn native_revision(&self) -> u64 { self.native_revision }
+
     #[cfg(test)]
     fn prepared_native_family(&self,family:usize)->Option<&crate::native_view_callable_storage::Family> {
         self.native_views.as_ref()?.get(family)
@@ -306,6 +310,7 @@ impl Registry {
             candidates.push(origin);
             if let Some(layout)=crate::native_view_callable_storage::family_slots(declaration,signatures,candidates,closures,span)? {
                 self.native_views.get_or_insert_with(Default::default).prepare(family,layout);
+                self.native_revision+=1;
                 return Err(Diagnostic::new("native-view-callable-storage",
                     "This callback owns its environment but carries borrowed byte views. Lifetime-bearing callable storage is not implemented yet.",span)
                     .related(closures[origin].span,"Carried byte-view environment is created here."));
@@ -369,6 +374,7 @@ impl Registry {
         }).collect::<Result<std::collections::HashSet<_>,Diagnostic>>()?;
         self.nested_results=nested_results;
         self.native_views=native_views.map(Box::new);
+        self.native_revision+=1;
         self.identities=std::mem::take(&mut self.identities).into_iter().map(|(contract,id)|{
             let contract=match contract {
                 StorageContract::Borrowed(signature,origins)=>{

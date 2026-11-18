@@ -75,8 +75,8 @@ function CardExample(): Node {
 ## Icons
 
 `icon` props and `<Icon name="..." />` take any of the 1,830 Lucide icon names
-GPUI Kit ships, such as `search`, `settings` or `file-text`. The gallery's
-Icon page lists them.
+GPUI Kit ships, such as `search`, `settings` or `file-text`. The Icon page of the
+GPUI starter app (`apps/gpui-starter`) lists them.
 
 ## Native terminal
 

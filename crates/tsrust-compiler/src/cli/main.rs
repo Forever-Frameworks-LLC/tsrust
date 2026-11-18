@@ -111,6 +111,8 @@ Options:
   --color auto|always|never  Color help, diagnostics, dev status and test reports
   --debug                   build: retain mapped Rust source beside the executable and emit debugger symbols
   --source-locations        emit: annotate Rust statements with Tsrust file and byte range
+  --crate-plan              emit: print each generated function's and closure's source module as JSON
+  --stable-names LEDGER     emit: name generated items through LEDGER as incremental builds do
   --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
@@ -190,7 +192,13 @@ fn run() -> Result<u8, String> {
     let Some(command) = args.next() else {
         return Err("Missing command. Run `tsrust --help` for usage.".into());
     };
-    if command == "--help" || command == "-h" || env::args().skip(2).take_while(|arg|arg!="--").any(|arg| arg == "--help" || arg == "-h") {
+    if command == "--help"
+        || command == "-h"
+        || env::args()
+            .skip(2)
+            .take_while(|arg| arg != "--")
+            .any(|arg| arg == "--help" || arg == "-h")
+    {
         print_help();
         return Ok(0);
     }
@@ -234,11 +242,15 @@ fn run() -> Result<u8, String> {
     let mut output: Option<PathBuf> = None;
     let mut json = false;
     let mut color_mode = "auto".to_owned();
-    let mut test_filter:Option<String>=None;let mut test_reporter:Option<String>=None;let mut test_timeout:Option<u64>=None;
+    let mut test_filter: Option<String> = None;
+    let mut test_reporter: Option<String> = None;
+    let mut test_timeout: Option<u64> = None;
     let mut test_profile=false;
     let mut release = false;
     let mut package = false;
     let mut source_locations = false;
+    let mut crate_plan = false;
+    let mut stable_names: Option<PathBuf> = None;
     let mut debug = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -246,13 +258,33 @@ fn run() -> Result<u8, String> {
                 output = Some(PathBuf::from(args.next().ok_or("Missing output path")?))
             }
             "--json" if !json => json = true,
-            "--filter" if command=="test"&&test_filter.is_none()=>test_filter=Some(args.next().ok_or("--filter requires a literal name substring")?),
-            _ if command=="test"&&arg.starts_with("--filter=")&&test_filter.is_none()=>test_filter=Some(arg[9..].to_owned()),
-            "--reporter" if command=="test"&&test_reporter.is_none()=>test_reporter=Some(args.next().ok_or("--reporter requires pretty, plain or json")?),
-            _ if command=="test"&&arg.starts_with("--reporter=")&&test_reporter.is_none()=>test_reporter=Some(arg[11..].to_owned()),
-            "--profile" if command=="test"&&!test_profile=>test_profile=true,
-            "--timeout" if command=="test"&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&args.next().ok_or("--timeout requires milliseconds")?)?),
-            _ if command=="test"&&arg.starts_with("--timeout=")&&test_timeout.is_none()=>test_timeout=Some(test_timeout_value(&arg[10..])?),
+            "--filter" if command == "test" && test_filter.is_none() => {
+                test_filter = Some(
+                    args.next()
+                        .ok_or("--filter requires a literal name substring")?,
+                )
+            }
+            _ if command == "test" && arg.starts_with("--filter=") && test_filter.is_none() => {
+                test_filter = Some(arg[9..].to_owned())
+            }
+            "--reporter" if command == "test" && test_reporter.is_none() => {
+                test_reporter = Some(
+                    args.next()
+                        .ok_or("--reporter requires pretty, plain or json")?,
+                )
+            }
+            _ if command == "test" && arg.starts_with("--reporter=") && test_reporter.is_none() => {
+                test_reporter = Some(arg[11..].to_owned())
+            }
+            "--profile" if command == "test" && !test_profile => test_profile = true,
+            "--timeout" if command == "test" && test_timeout.is_none() => {
+                test_timeout = Some(test_timeout_value(
+                    &args.next().ok_or("--timeout requires milliseconds")?,
+                )?)
+            }
+            _ if command == "test" && arg.starts_with("--timeout=") && test_timeout.is_none() => {
+                test_timeout = Some(test_timeout_value(&arg[10..])?)
+            }
             "--color" => {
                 color_mode = args
                     .next()
@@ -261,12 +293,29 @@ fn run() -> Result<u8, String> {
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
             "--debug" if command == "build" && !debug => debug = true,
-            "--source-locations" if command == "emit" && !source_locations => source_locations = true,
+            "--source-locations" if command == "emit" && !source_locations => {
+                source_locations = true
+            }
+            "--crate-plan" if command == "emit" && !crate_plan => crate_plan = true,
+            "--stable-names" if command == "emit" && stable_names.is_none() => {
+                stable_names = Some(PathBuf::from(
+                    args.next().ok_or("--stable-names requires a ledger path")?,
+                ))
+            }
             "--package" if !package => package = true,
-            _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
+            _ => {
+                return Err(format!(
+                    "Unknown or repeated option: {arg}. Run `tsrust --help` for usage."
+                ));
+            }
         }
     }
-    if test_reporter.as_deref().is_some_and(|value|!matches!(value,"pretty"|"plain"|"json")){return Err("--reporter requires pretty, plain or json".into());}
+    if test_reporter
+        .as_deref()
+        .is_some_and(|value| !matches!(value, "pretty" | "plain" | "json"))
+    {
+        return Err("--reporter requires pretty, plain or json".into());
+    }
     if !matches!(color_mode.as_str(), "auto" | "always" | "never") {
         return Err("--color requires auto, always or never".into());
     }
@@ -347,11 +396,19 @@ fn run() -> Result<u8, String> {
     {
         return Err("output must not overwrite a project source file".into());
     }
+    if crate_plan {
+        let tsrust_compiler::project_cli::CheckedInput::Project(project) = &analysis else {
+            return Err("--crate-plan needs a project entry (a tsrust.config.json project)".into());
+        };
+        let plan = project.crate_plan();
+        match &output {Some(output) => fs::write(output, plan).map_err(|e| e.to_string())?, None => println!("{plan}")}
+        return Ok(0);
+    }
     let check_elapsed=check_started.elapsed();
     let emit_started=std::time::Instant::now();
     let (rust, native_features) = if source_locations || debug {
         analysis.emit_rust_with_locations(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?, &source)
-    } else { analysis.emit_rust_with_native_features() };
+    } else { analysis.emit_rust_for_source(canonical_source.to_str().ok_or("Source path must be valid UTF-8")?, &source) };
     let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
         if package {
@@ -360,6 +417,20 @@ fn run() -> Result<u8, String> {
             println!("Emitted package {}",output.display());
             return Ok(0);
         }
+        // Diagnostic aid: show the generated program as incremental native builds name it.
+        let rust = match &stable_names {
+            Some(ledger_path) => {
+                let mut ledger = tsrust_compiler::native_stable_names::Ledger::load(ledger_path);
+                let renamed = tsrust_compiler::native_stable_names::stabilize(
+                    &rust,
+                    &analysis.name_keys(),
+                    &mut ledger,
+                );
+                ledger.save(ledger_path);
+                renamed
+            }
+            None => rust,
+        };
         if let Some(output) = output {
             fs::write(output, rust).map_err(|e| e.to_string())?;
         } else {
@@ -420,6 +491,7 @@ fn run() -> Result<u8, String> {
     if let Some(inputs) = &shared_inputs { cache_parts.push(inputs.as_bytes()); }
     if let Some(identity)=runtime_build::application_cache_identity(&rust){cache_parts.push(identity);}
     cache_parts.push(runtime_build::profile_identity(&rust).as_bytes());
+    if !release && !debug && runtime_build::crate_split_enabled() { cache_parts.push(b"crate-split-1"); }
     let cache = tsrust_compiler::native_cache::NativeCache::new(&cache_root, &cache_parts);
     let cache_started=std::time::Instant::now();
     // Debug symbols can include platform sidecars outside the executable cache.
@@ -427,7 +499,22 @@ fn run() -> Result<u8, String> {
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {
-        let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
+        let incremental_entry = absolute(&source_path)?.join(&command);
+        let naming = (!release && !debug).then(|| {
+            runtime_build::Naming::for_session(
+                analysis.name_keys(),
+                &cache_root,
+                &incremental_entry,
+            )
+        });
+        let mut prepared = runtime_build::Prepared::new_named(
+            &rust,
+            &backend_identity,
+            &cache_root,
+            &directory.0,
+            release,
+            naming.as_ref(),
+        )?;
         if let Some(mut runtime)=prepared.command.take() {
             prepared.acquire_target(true)?;
             let result=runtime.output().map_err(|e|e.to_string())?;
@@ -435,7 +522,22 @@ fn run() -> Result<u8, String> {
             prepared.finish()?;prepared.publish();
         }
         if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
-        let mut command=backend_command();prepared.link(&mut command)?;
+        if let Some(split) = &prepared.split {
+            let mut probe = backend_command();
+            prepared.link(&mut probe)?;
+            let base = || {
+                let mut command = backend_command();
+                let _ = prepared.link(&mut command);
+                command.args(["--cap-lints", "allow", "--edition=2024", "-C", optimization, "-C", "overflow-checks=on"]);
+                command
+            };
+            let summary = split.build(&base, &executable, prepared.library.as_deref(), &Default::default(), false)?.ok_or("Native build cancelled")?;
+            if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] split {summary}");}
+            if backend_sources::unchanged(shared_inputs.as_deref(), &cache_root, false) { let _ = cache.publish(&executable); }
+        } else {
+        let mut command = backend_command();
+        prepared.link(&mut command)?;
+        prepared.application=runtime_build::application_backend_args(&mut command,&cache_root,&incremental_entry,release||debug,&prepared.application);
         if debug {
             prepared.application = retain_debug_source(&prepared.application, &executable)?;
             command.args(["--crate-name", "program", "-g"]);
@@ -470,6 +572,7 @@ fn run() -> Result<u8, String> {
         if debug { record_debug_unit(&prepared.application, &executable).map_err(|e|e.to_string())?; }
         // Cache failure must not turn a successful native build into a failure.
         if !debug && backend_sources::unchanged(shared_inputs.as_deref(), &cache_root,false) { let _ = cache.publish(&executable); }
+        }
     }
     if !test_profile&&env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
         eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});
@@ -660,11 +763,30 @@ fn restore_pipe_signal() {
 #[cfg(not(unix))]
 fn restore_pipe_signal() {}
 
+/// A print to a closed pipe (`println!` panics with "failed printing to
+/// stdout: Broken pipe"). With the default signal disposition the process ends
+/// first; this covers a disposition changed after start.
+fn broken_pipe(payload: &(dyn std::any::Any + Send)) -> bool {
+    let text = payload.downcast_ref::<String>().map(String::as_str).or_else(|| payload.downcast_ref::<&str>().copied());
+    text.is_some_and(|text| text.starts_with("failed printing to std") && text.contains("Broken pipe"))
+}
+
 fn main() -> ExitCode {
     restore_pipe_signal();
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if !broken_pipe(info.payload()) {
+            previous(info);
+        }
+    }));
     let worker = std::thread::Builder::new().name("tsrust".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(run);
     let result = match worker {
-        Ok(worker) => worker.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)),
+        Ok(worker) => match worker.join() {
+            Ok(result) => result,
+            // Ends quietly with the status a SIGPIPE termination reports.
+            Err(panic) if broken_pipe(&*panic) => return ExitCode::from(141),
+            Err(panic) => std::panic::resume_unwind(panic),
+        },
         Err(_) => run(),
     };
     match result {

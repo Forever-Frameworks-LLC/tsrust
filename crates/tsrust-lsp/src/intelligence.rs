@@ -629,7 +629,8 @@ impl SourceIndex {
         self.public_record_aliases.get(record).filter(|(_,arity)|self.generic_parameters.get(record).map_or(0,Vec::len)==*arity).map(|(name,_)|name.clone())
     }
     fn display_type(&self, ty: &str) -> String {
-        let mut display = ty.to_owned();
+        // The fault record is written `RuntimeError` in source.
+        let mut display = ty.replace("#RuntimeError", "RuntimeError");
         // Global JSON calls and task scheduling introduce native types without a source import
         // whose alias would otherwise supply their public display names.
         use tsrust_compiler::native_signatures::NativeTypeId;
@@ -3736,6 +3737,8 @@ impl SourceIndex {
             "ReadOnly",
             "Once",
             "Owned",
+            "Checked",
+            "RuntimeError",
             "int",
             "number",
             "string",
@@ -4183,6 +4186,8 @@ fn remap_imported_type(
                         | "ReadOnly"
                         | "Once"
                         | "Owned"
+                        | "Checked"
+                        | "RuntimeError"
                         | "Set"
                         | "Map"
                         | "Result"
@@ -4354,7 +4359,7 @@ fn callable_parameters(ty: &str) -> Option<Vec<String>> {
             return Some(
                 parameters
                     .iter()
-                    .map(|parameter| ty[parameter.span.start..parameter.span.end].trim().to_string())
+                    .map(|parameter| labeled_parameter(ty[parameter.span.start..parameter.span.end].trim()))
                     .collect(),
             );
         }
@@ -4379,6 +4384,17 @@ fn callable_parameters(ty: &str) -> Option<Vec<String>> {
         parameters.push(ty[begin..end].trim().to_string());
     }
     Some(parameters)
+}
+
+/// A `Function<...>` parameter as the formatter writes it: `name: Type`.
+fn labeled_parameter(source: &str) -> String {
+    let name_end = source.find(|ch: char| !(ch.is_alphanumeric() || matches!(ch, '_' | '$' | '.'))).unwrap_or(source.len());
+    let rest = source[name_end..].trim_start();
+    let (marker, rest) = if let Some(rest) = rest.strip_prefix("?:") {("?", rest)} else if let Some(rest) = rest.strip_prefix(':') {("", rest)} else {return source.to_owned()};
+    if name_end == 0 {
+        return source.to_owned();
+    }
+    format!("{}{marker}: {}", &source[..name_end], rest.trim())
 }
 
 fn optional_parameter_type(ty: &str) -> String {

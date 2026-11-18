@@ -57,7 +57,7 @@ impl Analyzer {
         })();
         self.discovering_results=discovering;self.effects_only=effects_only;
         prepared?;
-        let effects=self.discovery_error_effects();
+        let effects=self.discovery_error_effects_for(&crate::error_effects::Seeds::callable(ty));
         let failures=match ty {
             Type::Closure(id)=>effects.closure_errors[id].clone(),
             Type::Callback(id)=>effects.callback_errors.get(&id).cloned().unwrap_or_default(),

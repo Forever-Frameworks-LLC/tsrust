@@ -1,4 +1,5 @@
 mod alias_query;
+mod checked_lowering;
 pub use alias_query::{TypeAliasCatalog,TypeAliasInfo};
 pub(crate) use alias_query::alias_parameter_spans;
 mod declaration_work;
@@ -1809,6 +1810,8 @@ pub struct Program {
     /// `extends` names that no declaration or import of the file provides.
     /// A standalone parse of a module keeps them; checking reports them.
     pub(crate) unresolved_bases: Vec<Token>,
+    /// The source names `RuntimeError` (directly or through `Checked`).
+    pub(crate) uses_runtime_error: bool,
 }
 
 pub fn parse(source: &str) -> Result<Program, Diagnostic> {
@@ -1878,7 +1881,7 @@ impl<'a> Parser<'a> {
     }
 
     fn with_policy(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords, policy: NestingPolicy) -> Result<Self, Diagnostic> {
-        let tokens = lex_with(source, policy)?;
+        let tokens = checked_lowering::lower(lex_with(source, policy)?)?;
         let has_await = tokens.iter().any(|token| token.text == "await");
         Ok(Self {
             source,
@@ -2330,6 +2333,7 @@ impl Parser<'_> {
             type_argument_checks: Vec::new(),
             type_aliases: Default::default(),
             unresolved_bases: Vec::new(),
+            uses_runtime_error: self.tokens.iter().any(|token| token.kind == TokenKind::Name && token.text == "#RuntimeError"),
             call_type_arguments: Vec::new(),
             records: Vec::new(),
             functions: Vec::new(),

@@ -4,7 +4,7 @@ use crate::Node;
 pub(crate) struct Copy {pub value:String,pub pending:bool,pub serial:u64,pub error:String}
 pub fn button(value:String,class_name:String)->Result<Node,String>{
     let mut node=Node::button_children(vec![],class_name,false,None)?;node.text="Copy".into();
-    node.copy=Some(Copy{value,pending:false,serial:0,error:String::new()});Ok(node)
+    node.copy=Some(Box::new(Copy{value,pending:false,serial:0,error:String::new()}));Ok(node)
 }
 impl Node {
     #[cfg(any(test,feature="gpui",all(target_arch="wasm32",feature="gpui-web")))]

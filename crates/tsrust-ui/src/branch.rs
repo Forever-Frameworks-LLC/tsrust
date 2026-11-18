@@ -254,7 +254,7 @@ impl Node {
         let selected=predicate()?;let child=if selected{present()?}else{absent()?};
         let mut node=Self::new(Kind::View,String::new(),String::new(),vec![])?;
         node.children=child.into_iter().collect();node.depth=node.children.first().map_or(0,|child|child.depth);for child in &node.children{child.reset_identities();}
-        node.branch=Some(Branch{selected,retained:false,initialized:selected,predicate:Box::new(predicate),present:Box::new(present),absent:Box::new(absent)});Ok(node)
+        node.branch=Some(Box::new(Branch{selected,retained:false,initialized:selected,predicate:Box::new(predicate),present:Box::new(present),absent:Box::new(absent)}));Ok(node)
     }
     /// A reactive list slot (`{...rows.map(...)}` that reads state). `build` returns a wrapper whose children are
     /// the rows; the slot adds no layout node and each refresh keeps the rows whose shape did not change.
@@ -382,14 +382,16 @@ impl Node {
             && node.children.iter().all(Self::phrasing))
     }
     pub(crate) fn validate_structure(&self)->Result<(),String> {
-        let table_display=|name:&str|self.class_name.split_whitespace().any(|class|class==name);
+        // Runs for every node on each refresh; most class strings name no table display.
+        let tables=self.class_name.contains("table");
+        let table_display=|name:&str|tables&&self.class_name.split_whitespace().any(|class|class==name);
         if table_display("table-row") && self.visible_children().any(|child|!matches!(child.tag(),"th"|"td")||!child.class_name.split_whitespace().any(|class|class=="table-cell")){
             return Err("A table-row requires table-cell children with th or td tags".into());
         }
         if ["table-header-group","table-row-group","table-footer-group"].iter().any(|class|table_display(class)) && self.visible_children().any(|child|child.tag()!="tr"||!child.class_name.split_whitespace().any(|class|class=="table-row")){
             return Err("A table group requires table-row children with tr tags".into());
         }
-        if self.tag()=="table" && self.class_name.split_whitespace().any(|class|class=="table"){
+        if tables && self.tag()=="table" && self.class_name.split_whitespace().any(|class|class=="table"){
             fn nested(node:&Node)->bool{node.visible_root().is_some_and(|node|node.tag()=="table"||node.visible_children().any(nested))}
             if self.visible_children().any(nested){return Err("Nested portable tables are unsupported; place related tables in separate regions".into());}
         }

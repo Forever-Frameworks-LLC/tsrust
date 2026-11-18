@@ -23,12 +23,18 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_FAILURES = {"crates/tsrust-compiler/tests/fixtures/testing-async/failures.test.tsr"}
 # Owner: component-validation apps and resource-dependent experiments stay out of CI.
 LOCAL_ONLY_ROOTS = ("apps/", "experiments/")
+# The component gallery lives with the other apps but stays the CI catalog witness.
+CI_APP_ROOTS = ("apps/gpui-starter/",)
 
+
+
+def ci_suite(file):
+    return file not in EXPECTED_FAILURES and (file.startswith(CI_APP_ROOTS) or not file.startswith(LOCAL_ONLY_ROOTS))
 
 
 def suite_timeout(directory):
     # The starter compiles the complete native GPUI closure on a cold runner.
-    return 1800 if Path(directory) == Path("examples/gpui-starter/tests") else 600
+    return 1800 if Path(directory) == Path("apps/gpui-starter/tests") else 600
 
 
 def profile_times(stdout):
@@ -48,7 +54,7 @@ def suites(catalog):
     groups = defaultdict(list)
     tracked = subprocess.run(["git", "ls-files", "*.test.tsr"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True).stdout.split()
     for file in tracked:
-        if file not in EXPECTED_FAILURES and not file.startswith(LOCAL_ONLY_ROOTS):
+        if ci_suite(file):
             groups[str(Path(file).parent)].append(file)
     if catalog:
         for directory in sorted(Path(catalog).iterdir()):

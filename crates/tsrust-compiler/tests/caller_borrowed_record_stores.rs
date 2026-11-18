@@ -421,3 +421,22 @@ fn record_parameter_store_retains_the_callers_array_borrow() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
 }
+
+/// Closures that relay record holders, sources and counters to installers
+/// compile together: conditional borrowed families, provisional discovery
+/// closures and callback-value owners (see the suite's test names).
+#[test]
+fn relayed_closure_installs_run_in_one_public_testing_suite() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/caller-borrowed-record-stores/relayed-closures.test.tsr");
+    let output = support::run(support::cli().arg("test").arg(path).arg("--reporter=json"), 300);
+    support::success(&output);
+    let summary = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .find(|row| row["event"] == "summary")
+        .expect("public test summary");
+    assert_eq!(summary["passed"], 6);
+    assert_eq!(summary["failed"], 0);
+}

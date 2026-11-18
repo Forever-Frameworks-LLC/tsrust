@@ -16,7 +16,7 @@ pub(crate) fn inspect(
 ) -> Facts {
     let mut facts = Facts::default();
     let mut pending = vec![root];
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = crate::fast_hash::FastSet::default();
     while let Some(ty) = pending.pop() {
         if !seen.insert(ty) {
             continue;

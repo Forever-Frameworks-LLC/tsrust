@@ -1,0 +1,57 @@
+// String phases: generated text, splitting, a word-count Map and formatting.
+
+const VOCABULARY = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel', 'india', 'juliet', 'kilo', 'lima', 'mike', 'november', 'oscar', 'papa', 'quebec', 'romeo', 'sierra', 'tango', 'uniform', 'victor', 'whiskey', 'xray', 'yankee', 'zulu'];
+
+// One step of a 31-bit linear congruential generator, shared with the Rust version.
+export function nextRandom(state: int): int {
+  return (state * 1103515245 + 12345) % 2147483648;
+}
+
+export function makeText(words: int): string {
+  const parts: string[] = [];
+  let state = 42;
+
+  for (let index = 0; index < words; index += 1) {
+    state = nextRandom(state);
+    const word = VOCABULARY[state % VOCABULARY.length];
+    parts.push(state % 7 === 0 ? word + (state % 100).toString() : clone(word));
+  }
+
+  return parts.join(' ');
+}
+
+type WordCount = {
+  word: string;
+  count: int;
+};
+
+export function wordCount(text: ReadOnly<string>): int {
+  const counts = new Map<string, int>();
+
+  for (const word of text.split(' ')) counts.set(clone(word), (counts.get(word) ?? 0) + 1);
+  const ranked: WordCount[] = [];
+
+  counts.forEach((count, word) => {
+    ranked.push({
+      word: clone(word), count
+    });
+  });
+  ranked.sort((left, right) => left.count !== right.count ? right.count - left.count : left.word < right.word ? -1 : left.word > right.word ? 1 : 0);
+  let checksum = counts.size;
+
+  for (let index = 0; index < 10; index += 1) checksum = (checksum * 31 + ranked[index].count + ranked[index].word.length) % 1000000007;
+  return checksum;
+}
+
+export function formatting(count: int): int {
+  let total = 0;
+
+  for (let index = 0; index < count; index += 1) {
+    const line = `item-${index} score=${(index * 7) % 1000} name=${VOCABULARY[index % VOCABULARY.length].toUpperCase()}`;
+    const replaced = line.replaceAll('-', '_');
+    const at = replaced.indexOf('score=');
+    total = (total + replaced.length + at + replaced.slice(at + 6, at + 9).length) % 1000000007;
+  }
+
+  return total;
+}

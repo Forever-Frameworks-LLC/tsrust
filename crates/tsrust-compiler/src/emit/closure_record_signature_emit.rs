@@ -202,6 +202,7 @@ impl Emitter<'_> {
                 }
             }
             let mut result = Vec::new();
+            let mut rendered_origins = HashMap::new();
             for borrow in borrows.iter().filter(|borrow| {
                 closure.parameters[borrow.target.binding] == parameter
                     && borrow.target.fields == names
@@ -268,7 +269,58 @@ impl Emitter<'_> {
                 } else {
                     rendered
                 };
+                rendered_origins.entry(borrow.origin).or_insert_with(|| rendered.clone());
                 result.push(format!("From<{rendered}>"));
+            }
+            // A relayed callee may store a conditional choice between these
+            // origins. Its borrowed family converts as a whole, so the closure
+            // forwards that obligation with the same per-origin environments.
+            for (callee, arguments) in
+                crate::analysis::record_parameter_carriers::forwarded_record_arguments(
+                    &closure.function,
+                )
+            {
+                for (target, selected, ty) in self
+                    .program
+                    .record_parameter_replacements
+                    .get(&callee)
+                    .into_iter()
+                    .flatten()
+                {
+                    let Some(Some((root, prefix))) = arguments.get(*target) else {
+                        continue;
+                    };
+                    if *root != parameter
+                        || prefix.iter().chain(selected).ne(names.iter())
+                    {
+                        continue;
+                    }
+                    let Some(Type::BorrowedCallable(family)) =
+                        self.callback_payload(*ty).or(Some(*ty))
+                    else {
+                        continue;
+                    };
+                    let origins = self
+                        .program
+                        .stored_contracts
+                        .origins(family)
+                        .expect("checked replacement origins");
+                    // Owned and alternative origins already convert one by one.
+                    if origins.iter().any(|origin| {
+                        self.borrowed_owners.contains_key(origin)
+                            || self.borrowed_capture_alternatives.contains_key(origin)
+                    }) {
+                        continue;
+                    }
+                    let Some(arms) = origins
+                        .iter()
+                        .map(|origin| rendered_origins.get(origin).cloned())
+                        .collect::<Option<Vec<_>>>()
+                    else {
+                        continue;
+                    };
+                    result.push(format!("From<BorrowedCallable{family}<{}>>", arms.join(", ")));
+                }
             }
             result.sort();
             result.dedup();

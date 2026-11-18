@@ -29,7 +29,7 @@ fn main() {
         .current_dir(&dir.0)
         .env("CARGO_HOME", dir.0.join("empty-cargo"))
         .env("CARGO_INCREMENTAL", "0")
-        .env("CARGO_TARGET_DIR", std::env::var_os("CARGO_TARGET_DIR").expect("use shared Cargo target"));
+        .env("CARGO_TARGET_DIR", support::target_dir());
     let output = support::run(&mut command, 60);
     support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(), "bundled JSON passed\n");

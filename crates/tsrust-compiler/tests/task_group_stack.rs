@@ -38,8 +38,9 @@ async function main():Task<void>{
 }
 #[test]
 fn race_and_all_settled_keep_existing_owned_adapters(){
+
     let source="import {race,allSettled} from 'std:futures';async function value(n:int):Task<int>{return n;}async function main():Task<void>{await race([value(1),value(2)]);await allSettled([value(3),value(4)]);}";
-    let rust=emitted(source);assert!(!rust.contains("all_inputs"));assert!(rust.contains("Box::pin(async move"));assert!(rust.contains("tsrust_native_futures::race(vec!"));assert!(rust.contains("tsrust_native_futures::all_settled(vec!"));
+    let rust=emitted(source);assert!(!rust.contains("all_inputs"));assert!(rust.contains("Box::pin(async move"));assert!(rust.contains("let futures=vec![")&&rust.contains("tsrust_native_futures::race(futures)"));assert!(rust.contains("tsrust_native_futures::all_settled(futures)"));
 }
 #[test]
 fn emitted_stack_body_drops_results_then_pending_inputs_in_source_order(){

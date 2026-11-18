@@ -1,23 +1,3 @@
-import { attachPickedContext } from '../src/components/ai/context-picker.tsrx';
-import { editorContext, FileDeclarations, referenceContext, referenceLiteral } from '../src/services/ai/context.tsr';
-import {
-  recallTerms,
-  turnMentions,
-  excerptTurn,
-  withoutEarlierWorkspace,
-  excerptWorkspace,
-  replaceWorkspace,
-  ChatMessage
-} from '../src/lib/ai/prompts.tsr';
-import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
-import { LanguageReferences } from '../src/lib/language/references.tsr';
-import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
-import { scanTree } from '../src/lib/explorer/tree.tsr';
-import { reviewChatEdit, undoChatEdit } from '../src/components/ai/edit-review.tsrx';
-import { replacementProposal, batchProposal, togglePassage } from '../src/lib/ai/edits.tsr';
-import { Problem } from '../src/lib/workspace/problems.tsr';
-import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { edit, propose } from '../src/lib/workspace/documents.tsr';
 import {
   canonicalize,
   createTempDir,
@@ -32,10 +12,29 @@ import { separator } from 'std:path';
 import { test, strictEqual } from 'std:testing';
 import { Signal, signal } from 'std:ui';
 
+import { attachPickedContext } from '../src/components/ai/context-picker.tsrx';
+import { reviewChatEdit, undoChatEdit } from '../src/components/ai/edit-review.tsrx';
 import { Conversation, emptyHistory, parseHistory, chatDraft, contextTrigger } from '../src/lib/ai/conversations.tsr';
+import { replacementProposal, batchProposal, togglePassage } from '../src/lib/ai/edits.tsr';
 import { fitGeneration } from '../src/lib/ai/generation.tsr';
+import {
+  recallTerms,
+  turnMentions,
+  excerptTurn,
+  withoutEarlierWorkspace,
+  excerptWorkspace,
+  replaceWorkspace,
+  ChatMessage
+} from '../src/lib/ai/prompts.tsr';
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
+import { DiagnosticPosition, documentUri } from '../src/lib/language/diagnostics.tsr';
+import { LanguageReferences } from '../src/lib/language/references.tsr';
 import { StudioConfig, defaultConfig, parseConfig, formatConfig } from '../src/lib/settings/settings.tsr';
+import { edit, propose } from '../src/lib/workspace/documents.tsr';
+import { Problem } from '../src/lib/workspace/problems.tsr';
+import { Recovery } from '../src/lib/workspace/recovery.tsr';
+import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
 import {
   initialAiState,
   invokeModelTool,
@@ -46,6 +45,7 @@ import {
   AiContext,
   AiState
 } from '../src/services/ai/actions.tsr';
+import { editorContext, FileDeclarations, referenceContext, referenceLiteral } from '../src/services/ai/context.tsr';
 import { ChatStore, persistChats } from '../src/services/ai/history.tsr';
 
 function modelConfig(): StudioConfig {

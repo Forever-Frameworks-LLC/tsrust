@@ -35,7 +35,6 @@ import {
 } from '../../lib/ai/conversations.tsr';
 import { accessibleName, message, localizeError } from '../../lib/localization.tsr';
 import { AiState, AiContext, aiContextHandles, performModelAction as perform } from '../../services/ai/actions.tsr';
-
 import { ContextPickerState, ContextPicker, ContextChip, showContextPicker } from './context-picker.tsrx';
 
 interface MessageTarget {
@@ -222,8 +221,8 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
   return (
     <View className={style.get()}>
       <View hidden={state.get().view !== 'all'} className="flex-col grow min-h-0">
-        <View className="flex-row items-center px-3 py-2">
-          <Text className="grow">
+        <View className="flex-row items-center py-2">
+          <Text className="grow px-2">
             {t('Chats')}
           </Text>
           {NewChatButton(context)}
@@ -330,9 +329,6 @@ export function ChatPanel(context: ReadOnly<AiContext>, font: Signal<int>, state
               />
             </InputGroupAddon>
           </InputGroup>
-          <Text className="px-1 pt-1 text-muted-foreground">
-            {status(state.get())}
-          </Text>
         </View>
       </View>
       {ContextPicker(context, picker.handle(), font.handle())}

@@ -37,8 +37,13 @@ impl Analyzer {
         if arguments.len() != required {
             return Err(Diagnostic::new("arity", format!("{variant} expects {required} payload arguments, found {}.", arguments.len()), expression.span));
         }
+        // The `catch` that `Checked` generates returns every failure its body can produce.
+        let checked_failure = variant == "Err" && matches!(arguments.last().map(|argument| &argument.kind), Some(ExprKind::Name(name)) if name == "tsrustCheckedFailure");
         let mut fields = arguments.pop().map(|value| vec![(Token { text: "payload".into(), span: value.span, kind: TokenKind::Name }, value)]).unwrap_or_default();
-        let actual = self.record_literal(context, &mut fields, loans, Some(Type::Record(record)), expression.span)?;
+        let actual = self.record_literal(context, &mut fields, loans, Some(Type::Record(record)), expression.span).map_err(|error| {
+            if !checked_failure || error.code != "type" { return error; }
+            Diagnostic::new("checked", format!("{} A Checked function fails with RuntimeError or its second type argument; list every error its body can throw or unwrap, such as Checked<int, string>.", error.message), error.span)
+        })?;
         self.require(actual, Some(Type::Union(union)), expression.span)?;
         *expression = Expr::checked(ExprKind::Record(fields), expression.span, Some(actual));
         expression.inject(union);

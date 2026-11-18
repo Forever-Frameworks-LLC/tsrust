@@ -144,8 +144,20 @@ impl Emitter<'_> {
         let borrowed=matches!(expression.ty,Some(Type::BorrowedUnion(_)));
         let mode=match method {MapMethod::Set|MapMethod::Delete|MapMethod::Clear=>Mode::Mutate,MapMethod::Get if !borrowed && !value_type.is_copy()=>Mode::Consume,_=>Mode::Read};
         let receiver=self.expr(function,base,mode);
+        // Arguments of a mutating call may read the same map (`counts.set(word, (counts.get(word) ?? 0) + 1)`),
+        // so they are evaluated before the receiver is borrowed mutably. The receiver is a place, so
+        // binding it later changes no observable order.
+        let mut arguments_first=String::new();
         let mut action=String::new();
-        if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(action,"let map_key={key};");}
+        // `m.set(clone(name), value)` or `m.set(clone(record.field), value)` with a string key
+        // clones the key only when it is new. The key's root must not be the map's root, so
+        // reading it cannot overlap the map's mutable borrow.
+        fn root(mut value:&Expr)->Option<usize>{while let ExprKind::Field(parent,_)=&value.kind{value=parent;}matches!(value.kind,ExprKind::Name(_)).then_some(value.binding).flatten()}
+        let cloned_key=(method==MapMethod::Set && !ordered && map.key==Type::String).then(||arguments.first()).flatten()
+            .filter(|key|key.target==Some(CallTarget::Clone))
+            .and_then(|key|match &key.kind {ExprKind::Call(_,inner)=>inner.first().filter(|source|root(source).is_some_and(|key_root|root(base)!=Some(key_root))),_=>None});
+        if let Some(source)=cloned_key {let source=self.expr(function,source,Mode::Read);let _=write!(arguments_first,"let map_key: &String={source};");}
+        else if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(if mode==Mode::Mutate{&mut arguments_first}else{&mut action},"let map_key={key};");}
         match method {
             MapMethod::Set=>{
                 let mut root=base.as_ref();
@@ -158,8 +170,10 @@ impl Emitter<'_> {
                     let converted=self.map_entry_payload_projection(source,value_type,"entry_input");
                     format!("{{let entry_input={input};{converted}}}")
                 }else{self.expr(function,&arguments[1],Mode::Consume)};
-                if ordered {let _=write!(action,"let map_value={value};let _=map_receiver.insert(TsrOrdered::new(map_key),map_value);");}
-                else {let _=write!(action,"let map_value={value};map_receiver.set(map_key,map_value)");}
+                let _=write!(arguments_first,"let map_value={value};");
+                if ordered {action.push_str("let _=map_receiver.insert(TsrOrdered::new(map_key),map_value);");}
+                else if cloned_key.is_some() {action.push_str("map_receiver.set_cloned(map_key,map_value)");}
+                else {action.push_str("map_receiver.set(map_key,map_value)");}
             },
             MapMethod::Has=>action.push_str(&if ordered{format!("map_receiver.contains_{query_suffix}(map_key)")}else{"map_receiver.has(map_key)".into()}),
             MapMethod::Delete=>action.push_str(&if ordered{format!("map_receiver.remove_{query_suffix}(map_key).is_some()")}else{"map_receiver.delete(map_key)".into()}),
@@ -186,7 +200,7 @@ impl Emitter<'_> {
                 }
             },
         }
-        format!("{{let map_receiver={receiver};{action}}}")
+        format!("{{{arguments_first}let map_receiver={receiver};{action}}}")
     }
 }
 

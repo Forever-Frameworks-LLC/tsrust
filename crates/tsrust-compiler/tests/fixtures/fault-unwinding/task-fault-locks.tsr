@@ -1,0 +1,43 @@
+import { Channel, ThreadPool, join, spawn, spawnScoped } from 'std:threads';
+
+function boom(n: int): int {
+  return n * 9223372036854775807;
+}
+
+function main() {
+  const pool = new ThreadPool({
+    workers: 1, capacity: 4
+  });
+  const bad = unwrap(pool.task((): int => boom(2)));
+
+  match (join(bad)) {
+    Ok(_) => console.log('unexpected'),
+    Err(error) => console.log(error.code),
+  }
+
+  const good = unwrap(pool.task((): int => boom(1)));
+  console.log(unwrap(join(good)));
+  const inbox = new Channel<int>(4);
+  const messages = inbox.sender();
+  const worker = unwrap(spawn((): int => {
+    unwrap(messages.send(1));
+    return boom(2);
+  }));
+
+  match (worker.join()) {
+    Ok(_) => console.log('unexpected'),
+    Err(error) => console.log(error.code),
+  }
+
+  console.log(unwrap(inbox.receive()));
+  const scoped = unwrap(spawnScoped((): int => boom(2)));
+
+  match (join(scoped)) {
+    Ok(_) => console.log('unexpected'),
+    Err(error) => console.log(error.code),
+  }
+
+  console.log(unwrap(join(unwrap(spawnScoped((): int => boom(1))))));
+  unwrap(pool.shutdown());
+  console.log(pool.stats().outstanding);
+}

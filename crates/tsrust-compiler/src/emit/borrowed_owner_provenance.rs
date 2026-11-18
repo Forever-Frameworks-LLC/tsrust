@@ -326,13 +326,55 @@ fn walk(program: &CheckedProgram, pending: Vec<(Scope, Vec<Option<Owner>>)>) -> 
     result
 }
 
+/// Closures that some checked body calls directly. The walk reaches those
+/// through their calls with the caller's owners.
+fn directly_called(program: &CheckedProgram) -> BTreeSet<usize> {
+    let mut called = BTreeSet::new();
+    let bodies = program
+        .functions
+        .iter()
+        .chain(program.closures.iter().map(|closure| &closure.function))
+        .filter(|function| !function.template);
+    for function in bodies {
+        crate::fixed_storage::visit_function_expressions(function, &mut |expr| {
+            if !matches!(expr.kind, ExprKind::Call(..)) {
+                return;
+            }
+            let callee = Scope::call(expr).or_else(|| match expr.target {
+                Some(CallTarget::Closure(binding)) => match function.bindings.get(binding)?.ty {
+                    Type::Closure(origin) => Some(Scope::Closure(origin)),
+                    _ => None,
+                },
+                _ => None,
+            });
+            if let Some(Scope::Closure(origin)) = callee {
+                called.insert(origin);
+            }
+        });
+    }
+    called
+}
 pub(super) fn plan(program: &CheckedProgram) -> Plan {
+    let called = directly_called(program);
     let pending = program
         .functions
         .iter()
         .enumerate()
         .filter(|(_, function)| !function.template)
         .map(|(id, function)| (Scope::Function(id), vec![None; function.parameter_count]))
+        // A callback value, such as a registered test or a lent callback, is
+        // not reached through a direct call, yet its own locals can still own
+        // installed sources. Parameters stay unknown as for function roots.
+        .chain(
+            program
+                .closures
+                .iter()
+                .enumerate()
+                .filter(|(id, closure)| {
+                    closure.forward.is_none() && !closure.function.template && !called.contains(id)
+                })
+                .map(|(id, closure)| (Scope::Closure(id), vec![None; closure.parameters.len()])),
+        )
         .collect::<Vec<_>>();
     walk(program, pending)
 }

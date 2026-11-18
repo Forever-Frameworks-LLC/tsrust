@@ -452,7 +452,7 @@ impl Analyzer {
                         )?
                     } else {
                         self.scoped_records
-                            .materialize(index, concrete, &mut self.program.records)
+                            .materialize(index, concrete, self.program.records_for_append())
                     };
                     while self.fields.len() < self.program.records.len() {
                         let id = self.fields.len();

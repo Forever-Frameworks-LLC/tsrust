@@ -105,10 +105,7 @@ fn array_namespace_and_explicit_conversions_match_node() {
 #[test]
 fn singleton_payloads_and_arrays_allocate_no_heap() {
     let source = r#"type Empty={nil:null;missing:undefined;};function main(){let ns:null[]=[];let us:undefined[]=[];let records:Empty[]=[];let i=0;while(i<12){ns.push(null);us.push(undefined);records.push({nil:null,missing:undefined});i++;}const copy=clone(ns);const value:null=null;const f=():null=>{return value;};const result=f();const kind=typeof ns;const yes=Array.isArray(us);const no=Boolean(undefined);}"#;
-    let mut rust = check(source)
-        .unwrap()
-        .emit_rust()
-        .replace("fn main()", "fn values_main()");
+    let mut rust = support::harness_entry(&check(source).unwrap().emit_rust(), "values_main");
     rust.push_str(r#"
 use std::alloc::{GlobalAlloc,Layout,System};
 use std::sync::atomic::{AtomicUsize,Ordering};

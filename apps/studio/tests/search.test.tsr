@@ -15,9 +15,8 @@ import {
 import { edit } from '../src/lib/workspace/documents.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
 import { openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
-import { editorTools, invokeEditorTool } from '../src/services/editor-tools.tsr';
-
 import { ContentSearchRequest, ContentSearchReply, contentSearchWorker } from '../src/services/content-search.tsr';
+import { editorTools, invokeEditorTool } from '../src/services/editor-tools.tsr';
 
 test('background search handles invalid regex, cancels the requested generation and finds the next draft', async () => {
   const root = unwrap(createTempDir(undefined, 'studio-worker-search-'));

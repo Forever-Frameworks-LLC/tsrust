@@ -1,8 +1,3 @@
-import { DebugConsole, DebugSidebar, chooseDebugTarget, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
-import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
-import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
-import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
-import { restoreChats } from './services/ai/history.tsr';
 import { currentDir, currentExe, args, get } from 'std:env';
 import { canonicalize } from 'std:fs';
 import { Channel, Sender } from 'std:futures';
@@ -29,29 +24,31 @@ import {
   t
 } from 'std:ui';
 
+import { ChatPanel } from './components/ai/chat-panel.tsrx';
 import { ChatEditReview } from './components/ai/edit-review.tsrx';
 import { SaveConflicts } from './components/editor/save-conflict.tsrx';
 import { ProjectTree, RefreshExplorer } from './components/explorer/browser.tsrx';
-import { DirectoryTree } from './lib/explorer/tree.tsr';
 import { FileSearch } from './components/explorer/navigation.tsrx';
-import { FileSearchState } from './lib/explorer/search-actions.tsr';
 import { ContentSearch } from './components/explorer/search-panel.tsrx';
-import { ReferencesPanel, ReferenceControls } from './components/tasks/references-panel.tsrx';
-import { LanguageReferences } from './lib/language/references.tsr';
 import { CheckPanel } from './components/tasks/check-panel.tsrx';
+import { DebugConsole, DebugSidebar, chooseDebugTarget, sendDebugControl, toggleCursorBreakpoint } from './components/tasks/debug-console.tsrx';
 import { ProblemsPanel, CopyProblems } from './components/tasks/problems-panel.tsrx';
+import { ReferencesPanel, ReferenceControls } from './components/tasks/references-panel.tsrx';
 import { TerminalPanel, NewTerminal } from './components/tasks/terminal-panel.tsrx';
 import { Chrome } from './components/workbench/chrome.tsrx';
+import { GitPanel, GitEditor } from './components/workbench/git-panel.tsrx';
 import { LanguageStatus } from './components/workbench/language-status.tsrx';
 import { Region } from './components/workbench/layout.tsrx';
+import { toggleExtensions, ExtensionBrowser, ModelExtensions } from './components/workbench/model-extensions.tsrx';
 import { Panels } from './components/workbench/panels.tsrx';
-import { ChatPanel } from './components/ai/chat-panel.tsrx';
-import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
-import { FileDeclarations } from './services/ai/context.tsr';
-import { AiContext, initialAiState, syncInlinePreference, pollModel } from './services/ai/actions.tsr';
 import { UnsavedFiles } from './components/workbench/unsaved-files.tsrx';
 import { WorkflowControls } from './components/workbench/workflow-controls.tsrx';
 import { EditorWorkspace } from './components/workbench/workspace-view.tsrx';
+import { ModelRequest, ModelUpdate } from './lib/ai/protocol.tsr';
+import { FileSearchState } from './lib/explorer/search-actions.tsr';
+import { DirectoryTree } from './lib/explorer/tree.tsr';
+import { LanguageReferences } from './lib/language/references.tsr';
+import { studioServers } from './lib/language/servers.tsr';
 import { accessibleName, message, initializeTranslations } from './lib/localization.tsr';
 import { StudioConfig, configPath, loadConfig, defaultConfig } from './lib/settings/settings.tsr';
 import { dirty } from './lib/workspace/documents.tsr';
@@ -61,15 +58,17 @@ import { Recovery, recoveryPath, restoreRecovery } from './lib/workspace/recover
 import { emptyTerminals, addTerminal } from './lib/workspace/terminals.tsr';
 import { openWorkspace, SourceBreakpoint } from './lib/workspace/workspace.tsr';
 import { zoomFontSize } from './lib/workspace/zoom.tsr';
+import { AiContext, initialAiState, syncInlinePreference, pollModel } from './services/ai/actions.tsr';
+import { FileDeclarations } from './services/ai/context.tsr';
+import { restoreChats } from './services/ai/history.tsr';
+import { availableModelPaths, modelExtensions } from './services/ai/model-extensions.tsr';
+import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
+import { DebugCommand, DebugOutput } from './services/debug/session.tsr';
+import { DiffHunk, GitChange, GitRequest, GitReply } from './services/git.tsr';
+import { createLanguageState } from './services/lsp/controller.tsr';
 import { LanguageMessage, LanguageUpdate } from './services/lsp/session.tsr';
 import { CheckResult } from './services/project-check.tsr';
-import { ContentSearchRequest, ContentSearchReply } from './services/content-search.tsr';
-import { GitPanel, GitEditor } from './components/workbench/git-panel.tsrx';
-import { DiffHunk, GitChange, GitRequest, GitReply } from './services/git.tsr';
 import { studioWorkers } from './services/workers.tsr';
-
-import { studioServers } from './lib/language/servers.tsr';
-import { createLanguageState } from './services/lsp/controller.tsr';
 
 import communityThemes from './assets/themes/community.json';
 import studioThemes from './assets/themes/studio.json';

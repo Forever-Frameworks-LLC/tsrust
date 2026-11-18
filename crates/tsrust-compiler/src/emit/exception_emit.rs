@@ -1,10 +1,11 @@
 //! Native expressions used by typed exception lowering.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn runtime_error_value_with_order(
     record:usize, ordered:bool, name:&str, code:&str, message:&str,
-    source:&str, start:usize, end:usize,
+    source:&str, start:usize, end:usize, line:usize, column:usize,
 ) -> String {
-    let order=if ordered {", key_order: [0,1,2,3,4,5]"}else{""};
-    format!("Record{record} {{ field0: String::Borrowed({name:?}), field1: String::Borrowed({code:?}), field2: String::Borrowed({message:?}), field3: String::Borrowed({source:?}), field4: {start}_i64, field5: {end}_i64{order} }}")
+    let order=if ordered {", key_order: [0,1,2,3,4,5,6,7]"}else{""};
+    format!("Record{record} {{ field0: String::Borrowed({name:?}), field1: String::Borrowed({code:?}), field2: String::Borrowed({message:?}), field3: String::Borrowed({source:?}), field4: {start}_i64, field5: {end}_i64, field6: {line}_i64, field7: {column}_i64{order} }}")
 }
 
 /// Native payload types are resolved by the caller from the checked error contract.
@@ -21,7 +22,10 @@ pub(crate) fn constructor_path(name:&str)->String {
 /// The checked contract supplies a total map; matching consumes each payload once.
 pub(crate) fn error_conversion(value:&str,source:&str,destination:&str,mapping:&[usize])->String {
     let source=constructor_path(source);let destination=constructor_path(destination);
-    let arms=mapping.iter().enumerate().map(|(index,target)|format!("{source}::V{index}(payload)=>{destination}::V{target}(payload)")).collect::<Vec<_>>().join(",");
+    let arms=mapping.iter().enumerate().map(|(index,target)|// usize::MAX is `error_effects::RAISE_FAULT`; tests include this file alone.
+        if *target==usize::MAX {
+        format!("{source}::V{index}(payload)=>tsr_raise_runtime_record(payload)")
+    } else {format!("{source}::V{index}(payload)=>{destination}::V{target}(payload)")}).collect::<Vec<_>>().join(",");
     format!("match {value} {{ {arms} }}")
 }
 

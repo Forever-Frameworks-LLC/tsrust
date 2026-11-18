@@ -2,7 +2,6 @@
 use crate::diagnostic::{Diagnostic, Span};
 use crate::syntax::{Type, UnionId};
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct UnionType {
@@ -16,9 +15,10 @@ pub struct UnionType {
 #[derive(Default)]
 struct ArenaState {
     member_revision: u64,
+    member_rewrites: u64,
     types: Vec<UnionType>,
-    identities: HashMap<Vec<Type>, UnionId>,
-    named_types: HashMap<usize, Type>,
+    identities: crate::fast_hash::FastMap<Vec<Type>, UnionId>,
+    named_types: crate::fast_hash::FastMap<usize, Type>,
 }
 
 #[derive(Default)]
@@ -105,7 +105,20 @@ impl UnionArena {
         }
         slot.members=members;
         arena.member_revision += 1;
+        arena.member_rewrites += 1;
         Ok(())
+    }
+
+    /// Counts changes to the members of existing unions: recursive definitions
+    /// bound into reserved slots and closure origin remapping. Interning and
+    /// reserving only append unions and leave this count unchanged.
+    pub(crate) fn member_rewrites(&self) -> u64 {
+        self.0.borrow().member_rewrites
+    }
+
+    /// Unions with an index of at least `from`, in index order.
+    pub(crate) fn snapshot_from(&self, from: usize) -> Vec<UnionType> {
+        self.0.borrow().types.get(from..).map(<[UnionType]>::to_vec).unwrap_or_default()
     }
 
     pub fn members(&self, id: UnionId) -> Vec<Type> {
@@ -132,6 +145,7 @@ impl UnionArena {
             }
         }
         arena.member_revision += 1;
+        arena.member_rewrites += 1;
         // Union IDs remain stable in checked trees. Removed discovery origins
         // in unused symbolic types do not become concrete checked facts.
         arena.identities = arena
@@ -158,7 +172,7 @@ impl UnionArena {
         span: Span,
     ) -> Result<Type, Diagnostic> {
         let mut members = Vec::new();
-        let mut seen = HashSet::new();
+        let mut seen = crate::fast_hash::FastSet::default();
         for value in types {
             let alternatives = match value {
                 Type::Union(id) if !self.is_recursive(id) => self.members(id),

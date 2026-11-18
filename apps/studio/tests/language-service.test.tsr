@@ -8,10 +8,8 @@ import { test, strictEqual, startOutputCapture, finishOutputCapture } from 'std:
 import { signal } from 'std:ui';
 
 import { ModelRequest, ModelUpdate } from '../src/lib/ai/protocol.tsr';
-import { DebugCommand, DebugOutput } from '../src/services/debug/session.tsr';
-import { GitReply, GitRequest } from '../src/services/git.tsr';
-import { ContentSearchRequest, ContentSearchReply } from '../src/services/content-search.tsr';
 import { SearchActionContext } from '../src/lib/explorer/search-actions.tsr';
+import { scanTree } from '../src/lib/explorer/tree.tsr';
 import {
   DiagnosticRange,
   LanguageDocument,
@@ -26,13 +24,15 @@ import { ReferenceLocation, LanguageReferences } from '../src/lib/language/refer
 import { languageRoute, tsrustServer } from '../src/lib/language/servers.tsr';
 import { ProposedEdit } from '../src/lib/workspace/documents.tsr';
 import { createDocument } from '../src/lib/workspace/documents.tsr';
+import { edit } from '../src/lib/workspace/documents.tsr';
 import { FormattingRequest, FormattingResult } from '../src/lib/workspace/formatting-actions.tsr';
 import { Problem } from '../src/lib/workspace/problems.tsr';
 import { Recovery } from '../src/lib/workspace/recovery.tsr';
-import { scanTree } from '../src/lib/explorer/tree.tsr';
-import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
-import { edit } from '../src/lib/workspace/documents.tsr';
 import { Workspace, openWorkspace, openFile } from '../src/lib/workspace/workspace.tsr';
+import { editorContext, FileDeclarations, referenceContext } from '../src/services/ai/context.tsr';
+import { ContentSearchRequest, ContentSearchReply } from '../src/services/content-search.tsr';
+import { DebugCommand, DebugOutput } from '../src/services/debug/session.tsr';
+import { GitReply, GitRequest } from '../src/services/git.tsr';
 import { LanguageToolContext, invokeLanguageTool, requestLanguageControl, languageControlAvailable } from '../src/services/lsp/actions.tsr';
 import {
   LanguageState,

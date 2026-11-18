@@ -1,23 +1,29 @@
 //! Per-solve body reuse; caller contracts and checked bodies never survive a solve.
 use super::*;
 
-pub(super) const FUNCTION:usize=0;
-pub(super) const CLOSURE:usize=1;
-pub(super) const STORAGE:usize=2;
-pub(super) const CALLBACK:usize=3;
-pub(super) const METHOD:usize=4;
-pub(super) const INVOCATION:usize=5;
-pub(super) type Versions=[u64;6];
+/// One contract entry a body reads. Bodies re-evaluate only when an entry they
+/// actually read has grown, rather than when any entry of its category changed.
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
+pub(super) enum Key {Function(usize),Closure(usize),Storage(usize),Callback(usize),Method(usize,usize),Invocation(usize)}
+
+/// Per-entry growth counters for one solve; absent entries are at version 0.
+#[derive(Default)]
+pub(super) struct Versions(crate::fast_hash::FastMap<Key,u64>);
+impl Versions {
+    fn get(&self,key:Key)->u64 {self.0.get(&key).copied().unwrap_or(0)}
+    pub(super) fn bump(&mut self,key:Key) {*self.0.entry(key).or_insert(0)+=1;}
+}
 
 pub(super) struct Reader<'a> {
     effects:&'a ErrorEffects,
-    reads:std::cell::Cell<u8>,
+    reads:std::cell::RefCell<Vec<Key>>,
 }
 impl<'a> Reader<'a> {
-    pub(super) fn new(effects:&'a ErrorEffects)->Self {Self{effects,reads:std::cell::Cell::new(0)}}
+    pub(super) fn new(effects:&'a ErrorEffects)->Self {Self{effects,reads:Default::default()}}
+    pub(super) fn into_keys(self)->Vec<Key> {let mut keys=self.reads.into_inner();keys.sort_unstable_by_key(|key|format_key(*key));keys.dedup();keys}
     // All body contract lookups pass through this reader; ErrorEffects stays Send + Sync.
-    pub(super) fn read(&self,category:usize,value:Option<&FailureSet>)->FailureSet {
-        self.reads.set(self.reads.get() | (1 << category));
+    pub(super) fn read(&self,key:Key,value:Option<&FailureSet>)->FailureSet {
+        self.reads.borrow_mut().push(key);
         value.cloned().unwrap_or_else(FailureSet::unknown)
     }
 }
@@ -28,25 +34,35 @@ impl std::ops::Deref for Reader<'_> {
 
 #[derive(Default)]
 pub(super) struct Cache {
-    dependencies:u8,
-    observed:Versions,
+    observed:Vec<(Key,u64)>,
     failure:Option<FailureSet>,
     #[cfg(test)] evaluations:usize,
+    traced:usize,
 }
 impl Cache {
     pub(super) fn effect(&mut self,function:&mut CheckedFunction,effects:&ErrorEffects,versions:&Versions)->FailureSet {
-        if self.failure.is_none() || versions.iter().enumerate().any(|(category,value)|self.dependencies & (1 << category)!=0 && *value!=self.observed[category]) {
+        if self.failure.is_none() || self.observed.iter().any(|(key,version)|versions.get(*key)!=*version) {
             let reader=Reader::new(effects);
             self.failure=Some(function_effect_with(function,&reader));
-            self.dependencies=reader.reads.get();
-            self.observed=*versions;
+            let mut keys=reader.reads.into_inner();keys.sort_unstable_by_key(|key|format_key(*key));keys.dedup();
+            self.observed=keys.into_iter().map(|key|(key,versions.get(key))).collect();
             #[cfg(test)] {self.evaluations+=1;}
+            self.traced+=1;
         }
         self.failure.as_ref().unwrap().clone()
     }
 }
-pub(super) fn grow(versions:&mut Versions,category:usize,changed:bool)->bool {
-    if changed {versions[category]+=1;}
+fn format_key(key:Key)->(u8,usize,usize) {
+    match key {Key::Function(id)=>(0,id,0),Key::Closure(id)=>(1,id,0),Key::Storage(id)=>(2,id,0),Key::Callback(id)=>(3,id,0),Key::Method(id,method)=>(4,id,method),Key::Invocation(id)=>(5,id,0)}
+}
+impl Cache {
+    pub(super) fn evaluations_traced(&self)->usize {self.traced}
+    /// Entries read by the last evaluation.
+    pub(super) fn read_keys(&self)->impl Iterator<Item=Key>+'_ {self.observed.iter().map(|(key,_)|*key)}
+}
+/// Record growth of one entry; returns `changed` for fixpoint bookkeeping.
+pub(super) fn grow(versions:&mut Versions,key:Key,changed:bool)->bool {
+    if changed {versions.bump(key);}
     changed
 }
 
@@ -72,7 +88,7 @@ pub(super) fn annotations(function:&CheckedFunction)->(Vec<(crate::Span,bool,boo
 
 #[cfg(test)] mod tests {
     use super::*;
-    #[test] fn body_cache_rechecks_only_changed_contract_categories() {
+    #[test] fn body_cache_rechecks_only_changed_read_entries() {
         let source=crate::format("function leaf():int{return 1;}function main(){leaf();}").unwrap();
         assert_eq!(crate::format(&source).unwrap(),source);
         let mut program=crate::check(&source).unwrap().program;
@@ -81,10 +97,11 @@ pub(super) fn annotations(function:&CheckedFunction)->(Vec<(crate::Span,bool,boo
         let mut effects=ErrorEffects{function_errors:vec![FailureSet::default();program.functions.len()],..Default::default()};
         let mut versions=Versions::default();let mut cache=Cache::default();
         assert_eq!(cache.effect(&mut program.functions[main],&effects,&versions),FailureSet::default());
-        grow(&mut versions,CLOSURE,true);
+        grow(&mut versions,Key::Closure(0),true);
+        grow(&mut versions,Key::Function(main),true);
         assert_eq!(cache.effect(&mut program.functions[main],&effects,&versions),FailureSet::default());
         assert_eq!(cache.evaluations,1);
-        effects.function_errors[leaf]=FailureSet::runtime();grow(&mut versions,FUNCTION,true);
+        effects.function_errors[leaf]=FailureSet::runtime();grow(&mut versions,Key::Function(leaf),true);
         assert_eq!(cache.effect(&mut program.functions[main],&effects,&versions),FailureSet::runtime());
         assert_eq!(cache.evaluations,2);
     }
