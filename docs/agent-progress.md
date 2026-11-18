@@ -68,6 +68,14 @@ Only unwinding thrown errors would remove it (owner decision pending: exception
 model change, silent hook, catch_unwind at catch/thread/async boundaries,
 unwind-capable targets). No compiler change made for this item.
 
+Owner approved the fault-unwinding direction with `Checked<T, E?>`; plan and
+prioritized checklist in `docs/plans/fault-unwinding.md`. Phase 0 audits done
+(findings in the plan): no runtime producer is an expected failure; seven
+entry boundaries listed; catch points inside `try` move to individual calls so
+existing ownership transport is unchanged; no profile sets a panic strategy
+(guard test `generated_profiles_keep_panics_unwinding`). Next: Phase 1 behind
+`FaultMode`, ending at the measurement gate.
+
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
 `benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with

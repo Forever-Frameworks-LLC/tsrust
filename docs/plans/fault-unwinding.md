@@ -66,25 +66,84 @@ boundary, then `Checked`, then rollout.
 
 ### Phase 0: audits (no behavior change)
 
-- [ ] 0.1 Classify every producer of `FailureSet::runtime()` as a fault
+- [x] 0.1 Classify every producer of `FailureSet::runtime()` as a fault
       (unwinds) or an expected failure (becomes explicit, stays a value).
       Record the table here. Assertions: faults (the runner catches them).
       Unknown native bindings: decide per binding instead of by default.
-- [ ] 0.2 List every place generated code is entered from non-Tsrust frames:
+- [x] 0.2 List every place generated code is entered from non-Tsrust frames:
       entry `main`, spawned and scoped threads, pool tasks, async tasks and
       awaits, std:ui callbacks (GPUI event, render, ticker, Kit callbacks),
       HTTP handlers, SQLite callbacks, cache loaders, compression streams,
       schema pipelines, the test runner, `using`/dispose and other `Drop`
       paths that run user code.
-- [ ] 0.3 List guarantees that rely on an error returning normally: sorts
+- [x] 0.3 List guarantees that rely on an error returning normally: sorts
       leave storage intact, callback-store failures restore inputs
       (`caller_callback_store_failures`, `caller_borrowed_callback_replacement`),
       Map entry epochs (`map_exception_storage_plan`), `finally_move_slots`,
       `field_completion_transport`. Decide each one's behavior under unwinding.
-- [ ] 0.4 List runtime `lock().unwrap()` sites (threads, caches, shared state)
+- [x] 0.4 List runtime `lock().unwrap()` sites (threads, caches, shared state)
       and pick a poisoning policy (recover with `into_inner`).
-- [ ] 0.5 Confirm no profile, `tsrust package` path or portable export can
+- [x] 0.5 Confirm no profile, `tsrust package` path or portable export can
       select `panic = "abort"`; add a guard test.
+
+### Phase 0 findings (2026-11-17)
+
+**0.1 Runtime failure producers** (`error_effects/mod.rs`). Unknown native
+bindings default to `opaque`, not `runtime`.
+
+| Producer | Examples | Class |
+|---|---|---|
+| `own_expression_effect` | int `+ - * / %`, negation, `++`/`+=`, index writes and checked reads, `x!`, spread length checks | fault |
+| Statement compound assignment (`traversal.rs`) | `total += x` | fault |
+| `native_effect` default (`_ => runtime`) | builtin argument and range errors: `repeat(-1)`, `toFixed(200)`, capacity overflow in `splice`/`padStart` | fault |
+| Array callback methods (`runtime` part) | capacity and index checks around `map`, `filter`, `sort`, ... | fault (callback effects stay as they are) |
+| `std:futures` `__channel`, `__interval`; `std:cache` `__create`; `std:threads` `__channelCreate` | invalid capacity or period, no active runtime | fault |
+| `std:path` `relative` | needs the current directory | fault for now; candidate for an explicit `Result` later |
+| `std:testing-runtime` `checkAssertion`, `runTests`, `registerTest`, hooks, `invokeSuite` | failed assertions, runner misuse | fault (the runner already catches panics) |
+
+No producer is an expected, frequently-hit failure, so nothing has to move to
+explicit errors before Phase 1. Item 2.9 shrinks to `std:path` `relative`.
+
+**0.2 Entry boundaries** (runtime code calling generated code):
+
+| Boundary | Today | Needed |
+|---|---|---|
+| Program entry (`tsr_entry_result`, `runtime/completion.rs`) | reports `Err` and exits 1 | catch, same report and exit code |
+| Async main (`tsrust_main_thread`, `emit/async_runtime.rs`) | `resume_unwind` on panic | same catch after the thread joins |
+| Thread pool (`stdlib/threads/runtime_core.rs` `execute`) | `catch_unwind` maps any panic to `JoinError::Panic` | map a `TsrFault` to `JoinError::Worker(record)` |
+| Async tasks (`stdlib/futures/runtime.rs`, `tokio::spawn`) | a panic becomes `Failure::Panic` | map a `TsrFault` to `Failure::Worker(record)` |
+| HTTP handlers (`stdlib/http/runtime.rs`, connection tasks) | handler `Err` becomes a 500; a panic drops the connection | catch around the handler future, answer 500 |
+| std:ui callbacks (`ui_callback`, GPUI `emit`/`render`/ticker) | `Result` turned into the UI failure report | catch before returning to GPUI (Objective-C frames abort on unwinding) |
+| Test runner (`stdlib/testing/runtime/mod.rs`) | `catch_unwind` already | read the fault record for the report |
+
+No other runtime module invokes user callbacks (`Callback::invoke` is only
+emitted into generated code). SQLite, I/O, process and compression runtimes
+take data, not callbacks.
+
+**0.3 Guarantees that rely on errors returning normally.** All of them
+(`field_completion_transport`, `finally_move_slots`, the Map storage plans,
+callback-store restoration in `caller_callback_store_failures`) concern the
+function that catches: owners moved into a `try` region return through its
+completion values. Wrapping a whole `try` body in one `catch_unwind` closure
+would lose them, so 2.1 changes: inside `try` regions and `Checked` bodies,
+local faults stay values, and each call that may unwind is converted back to
+a value at the call site (`catch_unwind` around that call only). The existing
+transport, catch typing and `finally` then work unchanged. Two gaps remain
+for 2.7: in-place sorts whose comparator can only fault (the `tsr_sort` path
+would leave a partly sorted array; keep the positions path), and runtime code
+that takes state out (`mem::take`/`mem::replace`, 53 sites) while user code
+runs: none must leave state missing when that code unwinds.
+
+**0.4 Locks.** About 99 `lock().unwrap()`-style sites (threads 33, compression
+streams 18, futures 17, terminal 11, I/O 10, others). In the code read, no lock
+is held while user code runs (the pool releases its statistics lock before the
+task), so poisoning needs a runtime bug. Policy for 2.6: a test that a task
+fault leaves every pool, channel and future lock usable, and `into_inner` on
+poisoned guards where user code could ever run under a lock.
+
+**0.5 Panic strategy.** Only `profiles()` in `cli/runtime_build.rs` writes
+Cargo profiles; neither it nor `application_optimization` sets a panic
+strategy. Guard test: `generated_profiles_keep_panics_unwinding`.
 
 ### Phase 1: shared core behind a switch, then measure
 
@@ -112,15 +171,17 @@ boundary, then `Checked`, then rollout.
 
 ### Phase 2: correct behavior in `Unwind` mode
 
-- [ ] 2.1 `try/catch` whose catch type includes runtime errors wraps its
-      region in `catch_unwind(AssertUnwindSafe(..))` returning the existing
-      `TsrCompletion`; a `TsrFault` becomes `Throw(record)` through the
-      existing dispatch. Verify no labeled break crosses the closure (Break,
-      Continue and Return already travel as completions).
-- [ ] 2.2 `finally` runs on unwinding, then the fault resumes with its record.
-- [ ] 2.3 Disposal while unwinding: user dispose code that faults during an
-      unwind is caught inside the disposal path (no double-panic abort);
-      define how both errors are reported.
+- [ ] 2.1 Inside `try` regions (and `Checked` bodies) local faults stay
+      values, and each call that may unwind is wrapped alone in
+      `catch_unwind`; a `TsrFault` becomes the same `Throw(record)` as today
+      (see 0.3).
+- [ ] 2.2 `finally` needs no unwinding path: faults reach it as values
+      (2.1). Verify with the exception suites.
+- [ ] 2.3 Disposal while unwinding: resource management (`using`) is not
+      implemented, and runtime `Drop` code runs no user code, so nothing can
+      fault during an unwind today. Record the rule for the future `using`
+      work: user dispose code run while unwinding must be caught in the
+      disposal path (a second panic aborts).
 - [ ] 2.4 Implement every boundary from 0.2: threads and pool tasks deliver
       faults as their join error, async tasks catch per poll
       (`catch_unwind` around the future), std:ui callbacks catch before
@@ -136,7 +197,7 @@ boundary, then `Checked`, then rollout.
 - [ ] 2.8 Callback contracts: callbacks that only fault become infallible;
       update stored callable families, `callback_family_result_adapters`,
       invocation plans and crate-split declarations.
-- [ ] 2.9 Expected failures from 0.1 moved to explicit error types.
+- [ ] 2.9 `std:path` `relative`: decide fault or explicit `Result` (0.1).
 - [ ] 2.10 The fault record is taken from the thread-local on the thread
       that faulted, before the catch returns (async tasks may resume on
       another thread afterwards).

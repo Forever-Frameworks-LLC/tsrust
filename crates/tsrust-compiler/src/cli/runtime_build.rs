@@ -838,6 +838,14 @@ fn prune_incremental(directory:&Path,keep:usize){
   assert_eq!(application_optimization(false,false),"opt-level=0");
   for ui in [false,true]{assert_eq!(application_optimization(true,ui),"opt-level=3");}
  }
+ /// Faults are planned to unwind to their catch points (docs/plans/fault-unwinding.md);
+ /// a profile that aborts on panic would turn every caught fault into a crash.
+ #[test] fn generated_profiles_keep_panics_unwinding(){
+  for ui in [false,true]{
+   assert!(!super::profiles(ui).contains("panic"),"profiles must not choose a panic strategy");
+   for release in [false,true]{assert!(!super::application_optimization(release,ui).contains("panic"));}
+  }
+ }
 }
 
 /// UI rendering must remain responsive in development; omit bulky dependency debug symbols.
