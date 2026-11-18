@@ -75,6 +75,10 @@ entry boundaries listed; catch points inside `try` move to individual calls so
 existing ownership transport is unchanged; no profile sets a panic strategy
 (guard test `generated_profiles_keep_panics_unwinding`). Next: Phase 1 behind
 `FaultMode`, ending at the measurement gate.
+Before Phase 1 the owner asked to resolve deferred decisions and trace flows
+end to end: the plan now has an end-to-end table of today's behavior (four
+existing defects), twelve resolved decisions and the full `Checked<T, E>`
+specification; `unwrap`/`throw` stay values by decision.
 
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
