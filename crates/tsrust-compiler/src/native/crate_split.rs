@@ -310,6 +310,28 @@ fn head_line(item: &str) -> &str {
 }
 
 /// Skip a leading `<…>` list, returning (inner text, rest).
+/// Whether a generic parameter list declares a type (not only lifetimes).
+fn type_parameters(generics: &str) -> bool {
+    let mut depth = 0usize;
+    let mut start = true;
+    for character in generics.chars() {
+        match character {
+            '<' | '(' => depth += 1,
+            '>' | ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => start = true,
+            ' ' => {}
+            _ if start => {
+                if character != '\'' {
+                    return true;
+                }
+                start = false;
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 fn generic_list(text: &str) -> (&str, &str) {
     if !text.starts_with('<') {
         return ("", text);
@@ -572,6 +594,11 @@ pub fn split(application: &str, provenance: &Provenance<'_>) -> Option<Vec<Crate
             if signature.ret.contains('&') || signature.ret.contains("'_") || signature.ret.contains("impl ") {
                 return None;
             }
+            // The body would be declared extern, which cannot take type parameters.
+            let (impl_generics, _) = generic_list(head.strip_prefix("impl")?);
+            if type_parameters(impl_generics) || type_parameters(&signature.generics) {
+                return None;
+            }
             Some((position, signature, head.to_owned()))
         });
         let Some((position, signature, head)) = found else {
@@ -623,6 +650,12 @@ pub fn split(application: &str, provenance: &Provenance<'_>) -> Option<Vec<Crate
             continue;
         }
         let signature = parse_signature(head_line(&groups[index].texts[0]), &groups[index].name);
+        // An extern declaration cannot be generic (callback parameters are): such a
+        // function is placed like a type, beside its users or in the types crate.
+        if signature.as_ref().is_some_and(|signature| type_parameters(&signature.generics)) {
+            groups[index].movable = false;
+            continue;
+        }
         let text = signature.as_ref().map_or(String::new(), |s| format!("{} -> {}", s.params.join(","), s.ret));
         signature_refs.insert(
             index,
@@ -1191,6 +1224,13 @@ fn main() { let _ = function0(Record1 { field0: String::new() }); }
         split(PROGRAM, &Provenance { modules: &modules, function_module: &functions, closure_module: &closures }).unwrap()
     }
 
+    #[test]
+    fn only_type_parameters_block_extern_declarations() {
+        assert!(!super::type_parameters(""));
+        assert!(!super::type_parameters("'c0, 'c1"));
+        assert!(super::type_parameters("'c0, K1: ReadCallback<(), i64>"));
+        assert!(super::type_parameters("F1: Callback<(i64,), ()>"));
+    }
     #[test]
     fn items_used_by_several_crates_move_to_the_types_crate() {
         let crates = split_test();
