@@ -47,8 +47,18 @@ pub fn graph_identity(graph: &ProjectGraph) -> Vec<u8> {
     identity
 }
 
+/// Inside the project's native cache, or, when `TSRUST_CACHE_DIR` selects a
+/// shared cache, in a per-project folder there (the project keeps no
+/// `target/tsrust-native`). The language server and `tsrust dev` agree on the
+/// location when they see the same environment.
 fn directory(root: &Path) -> PathBuf {
-    root.join("target").join("tsrust-native").join("prechecked")
+    match std::env::var_os("TSRUST_CACHE_DIR") {
+        Some(cache) => {
+            let project = Sha256::digest(root.to_string_lossy().as_bytes()).iter().take(8).map(|byte| format!("{byte:02x}")).collect::<String>();
+            std::path::absolute(&cache).unwrap_or_else(|_| PathBuf::from(&cache)).join("prechecked").join(project)
+        }
+        None => root.join("target").join("tsrust-native").join("prechecked"),
+    }
 }
 
 fn file(root: &Path, identity: &[u8]) -> PathBuf {
@@ -182,6 +192,11 @@ impl Drop for DevSession {
         // Leave a marker that another running session has since written.
         if self.0.parent().and_then(Path::parent).and_then(Path::parent).is_some_and(announced_by_this_process) {
             let _ = std::fs::remove_file(&self.0);
+            // With a shared TSRUST_CACHE_DIR nothing else lives there: leave no
+            // empty `target/tsrust-native` behind (removing a non-empty folder fails).
+            for directory in self.0.ancestors().skip(1).take(2) {
+                let _ = std::fs::remove_dir(directory);
+            }
         }
     }
 }

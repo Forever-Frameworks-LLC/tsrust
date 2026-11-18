@@ -171,8 +171,8 @@ fn recursive_records_store_view_capturing_once_callbacks() {
         .replace("holder.next = build(read(second), read(first));", "holder.next.push(build(read(second),read(first)));")
         .replace("const child = holder.next!;", "const child = holder.next.pop()!;");
     let mutable = source.replace("ByteView", "ByteViewMut")
-        .replace("alloc, view,", "alloc, viewMut,")
-        .replace("length, at }", "length, at, set }")
+        .replace("alloc, view,", "alloc, viewMut,").replace("alloc,\n  view,", "alloc,\n  viewMut,")
+        .replace("length, at }", "length, at, set }").replace("  length,\n  at\n}", "  length,\n  at,\n  set\n}")
         .replace("ReadOnly<Bytes>", "Mutable<Bytes>")
         .replace("match (view(", "match (viewMut(")
         .replace("const holder =", "const third=bytes(11);const fourth=bytes(13);const holder =")
@@ -287,8 +287,8 @@ fn recursive_records_with_only_captured_views_execute() {
     let parameters = source.replace("function main()", "function take(holder:Holder){return holder.read;}function main()")
         .replace("const result = holder.read();", "holder.next=undefined;const callback=take(holder);const result=callback();");
     let captured = source.replace("const result = holder.read();", "holder.next=undefined;const action=()=>{const moved=holder;return moved.read();};const result=action();");
-    let mutable = source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,")
-        .replace("length, at }", "length, at, set }").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
+    let mutable = source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,").replace("alloc,\n  view,", "alloc,\n  viewMut,")
+        .replace("length, at }", "length, at, set }").replace("  length,\n  at\n}", "  length,\n  at,\n  set\n}").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
         .replace("const holder =", "const third=bytes(11);const fourth=bytes(13);const holder =")
         .replace("holder.next = build(read(second), read(first));", "holder.next=build(read(third),read(fourth));")
         .replace("strictEqual(value, 3);", "strictEqual(value, 13);").replace("const result = holder.read();", "const result=holder.read();set(result,0,19);")
@@ -363,7 +363,7 @@ fn mutable_recursive_parameters_replace_captured_view_callbacks() {
     let forwarded=source.replace("replace(holder,read(first));", "const action=replace;action(holder,read(first));");
     let closure=source.replace("function replace(holder:Mutable<Holder>,replacement:ByteView):void{holder.read=()=>replacement;}", "")
         .replace("replace(holder,read(first));", "const action=(target:Mutable<Holder>,replacement:ByteView):void=>{target.read=()=>replacement;};action(holder,read(first));");
-    let exclusive=source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
+    let exclusive=source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,").replace("alloc,\n  view,", "alloc,\n  viewMut,").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
         .replace("const holder=build", "const third=bytes(11);const holder=build").replace("replace(holder,read(first));", "replace(holder,read(third));").replace("strictEqual(value,3);", "strictEqual(value,11);");
     let captured_target=source.replace("replace(holder,read(first));", "{const action=(replacement:ByteView):void=>{holder.read=()=>replacement;};action(read(first));}");
     let captured_source=source.replace("replace(holder,read(first));", "const replacement=read(first);const action=(target:Mutable<Holder>):void=>{target.read=()=>replacement;};action(holder);");

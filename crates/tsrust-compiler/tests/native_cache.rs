@@ -241,7 +241,7 @@ fn warm_cli_build_reuses_native_compilation_and_invalidates_changed_inputs() {
     let log = directory.0.join("compile.log");
     let wrapper = wrappers.join("rustup");
     // Paths are passed via environment, so shell metacharacters are never interpolated.
-    std::fs::write(&wrapper,"#!/bin/sh\nif [ \"$4\" != \"--version\" ]; then echo compile >> \"$TSRUST_TEST_LOG\"; fi\nexec \"$TSRUST_TEST_RUSTUP\" \"$@\"\n").unwrap();
+    std::fs::write(&wrapper,"#!/bin/sh\nif [ \"$4\" != \"--version\" ]; then echo \"compile $*\" >> \"$TSRUST_TEST_LOG\"; fi\nexec \"$TSRUST_TEST_RUSTUP\" \"$@\"\n").unwrap();
     std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755)).unwrap();
     let input=directory.source("import { basename } from 'std:path';function main(){console.log(basename('/tmp/report.txt'));}");
     let cache = directory.0.join("cache");
@@ -268,15 +268,17 @@ fn warm_cli_build_reuses_native_compilation_and_invalidates_changed_inputs() {
         support::success(&output);
         String::from_utf8(output.stdout).unwrap()
     };
-    // Cold profiles compile runtime plus application; edits reuse matching runtime.
+    // Debug builds compile the runtime, then split crates (types, one per
+    // module, program) and rebuild only changed ones; release builds compile
+    // runtime plus application. Edits reuse the matching runtime.
     assert_eq!(build(false), "report.txt\n");
     assert_eq!(build(false), "report.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 2);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 3, "{}", std::fs::read_to_string(&log).unwrap());
     assert_eq!(build(true), "report.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 4);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 5);
     std::fs::write(&input,"import { basename } from 'std:path';function main(){console.log(basename('/tmp/other.txt'));}").unwrap();
     assert_eq!(build(false), "other.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 5);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 6);
     let dependency = directory.0.join("helper.tsr");
     let original = "import { basename } from 'std:path';export function name():string{return basename('/tmp/report.txt');}";
     std::fs::write(&dependency, original).unwrap();
@@ -287,24 +289,24 @@ fn warm_cli_build_reuses_native_compilation_and_invalidates_changed_inputs() {
     .unwrap();
     assert_eq!(build(false), "report.txt\n");
     assert_eq!(build(false), "report.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 6);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 8);
     let changed = original.replace("report.txt", "changed.txt");
     std::fs::write(&dependency, &changed).unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 7);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 10);
     // Even unchanged generated Rust must not erase source-graph identity.
     std::fs::write(&dependency, format!("// dependency revision\n{changed}")).unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 8);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 11);
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 8);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 11);
     std::fs::write(
         &dependency,
         "export function name():string{return 'changed.txt';}",
     )
     .unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 10);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 15);
     let emitted = support::run(support::cli().arg("emit").arg(&input), 10);
     support::success(&emitted);
     assert!(

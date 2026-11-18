@@ -590,13 +590,17 @@ impl SplitCrates {
     /// Build every crate with `base` (backend, runtime link flags and codegen
     /// options), the types crate first, then module crates in parallel, then the
     /// program into `binary`. Returns a timing summary, or `None` when `cancelled`
-    /// was set: running compilers are killed and no further crates start.
+    /// was set: running compilers are stopped with their descendants and no
+    /// further crates start. With `isolate`, each compiler gets its own process
+    /// group so a cancel reaches its descendants (`tsrust dev`); without it,
+    /// compilers stay in the command's group so Ctrl+C reaches them.
     pub(crate) fn build(
         &self,
         base: &(dyn Fn() -> Command + Sync),
         binary: &Path,
         runtime: Option<&Path>,
         cancelled: &std::sync::atomic::AtomicBool,
+        isolate: bool,
     ) -> Result<Option<String>, String> {
         use std::sync::atomic::Ordering::Relaxed;
         let started = std::time::Instant::now();
@@ -655,6 +659,10 @@ impl SplitCrates {
                 }
                 let _ = fs::create_dir_all(self.directory.join("incremental"));
                 let errors = self.directory.join("incremental").join(format!("{}.stderr", unit.name));
+                #[cfg(unix)]
+                if isolate {
+                    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+                }
                 let mut child = command
                     .arg(&source)
                     .arg("-o")
@@ -665,8 +673,7 @@ impl SplitCrates {
                     .map_err(|e| format!("Cannot invoke pinned Rust: {e}"))?;
                 let status = loop {
                     if cancelled.load(Relaxed) {
-                        let _ = child.kill();
-                        let _ = child.wait();
+                        stop_compiler(&mut child, isolate);
                         return Err(String::new());
                     }
                     if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
@@ -788,7 +795,10 @@ fn alias_runtime(runtime: &Path, lib: &Path) -> Result<(), String> {
         return Ok(());
     };
     let alias = lib.join(format!("lib{}.rlib", String::from_utf8_lossy(name)));
-    if fs::metadata(&alias).is_ok_and(|meta| meta.len() == bytes.len() as u64) {
+    // Compare contents: a runtime rebuilt with other flags (a Cargo
+    // configuration change) can keep its name and length, and a stale alias
+    // would give split crates two different runtimes.
+    if fs::metadata(&alias).is_ok_and(|meta| meta.len() == bytes.len() as u64) && fs::read(&alias).is_ok_and(|existing| existing == bytes) {
         return Ok(());
     }
     let _ = fs::remove_file(&alias);
@@ -993,4 +1003,29 @@ fn exported_linker_policy_is_valid_toml_and_windows_msvc_only() {
   assert!(!root.join("copy-2").exists(),"a staged hit must not copy the cached bundle again");
   assert!(fs::read_dir(root.join(STAGED_DIRECTORY)).unwrap().flatten().all(|entry|!entry.file_name().to_string_lossy().contains(".pending-")));
  }
+}
+
+/// Stop a cancelled compiler. An isolated one leads its own process group: the
+/// group gets a termination signal, then a kill, so wrappers and their
+/// descendants end too.
+fn stop_compiler(child: &mut std::process::Child, isolate: bool) {
+    #[cfg(unix)]
+    if isolate {
+        let group = -(child.id() as i32);
+        // SAFETY: the child was spawned as the leader of its own process group;
+        // the negative PID targets only that group.
+        unsafe { libc::kill(group, libc::SIGTERM); }
+        let until = std::time::Instant::now() + std::time::Duration::from_millis(500);
+        while std::time::Instant::now() < until {
+            if child.try_wait().ok().flatten().is_some() { break; }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        // SAFETY: as above; descendants that ignored the termination signal end here.
+        unsafe { libc::kill(group, libc::SIGKILL); }
+        let _ = child.wait();
+        return;
+    }
+    let _ = isolate;
+    let _ = child.kill();
+    let _ = child.wait();
 }

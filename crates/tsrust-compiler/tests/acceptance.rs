@@ -556,7 +556,18 @@ exit 1
             );
             let captured = std::fs::read_to_string(&arguments).unwrap();
             let mut args: Vec<_> = captured.lines().collect();
-            assert_eq!(args.len(), 13);
+            // Generated code builds with lints capped, and debug builds keep an
+            // incremental directory; the checked profile flags follow.
+            if let Some(at) = args.iter().position(|arg| *arg == "--cap-lints") {
+                assert_eq!(args[at + 1], "allow");
+                args.drain(at..at + 2);
+            }
+            if let Some(at) = args.iter().position(|arg| arg.starts_with("incremental=")) {
+                assert!(!release, "{args:#?}");
+                assert_eq!(args[at - 1], "-C");
+                args.drain(at - 1..at + 1);
+            }
+            assert_eq!(args.len(), 13, "{args:#?}");
             assert_eq!(args[3], "--extern");
             let library=args[4].strip_prefix("tsrust_runtime=").expect("explicit runtime dependency");
             assert!(std::path::Path::new(library).is_absolute());

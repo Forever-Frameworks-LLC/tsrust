@@ -227,6 +227,15 @@ pub fn reject(source: &str, code: &str) -> Diagnostic {
     diagnostic
 }
 
+/// Format as the repository does (`tools/format-project.mjs`): imports keep
+/// their written order, which is their evaluation order. Committed fixtures are
+/// compared with this, not with the editor default that organizes imports.
+#[allow(dead_code)]
+pub fn format_repository(source: &str) -> String {
+    let options = tsrust_compiler::FormatOptions { organize_imports: false, ..Default::default() };
+    tsrust_compiler::format_with_options(source, &options).unwrap_or_else(|error| panic!("{}", error.render("input.tsr", source)))
+}
+
 /// Format in memory and require a stable second pass. Native fixtures execute
 /// this result so feature acceptance exercises the editor's whitespace output.
 pub fn format_round_trip(source: &str) -> String {

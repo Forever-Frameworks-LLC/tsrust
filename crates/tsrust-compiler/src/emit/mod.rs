@@ -3887,7 +3887,7 @@ impl Emitter<'_> {
             }
             for index in 0..self.program.records.len() {
                 if !crate::analysis::native_capabilities::array_text_supported(Type::Record(index), &self.program.records, |id| self.program.unions[id.index()].members.clone()) { continue; }
-                if let Some(registration)=self.record_join_registration(index){output.push_str(&registration);}
+                if let Some(registration)=self.record_join_registration(index){if !output.contains(&registration){output.push_str(&registration);}}
                 if record_array_structs.contains(&index) {
                     let _ = writeln!(
                         output,

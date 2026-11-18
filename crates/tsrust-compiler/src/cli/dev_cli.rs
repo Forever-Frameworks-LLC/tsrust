@@ -77,8 +77,17 @@ mod platform {
     }
     struct Built {_files:TempDirectory,binary:PathBuf,identity:ApplicationIdentity}
     struct Running {process:Process,build:Built}
+    /// Build directories of running dev processes: in the project's native
+    /// cache, or in a per-project folder of a shared `TSRUST_CACHE_DIR`.
     fn dev_runs(root: &Path) -> PathBuf {
-        root.join("target").join("tsrust-native").join("dev-runs")
+        match std::env::var_os("TSRUST_CACHE_DIR") {
+            Some(cache) => {
+                use sha2::Digest;
+                let project = sha2::Sha256::digest(root.to_string_lossy().as_bytes()).iter().take(8).map(|byte| format!("{byte:02x}")).collect::<String>();
+                std::path::absolute(&cache).unwrap_or_else(|_| PathBuf::from(&cache)).join("dev-runs").join(project)
+            }
+            None => root.join("target").join("tsrust-native").join("dev-runs"),
+        }
     }
 
     /// Remove build directories left by dev processes that are no longer running.
@@ -364,7 +373,7 @@ mod platform {
                 let cancelled = std::sync::atomic::AtomicBool::new(false);
                 let library = prepared.library.as_deref();
                 let summary = std::thread::scope(|scope| {
-                    let running = scope.spawn(|| split.build(&base, &binary, library, &cancelled));
+                    let running = scope.spawn(|| split.build(&base, &binary, library, &cancelled, true));
                     let mut last_input_check = Instant::now();
                     while !running.is_finished() {
                         if STOP.load(Ordering::Relaxed) {

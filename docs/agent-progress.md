@@ -32,17 +32,26 @@ modes, and value-ABI tests return early unless that variable is `value`.
 - Known limitation (pre-existing): a `try` around a call of a callback
   parameter needs that callback's error contract resolved.
 
-Pre-existing failures found by the full unwind regression and confirmed
-identical at 5baf487fe (before this work), not fixed here: `acceptance`
-(cli_profiles expects 13 rustc arguments, gets 17; closed stdout),
-`dev_aliases`, `dev_cancellation`, `http_client_uploads` and `http_context`
-(crate split E0117 on `impl TsrJoinText for RecordN` where the record aliases
-a native type), `native_byte_cleanup`, `native_cache` warm rebuild count,
-`network_transport`, `path_env_os` and `structured_logging` (registered suite
-import order), `project_commands`, `shared_sources`, `std_bytes` (fixture
-variants). `native_dependency_bundle` and the offline export test need
-`CARGO_TARGET_DIR`. The `async_channel_*` runtime workloads fail on the Node
-side (Node cannot run the `.ts` comparison).
+Pre-existing failures found by the full unwind regression (all confirmed
+identical at 5baf487fe) were fixed on 2026-11-18:
+- Crate split: generic native handles (`Sender<Record72>`) get one generic
+  `TsrJoinText` impl instead of per-record impls no crate may hold (E0117 in
+  `http_client_uploads`, `http_context`); the runtime alias in `split/lib` is
+  refreshed by content, so a Cargo configuration change cannot leave split
+  crates with two runtimes (`shared_sources`).
+- `tsrust dev`: split compilers run in their own process group and a cancel
+  stops the group (`dev_cancellation`); with `TSRUST_CACHE_DIR`, `prechecked`
+  and `dev-runs` live in a per-project folder of that cache and the empty
+  marker folders are removed on stop (`dev_aliases`).
+- Tests brought up to date: registered-suite checks compare with the
+  repository's import order (`support::format_repository`), `std_bytes`
+  replacements match multi-line imports, split-crate compile counts and
+  rustc flags, the 8 MiB entry thread, header reuse, and a default
+  `CARGO_TARGET_DIR` via `support::target_dir()`.
+Still open: `acceptance::closed_standard_output_does_not_panic` failed once
+under load with a broken-pipe panic (passes 8/8 alone; SIGPIPE is restored),
+and the `async_channel_*` runtime workloads fail on the Node side (Node
+cannot run the `.ts` comparison).
 
 ## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
 
