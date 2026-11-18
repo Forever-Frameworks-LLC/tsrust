@@ -135,7 +135,53 @@ fn plain_fault_contracts(program:&CheckedProgram)->crate::error_effects::ErrorEf
         let fails=contract.opaque || !contract.explicit.is_empty();
         if let Some(summary)=effects.functions.get_mut(index) {*summary=fails;}
     }
+    for index in local_closures(program) {
+        let Some(contract)=effects.closure_errors.get_mut(index) else {continue;};
+        contract.runtime=false;
+        let fails=contract.opaque || !contract.explicit.is_empty();
+        if let Some(summary)=effects.closures.get_mut(index) {*summary=fails;}
+    }
     effects
+}
+
+/// Closures whose signature no other code shares: not polymorphic, forwarding,
+/// program-scoped or tasks, and every occurrence of their value is a direct
+/// call, a builtin array callback or a `let` initializer. Every other use (a
+/// parameter of another function, a native binding, a capture, a field) is a
+/// shared callable signature or a boundary and keeps runtime errors.
+fn local_closures(program:&CheckedProgram)->Vec<usize> {
+    let builtin=|target:Option<CallTarget>|matches!(target,Some(CallTarget::ArrayMap|CallTarget::ArrayFlatMap|CallTarget::ArrayFilter|CallTarget::ArrayForEach|CallTarget::ArraySome|CallTarget::ArrayEvery|CallTarget::ArrayFind|CallTarget::ArrayFindLast|CallTarget::ArrayFindIndex|CallTarget::ArrayFindLastIndex|CallTarget::ArrayReduce|CallTarget::ArrayReduceRight|CallTarget::ArraySort|CallTarget::ArrayToSorted));
+    let mut shared=HashSet::new();
+    let functions=program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))).collect::<Vec<_>>();
+    for function in &functions {
+        if let Type::Closure(id)=function.result {shared.insert(id);}
+        for binding in function.bindings.iter().take(function.parameter_count) {
+            if let Type::Closure(id)=binding.input_ty.unwrap_or(binding.ty) {shared.insert(id);}
+        }
+        // Occurrences of a closure value that keep it local: a direct call's callee,
+        // a builtin array method's callback, and a `let` initializer.
+        let mut allowed=HashSet::new();
+        crate::fixed_storage::visit_statements(&function.body,&mut |statement|{
+            if let StmtKind::Let{value,..}=&statement.kind {allowed.insert(value as *const Expr as usize);}
+        });
+        for binding in &function.bindings {
+            if let Some(initializer)=&binding.initializer {allowed.insert(&**initializer as *const Expr as usize);}
+        }
+        for expression in crate::error_effects::checked_expressions(function) {
+            let ExprKind::Call(callee,arguments)=&expression.kind else {continue;};
+            allowed.insert(&**callee as *const Expr as usize);
+            if builtin(expression.target) && let Some(callback)=arguments.first() {allowed.insert(callback as *const Expr as usize);}
+        }
+        for expression in crate::error_effects::checked_expressions(function) {
+            if let Some(Type::Closure(id))=expression.ty && matches!(expression.kind,ExprKind::Name(_)|ExprKind::Closure{..}) && !allowed.contains(&(expression as *const Expr as usize)) {shared.insert(id);}
+        }
+    }
+    for closure in &program.closures {
+        for capture in &closure.captures {
+            if let Some(Type::Closure(id))=closure.function.bindings.get(capture.inner).map(|binding|binding.ty) {shared.insert(id);}
+        }
+    }
+    program.closures.iter().enumerate().filter(|(index,closure)|!closure.function.template && !closure.polymorphic && closure.forward.is_none() && !closure.program_scoped && !closure.program_async && !program.task_origins.contains(index) && !shared.contains(index)).map(|(index,_)|index).collect()
 }
 
 fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> {
@@ -1004,7 +1050,7 @@ impl Emitter<'_> {
         if let Some(name)=&error_name {
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
             let id=self.completion_next.get();
-            let body=self.callable_result_body(&checked.function,&checked.function.body,id,name,self.program.error_effects.method_errors[&(index,method)].clone(),runtime);
+            let body=self.callable_result_body(&checked.function,&checked.function.body,id,name,self.function_effects().method_errors[&(index,method)].clone(),runtime);
             let _=writeln!(output,"        {body}");
         }else if crate::analysis::has_exception_syntax(&checked.function.body) {
             let body=self.pure_callable_completion_body(&checked.function);
@@ -1314,7 +1360,7 @@ impl Emitter<'_> {
         let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            Some((name,self.program.error_effects.closure_errors[id].clone(),runtime))
+            Some((name,self.function_effects().closure_errors[id].clone(),runtime))
         }else{self.exception_regions.current_transport()};
         // Where no region receives runtime errors, a failed assertion is a fault
         // (docs/plans/fault-unwinding.md) instead of the native panicking check.
@@ -1351,7 +1397,7 @@ impl Emitter<'_> {
         let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            Some((name,self.program.error_effects.closure_errors[id].clone(),runtime))
+            Some((name,self.function_effects().closure_errors[id].clone(),runtime))
         }else{self.exception_regions.current_transport()};
         // Without a region, a runner failure is raised as a fault (docs/plans/fault-unwinding.md).
         let Some((name,contract,runtime))=transport else {
@@ -1375,7 +1421,7 @@ impl Emitter<'_> {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.function_effects().closure_errors[id].clone())),
             _=>return None,
         };
         let invocation="ProgramCallback::invoke_program(&mut registered_callback,(),program,registry)";
@@ -1405,7 +1451,7 @@ impl Emitter<'_> {
         let registered=match callback {
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.function_effects().closure_errors[id].clone())),
             _=>None,
         };
         let invocation=format!("Callback::invoke(&mut registered_callback,{arguments})");
@@ -1450,6 +1496,26 @@ impl Emitter<'_> {
         format!("{{ {bindings} match tsr_catch_faults(|| {native_name}({arguments})) {{ Ok(value)=>value, Err(fault)=>{{ {throw} }} }} }}")
     }
 
+    /// A local closure call whose arguments are already plain names: caught alone
+    /// when the closure may unwind and the active region receives runtime errors.
+    fn fault_caught_closure(&self,origin:usize,call:&str,span:crate::Span)->String {
+        match self.closure_call_catches(origin).then(||self.fault_throw(span)).flatten() {
+            Some(throw)=>format!("match tsr_catch_faults(|| {call}) {{ Ok(value)=>value, Err(fault)=>{{ {throw} }} }}"),
+            None=>call.to_owned(),
+        }
+    }
+
+    /// Whether local closure `origin` may fault while its signature carries no runtime errors.
+    fn closure_unwinds(&self,origin:usize)->bool {
+        self.fault_effects.as_ref().is_some_and(|effects|self.program.error_effects.closure_errors.get(origin).is_some_and(|contract|contract.runtime) && !effects.closure_errors[origin].runtime)
+    }
+
+    /// Whether a call to local closure `origin` needs its own fault catch here.
+    fn closure_call_catches(&self,origin:usize)->bool {
+        self.closure_unwinds(origin)
+            && self.exception_regions.current_transport().is_some_and(|(_,contract,runtime)|contract.runtime && matches!(runtime,Some(Type::Record(_))))
+    }
+
     /// Throw a caught `fault` into the active region when it receives runtime errors.
     fn fault_throw(&self,span:crate::Span)->Option<String> {
         let (_, contract, runtime) = self.exception_regions.current_transport()?;
@@ -1475,7 +1541,7 @@ impl Emitter<'_> {
         }
         crate::error_effects::unwind_faults().then(|| {
             let (source,start,end)=self.fault_location(span);
-            format!("tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64)")
+            format!("{{ tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64) }}")
         })
     }
 
@@ -2131,10 +2197,10 @@ impl Emitter<'_> {
                 if let Some(method)=callback.traversal_method {
                     if let Some(name)=self.result_methods.borrow().get(&(origin,method.id)).cloned() {
                         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
-                        return self.exception_regions.result_call(&call,&name,&self.program.error_effects.method_errors[&(origin,method.id)],&unions,callback.span).expect("checked traversal method Result call");
+                        return self.exception_regions.result_call(&call,&name,&self.function_effects().method_errors[&(origin,method.id)],&unions,callback.span).expect("checked traversal method Result call");
                     }
                     call
-                }else{self.registered_closure_call(call,origin,callback.span)}
+                }else{let call=self.fault_caught_closure(origin,&call,callback.span);self.registered_closure_call(call,origin,callback.span)}
             },
             _=>unreachable!("checked reusable traversal callback"),
         }
@@ -2176,7 +2242,7 @@ impl Emitter<'_> {
                 _=>{},
             }
         }
-        let mut callback_contracts=self.program.error_effects.callback_errors.iter().collect::<Vec<_>>();
+        let mut callback_contracts=self.function_effects().callback_errors.iter().collect::<Vec<_>>();
         callback_contracts.sort_by_key(|(id,_)|**id);
         // Failure discovery order is not part of the native ABI or artifact identity.
         let mut callback_layouts:Vec<(Vec<Type>,String)>=vec![];
@@ -2196,7 +2262,7 @@ impl Emitter<'_> {
             if closure.function.template {continue;}
             if closure.polymorphic {
                 for (method,body) in closure.methods.iter().enumerate().filter(|(_,body)|!body.function.template) {
-                    let contract=self.program.error_effects.method_errors.get(&(index,method)).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved method contracts.",closure.span))?;
+                    let contract=self.function_effects().method_errors.get(&(index,method)).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved method contracts.",closure.span))?;
                     if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
                     contract.native_payloads(&unions,runtime,closure.span)?;
                     let (declaration,name)=self.completion_error_layout(&format!("TsrMethodError{index}_{method}"),contract,runtime,closure.span);
@@ -2205,7 +2271,7 @@ impl Emitter<'_> {
                 }
                 continue;
             }
-            let contract=self.program.error_effects.closure_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved closure contracts.",closure.span))?;
+            let contract=self.function_effects().closure_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved closure contracts.",closure.span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             let payloads=contract.native_payloads(&unions,runtime,closure.span)?;
             if closure.polymorphic {
@@ -2227,11 +2293,11 @@ impl Emitter<'_> {
             if origins.is_empty() && !self.program.stored_contracts.is_borrowed(family)
                 && self.program.stored_contracts.scoped_native_family(family).is_none() { continue; }
             let span=origins.iter().next().map_or(crate::Span::default(),|origin|self.program.closures[*origin].span);
-            let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved storage contracts.",span))?;
+            let contract=self.function_effects().storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved storage contracts.",span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             contract.native_payloads(&unions,runtime,span)?;
             for origin in origins {
-                let source=self.program.error_effects.closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved member contracts.",span))?;
+                let source=self.function_effects().closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved member contracts.",span))?;
                 source.native_injection(contract,&unions,runtime,span)?;
             }
             let (declaration,name)=self.completion_error_layout(&format!("TsrStorageError{family}"),contract,runtime,span);
@@ -2248,11 +2314,11 @@ impl Emitter<'_> {
     #[inline(never)]
     fn abstract_result_forward(&self,call:String,contract:usize,outer:usize)->String {
         let Some(destination)=self.result_closures.borrow().get(&outer).cloned() else {return call;};
-        let source=self.program.error_effects.callback_errors.get(&contract).expect("saved abstract forwarding contract");
+        let source=self.function_effects().callback_errors.get(&contract).expect("saved abstract forwarding contract");
         if let Some((source_name,_))=self.result_callbacks.borrow().get(&contract) {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked abstract forwarding transport");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked abstract forwarding transport");
             let conversion=exception_emit::error_conversion("error",source_name,&destination,&mapping);
             format!("{call}.map_err(|error|{conversion})")
         } else {
@@ -2267,7 +2333,7 @@ impl Emitter<'_> {
         if !self.callback_traits || self.result_callbacks.borrow().is_empty() {return;}
         let closure=&self.program.closures[index];
         let forwarded_where = self.forwarded_record_signature(closure).map_or_else(||self.closure_record_signature(index).map_or_else(String::new, |signature|signature.trait_where), |(target,_)| self.forwarded_record_trait_where(target));
-        let Some(source)=self.program.error_effects.closure_errors.get(index) else {return;};
+        let Some(source)=self.function_effects().closure_errors.get(index) else {return;};
         let source_name=self.result_closures.borrow().get(&index).cloned();
         if source_name.is_none() && (source.runtime || source.opaque || !source.explicit.is_empty()) {return;}
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2319,13 +2385,13 @@ impl Emitter<'_> {
     #[inline(never)]
     #[cfg(test)]
     fn prepare_storage_result(&self,family:usize,enum_name:&str,span:crate::Span)->Result<(String,String),crate::Diagnostic> {
-        let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
+        let contract=self.function_effects().storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a saved family contract.",span))?;
         let (_,_,origins)=self.program.stored_contracts.families().find(|(id,_,_)|*id==family).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires a known family.",span))?;
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         contract.native_payloads(&unions,runtime,span)?;
         for origin in origins {
-            let source=self.program.error_effects.closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires saved member contracts.",span))?;
+            let source=self.function_effects().closure_errors.get(*origin).ok_or_else(||crate::Diagnostic::new("error-effect","Stored Result registration requires saved member contracts.",span))?;
             source.native_injection(contract,&unions,runtime,span)?;
             if (source.runtime || source.opaque || !source.explicit.is_empty()) && !self.result_closures.borrow().contains_key(origin) {
                 return Err(crate::Diagnostic::new("error-effect","Fallible stored member requires Result registration before its family.",span));
@@ -2354,7 +2420,7 @@ impl Emitter<'_> {
         let call=if self.program.task_origins.contains(&origin){format!("({call}).await")}else{call};
         let destination=self.result_storage.borrow().get(&family).cloned();
         let Some((destination_name,destination))=destination else {return call;};
-        let source=&self.program.error_effects.closure_errors[origin];
+        let source=&self.function_effects().closure_errors[origin];
         let source_name=self.result_closures.borrow().get(&origin).cloned();
         if let Some(source_name)=source_name {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -2383,7 +2449,7 @@ impl Emitter<'_> {
                 else{call}
             }else{call};
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            self.exception_regions.closure_result_call(&call,origin,&source_name,&self.program.error_effects,&unions,span).expect("checked registered closure Result call")
+            self.exception_regions.closure_result_call(&call,origin,&source_name,&self.function_effects(),&unions,span).expect("checked registered closure Result call")
         } else {
             call
         }
@@ -2392,11 +2458,11 @@ impl Emitter<'_> {
     #[inline(never)]
     fn storage_result_forward(&self,call:String,family:usize,outer:usize)->String {
         let Some(destination)=self.result_closures.borrow().get(&outer).cloned() else {return call;};
-        let source=self.program.error_effects.storage_errors.get(&family).expect("saved rest storage contract");
+        let source=self.function_effects().storage_errors.get(&family).expect("saved rest storage contract");
         if let Some((source_name,_))=self.result_storage.borrow().get(&family) {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked rest storage transport");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked rest storage transport");
             let conversion=exception_emit::error_conversion("error",source_name,&destination,&mapping);
             format!("({call}).map_err(|error|{conversion})")
         } else {
@@ -2409,12 +2475,12 @@ impl Emitter<'_> {
     fn closure_result_forward(&self,call:String,inner:usize,outer:usize)->String {
         let destination=self.result_closures.borrow().get(&outer).cloned();
         let Some(destination)=destination else {return call;};
-        let source=&self.program.error_effects.closure_errors[inner];
+        let source=&self.function_effects().closure_errors[inner];
         let source_name=self.result_closures.borrow().get(&inner).cloned();
         if let Some(source_name)=source_name {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            let mapping=source.native_injection(&self.program.error_effects.closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked adapter Result contract");
+            let mapping=source.native_injection(&self.function_effects().closure_errors[outer],&unions,runtime,self.program.closures[outer].span).expect("checked adapter Result contract");
             let conversion=exception_emit::error_conversion("error",&source_name,&destination,&mapping);
             format!("({call}).map_err(|error|{conversion})")
         } else {
@@ -2519,7 +2585,7 @@ impl Emitter<'_> {
                         (Some(destination),Some(source_name))=>{
                             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
                             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-                            let mapping=self.program.error_effects.method_errors[&(inner,method)].native_injection(&self.program.error_effects.method_errors[&(outer,outer_method)],&unions,runtime,call.span).expect("checked counted method transport");
+                            let mapping=self.function_effects().method_errors[&(inner,method)].native_injection(&self.function_effects().method_errors[&(outer,outer_method)],&unions,runtime,call.span).expect("checked counted method transport");
                             let conversion=exception_emit::error_conversion("error",&source_name,&destination,&mapping);
                             format!("({code}).map_err(|error|{conversion})")
                         }
@@ -2586,7 +2652,7 @@ impl Emitter<'_> {
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
         let entry=if crate::error_effects::unwind_faults() {
-            format!("{{ {} match tsr_catch_faults({symbol}) {{ Ok(result)=>tsr_entry_result(result,|error|{{match {matched}{{{arms}}}}}), Err(fault)=>tsr_fault_exit(&fault) }} }}\n",self.entry_setup)
+            format!("{{ {} tsr_install_fault_hook(); match tsr_catch_faults({symbol}) {{ Ok(result)=>tsr_entry_result(result,|error|{{match {matched}{{{arms}}}}}), Err(fault)=>tsr_fault_exit(&fault) }} }}\n",self.entry_setup)
         } else {format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)};
         // GPUI requires the process's own main thread even with an async entrypoint.
         if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
@@ -2990,11 +3056,11 @@ impl Emitter<'_> {
                 arguments.extend(self.owner_inputs(target).iter().map(|source| format!("std::marker::PhantomData::<O{source}>")));
                 let arguments=arguments.join(", ");
                 let call=if let Some(destination)=&result_layout {
-                    let source=&self.program.error_effects.function_errors[target];
+                    let source=&self.function_effects().function_errors[target];
                     if let Some((symbol,source_name))=self.result_functions.borrow().get(&target).cloned() {
                         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
                         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-                        let mapping=source.native_injection(&self.program.error_effects.closure_errors[index],&unions,runtime,closure.span).expect("checked forwarded Result contract");
+                        let mapping=source.native_injection(&self.function_effects().closure_errors[index],&unions,runtime,closure.span).expect("checked forwarded Result contract");
                         let conversion=exception_emit::error_conversion("error",&source_name,destination,&mapping);
                         format!("{symbol}({arguments}).map_err(|error|{conversion})")
                     } else {
@@ -3055,7 +3121,7 @@ impl Emitter<'_> {
                 if let Some(error_name)=&result_layout {
                     let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
                     let id=self.completion_next.get();
-                    let body=self.callable_result_body(&closure.function,&closure.function.body,id,error_name,self.program.error_effects.closure_errors[index].clone(),runtime);
+                    let body=self.callable_result_body(&closure.function,&closure.function.body,id,error_name,self.function_effects().closure_errors[index].clone(),runtime);
                     let _=writeln!(output,"        {body}");
                 } else if crate::analysis::has_exception_syntax(&closure.function.body) {
                     let body=self.pure_callable_completion_body(&closure.function);
@@ -3295,7 +3361,7 @@ impl Emitter<'_> {
                 if plan.parameters.iter().any(Option::is_some) {format!("{symbol}_fixed{plan_id}")} else {symbol.clone()}
             } else if plan.parameters.iter().any(Option::is_some) {
                 format!("fixed_function{plan_id}")
-            } else if fun.name == "main" && crate::error_effects::unwind_faults() && !self.ui_window() {
+            } else if fun.name == "main" && crate::error_effects::unwind_faults() {
                 // The entry catch below wraps this body (docs/plans/fault-unwinding.md).
                 "tsrust_unwind_main".to_owned()
             } else if fun.name == "main" {
@@ -3353,12 +3419,13 @@ impl Emitter<'_> {
                 output.push_str(&self.result_entry_adapter(index,&symbol,&error_name));
             }
         }
+        let hook = if crate::error_effects::unwind_faults() {"tsr_install_fault_hook(); "} else {""};
         if !self.program.functions.iter().any(|function| function.name == "main") && self.ui_window() {
-            let _ = writeln!(output, "fn main() {{ {} }}", self.entry_setup);
+            let _ = writeln!(output, "fn main() {{ {hook}{} }}", self.entry_setup);
         } else if !self.program.functions.iter().any(|function| function.name == "main") {
             // Test and statement-only programs run on the same 8 MiB main-thread
             // stack as async entrypoints: Windows gives the main thread 1 MiB.
-            let _ = writeln!(output, "fn main() {{ std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
+            let _ = writeln!(output, "fn main() {{ {hook}std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
@@ -5603,6 +5670,18 @@ impl Emitter<'_> {
         }
     }
 
+    /// The sort call on `receiver`: in place, checked through the comparator's
+    /// Result, or, for a local comparator whose faults unwind, the positions sort
+    /// caught as one call inside a try region.
+    fn sort_call(&self,receiver:&str,compare:&str,fallible:bool,fault_comparator:Option<usize>,args:&[Expr],span:crate::Span)->String {
+        if let Some(origin)=fault_comparator {
+            let call=format!("match {receiver}.tsr_try_sort({compare}) {{ Ok(())=>(), Err(never)=>match never {{}} }}");
+            return self.fault_caught_closure(origin,&call,span);
+        }
+        if fallible {self.registered_traversal_call(format!("{receiver}.tsr_try_sort({compare})"), &args[0])}
+        else {format!("{receiver}.tsr_sort({compare})")}
+    }
+
     fn array_sort(
         &self,
         fun: &CheckedFunction,
@@ -5637,6 +5716,7 @@ impl Emitter<'_> {
             selected.exclusive
         };
         let mut fallible = false;
+        let mut fault_comparator = None;
         let compare = if let Some(callback) = args.first() {
             let callback_type = callback.ty.expect("checked comparator");
             let read_callback=self.program.stored_contracts.callback_declaration(callback_type).is_some_and(|id| matches!(self.program.callback_contracts[id].kind,CallbackKind::Read|CallbackKind::SharedRead));
@@ -5687,8 +5767,17 @@ impl Emitter<'_> {
             } else {
                 format!("sorting_callback.call{}({})", callback.traversal_method.map_or(String::new(), |method| method.id.to_string()), values.join(", "))
             };
-            fallible = self.registered_traversal_call(call.clone(), callback) != call;
-            if fallible {
+            // A local comparator whose faults unwind keeps the positions sort, so a fault
+            // leaves the array as it was (docs/plans/fault-unwinding.md, decision 9).
+            // Without any catch site in the program a fault ends it, so the array's state
+            // after a fault is unobservable and the in-place sort stays.
+            fault_comparator = match callback_type {Type::Closure(id) if self.closure_unwinds(id) && !self.result_closures.borrow().contains_key(&id) && needs_exception_transport(self.program) => Some(id), _ => None};
+            fallible = fault_comparator.is_none() && self.registered_traversal_call(call.clone(), callback) != call;
+            if fault_comparator.is_some() {
+                let order = if result == Type::Int {"sorting_order.cmp(&0)"} else {"if sorting_order < 0.0 { std::cmp::Ordering::Less } else if sorting_order > 0.0 { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Equal }"};
+                let ty = if result == Type::Int {"i64"} else {"f64"};
+                format!("|sorting_left, sorting_right| {{ let sorting_order: {ty} = {call}; Ok::<_, std::convert::Infallible>({order}) }}")
+            } else if fallible {
                 let order = if result == Type::Int {
                     "sorting_order.cmp(&0)"
                 } else {
@@ -5717,9 +5806,7 @@ impl Emitter<'_> {
             }
         };
         if moved {
-            let call = if fallible {
-                self.registered_traversal_call(format!("sorting_copy.tsr_try_sort({compare})"), &args[0])
-            } else { format!("sorting_copy.tsr_sort({compare})") };
+            let call = self.sort_call("sorting_copy", &compare, fallible, fault_comparator, &args, call);
             write!(code, "{call}; sorting_copy }}").unwrap();
         } else if copying {
             let literal =
@@ -5750,14 +5837,10 @@ impl Emitter<'_> {
             } else {
                 "sorting_values".to_owned()
             };
-            let call = if fallible {
-                self.registered_traversal_call(format!("sorting_copy.tsr_try_sort({compare})"), &args[0])
-            } else { format!("sorting_copy.tsr_sort({compare})") };
+            let call = self.sort_call("sorting_copy", &compare, fallible, fault_comparator, &args, call);
             write!(code, "let mut sorting_copy = {wrapped}; {call}; sorting_copy }}").unwrap();
         } else {
-            let call = if fallible {
-                self.registered_traversal_call(format!("({receiver}).tsr_try_sort({compare})"), &args[0])
-            } else { format!("({receiver}).tsr_sort({compare})") };
+            let call = self.sort_call(&format!("({receiver})"), &compare, fallible, fault_comparator, &args, call);
             write!(code, "{call}; }}").unwrap();
         }
         code

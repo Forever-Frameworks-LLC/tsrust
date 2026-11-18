@@ -14,7 +14,7 @@ fn captured_source(capture:usize,path:&[Segment],guards:&[VariantGuard])->Lifeti
 impl Emitter<'_> {
     pub(super) fn emit_native_view_family(&self,output:&mut String,id:usize,layout:&crate::native_view_callable_storage::Family,contract:&crate::analysis::CallbackContract)->Result<(),crate::Diagnostic> {
         let unsupported=|message:&str|crate::Diagnostic::new("native-view-family-emission",message,crate::Span::default());
-        crate::native_view_callable_storage::validate_abi(layout,contract,&self.program.closures,&self.program.error_effects,crate::Span::default())?;
+        crate::native_view_callable_storage::validate_abi(layout,contract,&self.program.closures,self.function_effects(),crate::Span::default())?;
         let mut inputs=BTreeMap::new();
         let mut lifetimes=Vec::new();
         let argument_offset=layout.alternatives.len();

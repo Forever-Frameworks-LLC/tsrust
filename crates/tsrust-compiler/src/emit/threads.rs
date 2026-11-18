@@ -61,7 +61,7 @@ impl Emitter<'_> {
             let completion = if let Some(name) = self.result_closures.borrow().get(&origin) {
                 let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
                 let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-                let converted = exception_contract_emit::checked_catch_value("error", name, &self.program.error_effects.closure_errors[origin], &unions, runtime, expr.span).expect("checked worker errors");
+                let converted = exception_contract_emit::checked_catch_value("error", name, &self.function_effects().closure_errors[origin], &unions, runtime, expr.span).expect("checked worker errors");
                 format!("callback.call({context_argument}).map_err(|error|{converted})")
             } else { format!("Ok::<_,{error_type}>(callback.call({context_argument}))") };
             let mutable = if self.program.closures[origin].invocation == Mode::Mutate { "mut " } else { "" };
@@ -122,7 +122,7 @@ impl Emitter<'_> {
         let result=if let Some(name)=self.result_closures.borrow().get(&origin){
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError").map(Type::Record);
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
-            let converted=exception_contract_emit::checked_catch_value("error",name,&self.program.error_effects.closure_errors[origin],&unions,runtime,expr.span).expect("checked worker errors");
+            let converted=exception_contract_emit::checked_catch_value("error",name,&self.function_effects().closure_errors[origin],&unions,runtime,expr.span).expect("checked worker errors");
             format!("callback.call({argument}).map_err(|error|{converted})")
         }else{format!("Ok::<_,{}>(callback.call({argument}))",self.native_type(own_error))};
         let mutable=if self.program.closures[origin].invocation==Mode::Mutate{"mut "}else{""};

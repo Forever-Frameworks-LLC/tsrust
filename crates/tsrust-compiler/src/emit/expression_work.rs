@@ -804,7 +804,7 @@ impl<'p> Emitter<'p> {
                             self.exception_regions.result_call(
                                 &text,
                                 &name,
-                                &self.program.error_effects.method_errors
+                                &self.function_effects().method_errors
                                     [&(pair.origin, pair.method)],
                                 &unions,
                                 callee.span,
@@ -1167,15 +1167,13 @@ impl<'p> Emitter<'p> {
                         )
                     ));
                 } else {
-                    code.push_str(&format!(
-                        "{} }}",
-                        self.counted_call(
-                            "conditional_environment",
-                            &arguments,
-                            expr.supplied_count
-                                .unwrap_or(CallArgumentCount::Static(args.len()))
-                        )
-                    ));
+                    let call = self.counted_call(
+                        "conditional_environment",
+                        &arguments,
+                        expr.supplied_count
+                            .unwrap_or(CallArgumentCount::Static(args.len()))
+                    );
+                    code.push_str(&format!("{} }}", self.fault_caught_closure(origin, &call, expr.span)));
                 }
                 // Carrier planning can widen the stored field to a family
                 // after this call was checked; its Result layout then applies.
@@ -1251,6 +1249,13 @@ impl<'p> Emitter<'p> {
                     let context=if self.program.task_type(closure.function.result){self.test_factory_context()}else{"test_program".into()};
                     arguments.extend([context,"test_registry".into()]);
                 }
+                // Arguments leave the region on their own faults, so a caught call binds them first.
+                let caught = self.closure_call_catches(id);
+                let prefix = if caught {
+                    let bindings = arguments.iter().enumerate().map(|(position, value)| format!("let fault_argument{position}={value};")).collect::<String>();
+                    arguments = (0..arguments.len()).map(|position| format!("fault_argument{position}")).collect();
+                    bindings
+                } else { String::new() };
                 let args = arguments.join(", ");
                 let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
                     let args = if args.is_empty() {
@@ -1273,6 +1278,7 @@ impl<'p> Emitter<'p> {
                             .unwrap_or(CallArgumentCount::Static(closure.parameters.len())),
                     )
                 };
+                let call = if caught { format!("{{ {prefix}{} }}", self.fault_caught_closure(id, &call, expr.span)) } else { call };
                 let call = self.registered_closure_call(call, id, expr.span);
                 let ExprKind::Call(_, arguments) = &expr.kind else {
                     unreachable!("closure call")

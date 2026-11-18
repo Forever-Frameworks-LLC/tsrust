@@ -26,7 +26,7 @@ impl Emitter<'_>{
     }
     pub(super) fn future_error_type(&self,ty:Type,span:Span)->Type{
         if let Type::Record(id)=ty && self.program.records[id].native_type==Some(NativeTypeId::Job){return self.program.records[id].application.as_ref().unwrap().resolved_arguments[1];}
-        let contract=match ty {Type::Closure(id)=>self.program.error_effects.closure_errors[id].clone(),Type::Callback(id)=>self.program.error_effects.callback_errors.get(&id).cloned().unwrap_or_default(),Type::StoredCallable(id)=>self.program.error_effects.storage_errors.get(&id).cloned().unwrap_or_default(),_=>return Type::Undefined};
+        let contract=match ty {Type::Closure(id)=>self.function_effects().closure_errors[id].clone(),Type::Callback(id)=>self.function_effects().callback_errors.get(&id).cloned().unwrap_or_default(),Type::StoredCallable(id)=>self.function_effects().storage_errors.get(&id).cloned().unwrap_or_default(),_=>return Type::Undefined};
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError").map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
         contract.catch_type(&unions,runtime,span).expect("checked future errors").unwrap_or(Type::Undefined)
@@ -41,7 +41,7 @@ impl Emitter<'_>{
             let convert=self.future_inject(own_error,error,"cause");return format!("({value}).join().await.map_err(|failure|failure.map(|cause|{convert}))");
         }
         let registered=match ty {
-            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
+            Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.function_effects().closure_errors[id].clone())),
             Type::Callback(id)=>self.result_callbacks.borrow().get(&id).cloned(),
             Type::StoredCallable(id)=>self.result_storage.borrow().get(&id).cloned(),_=>unreachable!("checked task")
         };

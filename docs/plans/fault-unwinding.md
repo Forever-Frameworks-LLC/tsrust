@@ -336,7 +336,7 @@ main thread); the test had been failing since then.
 
 ### Phase 2: correct behavior in `Unwind` mode
 
-- [ ] 2.1 Inside `try` regions (and `Checked` bodies) local faults stay
+- [x] 2.1 Inside `try` regions (and `Checked` bodies) local faults stay
       values, and each call that may unwind is wrapped alone in
       `catch_unwind`; a `TsrFault` becomes the same `Throw(record)` as today
       (see 0.3).
@@ -356,20 +356,20 @@ main thread); the test had been failing since then.
       fault as a throw, `captureOutput` ends capture on a fault.
 - [ ] 2.4a Detached threads and tasks report uncaught faults and errors and
       set exit code 1 (decision 5).
-- [ ] 2.4b The `await` adapter that polls inside `catch_unwind`, used inside
-      `try` regions and `Checked` bodies (decision 2).
+- [x] 2.4b Not needed: bodies that can be awaited keep runtime errors and catch
+      unwinding calls themselves (Phase 2 progress).
 - [ ] 2.5 Foreign panics (Rust crates through bindings, runtime bugs) are
       never treated as Tsrust errors: every catch resumes non-`TsrFault`
       payloads.
 - [ ] 2.6 Test that task faults leave pool, channel and scope locks usable
       (decision 10).
-- [ ] 2.7 Sorts keep the positions path whenever the comparator may fault
+- [x] 2.7 Sorts keep the positions path whenever the comparator may fault
       (decision 9); runtime code never leaves state taken out while user code
       runs (UI command queue fixed by 2.4).
 - [ ] 2.8 Callback contracts: callbacks that only fault become infallible;
       update stored callable families, `callback_family_result_adapters`,
       invocation plans and crate-split declarations.
-- [ ] 2.9 Error effects keep a "may fault" fact in `Unwind` mode, used to
+- [x] 2.9 Error effects keep a "may fault" fact in `Unwind` mode, used to
       choose per-call catches (decision 2) and the sort path (decision 9);
       only the native `Result` types drop runtime errors.
 - [ ] 2.10 The fault record is taken from the thread-local on the thread
@@ -378,11 +378,31 @@ main thread); the test had been failing since then.
 - [ ] 2.11 Language server: error-effect features (catch typing, hover,
       diagnostics about what a call can throw) agree with the mode.
 - [ ] 2.12 `tsrust build --debug` keeps a native backtrace for faults.
-- [ ] 2.13 Stage B of 1.3: closures, callback families, methods and stored
+- [x] 2.13 Stage B of 1.3: closures, callback families, methods and stored
       callables drop runtime errors from their signatures, except at
       boundaries (decision 3), which keep them.
 - [ ] 2.14 Finish 1.4: capacity checks in runtime helpers raise faults
       (decision 7).
+
+### Phase 2 progress (2026-11-18)
+
+- 2.1: `fault_caught_call` (direct calls) and `fault_caught_closure` (closure
+  calls, traversal callbacks) wrap only the call; arguments are bound first.
+  The condition is "the active region receives runtime errors", which holds in
+  `try` regions and in every body whose contract keeps runtime errors.
+- 2.13: `local_closures` (no escape, not polymorphic, forwarding,
+  program-scoped or a task, values only called directly or passed to builtin
+  array callbacks) drop runtime errors; every signature read in the emitter
+  goes through `function_effects()`, region analysis keeps the original
+  effects (2.9).
+- 2.7: a local comparator that may fault uses the positions sort with an
+  infallible comparator, caught as one call inside `try` (`sort_call`).
+- Boundaries fall out of the rule above: thread and task bodies, UI callbacks,
+  test bodies and HTTP handlers are non-local, keep runtime errors, and catch
+  unwinding calls per call, so their faults arrive as today's `Err` values.
+  `await` therefore never unwinds through a poll; 2.4b is not needed.
+  Remaining for 2.4: the UI-window `main` entry catch and detached threads
+  and tasks (2.4a).
 
 ### Phase 3: `Checked<T>` and `Checked<T, E>`
 
