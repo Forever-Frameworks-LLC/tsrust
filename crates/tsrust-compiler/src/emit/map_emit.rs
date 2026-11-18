@@ -149,10 +149,13 @@ impl Emitter<'_> {
         // binding it later changes no observable order.
         let mut arguments_first=String::new();
         let mut action=String::new();
-        // `m.set(clone(name), value)` with a string key clones the key only when it is new.
+        // `m.set(clone(name), value)` or `m.set(clone(record.field), value)` with a string key
+        // clones the key only when it is new. The key's root must not be the map's root, so
+        // reading it cannot overlap the map's mutable borrow.
+        fn root(mut value:&Expr)->Option<usize>{while let ExprKind::Field(parent,_)=&value.kind{value=parent;}matches!(value.kind,ExprKind::Name(_)).then_some(value.binding).flatten()}
         let cloned_key=(method==MapMethod::Set && !ordered && map.key==Type::String).then(||arguments.first()).flatten()
             .filter(|key|key.target==Some(CallTarget::Clone))
-            .and_then(|key|match &key.kind {ExprKind::Call(_,inner)=>inner.first().filter(|name|matches!(name.kind,ExprKind::Name(_))&&name.binding.is_some()),_=>None});
+            .and_then(|key|match &key.kind {ExprKind::Call(_,inner)=>inner.first().filter(|source|root(source).is_some_and(|key_root|root(base)!=Some(key_root))),_=>None});
         if let Some(source)=cloned_key {let source=self.expr(function,source,Mode::Read);let _=write!(arguments_first,"let map_key: &String={source};");}
         else if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(if mode==Mode::Mutate{&mut arguments_first}else{&mut action},"let map_key={key};");}
         match method {

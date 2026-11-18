@@ -3234,10 +3234,17 @@ impl Emitter<'_> {
             } else if let Some((_,error_name))=&result_target {
                 let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
                 let id=self.completion_next.get();
+                // Dead-local moves hold in throwing bodies too: a catch never sees a local
+                // declared inside its try, and a local declared outside is last mentioned
+                // by the whole try statement, which never qualifies.
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
                 let body=self.callable_result_body(fun,&fun.body,id,error_name,self.program.error_effects.function_errors[index].clone(),runtime);
+                self.receiver_moves.borrow_mut().clear();
                 let _=writeln!(output,"    {body}");
             } else if crate::analysis::has_exception_syntax(&fun.body) {
+                *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
                 let body=self.pure_callable_completion_body(fun);
+                self.receiver_moves.borrow_mut().clear();
                 let _=writeln!(output,"    {body}");
             } else {
                 self.parameter_initialization(&mut output, fun);
@@ -6292,8 +6299,11 @@ impl Emitter<'_> {
         result: Type,
         filter: bool,
         from_array: bool,
+        call_span: crate::diagnostic::Span,
     ) -> String {
         let method = callback.traversal_method;
+        let moving = filter && !from_array && matches!(base.ty, Some(Type::Array(element)) if !element.ty().is_copy())
+            && method.is_none_or(|method| method.access != Mode::Mutate) && self.moves_receiver(base, call_span);
         let receiver = self.expr(
             fun,
             base,
@@ -6385,6 +6395,16 @@ impl Emitter<'_> {
             String::new()
         };
         let checked_call = self.registered_traversal_call(call.clone(), callback);
+        if moving && parameter_count < 3 && ordered_map.is_none() && !literal {
+            // The source is dead after this call: kept elements move instead of being cloned.
+            let Type::Array(output) = result else { unreachable!("checked transform result") };
+            let receiver = self.expr(fun, base, Mode::Consume);
+            let owned_items = if self.native_type(receiver_type).starts_with("Vec<") {"transform_array.into_iter()"} else {"TsrOwnedItems::tsr_owned_items(transform_array)"};
+            return format!(
+                "{{ let transform_array={receiver}; let transform_callback={environment}; let mut transform_values:Vec<{}>=Vec::new(); for (transform_position,transform_owned) in {owned_items}.enumerate() {{ let transform_value=&transform_owned; {index}let transform_keep={checked_call}; if transform_keep {{ transform_values.push(transform_owned); }} }} {} }}",
+                self.native_type(output.ty()), self.flat_array_result(result, "transform_values")
+            );
+        }
         if let Type::Map(id)=result {
             let groups=self.program.records[id].map_definition.as_ref().unwrap().value;
             let single=self.flat_array_result(groups,"vec![Clone::clone(transform_value)]");
@@ -9899,6 +9919,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                         expr.ty.expect("checked transform result"),
                         expr.target == Some(CallTarget::ArrayFilter),
                         matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom" || name=="groupBy#map"),
+                        expr.span,
                     )
                 }
                 CallTarget::NumberToFixed
