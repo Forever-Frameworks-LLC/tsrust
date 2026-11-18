@@ -118,13 +118,37 @@ without building an array (owned text reuses one buffer). Release medians:
 Other phases are unchanged within noise. Words still hashes each word twice
 (`get` then `set`); sets still hashes twice for `has` then `add`.
 
+## Second round (2026-11-17)
+
+Shared changes first, then the orders phase:
+
+- Map/Set remember their last lookup (hash plus slot, or a miss for scalar
+  keys), so `get` then `set` and `has` then `add` hash once.
+- Dead-local moves now run in functions that can throw (nearly all, because of
+  checked arithmetic), see through `??` values, and allow earlier reads and
+  pushes as long as the moving call is the local's last mention. `filter` joined
+  the moving calls: kept elements move out of a dead source instead of being
+  cloned.
+- `m.set(clone(record.field), v)` also clones only new keys.
+- A sort with a comparator that can throw applies its result by moving each
+  element once into place (owned arrays) or reading a snapshot (number
+  arrays), instead of random swaps (about 17% of the sort in a reproduction).
+
+| Phase | First run | Now | Rust |
+|---|---:|---:|---:|
+| words | 248.4 ms (4.0x) | 116.4 ms (1.9x) | 62.6 ms |
+| sets | 332.6 ms (2.6x) | 244.5 ms (1.9x) | 130.4 ms |
+| orders | 282.4 ms (1.8x) | 212.8 ms (1.4x) | 154.8 ms |
+| whole process | 2.94 s | 2.68 s | 1.94 s |
+| peak memory | 520 MiB | 368 MiB | 256 MiB |
+
+Most of what remains in orders is the comparator itself: it can throw (the
+`left.id - right.id` overflow check), so each comparison returns a `Result`.
+
 ## Possible fixes, by expected gain
 
-1. Done: borrowed `split` iteration, `set_cloned`, the single index table and
-   untagged number hashes (see above). Still open: reusing the last query's
-   hash for `get`/`set` and `has`/`add` pairs (sets, words).
+1. Done: see the two rounds above.
 2. A sized array constructor (`new Array<T>(n).fill(x)` or `Array.from`
    with a length), and a hoisted slice for index loops over one array
    (sieve, matrix, nbody).
-3. Sorting records in place when the comparator cannot throw (orders).
 4. No-throw analysis for small pure functions such as `fib` (calls).

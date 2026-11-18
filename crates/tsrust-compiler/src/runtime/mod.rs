@@ -662,7 +662,7 @@ impl<T:Copy+Default> TsrSplice<T> for NumericArray<T> {
 
 pub(crate) const SORT_VEC: &str = r#"
 // Compare borrowed payloads before applying any permutation. An error leaves storage intact.
-fn tsr_try_sort_slice<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(values: &mut [T], mut compare: F) -> Result<(), E> {
+fn tsr_sort_positions<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(values: &[T], mut compare: F) -> Result<Vec<usize>, E> {
     let mut positions: Vec<usize> = (0..values.len()).collect();
     let mut failure = None;
     positions.sort_by(|a, b| {
@@ -672,7 +672,10 @@ fn tsr_try_sort_slice<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(v
             Err(error) => { failure=Some(error); std::cmp::Ordering::Equal }
         }
     });
-    if let Some(error)=failure { return Err(error); }
+    match failure { Some(error) => Err(error), None => Ok(positions) }
+}
+fn tsr_try_sort_slice<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(values: &mut [T], compare: F) -> Result<(), E> {
+    let positions = tsr_sort_positions(values, compare)?;
     let mut destinations=vec![0;positions.len()];
     for (destination, original) in positions.into_iter().enumerate() { destinations[original]=destination; }
     for position in 0..destinations.len() {
@@ -684,12 +687,20 @@ fn tsr_try_sort_slice<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(v
     }
     Ok(())
 }
+/// Owned storage moves each element once into its sorted place: sequential writes
+/// instead of the random swaps of a cycle permutation.
+fn tsr_try_sort_vec<T, E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(values: &mut Vec<T>, compare: F) -> Result<(), E> {
+    let positions = tsr_sort_positions(values, compare)?;
+    let mut slots: Vec<Option<T>> = std::mem::take(values).into_iter().map(Some).collect();
+    *values = positions.into_iter().map(|position| slots[position].take().expect("sorted position used once")).collect();
+    Ok(())
+}
 trait TsrSort<T> {
     fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, compare: F) -> Result<(), E>;
     fn tsr_sort<F: FnMut(&T, &T) -> std::cmp::Ordering>(&mut self, compare: F);
 }
 impl<T> TsrSort<T> for Vec<T> {
-    fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, compare: F) -> Result<(), E> { tsr_try_sort_slice(self.as_mut_slice(), compare) }
+    fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, compare: F) -> Result<(), E> { tsr_try_sort_vec(self, compare) }
     fn tsr_sort<F: FnMut(&T, &T) -> std::cmp::Ordering>(&mut self, compare: F) {
         self.as_mut_slice().sort_by(compare);
     }
@@ -712,7 +723,7 @@ impl<T> TsrSort<T> for Array<T> {
     fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, mut compare: F) -> Result<(), E> {
         match self {
             Self::Small { len, values } => tsr_try_sort_slice(&mut values[..*len], |a,b| compare(a.as_ref().expect("live array slot"), b.as_ref().expect("live array slot"))),
-            Self::Heap(values) => tsr_try_sort_slice(values.as_mut_slice(), compare),
+            Self::Heap(values) => tsr_try_sort_vec(values, compare),
         }
     }
     fn tsr_sort<F: FnMut(&T, &T) -> std::cmp::Ordering>(&mut self, mut compare: F) {
@@ -725,7 +736,13 @@ impl<T> TsrSort<T> for Array<T> {
 "#;
 pub(crate) const SORT_NUMERIC: &str = r#"
 impl<T: Copy + Default> TsrSort<T> for NumericArray<T> {
-    fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, compare: F) -> Result<(), E> { tsr_try_sort_slice(self.as_mut_slice(), compare) }
+    /// Copy elements are read from a snapshot in sorted order.
+    fn tsr_try_sort<E, F: FnMut(&T, &T) -> Result<std::cmp::Ordering, E>>(&mut self, compare: F) -> Result<(), E> {
+        let positions = tsr_sort_positions(self.as_slice(), compare)?;
+        let snapshot = self.as_slice().to_vec();
+        for (slot, position) in self.as_mut_slice().iter_mut().zip(positions) { *slot = snapshot[position]; }
+        Ok(())
+    }
     fn tsr_sort<F: FnMut(&T, &T) -> std::cmp::Ordering>(&mut self, compare: F) {
         self.as_mut_slice().sort_by(compare);
     }

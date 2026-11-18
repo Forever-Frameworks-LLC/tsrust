@@ -47,6 +47,20 @@ and two other callback suites failed on HEAD. Such items now stay beside their
 users (`native/crate_split.rs`, `type_parameters`). Passed: 32 generic/callback
 suites, Map/Set/collections/split suites, `ui_authoring`, crate_split units.
 
+Second round (compounding first, per owner): `TsrSetBuckets.recent` caches the
+last lookup (hit verified by key compare; miss reused only with exact scalar
+bits; reset on insert/remove/clear). `emit/receiver_moves.rs` now runs for
+throwing bodies (`callable_result_body`, `pure_callable_completion_body`),
+counts `Selected` roots instead of giving up, accepts earlier references when
+the move is the last mention (guarded by `viewed`), and moves `filter`
+sources (`array_transform`, witness
+`filter_moves_kept_rows_out_of_a_filled_dead_local_in_a_throwing_function`).
+`set_cloned` accepts field keys with a different root. Fallible sorts use
+`tsr_sort_positions` plus move-once (`tsr_try_sort_vec`) or snapshot (numeric).
+words 1.9x, sets 1.9x, orders 1.4x, process 2.68 s vs 1.94 s, RSS 368 MiB.
+Passed: 39 sort/copy/exception/collection suites, 80 array/record/generic/
+callback/ui suites, receiver_moves 8.
+
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
 `benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with
