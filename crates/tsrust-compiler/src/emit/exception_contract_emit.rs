@@ -235,6 +235,12 @@ impl RegionStack {
     #[inline(never)]
     pub(crate) fn result_call(&self,call:&str,source_name:&str,source:&crate::error_effects::FailureSet,unions:&crate::unions::UnionArena,span:crate::Span)->Result<String,crate::Diagnostic> {
         let regions=self.0.borrow();
+        // With unwinding faults a function whose only failures are faults has no
+        // region; the callee's runtime error is raised again as a fault here.
+        if regions.last().is_none_or(|region|region.transport.is_none()) && crate::error_effects::unwind_faults() && !source.opaque && source.explicit.is_empty() {
+            let raise=super::exception_emit::error_conversion("error",source_name,"",&vec![crate::error_effects::RAISE_FAULT;usize::from(source.runtime)]);
+            return Ok(format!("match {call} {{ Ok(value)=>value, Err(error)=>{raise} }}"));
+        }
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a typed completion region.",span))?;
         let (name,contract,runtime)=region.transport.as_deref().ok_or_else(||crate::Diagnostic::new("error-effect","Result call emission requires a destination error layout.",span))?;
         let pending=checked_fallible_call(call,source_name,name,source,contract,unions,*runtime,span)?;

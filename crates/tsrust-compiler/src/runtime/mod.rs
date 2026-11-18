@@ -823,3 +823,4 @@ pub(crate) const STRING_NORMALIZATION: &str = concat!(include_str!("normalizatio
 
 /// Typed completion support for exception lowering; payloads transfer by value.
 pub(crate) const EXCEPTION_COMPLETIONS: &str = include_str!("completion.rs");
+pub(crate) const FAULTS: &str = include_str!("faults.rs");

@@ -77,6 +77,18 @@ impl OperationEffects {
     }
 }
 
+/// Whether runtime faults unwind to catch points instead of travelling in each
+/// caller's Result (docs/plans/fault-unwinding.md). Off by default; selected with
+/// `TSRUST_FAULT_MODE=unwind`. The generated Rust differs, so native caches keyed
+/// by that text never mix the two modes.
+pub(crate) fn unwind_faults()->bool {
+    static MODE:std::sync::OnceLock<bool>=std::sync::OnceLock::new();
+    *MODE.get_or_init(||std::env::var("TSRUST_FAULT_MODE").as_deref()==Ok("unwind"))
+}
+/// An injection target meaning "raise this runtime error as a fault": the
+/// destination no longer carries runtime errors in its Result.
+pub(crate) const RAISE_FAULT:usize=usize::MAX;
+
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub(crate) struct FailureSet {
     pub explicit:Vec<Type>,
@@ -111,6 +123,7 @@ impl FailureSet {
         let source=self.native_payloads(unions,runtime,span)?;
         let destination=destination.native_payloads(unions,runtime,span)?;
         source.into_iter().map(|payload|destination.iter().position(|candidate|*candidate==payload)
+            .or_else(||(unwind_faults() && Some(payload)==runtime).then_some(RAISE_FAULT))
             .ok_or_else(||crate::Diagnostic::new("error-effect","Propagated error payload is absent from the destination contract.",span))).collect()
     }
     fn may_fail(&self)->bool {self.runtime || self.opaque || !self.explicit.is_empty()}

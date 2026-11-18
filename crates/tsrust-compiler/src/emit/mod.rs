@@ -116,6 +116,28 @@ pub fn emit(program: &CheckedProgram) -> String {
     emit_with_native_features(program, "").0
 }
 
+/// Faults unwind, so a function whose only failures are faults returns its value
+/// directly. Functions that are also callable values (forwarded closures, schema
+/// constraints) and async functions keep their contracts: those are shared
+/// callable signatures and boundaries (docs/plans/fault-unwinding.md, decision 3).
+fn plain_fault_contracts(program:&CheckedProgram)->crate::error_effects::ErrorEffects {
+    let mut effects=program.error_effects.clone();
+    let mut shared=program.closures.iter().filter_map(|closure|match closure.forward {Some(ClosureForward::Function(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
+    for function in program.functions.iter().chain(program.closures.iter().flat_map(|closure|std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function)))) {
+        for expression in crate::error_effects::checked_expressions(function) {
+            if let Some(CallTarget::SchemaConstraint(id))=expression.target {shared.insert(id);}
+        }
+    }
+    for (index,function) in program.functions.iter().enumerate() {
+        if function.template || shared.contains(&index) || matches!(function.result,Type::Closure(_)|Type::Callable(_)|Type::Callback(_)) {continue;}
+        let Some(contract)=effects.function_errors.get_mut(index) else {continue;};
+        contract.runtime=false;
+        let fails=contract.opaque || !contract.explicit.is_empty();
+        if let Some(summary)=effects.functions.get_mut(index) {*summary=fails;}
+    }
+    effects
+}
+
 fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> {
     let fields = program
         .records
@@ -197,6 +219,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let self_appends=self_append::Index::new(program);
     let string_characters=string_character::Index::new(program,&self_appends);
     let mut emitter = Emitter {
+        fault_effects: crate::error_effects::unwind_faults().then(|| plain_fault_contracts(program)),
         receiver_moves: RefCell::default(),
         self_appends,
         string_characters,
@@ -286,6 +309,12 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
     let declarations=if needs_exception_transport(program) {emitter.prepare_result_declarations().expect("checked source exception transports")}else{String::new()};
     let mut rust = emitter.program();
     if needs_exception_transport(program) {rust.push_str(crate::runtime::EXCEPTION_COMPLETIONS);rust.push_str(&declarations);}
+    if crate::error_effects::unwind_faults() {
+        rust.push_str(crate::runtime::FAULTS);
+        if let Some(record)=program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol) {
+            let _=writeln!(rust,"#[cold] #[inline(never)] #[allow(dead_code)] fn tsr_raise_runtime_record(record: Record{record}) -> ! {{ tsr_raise_fault_parts(record.field0, record.field1, record.field2, record.field3, record.field4, record.field5) }}");
+        }
+    }
     let features = emitter
         .native_bindings
         .borrow()
@@ -311,6 +340,9 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 enum SliceView { Owned, Slice, Range }
 
 struct Emitter<'a> {
+    /// With unwinding faults, function contracts without runtime errors for
+    /// functions only called directly (see `plain_fault_contracts`).
+    fault_effects: Option<crate::error_effects::ErrorEffects>,
     foreach_slices: foreach_slices::Index,
     constant_strings: constant_string::Index<'a>,
     /// Copying calls in the function being emitted whose dead receiver may be moved.
@@ -1392,14 +1424,24 @@ impl Emitter<'_> {
         exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,message,source,start,end)
     }
 
+    /// Function contracts as emitted: without runtime errors where faults unwind.
+    fn function_effects(&self)->&crate::error_effects::ErrorEffects {self.fault_effects.as_ref().unwrap_or(&self.program.error_effects)}
+
+    /// A fault is a value when the active region carries runtime errors (a try
+    /// region, or a contract that keeps them); otherwise, with unwinding faults,
+    /// it is raised. `None` keeps the caller's own fallback (value mode).
     #[inline(never)]
     fn runtime_failure_exit(&self, name: &str, code: &str, message: &str, span: crate::Span) -> Option<String> {
-        let (_, contract, runtime) = self.exception_regions.current_transport()?;
-        if !contract.runtime { return None; }
-        let Some(Type::Record(record)) = runtime else { return None; };
-        let failure = self.runtime_error_value(record,name,code,message,span);
-        let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")))
+        if let Some((_, contract, Some(Type::Record(record)))) = self.exception_regions.current_transport() && contract.runtime {
+            let failure = self.runtime_error_value(record,name,code,message,span);
+            let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+            return Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")));
+        }
+        crate::error_effects::unwind_faults().then(|| {
+            let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
+            let (source,start,end)=location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base));
+            format!("tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64)")
+        })
     }
 
     #[inline(never)]
@@ -2066,7 +2108,7 @@ impl Emitter<'_> {
         for (index,function) in self.program.functions.iter().enumerate() {
             if function.template {continue;}
             let span=function.body.first().map_or(crate::Span::default(),|statement|statement.span);
-            let contract=self.program.error_effects.function_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved function contracts.",span))?;
+            let contract=self.function_effects().function_errors.get(index).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved function contracts.",span))?;
             if function.name!="main" && !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
             contract.native_payloads(&unions,runtime,span)?;
             let (declaration,name)=self.completion_error_layout(&format!("TsrFunctionError{index}"),contract,runtime,span);
@@ -2487,7 +2529,7 @@ impl Emitter<'_> {
         let function=&self.program.functions[index];
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        let payloads=self.program.error_effects.function_errors[index].native_payloads(&unions,runtime,function.body.first().map_or(crate::Span::default(),|statement|statement.span)).expect("checked entry error contract");
+        let payloads=self.function_effects().function_errors[index].native_payloads(&unions,runtime,function.body.first().map_or(crate::Span::default(),|statement|statement.span)).expect("checked entry error contract");
         let matched=if payloads.is_empty(){"*error"}else{"error"};
         let mut arms=String::new();
         for (tag,ty) in payloads.into_iter().enumerate() {
@@ -2502,7 +2544,9 @@ impl Emitter<'_> {
             };
             arms.push_str(&format!("{}::V{tag}(payload)=>{{{report}}},",exception_emit::constructor_path(error_name)));
         }
-        let entry=format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup);
+        let entry=if crate::error_effects::unwind_faults() {
+            format!("{{ {} match tsr_catch_faults({symbol}) {{ Ok(result)=>tsr_entry_result(result,|error|{{match {matched}{{{arms}}}}}), Err(fault)=>tsr_fault_exit(&fault) }} }}\n",self.entry_setup)
+        } else {format!("{{ {} tsr_entry_result({symbol}(),|error|{{match {matched}{{{arms}}}}}) }}\n",self.entry_setup)};
         // GPUI requires the process's own main thread even with an async entrypoint.
         if self.ui_window() {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_entry_main() }}\n")}
         else if Self::async_entry(function) {format!("fn tsrust_entry_main()->std::process::ExitCode{entry}fn main()->std::process::ExitCode{{ tsrust_main_thread(tsrust_entry_main) }}\n")}
@@ -3210,6 +3254,9 @@ impl Emitter<'_> {
                 if plan.parameters.iter().any(Option::is_some) {format!("{symbol}_fixed{plan_id}")} else {symbol.clone()}
             } else if plan.parameters.iter().any(Option::is_some) {
                 format!("fixed_function{plan_id}")
+            } else if fun.name == "main" && crate::error_effects::unwind_faults() && !self.ui_window() {
+                // The entry catch below wraps this body (docs/plans/fault-unwinding.md).
+                "tsrust_unwind_main".to_owned()
             } else if fun.name == "main" {
                 "main".to_owned()
             } else {
@@ -3223,10 +3270,11 @@ impl Emitter<'_> {
             }
             let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let async_entry=Self::async_entry(fun);
-            let threaded=name == "main" && async_entry && !self.ui_window();
+            let entry=name == "main" || name == "tsrust_unwind_main";
+            let threaded=entry && async_entry && !self.ui_window();
             let _ = writeln!(output,"fn {}{generics}({params}) -> {native_result}{replacement_where} {{",if threaded {"tsrust_entry_main"} else {&name});
             if async_entry {output.push_str("tsrust_async_block_on(async move {\n");}
-            if name == "main" {
+            if entry {
                 output.push_str(self.entry_setup);
             }
             if let Some(body)=self.rust_function_body(index,&plan.parameters) {
@@ -3238,7 +3286,7 @@ impl Emitter<'_> {
                 // declared inside its try, and a local declared outside is last mentioned
                 // by the whole try statement, which never qualifies.
                 *self.receiver_moves.borrow_mut() = receiver_moves::eligible(fun, &self.program.closures);
-                let body=self.callable_result_body(fun,&fun.body,id,error_name,self.program.error_effects.function_errors[index].clone(),runtime);
+                let body=self.callable_result_body(fun,&fun.body,id,error_name,self.function_effects().function_errors[index].clone(),runtime);
                 self.receiver_moves.borrow_mut().clear();
                 let _=writeln!(output,"    {body}");
             } else if crate::analysis::has_exception_syntax(&fun.body) {
@@ -3254,7 +3302,9 @@ impl Emitter<'_> {
             }
             if async_entry {output.push_str("})\n");}
             output.push_str("}\n\n");
-            if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
+            if threaded && crate::error_effects::unwind_faults() {let _ = writeln!(output,"fn tsrust_unwind_entry() -> std::process::ExitCode {{ tsr_fault_entry(tsrust_entry_main) }}\nfn main() -> std::process::ExitCode {{ tsrust_main_thread(tsrust_unwind_entry) }}\n");}
+            else if threaded {let _ = writeln!(output,"fn main() -> {native_result} {{ tsrust_main_thread(tsrust_entry_main) }}\n");}
+            else if name == "tsrust_unwind_main" {let _ = writeln!(output,"fn main() -> std::process::ExitCode {{ tsr_fault_entry(tsrust_unwind_main) }}\n");}
         }
         self.active_plan.set(None);
         if let Some(index)=self.program.functions.iter().position(|function|function.name=="main") {
@@ -9518,7 +9568,7 @@ impl TsrTemplateText for bool { fn append_template(&self, output: &mut std::stri
                     let call = format!("{name}(message_plan.field0, message_limit)");
                     let call = if let Some((_, source_name)) = self.result_functions.borrow().get(&index) {
                         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-                        self.exception_regions.function_result_call(&call, index, source_name, &self.program.error_effects, &unions, expr.span)
+                        self.exception_regions.function_result_call(&call, index, source_name, self.function_effects(), &unions, expr.span)
                             .expect("checked message constraint Result call")
                     } else { call };
                     let Type::Record(id) = expr.ty.unwrap() else { unreachable!() };

@@ -253,9 +253,9 @@ site raises the same fault, and every boundary catches it.
 
 ### Phase 1: shared core behind a switch, then measure
 
-- [ ] 1.1 `FaultMode { Value, Unwind }` in the emitter and runtime selection,
+- [x] 1.1 `FaultMode { Value, Unwind }` in the emitter and runtime selection,
       default `Value`; part of the compile, precheck and runtime cache identity.
-- [ ] 1.2 Runtime support: a `TsrFault` marker payload; the runtime error
+- [x] 1.2 Runtime support: a `TsrFault` marker payload; the runtime error
       record kept in a thread-local; a `#[cold] #[inline(never)] fn
       tsr_raise_fault(site) -> !` reading a static per-program site table
       (name, code, message, file, start, end, line, column) that replaces
@@ -270,7 +270,7 @@ site raises the same fault, and every boundary catches it.
       (including its `.expect` fallback), the `panic!` fallbacks in
       `channels.rs` and `futures.rs`, non-null assertions, and capacity
       checks in runtime helpers such as `tsr_string_reserve` (decision 7).
-- [ ] 1.5 Entry boundary: `catch_unwind` around the program body (and the
+- [x] 1.5 Entry boundary: `catch_unwind` around the program body (and the
       async main thread); a `TsrFault` prints the decision-4 report after
       owners are disposed and exits 1; any other panic resumes. Explicit
       uncaught errors use the same format.
@@ -278,11 +278,61 @@ site raises the same fault, and every boundary catches it.
       program, file-relative offsets, `line`/`column` fields, messages without
       byte suffixes. Update affected expected outputs deliberately, in both
       modes.
-- [ ] 1.6 Gate: build `benchmarks/lang-compare` in both modes, compare every
+- [x] 1.6 Gate: build `benchmarks/lang-compare` in both modes, compare every
       phase, generated Rust size, binary size and rustc time (also the
       `gpui-compare` Tsrust edit loop). Record in `measurements.sqlite`.
       Continue only if hot phases improve and rustc time does not regress;
       otherwise report to the owner and stop.
+
+### Phase 1 results and gate (2026-11-18)
+
+Built behind `TSRUST_FAULT_MODE=unwind` (`error_effects::unwind_faults`).
+Native caches key on the generated Rust text, so the modes never mix (1.1).
+
+- 1.2 `runtime/faults.rs`: `TsrFault`, thread-local `TsrFaultInfo`,
+  `tsr_raise_fault`, `tsr_catch_faults` with the catch-depth safety net, the
+  chained hook, `tsr_fault_entry`/`tsr_fault_exit`.
+- 1.3 First stage: named functions that are not callable values, schema
+  constraints or async drop runtime errors from their signatures
+  (`plain_fault_contracts` in `emit/mod.rs`). Closures, callbacks and stored
+  callables keep them (stage B, item 2.13).
+- 1.4 Partly: every site through `runtime_failure_exit` raises when the active
+  region does not carry runtime errors; a callee's runtime error reaching a
+  contract without runtime errors is raised again (`RAISE_FAULT` injection and
+  regionless `result_call`). Capacity checks in runtime helpers remain.
+- 1.5 Entry catch for plain, threaded-async and Result entrypoints. UI-window
+  and no-`main` (test) programs are Phase 2 boundaries.
+- 1.5a Not started; mode-independent, moved to the start of Phase 2.
+
+Gate, release builds, median of 5 (value vs unwind), checksums equal:
+
+| Phase | Value | Unwind | Rust |
+|---|---:|---:|---:|
+| fib | 10.2 ms | 7.2 ms | 7.2 ms |
+| trees | 1726 ms | 1663 ms | 1224 ms |
+| matrix | 26.1 ms | 25.2 ms | 20.0 ms |
+| format | 165.4 ms | 159.4 ms | 136.7 ms |
+| orders | 215.4 ms | 214.6 ms | 154.8 ms |
+| others | | within 2% | |
+| whole process | 2.69 s | 2.61 s | 1.94 s |
+
+Generated Rust: CPU benchmark 305 KB to 247 KB (-19%), GPUI app -0.3%,
+Studio 21.96 MB to 21.41 MB (-2.5%). Both apps and Studio compile in unwind
+mode. GPUI app edit-loop rebuild: 1.19 s vs 1.25 s on first edits, 0.59 s vs
+0.60 s on repeated edits (no regression). Value mode unchanged: result and
+exception suites pass.
+
+Verdict: the gate is met (calls reach Rust parity, no rustc regression).
+Comparators, callbacks and recursive closures need stage B (2.13), and Studio's
+code-size gain will come mostly from there. Unwind mode currently fails 50
+tests in 9 suites (`callable_results`, `entry_error_reporting`,
+`exception_handling`, `int_operators`, `native_exception_region`,
+`number_operators`, `operators`, `recursive_callable_results`, `result_match`):
+callee faults inside `try` (2.1) and the old report text (1.5a).
+
+Found and fixed on the way: `result_match` looked for the entry call after
+`fn main()`, but since 2026-11-09 it lives in `tsrust_entry_main` (the 8 MiB
+main thread); the test had been failing since then.
 
 ### Phase 2: correct behavior in `Unwind` mode
 
@@ -328,6 +378,11 @@ site raises the same fault, and every boundary catches it.
 - [ ] 2.11 Language server: error-effect features (catch typing, hover,
       diagnostics about what a call can throw) agree with the mode.
 - [ ] 2.12 `tsrust build --debug` keeps a native backtrace for faults.
+- [ ] 2.13 Stage B of 1.3: closures, callback families, methods and stored
+      callables drop runtime errors from their signatures, except at
+      boundaries (decision 3), which keep them.
+- [ ] 2.14 Finish 1.4: capacity checks in runtime helpers raise faults
+      (decision 7).
 
 ### Phase 3: `Checked<T>` and `Checked<T, E>`
 

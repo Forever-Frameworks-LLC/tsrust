@@ -697,7 +697,7 @@ impl<'p> Emitter<'p> {
                             &call,
                             index,
                             &source_name,
-                            &self.program.error_effects,
+                            self.function_effects(),
                             &unions,
                             expr.span,
                         )
@@ -739,7 +739,7 @@ impl<'p> Emitter<'p> {
                             &text,
                             function,
                             &source_name,
-                            &self.program.error_effects,
+                            self.function_effects(),
                             &unions,
                             callee.span,
                         )

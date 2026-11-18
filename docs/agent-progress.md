@@ -79,6 +79,12 @@ Before Phase 1 the owner asked to resolve deferred decisions and trace flows
 end to end: the plan now has an end-to-end table of today's behavior (four
 existing defects), twelve resolved decisions and the full `Checked<T, E>`
 specification; `unwrap`/`throw` stay values by decision.
+Phase 1 built behind `TSRUST_FAULT_MODE=unwind` (`runtime/faults.rs`,
+`plain_fault_contracts`, `RAISE_FAULT` injection, entry catch). Gate met:
+fib 10.2 ms to 7.2 ms (Rust parity), generated Rust -19% on lang-compare,
+no edit-loop regression; results in the plan. Value mode unchanged. Next:
+1.5a report format, then Phase 2 (per-call catches in try, boundaries,
+stage B closures).
 
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 

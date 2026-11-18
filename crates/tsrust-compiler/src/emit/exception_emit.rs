@@ -21,7 +21,10 @@ pub(crate) fn constructor_path(name:&str)->String {
 /// The checked contract supplies a total map; matching consumes each payload once.
 pub(crate) fn error_conversion(value:&str,source:&str,destination:&str,mapping:&[usize])->String {
     let source=constructor_path(source);let destination=constructor_path(destination);
-    let arms=mapping.iter().enumerate().map(|(index,target)|format!("{source}::V{index}(payload)=>{destination}::V{target}(payload)")).collect::<Vec<_>>().join(",");
+    let arms=mapping.iter().enumerate().map(|(index,target)|// usize::MAX is `error_effects::RAISE_FAULT`; tests include this file alone.
+        if *target==usize::MAX {
+        format!("{source}::V{index}(payload)=>tsr_raise_runtime_record(payload)")
+    } else {format!("{source}::V{index}(payload)=>{destination}::V{target}(payload)")}).collect::<Vec<_>>().join(",");
     format!("match {value} {{ {arms} }}")
 }
 
