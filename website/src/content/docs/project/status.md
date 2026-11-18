@@ -61,9 +61,9 @@ complete upstream parity and browser support are not claimed. The renderer is
 experimental, and platform-specific application acceptance remains separate from
 prebuilt compiler/LSP availability.
 
-The [UI reference](/tsrust/reference/library/ui/) lists the current editor catalog.
-The [source guides](https://github.com/Forever-Frameworks-LLC/tsrust/tree/main/docs/guides/ui)
-cover the supported authoring and native styling contracts. Studio and Worklist
+The [Desktop UI guides](/tsrust/ui/getting-started/) cover authoring, state,
+styling, navigation, input and packaging; the [UI reference](/tsrust/reference/library/ui/)
+lists every component, prop and function. Studio and Worklist
 are local platform-validation experiments, not supported applications delivered
 with the toolchain.
 

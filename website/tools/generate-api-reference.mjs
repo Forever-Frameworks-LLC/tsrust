@@ -92,7 +92,7 @@ const modules = [
 // and namespaces. Each group is [catalog group, heading prefix, names?]; the
 // optional names select part of a catalog group, and prefixes keep anchors unique.
 const FUNCTIONS = ['clone', 'Ok', 'Err', 'unwrap', 'Number', 'String', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite'];
-const TYPES = ['Result', 'Task', 'Function', 'ReadOnly', 'Mutable', 'Owned', 'Once'];
+const TYPES = ['Result', 'Checked', 'RuntimeError', 'Task', 'Function', 'ReadOnly', 'Mutable', 'Owned', 'Once'];
 const VALUES = ['null', 'undefined', 'NaN', 'Infinity', 'typeof', 'void'];
 const builtins = [
   { dir: 'builtins', slug: 'strings', title: 'Strings', summary: 'String methods and properties, and static String helpers.', groups: { 'string methods': ['string', 'string'], 'Static String helpers': ['StringConstructor', 'String'] } },
@@ -100,7 +100,7 @@ const builtins = [
   { dir: 'builtins', slug: 'numbers', title: 'Numbers, ints and booleans', summary: 'Methods on number, int and boolean values.', groups: { 'number methods': ['number', 'number'], 'int methods': ['int', 'int'], 'boolean methods': ['boolean', 'boolean'] } },
   { dir: 'builtins', slug: 'map-and-set', title: 'Map and Set', summary: 'Built-in hash maps and sets.', groups: { 'Map constructor': ['globals', 'Map', ['Map']], Map: ['Map', 'map'], 'Static Map helpers': ['MapConstructor', 'Map'], 'Set constructor': ['globals', 'Set', ['Set']], Set: ['Set', 'set'] } },
   { dir: 'globals', slug: 'functions', title: 'Global functions', summary: 'clone, Result constructors, unwrap, conversions and number parsing.', groups: { Functions: ['globals', '', FUNCTIONS] } },
-  { dir: 'globals', slug: 'types', title: 'Global types', summary: 'Result, Task, Function and the ownership wrappers ReadOnly, Mutable, Owned and Once.', groups: { Types: ['globals', '', TYPES] } },
+  { dir: 'globals', slug: 'types', title: 'Global types', summary: 'Result, Checked and RuntimeError, Task, Function and the ownership wrappers ReadOnly, Mutable, Owned and Once.', groups: { Types: ['globals', '', TYPES] } },
   { dir: 'globals', slug: 'values-and-operators', title: 'Values and operators', summary: 'null, undefined, NaN, Infinity, typeof and void.', groups: { 'Values and operators': ['globals', '', VALUES] } },
   { dir: 'globals', slug: 'console', title: 'console', summary: 'Write to standard output and standard error, count, time and group output.', groups: { console: ['console', 'console'] } },
   { dir: 'globals', slug: 'json', title: 'JSON', summary: 'Parse and serialize JSON text, with optional checked typed decoding.', groups: { JSON: ['JSON', 'JSON'] } },

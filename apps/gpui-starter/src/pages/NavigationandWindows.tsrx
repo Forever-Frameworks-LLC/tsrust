@@ -19,6 +19,7 @@ import {
   routeParam,
   signal
 } from 'std:ui';
+
 import { ExampleTabs, ExamplePreview, ExampleCode } from '../example.tsrx';
 
 function Feedback(): Node {
@@ -145,7 +146,7 @@ function IndependentWindows(): Node {
   return <Button onPress={() => { openWindow(WindowCounter(), 'Independent counter', { width: 480, height: 560, minHeight: 480 }); }}>Open an independent counter</Button>;
 }`}</ExampleCode>
       </ExampleTabs>
-      <Markdown content={"Open two counters: each starts at zero and `/counter/first`. Incrementing or\nnavigating one leaves the other unchanged. Closing one keeps the other and this\ngallery open.\n\n## Shared window state\n\nPass a signal explicitly to share it. Writes redraw every live window reading\nthat signal. The component that created it remains its owner; closing a window\nthat only received the signal leaves the owner alive."} />
+      <Markdown content={"Open two counters: each starts at zero and `/counter/first`. Incrementing or\nnavigating one leaves the other unchanged. Closing one keeps the other and the\nmain window open.\n\n## Shared window state\n\nPass a signal explicitly to share it. Writes redraw every live window reading\nthat signal. The component that created it remains its owner; closing a window\nthat only received the signal leaves the owner alive."} />
       <ExampleTabs>
         <ExamplePreview>
           <SharedWindows />
@@ -172,7 +173,7 @@ function SharedWindows(): Node {
   );
 }`}</ExampleCode>
       </ExampleTabs>
-      <Markdown content={"## Keyboard links\n\nUnstyled links use the same native focus and keyboard behavior as buttons. Tab to\nOpen local docs and press Enter; the path below changes without leaving this page.\nThis example owns its location so it does not change the gallery's navigation."} />
+      <Markdown content={"## Keyboard links\n\nUnstyled links use the same native focus and keyboard behavior as buttons. Tab to\nOpen local docs and press Enter; the path below changes without leaving the page.\nThe example owns its location, so it does not change the main window's navigation."} />
       <ExampleTabs>
         <ExamplePreview>
           <KeyboardLinks />

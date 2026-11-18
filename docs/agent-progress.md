@@ -48,10 +48,23 @@ identical at 5baf487fe) were fixed on 2026-11-18:
   replacements match multi-line imports, split-crate compile counts and
   rustc flags, the 8 MiB entry thread, header reuse, and a default
   `CARGO_TARGET_DIR` via `support::target_dir()`.
-Still open: `acceptance::closed_standard_output_does_not_panic` failed once
-under load with a broken-pipe panic (passes 8/8 alone; SIGPIPE is restored),
-and the `async_channel_*` runtime workloads fail on the Node side (Node
-cannot run the `.ts` comparison).
+Follow-up, same day: a print to a closed pipe now ends the CLI quietly with
+status 141 even if the pipe signal disposition changed (`cli/main.rs`); the
+runtime harness runs `node-ts` with `--experimental-transform-types`, so
+enum and parameter-property counterparts run (the `async_channel_*` and enum
+workloads verify and were measured for the first time); the strings runtime is
+included when a native binding takes or returns a string (decimal `format`
+failed to compile in programs with no other string use).
+
+UI documentation: component hovers are generated short (purpose, example, prop
+and event names; `tools/generate-ui-kit.py`), `…Props` interfaces keep the full
+prop reference, and the 48 wordiest hand-written std:ui entries were rewritten
+(mean 128 to 53 words for components, 89 to about 60 for the rest). A generic
+hover summary for long non-UI entries was tried and removed: about 40 LSP tests
+pin ownership and error details that must stay in hover, so condensing those
+needs per-entry editing. The site gained a Desktop UI section generated from
+`docs/guides/ui` (`website/tools/generate-ui-guides.mjs`), and its errors page
+documents the uncaught report, `RuntimeError` fields and `Checked`.
 
 ## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
 

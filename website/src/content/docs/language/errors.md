@@ -1,6 +1,6 @@
 ---
 title: "Errors and matching"
-description: "throw, try, catch and finally; run-time failures; Result values and match expressions with Result, literal and record patterns."
+description: "throw, try, catch and finally; run-time failures and Checked functions; Result values and match expressions with Result, literal and record patterns."
 ---
 
 Tsrust has two ways to report failure. `throw` raises an error that unwinds to the
@@ -86,9 +86,11 @@ contract, is a compile-time diagnostic rather than a hidden failure path.
 
 ## Run-time failures
 
-Checked arithmetic, array bounds and failed non-null assertions throw structured
-errors with `name`, `code`, `message`, `source`, `start` and `end` fields. `start`
-and `end` are byte offsets of the failing expression in `source`.
+Checked arithmetic, array bounds, failed non-null assertions and length limits
+(such as a string too long to allocate) throw a `RuntimeError` with `name`, `code`,
+`message`, `source`, `start`, `end`, `line` and `column` fields. `source` is the
+file, `start` and `end` are byte offsets of the failing expression in it, and
+`line` and `column` are its 1-based position.
 
 ```tsrust
 function divide(a: int, b: int): int {
@@ -113,11 +115,49 @@ function main() {
 // prints: RangeError bounds
 ```
 
-An uncaught error runs the applicable `finally` blocks, prints the error and exits
-with a failure status. Allocation failure, process termination, defects in native
+An uncaught error runs the applicable `finally` blocks, prints one report and exits
+with status 1:
+
+```text
+Uncaught RangeError: integer division by zero or overflow at source bytes 50..51
+    at /home/ada/app/main.tsr:2:12
+```
+
+With `RUST_BACKTRACE=1` the report adds a native backtrace. These failures cost
+nothing until they happen: they unwind to the nearest `catch` instead of being
+checked after every call. A failure in a thread, task, HTTP handler or test is
+reported by that boundary, as a failed thread result, an HTTP 500 or a failed test. Allocation failure, process termination, defects in native
 code and failures of native bindings without an audited error contract are not
 converted into catchable errors. Splitting a string inside a UTF-8 character also
 stops the program; see [strings](../strings/).
+
+## Checked functions
+
+Declare a function's result as `Checked<T>` to turn every run-time failure inside
+it, including failures in functions it calls, into an error value. The body is
+written as usual; callers receive `Result<T, RuntimeError>`.
+
+```tsrust
+function scale(value: int): Checked<int> {
+  return value * 4611686018427387904;
+}
+
+function main() {
+  match (scale(2)) {
+    Ok(value) => console.log(value),
+    Err(error) => console.log(error.name, error.code, error.line),
+  }
+}
+// prints: RangeError overflow 2
+```
+
+`Checked<T, E>` also lists the errors the body may `throw` or pass on with
+`unwrap`; the caller receives `Result<T, RuntimeError | E>`. Throwing an error that
+is not listed is a compile-time error. An async function declares
+`Task<Checked<T, E>>`. `Checked` is allowed only as a function's declared result,
+not on `main`, parameters or variables. Use it where a failure should be handled,
+such as a request handler or input parsing; elsewhere, failures end the program
+with a report.
 
 ## Result values
 

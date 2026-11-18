@@ -763,11 +763,30 @@ fn restore_pipe_signal() {
 #[cfg(not(unix))]
 fn restore_pipe_signal() {}
 
+/// A print to a closed pipe (`println!` panics with "failed printing to
+/// stdout: Broken pipe"). With the default signal disposition the process ends
+/// first; this covers a disposition changed after start.
+fn broken_pipe(payload: &(dyn std::any::Any + Send)) -> bool {
+    let text = payload.downcast_ref::<String>().map(String::as_str).or_else(|| payload.downcast_ref::<&str>().copied());
+    text.is_some_and(|text| text.starts_with("failed printing to std") && text.contains("Broken pipe"))
+}
+
 fn main() -> ExitCode {
     restore_pipe_signal();
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if !broken_pipe(info.payload()) {
+            previous(info);
+        }
+    }));
     let worker = std::thread::Builder::new().name("tsrust".into()).stack_size(tsrust_compiler::COMPILER_STACK_BYTES).spawn(run);
     let result = match worker {
-        Ok(worker) => worker.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)),
+        Ok(worker) => match worker.join() {
+            Ok(result) => result,
+            // Ends quietly with the status a SIGPIPE termination reports.
+            Err(panic) if broken_pipe(&*panic) => return ExitCode::from(141),
+            Err(panic) => std::panic::resume_unwind(panic),
+        },
         Err(_) => run(),
     };
     match result {

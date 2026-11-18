@@ -10,6 +10,7 @@ import {
   View,
   signal
 } from 'std:ui';
+
 import { ExampleTabs, ExamplePreview, ExampleCode } from '../example.tsrx';
 
 function Swatches(): Node {
@@ -87,7 +88,7 @@ export function StylingandThemesPage(): Node {
   );
 }`}</ExampleCode>
       </ExampleTabs>
-      <Markdown content={"## Light, dark and custom themes\n\n`setTheme('dark')` switches GPUI Kit's dark theme for every window, and\n`'system'` follows the OS. Register a theme set in GPUI Kit's JSON format and\napply one by name:\n\n```tsx\nimport gruvbox from './themes/gruvbox.json';\n\nfunction main() {\n  registerThemes(gruvbox);\n  useTheme('Gruvbox Light Medium');\n  unwrap(run(<App />, 'App'));\n}\n```\n\nThis gallery uses that set; the title bar switch calls\n`useTheme('Gruvbox Dark Medium')`.\n\n\n## Exact and reactive values\n\nNumeric spacing includes decimal steps (`p-13`, `gap-2.5`); theme spacing sets the\nunit. Use exact values for dimensions and spacing (`w-[350px]`, `p-[13px]`,\n`gap-[0.5rem]`), percentage dimensions (`w-[37%]`) or fractions (`w-2/5`). Values\nmust be finite and nonnegative; negative margins and offsets use a leading minus.\n\nA class expression that reads a signal updates after a handler changes the signal:"} />
+      <Markdown content={"## Light, dark and custom themes\n\n`setTheme('dark')` switches GPUI Kit's dark theme for every window, and\n`'system'` follows the OS. Register a theme set in GPUI Kit's JSON format and\napply one by name:\n\n```tsx\nimport gruvbox from './themes/gruvbox.json';\n\nfunction main() {\n  registerThemes(gruvbox);\n  useTheme('Gruvbox Light Medium');\n  unwrap(run(<App />, 'App'));\n}\n```\n\nThe GPUI starter app (`apps/gpui-starter`) uses that set; its title-bar switch\ncalls `useTheme('Gruvbox Dark Medium')`.\n\n\n## Exact and reactive values\n\nNumeric spacing includes decimal steps (`p-13`, `gap-2.5`); theme spacing sets the\nunit. Use exact values for dimensions and spacing (`w-[350px]`, `p-[13px]`,\n`gap-[0.5rem]`), percentage dimensions (`w-[37%]`) or fractions (`w-2/5`). Values\nmust be finite and nonnegative; negative margins and offsets use a leading minus.\n\nA class expression that reads a signal updates after a handler changes the signal:"} />
       <ExampleTabs>
         <ExamplePreview>
           <DynamicStyles />

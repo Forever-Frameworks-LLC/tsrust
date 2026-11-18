@@ -7,6 +7,7 @@ import {
   View,
   signal
 } from 'std:ui';
+
 import { ExampleTabs, ExamplePreview, ExampleCode } from '../example.tsrx';
 
 function Counter(): Node {
@@ -23,7 +24,7 @@ export function GettingStartedPage(): Node {
   return (
     <View className="flex-col gap-6">
       <Markdown content={"# Getting Started"} />
-      <Markdown content={"Tsrust compiles `.tsrx` files, TypeScript with TSRX component markup, into a native desktop\napplication. The window is drawn by GPUI and the components come from GPUI\nKit, so a button, a table or a date picker is a real Rust widget, not a web\nview. You write components like React or Solid; the compiler checks\nownership and emits Rust.\n\n## Create an app\n\n```bash\ntsrust new my-app --ui\ncd my-app\ntsrust dev\n```\n\n`tsrust dev` builds the app, opens its window and rebuilds when you save a\nfile. The project holds `src/main.tsrx`, `src/locales/*.json` for\ntranslations, `icon.png` and `tsrust.config.json`.\n\n## Your first component\n\nA component is a function that returns a `Node`. Import components from\n`std:ui`, keep state in signals and pass handlers as props."} />
+      <Markdown content={"Tsrust compiles `.tsrx` files, TypeScript with TSRX component markup, into a native desktop\napplication. The window is drawn by GPUI and the components come from GPUI\nKit, so a button, a table or a date picker is a real Rust widget, not a web\nview. You write components like React or Solid; the compiler checks\nownership and emits Rust.\n\n## Create an app\n\n```bash\ntsrust new my-app --ui\ncd my-app\ntsrust dev\n```\n\n`tsrust dev` builds the app, opens its window and rebuilds when you save a\nfile. Successful rebuilds retain the running window when application inputs and\nmacOS app metadata are unchanged, so editing an unrelated test does not reset\nthe UI. Changed application inputs restart the window. The project holds `src/main.tsrx`, `src/locales/*.json` for\ntranslations, `icon.png` and `tsrust.config.json`.\n\n## Your first component\n\nA component is a function that returns a `Node`. Import components from\n`std:ui`, keep state in signals and pass handlers as props."} />
       <ExampleTabs>
         <ExamplePreview>
           <Counter />
@@ -38,7 +39,7 @@ export function GettingStartedPage(): Node {
   );
 }`}</ExampleCode>
       </ExampleTabs>
-      <Markdown content={"`main` opens the window with the root component:\n\n```tsx\nfunction main() {\n  unwrap(run(<Counter />, 'Counter', { width: 480, height: 320 }));\n}\n```\n\n## Add a component to your project\n\nEvery component is available from `std:ui`. To change one, copy its wrapper\ninto your project and import it from there:\n\n```bash\ntsrust ui add Button\n```\n\n`tsrust ui list` shows every component, and `tsrust ui add --all` copies them\nall.\n\n## Package the app\n\n```bash\ntsrust package src/main.tsrx --name \"My App\" --version 1.0.0 --icon icon.png\n```\n\nThis writes a `.app` bundle with a zip and DMG on macOS. See Packaging for\nsigning, releases and self-update."} />
+      <Markdown content={"`main` opens the window with the root component:\n\n```tsx\nfunction main() {\n  unwrap(run(<Counter />, 'Counter', { width: 480, height: 320 }));\n}\n```\n\n## Add a component to your project\n\nEvery component is available from `std:ui`. To change one, copy its wrapper\ninto your project and import it from there:\n\n```bash\ntsrust ui add Button\n```\n\n`tsrust ui list` shows every component, and `tsrust ui add --all` copies them\nall.\n\n## Package the app\n\n```bash\ntsrust package src/main.tsrx --name \"My App\" --version 1.0.0 --icon icon.png\n```\n\nThis writes a `.app` bundle with a zip and DMG on macOS. The packaging guide covers\nsigning, releases and self-update."} />
     </View>
   );
 }

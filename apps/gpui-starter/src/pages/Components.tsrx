@@ -19,6 +19,7 @@ import {
   Text,
   View
 } from 'std:ui';
+
 import { ExampleTabs, ExamplePreview, ExampleCode } from '../example.tsrx';
 
 function LabelledFields(): Node {
@@ -147,7 +148,7 @@ function CardExample(): Node {
   return <Card title="Storage"><Progress value={64} /><Text variant="muted">64 GB of 100 GB used</Text></Card>;
 }`}</ExampleCode>
       </ExampleTabs>
-      <Markdown content={"## Icons\n\n`icon` props and `<Icon name=\"...\" />` take any of the 1,830 Lucide icon names\nGPUI Kit ships, such as `search`, `settings` or `file-text`. The gallery's\nIcon page lists them."} />
+      <Markdown content={"## Icons\n\n`icon` props and `<Icon name=\"...\" />` take any of the 1,830 Lucide icon names\nGPUI Kit ships, such as `search`, `settings` or `file-text`. The Icon page of the\nGPUI starter app (`apps/gpui-starter`) lists them.\n\n## Native terminal\n\n`Terminal` opens a real PTY shell on its first visible native mount. Its `directory`\nis read at mount; omit it to use the application's current directory. `fontSize`\naccepts 8–40 logical pixels and resizes the shell's grid using measured monospace\nfont metrics. Give each session a unique `id` within the window.\n\n```tsrx\n<Terminal id=\"shell\" directory=\"/tmp\" fontSize={14} className=\"size-full\" />\n```\n\nUse `readTerminal` for a copied snapshot of the visible grid, selection, dimensions,\nexit status and session generation. `controlTerminal` addresses that same session:\n`focus`, `write`, `paste`, `interrupt`, `copy`, `scroll`, `select`, `close` or `restart`.\nBoth APIs reply through a callback on the next frame. A successful action reply\nmeans delivery, not completion of a shell command. Supply `expectedGeneration`\nfrom a snapshot to reject actions aimed at a replaced session. `select` takes\nan inclusive zero-based viewport range in `selection`:\n`[startRow, startColumn, endRow, endColumn]`.\n\nHiding the component preserves its shell and scrollback. `interrupt` sends Ctrl+C;\n`close` force-terminates the foreground job and shell. `restart` is accepted only\nafter the shell has exited and starts a fresh grid with a new generation. Unmounting\ncloses the owned session; application quit waits for its cleanup. Agent hosts must\nenforce grants and isolation before sending input or terminating a session.\n\nANSI colors, local selection/copy, bracketed paste and committed Unicode input are\nnative capabilities. Clipboard escape sequences cannot access the system clipboard.\nDynamic OSC palette overrides are drawn, but their query replies currently use the\ntheme defaults. The HTML renderer displays an explicit unsupported message and\nnever starts a shell. Windows lifecycle and full IME interaction remain unverified."} />
     </View>
   );
 }

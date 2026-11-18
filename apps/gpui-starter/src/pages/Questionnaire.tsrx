@@ -6,10 +6,12 @@ import {
   QuestionInput,
   Questionnaire,
   Switch,
+  Terminal,
   Text,
   View,
   signal
 } from 'std:ui';
+
 import {
   Example,
   ExampleTitle,

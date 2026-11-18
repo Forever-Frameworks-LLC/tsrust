@@ -3562,7 +3562,15 @@ impl Emitter<'_> {
             output.push_str(include_str!("../runtime/values.rs"));
         }
         // Support is emitted once per program, only when its representation is used.
-        if output.contains("String")
+        // Native binding bridges are written later; one taking or returning a
+        // string (such as decimal `format`) needs the string type too.
+        let native_strings = self.native_bindings.borrow().iter().any(|&id| {
+            let binding = &crate::native_bindings::BINDINGS[id];
+            matches!(binding.result, crate::native_bindings::NativeType::String)
+                || binding.parameters.iter().any(|parameter| matches!(parameter.ty, crate::native_bindings::NativeType::String))
+        });
+        if native_strings
+            || output.contains("String")
             || output.contains("tsr_int_text(")
             || output.contains("tsr_boolean_string(")
             || output.contains("tsr_int_locale_string(")

@@ -41,8 +41,8 @@ function main() {
 }
 ```
 
-This gallery uses that set; the title bar switch calls
-`useTheme('Gruvbox Dark Medium')`.
+The GPUI starter app (`apps/gpui-starter`) uses that set; its title-bar switch
+calls `useTheme('Gruvbox Dark Medium')`.
 
 
 ## Exact and reactive values
