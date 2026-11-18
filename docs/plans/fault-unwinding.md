@@ -407,8 +407,9 @@ main thread); the test had been failing since then.
 - [x] 2.14 Finish 1.4: capacity checks in runtime helpers raise faults
       (decision 7).
       `RangeError` with code `capacity`. Emitted limits carry their
-      file-relative location (`capacity_failure`); runtime helpers'
-      `.expect(failure)` become `.tsr_capacity(failure)` in unwind mode.
+      file-relative location after U+001F (`capacity_failure`); runtime
+      helpers keep their checks unchanged (so the runtime crate stays shared),
+      and catch points and the hook read a panic with that text as the fault.
       Limitation: like other faults, a limit hit directly in a `try` body
       (not inside a call it makes) is a value-mode site only when the emitter
       gives it a transport; capacity sites have none, so it is reported as

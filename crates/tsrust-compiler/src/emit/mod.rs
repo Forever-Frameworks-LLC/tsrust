@@ -9,26 +9,6 @@ mod scalar_reduce_slices;
 mod foreach_slices;
 mod runtime_support_ids;
 
-/// With unwinding faults, length and allocation limits raise `RangeError`
-/// faults (decision 7). Runtime helpers name their limit `failure`; emitted
-/// checks carry a located literal (`capacity_failure`). A string literal never
-/// holds an unescaped quote, so `.expect("` only matches generated code.
-fn capacity_faults(output:&mut String,runtime_start:usize) {
-    let runtime=output.split_off(runtime_start).replace(".expect(failure)",".tsr_capacity(failure)");
-    let mut rewritten=String::with_capacity(output.len()+runtime.len());
-    let mut rest=output.as_str();
-    while let Some(at)=rest.find(".expect(\"") {
-        let literal=&rest[at+9..];
-        let end=literal.find("\")").map_or(0,|end|end);
-        rewritten.push_str(&rest[..at]);
-        rewritten.push_str(if literal[..end].contains("\\u{1f}") {".tsr_capacity(\""} else {".expect(\""});
-        rest=literal;
-    }
-    rewritten.push_str(rest);
-    rewritten.push_str(&runtime);
-    *output=rewritten;
-}
-
 #[cfg(test)]
 mod statement_work_tests;
 use declaration_scope::Declarations;
@@ -1401,7 +1381,7 @@ impl Emitter<'_> {
         let Some((name,contract,runtime))=transport.filter(|(_,contract,_)|contract.runtime) else {
             if !crate::error_effects::unwind_faults() || closure.is_some() {return None;}
             let (source,start,end,line,column)=self.fault_location(span);
-            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end,line,column)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64),|site|(site.source,site.start as i64,site.end as i64,site.line as i64,site.column as i64));tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end,line,column)}}}}",arguments[0],arguments[1]));
+            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end,line,column)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64,{line}_i64,{column}_i64),|site|(site.source,site.start as i64,site.end as i64,site.line as i64,site.column as i64));if !tsr_fault_catching(){{tsrust_testing_check_assertion(false,&assertion_message);}}tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end,line,column)}}}}",arguments[0],arguments[1]));
         };
         let Some(Type::Record(record))=runtime else{return None;};
         let error=self.runtime_error_value(record,"AssertionError","assertion","",span);
@@ -1433,9 +1413,13 @@ impl Emitter<'_> {
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
             Some((name,self.function_effects().closure_errors[id].clone(),runtime))
         }else{self.exception_regions.current_transport()};
-        // Without a region, a runner failure is raised as a fault (docs/plans/fault-unwinding.md).
+        // Without a region, a runner or `path.relative` failure is raised as a
+        // fault (docs/plans/fault-unwinding.md, decision 8). The finished run's
+        // status (failed tests) is not a fault: it keeps the native path, which
+        // ends with exit status 1 and no report.
+        let status=call.starts_with("tsrust_testing_finish_tests_result(");
         let Some((name,contract,runtime))=transport else {
-            if !crate::error_effects::unwind_faults() {return None;}
+            if !crate::error_effects::unwind_faults() || status {return None;}
             let (source,start,end,line,column)=self.fault_location(span);
             return Some(format!("match {call}{{Ok(value)=>value,Err(message)=>tsr_raise_fault_parts(std::borrow::Cow::Borrowed({error_name:?}),std::borrow::Cow::Borrowed({error_code:?}),std::borrow::Cow::Owned(message),std::borrow::Cow::Borrowed({source:?}),{start}_i64,{end}_i64,{line}_i64,{column}_i64)}}"));
         };
@@ -1592,8 +1576,9 @@ impl Emitter<'_> {
     }
 
     /// Failure text for a length or allocation limit at `span`. With unwinding
-    /// faults it also carries the file-relative location, separated by U+001F,
-    /// for `tsr_capacity` to raise as a `RangeError` (decision 7).
+    /// faults it also carries the file-relative location, separated by U+001F;
+    /// catch points read a panic with that text as a `RangeError` fault
+    /// (`tsr_capacity_fault`, decision 7).
     fn capacity_failure(&self,what:&str,span:crate::Span)->String {
         if !crate::error_effects::unwind_faults() {return format!("{what} at source bytes {}..{}",span.start,span.end);}
         let (source,start,end,line,column)=self.fault_location(span);
@@ -3490,7 +3475,6 @@ impl Emitter<'_> {
             // stack as async entrypoints: Windows gives the main thread 1 MiB.
             let _ = writeln!(output, "fn main() {{ {hook}std::thread::Builder::new().name(\"main\".into()).stack_size(8 << 20).spawn(|| {{ {} }}).expect(\"create the program's main thread\").join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)) }}", self.entry_setup);
         }
-        let runtime_start=output.len();
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") || output.contains("tsr_console_union_") {
@@ -3647,7 +3631,13 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
-            output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
+            let runner=include_str!("../stdlib/testing/runtime/mod.rs");
+            // Test bodies are a fault boundary: a fault fails the test with its report text.
+            if crate::error_effects::unwind_faults() {
+                const CATCH:&str="let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(program, registry)));";
+                debug_assert!(runner.contains(CATCH));
+                output.push_str(&runner.replace(CATCH,"let result = tsr_catch_faults_as_panics(|| callback(program, registry));"));
+            } else { output.push_str(runner); }
             output.push_str(include_str!("../stdlib/testing/runtime/report.rs"));
             if asynchronous_runtime { output.push_str(include_str!("../stdlib/testing/runtime/async.rs")); }
             else { output.push_str("fn tsrust_testing_run_in_scope<R>(body:impl FnOnce()->R)->R {body()}\n"); }
@@ -3919,7 +3909,6 @@ impl Emitter<'_> {
                 output.push_str(crate::runtime::SEARCH_OWNED);
             }
         }
-        if crate::error_effects::unwind_faults() {capacity_faults(&mut output,runtime_start);}
         output
     }
 

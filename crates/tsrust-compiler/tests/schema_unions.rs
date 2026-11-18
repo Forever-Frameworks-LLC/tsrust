@@ -98,7 +98,7 @@ fn literal_record_tags_select_variants_without_text_comparison() {
     function main(){const value=choose(2);if(value.kind==='b'){console.log(1);}if('a'!==value.kind){console.log(2);}if(value.kind==='z'){console.log(3);}if(loose(false).kind==='x'){console.log(4);}}
     "#;
     let rust=tsrust_compiler::check(source).unwrap_or_else(|error|panic!("{error:?}")).emit_rust();
-    let main=rust.split("fn main() -> ()").nth(1).expect("main function");
+    let main=rust.split(if rust.contains("fn tsrust_unwind_main()") {"fn tsrust_unwind_main() -> ()"} else {"fn main() -> ()"}).nth(1).expect("main function");
     assert_eq!(main.matches("::V1(_) => true, ").count(),1,"{main}");
     assert!(main.contains("::V2(_) => true, ")&&main.contains("::V0(_) => true, "),"{main}");
     assert!(main.contains("{ #[allow(unreachable_patterns)] _ => false }"),"absent literal selects no variant: {main}");

@@ -361,3 +361,17 @@ pub fn exported_main(source: &str) -> String {
     module.insert_str(tokens[index].0.start, "export ");
     module
 }
+
+/// Rename the program body to `name` for a Rust harness that calls it and
+/// catches its panics. With unwinding faults, `main` is a wrapper that reports
+/// and exits, so the harness calls the body it wraps instead.
+#[allow(dead_code)]
+pub fn harness_entry(rust: &str, name: &str) -> String {
+    if rust.contains("fn tsrust_unwind_main()") {
+        rust.replace("fn main() -> std::process::ExitCode", "fn tsrust_unused_entry() -> std::process::ExitCode")
+            .replace("fn tsrust_unwind_main()", &format!("fn {name}()"))
+            .replace("tsr_fault_entry(tsrust_unwind_main)", &format!("tsr_fault_entry({name})"))
+    } else {
+        rust.replace("fn main()", &format!("fn {name}()"))
+    }
+}
