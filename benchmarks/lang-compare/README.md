@@ -37,21 +37,27 @@ python3 measure.py rust/target/release/lang-compare tsrust/target/lang-compare 5
 only `--release` is comparable with `cargo build --release`. At opt-level 0 the
 phases ran 4 to 28 times slower than Rust.
 
-## Results (2026-11-17, MacBook Air M3, 8 GB, median of 5)
+## Results (2026-11-18, MacBook Air M3, 8 GB, median of 5)
+
+Runtime faults unwind by default (since 2026-11-18); these figures include it.
 
 | Phase | Rust ms | Tsrust ms | Ratio |
 |---|---:|---:|---:|
-| sieve | 43.7 | 79.1 | 1.81 |
-| nbody | 34.0 | 43.3 | 1.27 |
-| matrix | 20.0 | 26.0 | 1.30 |
-| fib | 7.2 | 10.2 | 1.42 |
-| text | 113.0 | 58.8 | 0.52 |
-| words | 62.5 | 248.4 | 3.97 |
-| format | 136.1 | 162.9 | 1.20 |
-| orders | 153.7 | 282.4 | 1.84 |
-| trees | 1223.0 | 1687.5 | 1.38 |
-| sets | 125.8 | 332.6 | 2.64 |
-| whole process | 1.93 s | 2.94 s | 1.52 |
+| sieve | 45.6 | 80.3 | 1.76 |
+| nbody | 34.0 | 43.0 | 1.26 |
+| matrix | 20.3 | 25.4 | 1.25 |
+| fib | 7.1 | 7.1 | 1.00 |
+| text | 114.2 | 58.6 | 0.51 |
+| words | 62.7 | 116.1 | 1.85 |
+| format | 136.8 | 159.9 | 1.17 |
+| orders | 156.7 | 200.1 | 1.28 |
+| trees | 1231.8 | 1671.9 | 1.36 |
+| sets | 131.7 | 247.2 | 1.88 |
+| whole process | 1.94 s | 2.67 s | 1.38 |
+
+The first measurement (2026-11-17) had words 3.97, sets 2.64, orders 1.84 and
+the whole process 1.52; the changes since are described below. History is in
+`benchmarks/measurements.sqlite` under `lang-compare/*`.
 
 Peak memory: Rust 256 MiB, Tsrust 520 MiB. Binary: 0.5 MiB and 0.8 MiB.
 

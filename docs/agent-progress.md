@@ -66,6 +66,35 @@ needs per-entry editing. The site gained a Desktop UI section generated from
 `docs/guides/ui` (`website/tools/generate-ui-guides.mjs`), and its errors page
 documents the uncaught report, `RuntimeError` fields and `Checked`.
 
+Hover condensing, same day (owner request: condense every unnecessarily long
+hover, entry by entry): about 250 non-UI entries were rewritten by hand
+(Array, string, JSON/std:json, HTTP, compression, testing and matchers,
+fs/io, bytes, console, Set, schema, threads, path, Object, collections, SQL,
+crypto, process, dns, cache, futures), and the longest UI component and prop
+descriptions in `kit.json` were shortened. Entries over 120 words fell from 319
+to about 110 (mostly `…Props` lists, which enumerate every prop by design);
+total hover text from 152k to 129k words. Clear entries (`typeof`, `parseInt`,
+`Checked`, `Function`, `null`, …) and `Array.of` (pinned by many tests) were
+kept. Code examples and `Expected output` lines are unchanged. The LSP tests pin
+many exact phrases; those facts were folded back into the short text, and two
+console assertions now check the `): void` signature and "Values to print".
+The performance page gained a "Whole program: Tsrust and hand-written Rust"
+section generated from the `lang-compare/*` rows (latest run, unwind default:
+whole process 1.38x of Rust, fib 1.00x).
+
+Runtime rerun under the unwind default (2026-11-18, Rust 1.99.1, 93 samples,
+quiet machine): about 820 workloads in eight batches, ingested and listed in
+`website/tools/performance-runs.json`. Tsrust faster than Node.js on 885 of
+1165 workloads (was 876); median ratios: Arrays 2.17x to 2.31x, JSON and
+schema 0.93x to 1.00x, others within noise. Not measured:
+`caller_borrowed_record_stores`, whose generated Rust fails with E0596 (a
+closure capture passed as `Mutable` is captured shared inside a nested arrow
+function). Released 0.2.1 fails the same way, so it predates this work. A
+reduction also showed union text-join impls conflict (E0119) for aliased
+callable unions, because the `TsrJoinText` loop in `emit/mod.rs` skips
+`Callback`/`Closure`/`StoredCallable`/`Callable` but not `BorrowedCallable`.
+Both are open.
+
 ## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
 
 GPUI comparison fixes (`stdlib/ui/gpui.rs`, `tsrust-ui`): `StyleMemo` shares

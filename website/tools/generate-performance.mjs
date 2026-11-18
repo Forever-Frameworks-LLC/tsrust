@@ -22,7 +22,6 @@ const runsOf = (engine) => new Map(db.prepare('SELECT workload, history FROM mea
 const nativeRuns = runsOf('native');
 const nodeRuns = runsOf('node-tsc');
 const rustRuns = runsOf('rust-hand');
-db.close();
 const selected = new Map();
 const runs = [];
 const selectedNode = new Map();
@@ -199,6 +198,30 @@ const renderStart=cpuSource.indexOf('function render('),renderEnd=cpuSource.inde
 if(renderStart<0||renderEnd<renderStart)throw Error('HTTP render function boundary changed');
 cpuSection+='### The HTTP rendering function\n\n<details>\n<summary>Show the measured rendering function</summary>\n\n'+String.fromCharCode(96).repeat(3)+'tsrust\n'+cpuSource.slice(cpuSource.indexOf('type Output'),cpuSource.indexOf('type Ready')).trim()+'\n\n'+cpuSource.slice(renderStart,renderEnd).trim()+'\n'+String.fromCharCode(96).repeat(3)+'\n\nThe handler parses a JSON tile ID, calls `render(id)` and serializes the returned record. At one connection, its throughput gap is modest; its observed memory and tail-latency differences are reported alongside throughput.\n\n</details>\n\n';
 
+// Whole-program comparison: benchmarks/lang-compare builds one CPU-bound
+// program as hand-written Rust and as Tsrust and times ten phases inside it.
+// The latest run of each engine is published; both use release builds.
+const langRows = db.prepare("SELECT workload, engine, history FROM measurements WHERE workload LIKE 'lang-compare/%' AND engine IN ('rust', 'tsrust')").all();
+const langLatest = new Map();
+for (const row of langRows) {
+  const latest = JSON.parse(row.history).sort((a, b) => a.at.localeCompare(b.at)).at(-1);
+  const phase = row.workload.slice('lang-compare/'.length);
+  langLatest.set(phase, { ...langLatest.get(phase), [row.engine]: latest });
+}
+const langOrder = ['sieve', 'nbody', 'matrix', 'fib', 'text', 'words', 'format', 'orders', 'trees', 'sets', 'process-wall'];
+let langSection = '';
+if (langOrder.every((phase) => langLatest.get(phase)?.rust && langLatest.get(phase)?.tsrust)) {
+  const date = langOrder.map((phase) => langLatest.get(phase).tsrust.at).sort().at(-1).slice(0, 10);
+  const ms = (value) => value >= 1000 ? `${(value / 1000).toFixed(2)} s` : `${value.toFixed(1)} ms`;
+  langSection = `## Whole program: Tsrust and hand-written Rust\n\nOne CPU-bound command-line program written twice, as ordinary Rust and as Tsrust, both built for release with integer overflow checks on. Each phase is timed inside the program and both versions must print identical checksums. Times are medians of ${langLatest.get('fib').tsrust.samples} runs (${date}); a ratio above 1 means Tsrust took longer. Runtime faults unwind by default, so these figures include that support.\n\n| Phase | Rust | Tsrust | Ratio |\n| --- | ---: | ---: | ---: |\n`;
+  for (const phase of langOrder) {
+    const { rust, tsrust } = langLatest.get(phase);
+    langSection += `| ${phase === 'process-wall' ? 'whole process' : phase} | ${ms(rust.ms)} | ${ms(tsrust.ms)} | ${(tsrust.ms / rust.ms).toFixed(2)} |\n`;
+  }
+  langSection += '\nThe program and the phase descriptions are in `benchmarks/lang-compare`.\n\n';
+}
+db.close();
+
 let page = `---
 title: "Performance"
 description: "Measured Tsrust, Node.js and hand-written Rust execution speed."
@@ -250,7 +273,7 @@ page += `Rates are mean operations per second over every timed sample. Each work
 row is one complete workload: input setup, the operations and result retention
 are timed together, so a rate is not the cost of one isolated operation.
 
-${cpuSection}${httpSection}## Method
+${langSection}${cpuSection}${httpSection}## Method
 
 - **Tsrust**: the Tsrust compiler emits Rust, built with the pinned Rust
   toolchain at optimization level 3. That is the Rust compiler's highest speed

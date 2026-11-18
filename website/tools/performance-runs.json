@@ -1,6 +1,6 @@
 {
   "comment": "Curated accepted execution runs from benchmarks/measurements.sqlite. Latest listed timestamp per workload wins; rejected experiments are excluded. Earlier workloads retain their dated baseline.",
-  "rust": "1.96.1",
+  "rust": "1.99.1 (hand-written Rust baselines: 1.96.1)",
   "node": "v24.11.1",
   "typescript": "5.9.3",
   "processes": 3,
@@ -219,7 +219,16 @@
     "2026-11-08T10:38:29.075Z",
     "2026-11-08T12:31:52.855Z",
     "2026-11-08T15:45:57.371Z",
-    "2026-11-08T15:56:53.554Z"
+    "2026-11-08T15:56:53.554Z",
+    "2026-11-18T13:31:30.654Z",
+    "2026-11-18T13:44:55.966Z",
+    "2026-11-18T13:57:51.097Z",
+    "2026-11-18T14:00:37.934Z",
+    "2026-11-18T14:02:24.953Z",
+    "2026-11-18T14:04:41.510Z",
+    "2026-11-18T14:08:15.634Z",
+    "2026-11-18T15:00:10.377Z",
+    "2026-11-18T15:20:13.272Z"
   ],
   "groups": {},
   "machine": {
