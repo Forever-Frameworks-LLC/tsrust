@@ -471,6 +471,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         module_owner_bindings: vec![],
         type_aliases: Default::default(),
         unresolved_bases: Vec::new(),
+        uses_runtime_error: false,
     };
     let mut logging_native=BTreeMap::new();
     let mut closure_id = 0;
@@ -642,6 +643,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             test_initializers.insert(id.clone(),initialization);
         }
         else {linked.module_bindings.extend(program.module_bindings);}
+        linked.uses_runtime_error |= program.uses_runtime_error;
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);
     }
@@ -731,7 +733,7 @@ impl Linker<'_> {
                 } else { self.names.get(base).cloned().unwrap_or_else(|| {
                     if matches!(
                         base,
-                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result"
+                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result" | "#RuntimeError"
                     ) {
                         base.into()
                     } else {

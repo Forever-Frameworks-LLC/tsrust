@@ -436,18 +436,31 @@ main thread); the test had been failing since then.
 
 ### Phase 3: `Checked<T>` and `Checked<T, E>`
 
-- [ ] 3.1 Type and positions exactly as in the specification above, with
+- [x] 3.1 Type and positions exactly as in the specification above, with
       diagnostics for every disallowed position; public `RuntimeError` type.
-- [ ] 3.2 Body semantics as specified (return `T`, faults and `throw E`
+      `syntax/checked_lowering.rs` rewrites tokens before parsing; `RuntimeError`
+      lowers to the internal `#RuntimeError` record (unless the module declares
+      its own), which analysis materializes before annotations resolve and the
+      linker leaves unqualified. Diagnostics use code `checked`.
+- [x] 3.2 Body semantics as specified (return `T`, faults and `throw E`
       become `Err`, other explicit errors are compile errors).
-- [ ] 3.3 Interop: `unwrap`, `match`, `try/catch`, generics, function types
+      The body runs in a generated `try`; its own `return v` becomes
+      `return Ok(v)` (nested functions, arrows and match arms are told apart),
+      `Checked<void>` ends with `return Ok()`, and the catch returns
+      `Err(failure)`. An unlisted error reports `Expected RuntimeError | E,
+      found ...` with a hint to extend `E`.
+- [x] 3.3 Interop: `unwrap`, `match`, `try/catch`, generics, function types
       returning `Checked`, `Task<Checked<T, E>>`.
-- [ ] 3.4 IntelliSense: complete `builtins.json` entry (purpose, parameters,
+      Covered by the suite's interop test. Existing limitation, unchanged by
+      `Checked`: a `try` (and so a `Checked` body) around a call of a callback
+      parameter needs that callback's error contract resolved; match on a
+      `Checked` callback's result instead, as the suite does.
+- [x] 3.4 IntelliSense: complete `builtins.json` entry (purpose, parameters,
       errors, verified example, short ownership note), hover, completion and
       signature help consistent.
-- [ ] 3.5 Docs: error-handling guide section on faults vs errors and when to
+- [x] 3.5 Docs: error-handling guide section on faults vs errors and when to
       use `Checked`.
-- [ ] 3.6 Tests: one `std:testing` suite covering local faults, callee faults,
+- [x] 3.6 Tests: one `std:testing` suite covering local faults, callee faults,
       `E` alternatives, async, callbacks and nesting.
 
 ### Phase 4: value mode kept

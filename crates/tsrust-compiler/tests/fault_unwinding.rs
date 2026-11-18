@@ -34,3 +34,52 @@ fn capacity_limits_raise_catchable_range_error_faults() {
     assert_eq!(traced.status.code(), Some(1));
     assert!(String::from_utf8(traced.stderr).unwrap().contains("native backtrace:\n"));
 }
+
+#[test]
+fn checked_results_catch_faults_and_listed_errors_in_both_modes() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for mode in ["unwind", "value"] {
+        let output = support::run(
+            support::cli().current_dir(&root).env("TSRUST_FAULT_MODE", mode).env("TSRUST_COLOR", "never").env("TSRUST_TEST_REPORTER", "plain")
+                .args(["test", "crates/tsrust-compiler/tests/fixtures/checked/checked.test.tsr"]),
+            600,
+        );
+        support::success(&output);
+        assert!(String::from_utf8(output.stdout).unwrap().ends_with("8 passed, 0 failed, 0 skipped\n"), "{mode}");
+    }
+}
+
+#[test]
+fn checked_positions_and_error_types_are_diagnosed() {
+    for (source, message) in [
+        ("function f(x: Checked<int>): int { return 1; } function main(){}", "Checked is only allowed as a function's declared result type"),
+        ("function main(): Checked<void> {}", "main cannot return Checked"),
+        ("function f(): Checked<Checked<int>> { return 1; } function main(){}", "Checked cannot be nested"),
+        ("function main(){ const x: Checked<int> = 1; }", "Checked is only allowed as a function's declared result type"),
+        ("function f(): Checked<int, string, int> { return 1; } function main(){}", "Checked takes a result type and an optional error type"),
+        ("function p(a: int): Checked<int> { if (a < 0) { throw 'neg'; } return a; } function main(){ console.log(p(1)); }", "Expected RuntimeError, found string. A Checked function fails with RuntimeError or its second type argument"),
+    ] {
+        let error = tsrust_compiler::check(source).err().unwrap_or_else(|| panic!("accepted: {source}"));
+        assert_eq!(error.code, "checked", "{source}");
+        assert!(error.message.starts_with(message), "{}", error.message);
+    }
+    let accepted = "type F = Function<Checked<int>>; type RuntimeError = { a: int }; function f(): RuntimeError { return { a: 1 }; } function main(){ console.log(f().a); }";
+    assert!(tsrust_compiler::check(accepted).is_ok());
+}
+
+#[test]
+fn checked_and_runtime_error_catalog_examples_match_native_output() {
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+    for name in ["Checked", "RuntimeError"] {
+        let entry = catalog["globals"].as_array().unwrap().iter().find(|entry| entry["name"] == name).unwrap();
+        for example in entry["examples"].as_array().unwrap() {
+            for mode in ["unwind", "value"] {
+                let directory = support::TempDirectory::new();
+                let path = directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+                let output = support::run(support::cli().env("TSRUST_FAULT_MODE", mode).arg("run").arg(path), 300);
+                support::success(&output);
+                assert_eq!(String::from_utf8(output.stdout).unwrap(), example["output"].as_str().unwrap(), "{name} {mode}");
+            }
+        }
+    }
+}

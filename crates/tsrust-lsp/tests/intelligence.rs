@@ -900,6 +900,11 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     }
                     continue;
                 }
+                // Checked is witnessed as a declared result, RuntimeError inside it.
+                if matches!(method, "Checked" | "RuntimeError") {
+                    assert!(tsrust_compiler::check("function parse(): Checked<int, RuntimeError> { return 1; } function main() { console.log(unwrap(parse())); }").is_ok(), "{method}");
+                    continue;
+                }
                 // Built-in function and access types are witnessed in type position.
                 let type_witness = match method {
                     "Function" => Some("Function<int, [int]>"),

@@ -24,6 +24,58 @@ This is a design direction, not an implemented guarantee. Error types, propagati
 
 [Milestone 12](../../milestones/12-scalar-operators.md) provisionally makes integer overflow and division/remainder errors fatal runtime failures. Generated checked operations report the operator’s source byte range, independent of backend optimization settings. This does not implement recoverable errors, exceptions, or a general panic/cleanup contract.
 
+## Faults, errors and `Checked` (2026-11-18)
+
+Tsrust separates two kinds of failure. The full design and its decisions are in
+[the fault-unwinding plan](../../plans/fault-unwinding.md).
+
+**Errors** are expected outcomes that a caller should handle: `throw`, a
+`Result` returned by a library call, and `unwrap` of an `Err`. They stay
+ordinary values. A function's possible errors are part of its type, `catch`
+receives them, and their cost is visible where they are used.
+
+**Faults** are failures in operations that should not fail: integer
+overflow, an index out of range, a failed non-null assertion, a length or
+allocation limit. A fault carries a `RuntimeError` (`name`, `code`, `message`,
+`source`, `start`, `end`, `line`, `column`). Inside a `try` it is caught like
+any error. Elsewhere it ends the program with one report, whatever `main`
+looks like:
+
+```text
+Uncaught RangeError: integer multiplication overflow at source bytes 85..86
+    at src/main.tsr:3:16
+```
+
+and exit status 1. With `RUST_BACKTRACE=1` the report adds a native
+backtrace. Threads, tasks, HTTP handlers, UI callbacks and tests are
+boundaries: a fault there is delivered as that boundary's failure (a
+`ThreadError` with code `worker`, an HTTP 500, a failed test), and a detached
+thread prints it as `in a detached thread`.
+
+**`Checked<T, E>`** marks a function as a place where failures are handled.
+Its body is written as usual and returns `T`; a fault in the body or in
+anything it calls, or a thrown `E`, becomes the error side of its
+`Result<T, RuntimeError | E>`:
+
+```tsrust
+function parse(text: string): Checked<int, string> {
+  if (text.length === 0) {
+    throw 'empty';
+  }
+  return text.length * 4611686018427387904;
+}
+```
+
+`E` lists the explicit errors the body may throw or pass on with `unwrap`; an
+unlisted one is a compile error. Async functions write
+`Task<Checked<T, E>>`. Use `Checked` at the edges where recovery makes sense
+(request handlers, input parsing, retries); elsewhere ordinary functions carry
+no error bookkeeping for faults, which keeps hot code as fast as plain Rust.
+
+Under the hood, faults either travel as values (`TSRUST_FAULT_MODE=value`,
+the default until the plan's rollout step) or unwind to the nearest catch
+point (`unwind`). Programs behave the same in both modes; only speed differs.
+
 ## Original vision sections
 
 The sections below retain the original wording and examples. Their proposals and open questions remain proposals and open questions. Section IDs identify the original document family; they do not define implementation order.

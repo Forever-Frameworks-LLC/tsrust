@@ -158,7 +158,7 @@ impl Emitter<'_> {
         let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
         let error = match handle.ty { Some(Type::Record(id)) => self.program.records[id].application.as_ref().and_then(|application| application.resolved_arguments.get(1).copied()), _ => None };
         let (Some(runtime @ Type::Record(_)), Some(error)) = (runtime, error) else { return format!("tsrust_native_threads::detach({value})"); };
-        let text = "Some(std::format!(\"Uncaught {}: {} in a detached thread\\n    at {}:{}:{}\\n\",payload.field0.as_ref() as &str,payload.field2.as_ref() as &str,payload.field3.as_ref() as &str,payload.field6,payload.field7))";
+        let text = "Some(if payload.field6==0 {std::format!(\"Uncaught {}: {} in a detached thread\\n\",payload.field0.as_ref() as &str,payload.field2.as_ref() as &str)} else {std::format!(\"Uncaught {}: {} in a detached thread\\n    at {}:{}:{}\\n\",payload.field0.as_ref() as &str,payload.field2.as_ref() as &str,payload.field3.as_ref() as &str,payload.field6,payload.field7)})";
         let report = if error == runtime {
             format!("|payload: &{}| {text}", self.native_type(runtime))
         } else if let Type::Union(union) = error && let Some(tag) = self.program.unions[union.index()].members.iter().position(|member| *member == runtime) {

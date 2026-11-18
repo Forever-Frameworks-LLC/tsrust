@@ -6075,6 +6075,33 @@
           "output": "42\n"
         }
       ]
+    },
+    {
+      "name": "Checked",
+      "signature": "type Checked<T, E = never>",
+      "parameters": [
+        "T",
+        "E"
+      ],
+      "documentation": "Declares that a function catches every failure in its own body and returns it as a value.\n\nWrite `Checked<T>` or `Checked<T, E>` as a function's declared result. Inside, the function is written as usual: `return value` returns a `T`. A runtime fault (integer overflow, an index out of range, a failed assertion, a length limit) anywhere in the body or in a function it calls, or a `throw` of an `E`, ends the call with an error instead of ending the program. Callers receive `Result<T, RuntimeError | E>` and use it with `match`, `unwrap` or `try`/`catch` like any other `Result`.\n\n`T` is the success type; `Checked<void>` functions return `Ok()` when they finish. `E` is optional and lists the explicit errors the body may throw or pass on with `unwrap`; `RuntimeError` is always included.\n\n```tsrust\nfunction parse(text: string): Checked<int, string> {\n  if (text.length === 0) {\n    throw 'empty';\n  }\n\n  return text.length * 4611686018427387904;\n}\n// parse('a') is Ok(4611686018427387904)\n// parse('') is Err('empty')\n// parse('ab') is Err with a RuntimeError: integer multiplication overflow\n```\n\nAsync functions declare `Task<Checked<T, E>>`. A function type may return `Checked<T, E>`, as in `Function<Checked<int>>`. A body that can throw or unwrap an error not listed in `E` is a `checked` error naming the missing type. `Checked` is rejected on `main`, on parameters, fields and variables, and inside another `Checked`.\n\nUse it at the edges where a failure should be handled: request handlers, input parsing, a retry loop. Elsewhere, faults end the program with a report, and ordinary calls carry no error bookkeeping.\n\nOwnership: no values are copied. The success value and the error move to the caller; values owned by the body are released when it fails.",
+      "examples": [
+        {
+          "source": "function parse(text: string): Checked<int, string> {\n  if (text.length === 0) {\n    throw 'empty';\n  }\n  return text.length * 4611686018427387904;\n}\n\nfunction main() {\n  for (const text of ['a', '', 'ab']) {\n    match (parse(text)) {\n      Ok(value) => console.log(value),\n      Err(_) => console.log('failed'),\n    }\n  }\n}\n",
+          "output": "4611686018427387904\nfailed\nfailed\n"
+        }
+      ]
+    },
+    {
+      "name": "RuntimeError",
+      "signature": "type RuntimeError = { name: string; code: string; message: string; source: string; start: int; end: int; line: int; column: int }",
+      "parameters": [],
+      "documentation": "The error value of a runtime fault, as received by `catch` and by the error side of a `Checked` result.\n\n- `name`: the error class, such as `RangeError` for overflow and length limits or `TypeError` for a failed non-null assertion.\n- `code`: a short stable identifier, such as `overflow`, `bounds` or `capacity`.\n- `message`: the description, ending with `at source bytes A..B`.\n- `source`: the path of the file that faulted.\n- `start`, `end`: byte offsets of the failing expression in that file.\n- `line`, `column`: its 1-based position (columns count UTF-16 code units).\n\n```tsrust\nfunction scale(value: int): Checked<int> {\n  return value * 4611686018427387904;\n}\n// scale(2) fails with name 'RangeError', code 'overflow', line 2, column 16\n```\n\nA module that declares its own `RuntimeError` type uses that declaration instead.\n\nOwnership: the record owns its strings; matching or catching it moves it to the handler.",
+      "examples": [
+        {
+          "source": "function scale(value: int): Checked<int> {\n  return value * 4611686018427387904;\n}\n\nfunction main() {\n  match (scale(2)) {\n    Ok(value) => console.log(value),\n    Err(error) => console.log(error.name, error.code, error.line, error.column),\n  }\n}\n",
+          "output": "RangeError overflow 2 16\n"
+        }
+      ]
     }
   ],
   "ArrayConstructor": [

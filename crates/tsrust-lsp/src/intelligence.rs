@@ -629,7 +629,8 @@ impl SourceIndex {
         self.public_record_aliases.get(record).filter(|(_,arity)|self.generic_parameters.get(record).map_or(0,Vec::len)==*arity).map(|(name,_)|name.clone())
     }
     fn display_type(&self, ty: &str) -> String {
-        let mut display = ty.to_owned();
+        // The fault record is written `RuntimeError` in source.
+        let mut display = ty.replace("#RuntimeError", "RuntimeError");
         // Global JSON calls and task scheduling introduce native types without a source import
         // whose alias would otherwise supply their public display names.
         use tsrust_compiler::native_signatures::NativeTypeId;
@@ -3736,6 +3737,8 @@ impl SourceIndex {
             "ReadOnly",
             "Once",
             "Owned",
+            "Checked",
+            "RuntimeError",
             "int",
             "number",
             "string",
@@ -4183,6 +4186,8 @@ fn remap_imported_type(
                         | "ReadOnly"
                         | "Once"
                         | "Owned"
+                        | "Checked"
+                        | "RuntimeError"
                         | "Set"
                         | "Map"
                         | "Result"

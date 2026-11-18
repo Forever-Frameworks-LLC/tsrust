@@ -1680,6 +1680,11 @@ impl Analyzer {
         }
         let unions = crate::unions::UnionArena::default();
         let mut callables = crate::callable_resolution::Tables::default();
+        // `RuntimeError` (lowered to `#RuntimeError`) names the record that
+        // `catch` receives for faults; it must exist before annotations resolve.
+        if program.uses_runtime_error && !program.records.iter().any(|record| record.name.text == "#RuntimeError") {
+            program.records.push(crate::error_effects::runtime_error_schema());
+        }
         let mut generic_records = crate::generic_records::specialize_in(&mut program, &unions, &mut callables)?;
         let mut record_names = HashMap::new();
         let mut function_names = HashMap::new();
@@ -2635,6 +2640,8 @@ impl Analyzer {
         match &record.application {
             Some(application) if !application.resolved_arguments.is_empty() => format!("{}<{}>", native_name.unwrap_or(&application.declaration.text),
                 application.resolved_arguments.iter().map(|argument| self.type_name(*argument).into_owned()).collect::<Vec<_>>().join(", ")).into(),
+            // The fault record is written `RuntimeError` in source.
+            _ if record.name.kind==TokenKind::Symbol && record.name.text=="#RuntimeError" => "RuntimeError".into(),
             _ => native_name.unwrap_or(&record.name.text).into(),
         }
     }

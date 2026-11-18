@@ -2704,7 +2704,7 @@ impl Emitter<'_> {
         let mut arms=String::new();
         for (tag,ty) in payloads.into_iter().enumerate() {
             let report=if Some(ty)==runtime {
-                "tsr_console_write(true,&std::format!(\"Uncaught {}: {}\\n    at {}:{}:{}\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field6,payload.field7));".to_owned()
+                "tsr_console_write(true,&if payload.field6==0 {std::format!(\"Uncaught {}: {}\\n\",payload.field0.as_ref(),payload.field2.as_ref())} else {std::format!(\"Uncaught {}: {}\\n    at {}:{}:{}\\n\",payload.field0.as_ref(),payload.field2.as_ref(),payload.field3.as_ref(),payload.field6,payload.field7)});".to_owned()
             } else if matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::CacheInsertError)) {
                 // Rejected inputs may contain opaque resources; report the stable code without inspecting them.
                 "tsr_console_write(true,&std::format!(\"Uncaught CacheInsertError: {}\\n\",payload.field0.as_ref()));".to_owned()
