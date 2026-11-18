@@ -42,8 +42,12 @@ fn runtime_error_names(tokens: &mut [Token]) {
     if declared {
         return;
     }
-    for token in tokens.iter_mut().filter(|token| is_name(token, "RuntimeError")) {
-        token.text = "#RuntimeError".into();
+    // Member names (`value.RuntimeError`) stay ordinary fields.
+    for index in 0..tokens.len() {
+        let member = index > 0 && matches!(tokens[index - 1].text.as_str(), "." | "?.") && tokens[index - 1].kind == TokenKind::Symbol;
+        if is_name(&tokens[index], "RuntimeError") && !member {
+            tokens[index].text = "#RuntimeError".into();
+        }
     }
 }
 
