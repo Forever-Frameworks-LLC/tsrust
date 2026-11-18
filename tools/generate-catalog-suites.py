@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # Examples that print from a spawned thread: output capture follows the test's
 # own thread, so these stay with the threads host tests.
 OTHER_THREAD_OUTPUT = {"std:threads.Channel #0"}
-HEADER = "import { test as catalogTest, strictEqual as catalogEqual, startOutputCapture as catalogStart, finishOutputCapture as catalogFinish } from 'std:testing';\n"
+# The import shares the example's first line, so reported source lines match the example.
+HEADER = "import { test as catalogTest, strictEqual as catalogEqual, startOutputCapture as catalogStart, finishOutputCapture as catalogFinish } from 'std:testing'; "
 
 
 def split_types(snippet):
