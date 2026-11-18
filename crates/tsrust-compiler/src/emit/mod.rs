@@ -3592,6 +3592,9 @@ impl Emitter<'_> {
         if split_support {
             output.push_str(crate::runtime::STRING_SPLIT);
         }
+        if output.contains("tsr_split_parts(") {
+            output.push_str(crate::runtime::STRING_SPLIT_PIECES);
+        }
         if literal_support {
             output.push_str(crate::runtime::LITERAL_STRING_ARRAYS);
         }

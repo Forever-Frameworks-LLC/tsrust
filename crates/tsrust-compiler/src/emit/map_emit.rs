@@ -149,7 +149,12 @@ impl Emitter<'_> {
         // binding it later changes no observable order.
         let mut arguments_first=String::new();
         let mut action=String::new();
-        if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(if mode==Mode::Mutate{&mut arguments_first}else{&mut action},"let map_key={key};");}
+        // `m.set(clone(name), value)` with a string key clones the key only when it is new.
+        let cloned_key=(method==MapMethod::Set && !ordered && map.key==Type::String).then(||arguments.first()).flatten()
+            .filter(|key|key.target==Some(CallTarget::Clone))
+            .and_then(|key|match &key.kind {ExprKind::Call(_,inner)=>inner.first().filter(|name|matches!(name.kind,ExprKind::Name(_))&&name.binding.is_some()),_=>None});
+        if let Some(source)=cloned_key {let source=self.expr(function,source,Mode::Read);let _=write!(arguments_first,"let map_key: &String={source};");}
+        else if let Some(key)=arguments.first() {let key=self.expr(function,key,if method==MapMethod::Set{Mode::Consume}else{Mode::Read});let _=write!(if mode==Mode::Mutate{&mut arguments_first}else{&mut action},"let map_key={key};");}
         match method {
             MapMethod::Set=>{
                 let mut root=base.as_ref();
@@ -164,6 +169,7 @@ impl Emitter<'_> {
                 }else{self.expr(function,&arguments[1],Mode::Consume)};
                 let _=write!(arguments_first,"let map_value={value};");
                 if ordered {action.push_str("let _=map_receiver.insert(TsrOrdered::new(map_key),map_value);");}
+                else if cloned_key.is_some() {action.push_str("map_receiver.set_cloned(map_key,map_value)");}
                 else {action.push_str("map_receiver.set(map_key,map_value)");}
             },
             MapMethod::Has=>action.push_str(&if ordered{format!("map_receiver.contains_{query_suffix}(map_key)")}else{"map_receiver.has(map_key)".into()}),

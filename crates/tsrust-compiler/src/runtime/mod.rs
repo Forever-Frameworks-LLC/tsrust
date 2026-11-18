@@ -31,6 +31,32 @@ pub(crate) const STRING_ARRAY_JOIN: &str = include_str!("string_array_join.rs");
 pub(crate) const MATH_EXACT: &str = include_str!("math.rs");
 pub(crate) const NUMBER_TIE: &str = include_str!("number_tie.rs");
 
+/// `for (const piece of text.split(separator))` reads each piece once, so it walks the
+/// pieces without building an array: static text lends its slices, and owned text
+/// copies each piece into one reused buffer.
+pub(crate) const STRING_SPLIT_PIECES: &str = r#"
+fn tsr_split_parts<'a>(text: &'a String, separator: &'a String) -> impl Iterator<Item = &'a str> + 'a {
+    let text: &'a str = text.as_ref();
+    let separator: &'a str = separator.as_ref();
+    let characters = separator.is_empty();
+    text.char_indices().filter(move |_| characters).map(move |(start, scalar)| &text[start..start + scalar.len_utf8()])
+        .chain(text.split(separator).filter(move |_| !characters))
+}
+fn tsr_split_piece<'b>(buffer: &'b mut String, text: &String, part: &str) -> &'b String {
+    match text {
+        String::Borrowed(text) => {
+            let start = part.as_ptr() as usize - text.as_ptr() as usize;
+            *buffer = String::Borrowed(&text[start..start + part.len()]);
+        }
+        String::Owned(_) => match buffer {
+            String::Owned(owned) => { owned.clear(); owned.push_str(part); }
+            String::Borrowed(_) => *buffer = String::Owned(part.to_owned()),
+        },
+    }
+    buffer
+}
+"#;
+
 // A split result needs ordinary owning array support; gate this separately from
 // scalar string operations so unrelated string programs do not acquire arrays.
 pub(crate) const STRING_SPLIT: &str = r#"

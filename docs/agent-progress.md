@@ -34,6 +34,19 @@ arguments, so `m.set(k, (m.get(k) ?? 0) + 1)` failed in rustc
 (`emit/map_emit.rs`; witness in `tests/fixtures/maps/values.tsr`).
 `tsrust build` without `--release` is opt-level 0; compare only release builds.
 
+Follow-up, same day: Map/Set use one open-addressing index (`TsrSetBuckets`
+in `runtime/sets.rs`, hash beside slot index, tombstones, 7/8 load), hash each
+key once per operation, and hash numbers without a tag; `Map.set(clone(name),
+v)` with string keys lowers to `set_cloned`; `for (const p of s.split(sep))`
+walks pieces through `tsr_split_parts`/`tsr_split_piece`
+(`emit/iteration_emit.rs`, witness in `tests/string_split.rs`). words 2.2x
+(was 4.0x), sets 2.0x (was 2.6x), RSS 379 MiB (was 520). Found and fixed: the
+crate split declared generic functions and generic closure bodies `extern`,
+which rustc rejects (E0044); `set_for_each`, `caller_borrowed_callback_replacement`
+and two other callback suites failed on HEAD. Such items now stay beside their
+users (`native/crate_split.rs`, `type_parameters`). Passed: 32 generic/callback
+suites, Map/Set/collections/split suites, `ui_authoring`, crate_split units.
+
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
 `benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with

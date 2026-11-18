@@ -100,15 +100,31 @@ reproductions of the generated code's shape.
   without allocating, so pushing vocabulary words copies nothing; the Rust
   version allocates a `String` per word.
 
+## After the first fixes (2026-11-17)
+
+Map and Set now share one open-addressing index that stores each hash beside
+its slot index, hash each key once per operation, and hash numbers without a
+type tag. `m.set(clone(name), value)` with a string key clones only when the
+key is new, and `for (const piece of text.split(separator))` walks the pieces
+without building an array (owned text reuses one buffer). Release medians:
+
+| Phase | Before | After | Rust |
+|---|---:|---:|---:|
+| words | 248.4 ms (4.0x) | 137.8 ms (2.2x) | 62.8 ms |
+| sets | 332.6 ms (2.6x) | 263.4 ms (2.0x) | 133.7 ms |
+| whole process | 2.94 s | 2.81 s | 1.94 s |
+| peak memory | 520 MiB | 379 MiB | 256 MiB |
+
+Other phases are unchanged within noise. Words still hashes each word twice
+(`get` then `set`); sets still hashes twice for `has` then `add`.
+
 ## Possible fixes, by expected gain
 
-1. Lazy borrowed `split` in `for ... of` loops, and a borrowed-key path for
-   `Map.set`/`get` when the key already exists (words).
-2. A single-table ordered `Map`/`Set` storing hashes next to indices, number
-   keys hashed without the tag, and reuse of the last query's hash for
-   `has`/`add` pairs (sets, words, orders).
-3. A sized array constructor (`new Array<T>(n).fill(x)` or `Array.from`
+1. Done: borrowed `split` iteration, `set_cloned`, the single index table and
+   untagged number hashes (see above). Still open: reusing the last query's
+   hash for `get`/`set` and `has`/`add` pairs (sets, words).
+2. A sized array constructor (`new Array<T>(n).fill(x)` or `Array.from`
    with a length), and a hoisted slice for index loops over one array
    (sieve, matrix, nbody).
-4. Sorting records in place when the comparator cannot throw (orders).
-5. No-throw analysis for small pure functions such as `fib` (calls).
+3. Sorting records in place when the comparator cannot throw (orders).
+4. No-throw analysis for small pure functions such as `fib` (calls).
